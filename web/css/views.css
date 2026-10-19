@@ -101,13 +101,17 @@
 .ep-card > .ep-note { margin: 0 var(--s3) var(--s3); }
 .ep-note { margin: 0; font-size: var(--fs-xs); color: var(--muted); }
 .ep-trace { justify-self: start; }
-.ep-events { display: grid; gap: var(--s2); }
+.ep-events { display: grid; gap: var(--s3); }
 .ep-events-title { display: flex; gap: var(--s2); align-items: baseline; font-size: var(--fs-sm); margin: var(--s2) 0 0; }
 .ep-event > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: var(--s2); padding: var(--s2) var(--s3); }
 .ep-event > summary::-webkit-details-marker { display: none; }
 .ep-event > summary::before { content: '▸'; color: var(--muted); font-size: 11px; }
 .ep-event[open] > summary::before { content: '▾'; }
-.ep-event[open] > summary { border-bottom: 1px solid var(--line); }
+.ep-event { border-color: var(--line-strong); }
+.ep-event > summary { background: var(--accent-soft); }
+.ep-event:has(.pill.bad) > summary { background: color-mix(in srgb, var(--bad) 10%, var(--surface)); }
+.ep-event:has(.pill.warn) > summary { background: color-mix(in srgb, var(--warn) 12%, var(--surface)); }
+.ep-event[open] > summary { border-bottom: 1px solid var(--line-strong); }
 .ep-event-name { font-family: var(--mono); font-weight: 600; font-size: var(--fs-sm); }
 .ep-event > * + * { margin-top: 0; }
 .ep-pad { padding: var(--s2) var(--s3); }

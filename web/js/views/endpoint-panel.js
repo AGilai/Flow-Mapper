@@ -61,10 +61,10 @@ const STATUS = {
 };
 
 function eventsSection(info, env) {
-  const open = info.events.length <= 3;
+  const open = info.events.length === 1; // several types: collapsed cards, one header each
   return h('section.ep-events',
     h('h3.ep-events-title', 'Event types', h('span.muted', String(info.events.length))),
-    info.events.map((e) => eventCard(e, info, env, open || e.status !== 'ok')));
+    info.events.map((e) => eventCard(e, info, env, open)));
 }
 
 function eventCard(e, info, env, open) {
