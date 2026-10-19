@@ -14,8 +14,8 @@ All endpoints are JSON unless noted. Errors look like
 Responses: `201 {results: [{env, service, fromVersion, toVersion, changes, changelogId, contract}]}`;
 a dry run returns `200 {dryRun: true, results: [...]}` with the same result shape (nothing written).
 
-`contract` reports what the manifest leaves out or cannot link, judged against the env as it would be
-after the write. It never rejects:
+A batch (`{"manifests": [...]}`) is one transaction: if any manifest is invalid or stale, the whole batch is rejected and nothing is written (a dry run likewise writes nothing). `contract` reports what the manifest leaves out or cannot link, judged against the env as it would be
+after the whole batch. It never rejects:
 
 ```json
 {"errors": 0, "warnings": 1, "infos": 1, "findings": [

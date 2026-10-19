@@ -35,12 +35,12 @@ curl -sS -X POST "$FLOW/api/ingest"          -H 'content-type: application/json'
 
 **Contract report.** Every ingest result (dry or real) has `contract: {errors, warnings, infos,
 findings}`; each finding is `{level, code, service, kind, id, message, fix}`. It never rejects
-anything. Fix `error`s, read `warn`s, `info` is for completeness.
+anything. There are currently no `error`-level codes (422 rejections come from validation, above); read the `warn`s, `info` is for completeness. A batch (`{"manifests": [...]}`) is applied in one transaction: all or nothing, and each contract is judged against the env after the whole batch.
 
 | Code | Level | Means | Fix |
 |---|---|---|---|
-| `missing-bindkey-unexplained` | error | ingress/egress without `bindKey`, or step without `target`, and no `unresolved` | send the key, or `unresolved: [{what: "target", reason}]` |
-| `unresolved-no-reason` | warn | an `unresolved` entry with an empty `reason` or `detail` | say why and what you could not resolve |
+| `unresolved-no-detail` | warn | an `unresolved` entry with an empty `detail` (or blank `reason`) | say what you could not resolve |
+| `binding-empty-events` | warn | subscription with `events: []`: delivers nothing | send the types it lets through, or omit `events` |
 | `missing-source` | info | ingress/egress without `source.file`, or steps of a function without `file` (one finding per service) | send `source: {file, line}`, and `file` on functions |
 | `binding-no-events` | info | SNS/EventBridge subscription without `events`: everything is delivered | send the filter policy as `events`, or `"*"` |
 | `egress-no-events` | warn | publish to a topic/bus without `events` (or event `unresolved`): subscriber filters cannot be applied | send `events`, or `unresolved` what `event` with `candidates` |
@@ -250,8 +250,8 @@ Which DTO roles an endpoint takes depends on what it is; others are rejected (40
 
 ## Done when
 
-- `POST /api/ingest?dryRun=1` returns 200 for your manifest, and its `contract` has no `error`
-  findings (and you have read the `warn`s).
+- `POST /api/ingest?dryRun=1` returns 200 for your manifest, and you have read the `warn`s in its
+  `contract`.
 - After sending, `GET /api/envs/{env}/health` shows none of your egress under "calls with no
   match" (`items.dangling`) unless the target really is not harvested yet, and none of your
   ingress under "never called" (`items.orphans`) unless it is public (mark it `entryPoint`).

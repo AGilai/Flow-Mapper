@@ -26,26 +26,14 @@ export interface ServiceManifest {
 interface Ctx { m: ServiceManifest; g: GraphIndex; add: (f: Omit<Finding, 'service'>) => void }
 type Rule = (c: Ctx) => void;
 
-const hasTarget = (x: { unresolved?: Unresolved[] }) => !!x.unresolved?.some((u) => u.what === 'target');
 const blank = (s: string | undefined) => s !== undefined && !s.trim();
 const sample = (ids: string[]) => ids.slice(0, 3).join(', ') + (ids.length > 3 ? `, +${ids.length - 3} more` : '');
 const FANOUT = new Set(['sns-topic', 'eventbridge-bus']);
 
-const missingBindKey: Rule = ({ m, add }) => {
-  const miss = (kind: 'ingress' | 'egress' | 'step', id: string) => add({
-    level: 'error', code: 'missing-bindkey-unexplained', kind, id,
-    message: `${kind} '${id}' has no ${kind === 'step' ? 'target' : 'bindKey'} and no unresolved entry saying why`,
-    fix: `Send the ${kind === 'step' ? 'target' : 'bindKey'}, or add unresolved: [{what: "target", reason: "<why>"}] to this ${kind}.`,
-  });
-  for (const i of m.ingress ?? []) if (!i.bindKey && !hasTarget(i)) miss('ingress', i.id);
-  for (const e of m.egress ?? []) if (!e.bindKey && !hasTarget(e)) miss('egress', e.id);
-  for (const f of m.functions ?? []) for (const s of f.steps ?? []) if (!s.target && !hasTarget(s)) miss('step', `${f.id}#${s.seq}`);
-};
-
-const unresolvedNoReason: Rule = ({ m, add }) => {
+const unresolvedNoDetail: Rule = ({ m, add }) => {
   const check = (kind: 'ingress' | 'egress' | 'step', id: string, list?: Unresolved[]) => {
     for (const u of list ?? []) if (blank(u.reason) || blank(u.detail)) add({
-      level: 'warn', code: 'unresolved-no-reason', kind, id,
+      level: 'warn', code: 'unresolved-no-detail', kind, id,
       message: `${kind} '${id}' has an unresolved (${u.what}) entry with an empty ${blank(u.reason) ? 'reason' : 'detail'}`,
       fix: 'Fill reason with a short code (e.g. dynamic_dispatch) and detail with the expression you could not resolve.',
     });
@@ -78,6 +66,14 @@ const bindingNoEvents: Rule = ({ m, g, add }) => {
       fix: `Send events: ["TypeA", ...] from the subscription's filter policy or rule pattern, or events: "*" if it really takes everything.`,
     });
   }
+};
+
+const bindingEmptyEvents: Rule = ({ m, add }) => {
+  for (const b of m.bindings ?? []) if (Array.isArray(b.events) && !b.events.length) add({
+    level: 'warn', code: 'binding-empty-events', kind: 'binding', id: b.id,
+    message: `subscription '${b.id}' has events: [], which delivers nothing`,
+    fix: 'Send the event types the subscription lets through, or omit events (or send "*") if it takes everything.',
+  });
 };
 
 const egressNoEvents: Rule = ({ m, g, add }) => {
@@ -127,7 +123,7 @@ const harvestQuality: Rule = ({ m, g, add }) => {
   });
 };
 
-export const RULES: Rule[] = [missingBindKey, unresolvedNoReason, missingSource, bindingNoEvents, egressNoEvents, dangling, filterMatchesNothing, harvestQuality];
+export const RULES: Rule[] = [unresolvedNoDetail, missingSource, bindingNoEvents, bindingEmptyEvents, egressNoEvents, dangling, filterMatchesNothing, harvestQuality];
 
 /** `m`: the service's entities as stored; `g`: the env's index after applying them. */
 export function contractReport(m: ServiceManifest, g: GraphIndex): ContractReport {

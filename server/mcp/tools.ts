@@ -80,8 +80,14 @@ export const TOOLS: Tool[] = [
   },
   {
     name: 'ingest_manifest', description: 'Submit a harvester manifest (kind full or delta). See schema/manifest.schema.json. The result has a `contract` report (what the manifest leaves out or cannot link, with a fix per finding). dryRun: true validates and reports without writing.',
-    inputSchema: obj({ manifest: { type: 'object' }, dryRun: { type: 'boolean' } }, ['manifest']),
-    run: (c, a) => { const r = store.ingest(c.db, a.manifest, 'mcp', { dryRun: !!a.dryRun }); if (!a.dryRun) c.changed(r.env); return a.dryRun ? { dryRun: true, ...r } : r; },
+    inputSchema: obj({ manifest: { type: 'object' }, manifests: { type: 'array', items: { type: 'object' }, description: 'Several manifests, applied together: all or nothing' }, dryRun: { type: 'boolean' } }),
+    run: (c, a) => {
+      if (!a.manifest && !a.manifests) throw new HttpError(400, 'BAD_REQUEST', 'send manifest or manifests');
+      const rs = store.ingestBatch(c.db, a.manifests ?? [a.manifest], 'mcp', { dryRun: !!a.dryRun });
+      if (!a.dryRun) new Set(rs.map((r) => r.env)).forEach((e) => c.changed(e));
+      const out = a.manifests ? { results: rs } : rs[0];
+      return a.dryRun ? { dryRun: true, ...out } : out;
+    },
   },
   {
     name: 'upsert_entity', description: `Create or replace one entity of a service. list: ${LISTS.join(', ')}.`,

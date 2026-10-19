@@ -24,17 +24,9 @@ test('a clean manifest has no findings', () => {
   assert.deepEqual(r, { errors: 0, warnings: 0, infos: 0, findings: [] });
 });
 
-test('missing bind key / target without an explanation is an error; an unresolved target explains it', () => {
-  const bad: ServiceManifest = { service: 'a', ingress: [{ id: 'i', source: src }], egress: [{ id: 'e', transport: 'http', source: src }], functions: [{ id: 'f', file: 'f', steps: [{ seq: 1, type: 'call' }] }] };
-  const fs = has(codes(bad, {}), 'missing-bindkey-unexplained');
-  assert.deepEqual(fs.map((f) => [f.kind, f.id, f.level]), [['ingress', 'i', 'error'], ['egress', 'e', 'error'], ['step', 'f#1', 'error']]);
-  const ok: ServiceManifest = { ...bad, egress: [{ id: 'e', transport: 'http', source: src, unresolved: [{ what: 'target', reason: 'dyn', detail: 'x' }] }], ingress: [], functions: [] };
-  assert.equal(has(codes(ok, {}), 'missing-bindkey-unexplained').length, 0);
-});
-
-test('an unresolved entry needs a reason and a detail', () => {
+test('an unresolved entry needs a detail', () => {
   const m: ServiceManifest = { service: 'a', egress: [{ id: 'e', transport: 'http', source: src, unresolved: [{ what: 'target', reason: ' ', detail: 'x' }, { what: 'event', reason: 'r', detail: '' }] }] };
-  const fs = has(codes(m, {}), 'unresolved-no-reason');
+  const fs = has(codes(m, {}), 'unresolved-no-detail');
   assert.equal(fs.length, 2);
   assert.ok(fs.every((f) => f.level === 'warn'));
 });
@@ -62,6 +54,12 @@ test('subscription binding without events, and publish without events', () => {
   assert.equal(has(withEvents, 'egress-no-events').length, 0);
   const unresolvedEvent = codes({ ...p, egress: [{ ...p.egress![0], unresolved: [{ what: 'event', reason: 'dyn' }] }] }, { channels: [topic], egress: [pub()] });
   assert.equal(has(unresolvedEvent, 'egress-no-events').length, 0);
+});
+
+test('a subscription with events: [] delivers nothing', () => {
+  const m: ServiceManifest = { service: 'infra', bindings: [{ id: 's', from: 'sns:t', events: [] }] };
+  const fs = has(codes(m, { channels: [topic], bindings: [{ service: 'infra', id: 's', from: 'sns:t', to: 'q', events: [] }] }), 'binding-empty-events');
+  assert.deepEqual(fs.map((f) => [f.id, f.level]), [['s', 'warn']]);
 });
 
 test('dangling egress is reported for this service only', () => {
@@ -121,4 +119,20 @@ test('MCP ingest_manifest takes dryRun and returns the report without writing', 
   assert.equal(r.dryRun, true);
   assert.equal(r.contract.warnings, 1);
   assert.equal((await app.call('GET', '/api/envs/mcp/services')).body.length, 0);
+});
+
+test('a batch is applied together: only real dangling egress, dry run or not; one bad manifest rejects all', async () => {
+  const app = await startApp();
+  try {
+  const manifests = sampleManifests();
+  const dangling = (r: any) => r.body.results.flatMap((x: any) => x.contract.findings.filter((f: any) => f.code === 'dangling-egress').map((f: any) => f.id)).sort();
+  const dry = await app.call('POST', '/api/ingest?dryRun=1', { manifests });
+  assert.deepEqual(dangling(dry), ['disputes.publish', 'users.getPrefs']);
+  assert.equal((app.ctx.db.prepare('SELECT COUNT(*) AS n FROM snapshots').get() as any).n, 0, 'dry run wrote nothing');
+  const bad = await app.call('POST', '/api/ingest', { manifests: [...manifests, { ...manifests[0], service: { name: 'z-svc' }, ingress: [{ id: 'x' }] }] });
+  assert.equal(bad.status, 422);
+  assert.equal((app.ctx.db.prepare('SELECT COUNT(*) AS n FROM snapshots').get() as any).n, 0, 'nothing applied');
+  const real = await app.call('POST', '/api/ingest', { manifests });
+  assert.deepEqual(dangling(real), ['disputes.publish', 'users.getPrefs']);
+  } finally { await app.close(); }
 });
