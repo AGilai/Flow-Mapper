@@ -124,7 +124,7 @@ export const TOOLS: Tool[] = [
   {
     name: 'inventory', description: 'Every object: services, topics/queues/buses, data stores and event types, with connections and problem counts. Filter by type and text.',
     inputSchema: obj({ env, type: { enum: ['service', 'channel', 'store', 'event'] }, query: { type: 'string' } }),
-    run: (c, a) => inventory(c.graph(envOf(a))).filter((x) => (!a.type || x.type === a.type) && (!a.query || `${x.id} ${x.kind} ${x.team ?? ''}`.toLowerCase().includes(String(a.query).toLowerCase()))),
+    run: (c, a) => inventory(c.graph(envOf(a)), dtos.listEventDtos(c.db, envOf(a)).map((d) => d.event)).filter((x) => (!a.type || x.type === a.type) && (!a.query || `${x.id} ${x.kind} ${x.team ?? ''}`.toLowerCase().includes(String(a.query).toLowerCase()))),
   },
   {
     name: 'get_store', description: "A data store by bind key (e.g. mongodb:orders-db/orders, redis:cache-main/order:{id}): readers and writers with the functions and operations, entry points whose flows reach it, other keys in its cluster, and its schemas by source.",

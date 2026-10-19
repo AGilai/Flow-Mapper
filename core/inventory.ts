@@ -11,11 +11,15 @@ export type InventoryType = 'service' | 'channel' | 'store' | 'event';
 export interface InventoryItem {
   type: InventoryType; id: string; label: string; kind: string;
   group?: string; team?: string; connections: string; size: number; problems: number;
+  /** Event types only: whether the event type has a message DTO. */
+  hasDto?: boolean;
 }
 
 const n = (x: number, one: string, many = `${one}s`) => `${x} ${x === 1 ? one : many}`;
 
-export function inventory(g: GraphIndex): InventoryItem[] {
+/** `dtoEvents`: the event types that have a message DTO (sets `hasDto` on event items). */
+export function inventory(g: GraphIndex, dtoEvents: Iterable<string> = []): InventoryItem[] {
+  const withDto = new Set(dtoEvents);
   const h = health(g);
   const ev = eventReport(g);
   const out: InventoryItem[] = [];
@@ -50,7 +54,7 @@ export function inventory(g: GraphIndex): InventoryItem[] {
     out.push({
       type: 'event', id: t.type, label: t.type, kind: 'event type',
       connections: `${n(t.producers.length, 'producer')}, ${n(t.consumers.length, 'consumer')}`,
-      size: t.producers.length + t.consumers.length, problems: bad,
+      size: t.producers.length + t.consumers.length, problems: bad, hasDto: withDto.has(t.type),
     });
   }
   return out;

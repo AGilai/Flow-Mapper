@@ -8,13 +8,14 @@ import { notFound } from '../errors.ts';
 import { inventory } from '../../core/inventory.ts';
 import { storeView, stores } from '../../core/stores.ts';
 import { channelView } from '../../core/channels.ts';
+import { listEventDtos } from '../store/dtos.ts';
 import * as schemas from '../store/schemas.ts';
 
 export function registerInventory(r: Router, ctx: Ctx) {
   const { db } = ctx;
   const known = (env: string) => { const keys = new Set(stores(ctx.graph(env)).map((s) => s.key)); return (k: string) => keys.has(k); };
 
-  r.get('/api/envs/:env/inventory', (req) => inventory(ctx.graph(req.params.env)));
+  r.get('/api/envs/:env/inventory', (req) => inventory(ctx.graph(req.params.env), listEventDtos(db, req.params.env).map((d) => d.event)));
 
   r.get('/api/envs/:env/stores/*key', (req) => {
     const v = storeView(ctx.graph(req.params.env), req.params.key) ?? (() => { throw notFound(`data store '${req.params.key}'`); })();

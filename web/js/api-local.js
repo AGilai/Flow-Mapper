@@ -52,7 +52,7 @@ export const api = {
     return { ...v, openBugs: bugs.filter((b) => OPEN.includes(b.status) && b.links.some((l) => l.id === name || l.service === name)).length };
   },
   entryPoints: async (env) => entryPoints(g(env)),
-  inventory: async (env) => inventory(g(env)),
+  inventory: async (env) => inventory(g(env), (data.eventDtos?.[env] ?? []).map((d) => d.event)),
   store: async (env, key) => ({ ...(storeView(g(env), key) ?? fail(`data store '${key}' not found`)), schemas: (data.schemas?.[env] ?? []).filter((s) => s.key === key) }),
   channel: async (env, key) => channelView(g(env), key) ?? fail(`channel '${key}' not found`),
   eventType: async (env, type) => ({ ...(eventView(g(env), type) ?? fail(`event type '${type}' not found`)), dto: (data.eventDtos?.[env] ?? []).find((d) => d.event === type) ?? null }),

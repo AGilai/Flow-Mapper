@@ -21,7 +21,7 @@ const TYPE_LABEL = { service: 'Service', channel: 'Channel', store: 'Data store'
 
 export async function render({ main, query }) {
   const items = await api.inventory(state.env);
-  const f = { type: query.get('type') ?? '', kind: query.get('kind') ?? '', team: query.get('team') ?? '', q: query.get('q') ?? '', problems: query.get('problems') === '1' };
+  const f = { type: query.get('type') ?? '', kind: query.get('kind') ?? '', team: query.get('team') ?? '', q: query.get('q') ?? '', problems: query.get('problems') === '1', dto: query.get('dto') ?? '' };
   if (f.type === 'store') f.type = ''; // older links
   const count = (t) => items.filter((x) => matches(x, t)).length;
   const dbKinds = [...new Set(items.filter((x) => x.type === 'store').map((x) => x.kind))]
@@ -36,6 +36,8 @@ export async function render({ main, query }) {
       { key: 'kind', label: 'Kind', render: (x) => h('span.pill', x.type === 'store' ? DB[x.kind] ?? x.kind : x.kind) },
       { key: 'team', label: 'Team', render: (x) => h('span.small.muted', x.team ?? '') },
       { key: 'size', label: 'Connections', render: (x) => h('span.small', x.connections) },
+      { key: 'hasDto', label: 'Message DTO', sort: (x) => (x.type === 'event' ? (x.hasDto ? 1 : 0) : null),
+        render: (x) => (x.type !== 'event' ? '' : x.hasDto ? h('span.pill.ok', 'Has DTO') : h('span.small.muted', 'No DTO')) },
       { key: 'problems', label: 'Problems', num: true, render: (x) => (x.problems ? h('span', { style: { color: 'var(--bad)', fontWeight: 600 } }, String(x.problems)) : h('span.muted', '0')) },
     ],
   });
@@ -47,9 +49,11 @@ export async function render({ main, query }) {
     kindSel.hidden = f.type.startsWith('store:') || kinds.length < 2; // a database button already fixes the kind
     kindSel.replaceChildren(h('option', { value: '' }, 'All kinds'), ...kinds.map((k) => h('option', { value: k, selected: k === f.kind }, k)));
   };
+  const dtoSel = h('select.select', { 'aria-label': 'Message DTO', on: { change: (e) => { f.dto = e.target.value; apply(); } } },
+    [['', 'Any message DTO'], ['yes', 'Has DTO'], ['no', 'No DTO']].map(([v, l]) => h('option', { value: v, selected: v === f.dto }, l)));
   const teams = [...new Set(items.map((x) => x.team).filter(Boolean))].sort();
   const buttons = [];
-  const pick = (t) => { f.type = t; buttons.forEach(([v, b]) => b.setAttribute('aria-pressed', String(v === t))); fillKinds(); apply(); };
+  const pick = (t) => { f.type = t; dtoSel.hidden = t !== 'event'; buttons.forEach(([v, b]) => b.setAttribute('aria-pressed', String(v === t))); fillKinds(); apply(); };
   const button = ([t, label]) => {
     const b = h('button', { 'aria-pressed': String(f.type === t), on: { click: () => pick(t) } },
       t.startsWith('store:') ? objectIcon('store', t.slice(6), 16) : null, label, h('span.muted', ` ${count(t)}`));
@@ -64,23 +68,24 @@ export async function render({ main, query }) {
   function apply() {
     const n = f.q.trim().toLowerCase();
     const rows = items.filter((x) => matches(x, f.type) && (!f.kind || x.kind === f.kind) && (!f.team || x.team === f.team)
-      && (!f.problems || x.problems > 0) && (!n || `${x.id} ${x.label} ${x.kind} ${x.team ?? ''} ${x.group ?? ''}`.toLowerCase().includes(n)));
+      && (!f.problems || x.problems > 0) && (f.type !== 'event' || !f.dto || (f.dto === 'yes') === !!x.hasDto) && (!n || `${x.id} ${x.label} ${x.kind} ${x.team ?? ''} ${x.group ?? ''}`.toLowerCase().includes(n)));
     table.setRows(rows);
     shown.textContent = `${rows.length} shown`;
-    setQuery({ type: f.type || null, kind: f.kind || null, team: f.team || null, q: f.q || null, problems: f.problems ? 1 : null });
+    setQuery({ type: f.type || null, kind: f.kind || null, team: f.team || null, q: f.q || null, problems: f.problems ? 1 : null, dto: f.type === 'event' && f.dto ? f.dto : null });
   }
 
   main.append(
     pageHead('Inventory', `${items.length} objects in ${state.env}`,
       h('div.search', icon('search'), h('input.input', { type: 'search', placeholder: 'Filter by name, kind, team', value: f.q, 'aria-label': 'Filter inventory',
         on: { input: debounce((e) => { f.q = e.target.value; apply(); }) } })),
-      kindSel,
+      kindSel, dtoSel,
       h('select.select', { 'aria-label': 'Team', on: { change: (e) => { f.team = e.target.value; apply(); } } },
         h('option', { value: '' }, 'All teams'), teams.map((t) => h('option', { value: t, selected: t === f.team }, t)))),
     h('div.filter-bar', seg,
       h('label.check', h('input', { type: 'checkbox', checked: f.problems, on: { change: (e) => { f.problems = e.target.checked; apply(); } } }), 'Only with problems'),
       h('span.spacer'), shown),
     h('div.content', h('div.box', table.el)));
+  dtoSel.hidden = f.type !== 'event';
   fillKinds();
   apply();
 }

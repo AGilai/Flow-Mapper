@@ -81,7 +81,11 @@ test('event DTOs: put, show on the consumer, reject patterns', async () => {
   assert.equal((await app.call('PUT', '/api/envs/prod/event-dtos/Order*', {})).status, 400);
   const bulk = await app.call('POST', '/api/envs/prod/dtos', { dtos: [{ event: 'UserRegistered', content: { userId: 'u1' } }] });
   assert.equal(bulk.status, 201);
+  const flags = async () => Object.fromEntries(((await app.call('GET', '/api/envs/prod/inventory')).body as any[]).filter((x) => x.type === 'event').map((x) => [x.id, x.hasDto]));
+  assert.equal((await flags()).OrderPlaced, true, 'inventory marks event types that have a DTO');
+  assert.equal((await flags()).UserRegistered, true);
   assert.equal((await app.call('DELETE', '/api/envs/prod/event-dtos/UserRegistered')).status, 200);
+  assert.equal((await flags()).UserRegistered, false);
 });
 
 test('an event handler that is not a function is rejected', async () => {
