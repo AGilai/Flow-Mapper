@@ -34,6 +34,19 @@ test('ingress "from" lists only publishers whose events pass the subscription fi
   assert.deepEqual(ing.maybeCallers.map((c: any) => c.service).sort(), ['p-cand', 'p-maybe']);
 });
 
+test('egress "to" lists only consumers whose subscription filter passes the egress events', async () => {
+  const to = async (svc: string) => (await app.call('GET', `/api/envs/e/views/service/${svc}`)).body.egress[0];
+  const hit = await to('p-hit');
+  assert.deepEqual(hit.targets.map((t: any) => t.service), ['consumer']);
+  assert.deepEqual(hit.targets[0].via, ['sns:t', 'sqs:q']);
+  assert.deepEqual((await to('p-miss')).targets, []);
+  assert.deepEqual((await to('p-miss')).maybeTargets, []);
+  const maybe = await to('p-maybe');
+  assert.deepEqual([maybe.targets.length, maybe.maybeTargets.map((t: any) => t.service)], [0, ['consumer']]);
+  assert.deepEqual((await to('p-cand')).maybeTargets.map((t: any) => t.service), ['consumer']);
+  assert.deepEqual((await to('p-candmiss')).maybeTargets, []);
+});
+
 test('an unresolved egress without a bind key keeps its id and reason in the view data', async () => {
   const v = (await app.call('GET', '/api/envs/e/views/service/consumer')).body;
   const e = v.egress[0];

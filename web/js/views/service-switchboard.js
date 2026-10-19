@@ -38,7 +38,7 @@ export function switchboard(v, name, q, onInfo) {
 
   // ---- egress, grouped by the service reached ----
   const egress = v.egress.filter((e) => hit(e.bindKey, ...e.usedBy, ...e.targets.map((t) => t.service)));
-  const byTarget = group(egress, (e) => (gapOf(e) ? UNRESOLVED : e.dangling ? '\u0000No match' : uniq(e.targets.map((t) => t.service)).join(', ') || 'No consumer'))
+  const byTarget = group(egress, (e) => (gapOf(e) ? UNRESOLVED : e.dangling ? '\u0000No match' : uniq(e.targets.map((t) => t.service)).join(', ') || (e.maybeTargets?.length ? 'Maybe ' + uniq(e.maybeTargets.map((t) => t.service)).join(', ') : 'No consumer')))
     .sort((a, b) => Number(b[0] < '\u0002') - Number(a[0] < '\u0002'));
   const resources = v.resources.filter((r) => hit(r.name, r.kind, ...r.operations.map((o) => o.fn)));
   const right = h('div.sb-col.sb-right',
@@ -54,6 +54,7 @@ export function switchboard(v, name, q, onInfo) {
           h('div.peers',
             e.usedBy.length ? h('span', 'from ', e.usedBy.slice(0, 3).map((f) => h('span.key', f + ' '))) : null,
             e.targets.length ? h('span', 'to ', join(uniq(e.targets.map((t) => t.service)).slice(0, 6).map(svcLink))) : null,
+            e.maybeTargets?.length ? h('span', { title: 'Event types not resolved by the harvester; may pass the subscription filter' }, 'maybe to ', join(uniq(e.maybeTargets.map((t) => t.service)).slice(0, 6).map(svcLink))) : null,
             uniq(e.targets.flatMap((t) => t.via)).length ? h('span', 'via ', uniq(e.targets.flatMap((t) => t.via)).join(', ')) : null))));
     }),
     resources.length ? details(h('span', 'Data stores'), resources.length, true, resources.map((r) =>

@@ -37,15 +37,24 @@ export function serviceView(g: GraphIndex, name: string) {
     };
   });
 
-  const egress = mine(g.model.egress).map((e) => ({
-    ...e,
-    at: codeLink(s, e.source),
-    dangling: dangling.has(sid(e.service, e.id)),
-    usedBy: fns.filter((f) => f.steps.some((st) => st.type === 'egress' && st.target === e.id)).map((f) => f.id),
-    targets: downstreamIngress(g, { type: 'egress', service: e.service, id: e.id }).map((d) => ({
-      service: d.ingress.service, ingress: d.ingress.id, bindKey: d.ingress.bindKey, handler: d.ingress.handler, via: viaText(d.via),
-    })),
-  }));
+  const egress = mine(g.model.egress).map((e) => {
+    const gaps = (e.unresolved ?? []).filter((x) => x.what === 'event');
+    const blind = gaps.some((x) => !x.candidates?.length);
+    // Targets whose subscription filter rejects every event of this egress are dropped; unknown events are 'maybe'.
+    const all = downstreamIngress(g, { type: 'egress', service: e.service, id: e.id }).map((d) => {
+      const mineD = deliveries.filter((x) => x.producer.service === e.service && x.producer.egress === e.id && x.consumer.service === d.ingress.service && x.consumer.ingress === d.ingress.id);
+      const state = mineD.some((x) => !x.possible) ? 'yes' : mineD.length || blind ? 'maybe' : e.events?.length || gaps.length ? 'no' : 'yes';
+      return { state, target: { service: d.ingress.service, ingress: d.ingress.id, bindKey: d.ingress.bindKey, handler: d.ingress.handler, via: viaText(d.via) } };
+    });
+    return {
+      ...e,
+      at: codeLink(s, e.source),
+      dangling: dangling.has(sid(e.service, e.id)),
+      usedBy: fns.filter((f) => f.steps.some((st) => st.type === 'egress' && st.target === e.id)).map((f) => f.id),
+      targets: all.filter((t) => t.state === 'yes').map((t) => t.target),
+      maybeTargets: all.filter((t) => t.state === 'maybe').map((t) => t.target),
+    };
+  });
 
   const resources = mine(g.model.resources).map((r) => ({
     ...r,
