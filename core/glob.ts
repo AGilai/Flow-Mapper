@@ -24,6 +24,11 @@ export function keyMatches(pattern: string, match: Match | undefined, key: strin
   return match === 'glob' ? globToRegExp(pattern).test(key) : pattern === key;
 }
 
+/** Event-type match: '*' and globs (`Order*`) match by pattern, anything else by name. */
+export function eventMatches(pattern: string, type: string): boolean {
+  return pattern.includes('*') ? globToRegExp(pattern).test(type) : pattern === type;
+}
+
 /** Higher sorts first: exact beats glob; then fewer wildcards; then longer literal prefix. */
 export function specificity(pattern: string, match: Match | undefined): [number, number, number] {
   if (match !== 'glob') return [1, 0, pattern.length];

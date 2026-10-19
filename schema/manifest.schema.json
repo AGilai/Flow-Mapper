@@ -23,7 +23,7 @@
       "description": "glob: '*' matches any characters except '/', '**' matches anything."
     },
     "transport": {
-      "enum": ["http", "grpc", "sns", "sqs", "amqp", "cron", "event", "other"]
+      "enum": ["http", "grpc", "sns", "sqs", "amqp", "eventbridge", "cron", "event", "other"]
     },
     "delivery": {
       "enum": ["unicast", "multicast"],
@@ -32,6 +32,24 @@
     "mode": { "enum": ["sync", "async"] },
     "version": { "type": "integer", "minimum": 1 },
     "env": { "type": "string", "pattern": "^[a-z0-9\\-]+$", "default": "default" },
+    "eventType": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Event type name as the harvester sees it (message type attribute, detail-type, class name). Matched exactly; 'OrderPlaced.v2' is not 'OrderPlaced'."
+    },
+    "eventPattern": {
+      "type": "string",
+      "minLength": 1,
+      "description": "An event type, or a glob over event types: '*' for all, 'Order*' for a prefix."
+    },
+    "eventFilter": {
+      "oneOf": [
+        { "const": "*" },
+        { "type": "array", "items": { "$ref": "#/$defs/eventPattern" } }
+      ],
+      "description": "Event types a subscription lets through. Absent means all."
+    },
+
     "details": {
       "type": "object",
       "description": "Free-form transport details (method, path, queue URL, timeouts, …).",
@@ -44,7 +62,7 @@
       "additionalProperties": false,
       "properties": {
         "name": { "type": "string", "pattern": "^[a-z0-9\\-]+$" },
-        "kind": { "enum": ["service", "gateway", "infra"], "default": "service" },
+        "kind": { "enum": ["service", "gateway", "lambda", "infra"], "default": "service" },
         "team": { "type": "string" },
         "repo": { "type": "string" },
         "language": { "type": "string" },
@@ -65,7 +83,8 @@
         "operation": { "type": "string", "description": "e.g. findOne, publish, GET" },
         "condition": { "type": "string", "description": "Branch condition, if conditional." },
         "loop": { "type": "boolean", "default": false },
-        "note": { "type": "string" }
+        "note": { "type": "string" },
+        "event": { "$ref": "#/$defs/eventType", "description": "For an egress step: the event type it publishes." }
       }
     },
 
@@ -93,7 +112,21 @@
         "transport": { "$ref": "#/$defs/transport" },
         "handler": { "$ref": "#/$defs/id", "description": "Function id that handles this ingress." },
         "entryPoint": { "type": "boolean", "default": false, "description": "Public API, cron, etc. Excluded from orphan stats." },
-        "details": { "$ref": "#/$defs/details" }
+        "details": { "$ref": "#/$defs/details" },
+        "events": {
+          "type": "array",
+          "description": "Event types this consumer handles, each with its own handler. The most specific match wins.",
+          "items": {
+            "type": "object",
+            "required": ["type", "handler"],
+            "additionalProperties": false,
+            "properties": {
+              "type": { "$ref": "#/$defs/eventPattern" },
+              "handler": { "$ref": "#/$defs/id", "description": "Function id that handles this event type." },
+              "producers": { "type": "array", "items": { "type": "string" }, "description": "Declared producer services, for producers Flow-Mapper does not harvest. Harvested producers are found automatically." }
+            }
+          }
+        }
       }
     },
 
@@ -107,7 +140,8 @@
         "transport": { "$ref": "#/$defs/transport" },
         "mode": { "$ref": "#/$defs/mode" },
         "delivery": { "$ref": "#/$defs/delivery" },
-        "details": { "$ref": "#/$defs/details" }
+        "details": { "$ref": "#/$defs/details" },
+        "events": { "type": "array", "items": { "$ref": "#/$defs/eventType" }, "description": "Event types published through this egress." }
       }
     },
 
@@ -130,7 +164,7 @@
       "additionalProperties": false,
       "properties": {
         "bindKey": { "$ref": "#/$defs/bindKey" },
-        "kind": { "enum": ["sns-topic", "sqs-queue", "amqp-exchange", "amqp-queue", "other"] },
+        "kind": { "enum": ["sns-topic", "sqs-queue", "amqp-exchange", "amqp-queue", "eventbridge-bus", "other"] },
         "name": { "type": "string" },
         "delivery": { "$ref": "#/$defs/delivery" },
         "details": { "$ref": "#/$defs/details" }
@@ -147,6 +181,7 @@
         "match": { "$ref": "#/$defs/match" },
         "to": { "$ref": "#/$defs/bindKey", "description": "Target channel or ingress key (literal)." },
         "filter": { "type": "object", "additionalProperties": true, "description": "e.g. SNS filter policy" },
+        "events": { "$ref": "#/$defs/eventFilter" },
         "details": { "$ref": "#/$defs/details" }
       }
     },

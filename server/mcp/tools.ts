@@ -5,6 +5,9 @@ import { HttpError } from '../errors.ts';
 import { isList, LISTS } from '../schema.ts';
 import * as store from '../store/snapshots.ts';
 import * as bugs from '../store/bugs.ts';
+import * as dtos from '../store/dtos.ts';
+import { endpointInfo } from '../../core/endpoint-info.ts';
+import { eventTypes } from '../../core/events.ts';
 import { search } from '../../core/search.ts';
 import { serviceView } from '../../core/service-view.ts';
 import { entryPoints, trace } from '../../core/trace.ts';
@@ -47,7 +50,7 @@ export const TOOLS: Tool[] = [
   {
     name: 'trace_flow',
     description: "Follow a flow from an ingress or function: ordered calls, DB access, REST calls and async hops across services. scope 'intra' stays inside the service.",
-    inputSchema: obj({ service: { type: 'string' }, ingress: { type: 'string' }, fn: { type: 'string' }, scope: { enum: ['intra', 'full'] }, env, maxMessages: { type: 'integer' } }, ['service']),
+    inputSchema: obj({ service: { type: 'string' }, ingress: { type: 'string' }, fn: { type: 'string' }, event: { type: 'string', description: 'Start from the handler of this event type at the ingress' }, scope: { enum: ['intra', 'full'] }, env, maxMessages: { type: 'integer' } }, ['service']),
     run: (c, a) => trace(c.graph(envOf(a)), a, { scope: a.scope, maxMessages: Math.min(a.maxMessages ?? 300, 2000) })
       ?? (() => { throw new HttpError(404, 'NOT_FOUND', 'start point not found (give ingress or fn)'); })(),
   },
@@ -85,6 +88,28 @@ export const TOOLS: Tool[] = [
     name: 'delete_entity', description: 'Delete one entity of a service by id (bindKey for channels).',
     inputSchema: obj({ env, service: { type: 'string' }, list: { enum: [...LISTS] }, key: { type: 'string' } }, ['service', 'list', 'key']),
     run: (c, a) => { const r = store.deleteEntity(c.db, envOf(a), a.service, listArg(a.list), a.key, 'mcp'); c.changed(r.env); return r; },
+  },
+  {
+    name: 'get_endpoint_info', description: "One ingress endpoint: its handler, a link to the handler's code in the repo, its DTO slots (a queue takes one message; a GET only a response body), and for event consumers each event type with its handler, derived/declared producers, status (ok, unhandled, never, declared-only) and Message DTO.",
+    inputSchema: obj({ service: { type: 'string' }, ingress: { type: 'string', description: 'Ingress id' }, env }, ['service', 'ingress']),
+    run: (c, a) => endpointInfo(c.graph(envOf(a)), a.service, a.ingress, dtos.endpointDtos(c.db, envOf(a), a.service, a.ingress), dtos.listEventDtos(c.db, envOf(a)))
+      ?? (() => { throw new HttpError(404, 'NOT_FOUND', `ingress '${a.ingress}' of service '${a.service}' not found`); })(),
+  },
+  {
+    name: 'load_dtos', description: "Store DTO JSON (replaces an existing one). Endpoint DTO: {service, ingress, role, content}; queue/topic messages use role 'request', GET endpoints take only 'response'. Event DTO: {event, content}, the message of one event type. All or nothing.",
+    inputSchema: obj({ env, dtos: { type: 'array', items: { type: 'object', properties: { service: { type: 'string' }, ingress: { type: 'string' }, role: { enum: ['request', 'response'] }, event: { type: 'string' }, content: {} }, required: ['content'] } } }, ['dtos']),
+    run: (c, a) => dtos.loadDtos(c.db, envOf(a), a.dtos),
+  },
+  {
+    name: 'event_types',
+    description: 'Event types in the environment: who publishes each one and which consumers (and handlers) receive it after subscription filters. Give type for one event type with its Message DTO.',
+    inputSchema: obj({ env, type: { type: 'string' } }),
+    run: (c, a) => {
+      const all = eventTypes(c.graph(envOf(a)));
+      if (!a.type) return all;
+      const t = all.find((x) => x.type === a.type) ?? (() => { throw new HttpError(404, 'NOT_FOUND', `event type '${a.type}' not found`); })();
+      return { ...t, dto: dtos.getEventDto(c.db, envOf(a), a.type) };
+    },
   },
   {
     name: 'list_bugs', description: 'Bugs sorted by priority. Filter by status/priority (comma lists), service, version, text, or open=true.',

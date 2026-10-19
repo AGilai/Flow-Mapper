@@ -36,7 +36,7 @@ export function registerQueries(r: Router, ctx: Ctx) {
     const service = q.get('service');
     if (!service) throw badRequest('service is required (plus ingress or fn)');
     const scope = q.get('scope') === 'intra' ? 'intra' : 'full';
-    const t = trace(g(req.params.env), { service, ingress: q.get('ingress') ?? undefined, fn: q.get('fn') ?? undefined },
+    const t = trace(g(req.params.env), { service, ingress: q.get('ingress') ?? undefined, fn: q.get('fn') ?? undefined, event: q.get('event') ?? undefined },
       { scope, maxDepth: int(q.get('maxDepth'), 25), maxMessages: Math.min(int(q.get('maxMessages'), 500), 5000) });
     if (!t) throw notFound('start point (service + ingress or fn)');
     return t;

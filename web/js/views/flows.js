@@ -15,7 +15,7 @@ const LIST_CAP = 300;
 
 export async function render({ main, query }) {
   const service = query.get('service');
-  const start = { service, ingress: query.get('ingress'), fn: query.get('fn') };
+  const start = { service, ingress: query.get('ingress'), fn: query.get('fn'), event: query.get('event') };
   const opts = {
     scope: query.get('scope') ?? (start.fn ? 'intra' : 'full'),
     internal: query.get('internal') !== '0', stores: query.get('stores') !== '0', depth: query.get('depth') ?? 'all',
@@ -75,7 +75,7 @@ export async function render({ main, query }) {
   async function load() {
     fill(scroller, h('div.loading', 'Tracing…'));
     try {
-      trace = await api.trace(state.env, { service: start.service, ingress: start.ingress, fn: start.fn, scope: opts.scope, maxMessages: 800 });
+      trace = await api.trace(state.env, { service: start.service, ingress: start.ingress, fn: start.fn, event: start.event, scope: opts.scope, maxMessages: 800 });
     } catch (err) {
       fill(scroller, h('div.content', h('div.error-box', err.message)));
       return;
@@ -88,7 +88,7 @@ export async function render({ main, query }) {
       onMessage: (m, g) => { mainPane.querySelector('.msg.active')?.classList.remove('active'); g.classList.add('active'); panel.open(...messagePanel(m, trace)); },
     });
     const services = new Set(trace.messages.map((m) => m.service).filter(Boolean));
-    info.textContent = `${seq.shown} of ${seq.total} steps, ${services.size} services${trace.truncated ? ', truncated' : ''}`;
+    info.textContent = `${trace.start.event ? `${trace.start.event}: ` : ''}${seq.shown} of ${seq.total} steps, ${services.size} services${trace.truncated ? ', truncated' : ''}`;
     fill(scroller, seq.el);
   }
   await load();
@@ -104,12 +104,14 @@ function messagePanel(m, trace) {
       h('dt', 'From'), h('dd', p(m.from)?.label ?? m.from),
       h('dt', 'To'), h('dd', { class: m.broken ? 'key' : '' }, p(m.to)?.label ?? m.to),
       h('dt', 'What'), h('dd.key', m.label),
+      m.event ? [h('dt', 'Event type'), h('dd.key', m.event)] : null,
       m.transport && m.transport !== 'res' ? [h('dt', 'Transport'), h('dd', chip(m.transport))] : null,
       h('dt', 'Mode'), h('dd', m.mode),
       m.condition ? [h('dt', 'Only if'), h('dd', m.condition)] : null,
       m.loop ? [h('dt', 'Repeats'), h('dd', 'In a loop')] : null,
       m.note ? [h('dt', 'Note'), h('dd', m.note)] : null,
       m.service ? [h('dt', 'In'), h('dd', h('a', { href: href(`/services/${encodeURIComponent(m.service)}`) }, m.service), m.fn ? h('span.key', ` ${m.fn}`) : null)] : null),
-    m.broken ? section('Why it is broken', null, h('p.small', 'No ingress, queue or route matches this key. Either the target was renamed, or a harvester produced a different key on one side.')) : null,
+    m.unhandled ? section('Why it is broken', null, h('p.small', `${m.event} reaches this consumer, but none of its event handlers matches it. It will fail or go to the dead-letter queue.`))
+      : m.broken ? section('Why it is broken', null, h('p.small', 'No ingress, queue or route matches this key. Either the target was renamed, or a harvester produced a different key on one side.')) : null,
     m.cycle ? h('p.small.muted', 'This call leads back into a function already on the path, so the trace stops here.') : null];
 }

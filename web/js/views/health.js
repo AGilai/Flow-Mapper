@@ -14,6 +14,11 @@ const KINDS = [
   { id: 'unbound', label: 'Unbound queues and topics', help: 'Topics without a subscription, queues without a consumer, exchanges without a binding.' },
   { id: 'brokenBindings', label: 'Subscriptions to nothing', help: 'A subscription or binding whose target matches nothing.' },
   { id: 'ambiguous', label: 'Ambiguous calls', help: 'A unicast call with more than one equally specific match.' },
+  { id: 'unhandledEvents', label: 'Unhandled events', help: 'An event type reaches a consumer that lists its event types, and none matches. Those messages fail or go to the dead-letter queue.' },
+  { id: 'undeliveredEvents', label: 'Events filtered out', help: 'Published, but every subscription on the way filters this event type out.' },
+  { id: 'neverArrives', label: 'Events nothing sends', help: 'A consumer handles this event type, but no producer sends it on a route into its queue and none is declared.' },
+  { id: 'declaredNotSeen', label: 'Declared producers not seen', help: 'A consumer declares a producer that Flow-Mapper harvests, but that service does not send this event type to it.' },
+  { id: 'subscriptionConflicts', label: 'Subscription conflicts', help: 'The same subscription is reported by more than one manifest with different event filters.' },
 ];
 
 export async function render({ main, query }) {
@@ -24,7 +29,8 @@ export async function render({ main, query }) {
   const figures = h('div.figures',
     fig(pct(t.coverage), 'Calls resolved'),
     fig(t.links.toLocaleString(), 'Links'),
-    ...KINDS.map((k) => fig(t[k.id], k.label, t[k.id] > 0 && k.id !== 'orphans')));
+    ...KINDS.slice(0, 5).map((k) => fig(t[k.id], k.label, t[k.id] > 0 && k.id !== 'orphans')),
+    fig(KINDS.slice(5).reduce((n, k) => n + t[k.id], 0), 'Event problems', KINDS.slice(5).some((k) => t[k.id] > 0)));
 
   const itemsBox = h('div.box');
   const tabs = h('div.tabs', { role: 'tablist' });
@@ -37,7 +43,7 @@ export async function render({ main, query }) {
   }
 
   const worst = dataTable({
-    rows: r.services.filter((s) => s.dangling || s.orphans || s.unbound || s.ambiguous), pageSize: 15,
+    rows: r.services.filter((s) => s.dangling || s.orphans || s.unbound || s.ambiguous || s.eventIssues), pageSize: 15,
     sortKey: 'dangling', sortDir: 'desc', onRow: (s) => go(`/services/${encodeURIComponent(s.service)}`),
     empty: 'Every service connects cleanly.',
     columns: [
@@ -46,6 +52,7 @@ export async function render({ main, query }) {
       { key: 'dangling', label: 'No match', num: true },
       { key: 'orphans', label: 'Never called', num: true },
       { key: 'unbound', label: 'Unbound', num: true },
+      { key: 'eventIssues', label: 'Event problems', num: true },
     ],
   });
 
@@ -63,12 +70,19 @@ const fig = (v, label, bad = false) => h('div.figure', { class: bad ? 'bad' : ''
 
 function itemsTable(kind, rows) {
   const svc = (s) => h('a', { href: href(`/services/${encodeURIComponent(s)}`) }, s);
+  const ev = { key: 'event', label: 'Event type', render: (x) => h('span.key', x.event) };
   const keyCell = (key) => { const k = splitKey(key); return h('div.row', chip(k.transport), h('span.key', k.rest)); };
   const columns = {
     dangling: [{ key: 'service', label: 'Caller', render: (x) => svc(x.service) }, { key: 'bindKey', label: 'Key', render: (x) => keyCell(x.bindKey) }, { key: 'id', label: 'Egress id', render: (x) => h('span.key.muted', x.id) }],
     orphans: [{ key: 'service', label: 'Service', render: (x) => svc(x.service) }, { key: 'bindKey', label: 'Key', render: (x) => keyCell(x.bindKey) }, { key: 'id', label: 'Ingress id', render: (x) => h('a.key', { href: href('/flows', { service: x.service, ingress: x.id }) }, x.id) }],
     unbound: [{ key: 'bindKey', label: 'Channel', render: (x) => keyCell(x.bindKey) }, { key: 'kind', label: 'Kind' }, { key: 'reason', label: 'Problem' }, { key: 'service', label: 'Declared by', render: (x) => svc(x.service) }],
     brokenBindings: [{ key: 'service', label: 'Service', render: (x) => svc(x.service) }, { key: 'from', label: 'From', render: (x) => h('span.key', x.from) }, { key: 'to', label: 'To', render: (x) => h('span.key', x.to) }],
+    unhandledEvents: [{ key: 'service', label: 'Consumer', render: (x) => svc(x.service) }, ev, { key: 'producer', label: 'Sent by', render: (x) => svc(x.producer) }, { key: 'ingress', label: 'Ingress id', render: (x) => h('span.key.muted', x.ingress) }],
+    undeliveredEvents: [{ key: 'service', label: 'Producer', render: (x) => svc(x.service) }, ev, { key: 'bindKey', label: 'Published to', render: (x) => keyCell(x.bindKey) }],
+    neverArrives: [{ key: 'service', label: 'Consumer', render: (x) => svc(x.service) }, ev, { key: 'bindKey', label: 'Queue', render: (x) => keyCell(x.bindKey) }],
+    declaredNotSeen: [{ key: 'service', label: 'Consumer', render: (x) => svc(x.service) }, ev, { key: 'producer', label: 'Declared producer', render: (x) => svc(x.producer) }],
+    subscriptionConflicts: [{ key: 'from', label: 'From', render: (x) => h('span.key', x.from) }, { key: 'to', label: 'To', render: (x) => h('span.key', x.to) },
+      { key: 'declarations', label: 'Reported as', nosort: true, render: (x) => x.declarations.map((d) => h('div.small', h('b', d.service), ': ', d.events === '*' ? 'all events' : d.events.join(', '))) }],
     ambiguous: [{ key: 'service', label: 'Caller', render: (x) => svc(x.service) }, { key: 'bindKey', label: 'Key', render: (x) => keyCell(x.bindKey) }, { key: 'candidates', label: 'Matches', nosort: true, render: (x) => x.candidates.map((c) => h('div.key', c)) }],
   }[kind];
   return dataTable({ rows, columns, pageSize: 25, sortKey: columns[0].key, empty: 'Nothing here.' });

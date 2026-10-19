@@ -35,6 +35,7 @@ const remote = {
   system: (env) => http('GET', `/api/envs/${e(env)}/views/system`),
   service: (env, name) => http('GET', `/api/envs/${e(env)}/views/service/${e(name)}`),
   entryPoints: (env) => http('GET', `/api/envs/${e(env)}/entry-points`),
+  endpoint: (env, service, ingress) => http('GET', `/api/envs/${e(env)}/endpoints/${e(service)}/${e(ingress)}`),
   trace: (env, q) => http('GET', `/api/envs/${e(env)}/trace${qs(q)}`),
   paths: (env, from, to) => http('GET', `/api/envs/${e(env)}/paths${qs({ from, to })}`),
   search: (env, q, limit = 30) => http('GET', `/api/envs/${e(env)}/search${qs({ q, limit })}`),

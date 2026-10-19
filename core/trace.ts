@@ -5,10 +5,14 @@
 // scope 'full' : lifelines are services, channels and resources; the flow is followed across
 //                services through REST, queues and topics. Function calls inside a service are
 //                kept as `internal` self-messages so the UI can show or hide them.
+// Events: a publish step that names an event type (or an egress with only one) carries that type
+// along; subscriptions that filter it out are not followed, and a consumer runs the handler for
+// that type. A trace can also start from one event type at an ingress.
 
 import type { GraphIndex } from './graph-index.ts';
 import { linksFrom, sid } from './graph-index.ts';
 import type { Mode, Ref } from './types.ts';
+import { handlerFor, passes } from './events.ts';
 
 export interface Participant { id: string; label: string; kind: 'client' | 'function' | 'service' | 'channel' | 'resource' | 'missing'; service?: string }
 export interface Message {
@@ -16,17 +20,18 @@ export interface Message {
   kind: 'entry' | 'call' | 'egress' | 'deliver' | 'resource';
   depth: number; internal?: boolean; broken?: boolean; cycle?: boolean;
   condition?: string; loop?: boolean; note?: string; fn?: string; service?: string; transport?: string;
+  event?: string; unhandled?: boolean;
 }
-export interface Trace { start: { service: string; ingress?: string; fn: string }; scope: 'intra' | 'full'; participants: Participant[]; messages: Message[]; truncated: boolean }
+export interface Trace { start: { service: string; ingress?: string; fn: string; event?: string }; scope: 'intra' | 'full'; participants: Participant[]; messages: Message[]; truncated: boolean }
 
 export interface TraceOptions { scope?: 'intra' | 'full'; maxDepth?: number; maxMessages?: number }
 
-export function trace(g: GraphIndex, start: { service: string; ingress?: string; fn?: string }, opts: TraceOptions = {}): Trace | null {
+export function trace(g: GraphIndex, start: { service: string; ingress?: string; fn?: string; event?: string }, opts: TraceOptions = {}): Trace | null {
   const scope = opts.scope ?? 'full';
   const maxDepth = opts.maxDepth ?? 25;
   const maxMessages = opts.maxMessages ?? 500;
   const ing = start.ingress ? g.ingress.get(sid(start.service, start.ingress)) : undefined;
-  const fnId = start.fn ?? ing?.handler;
+  const fnId = start.fn ?? (ing && start.event ? handlerFor(ing, start.event) : ing?.handler);
   if (!fnId || !g.fns.get(sid(start.service, fnId))) return null;
 
   const participants = new Map<string, Participant>();
@@ -70,14 +75,15 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
         const e = g.egress.get(sid(service, st.target));
         if (!e) continue;
         const mode = st.mode ?? e.mode ?? 'sync';
-        const label = st.operation && !e.bindKey.includes(st.operation) ? `${st.operation} ${e.bindKey}` : e.bindKey;
-        const links = linksFrom(g, { type: 'egress', service, id: e.id });
+        const event = st.event ?? (e.events?.length === 1 ? e.events[0] : undefined);
+        const label = (st.operation && !e.bindKey.includes(st.operation) ? `${st.operation} ${e.bindKey}` : e.bindKey) + (event ? ` · ${event}` : '');
+        const links = linksFrom(g, { type: 'egress', service, id: e.id }).filter((l) => passes(g, l, event));
         if (!links.length) {
           const to = part({ id: `missing:${e.bindKey}`, label: e.bindKey, kind: 'missing' });
           push({ ...base, from: me, to, label, mode, kind: 'egress', broken: true, transport: e.transport });
           continue;
         }
-        for (const l of links) follow(me, l.to, label, mode, depth, stack, { ...base, transport: e.transport });
+        for (const l of links) follow(me, l.to, label, mode, depth, stack, { ...base, transport: e.transport, event });
       }
     }
   };
@@ -89,30 +95,37 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
       const ch = chPart(to.key);
       if (!push({ ...base, from, to: ch, label, mode, kind: 'egress', depth } as Message)) return;
       if (scope === 'intra' || seenCh.includes(to.key)) return; // intra stops at the service boundary
-      const next = linksFrom(g, to);
+      const next = linksFrom(g, to).filter((l) => passes(g, l, base.event));
       if (!next.length) return;
-      for (const l of next) follow(ch, l.to, to.key, 'async', depth, stack, { ...base, transport: l.transport }, [...seenCh, to.key]);
+      for (const l of next) follow(ch, l.to, to.key + (base.event ? ` · ${base.event}` : ''), 'async', depth, stack, { ...base, transport: l.transport }, [...seenCh, to.key]);
       return;
     }
     if (to.type !== 'ingress') return;
     const i = g.ingress.get(sid(to.service, to.id));
     if (!i) return;
     const crossing = from.startsWith('ch:') ? 'deliver' : 'egress';
+    const handler = base.event ? handlerFor(i, base.event) : i.handler;
+    if (!handler) {
+      // The event reaches a consumer that lists event types but has no handler for this one.
+      push({ ...base, from, to: part({ id: `svc:${i.service}`, label: i.service, kind: 'service', service: i.service }),
+        label: `${label} → no handler`, mode, kind: crossing, depth, broken: true, unhandled: true } as Message);
+      return;
+    }
     const target = scope === 'intra' && i.service !== root
       ? part({ id: `svc:${i.service}`, label: i.service, kind: 'service', service: i.service })
-      : fnPart(i.service, i.handler);
-    if (!push({ ...base, from, to: target, label: crossing === 'deliver' ? `${label} → ${i.handler}` : label, mode, kind: crossing, depth } as Message)) return;
-    const key = sid(i.service, i.handler);
+      : fnPart(i.service, handler);
+    if (!push({ ...base, from, to: target, label: crossing === 'deliver' ? `${label} → ${handler}` : label, mode, kind: crossing, depth } as Message)) return;
+    const key = sid(i.service, handler);
     if (scope === 'intra' && i.service !== root) return;
     if (stack.includes(key)) { messages[messages.length - 1].cycle = true; return; }
-    if (depth < maxDepth) visitFn(i.service, i.handler, depth + 1, [...stack, key]);
+    if (depth < maxDepth) visitFn(i.service, handler, depth + 1, [...stack, key]);
   };
 
   const client = part({ id: 'client', label: ing?.entryPoint ? 'client' : 'caller', kind: 'client' });
-  push({ from: client, to: fnPart(root, fnId), label: ing?.bindKey ?? fnId, mode: 'sync', kind: 'entry', depth: 0, service: root, fn: fnId, transport: ing?.transport });
+  push({ from: client, to: fnPart(root, fnId), label: (ing?.bindKey ?? fnId) + (start.event ? ` · ${start.event}` : ''), event: start.event, mode: 'sync', kind: 'entry', depth: 0, service: root, fn: fnId, transport: ing?.transport });
   visitFn(root, fnId, 1, [sid(root, fnId)]);
 
-  return { start: { service: root, ingress: ing?.id, fn: fnId }, scope, participants: [...participants.values()], messages, truncated };
+  return { start: { service: root, ingress: ing?.id, fn: fnId, event: start.event }, scope, participants: [...participants.values()], messages, truncated };
 }
 
 /** Entry points to start a trace from: ingress marked entryPoint, else ingress nothing reaches. */

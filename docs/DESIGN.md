@@ -39,14 +39,14 @@ Environment ─┬─ ServiceSnapshot (service, version, harvestedAt, commit)
 
 | Entity | Stable ID | Key fields |
 |---|---|---|
-| Service | `name` | team, repo, language, tags, kind (`service` \| `gateway` \| `infra`) |
+| Service | `name` | team, repo, language, tags, kind (`service` \| `gateway` \| `lambda` \| `infra`) |
 | Function | `service:id` | name, file, line, steps[] |
 | Step | `service:function#seq` | seq, type (`call` \| `egress` \| `resource`), target, mode (`sync` \| `async`), operation, condition, loop |
 | Ingress | `service:id` | bindKey, transport, handler, delivery, entryPoint, details |
 | Egress | `service:id` | bindKey, transport, mode, delivery, details |
 | Resource | `service:id` | kind (mongodb, redis, dynamodb, postgres, s3, …), name, bindKey |
-| Channel | `bindKey` | kind (sns-topic, sqs-queue, amqp-exchange, amqp-queue), name |
-| Binding | `service:id` | from (key or pattern), to (key), filter |
+| Channel | `bindKey` | kind (sns-topic, sqs-queue, amqp-exchange, amqp-queue, eventbridge-bus), name |
+| Binding | `service:id` | from (key or pattern), to (key), events (event filter), filter |
 | Link | derived | from endpoint → to endpoint, reason (exact \| pattern \| binding) |
 
 **Steps give order.** A function is an ordered list of steps; each step calls another
@@ -101,6 +101,28 @@ Harvesters may override per endpoint.
 Pub/sub path: `egress sns:order-events` → channel `sns:order-events` → binding →
 channel `sqs:inventory-order-events` → ingress `sqs:inventory-order-events`.
 
+### Event types
+
+Topics, queues, exchanges, EventBridge buses and API gateways are nodes with unique keys, usually
+reported by an infra harvester. Event types ride on top of the links between them:
+
+| Part | Reported by | Field |
+|---|---|---|
+| Publish | producer service | egress `events: ["OrderPlaced", …]`; a step may name its `event` |
+| Subscription / rule | infra harvester, or the subscribing queue's service | binding `events: "*"` or a list of names and globs (`Order*`); absent means all |
+| Consume | consumer service | ingress `events: [{type, handler, producers?}]`; `type` may be a glob |
+
+A **delivery** is one event type travelling from a producer's egress to a consumer's ingress along
+links whose subscriptions let it through. The **producers** of an event type at a consumer are
+derived from deliveries: they follow from what the producers' own harvesters report, so they stay
+current. A consumer may also declare `producers` for services Flow-Mapper does not harvest; those
+are shown as declared, not verified. At the consumer, the most specific matching `type` picks the
+handler (exact beats glob). An ingress without `events` takes every event type with its `handler`.
+
+The Message DTO belongs to the event type (`event_dtos`), not to a queue: it is the contract
+between producers and consumers. Traces carry the event type: subscriptions that filter it out
+are not followed, and the consumer runs that event's handler.
+
 ---
 
 ## 4. Ingest, versions and deltas
@@ -135,6 +157,11 @@ Computed after every resolution, per environment and per service:
 | Orphan ingress | Nothing calls it — ingress marked `entryPoint: true` is excluded |
 | Unbound channel | A topic with no subscription, a queue with no consumer, or a binding to nothing |
 | Ambiguous unicast | A unicast egress with tied best matches |
+| Unhandled event | An event type reaches a consumer that lists event types, and none matches (dead-letter risk) |
+| Event filtered out | Published, but every subscription on the way filters it out |
+| Event nothing sends | A consumer handles it; no producer sends it on a route in, none declared |
+| Declared producer not seen | A declared producer is harvested but does not send that event type there |
+| Subscription conflict | The same subscription (from, to) is reported by several manifests with different event filters |
 | Coverage | Resolved egress ÷ total egress, per service |
 
 Each snapshot stores its numbers, so the UI can show a trend per version. Exposed in the
@@ -172,7 +199,9 @@ impact, `appVersion` (where it was seen), `fixedInVersion`, env, reporter, assig
    Filters: name, function, transport, env, team, tag, "only broken links". Click a node
    or edge for the info panel (endpoints, versions, health, open bugs).
 2. **Service view** — one service in the middle; ingress on the left, egress, channels
-   and resources on the right, each with transport, mode and details.
+   and resources on the right, each with transport, mode and details. Each ingress has an
+   info button: a panel with a link to the handler's code in the repo (file and line at the
+   harvested commit) and its request/response DTOs in a JSON viewer.
 3. **Sequence view** — starts with one function's intra-service steps; expand any egress
    to follow it into the next service, until the whole flow from an entry point is shown.
    Async hops are drawn with open arrows and marked as such.
@@ -194,7 +223,7 @@ impact, `appVersion` (where it was seen), `fixedInVersion`, env, reporter, assig
 
 **MCP tools** (same service layer): `search`, `get_service`, `trace_flow`, `find_paths`,
 `link_health`, `changelog`, `upsert_entity`, `delete_entity`, `ingest_manifest`,
-`list_bugs`, `get_bug`, `report_bug`, `update_bug`. See [API.md](API.md).
+`get_endpoint_info`, `event_types`, `load_dtos`, `list_bugs`, `get_bug`, `report_bug`, `update_bug`. See [API.md](API.md).
 
 ---
 
@@ -203,6 +232,10 @@ impact, `appVersion` (where it was seen), `fixedInVersion`, env, reporter, assig
 - TypeScript end to end, **no runtime dependencies**: Node 22.18+ built-ins (`node:sqlite`,
   `node:http`, type stripping). See [ARCHITECTURE.md](ARCHITECTURE.md).
 - DB: SQLite now; the schema is plain SQL in migrations and moves to Postgres when needed.
+  Flow-Mapper also runs on users' machines, so `npm run db:install` creates a database with the
+  full schema. While the project is early there are no incremental migrations: schema changes
+  edit `001_init.sql`, and a database built from an older schema is refused until it is
+  reinstalled (`npm run db:install -- --force`, which deletes its data).
 - UI: plain ES modules, canvas for the system map, SVG for sequence diagrams, no bundler.
 - MCP: implemented directly (JSON-RPC over HTTP at `/mcp` and over stdio).
 - Hosting later: AWS App Runner (or ECS) + RDS Postgres + S3 for attachments, CI from GitHub.

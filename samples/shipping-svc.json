@@ -54,7 +54,13 @@
       "id": "in.orderPlaced",
       "bindKey": "sqs:shipping-order-events",
       "transport": "sqs",
-      "handler": "onOrderPlaced"
+      "handler": "onOrderPlaced",
+      "events": [
+        {
+          "type": "OrderPlaced",
+          "handler": "onOrderPlaced"
+        }
+      ]
     }
   ],
   "egress": [

@@ -40,7 +40,8 @@
           "type": "egress",
           "target": "paymentEvents.publish",
           "mode": "async",
-          "operation": "publish PaymentCaptured"
+          "operation": "publish",
+          "event": "PaymentCaptured"
         }
       ]
     },
@@ -62,7 +63,8 @@
           "target": "disputes.publish",
           "mode": "async",
           "condition": "score > 0.9",
-          "operation": "publish DisputeOpened"
+          "operation": "publish",
+          "event": "DisputeOpened"
         }
       ]
     },
@@ -109,14 +111,21 @@
       "bindKey": "sns:payment-events",
       "transport": "sns",
       "mode": "async",
-      "delivery": "multicast"
+      "delivery": "multicast",
+      "events": [
+        "PaymentCaptured",
+        "PaymentFailed"
+      ]
     },
     {
       "id": "disputes.publish",
       "bindKey": "sns:payment-disputes",
       "transport": "sns",
       "mode": "async",
-      "delivery": "multicast"
+      "delivery": "multicast",
+      "events": [
+        "DisputeOpened"
+      ]
     }
   ],
   "resources": [

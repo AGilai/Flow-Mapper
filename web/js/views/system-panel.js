@@ -44,6 +44,12 @@ export function nodePanel(n, edges, byId) {
       h('a.btn', { href: href('/flows', { service: n.label }) }, 'Trace flows')));
   }
   if (n.kind === 'missing') body.push(h('p.small', 'Something calls this key, but no service, queue or route matches it. Check the bind key the harvester produced on either side.'));
+  if (n.events?.length) body.push(section('Event types published here', n.events.length, h('div.ep-producers', n.events.map((e) => h('span.ep-producer', h('span.key', e))))));
+  if (n.subscriptions?.length) body.push(section(n.sub === 'eventbridge-bus' ? 'Rules' : 'Subscriptions', n.subscriptions.length, h('div.list', n.subscriptions.map((s) =>
+    h('div.list-item', { title: `declared by ${s.service} (${s.id})` },
+      h('span.grow.truncate.key', s.to),
+      s.events === '*' ? h('span.pill', 'all events') : h('span.xs', s.events.join(', ')),
+      s.conflict ? h('span.pill.warn', { title: 'Reported differently by another manifest' }, 'conflict') : null)))));
   if (inc.length) body.push(section(n.kind === 'channel' ? 'Published by' : 'Called by', inc.length, list(inc, 'in')));
   if (out.length) body.push(section(n.kind === 'channel' ? 'Delivers to' : 'Calls', out.length, list(out, 'out')));
   return [head, body];

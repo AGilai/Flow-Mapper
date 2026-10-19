@@ -34,7 +34,13 @@
       "id": "in.events",
       "bindKey": "sqs:analytics-all-events",
       "transport": "sqs",
-      "handler": "ingest_event"
+      "handler": "ingest_event",
+      "events": [
+        {
+          "type": "*",
+          "handler": "ingest_event"
+        }
+      ]
     }
   ],
   "resources": [
@@ -57,7 +63,8 @@
       "id": "sub.allEvents",
       "from": "sns:*-events",
       "match": "glob",
-      "to": "sqs:analytics-all-events"
+      "to": "sqs:analytics-all-events",
+      "events": "*"
     }
   ]
 }

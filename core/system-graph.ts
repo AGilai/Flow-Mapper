@@ -4,6 +4,8 @@
 import type { GraphIndex } from './graph-index.ts';
 import { downstreamIngress, sid } from './graph-index.ts';
 import type { Mode, Ref, Transport } from './types.ts';
+import { eventReport } from './events.ts';
+import { keyMatches } from './glob.ts';
 
 export type NodeKind = 'service' | 'gateway' | 'infra' | 'channel' | 'resource' | 'missing';
 
@@ -18,6 +20,9 @@ export interface GraphNode {
   functions?: string[];        // for name/function filtering
   transports?: string[];
   stats?: { ingress: number; egress: number; functions: number; dangling: number; orphans: number };
+  /** Topics, queues and buses: event types published here, and subscriptions out with their event filters. */
+  events?: string[];
+  subscriptions?: { id: string; service: string; to: string; events: '*' | string[]; conflict: boolean }[];
 }
 
 export interface GraphEdge {
@@ -46,7 +51,7 @@ export function systemGraph(g: GraphIndex): SystemGraph {
     const of = <T extends { service: string }>(xs: T[]) => xs.filter((x) => x.service === s.name);
     const ins = of(g.model.ingress), outs = of(g.model.egress);
     nodes.set(svcNode(s.name), {
-      id: svcNode(s.name), kind: s.kind, label: s.name, sub: s.team, service: s.name, team: s.team, tags: s.tags,
+      id: svcNode(s.name), kind: s.kind === 'lambda' ? 'service' : s.kind, label: s.name, sub: s.team, service: s.name, team: s.team, tags: s.tags,
       functions: of(g.model.functions).map((f) => f.name),
       transports: [...new Set([...ins, ...outs].map((x) => x.transport))],
       stats: {
@@ -57,7 +62,13 @@ export function systemGraph(g: GraphIndex): SystemGraph {
     });
   }
   for (const [key, c] of g.channels) {
-    nodes.set(chNode(key), { id: chNode(key), kind: 'channel', label: c.name ?? key, sub: c.kind, transports: [c.kind.split('-')[0]] });
+    const conflicted = new Set(eventReport(g).conflicts.filter((x) => x.from === key).map((x) => x.to));
+    nodes.set(chNode(key), {
+      id: chNode(key), kind: 'channel', label: c.name ?? key, sub: c.kind, transports: [c.kind.split('-')[0]],
+      events: [...new Set(g.model.egress.filter((e) => e.bindKey === key).flatMap((e) => e.events ?? []))].sort(),
+      subscriptions: g.model.bindings.filter((b) => keyMatches(b.from, b.match, key))
+        .map((b) => ({ id: b.id, service: b.service, to: b.to, events: b.events ?? '*', conflict: conflicted.has(b.to) })),
+    });
   }
 
   const edges = new Map<string, GraphEdge>();

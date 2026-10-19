@@ -5,6 +5,7 @@ graph, humans use the web UI, agents use MCP.
 
 - Start with `docs/ARCHITECTURE.md` (where things are), then `docs/DESIGN.md` (why) and `docs/API.md` (contract).
 - No dependencies. Node ≥ 22.18 runs `.ts` directly. Do not add packages without asking.
+- Schema changes edit `server/db/migrations/001_init.sql` (no incremental migrations yet); then `npm run db:install -- --force`.
 - `npm test` must pass. `npm run seed` loads samples; `npm run seed:mock` loads 100 mock services.
 - `npm run dev` serves UI + API + MCP on :3000. `npm run preview` builds a static UI into `dist/preview`.
 - core/ is pure and shared with the browser: no `node:` imports, `import type` for types.

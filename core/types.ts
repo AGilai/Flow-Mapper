@@ -1,11 +1,11 @@
 // Shared types for the in-memory graph model. Pure types — no runtime code.
 // The model mirrors the manifest (schema/manifest.schema.json) with service/env attached.
 
-export type Transport = 'http' | 'grpc' | 'sns' | 'sqs' | 'amqp' | 'cron' | 'event' | 'other';
+export type Transport = 'http' | 'grpc' | 'sns' | 'sqs' | 'amqp' | 'eventbridge' | 'cron' | 'event' | 'other';
 export type Delivery = 'unicast' | 'multicast';
 export type Mode = 'sync' | 'async';
 export type Match = 'exact' | 'glob';
-export type ServiceKind = 'service' | 'gateway' | 'infra';
+export type ServiceKind = 'service' | 'gateway' | 'lambda' | 'infra';
 export type Details = Record<string, unknown>;
 
 export interface Service {
@@ -30,25 +30,34 @@ export interface Step {
   condition?: string;
   loop?: boolean;
   note?: string;
+  /** Event type this egress step publishes (one of the egress's `events`). */
+  event?: string;
 }
 
 export interface Fn { service: string; id: string; name: string; file?: string; line?: number; steps: Step[] }
+/** An event type a consumer handles. `type` may be a glob (`Order*`, `*`); `producers` are declared, not derived. */
+export interface IngressEvent { type: string; handler: string; producers?: string[] }
 export interface Ingress {
   service: string; id: string; bindKey: string; match?: Match; transport: Transport;
   handler: string; entryPoint?: boolean; details?: Details;
+  events?: IngressEvent[];
 }
 export interface Egress {
   service: string; id: string; bindKey: string; transport: Transport;
   mode?: Mode; delivery?: Delivery; details?: Details;
+  /** Event types published through this egress (literal). */
+  events?: string[];
 }
 export interface Resource { service: string; id: string; kind: string; name: string; bindKey?: string; details?: Details }
 export interface Channel {
-  service: string; bindKey: string; kind: 'sns-topic' | 'sqs-queue' | 'amqp-exchange' | 'amqp-queue' | 'other';
+  service: string; bindKey: string; kind: 'sns-topic' | 'sqs-queue' | 'amqp-exchange' | 'amqp-queue' | 'eventbridge-bus' | 'other';
   name?: string; delivery?: Delivery; details?: Details;
 }
 export interface Binding {
   service: string; id: string; from: string; match?: Match; to: string;
   filter?: Details; details?: Details;
+  /** Event types this subscription lets through: '*' or a list of names/globs. Absent means all. */
+  events?: '*' | string[];
 }
 
 /** Everything known about one environment. */
@@ -77,6 +86,8 @@ export interface Link {
   via: 'key' | 'pattern' | 'binding';
   mode: Mode;
   transport: Transport;
+  /** The subscription this hop goes through, when via = 'binding'. */
+  binding?: { service: string; id: string };
 }
 
 export interface Resolution {

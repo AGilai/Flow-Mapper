@@ -1,6 +1,6 @@
 // Builds a static, server-less preview of the UI into dist/preview/:
 // web/ as-is, core/ type-stripped to .js, and data.js with the sample (prod) and mock (scale-test)
-// systems plus example bugs. The UI runs core/ in the browser via web/js/api-local.js.
+// systems plus example bugs and endpoint DTOs. The UI runs core/ in the browser via web/js/api-local.js.
 //
 //   node scripts/build-preview.ts [--services 100]
 
@@ -11,6 +11,7 @@ import { createContext } from '../server/app.ts';
 import { transpileCore } from '../server/http/static.ts';
 import * as store from '../server/store/snapshots.ts';
 import * as bugs from '../server/store/bugs.ts';
+import * as dtos from '../server/store/dtos.ts';
 import { generateMock } from './mock/generate.ts';
 import { seedBugs } from './mock/bugs.ts';
 
@@ -26,10 +27,13 @@ const read = (d: string) => readdirSync(d).filter((f) => f.endsWith('.json')).so
 for (const m of [...read(samples), ...read(join(samples, 'deltas')), ...generateMock({ services: n, seed: 7, env: 'scale-test' })]) store.ingest(ctx.db, m, 'seed');
 for (const env of store.listEnvs(ctx.db)) ctx.changed(env);
 seedBugs(ctx, 'prod');
+for (const f of read(join(samples, 'dtos'))) dtos.loadDtos(ctx.db, f.env, f.dtos);
 
 const data = {
   version: ctx.appVersion,
   models: Object.fromEntries(store.listEnvs(ctx.db).map((env) => [env, store.loadModel(ctx.db, env)])),
+  dtos: Object.fromEntries(store.listEnvs(ctx.db).map((env) => [env, dtos.listDtos(ctx.db, env)])),
+  eventDtos: Object.fromEntries(store.listEnvs(ctx.db).map((env) => [env, dtos.listEventDtos(ctx.db, env)])),
   bugs: bugs.listBugs(ctx.db, {}, ctx.appVersion).map((b) => {
     const full = bugs.getBug(ctx.db, b.id, ctx.appVersion);
     return { ...full, attachments: full.attachments.map((a: any) => ({ ...a, id: a.id })) };

@@ -1,0 +1,162 @@
+{
+  "env": "prod",
+  "dtos": [
+    {
+      "service": "orders-svc",
+      "ingress": "in.create",
+      "role": "request",
+      "content": {
+        "customerId": "c_81f2a9",
+        "currency": "EUR",
+        "items": [
+          {
+            "sku": "SKU-1042",
+            "quantity": 2,
+            "unitPrice": 19.9
+          },
+          {
+            "sku": "SKU-2210",
+            "quantity": 1,
+            "unitPrice": 64.0
+          }
+        ],
+        "shippingAddress": {
+          "line1": "12 Harbour St",
+          "city": "Haifa",
+          "postcode": "3303112",
+          "country": "IL"
+        },
+        "giftWrap": false,
+        "notes": null
+      }
+    },
+    {
+      "service": "orders-svc",
+      "ingress": "in.create",
+      "role": "response",
+      "content": {
+        "orderId": "o_5531",
+        "status": "PENDING_PAYMENT",
+        "total": 103.8,
+        "currency": "EUR",
+        "createdAt": "2026-10-19T08:00:00Z"
+      }
+    },
+    {
+      "service": "orders-svc",
+      "ingress": "in.get",
+      "role": "response",
+      "content": {
+        "orderId": "o_5531",
+        "status": "PAID",
+        "customerId": "c_81f2a9",
+        "total": 103.8,
+        "currency": "EUR",
+        "items": [
+          {
+            "sku": "SKU-1042",
+            "quantity": 2
+          },
+          {
+            "sku": "SKU-2210",
+            "quantity": 1
+          }
+        ],
+        "payment": {
+          "id": "p_99a",
+          "method": "card",
+          "last4": "4242"
+        }
+      }
+    },
+    {
+      "service": "payments-svc",
+      "ingress": "in.charge",
+      "role": "request",
+      "content": {
+        "orderId": "o_5531",
+        "amount": 103.8,
+        "currency": "EUR",
+        "method": {
+          "type": "card",
+          "token": "tok_visa"
+        },
+        "idempotencyKey": "o_5531-1"
+      }
+    },
+    {
+      "service": "payments-svc",
+      "ingress": "in.charge",
+      "role": "response",
+      "content": {
+        "paymentId": "p_99a",
+        "status": "SUCCEEDED",
+        "capturedAt": "2026-10-19T08:00:02Z"
+      }
+    },
+    {
+      "service": "users-svc",
+      "ingress": "in.getUser",
+      "role": "response",
+      "content": {
+        "id": "c_81f2a9",
+        "name": "Dana Levi",
+        "email": "dana@example.com",
+        "tier": "gold",
+        "createdAt": "2024-02-11T10:21:00Z"
+      }
+    },
+    {
+      "event": "OrderPlaced",
+      "content": {
+        "type": "OrderPlaced",
+        "orderId": "o_5531",
+        "customerId": "c_81f2a9",
+        "total": 103.8,
+        "currency": "EUR",
+        "items": [
+          {
+            "sku": "SKU-1042",
+            "quantity": 2
+          },
+          {
+            "sku": "SKU-2210",
+            "quantity": 1
+          }
+        ],
+        "occurredAt": "2026-10-19T08:00:03Z"
+      }
+    },
+    {
+      "event": "OrderCancelled",
+      "content": {
+        "type": "OrderCancelled",
+        "orderId": "o_5531",
+        "reason": "customer_request",
+        "occurredAt": "2026-10-19T09:12:00Z"
+      }
+    },
+    {
+      "event": "PaymentCaptured",
+      "content": {
+        "type": "PaymentCaptured",
+        "paymentId": "p_99a",
+        "orderId": "o_5531",
+        "amount": 103.8,
+        "currency": "EUR"
+      }
+    },
+    {
+      "event": "UserRegistered",
+      "content": {
+        "detail-type": "UserRegistered",
+        "source": "acme.users",
+        "detail": {
+          "userId": "c_81f2a9",
+          "plan": "free",
+          "signupChannel": "web"
+        }
+      }
+    }
+  ]
+}

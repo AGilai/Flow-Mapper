@@ -39,6 +39,8 @@ UI / agent ── GET /api/envs/:env/... ─► server/routes/queries.ts ─► 
 | `paths.ts` | service-to-service paths |
 | `health.ts` | link-health report |
 | `search.ts` | text search |
+| `events.ts` | event types over the links: deliveries, derived producers, per-event handlers, event checks |
+| `endpoint-info.ts` | an ingress with its handler, repo link to the handler's code, and DTOs |
 | `impact.ts` | bug impact (flows through linked entities) and suggested priority |
 | `integrity.ts` | references inside one service |
 | `schema-validate.ts` | small JSON Schema validator for our schema's keywords |
@@ -51,6 +53,7 @@ UI / agent ── GET /api/envs/:env/... ─► server/routes/queries.ts ─► 
 | `http/router.ts`, `http/static.ts` | routing; serves web/ and type-stripped core/ |
 | `db/connection.ts`, `db/migrations/*.sql` | SQLite and migrations |
 | `store/snapshots.ts` | ingest (full/delta), CRUD, changelog |
+| `store/dtos.ts` | request/response DTOs per ingress endpoint |
 | `store/bugs.ts` | bug workflow, attachments, log scanning |
 | `graph-cache.ts` | per-environment GraphIndex cache, health history |
 | `routes/*.ts` | REST endpoints by area |
@@ -75,5 +78,6 @@ broken) mean the same thing in every view.
 - Keep files under ~250 lines; split by concern when they grow.
 - core/ stays pure (no `node:` imports) so the browser can run it.
 - Use `import type` for type-only imports (required by type stripping).
-- New DB changes go in a new `server/db/migrations/NNN_name.sql`.
+- DB changes edit `server/db/migrations/001_init.sql` (no incremental migrations yet); reinstall
+  with `npm run db:install -- --force`. `openDb` refuses a database built from an older schema.
 - Every behaviour change gets a test in `tests/`.

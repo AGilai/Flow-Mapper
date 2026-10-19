@@ -40,6 +40,32 @@
       "details": {
         "type": "topic"
       }
+    },
+    {
+      "bindKey": "eventbridge:acme-bus",
+      "kind": "eventbridge-bus",
+      "name": "acme-bus",
+      "details": {
+        "arn": "arn:aws:events:eu-west-1:000000000000:event-bus/acme-bus"
+      }
+    }
+  ],
+  "bindings": [
+    {
+      "id": "sub.shipping",
+      "from": "sns:order-events",
+      "to": "sqs:shipping-order-events",
+      "events": [
+        "OrderPlaced"
+      ]
+    },
+    {
+      "id": "rule.userEvents",
+      "from": "eventbridge:acme-bus",
+      "to": "sqs:analytics-all-events",
+      "events": [
+        "User*"
+      ]
     }
   ]
 }

@@ -1,7 +1,7 @@
 // Builds lookup maps over a Model plus its Resolution. Every query module takes a GraphIndex,
 // so the expensive resolve() runs once per model change (server caches it per environment).
 
-import type { Channel, Egress, Fn, Ingress, Link, Model, Ref, Resolution, Resource, Service } from './types.ts';
+import type { Binding, Channel, Egress, Fn, Ingress, Link, Model, Ref, Resolution, Resource, Service } from './types.ts';
 import { mergedChannels, refKey, resolve } from './resolve.ts';
 
 export interface GraphIndex {
@@ -13,6 +13,7 @@ export interface GraphIndex {
   egress: Map<string, Egress>;
   resources: Map<string, Resource>;
   channels: Map<string, Channel>;    // by bindKey (merged)
+  bindings: Map<string, Binding>;    // `${service}:${id}`
   out: Map<string, Link[]>;          // refKey(from) → links
   into: Map<string, Link[]>;         // refKey(to) → links
 }
@@ -35,7 +36,7 @@ export function buildIndex(model: Model): GraphIndex {
     model, resolution,
     services: new Map(model.services.map((s) => [s.name, s])),
     fns: by(model.functions), ingress: by(model.ingress), egress: by(model.egress), resources: by(model.resources),
-    channels: mergedChannels(model), out, into,
+    channels: mergedChannels(model), bindings: by(model.bindings), out, into,
   };
 }
 

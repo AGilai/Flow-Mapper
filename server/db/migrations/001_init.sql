@@ -96,3 +96,26 @@ CREATE TABLE bug_comments (
   body       TEXT NOT NULL,
   created_at TEXT NOT NULL
 );
+
+-- DTO JSON (request / response) attached to an ingress endpoint. Loaded through its own API, not
+-- the manifest, so re-harvesting a service keeps it; deleting the service removes it.
+CREATE TABLE endpoint_dtos (
+  env        TEXT NOT NULL,
+  service    TEXT NOT NULL,
+  ingress    TEXT NOT NULL,                 -- ingress id
+  role       TEXT NOT NULL CHECK (role IN ('request', 'response')),
+  content    TEXT NOT NULL,                 -- the DTO as JSON
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (env, service, ingress, role),
+  FOREIGN KEY (env, service) REFERENCES snapshots (env, service) ON DELETE CASCADE
+);
+
+-- Message DTO per event type (the contract between its producers and consumers). Keyed by event
+-- type, not by service, so it outlives any one producer.
+CREATE TABLE event_dtos (
+  env        TEXT NOT NULL,
+  event_type TEXT NOT NULL,
+  content    TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (env, event_type)
+);

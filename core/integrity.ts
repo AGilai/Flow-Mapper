@@ -1,8 +1,8 @@
-// Checks references inside one service: ingress handlers and step targets must exist, IDs unique.
+// Checks references inside one service: ingress (and per-event) handlers and step targets must exist, IDs unique.
 
 export interface ServiceEntities {
   functions?: { id: string; steps?: { seq: number; type: string; target: string }[] }[];
-  ingress?: { id: string; handler: string }[];
+  ingress?: { id: string; handler: string; events?: { type: string; handler: string }[] }[];
   egress?: { id: string }[];
   resources?: { id: string }[];
   channels?: { bindKey: string }[];
@@ -21,7 +21,10 @@ export function integrityErrors(e: ServiceEntities): string[] {
   };
   const fns = ids('functions'), egs = ids('egress'), rs = ids('resources');
   ids('ingress'); ids('bindings'); ids('channels', 'bindKey');
-  for (const i of e.ingress ?? []) if (!fns.has(i.handler)) errs.push(`ingress '${i.id}': handler '${i.handler}' is not a function of this service`);
+  for (const i of e.ingress ?? []) {
+    if (!fns.has(i.handler)) errs.push(`ingress '${i.id}': handler '${i.handler}' is not a function of this service`);
+    for (const ev of i.events ?? []) if (!fns.has(ev.handler)) errs.push(`ingress '${i.id}' event '${ev.type}': handler '${ev.handler}' is not a function of this service`);
+  }
   for (const f of e.functions ?? []) {
     const seqs = new Set<number>();
     for (const s of f.steps ?? []) {

@@ -73,7 +73,35 @@
       "id": "in.orderEvents",
       "bindKey": "sqs:inventory-order-events",
       "transport": "sqs",
-      "handler": "OnOrderEvent"
+      "handler": "OnOrderEvent",
+      "events": [
+        {
+          "type": "OrderPlaced",
+          "handler": "OnOrderEvent"
+        },
+        {
+          "type": "OrderCancelled",
+          "handler": "OnOrderEvent"
+        },
+        {
+          "type": "OrderRefunded",
+          "handler": "OnOrderEvent",
+          "producers": [
+            "billing-legacy"
+          ]
+        },
+        {
+          "type": "PaymentCaptured",
+          "handler": "OnOrderEvent",
+          "producers": [
+            "payments-svc"
+          ]
+        },
+        {
+          "type": "StockRecount",
+          "handler": "OnOrderEvent"
+        }
+      ]
     }
   ],
   "resources": [
@@ -96,12 +124,10 @@
       "id": "sub.orderEvents",
       "from": "sns:order-events",
       "to": "sqs:inventory-order-events",
-      "filter": {
-        "eventType": [
-          "OrderPlaced",
-          "OrderCancelled"
-        ]
-      }
+      "events": [
+        "OrderPlaced",
+        "OrderCancelled"
+      ]
     }
   ]
 }

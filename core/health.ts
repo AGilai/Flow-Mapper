@@ -1,6 +1,7 @@
 // Link-health summary per environment and per service. See docs/DESIGN.md §5.
 
 import type { GraphIndex } from './graph-index.ts';
+import { eventReport } from './events.ts';
 
 export interface ServiceHealth {
   service: string;
@@ -10,12 +11,13 @@ export interface ServiceHealth {
   orphans: number;
   unbound: number;
   ambiguous: number;
+  eventIssues: number;     // unhandled, undelivered, never-arriving and declared-not-seen event types
   coverage: number | null; // resolved egress / egress, null when the service has no egress
 }
 
 export interface HealthReport {
   env: string;
-  totals: Omit<ServiceHealth, 'service' | 'version'> & { services: number; links: number; brokenBindings: number };
+  totals: Omit<ServiceHealth, 'service' | 'version' | 'eventIssues'> & { services: number; links: number; brokenBindings: number } & Record<EventKind, number>;
   services: ServiceHealth[];
   items: {
     dangling: { service: string; id: string; bindKey: string; transport: string }[];
@@ -23,12 +25,27 @@ export interface HealthReport {
     unbound: { service: string; bindKey: string; kind: string; reason: string }[];
     brokenBindings: { service: string; id: string; from: string; to: string }[];
     ambiguous: { service: string; id: string; bindKey: string; candidates: string[] }[];
+    unhandledEvents: { service: string; ingress: string; event: string; producer: string; egress: string }[];
+    undeliveredEvents: { service: string; egress: string; bindKey: string; event: string }[];
+    neverArrives: { service: string; ingress: string; bindKey: string; event: string }[];
+    declaredNotSeen: { service: string; ingress: string; event: string; producer: string }[];
+    subscriptionConflicts: { service: string; from: string; to: string; declarations: { service: string; id: string; events: '*' | string[] }[] }[];
   };
 }
 
+export const EVENT_KINDS = ['unhandledEvents', 'undeliveredEvents', 'neverArrives', 'declaredNotSeen', 'subscriptionConflicts'] as const;
+type EventKind = (typeof EVENT_KINDS)[number];
+
 export function health(g: GraphIndex): HealthReport {
   const r = g.resolution;
+  const ev = eventReport(g);
   const items: HealthReport['items'] = {
+    unhandledEvents: ev.unhandled.map((d) => ({ service: d.consumer.service, ingress: d.consumer.ingress, event: d.event, producer: d.producer.service, egress: d.producer.egress })),
+    undeliveredEvents: ev.undelivered,
+    neverArrives: ev.neverArrives,
+    declaredNotSeen: ev.declaredNotSeen,
+    // listed under the first declaring service so per-service counts include it
+    subscriptionConflicts: ev.conflicts.map((c) => ({ service: c.declarations[0].service, ...c })),
     dangling: r.dangling.map((e) => ({ service: e.service, id: e.id, bindKey: e.bindKey, transport: e.transport })),
     orphans: r.orphans.map((i) => ({ service: i.service, id: i.id, bindKey: i.bindKey, transport: i.transport })),
     unbound: r.unbound.map((u) => ({ service: u.channel.service, bindKey: u.channel.bindKey, kind: u.channel.kind, reason: u.reason })),
@@ -47,6 +64,7 @@ export function health(g: GraphIndex): HealthReport {
       orphans: count(items.orphans, s.name),
       unbound: count(items.unbound, s.name),
       ambiguous: count(items.ambiguous, s.name),
+      eventIssues: EVENT_KINDS.reduce((n, k) => n + count(items[k], s.name), 0),
       coverage: egress ? (egress - dangling) / egress : null,
     };
   });
@@ -62,6 +80,7 @@ export function health(g: GraphIndex): HealthReport {
       unbound: items.unbound.length,
       ambiguous: items.ambiguous.length,
       brokenBindings: items.brokenBindings.length,
+      ...Object.fromEntries(EVENT_KINDS.map((k) => [k, items[k].length])) as Record<EventKind, number>,
       coverage: egressTotal ? (egressTotal - items.dangling.length) / egressTotal : null,
     },
     services: services.sort((a, b) => (a.coverage ?? 2) - (b.coverage ?? 2) || a.service.localeCompare(b.service)),

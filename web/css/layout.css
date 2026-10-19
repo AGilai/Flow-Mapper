@@ -50,3 +50,7 @@
   .content { padding: var(--s4); }
   .page-head { padding: var(--s3) var(--s4); }
 }
+
+/* A page whose panel slides over its scrolling content (service view). */
+.panel-host { flex: 1; min-height: 0; position: relative; display: flex; flex-direction: column; overflow: hidden; }
+.panel-host > .panel { width: min(520px, 100%); }

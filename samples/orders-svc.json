@@ -79,7 +79,8 @@
           "type": "egress",
           "target": "orderEvents.publish",
           "mode": "async",
-          "operation": "publish OrderPlaced"
+          "operation": "publish",
+          "event": "OrderPlaced"
         }
       ]
     },
@@ -176,7 +177,11 @@
       "delivery": "multicast",
       "details": {
         "event": "OrderPlaced"
-      }
+      },
+      "events": [
+        "OrderPlaced",
+        "OrderCancelled"
+      ]
     }
   ],
   "resources": [

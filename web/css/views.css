@@ -70,3 +70,52 @@
 .dropzone { border: 1.5px dashed var(--line-strong); border-radius: var(--r-md); padding: var(--s4); text-align: center; color: var(--muted); font-size: var(--fs-sm); }
 .dropzone.over { border-color: var(--accent); background: var(--accent-soft); }
 .log-view { max-height: 320px; overflow: auto; background: var(--surface-2); border-radius: var(--r-sm); padding: var(--s3); font: 12px/1.55 var(--mono); white-space: pre; }
+
+/* ---- endpoint info ---- */
+.sb-actions { display: inline-flex; align-items: center; gap: var(--s1); }
+.icon-btn { height: 24px; width: 24px; padding: 0; justify-content: center; color: var(--muted); }
+.icon-btn:hover { color: var(--accent); }
+
+.ep-head { display: grid; gap: 6px; min-width: 0; }
+.ep-title { display: flex; align-items: center; gap: var(--s2); min-width: 0; }
+.ep-target { font-family: var(--mono); font-size: var(--fs-md); font-weight: 600; word-break: break-all; }
+.ep-method { font-family: var(--mono); font-size: var(--fs-xs); font-weight: 700; letter-spacing: .04em; padding: 2px 7px; border-radius: 5px;
+  color: var(--m); background: color-mix(in srgb, var(--m) 14%, transparent); --m: var(--t-http); }
+.ep-method[data-m='POST'] { --m: var(--ok); } .ep-method[data-m='PUT'], .ep-method[data-m='PATCH'] { --m: var(--warn); }
+.ep-method[data-m='DELETE'] { --m: var(--bad); }
+.ep-sub { display: flex; align-items: center; gap: var(--s2); font-size: var(--fs-xs); color: var(--muted); }
+.ep-card { border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); overflow: hidden; }
+.ep-card > header { display: flex; align-items: center; gap: var(--s2); padding: var(--s2) var(--s3); border-bottom: 1px solid var(--line); }
+.ep-card > header h3 { font-size: var(--fs-sm); font-weight: 650; margin: 0; }
+.ep-meta { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-xs); color: var(--muted); }
+.ep-meta svg { width: 14px; height: 14px; }
+.ep-card > .json-view { border: 0; border-radius: 0; }
+.ep-link { display: flex; align-items: center; gap: var(--s3); padding: var(--s3); color: inherit; text-decoration: none; transition: background .12s; }
+.ep-link:not(.disabled):hover { background: var(--accent-soft); }
+.ep-link svg { flex: none; color: var(--accent); }
+.ep-link-text { display: grid; gap: 2px; min-width: 0; flex: 1; }
+.ep-link-text .key { color: var(--muted); }
+.ep-empty { margin: var(--s3); padding: var(--s4); border: 1px dashed var(--line-strong); border-radius: var(--r-sm); display: grid; gap: var(--s2); text-align: center; }
+.ep-empty p { margin: 0; color: var(--ink-2); font-size: var(--fs-sm); }
+.ep-empty code { font-size: 11px; color: var(--muted); }
+.ep-card > .ep-note { margin: 0 var(--s3) var(--s3); }
+.ep-note { margin: 0; font-size: var(--fs-xs); color: var(--muted); }
+.ep-trace { justify-self: start; }
+.ep-events { display: grid; gap: var(--s2); }
+.ep-events-title { display: flex; gap: var(--s2); align-items: baseline; font-size: var(--fs-sm); margin: var(--s2) 0 0; }
+.ep-event > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: var(--s2); padding: var(--s2) var(--s3); }
+.ep-event > summary::-webkit-details-marker { display: none; }
+.ep-event > summary::before { content: '▸'; color: var(--muted); font-size: 11px; }
+.ep-event[open] > summary::before { content: '▾'; }
+.ep-event[open] > summary { border-bottom: 1px solid var(--line); }
+.ep-event-name { font-family: var(--mono); font-weight: 600; font-size: var(--fs-sm); }
+.ep-event > * + * { margin-top: 0; }
+.ep-pad { padding: var(--s2) var(--s3); }
+.ep-note.ep-pad { padding-bottom: 0; }
+.ep-label { font-size: var(--fs-xs); font-weight: 650; color: var(--ink-2); text-transform: uppercase; letter-spacing: .04em; }
+.ep-producers { display: flex; flex-wrap: wrap; gap: var(--s1); }
+.ep-producer { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border: 1px solid var(--line-strong); border-radius: 999px; font-size: var(--fs-xs); }
+.ep-producer.declared { border-style: dashed; }
+.ep-producer.warn { border-color: var(--warn); }
+.ep-event .ep-empty { margin: 0; }
+.ep-event .json-view { border: 1px solid var(--line); }

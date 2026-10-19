@@ -12,7 +12,7 @@ import type { Binding, Channel, Delivery, Egress, Ingress, Link, Model, Ref, Res
 import { compareSpecificity, keyMatches, specificity } from './glob.ts';
 
 export const DEFAULT_DELIVERY: Record<string, Delivery> = {
-  http: 'unicast', grpc: 'unicast', sqs: 'unicast', sns: 'multicast', amqp: 'multicast',
+  http: 'unicast', grpc: 'unicast', sqs: 'unicast', sns: 'multicast', amqp: 'multicast', eventbridge: 'multicast',
 };
 
 export const deliveryOf = (e: { delivery?: Delivery; transport: Transport }): Delivery =>
@@ -23,7 +23,7 @@ export const refKey = (r: Ref): string =>
 
 const ingressRef = (i: Ingress): Ref => ({ type: 'ingress', service: i.service, id: i.id });
 const channelTransport = (c: Channel): Transport =>
-  c.kind === 'sns-topic' ? 'sns' : c.kind === 'sqs-queue' ? 'sqs' : c.kind.startsWith('amqp') ? 'amqp' : 'other';
+  c.kind === 'sns-topic' ? 'sns' : c.kind === 'sqs-queue' ? 'sqs' : c.kind.startsWith('amqp') ? 'amqp' : c.kind === 'eventbridge-bus' ? 'eventbridge' : 'other';
 
 /** Merge channel declarations that share a key (several manifests may declare the same topic). */
 export function mergedChannels(model: Model): Map<string, Channel> {
@@ -64,7 +64,7 @@ export function resolve(model: Model): Resolution {
 
   const addBindingLinks = (from: Ref, key: string, mode: Link['mode'], transport: Transport) => {
     const bs = bindingsFrom(key);
-    for (const b of bs) for (const to of targetsOfBinding.get(b)!) links.push({ from, to, via: 'binding', mode, transport });
+    for (const b of bs) for (const to of targetsOfBinding.get(b)!) links.push({ from, to, via: 'binding', mode, transport, binding: { service: b.service, id: b.id } });
     return bs.length;
   };
 
@@ -119,6 +119,7 @@ export function resolve(model: Model): Resolution {
   const unbound: Resolution['unbound'] = [];
   for (const [key, c] of channels) {
     if (c.kind === 'sns-topic' && !bindingsFrom(key).length) unbound.push({ channel: c, reason: 'topic has no subscription' });
+    if (c.kind === 'eventbridge-bus' && !bindingsFrom(key).length) unbound.push({ channel: c, reason: 'bus has no rule' });
     if ((c.kind === 'sqs-queue' || c.kind === 'amqp-queue') && !model.ingress.some((i) => keyMatches(i.bindKey, i.match, key)))
       unbound.push({ channel: c, reason: 'queue has no consumer' });
     if (c.kind === 'amqp-exchange' && !model.bindings.some((b) => b.from === key || b.from.startsWith(key + '/')))

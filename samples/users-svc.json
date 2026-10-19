@@ -48,6 +48,22 @@
           "operation": "SELECT contacts"
         }
       ]
+    },
+    {
+      "id": "register_user",
+      "name": "register_user",
+      "file": "users/register.py",
+      "line": 14,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "userEvents.publish",
+          "mode": "async",
+          "operation": "PutEvents",
+          "event": "UserRegistered"
+        }
+      ]
     }
   ],
   "ingress": [
@@ -84,6 +100,17 @@
       "kind": "redis",
       "name": "cache-main",
       "bindKey": "redis:cache-main"
+    }
+  ],
+  "egress": [
+    {
+      "id": "userEvents.publish",
+      "bindKey": "eventbridge:acme-bus",
+      "transport": "eventbridge",
+      "events": [
+        "UserRegistered",
+        "ProfileViewed"
+      ]
     }
   ]
 }

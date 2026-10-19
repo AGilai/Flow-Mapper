@@ -9,6 +9,7 @@
     "start": "NODE_ENV=production node --disable-warning=ExperimentalWarning server/main.ts",
     "dev": "node --disable-warning=ExperimentalWarning --watch server/main.ts",
     "mcp": "node --disable-warning=ExperimentalWarning server/mcp/stdio.ts",
+    "db:install": "node --disable-warning=ExperimentalWarning scripts/db-install.ts",
     "seed": "node --disable-warning=ExperimentalWarning scripts/seed.ts --bugs",
     "seed:mock": "node --disable-warning=ExperimentalWarning scripts/seed.ts --mock 100 --bugs",
     "test": "node --disable-warning=ExperimentalWarning --test tests/*.test.ts",

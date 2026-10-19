@@ -1,5 +1,5 @@
 // In-browser backend for the static preview build. Runs the shared core/ modules against bundled
-// data (globalThis.FLOW_PREVIEW = {version, models: {env: Model}, bugs: [Bug]}). Bug edits stay in memory.
+// data (globalThis.FLOW_PREVIEW = {version, models: {env: Model}, dtos: {env: [Dto]}, eventDtos: {env: [EventDto]}, bugs: [Bug]}). Bug edits stay in memory.
 
 import { buildIndex } from '../core/graph-index.js';
 import { systemGraph } from '../core/system-graph.js';
@@ -9,6 +9,7 @@ import { findPaths } from '../core/paths.js';
 import { search } from '../core/search.js';
 import { health } from '../core/health.js';
 import { impact, suggestPriority } from '../core/impact.js';
+import { endpointInfo } from '../core/endpoint-info.js';
 
 const data = globalThis.FLOW_PREVIEW;
 const indexes = new Map();
@@ -47,6 +48,8 @@ export const api = {
     return { ...v, openBugs: bugs.filter((b) => OPEN.includes(b.status) && b.links.some((l) => l.id === name || l.service === name)).length };
   },
   entryPoints: async (env) => entryPoints(g(env)),
+  endpoint: async (env, service, ingress) => endpointInfo(g(env), service, ingress,
+    (data.dtos?.[env] ?? []).filter((d) => d.service === service && d.ingress === ingress), data.eventDtos?.[env] ?? []) ?? fail('endpoint not found'),
   trace: async (env, q) => trace(g(env), q, { scope: q.scope, maxMessages: q.maxMessages ?? 500 }) ?? fail('start point not found'),
   paths: async (env, from, to) => findPaths(g(env), from, to),
   search: async (env, q, limit) => search(g(env), q, limit),

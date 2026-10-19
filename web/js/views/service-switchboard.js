@@ -4,11 +4,12 @@
 import { h } from '../dom.js';
 import { href } from '../router.js';
 import { chip, splitKey } from '../format.js';
+import { icon } from '../icons.js';
 
 const OPEN_LIMIT = 15;
 const svcLink = (s) => h('a', { href: href(`/services/${encodeURIComponent(s)}`) }, s);
 
-export function switchboard(v, name, q) {
+export function switchboard(v, name, q, onInfo) {
   const hit = (...xs) => !q || xs.some((x) => x && String(x).toLowerCase().includes(q));
 
   // ---- ingress, grouped by transport ----
@@ -19,7 +20,9 @@ export function switchboard(v, name, q) {
     byT.length ? byT.map(([t, items]) => details(chip(t), items.length, items.length <= OPEN_LIMIT || !!q,
       items.map((i) => h('div.sb-row', { 'data-t': i.orphan ? 'broken' : i.transport, class: '' },
         h('a.key', { href: href('/flows', { service: name, ingress: i.id }) , title: 'Trace from here' }, splitKey(i.bindKey).rest),
-        h('span.xs', i.entryPoint ? h('span.pill', 'entry') : i.orphan ? h('span.pill.warn', 'never called') : null),
+        h('span.xs.sb-actions', i.entryPoint ? h('span.pill', 'entry') : i.orphan ? h('span.pill.warn', 'never called') : null,
+          i.events?.length ? h('span.pill', { title: i.events.map((e) => e.type).join(', ') }, `${i.events.length} event ${i.events.length === 1 ? 'type' : 'types'}`) : null,
+          onInfo ? h('button.btn.ghost.icon-btn', { type: 'button', title: 'Endpoint info', 'aria-label': `Info for ${i.bindKey}`, on: { click: () => onInfo(i.id) } }, icon('info')) : null),
         h('div.peers', h('span', 'handler ', h('span.key', i.handler)),
           i.callers.length ? h('span', 'from ', join(uniq(i.callers.map((c) => c.service)).map(svcLink))) : null,
           uniq(i.callers.flatMap((c) => c.via)).length ? h('span', 'via ', uniq(i.callers.flatMap((c) => c.via)).join(', ')) : null))))) :
