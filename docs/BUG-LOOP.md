@@ -15,8 +15,14 @@ Each run is a cheap check; only when there is something to do does it start a **
 4. Otherwise start **one** bug agent (Agent tool, `model: sonnet`, `isolation: worktree`, in the
    background) with the brief below and the bug ids (at most three). Do not start another while
    one is running; leave the rest for the next run.
-5. When it reports, relay the outcome to the maintainer in a few lines: what was fixed (version,
-   commit), what was answered or left for them, anything that failed.
+5. When it reports a pushed fix, deploy and close it: `git -C /home/ubuntu/Flow-Mapper pull --ff-only`
+   (not a fast-forward: stop and tell the maintainer), stop the process whose command line is exactly
+   `node --disable-warning=ExperimentalWarning server/main.ts` (`pgrep -f -x`), start
+   `setsid nohup data/serve.sh >/dev/null 2>&1 < /dev/null &`, check `GET /api/version`. Then post the
+   agent's comment as `flow-mapper` and `PATCH {"status": "fixed", "fixedInVersion": "<version>",
+   "resolution": {"type": "code", "ref": "<commit>"}}`.
+6. Relay the outcome to the maintainer in a few lines: what was fixed (version, commit), what was
+   answered or left for them, anything that failed.
 
 ## Bug agent brief
 
@@ -40,16 +46,11 @@ Fixing:
 - Add a test that fails before the fix; `npm test` must pass. Touch nothing unrelated.
 - Bump the patch version in `package.json`. Commit as `Fix #<id>: …` with the line
   `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`.
-- Ship: `git fetch origin && git rebase origin/main`, run `npm test` again, `git push origin HEAD:main`,
-  then `git -C /home/ubuntu/Flow-Mapper pull --ff-only` and restart the server: stop the process
-  whose command line is exactly `node --disable-warning=ExperimentalWarning server/main.ts`
-  (`kill $(pgrep -f -x '<that command>')`; a looser pattern matches your own shell), then
-  `cd /home/ubuntu/Flow-Mapper && setsid nohup data/serve.sh >/dev/null 2>&1 < /dev/null &`.
-  Check `GET /api/version` shows the new version. If the pull is not a fast-forward, stop and report.
-- On the bug: comment what changed, exactly what the reporter should send or do now, and the
-  commit (author `flow-mapper`), then `PATCH {"status": "fixed", "fixedInVersion": "<version>",
-  "resolution": {"type": "code", "ref": "<commit>"}}` (move through `in_progress` first).
+- Ship: `git fetch origin && git rebase origin/main`, run `npm test` again, `git push origin HEAD:main`.
+  Do not touch `/home/ubuntu/Flow-Mapper`, the server, or the bug's status after this: the worktree
+  sandbox cannot, and the lead session deploys and closes the bug from your report.
+- Leave the bug `in_progress`. In your report give: the version, the commit, and a ready-to-post comment for the reporter (what changed, exactly what to send or do now).
 - If tests fail and you cannot fix them, push nothing, comment what you found, leave it `in_progress`.
 
-Report back in under 15 lines: per bug, the decision, version and commit if fixed, and anything the
-maintainer must decide.
+Report back in under 20 lines: per bug, the decision, version and commit if fixed, the comment to
+post, and anything the maintainer must decide.
