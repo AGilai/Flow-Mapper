@@ -45,6 +45,10 @@ for (const f of readdirSync(join(root, 'core')).filter((f) => f.endsWith('.ts'))
 writeFileSync(join(out, 'data.js'), `globalThis.FLOW_PREVIEW = ${JSON.stringify(data)};\n`);
 const html = readFileSync(join(out, 'index.html'), 'utf8').replace('<script type="module" src="js/main.js">', '<script src="data.js"></script>\n  <script type="module" src="js/main.js">');
 writeFileSync(join(out, 'index.html'), html);
+// Body-only variant for hosts that supply their own document skeleton (claude.ai artifacts).
+const body = html.replace(/^[\s\S]*<head>/, '').replace(/<\/head>\s*<body>/, '').replace(/<\/body>\s*<\/html>\s*$/, '')
+  .replace(/<meta charset="utf-8">\s*<meta name="viewport"[^>]*>\s*/, '').replace('<title>Flow-Mapper</title>', '<title>Flow-Mapper Preview</title>');
+writeFileSync(join(out, 'app.html'), body.trim() + '\n');
 rmSync(tmp, { recursive: true, force: true });
 const size = (readFileSync(join(out, 'data.js')).length / 1024 / 1024).toFixed(1);
 console.log(`preview → ${out} (data.js ${size} MB, envs: ${Object.keys(data.models).join(', ')}, ${data.bugs.length} bugs)`);

@@ -1,5 +1,5 @@
 /* App shell: navigation rail, page header, content, slide-in info panel. */
-.app { display: grid; grid-template-columns: var(--rail) 1fr; height: 100vh; }
+.app { display: grid; grid-template-columns: var(--rail) 1fr; height: 100%; }
 .rail {
   display: flex; flex-direction: column; gap: var(--s1);
   padding: var(--s4) var(--s3); background: var(--surface); border-right: 1px solid var(--line);
