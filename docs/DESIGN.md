@@ -44,7 +44,7 @@ Environment ─┬─ ServiceSnapshot (service, version, harvestedAt, commit)
 | Step | `service:function#seq` | seq, type (`call` \| `egress` \| `resource`), target, mode (`sync` \| `async`), operation, condition, loop |
 | Ingress | `service:id` | bindKey, transport, handler, delivery, entryPoint, details |
 | Egress | `service:id` | bindKey, transport, mode, delivery, details |
-| Resource | `service:id` | kind (mongodb, redis, dynamodb, postgres, s3, …), name, bindKey |
+| Resource | `service:id` | kind (mongodb, redis, dynamodb, postgres, s3, …), name, bindKey (`{kind}:{cluster}/{collection, table or key pattern}`) |
 | Channel | `bindKey` | kind (sns-topic, sqs-queue, amqp-exchange, amqp-queue, eventbridge-bus), name |
 | Binding | `service:id` | from (key or pattern), to (key), events (event filter), filter |
 | Link | derived | from endpoint → to endpoint, reason (exact \| pattern \| binding) |
@@ -125,6 +125,20 @@ are not followed, and the consumer runs that event's handler.
 
 ---
 
+### Data stores
+
+A data store is identified by its bind key; services that declare the same key share it. Keys go
+down to the unit people reason about: a MongoDB collection (`mongodb:orders-db/orders`), a Redis
+key pattern (`redis:cache-main/order:{id}`), a DynamoDB or Postgres table, an S3 bucket. The part
+before the first `/` is the store's group (cluster or database). Each resource step is a read or a
+write, from its `access` or else its operation (`find`, `GET`, `SELECT`, `GetItem`… are reads).
+
+Schemas are stored per store and per **source**: `code` (from the service's data models, the
+first harvester), `db` (read from the database, later), `manual`. Keeping the source allows a
+later check that what the code expects matches what the database holds.
+
+---
+
 ## 4. Ingest, versions and deltas
 
 **Full manifest** (`kind: "full"`) replaces the service's snapshot in that environment.
@@ -161,6 +175,8 @@ Computed after every resolution, per environment and per service:
 | Event filtered out | Published, but every subscription on the way filters it out |
 | Event nothing sends | A consumer handles it; no producer sends it on a route in, none declared |
 | Declared producer not seen | A declared producer is harvested but does not send that event type there |
+| Store with several writers | More than one service writes the same collection, table or key: coupled through data |
+| Unused store | Declared, but no function uses it |
 | Subscription conflict | The same subscription (from, to) is reported by several manifests with different event filters |
 | Coverage | Resolved egress ÷ total egress, per service |
 
@@ -198,6 +214,12 @@ impact, `appVersion` (where it was seen), `fixedInVersion`, env, reporter, assig
 1. **System view** — force-directed graph of services, gateways, channels and resources.
    Filters: name, function, transport, env, team, tag, "only broken links". Click a node
    or edge for the info panel (endpoints, versions, health, open bugs).
+1a. **Inventory** — every object (services, gateways, Lambdas, topics, queues, buses, data
+   stores, event types) in one list, filtered by type, kind, team, text and "has problems".
+   Each object has its own page: a data store shows readers and writers down to the function,
+   the entry points whose flows reach it, its schemas and the other keys in its cluster; a
+   channel shows publishers, subscriptions with event filters, consumers and event types; an
+   event type shows its routes, handlers, problems and Message DTO.
 2. **Service view** — one service in the middle; ingress on the left, egress, channels
    and resources on the right, each with transport, mode and details. Each ingress has an
    info button: a panel with a link to the handler's code in the repo (file and line at the

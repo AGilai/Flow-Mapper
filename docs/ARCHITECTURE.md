@@ -39,6 +39,10 @@ UI / agent ── GET /api/envs/:env/... ─► server/routes/queries.ts ─► 
 | `paths.ts` | service-to-service paths |
 | `health.ts` | link-health report |
 | `search.ts` | text search |
+| `inventory.ts` | every object in one list for the Inventory page |
+| `stores.ts` | data stores: keys and groups, read/write access, store view |
+| `reach.ts` | reverse reachability: entry points whose flows run a function |
+| `channels.ts` | topic/queue/bus view: publishers, subscriptions, consumers, events |
 | `events.ts` | event types over the links: deliveries, derived producers, per-event handlers, event checks |
 | `endpoint-info.ts` | an ingress with its handler, repo link to the handler's code, and DTOs |
 | `impact.ts` | bug impact (flows through linked entities) and suggested priority |
@@ -53,6 +57,7 @@ UI / agent ── GET /api/envs/:env/... ─► server/routes/queries.ts ─► 
 | `http/router.ts`, `http/static.ts` | routing; serves web/ and type-stripped core/ |
 | `db/connection.ts`, `db/migrations/*.sql` | SQLite and migrations |
 | `store/snapshots.ts` | ingest (full/delta), CRUD, changelog |
+| `store/schemas.ts` | data-store schemas per source |
 | `store/dtos.ts` | request/response DTOs per ingress endpoint |
 | `store/bugs.ts` | bug workflow, attachments, log scanning |
 | `graph-cache.ts` | per-environment GraphIndex cache, health history |

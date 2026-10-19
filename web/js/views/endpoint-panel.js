@@ -7,6 +7,7 @@ import { icon } from '../icons.js';
 import { href } from '../router.js';
 import { ago, chip, splitKey } from '../format.js';
 import { jsonView } from '../components/json-view.js';
+import { eventLink } from './inventory-links.js';
 
 /** Returns [head, ...content] for panel.open(). */
 export function endpointPanel(info, env) {
@@ -71,7 +72,7 @@ function eventCard(e, info, env, open) {
       : h('div.ep-link.disabled', h('span.ep-link-text', h('b', e.handler))))
     : null;
   return h('details.ep-card.ep-event', { open },
-    h('summary', h('span.ep-event-name', e.type), e.pattern ? h('span.xs.muted', `via ${e.pattern}`) : null, meta),
+    h('summary', h('span.ep-event-name', e.type.includes('*') ? e.type : eventLink(e.type)), e.pattern ? h('span.xs.muted', `via ${e.pattern}`) : null, meta),
     st ? h('p.ep-note.ep-pad', st[2]) : null,
     handler,
     h('div.ep-pad.stack', { style: { gap: 'var(--s1)' } },

@@ -119,3 +119,14 @@ CREATE TABLE event_dtos (
   updated_at TEXT NOT NULL,
   PRIMARY KEY (env, event_type)
 );
+
+-- Schema of a data store (collection, table, key pattern, bucket), keyed by its bind key. One row per
+-- source: 'code' (from the service's data models), 'db' (read from the database), 'manual'.
+CREATE TABLE store_schemas (
+  env        TEXT NOT NULL,
+  store_key  TEXT NOT NULL,
+  source     TEXT NOT NULL CHECK (source IN ('code', 'db', 'manual')),
+  content    TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (env, store_key, source)
+);

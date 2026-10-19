@@ -1,5 +1,5 @@
 // Loads manifests into the database.
-//   node scripts/seed.ts                 → samples/ (+ samples/deltas/, + endpoint DTOs from samples/dtos/)
+//   node scripts/seed.ts                 → samples/ (+ samples/deltas/, DTOs from samples/dtos/, store schemas from samples/schemas/)
 //   node scripts/seed.ts --mock [n]      → generated mock system with n services (default 100) in env 'scale-test'
 //   node scripts/seed.ts --bugs          → also creates example bug reports
 // Uses FLOW_DB / FLOW_DATA_DIR like the server. Existing services are replaced (version bumped).
@@ -10,6 +10,8 @@ import { createContext } from '../server/app.ts';
 import { config } from '../server/config.ts';
 import * as store from '../server/store/snapshots.ts';
 import { loadDtos } from '../server/store/dtos.ts';
+import { loadSchemas } from '../server/store/schemas.ts';
+import { stores } from '../core/stores.ts';
 import { generateMock } from './mock/generate.ts';
 import { seedBugs } from './mock/bugs.ts';
 
@@ -43,6 +45,10 @@ for (const m of manifests) {
 envs.forEach((e) => ctx.changed(e));
 if (mockIdx < 0) {
   for (const f of readDir(join(import.meta.dirname, '../samples/dtos'))) console.log(`loaded ${loadDtos(ctx.db, f.env, f.dtos).loaded} DTOs into ${f.env}`);
+  for (const f of readDir(join(import.meta.dirname, '../samples/schemas'))) {
+    const keys = new Set(stores(ctx.graph(f.env)).map((s) => s.key));
+    console.log(`loaded ${loadSchemas(ctx.db, f.env, f.schemas, (k) => keys.has(k)).loaded} store schemas into ${f.env}`);
+  }
 }
 console.log(`seeded ${manifests.length} manifests into ${[...envs].join(', ')} (${config.dbPath})`);
 

@@ -6,7 +6,7 @@ import { created } from '../http/router.ts';
 import type { Ctx } from '../context.ts';
 import { notFound } from '../errors.ts';
 import { endpointInfo } from '../../core/endpoint-info.ts';
-import { eventTypes } from '../../core/events.ts';
+import { eventTypes, eventView } from '../../core/events.ts';
 import * as dtos from '../store/dtos.ts';
 
 export function registerDtos(r: Router, ctx: Ctx) {
@@ -39,7 +39,7 @@ export function registerDtos(r: Router, ctx: Ctx) {
   });
 
   r.get('/api/envs/:env/events/*type', (req) => {
-    const t = eventTypes(ctx.graph(req.params.env)).find((x) => x.type === req.params.type);
+    const t = eventView(ctx.graph(req.params.env), req.params.type);
     const dto = dtos.getEventDto(db, req.params.env, req.params.type);
     if (!t && !dto) throw notFound(`event type '${req.params.type}'`);
     return { ...(t ?? { type: req.params.type, producers: [], consumers: [] }), dto };

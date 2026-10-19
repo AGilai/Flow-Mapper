@@ -7,6 +7,7 @@ import { go, href, setQuery } from '../router.js';
 import { pageHead } from '../components/page.js';
 import { dataTable } from '../components/table.js';
 import { chip, coverageBar, pct, splitKey } from '../format.js';
+import { storeLink } from './inventory-links.js';
 
 const KINDS = [
   { id: 'dangling', label: 'Calls with no match', help: 'An egress whose bind key matches no ingress, queue or route.' },
@@ -19,6 +20,8 @@ const KINDS = [
   { id: 'neverArrives', label: 'Events nothing sends', help: 'A consumer handles this event type, but no producer sends it on a route into its queue and none is declared.' },
   { id: 'declaredNotSeen', label: 'Declared producers not seen', help: 'A consumer declares a producer that Flow-Mapper harvests, but that service does not send this event type to it.' },
   { id: 'subscriptionConflicts', label: 'Subscription conflicts', help: 'The same subscription is reported by more than one manifest with different event filters.' },
+  { id: 'multipleWriters', label: 'Stores with several writers', help: 'More than one service writes to the same collection, table or key. Those services are coupled through the data.', store: true },
+  { id: 'unusedStores', label: 'Unused stores', help: 'A data store a service declares but no function uses.', store: true },
 ];
 
 export async function render({ main, query }) {
@@ -30,7 +33,8 @@ export async function render({ main, query }) {
     fig(pct(t.coverage), 'Calls resolved'),
     fig(t.links.toLocaleString(), 'Links'),
     ...KINDS.slice(0, 5).map((k) => fig(t[k.id], k.label, t[k.id] > 0 && k.id !== 'orphans')),
-    fig(KINDS.slice(5).reduce((n, k) => n + t[k.id], 0), 'Event problems', KINDS.slice(5).some((k) => t[k.id] > 0)));
+    fig(KINDS.slice(5, 10).reduce((n, k) => n + t[k.id], 0), 'Event problems', KINDS.slice(5, 10).some((k) => t[k.id] > 0)),
+    fig(t.multipleWriters + t.unusedStores, 'Store problems', t.multipleWriters > 0));
 
   const itemsBox = h('div.box');
   const tabs = h('div.tabs', { role: 'tablist' });
@@ -43,7 +47,7 @@ export async function render({ main, query }) {
   }
 
   const worst = dataTable({
-    rows: r.services.filter((s) => s.dangling || s.orphans || s.unbound || s.ambiguous || s.eventIssues), pageSize: 15,
+    rows: r.services.filter((s) => s.dangling || s.orphans || s.unbound || s.ambiguous || s.eventIssues || s.storeIssues), pageSize: 15,
     sortKey: 'dangling', sortDir: 'desc', onRow: (s) => go(`/services/${encodeURIComponent(s.service)}`),
     empty: 'Every service connects cleanly.',
     columns: [
@@ -53,6 +57,7 @@ export async function render({ main, query }) {
       { key: 'orphans', label: 'Never called', num: true },
       { key: 'unbound', label: 'Unbound', num: true },
       { key: 'eventIssues', label: 'Event problems', num: true },
+      { key: 'storeIssues', label: 'Store problems', num: true },
     ],
   });
 
@@ -81,6 +86,8 @@ function itemsTable(kind, rows) {
     undeliveredEvents: [{ key: 'service', label: 'Producer', render: (x) => svc(x.service) }, ev, { key: 'bindKey', label: 'Published to', render: (x) => keyCell(x.bindKey) }],
     neverArrives: [{ key: 'service', label: 'Consumer', render: (x) => svc(x.service) }, ev, { key: 'bindKey', label: 'Queue', render: (x) => keyCell(x.bindKey) }],
     declaredNotSeen: [{ key: 'service', label: 'Consumer', render: (x) => svc(x.service) }, ev, { key: 'producer', label: 'Declared producer', render: (x) => svc(x.producer) }],
+    multipleWriters: [{ key: 'key', label: 'Data store', render: (x) => storeLink(x.key) }, { key: 'kind', label: 'Kind' }, { key: 'service', label: 'Writer', render: (x) => svc(x.service) }, { key: 'writers', label: 'All writers', nosort: true, render: (x) => h('span.small', x.writers.join(', ')) }],
+    unusedStores: [{ key: 'key', label: 'Data store', render: (x) => storeLink(x.key) }, { key: 'kind', label: 'Kind' }, { key: 'service', label: 'Declared by', render: (x) => svc(x.service) }],
     subscriptionConflicts: [{ key: 'from', label: 'From', render: (x) => h('span.key', x.from) }, { key: 'to', label: 'To', render: (x) => h('span.key', x.to) },
       { key: 'declarations', label: 'Reported as', nosort: true, render: (x) => x.declarations.map((d) => h('div.small', h('b', d.service), ': ', d.events === '*' ? 'all events' : d.events.join(', '))) }],
     ambiguous: [{ key: 'service', label: 'Caller', render: (x) => svc(x.service) }, { key: 'bindKey', label: 'Key', render: (x) => keyCell(x.bindKey) }, { key: 'candidates', label: 'Matches', nosort: true, render: (x) => x.candidates.map((c) => h('div.key', c)) }],

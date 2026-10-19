@@ -1,5 +1,5 @@
 // In-browser backend for the static preview build. Runs the shared core/ modules against bundled
-// data (globalThis.FLOW_PREVIEW = {version, models: {env: Model}, dtos: {env: [Dto]}, eventDtos: {env: [EventDto]}, bugs: [Bug]}). Bug edits stay in memory.
+// data (globalThis.FLOW_PREVIEW = {version, models: {env: Model}, dtos, eventDtos, schemas: {env: [...]}, bugs: [Bug]}). Bug edits stay in memory.
 
 import { buildIndex } from '../core/graph-index.js';
 import { systemGraph } from '../core/system-graph.js';
@@ -10,6 +10,10 @@ import { search } from '../core/search.js';
 import { health } from '../core/health.js';
 import { impact, suggestPriority } from '../core/impact.js';
 import { endpointInfo } from '../core/endpoint-info.js';
+import { inventory } from '../core/inventory.js';
+import { storeView } from '../core/stores.js';
+import { channelView } from '../core/channels.js';
+import { eventView } from '../core/events.js';
 
 const data = globalThis.FLOW_PREVIEW;
 const indexes = new Map();
@@ -48,6 +52,10 @@ export const api = {
     return { ...v, openBugs: bugs.filter((b) => OPEN.includes(b.status) && b.links.some((l) => l.id === name || l.service === name)).length };
   },
   entryPoints: async (env) => entryPoints(g(env)),
+  inventory: async (env) => inventory(g(env)),
+  store: async (env, key) => ({ ...(storeView(g(env), key) ?? fail(`data store '${key}' not found`)), schemas: (data.schemas?.[env] ?? []).filter((s) => s.key === key) }),
+  channel: async (env, key) => channelView(g(env), key) ?? fail(`channel '${key}' not found`),
+  eventType: async (env, type) => ({ ...(eventView(g(env), type) ?? fail(`event type '${type}' not found`)), dto: (data.eventDtos?.[env] ?? []).find((d) => d.event === type) ?? null }),
   endpoint: async (env, service, ingress) => endpointInfo(g(env), service, ingress,
     (data.dtos?.[env] ?? []).filter((d) => d.service === service && d.ingress === ingress), data.eventDtos?.[env] ?? []) ?? fail('endpoint not found'),
   trace: async (env, q) => trace(g(env), q, { scope: q.scope, maxMessages: q.maxMessages ?? 500 }) ?? fail('start point not found'),

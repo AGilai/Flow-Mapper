@@ -157,6 +157,197 @@
           "signupChannel": "web"
         }
       }
+    },
+    {
+      "service": "catalog-svc",
+      "ingress": "in.post.products",
+      "role": "request",
+      "content": {
+        "sku": "SKU-1042",
+        "name": "Trail Runner 2",
+        "brandId": "b_12",
+        "categoryIds": [
+          "c_shoes",
+          "c_running"
+        ],
+        "description": "Lightweight trail shoe",
+        "variants": [
+          {
+            "size": "42",
+            "color": "black"
+          }
+        ]
+      }
+    },
+    {
+      "service": "catalog-svc",
+      "ingress": "in.post.products",
+      "role": "response",
+      "content": {
+        "id": "p_7c21",
+        "sku": "SKU-1042",
+        "name": "Trail Runner 2",
+        "brandId": "b_12",
+        "categoryIds": [
+          "c_shoes",
+          "c_running"
+        ],
+        "status": "PUBLISHED",
+        "variants": [
+          {
+            "id": "v_1",
+            "size": "42",
+            "color": "black"
+          },
+          {
+            "id": "v_2",
+            "size": "43",
+            "color": "black"
+          }
+        ],
+        "createdAt": "2026-09-02T10:00:00Z",
+        "updatedAt": "2026-10-18T16:40:00Z"
+      }
+    },
+    {
+      "service": "catalog-svc",
+      "ingress": "in.get.products.id",
+      "role": "response",
+      "content": {
+        "id": "p_7c21",
+        "sku": "SKU-1042",
+        "name": "Trail Runner 2",
+        "brandId": "b_12",
+        "categoryIds": [
+          "c_shoes",
+          "c_running"
+        ],
+        "status": "PUBLISHED",
+        "variants": [
+          {
+            "id": "v_1",
+            "size": "42",
+            "color": "black"
+          },
+          {
+            "id": "v_2",
+            "size": "43",
+            "color": "black"
+          }
+        ],
+        "createdAt": "2026-09-02T10:00:00Z",
+        "updatedAt": "2026-10-18T16:40:00Z"
+      }
+    },
+    {
+      "service": "catalog-svc",
+      "ingress": "in.get.products",
+      "role": "response",
+      "content": {
+        "items": [
+          {
+            "id": "p_7c21",
+            "name": "Trail Runner 2",
+            "price": {
+              "amount": 129.0,
+              "currency": "EUR"
+            }
+          }
+        ],
+        "page": 1,
+        "pageSize": 20,
+        "total": 1
+      }
+    },
+    {
+      "service": "catalog-svc",
+      "ingress": "in.put.products.id.prices.currency",
+      "role": "request",
+      "content": {
+        "amount": 129.0,
+        "compareAt": 149.0,
+        "validFrom": "2026-10-20T00:00:00Z"
+      }
+    },
+    {
+      "service": "catalog-svc",
+      "ingress": "in.post.products.id.reviews",
+      "role": "request",
+      "content": {
+        "rating": 5,
+        "title": "Great grip",
+        "body": "Held up on wet rock.",
+        "userId": "c_81f2a9"
+      }
+    },
+    {
+      "service": "catalog-svc",
+      "ingress": "in.post.products.id.reviews",
+      "role": "response",
+      "content": {
+        "id": "r_301",
+        "status": "PENDING",
+        "createdAt": "2026-10-19T07:55:00Z"
+      }
+    },
+    {
+      "event": "ProductCreated",
+      "content": {
+        "type": "ProductCreated",
+        "productId": "p_7c21",
+        "sku": "SKU-1042",
+        "name": "Trail Runner 2",
+        "categoryIds": [
+          "c_shoes",
+          "c_running"
+        ],
+        "occurredAt": "2026-09-02T10:00:00Z"
+      }
+    },
+    {
+      "event": "ProductUpdated",
+      "content": {
+        "type": "ProductUpdated",
+        "productId": "p_7c21",
+        "changed": [
+          "status",
+          "variants"
+        ],
+        "status": "PUBLISHED",
+        "occurredAt": "2026-10-18T16:40:00Z"
+      }
+    },
+    {
+      "event": "ProductDeleted",
+      "content": {
+        "type": "ProductDeleted",
+        "productId": "p_0a11",
+        "sku": "SKU-0099",
+        "occurredAt": "2026-10-01T12:00:00Z"
+      }
+    },
+    {
+      "event": "PriceChanged",
+      "content": {
+        "type": "PriceChanged",
+        "productId": "p_7c21",
+        "currency": "EUR",
+        "oldAmount": 139.0,
+        "newAmount": 129.0,
+        "priceListId": "pl_autumn",
+        "occurredAt": "2026-10-19T00:00:00Z"
+      }
+    },
+    {
+      "event": "ReviewPosted",
+      "content": {
+        "type": "ReviewPosted",
+        "reviewId": "r_301",
+        "productId": "p_7c21",
+        "rating": 5,
+        "userId": "c_81f2a9",
+        "occurredAt": "2026-10-19T08:10:00Z"
+      }
     }
   ]
 }

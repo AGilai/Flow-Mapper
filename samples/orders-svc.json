@@ -194,8 +194,8 @@
     {
       "id": "cache",
       "kind": "redis",
-      "name": "cache-main",
-      "bindKey": "redis:cache-main"
+      "name": "order:{id}",
+      "bindKey": "redis:cache-main/order:{id}"
     }
   ]
 }

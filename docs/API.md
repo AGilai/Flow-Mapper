@@ -101,6 +101,28 @@ and the `dto`. `GET .../trace` takes `event` to start from that event type's han
 
 Example: `samples/dtos/prod.json` (loaded by `npm run seed`).
 
+## Inventory and detail views
+
+| Method and path | What |
+|---|---|
+| `GET /api/envs/:env/inventory` | every object `{type: service \| channel \| store \| event, id, label, kind, group, team, connections, size, problems}` |
+| `GET /api/envs/:env/stores/:key` | a data store: `readers`, `writers`, `uses` (service, functions with code `source` and operations with `access`), `entryPoints` that reach it, `siblings` in its group, `schemas` |
+| `GET /api/envs/:env/channels/:key` | a topic/queue/exchange/bus: `publishers`, `feeds`, `subscriptions` (with `events` filter, `conflict`), `consumers`, `events` passing through, `problems` |
+| `GET /api/envs/:env/events/:type` | an event type: producers, consumers, `deliveries` (route `via`, handler), `problems`, `dto` |
+
+## Data-store schemas
+
+One schema per store key and source (`code`, `db`, `manual`). The store must exist (404).
+
+| Method and path | What |
+|---|---|
+| `GET /api/envs/:env/schemas?key=` | stored schemas |
+| `POST /api/envs/:env/schemas` | bulk `{schemas: [{key, source = 'code', content}]}`, all or nothing (201) |
+| `PUT /api/envs/:env/schemas/:source/:key` | body is the schema JSON |
+| `DELETE /api/envs/:env/schemas/:source/:key` | remove one |
+
+Example: `samples/schemas/prod.json` (loaded by `npm run seed`).
+
 ## Bugs
 
 Bugs are about Flow-Mapper itself. Each records the version it was seen in (`appVersion`,
@@ -132,5 +154,5 @@ Setting `priority` overrides the suggestion; `priority: null` returns to it.
 
 Tools: `search`, `list_services`, `get_service`, `list_entry_points`, `trace_flow`, `find_paths`,
 `link_health`, `changelog`, `ingest_manifest`, `upsert_entity`, `delete_entity`, `get_endpoint_info`,
-`load_dtos`, `event_types`, `list_bugs`,
+`load_dtos`, `event_types`, `inventory`, `get_store`, `get_channel`, `load_schemas`, `list_bugs`,
 `get_bug`, `report_bug` (accepts `log` text), `update_bug` (accepts `comment`).

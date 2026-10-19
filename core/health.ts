@@ -2,6 +2,7 @@
 
 import type { GraphIndex } from './graph-index.ts';
 import { eventReport } from './events.ts';
+import { stores } from './stores.ts';
 
 export interface ServiceHealth {
   service: string;
@@ -12,12 +13,13 @@ export interface ServiceHealth {
   unbound: number;
   ambiguous: number;
   eventIssues: number;     // unhandled, undelivered, never-arriving and declared-not-seen event types
+  storeIssues: number;     // stores it shares writes to, or declares and never uses
   coverage: number | null; // resolved egress / egress, null when the service has no egress
 }
 
 export interface HealthReport {
   env: string;
-  totals: Omit<ServiceHealth, 'service' | 'version' | 'eventIssues'> & { services: number; links: number; brokenBindings: number } & Record<EventKind, number>;
+  totals: Omit<ServiceHealth, 'service' | 'version' | 'eventIssues' | 'storeIssues'> & { services: number; links: number; brokenBindings: number } & Record<EventKind, number>;
   services: ServiceHealth[];
   items: {
     dangling: { service: string; id: string; bindKey: string; transport: string }[];
@@ -30,11 +32,14 @@ export interface HealthReport {
     neverArrives: { service: string; ingress: string; bindKey: string; event: string }[];
     declaredNotSeen: { service: string; ingress: string; event: string; producer: string }[];
     subscriptionConflicts: { service: string; from: string; to: string; declarations: { service: string; id: string; events: '*' | string[] }[] }[];
+    multipleWriters: { service: string; key: string; kind: string; writers: string[] }[];
+    unusedStores: { service: string; key: string; kind: string }[];
   };
 }
 
 export const EVENT_KINDS = ['unhandledEvents', 'undeliveredEvents', 'neverArrives', 'declaredNotSeen', 'subscriptionConflicts'] as const;
-type EventKind = (typeof EVENT_KINDS)[number];
+export const STORE_KINDS = ['multipleWriters', 'unusedStores'] as const;
+type EventKind = (typeof EVENT_KINDS)[number] | (typeof STORE_KINDS)[number];
 
 export function health(g: GraphIndex): HealthReport {
   const r = g.resolution;
@@ -46,6 +51,10 @@ export function health(g: GraphIndex): HealthReport {
     declaredNotSeen: ev.declaredNotSeen,
     // listed under the first declaring service so per-service counts include it
     subscriptionConflicts: ev.conflicts.map((c) => ({ service: c.declarations[0].service, ...c })),
+    // A store written by more than one service couples them through its data; listed under each writer.
+    multipleWriters: stores(g).filter((s) => s.writers.length > 1)
+      .flatMap((s) => s.writers.map((w) => ({ service: w, key: s.key, kind: s.kind, writers: s.writers }))),
+    unusedStores: stores(g).filter((s) => !s.used).flatMap((s) => s.services.map((svc) => ({ service: svc, key: s.key, kind: s.kind }))),
     dangling: r.dangling.map((e) => ({ service: e.service, id: e.id, bindKey: e.bindKey, transport: e.transport })),
     orphans: r.orphans.map((i) => ({ service: i.service, id: i.id, bindKey: i.bindKey, transport: i.transport })),
     unbound: r.unbound.map((u) => ({ service: u.channel.service, bindKey: u.channel.bindKey, kind: u.channel.kind, reason: u.reason })),
@@ -65,6 +74,7 @@ export function health(g: GraphIndex): HealthReport {
       unbound: count(items.unbound, s.name),
       ambiguous: count(items.ambiguous, s.name),
       eventIssues: EVENT_KINDS.reduce((n, k) => n + count(items[k], s.name), 0),
+      storeIssues: STORE_KINDS.reduce((n, k) => n + count(items[k], s.name), 0),
       coverage: egress ? (egress - dangling) / egress : null,
     };
   });
@@ -81,6 +91,8 @@ export function health(g: GraphIndex): HealthReport {
       ambiguous: items.ambiguous.length,
       brokenBindings: items.brokenBindings.length,
       ...Object.fromEntries(EVENT_KINDS.map((k) => [k, items[k].length])) as Record<EventKind, number>,
+      multipleWriters: new Set(items.multipleWriters.map((x) => x.key)).size,
+      unusedStores: new Set(items.unusedStores.map((x) => x.key)).size,
       coverage: egressTotal ? (egressTotal - items.dangling.length) / egressTotal : null,
     },
     services: services.sort((a, b) => (a.coverage ?? 2) - (b.coverage ?? 2) || a.service.localeCompare(b.service)),

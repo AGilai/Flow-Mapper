@@ -119,3 +119,20 @@
 .ep-producer.warn { border-color: var(--warn); }
 .ep-event .ep-empty { margin: 0; }
 .ep-event .json-view { border: 1px solid var(--line); }
+
+/* ---- detail pages (store, channel, event) ---- */
+.box-body { padding: var(--s3) var(--s4) var(--s4); display: grid; gap: var(--s2); }
+.problems { display: grid; gap: var(--s1); }
+.problem { display: flex; align-items: center; gap: var(--s2); padding: var(--s2) var(--s3); border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--warn) 10%, transparent); color: var(--ink); font-size: var(--fs-sm); }
+.problem svg { color: var(--warn); flex: none; }
+.code-link { display: inline-flex; align-items: center; gap: 4px; }
+.code-link svg { width: 13px; height: 13px; color: var(--muted); }
+.use { display: grid; gap: var(--s1); padding: var(--s2) 0; border-top: 1px solid var(--line); }
+.use:first-child { border-top: 0; padding-top: 0; }
+.use-head { display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; }
+.use-fn { display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; padding-left: var(--s3); font-size: var(--fs-sm); }
+.pill.read { background: color-mix(in srgb, var(--t-http) 14%, transparent); color: var(--t-http); }
+.pill.write { background: color-mix(in srgb, var(--t-sns) 16%, transparent); color: var(--t-sns); }
+.route { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: var(--fs-sm); }
+.route .sep { color: var(--muted); }

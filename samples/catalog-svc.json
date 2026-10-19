@@ -1,0 +1,1543 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "catalog-svc",
+    "kind": "service",
+    "team": "merchandising",
+    "repo": "github.com/acme/catalog-svc",
+    "language": "typescript",
+    "description": "Products, categories, prices and reviews (public catalog API)",
+    "tags": [
+      "core",
+      "public"
+    ]
+  },
+  "version": 4,
+  "harvestedAt": "2026-10-19T08:00:00Z",
+  "commit": "c41a9e2",
+  "functions": [
+    {
+      "id": "ProductController.list",
+      "name": "ProductController.list",
+      "file": "src/controllers/product.controller.ts",
+      "line": 18,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.products",
+          "operation": "find"
+        }
+      ]
+    },
+    {
+      "id": "ProductController.get",
+      "name": "ProductController.get",
+      "file": "src/controllers/product.controller.ts",
+      "line": 36,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.products",
+          "operation": "find"
+        }
+      ]
+    },
+    {
+      "id": "ProductController.create",
+      "name": "ProductController.create",
+      "file": "src/controllers/product.controller.ts",
+      "line": 54,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.products",
+          "operation": "insertOne"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "productEvents.publish",
+          "mode": "async",
+          "operation": "publish",
+          "event": "ProductCreated"
+        }
+      ]
+    },
+    {
+      "id": "ProductController.replace",
+      "name": "ProductController.replace",
+      "file": "src/controllers/product.controller.ts",
+      "line": 72,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.products",
+          "operation": "replaceOne"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "productEvents.publish",
+          "mode": "async",
+          "operation": "publish",
+          "event": "ProductUpdated"
+        }
+      ]
+    },
+    {
+      "id": "ProductController.update",
+      "name": "ProductController.update",
+      "file": "src/controllers/product.controller.ts",
+      "line": 90,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.products",
+          "operation": "updateOne"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "productEvents.publish",
+          "mode": "async",
+          "operation": "publish",
+          "event": "ProductUpdated"
+        }
+      ]
+    },
+    {
+      "id": "ProductController.delete",
+      "name": "ProductController.delete",
+      "file": "src/controllers/product.controller.ts",
+      "line": 108,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.products",
+          "operation": "deleteOne"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "productEvents.publish",
+          "mode": "async",
+          "operation": "publish",
+          "event": "ProductDeleted"
+        }
+      ]
+    },
+    {
+      "id": "VariantController.list",
+      "name": "VariantController.list",
+      "file": "src/controllers/variant.controller.ts",
+      "line": 18,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.products",
+          "operation": "find"
+        }
+      ]
+    },
+    {
+      "id": "VariantController.create",
+      "name": "VariantController.create",
+      "file": "src/controllers/variant.controller.ts",
+      "line": 36,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.products",
+          "operation": "insertOne"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "productEvents.publish",
+          "mode": "async",
+          "operation": "publish",
+          "event": "ProductUpdated"
+        }
+      ]
+    },
+    {
+      "id": "VariantController.update",
+      "name": "VariantController.update",
+      "file": "src/controllers/variant.controller.ts",
+      "line": 54,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.products",
+          "operation": "replaceOne"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "productEvents.publish",
+          "mode": "async",
+          "operation": "publish",
+          "event": "ProductUpdated"
+        }
+      ]
+    },
+    {
+      "id": "VariantController.delete",
+      "name": "VariantController.delete",
+      "file": "src/controllers/variant.controller.ts",
+      "line": 72,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.products",
+          "operation": "deleteOne"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "productEvents.publish",
+          "mode": "async",
+          "operation": "publish",
+          "event": "ProductUpdated"
+        }
+      ]
+    },
+    {
+      "id": "ImageController.list",
+      "name": "ImageController.list",
+      "file": "src/controllers/image.controller.ts",
+      "line": 18,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.images",
+          "operation": "find"
+        }
+      ]
+    },
+    {
+      "id": "ImageController.upload",
+      "name": "ImageController.upload",
+      "file": "src/controllers/image.controller.ts",
+      "line": 36,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.images",
+          "operation": "insertOne"
+        },
+        {
+          "seq": 2,
+          "type": "resource",
+          "target": "imageStore",
+          "operation": "PutObject"
+        },
+        {
+          "seq": 3,
+          "type": "egress",
+          "target": "productEvents.publish",
+          "mode": "async",
+          "operation": "publish",
+          "event": "ProductUpdated"
+        }
+      ]
+    },
+    {
+      "id": "ImageController.delete",
+      "name": "ImageController.delete",
+      "file": "src/controllers/image.controller.ts",
+      "line": 54,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.images",
+          "operation": "deleteOne"
+        },
+        {
+          "seq": 2,
+          "type": "resource",
+          "target": "imageStore",
+          "operation": "DeleteObject"
+        },
+        {
+          "seq": 3,
+          "type": "egress",
+          "target": "productEvents.publish",
+          "mode": "async",
+          "operation": "publish",
+          "event": "ProductUpdated"
+        }
+      ]
+    },
+    {
+      "id": "ProductController.related",
+      "name": "ProductController.related",
+      "file": "src/controllers/product.controller.ts",
+      "line": 126,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.products",
+          "operation": "find"
+        }
+      ]
+    },
+    {
+      "id": "ProductController.availability",
+      "name": "ProductController.availability",
+      "file": "src/controllers/product.controller.ts",
+      "line": 144,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.products",
+          "operation": "find"
+        },
+        {
+          "seq": 2,
+          "type": "resource",
+          "target": "cache",
+          "operation": "GET"
+        }
+      ]
+    },
+    {
+      "id": "ProductController.publish",
+      "name": "ProductController.publish",
+      "file": "src/controllers/product.controller.ts",
+      "line": 162,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.products",
+          "operation": "insertOne"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "productEvents.publish",
+          "mode": "async",
+          "operation": "publish",
+          "event": "ProductUpdated"
+        }
+      ]
+    },
+    {
+      "id": "ProductController.unpublish",
+      "name": "ProductController.unpublish",
+      "file": "src/controllers/product.controller.ts",
+      "line": 180,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.products",
+          "operation": "insertOne"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "productEvents.publish",
+          "mode": "async",
+          "operation": "publish",
+          "event": "ProductUpdated"
+        }
+      ]
+    },
+    {
+      "id": "SearchController.query",
+      "name": "SearchController.query",
+      "file": "src/controllers/search.controller.ts",
+      "line": 18,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.products",
+          "operation": "find"
+        }
+      ]
+    },
+    {
+      "id": "SearchController.suggest",
+      "name": "SearchController.suggest",
+      "file": "src/controllers/search.controller.ts",
+      "line": 36,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.products",
+          "operation": "find"
+        }
+      ]
+    },
+    {
+      "id": "CategoryController.list",
+      "name": "CategoryController.list",
+      "file": "src/controllers/category.controller.ts",
+      "line": 18,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.categories",
+          "operation": "find"
+        }
+      ]
+    },
+    {
+      "id": "CategoryController.tree",
+      "name": "CategoryController.tree",
+      "file": "src/controllers/category.controller.ts",
+      "line": 36,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.categories",
+          "operation": "find"
+        }
+      ]
+    },
+    {
+      "id": "CategoryController.get",
+      "name": "CategoryController.get",
+      "file": "src/controllers/category.controller.ts",
+      "line": 54,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.categories",
+          "operation": "find"
+        }
+      ]
+    },
+    {
+      "id": "CategoryController.create",
+      "name": "CategoryController.create",
+      "file": "src/controllers/category.controller.ts",
+      "line": 72,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.categories",
+          "operation": "insertOne"
+        }
+      ]
+    },
+    {
+      "id": "CategoryController.update",
+      "name": "CategoryController.update",
+      "file": "src/controllers/category.controller.ts",
+      "line": 90,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.categories",
+          "operation": "replaceOne"
+        }
+      ]
+    },
+    {
+      "id": "CategoryController.delete",
+      "name": "CategoryController.delete",
+      "file": "src/controllers/category.controller.ts",
+      "line": 108,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.categories",
+          "operation": "deleteOne"
+        }
+      ]
+    },
+    {
+      "id": "CategoryController.products",
+      "name": "CategoryController.products",
+      "file": "src/controllers/category.controller.ts",
+      "line": 126,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.categories",
+          "operation": "find"
+        }
+      ]
+    },
+    {
+      "id": "CategoryController.addProduct",
+      "name": "CategoryController.addProduct",
+      "file": "src/controllers/category.controller.ts",
+      "line": 144,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.categories",
+          "operation": "insertOne"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "productEvents.publish",
+          "mode": "async",
+          "operation": "publish",
+          "event": "ProductUpdated"
+        }
+      ]
+    },
+    {
+      "id": "CategoryController.removeProduct",
+      "name": "CategoryController.removeProduct",
+      "file": "src/controllers/category.controller.ts",
+      "line": 162,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.categories",
+          "operation": "deleteOne"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "productEvents.publish",
+          "mode": "async",
+          "operation": "publish",
+          "event": "ProductUpdated"
+        }
+      ]
+    },
+    {
+      "id": "PriceController.list",
+      "name": "PriceController.list",
+      "file": "src/controllers/price.controller.ts",
+      "line": 18,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.prices",
+          "operation": "find"
+        }
+      ]
+    },
+    {
+      "id": "PriceController.set",
+      "name": "PriceController.set",
+      "file": "src/controllers/price.controller.ts",
+      "line": 36,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.prices",
+          "operation": "replaceOne"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "priceEvents.publish",
+          "mode": "async",
+          "operation": "publish",
+          "event": "PriceChanged"
+        }
+      ]
+    },
+    {
+      "id": "PriceController.remove",
+      "name": "PriceController.remove",
+      "file": "src/controllers/price.controller.ts",
+      "line": 54,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.prices",
+          "operation": "deleteOne"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "priceEvents.publish",
+          "mode": "async",
+          "operation": "publish",
+          "event": "PriceChanged"
+        }
+      ]
+    },
+    {
+      "id": "PriceListController.list",
+      "name": "PriceListController.list",
+      "file": "src/controllers/priceList.controller.ts",
+      "line": 18,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.prices",
+          "operation": "find"
+        }
+      ]
+    },
+    {
+      "id": "PriceListController.create",
+      "name": "PriceListController.create",
+      "file": "src/controllers/priceList.controller.ts",
+      "line": 36,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.prices",
+          "operation": "insertOne"
+        }
+      ]
+    },
+    {
+      "id": "PriceListController.update",
+      "name": "PriceListController.update",
+      "file": "src/controllers/priceList.controller.ts",
+      "line": 54,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.prices",
+          "operation": "replaceOne"
+        }
+      ]
+    },
+    {
+      "id": "PriceListController.delete",
+      "name": "PriceListController.delete",
+      "file": "src/controllers/priceList.controller.ts",
+      "line": 72,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.prices",
+          "operation": "deleteOne"
+        }
+      ]
+    },
+    {
+      "id": "PriceListController.activate",
+      "name": "PriceListController.activate",
+      "file": "src/controllers/priceList.controller.ts",
+      "line": 90,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.prices",
+          "operation": "insertOne"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "priceEvents.publish",
+          "mode": "async",
+          "operation": "publish",
+          "event": "PriceChanged"
+        }
+      ]
+    },
+    {
+      "id": "PromotionController.list",
+      "name": "PromotionController.list",
+      "file": "src/controllers/promotion.controller.ts",
+      "line": 18,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.prices",
+          "operation": "find"
+        }
+      ]
+    },
+    {
+      "id": "PromotionController.create",
+      "name": "PromotionController.create",
+      "file": "src/controllers/promotion.controller.ts",
+      "line": 36,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.prices",
+          "operation": "insertOne"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "priceEvents.publish",
+          "mode": "async",
+          "operation": "publish",
+          "event": "PriceChanged"
+        }
+      ]
+    },
+    {
+      "id": "PromotionController.delete",
+      "name": "PromotionController.delete",
+      "file": "src/controllers/promotion.controller.ts",
+      "line": 54,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.prices",
+          "operation": "deleteOne"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "priceEvents.publish",
+          "mode": "async",
+          "operation": "publish",
+          "event": "PriceChanged"
+        }
+      ]
+    },
+    {
+      "id": "ReviewController.list",
+      "name": "ReviewController.list",
+      "file": "src/controllers/review.controller.ts",
+      "line": 18,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.reviews",
+          "operation": "find"
+        }
+      ]
+    },
+    {
+      "id": "ReviewController.create",
+      "name": "ReviewController.create",
+      "file": "src/controllers/review.controller.ts",
+      "line": 36,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "users.getContact",
+          "operation": "GET",
+          "note": "loads the reviewer display name"
+        },
+        {
+          "seq": 2,
+          "type": "resource",
+          "target": "db.reviews",
+          "operation": "insertOne"
+        }
+      ]
+    },
+    {
+      "id": "ReviewController.update",
+      "name": "ReviewController.update",
+      "file": "src/controllers/review.controller.ts",
+      "line": 54,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.reviews",
+          "operation": "replaceOne"
+        }
+      ]
+    },
+    {
+      "id": "ReviewController.delete",
+      "name": "ReviewController.delete",
+      "file": "src/controllers/review.controller.ts",
+      "line": 72,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.reviews",
+          "operation": "deleteOne"
+        }
+      ]
+    },
+    {
+      "id": "ReviewController.approve",
+      "name": "ReviewController.approve",
+      "file": "src/controllers/review.controller.ts",
+      "line": 90,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.reviews",
+          "operation": "insertOne"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "reviewEvents.publish",
+          "mode": "async",
+          "operation": "publish",
+          "event": "ReviewPosted"
+        }
+      ]
+    },
+    {
+      "id": "ReviewController.report",
+      "name": "ReviewController.report",
+      "file": "src/controllers/review.controller.ts",
+      "line": 108,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.reviews",
+          "operation": "insertOne"
+        }
+      ]
+    },
+    {
+      "id": "ReviewController.pending",
+      "name": "ReviewController.pending",
+      "file": "src/controllers/review.controller.ts",
+      "line": 126,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.reviews",
+          "operation": "find"
+        }
+      ]
+    },
+    {
+      "id": "BrandController.list",
+      "name": "BrandController.list",
+      "file": "src/controllers/brand.controller.ts",
+      "line": 18,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.brands",
+          "operation": "find"
+        }
+      ]
+    },
+    {
+      "id": "BrandController.get",
+      "name": "BrandController.get",
+      "file": "src/controllers/brand.controller.ts",
+      "line": 36,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.brands",
+          "operation": "find"
+        }
+      ]
+    },
+    {
+      "id": "BrandController.create",
+      "name": "BrandController.create",
+      "file": "src/controllers/brand.controller.ts",
+      "line": 54,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.brands",
+          "operation": "insertOne"
+        }
+      ]
+    },
+    {
+      "id": "BrandController.update",
+      "name": "BrandController.update",
+      "file": "src/controllers/brand.controller.ts",
+      "line": 72,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db.brands",
+          "operation": "replaceOne"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.get.products",
+      "bindKey": "http:GET catalog-svc/products",
+      "transport": "http",
+      "handler": "ProductController.list",
+      "entryPoint": true,
+      "details": {
+        "method": "GET",
+        "path": "/products"
+      }
+    },
+    {
+      "id": "in.get.products.id",
+      "bindKey": "http:GET catalog-svc/products/{id}",
+      "transport": "http",
+      "handler": "ProductController.get",
+      "entryPoint": true,
+      "details": {
+        "method": "GET",
+        "path": "/products/{id}"
+      }
+    },
+    {
+      "id": "in.post.products",
+      "bindKey": "http:POST catalog-svc/products",
+      "transport": "http",
+      "handler": "ProductController.create",
+      "entryPoint": true,
+      "details": {
+        "method": "POST",
+        "path": "/products"
+      }
+    },
+    {
+      "id": "in.put.products.id",
+      "bindKey": "http:PUT catalog-svc/products/{id}",
+      "transport": "http",
+      "handler": "ProductController.replace",
+      "entryPoint": true,
+      "details": {
+        "method": "PUT",
+        "path": "/products/{id}"
+      }
+    },
+    {
+      "id": "in.patch.products.id",
+      "bindKey": "http:PATCH catalog-svc/products/{id}",
+      "transport": "http",
+      "handler": "ProductController.update",
+      "entryPoint": true,
+      "details": {
+        "method": "PATCH",
+        "path": "/products/{id}"
+      }
+    },
+    {
+      "id": "in.delete.products.id",
+      "bindKey": "http:DELETE catalog-svc/products/{id}",
+      "transport": "http",
+      "handler": "ProductController.delete",
+      "entryPoint": true,
+      "details": {
+        "method": "DELETE",
+        "path": "/products/{id}"
+      }
+    },
+    {
+      "id": "in.get.products.id.variants",
+      "bindKey": "http:GET catalog-svc/products/{id}/variants",
+      "transport": "http",
+      "handler": "VariantController.list",
+      "entryPoint": true,
+      "details": {
+        "method": "GET",
+        "path": "/products/{id}/variants"
+      }
+    },
+    {
+      "id": "in.post.products.id.variants",
+      "bindKey": "http:POST catalog-svc/products/{id}/variants",
+      "transport": "http",
+      "handler": "VariantController.create",
+      "entryPoint": true,
+      "details": {
+        "method": "POST",
+        "path": "/products/{id}/variants"
+      }
+    },
+    {
+      "id": "in.put.products.id.variants.variantId",
+      "bindKey": "http:PUT catalog-svc/products/{id}/variants/{variantId}",
+      "transport": "http",
+      "handler": "VariantController.update",
+      "entryPoint": true,
+      "details": {
+        "method": "PUT",
+        "path": "/products/{id}/variants/{variantId}"
+      }
+    },
+    {
+      "id": "in.delete.products.id.variants.variantId",
+      "bindKey": "http:DELETE catalog-svc/products/{id}/variants/{variantId}",
+      "transport": "http",
+      "handler": "VariantController.delete",
+      "entryPoint": true,
+      "details": {
+        "method": "DELETE",
+        "path": "/products/{id}/variants/{variantId}"
+      }
+    },
+    {
+      "id": "in.get.products.id.images",
+      "bindKey": "http:GET catalog-svc/products/{id}/images",
+      "transport": "http",
+      "handler": "ImageController.list",
+      "entryPoint": true,
+      "details": {
+        "method": "GET",
+        "path": "/products/{id}/images"
+      }
+    },
+    {
+      "id": "in.post.products.id.images",
+      "bindKey": "http:POST catalog-svc/products/{id}/images",
+      "transport": "http",
+      "handler": "ImageController.upload",
+      "entryPoint": true,
+      "details": {
+        "method": "POST",
+        "path": "/products/{id}/images"
+      }
+    },
+    {
+      "id": "in.delete.products.id.images.imageId",
+      "bindKey": "http:DELETE catalog-svc/products/{id}/images/{imageId}",
+      "transport": "http",
+      "handler": "ImageController.delete",
+      "entryPoint": true,
+      "details": {
+        "method": "DELETE",
+        "path": "/products/{id}/images/{imageId}"
+      }
+    },
+    {
+      "id": "in.get.products.id.related",
+      "bindKey": "http:GET catalog-svc/products/{id}/related",
+      "transport": "http",
+      "handler": "ProductController.related",
+      "entryPoint": true,
+      "details": {
+        "method": "GET",
+        "path": "/products/{id}/related"
+      }
+    },
+    {
+      "id": "in.get.products.id.availability",
+      "bindKey": "http:GET catalog-svc/products/{id}/availability",
+      "transport": "http",
+      "handler": "ProductController.availability",
+      "entryPoint": true,
+      "details": {
+        "method": "GET",
+        "path": "/products/{id}/availability"
+      }
+    },
+    {
+      "id": "in.post.products.id.publish",
+      "bindKey": "http:POST catalog-svc/products/{id}/publish",
+      "transport": "http",
+      "handler": "ProductController.publish",
+      "entryPoint": true,
+      "details": {
+        "method": "POST",
+        "path": "/products/{id}/publish"
+      }
+    },
+    {
+      "id": "in.post.products.id.unpublish",
+      "bindKey": "http:POST catalog-svc/products/{id}/unpublish",
+      "transport": "http",
+      "handler": "ProductController.unpublish",
+      "entryPoint": true,
+      "details": {
+        "method": "POST",
+        "path": "/products/{id}/unpublish"
+      }
+    },
+    {
+      "id": "in.get.search",
+      "bindKey": "http:GET catalog-svc/search",
+      "transport": "http",
+      "handler": "SearchController.query",
+      "entryPoint": true,
+      "details": {
+        "method": "GET",
+        "path": "/search"
+      }
+    },
+    {
+      "id": "in.get.search.suggest",
+      "bindKey": "http:GET catalog-svc/search/suggest",
+      "transport": "http",
+      "handler": "SearchController.suggest",
+      "entryPoint": true,
+      "details": {
+        "method": "GET",
+        "path": "/search/suggest"
+      }
+    },
+    {
+      "id": "in.get.categories",
+      "bindKey": "http:GET catalog-svc/categories",
+      "transport": "http",
+      "handler": "CategoryController.list",
+      "entryPoint": true,
+      "details": {
+        "method": "GET",
+        "path": "/categories"
+      }
+    },
+    {
+      "id": "in.get.categories.tree",
+      "bindKey": "http:GET catalog-svc/categories/tree",
+      "transport": "http",
+      "handler": "CategoryController.tree",
+      "entryPoint": true,
+      "details": {
+        "method": "GET",
+        "path": "/categories/tree"
+      }
+    },
+    {
+      "id": "in.get.categories.id",
+      "bindKey": "http:GET catalog-svc/categories/{id}",
+      "transport": "http",
+      "handler": "CategoryController.get",
+      "entryPoint": true,
+      "details": {
+        "method": "GET",
+        "path": "/categories/{id}"
+      }
+    },
+    {
+      "id": "in.post.categories",
+      "bindKey": "http:POST catalog-svc/categories",
+      "transport": "http",
+      "handler": "CategoryController.create",
+      "entryPoint": true,
+      "details": {
+        "method": "POST",
+        "path": "/categories"
+      }
+    },
+    {
+      "id": "in.put.categories.id",
+      "bindKey": "http:PUT catalog-svc/categories/{id}",
+      "transport": "http",
+      "handler": "CategoryController.update",
+      "entryPoint": true,
+      "details": {
+        "method": "PUT",
+        "path": "/categories/{id}"
+      }
+    },
+    {
+      "id": "in.delete.categories.id",
+      "bindKey": "http:DELETE catalog-svc/categories/{id}",
+      "transport": "http",
+      "handler": "CategoryController.delete",
+      "entryPoint": true,
+      "details": {
+        "method": "DELETE",
+        "path": "/categories/{id}"
+      }
+    },
+    {
+      "id": "in.get.categories.id.products",
+      "bindKey": "http:GET catalog-svc/categories/{id}/products",
+      "transport": "http",
+      "handler": "CategoryController.products",
+      "entryPoint": true,
+      "details": {
+        "method": "GET",
+        "path": "/categories/{id}/products"
+      }
+    },
+    {
+      "id": "in.post.categories.id.products.productId",
+      "bindKey": "http:POST catalog-svc/categories/{id}/products/{productId}",
+      "transport": "http",
+      "handler": "CategoryController.addProduct",
+      "entryPoint": true,
+      "details": {
+        "method": "POST",
+        "path": "/categories/{id}/products/{productId}"
+      }
+    },
+    {
+      "id": "in.delete.categories.id.products.productId",
+      "bindKey": "http:DELETE catalog-svc/categories/{id}/products/{productId}",
+      "transport": "http",
+      "handler": "CategoryController.removeProduct",
+      "entryPoint": true,
+      "details": {
+        "method": "DELETE",
+        "path": "/categories/{id}/products/{productId}"
+      }
+    },
+    {
+      "id": "in.get.products.id.prices",
+      "bindKey": "http:GET catalog-svc/products/{id}/prices",
+      "transport": "http",
+      "handler": "PriceController.list",
+      "entryPoint": true,
+      "details": {
+        "method": "GET",
+        "path": "/products/{id}/prices"
+      }
+    },
+    {
+      "id": "in.put.products.id.prices.currency",
+      "bindKey": "http:PUT catalog-svc/products/{id}/prices/{currency}",
+      "transport": "http",
+      "handler": "PriceController.set",
+      "entryPoint": true,
+      "details": {
+        "method": "PUT",
+        "path": "/products/{id}/prices/{currency}"
+      }
+    },
+    {
+      "id": "in.delete.products.id.prices.currency",
+      "bindKey": "http:DELETE catalog-svc/products/{id}/prices/{currency}",
+      "transport": "http",
+      "handler": "PriceController.remove",
+      "entryPoint": true,
+      "details": {
+        "method": "DELETE",
+        "path": "/products/{id}/prices/{currency}"
+      }
+    },
+    {
+      "id": "in.get.pricelists",
+      "bindKey": "http:GET catalog-svc/price-lists",
+      "transport": "http",
+      "handler": "PriceListController.list",
+      "entryPoint": true,
+      "details": {
+        "method": "GET",
+        "path": "/price-lists"
+      }
+    },
+    {
+      "id": "in.post.pricelists",
+      "bindKey": "http:POST catalog-svc/price-lists",
+      "transport": "http",
+      "handler": "PriceListController.create",
+      "entryPoint": true,
+      "details": {
+        "method": "POST",
+        "path": "/price-lists"
+      }
+    },
+    {
+      "id": "in.put.pricelists.id",
+      "bindKey": "http:PUT catalog-svc/price-lists/{id}",
+      "transport": "http",
+      "handler": "PriceListController.update",
+      "entryPoint": true,
+      "details": {
+        "method": "PUT",
+        "path": "/price-lists/{id}"
+      }
+    },
+    {
+      "id": "in.delete.pricelists.id",
+      "bindKey": "http:DELETE catalog-svc/price-lists/{id}",
+      "transport": "http",
+      "handler": "PriceListController.delete",
+      "entryPoint": true,
+      "details": {
+        "method": "DELETE",
+        "path": "/price-lists/{id}"
+      }
+    },
+    {
+      "id": "in.post.pricelists.id.activate",
+      "bindKey": "http:POST catalog-svc/price-lists/{id}/activate",
+      "transport": "http",
+      "handler": "PriceListController.activate",
+      "entryPoint": true,
+      "details": {
+        "method": "POST",
+        "path": "/price-lists/{id}/activate"
+      }
+    },
+    {
+      "id": "in.get.promotions",
+      "bindKey": "http:GET catalog-svc/promotions",
+      "transport": "http",
+      "handler": "PromotionController.list",
+      "entryPoint": true,
+      "details": {
+        "method": "GET",
+        "path": "/promotions"
+      }
+    },
+    {
+      "id": "in.post.promotions",
+      "bindKey": "http:POST catalog-svc/promotions",
+      "transport": "http",
+      "handler": "PromotionController.create",
+      "entryPoint": true,
+      "details": {
+        "method": "POST",
+        "path": "/promotions"
+      }
+    },
+    {
+      "id": "in.delete.promotions.id",
+      "bindKey": "http:DELETE catalog-svc/promotions/{id}",
+      "transport": "http",
+      "handler": "PromotionController.delete",
+      "entryPoint": true,
+      "details": {
+        "method": "DELETE",
+        "path": "/promotions/{id}"
+      }
+    },
+    {
+      "id": "in.get.products.id.reviews",
+      "bindKey": "http:GET catalog-svc/products/{id}/reviews",
+      "transport": "http",
+      "handler": "ReviewController.list",
+      "entryPoint": true,
+      "details": {
+        "method": "GET",
+        "path": "/products/{id}/reviews"
+      }
+    },
+    {
+      "id": "in.post.products.id.reviews",
+      "bindKey": "http:POST catalog-svc/products/{id}/reviews",
+      "transport": "http",
+      "handler": "ReviewController.create",
+      "entryPoint": true,
+      "details": {
+        "method": "POST",
+        "path": "/products/{id}/reviews"
+      }
+    },
+    {
+      "id": "in.put.reviews.reviewId",
+      "bindKey": "http:PUT catalog-svc/reviews/{reviewId}",
+      "transport": "http",
+      "handler": "ReviewController.update",
+      "entryPoint": true,
+      "details": {
+        "method": "PUT",
+        "path": "/reviews/{reviewId}"
+      }
+    },
+    {
+      "id": "in.delete.reviews.reviewId",
+      "bindKey": "http:DELETE catalog-svc/reviews/{reviewId}",
+      "transport": "http",
+      "handler": "ReviewController.delete",
+      "entryPoint": true,
+      "details": {
+        "method": "DELETE",
+        "path": "/reviews/{reviewId}"
+      }
+    },
+    {
+      "id": "in.post.reviews.reviewId.approve",
+      "bindKey": "http:POST catalog-svc/reviews/{reviewId}/approve",
+      "transport": "http",
+      "handler": "ReviewController.approve",
+      "entryPoint": true,
+      "details": {
+        "method": "POST",
+        "path": "/reviews/{reviewId}/approve"
+      }
+    },
+    {
+      "id": "in.post.reviews.reviewId.report",
+      "bindKey": "http:POST catalog-svc/reviews/{reviewId}/report",
+      "transport": "http",
+      "handler": "ReviewController.report",
+      "entryPoint": true,
+      "details": {
+        "method": "POST",
+        "path": "/reviews/{reviewId}/report"
+      }
+    },
+    {
+      "id": "in.get.reviews.pending",
+      "bindKey": "http:GET catalog-svc/reviews/pending",
+      "transport": "http",
+      "handler": "ReviewController.pending",
+      "entryPoint": true,
+      "details": {
+        "method": "GET",
+        "path": "/reviews/pending"
+      }
+    },
+    {
+      "id": "in.get.brands",
+      "bindKey": "http:GET catalog-svc/brands",
+      "transport": "http",
+      "handler": "BrandController.list",
+      "entryPoint": true,
+      "details": {
+        "method": "GET",
+        "path": "/brands"
+      }
+    },
+    {
+      "id": "in.get.brands.id",
+      "bindKey": "http:GET catalog-svc/brands/{id}",
+      "transport": "http",
+      "handler": "BrandController.get",
+      "entryPoint": true,
+      "details": {
+        "method": "GET",
+        "path": "/brands/{id}"
+      }
+    },
+    {
+      "id": "in.post.brands",
+      "bindKey": "http:POST catalog-svc/brands",
+      "transport": "http",
+      "handler": "BrandController.create",
+      "entryPoint": true,
+      "details": {
+        "method": "POST",
+        "path": "/brands"
+      }
+    },
+    {
+      "id": "in.put.brands.id",
+      "bindKey": "http:PUT catalog-svc/brands/{id}",
+      "transport": "http",
+      "handler": "BrandController.update",
+      "entryPoint": true,
+      "details": {
+        "method": "PUT",
+        "path": "/brands/{id}"
+      }
+    }
+  ],
+  "egress": [
+    {
+      "id": "productEvents.publish",
+      "bindKey": "sns:catalog-product-events",
+      "transport": "sns",
+      "events": [
+        "ProductCreated",
+        "ProductUpdated",
+        "ProductDeleted"
+      ]
+    },
+    {
+      "id": "priceEvents.publish",
+      "bindKey": "sns:catalog-price-events",
+      "transport": "sns",
+      "events": [
+        "PriceChanged"
+      ]
+    },
+    {
+      "id": "reviewEvents.publish",
+      "bindKey": "sns:catalog-review-events",
+      "transport": "sns",
+      "events": [
+        "ReviewPosted"
+      ]
+    },
+    {
+      "id": "users.getContact",
+      "bindKey": "http:GET users-svc/users/{id}/contact",
+      "transport": "http",
+      "mode": "sync",
+      "details": {
+        "method": "GET",
+        "path": "/users/{id}/contact",
+        "timeoutMs": 1500
+      }
+    }
+  ],
+  "resources": [
+    {
+      "id": "db.products",
+      "kind": "mongodb",
+      "name": "catalog-db.products",
+      "bindKey": "mongodb:catalog-db/products"
+    },
+    {
+      "id": "db.categories",
+      "kind": "mongodb",
+      "name": "catalog-db.categories",
+      "bindKey": "mongodb:catalog-db/categories"
+    },
+    {
+      "id": "db.prices",
+      "kind": "mongodb",
+      "name": "catalog-db.prices",
+      "bindKey": "mongodb:catalog-db/prices"
+    },
+    {
+      "id": "db.reviews",
+      "kind": "mongodb",
+      "name": "catalog-db.reviews",
+      "bindKey": "mongodb:catalog-db/reviews"
+    },
+    {
+      "id": "db.brands",
+      "kind": "mongodb",
+      "name": "catalog-db.brands",
+      "bindKey": "mongodb:catalog-db/brands"
+    },
+    {
+      "id": "db.images",
+      "kind": "mongodb",
+      "name": "catalog-db.images",
+      "bindKey": "mongodb:catalog-db/images"
+    },
+    {
+      "id": "imageStore",
+      "kind": "s3",
+      "name": "acme-catalog-images",
+      "bindKey": "s3:acme-catalog-images"
+    },
+    {
+      "id": "cache",
+      "kind": "redis",
+      "name": "product:{id}:availability",
+      "bindKey": "redis:cache-main/product:{id}:availability",
+      "details": {
+        "ttlSeconds": 60
+      }
+    }
+  ]
+}

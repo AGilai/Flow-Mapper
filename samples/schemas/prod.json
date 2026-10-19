@@ -1,0 +1,46 @@
+{
+  "env": "prod",
+  "schemas": [
+    {
+      "key": "mongodb:orders-db/orders", "source": "code",
+      "content": {
+        "model": "Order (src/models/order.ts)",
+        "fields": { "_id": "ObjectId", "orderId": "string", "customerId": "string", "status": "PENDING_PAYMENT | PAID | SHIPPED | CANCELLED",
+          "items": [{ "sku": "string", "quantity": "number", "unitPrice": "number" }], "total": "number", "currency": "string", "createdAt": "Date" },
+        "indexes": [{ "keys": { "orderId": 1 }, "unique": true }, { "keys": { "customerId": 1, "createdAt": -1 } }]
+      }
+    },
+    {
+      "key": "mongodb:catalog-db/products", "source": "code",
+      "content": {
+        "model": "Product (src/models/product.model.ts)",
+        "fields": { "_id": "ObjectId", "sku": "string", "name": "string", "brandId": "string", "categoryIds": ["string"],
+          "status": "DRAFT | PUBLISHED | ARCHIVED", "variants": [{ "id": "string", "size": "string", "color": "string" }], "updatedAt": "Date" },
+        "indexes": [{ "keys": { "sku": 1 }, "unique": true }, { "keys": { "categoryIds": 1, "status": 1 } }, { "keys": { "name": "text" } }]
+      }
+    },
+    {
+      "key": "redis:cache-main/order:{id}", "source": "code",
+      "content": { "keyPattern": "order:{id}", "type": "string", "value": "JSON of Order", "ttlSeconds": 300, "writtenBy": "OrderService.place" }
+    },
+    {
+      "key": "redis:cache-main/product:{id}:availability", "source": "code",
+      "content": { "keyPattern": "product:{id}:availability", "type": "hash", "fields": { "inStock": "0 | 1", "quantity": "number", "updatedAt": "ISO date" }, "ttlSeconds": 60 }
+    },
+    {
+      "key": "dynamodb:payments", "source": "code",
+      "content": {
+        "table": "payments", "partitionKey": { "name": "paymentId", "type": "S" }, "sortKey": null,
+        "globalSecondaryIndexes": [{ "name": "byOrder", "partitionKey": { "name": "orderId", "type": "S" } }],
+        "item": { "paymentId": "p_99a", "orderId": "o_5531", "amount": 103.8, "currency": "EUR", "status": "SUCCEEDED" }
+      }
+    },
+    {
+      "key": "postgres:users-db/users", "source": "code",
+      "content": {
+        "table": "users", "columns": { "id": "uuid primary key", "email": "text unique not null", "name": "text", "tier": "text default 'free'", "created_at": "timestamptz" },
+        "indexes": ["users_email_key (email)"]
+      }
+    }
+  ]
+}

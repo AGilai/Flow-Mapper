@@ -48,6 +48,30 @@
       "details": {
         "arn": "arn:aws:events:eu-west-1:000000000000:event-bus/acme-bus"
       }
+    },
+    {
+      "bindKey": "sns:catalog-product-events",
+      "kind": "sns-topic",
+      "name": "catalog-product-events",
+      "details": {
+        "arn": "arn:aws:sns:eu-west-1:000000000000:catalog-product-events"
+      }
+    },
+    {
+      "bindKey": "sns:catalog-price-events",
+      "kind": "sns-topic",
+      "name": "catalog-price-events",
+      "details": {
+        "arn": "arn:aws:sns:eu-west-1:000000000000:catalog-price-events"
+      }
+    },
+    {
+      "bindKey": "sns:catalog-review-events",
+      "kind": "sns-topic",
+      "name": "catalog-review-events",
+      "details": {
+        "arn": "arn:aws:sns:eu-west-1:000000000000:catalog-review-events"
+      }
     }
   ],
   "bindings": [

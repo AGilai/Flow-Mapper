@@ -84,7 +84,8 @@
         "condition": { "type": "string", "description": "Branch condition, if conditional." },
         "loop": { "type": "boolean", "default": false },
         "note": { "type": "string" },
-        "event": { "$ref": "#/$defs/eventType", "description": "For an egress step: the event type it publishes." }
+        "event": { "$ref": "#/$defs/eventType", "description": "For an egress step: the event type it publishes." },
+        "access": { "enum": ["read", "write"], "description": "For a resource step: read or write. Default: from the operation name (find, GET, SELECT, GetItem… are reads)." }
       }
     },
 
@@ -153,7 +154,7 @@
         "id": { "$ref": "#/$defs/id" },
         "kind": { "type": "string", "examples": ["mongodb", "redis", "dynamodb", "postgres", "s3", "elasticsearch"] },
         "name": { "type": "string" },
-        "bindKey": { "$ref": "#/$defs/bindKey", "description": "Shared key so services using the same store are grouped." },
+        "bindKey": { "$ref": "#/$defs/bindKey", "description": "Shared key so services using the same store are grouped: {kind}:{cluster or db}/{collection, table or key pattern}, e.g. mongodb:orders-db/orders, redis:cache-main/order:{id}. The part before '/' groups keys of one cluster." },
         "details": { "$ref": "#/$defs/details" }
       }
     },

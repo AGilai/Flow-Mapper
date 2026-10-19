@@ -8,6 +8,10 @@ import * as bugs from '../store/bugs.ts';
 import * as dtos from '../store/dtos.ts';
 import { endpointInfo } from '../../core/endpoint-info.ts';
 import { eventTypes } from '../../core/events.ts';
+import { inventory } from '../../core/inventory.ts';
+import { storeView, stores } from '../../core/stores.ts';
+import { channelView } from '../../core/channels.ts';
+import * as schemas from '../store/schemas.ts';
 import { search } from '../../core/search.ts';
 import { serviceView } from '../../core/service-view.ts';
 import { entryPoints, trace } from '../../core/trace.ts';
@@ -110,6 +114,29 @@ export const TOOLS: Tool[] = [
       const t = all.find((x) => x.type === a.type) ?? (() => { throw new HttpError(404, 'NOT_FOUND', `event type '${a.type}' not found`); })();
       return { ...t, dto: dtos.getEventDto(c.db, envOf(a), a.type) };
     },
+  },
+  {
+    name: 'inventory', description: 'Every object: services, topics/queues/buses, data stores and event types, with connections and problem counts. Filter by type and text.',
+    inputSchema: obj({ env, type: { enum: ['service', 'channel', 'store', 'event'] }, query: { type: 'string' } }),
+    run: (c, a) => inventory(c.graph(envOf(a))).filter((x) => (!a.type || x.type === a.type) && (!a.query || `${x.id} ${x.kind} ${x.team ?? ''}`.toLowerCase().includes(String(a.query).toLowerCase()))),
+  },
+  {
+    name: 'get_store', description: "A data store by bind key (e.g. mongodb:orders-db/orders, redis:cache-main/order:{id}): readers and writers with the functions and operations, entry points whose flows reach it, other keys in its cluster, and its schemas by source.",
+    inputSchema: obj({ env, key: { type: 'string' } }, ['key']),
+    run: (c, a) => {
+      const v = storeView(c.graph(envOf(a)), a.key) ?? (() => { throw new HttpError(404, 'NOT_FOUND', `data store '${a.key}' not found`); })();
+      return { ...v, schemas: schemas.listSchemas(c.db, envOf(a), a.key) };
+    },
+  },
+  {
+    name: 'get_channel', description: 'A topic, queue, exchange or event bus by key: publishers, subscriptions/rules with event filters, consumers, event types passing through, problems.',
+    inputSchema: obj({ env, key: { type: 'string' } }, ['key']),
+    run: (c, a) => channelView(c.graph(envOf(a)), a.key) ?? (() => { throw new HttpError(404, 'NOT_FOUND', `channel '${a.key}' not found`); })(),
+  },
+  {
+    name: 'load_schemas', description: "Store data-store schemas: [{key, source: 'code' | 'db' | 'manual' (default code), content}]. Replaces the schema of the same key and source. All or nothing.",
+    inputSchema: obj({ env, schemas: { type: 'array', items: { type: 'object', properties: { key: { type: 'string' }, source: { enum: ['code', 'db', 'manual'] }, content: {} }, required: ['key', 'content'] } } }, ['schemas']),
+    run: (c, a) => { const keys = new Set(stores(c.graph(envOf(a))).map((s) => s.key)); return schemas.loadSchemas(c.db, envOf(a), a.schemas, (k) => keys.has(k)); },
   },
   {
     name: 'list_bugs', description: 'Bugs sorted by priority. Filter by status/priority (comma lists), service, version, text, or open=true.',

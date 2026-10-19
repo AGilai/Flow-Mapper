@@ -174,3 +174,18 @@ export function eventTypes(g: GraphIndex) {
   }
   return [...types.values()].sort((a, b) => a.type.localeCompare(b.type));
 }
+
+/** One event type: who publishes it, every delivery (consumer, handler, route), and its problems. */
+export function eventView(g: GraphIndex, type: string) {
+  const r = eventReport(g);
+  const summary = eventTypes(g).find((t) => t.type === type);
+  if (!summary) return null;
+  const mine = <T extends { event: string }>(xs: T[]) => xs.filter((x) => x.event === type);
+  return {
+    ...summary,
+    deliveries: mine(r.deliveries),
+    problems: {
+      unhandled: mine(r.unhandled), undelivered: mine(r.undelivered), neverArrives: mine(r.neverArrives), declaredNotSeen: mine(r.declaredNotSeen),
+    },
+  };
+}

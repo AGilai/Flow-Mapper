@@ -10,7 +10,11 @@ const rail = document.getElementById('rail');
 const main = document.getElementById('main');
 
 route('/system', () => import('./views/system.js'));
-route('/services', () => import('./views/services.js'));
+route('/inventory', () => import('./views/inventory.js'));
+route('/services', () => import('./views/inventory.js'));
+route('/stores/:key', () => import('./views/store.js'));
+route('/channels/:key', () => import('./views/channel.js'));
+route('/events/:type', () => import('./views/event.js'));
 route('/services/:name', () => import('./views/service.js'));
 route('/flows', () => import('./views/flows.js'));
 route('/health', () => import('./views/health.js'));

@@ -32,6 +32,8 @@ export interface Step {
   note?: string;
   /** Event type this egress step publishes (one of the egress's `events`). */
   event?: string;
+  /** For a resource step: read or write, when the operation name does not make it clear. */
+  access?: 'read' | 'write';
 }
 
 export interface Fn { service: string; id: string; name: string; file?: string; line?: number; steps: Step[] }

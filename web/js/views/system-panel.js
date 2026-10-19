@@ -4,6 +4,7 @@ import { h } from '../dom.js';
 import { href } from '../router.js';
 import { chip } from '../format.js';
 import { section } from '../components/panel.js';
+import { channelPath, storePath } from './inventory-links.js';
 
 const MAX = 12;
 const svcName = (id) => id.replace(/^(svc|ch|res|missing):/, '');
@@ -43,6 +44,8 @@ export function nodePanel(n, edges, byId) {
       h('a.btn.primary', { href: href(`/services/${encodeURIComponent(n.label)}`) }, 'Open service'),
       h('a.btn', { href: href('/flows', { service: n.label }) }, 'Trace flows')));
   }
+  if (n.kind === 'channel') body.push(h('div.row', h('a.btn.primary', { href: href(channelPath(svcName(n.id))) }, 'Open details')));
+  if (n.kind === 'resource') body.push(h('div.row', h('a.btn.primary', { href: href(storePath(svcName(n.id))) }, 'Open details')));
   if (n.kind === 'missing') body.push(h('p.small', 'Something calls this key, but no service, queue or route matches it. Check the bind key the harvester produced on either side.'));
   if (n.events?.length) body.push(section('Event types published here', n.events.length, h('div.ep-producers', n.events.map((e) => h('span.ep-producer', h('span.key', e))))));
   if (n.subscriptions?.length) body.push(section(n.sub === 'eventbridge-bus' ? 'Rules' : 'Subscriptions', n.subscriptions.length, h('div.list', n.subscriptions.map((s) =>

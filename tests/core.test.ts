@@ -50,7 +50,8 @@ test('unicast picks the most specific match; ties are ambiguous', () => {
   assert.equal((contact[0].to as any).id, 'in.getContact', 'exact beats glob');
   m.ingress.push({ service: 'users-svc', id: 'in.dupe', bindKey: 'http:GET users-svc/users/{id}/contact', transport: 'http', handler: 'get_contact' });
   g = buildIndex(m);
-  assert.equal(g.resolution.ambiguous.length, 1);
+  // every caller of the tied key is ambiguous: the gateway and catalog-svc's reviewer lookup
+  assert.deepEqual(g.resolution.ambiguous.map((a) => a.egress.service).sort(), ['api-gateway', 'catalog-svc']);
 });
 
 test('full trace follows REST, SNS→SQS fan-out and AMQP into other services', () => {
