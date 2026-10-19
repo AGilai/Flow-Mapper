@@ -139,8 +139,8 @@ export const TOOLS: Tool[] = [
     run: (c, a) => { const keys = new Set(stores(c.graph(envOf(a))).map((s) => s.key)); return schemas.loadSchemas(c.db, envOf(a), a.schemas, (k) => keys.has(k)); },
   },
   {
-    name: 'list_bugs', description: 'Bugs sorted by priority. Filter by status/priority (comma lists), service, version, text, or open=true.',
-    inputSchema: obj({ status: { type: 'string' }, priority: { type: 'string' }, service: { type: 'string' }, version: { type: 'string' }, q: { type: 'string' }, open: { type: 'boolean' } }),
+    name: 'list_bugs', description: 'Bugs sorted by priority. Filter by status/priority/reporter (comma lists), service, version, text, open=true, or updatedSince (ISO time; includes new comments) for polling.',
+    inputSchema: obj({ status: { type: 'string' }, priority: { type: 'string' }, reporter: { type: 'string' }, updatedSince: { type: 'string' }, service: { type: 'string' }, version: { type: 'string' }, q: { type: 'string' }, open: { type: 'boolean' } }),
     run: (c, a) => bugs.listBugs(c.db, a, c.appVersion),
   },
   {

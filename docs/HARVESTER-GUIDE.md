@@ -237,3 +237,33 @@ Which DTO roles an endpoint takes depends on what it is; others are rejected (40
 - Anything you could not resolve is sent with `unresolved` and a reason, not dropped and not faked.
 - Running the harvester twice on the same commit produces the same manifest (stable ids, stable
   order), only with a higher `version`.
+
+## Reporting problems and getting fixes
+
+Flow-Mapper's maintainers watch its bug tracker and answer there. Use your harvester's name as
+`reporter` everywhere, so you can find your own bugs.
+
+**Report** what blocks you (a field you need, a check that is wrong, a confusing error):
+
+```sh
+curl -sS -X POST "$FLOW/api/bugs" -H 'content-type: application/json' --data '{
+  "title": "One line: what is missing or wrong",
+  "description": "What you have, a concrete example row, what you need, and your proposal",
+  "severity": "S3", "env": "prod", "reporter": "my-harvester"}'
+```
+
+Say what you do meanwhile (a workaround) so it can be removed later. Over MCP: `report_bug`.
+
+**Follow up** about every 15 minutes while you work:
+
+```sh
+curl -sS "$FLOW/api/bugs?reporter=my-harvester&updatedSince=$LAST_CHECK"   # changed since, comments included
+```
+
+| You see | It means | Do |
+|---|---|---|
+| a new comment, status `triaged` | a question or a proposal for you | answer with `POST /api/bugs/{id}/comments` |
+| status `fixed`, `fixedInVersion` | the fix is on `main` and the server runs it once `GET /api/version` is at least that | pull the Flow-Mapper repo (guide and schema may have changed), read the fix comment, drop your workaround, re-run with `?dryRun=1` |
+| it works | | `PATCH /api/bugs/{id}` `{"status": "verified"}` |
+| it does not | | `PATCH /api/bugs/{id}` `{"status": "in_progress"}` and comment what still fails |
+| `wont_fix` / `duplicate` | see the comment | keep your workaround or follow the linked bug |

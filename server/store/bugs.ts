@@ -112,7 +112,13 @@ export function getBug(db: DB, id: number, appVersion: string) {
   };
 }
 
-export interface BugFilter { status?: string; priority?: string; severity?: string; service?: string; version?: string; q?: string; open?: boolean; limit?: number }
+export interface BugFilter {
+  status?: string; priority?: string; severity?: string; service?: string; version?: string; q?: string; open?: boolean; limit?: number;
+  /** comma list of reporters, e.g. the harvester's own name */
+  reporter?: string;
+  /** ISO time: only bugs changed after it (status, fields or a new comment), for cheap polling */
+  updatedSince?: string;
+}
 
 export function listBugs(db: DB, f: BugFilter, appVersion: string) {
   const where: string[] = [], args: (string | number)[] = [];
@@ -126,6 +132,8 @@ export function listBugs(db: DB, f: BugFilter, appVersion: string) {
   inList('status', f.status);
   inList('priority', f.priority);
   inList('severity', f.severity);
+  inList('reporter', f.reporter);
+  if (f.updatedSince) { where.push('updated_at > ?'); args.push(f.updatedSince); }
   if (f.version) { where.push('(app_version = ? OR fixed_in_version = ?)'); args.push(f.version, f.version); }
   if (f.q) { where.push('(title LIKE ? OR description LIKE ?)'); args.push(`%${f.q}%`, `%${f.q}%`); }
   if (f.service) { where.push('id IN (SELECT bug_id FROM bug_links WHERE service = ? OR (type = \'service\' AND ref_id = ?))'); args.push(f.service, f.service); }

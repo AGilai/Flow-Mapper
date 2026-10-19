@@ -176,3 +176,15 @@ test('writes by another process show up without a restart', async () => {
   const names = (await app.call('GET', '/api/envs/prod/services')).body.map((s: any) => s.name);
   assert.ok(names.includes('side-svc'));
 });
+
+test('bugs can be polled by reporter and by change time, comments included', async () => {
+  const a = await app.call('POST', '/api/bugs', { title: 'poll me', reporter: 'loader-x', env: 'prod' });
+  await app.call('POST', '/api/bugs', { title: 'not mine', reporter: 'someone', env: 'prod' });
+  const mine = (await app.call('GET', '/api/bugs?reporter=loader-x')).body;
+  assert.deepEqual(mine.map((b: any) => b.title), ['poll me']);
+  const since = new Date().toISOString();
+  assert.equal((await app.call('GET', `/api/bugs?reporter=loader-x&updatedSince=${since}`)).body.length, 0);
+  await new Promise((r) => setTimeout(r, 5));
+  await app.call('POST', `/api/bugs/${a.body.id}/comments`, { author: 'flow-mapper', body: 'fixed in 0.3.1' });
+  assert.equal((await app.call('GET', `/api/bugs?reporter=loader-x&updatedSince=${since}`)).body.length, 1);
+});

@@ -16,6 +16,7 @@ export function registerBugs(r: Router, ctx: Ctx) {
       status: q.get('status') ?? undefined, priority: q.get('priority') ?? undefined, severity: q.get('severity') ?? undefined,
       service: q.get('service') ?? undefined, version: q.get('version') ?? undefined, q: q.get('q') ?? undefined,
       open: q.get('open') === 'true', limit: Math.min(Number(q.get('limit')) || 200, 1000),
+      reporter: q.get('reporter') ?? undefined, updatedSince: q.get('updatedSince') ?? undefined,
     }, appVersion);
   });
 
