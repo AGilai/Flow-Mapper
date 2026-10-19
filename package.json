@@ -1,0 +1,15 @@
+{
+  "name": "flow-mapper",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Service-to-service flow mapping: visualizer for humans, MCP for agents",
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "check:samples": "node scripts/check-samples.mjs"
+  },
+  "devDependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1"
+  }
+}

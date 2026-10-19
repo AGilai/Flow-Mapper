@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "infra",
+    "kind": "infra",
+    "team": "platform",
+    "repo": "github.com/acme/infra",
+    "description": "Topics, queues and exchanges declared in IaC"
+  },
+  "version": 5,
+  "harvestedAt": "2026-10-19T08:00:00Z",
+  "commit": "5e03a58",
+  "channels": [
+    {
+      "bindKey": "sns:order-events",
+      "kind": "sns-topic",
+      "name": "order-events"
+    },
+    {
+      "bindKey": "sns:payment-events",
+      "kind": "sns-topic",
+      "name": "payment-events"
+    },
+    {
+      "bindKey": "sns:payment-disputes",
+      "kind": "sns-topic",
+      "name": "payment-disputes"
+    },
+    {
+      "bindKey": "sqs:orders-dlq",
+      "kind": "sqs-queue",
+      "name": "orders-dlq"
+    },
+    {
+      "bindKey": "amqp:shipping",
+      "kind": "amqp-exchange",
+      "name": "shipping",
+      "details": {
+        "type": "topic"
+      }
+    }
+  ]
+}

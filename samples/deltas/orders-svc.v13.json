@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "delta",
+  "env": "prod",
+  "service": {
+    "name": "orders-svc"
+  },
+  "baseVersion": 12,
+  "version": 13,
+  "harvestedAt": "2026-10-19T09:00:00Z",
+  "commit": "b7c9e01",
+  "upsert": {
+    "functions": [
+      {
+        "id": "OrderService.validate",
+        "name": "OrderService.validate",
+        "file": "src/services/order.ts",
+        "line": 40,
+        "steps": [
+          {
+            "seq": 1,
+            "type": "egress",
+            "target": "users.get",
+            "operation": "GET"
+          }
+        ]
+      }
+    ],
+    "egress": [
+      {
+        "id": "users.get",
+        "bindKey": "http:GET users-svc/users/{id}",
+        "transport": "http",
+        "mode": "sync",
+        "details": {
+          "method": "GET",
+          "path": "/users/{id}",
+          "timeoutMs": 2000
+        }
+      }
+    ]
+  },
+  "delete": {
+    "egress": [
+      "users.getPrefs"
+    ]
+  }
+}

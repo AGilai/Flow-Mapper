@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "analytics-svc",
+    "kind": "service",
+    "team": "data",
+    "repo": "github.com/acme/analytics-svc",
+    "language": "python",
+    "description": "Event lake ingestion"
+  },
+  "version": 3,
+  "harvestedAt": "2026-10-19T08:00:00Z",
+  "commit": "08b5782",
+  "functions": [
+    {
+      "id": "ingest_event",
+      "name": "ingest_event",
+      "file": "analytics/consumer.py",
+      "line": 11,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "lake",
+          "operation": "PutObject"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.events",
+      "bindKey": "sqs:analytics-all-events",
+      "transport": "sqs",
+      "handler": "ingest_event"
+    }
+  ],
+  "resources": [
+    {
+      "id": "lake",
+      "kind": "s3",
+      "name": "acme-event-lake",
+      "bindKey": "s3:acme-event-lake"
+    }
+  ],
+  "channels": [
+    {
+      "bindKey": "sqs:analytics-all-events",
+      "kind": "sqs-queue",
+      "name": "analytics-all-events"
+    }
+  ],
+  "bindings": [
+    {
+      "id": "sub.allEvents",
+      "from": "sns:*-events",
+      "match": "glob",
+      "to": "sqs:analytics-all-events"
+    }
+  ]
+}

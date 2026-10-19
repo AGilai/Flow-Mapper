@@ -1,0 +1,223 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AGilai/flow-mapper/schema/manifest.schema.json",
+  "title": "Flow-Mapper harvest manifest",
+  "description": "One service's harvested map. kind=full replaces the snapshot; kind=delta patches it against baseVersion.",
+  "oneOf": [{ "$ref": "#/$defs/fullManifest" }, { "$ref": "#/$defs/deltaManifest" }],
+
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.:\\-/{}#*]+$",
+      "minLength": 1,
+      "description": "Stable ID, unique within the service for its entity type."
+    },
+    "bindKey": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Opaque key produced by the harvester. Literal unless match=glob."
+    },
+    "match": {
+      "enum": ["exact", "glob"],
+      "default": "exact",
+      "description": "glob: '*' matches any characters except '/', '**' matches anything."
+    },
+    "transport": {
+      "enum": ["http", "grpc", "sns", "sqs", "amqp", "cron", "event", "other"]
+    },
+    "delivery": {
+      "enum": ["unicast", "multicast"],
+      "description": "unicast links to the most specific match; multicast to all matches. Defaults by transport."
+    },
+    "mode": { "enum": ["sync", "async"] },
+    "version": { "type": "integer", "minimum": 1 },
+    "env": { "type": "string", "pattern": "^[a-z0-9\\-]+$", "default": "default" },
+    "details": {
+      "type": "object",
+      "description": "Free-form transport details (method, path, queue URL, timeouts, …).",
+      "additionalProperties": true
+    },
+
+    "service": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "pattern": "^[a-z0-9\\-]+$" },
+        "kind": { "enum": ["service", "gateway", "infra"], "default": "service" },
+        "team": { "type": "string" },
+        "repo": { "type": "string" },
+        "language": { "type": "string" },
+        "description": { "type": "string" },
+        "tags": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
+      }
+    },
+
+    "step": {
+      "type": "object",
+      "required": ["seq", "type", "target"],
+      "additionalProperties": false,
+      "properties": {
+        "seq": { "type": "integer", "minimum": 1 },
+        "type": { "enum": ["call", "egress", "resource"] },
+        "target": { "$ref": "#/$defs/id", "description": "Function id, egress id or resource id in this service." },
+        "mode": { "$ref": "#/$defs/mode", "default": "sync" },
+        "operation": { "type": "string", "description": "e.g. findOne, publish, GET" },
+        "condition": { "type": "string", "description": "Branch condition, if conditional." },
+        "loop": { "type": "boolean", "default": false },
+        "note": { "type": "string" }
+      }
+    },
+
+    "function": {
+      "type": "object",
+      "required": ["id", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string" },
+        "file": { "type": "string" },
+        "line": { "type": "integer", "minimum": 1 },
+        "steps": { "type": "array", "items": { "$ref": "#/$defs/step" }, "default": [] }
+      }
+    },
+
+    "ingress": {
+      "type": "object",
+      "required": ["id", "bindKey", "transport", "handler"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "bindKey": { "$ref": "#/$defs/bindKey" },
+        "match": { "$ref": "#/$defs/match" },
+        "transport": { "$ref": "#/$defs/transport" },
+        "handler": { "$ref": "#/$defs/id", "description": "Function id that handles this ingress." },
+        "entryPoint": { "type": "boolean", "default": false, "description": "Public API, cron, etc. Excluded from orphan stats." },
+        "details": { "$ref": "#/$defs/details" }
+      }
+    },
+
+    "egress": {
+      "type": "object",
+      "required": ["id", "bindKey", "transport"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "bindKey": { "$ref": "#/$defs/bindKey" },
+        "transport": { "$ref": "#/$defs/transport" },
+        "mode": { "$ref": "#/$defs/mode" },
+        "delivery": { "$ref": "#/$defs/delivery" },
+        "details": { "$ref": "#/$defs/details" }
+      }
+    },
+
+    "resource": {
+      "type": "object",
+      "required": ["id", "kind", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "kind": { "type": "string", "examples": ["mongodb", "redis", "dynamodb", "postgres", "s3", "elasticsearch"] },
+        "name": { "type": "string" },
+        "bindKey": { "$ref": "#/$defs/bindKey", "description": "Shared key so services using the same store are grouped." },
+        "details": { "$ref": "#/$defs/details" }
+      }
+    },
+
+    "channel": {
+      "type": "object",
+      "required": ["bindKey", "kind"],
+      "additionalProperties": false,
+      "properties": {
+        "bindKey": { "$ref": "#/$defs/bindKey" },
+        "kind": { "enum": ["sns-topic", "sqs-queue", "amqp-exchange", "amqp-queue", "other"] },
+        "name": { "type": "string" },
+        "delivery": { "$ref": "#/$defs/delivery" },
+        "details": { "$ref": "#/$defs/details" }
+      }
+    },
+
+    "binding": {
+      "type": "object",
+      "required": ["id", "from", "to"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "from": { "$ref": "#/$defs/bindKey", "description": "Source channel key, or a pattern when match=glob." },
+        "match": { "$ref": "#/$defs/match" },
+        "to": { "$ref": "#/$defs/bindKey", "description": "Target channel or ingress key (literal)." },
+        "filter": { "type": "object", "additionalProperties": true, "description": "e.g. SNS filter policy" },
+        "details": { "$ref": "#/$defs/details" }
+      }
+    },
+
+    "entities": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "functions": { "type": "array", "items": { "$ref": "#/$defs/function" } },
+        "ingress": { "type": "array", "items": { "$ref": "#/$defs/ingress" } },
+        "egress": { "type": "array", "items": { "$ref": "#/$defs/egress" } },
+        "resources": { "type": "array", "items": { "$ref": "#/$defs/resource" } },
+        "channels": { "type": "array", "items": { "$ref": "#/$defs/channel" } },
+        "bindings": { "type": "array", "items": { "$ref": "#/$defs/binding" } }
+      }
+    },
+
+    "deleteLists": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "functions": { "type": "array", "items": { "$ref": "#/$defs/id" } },
+        "ingress": { "type": "array", "items": { "$ref": "#/$defs/id" } },
+        "egress": { "type": "array", "items": { "$ref": "#/$defs/id" } },
+        "resources": { "type": "array", "items": { "$ref": "#/$defs/id" } },
+        "channels": { "type": "array", "items": { "$ref": "#/$defs/bindKey" } },
+        "bindings": { "type": "array", "items": { "$ref": "#/$defs/id" } }
+      }
+    },
+
+    "header": {
+      "type": "object",
+      "required": ["schemaVersion", "kind", "service", "version", "harvestedAt"],
+      "properties": {
+        "schemaVersion": { "const": "1.0" },
+        "env": { "$ref": "#/$defs/env" },
+        "service": { "$ref": "#/$defs/service" },
+        "version": { "$ref": "#/$defs/version" },
+        "harvestedAt": { "type": "string", "format": "date-time" },
+        "commit": { "type": "string" }
+      }
+    },
+
+    "fullManifest": {
+      "allOf": [{ "$ref": "#/$defs/header" }],
+      "properties": {
+        "schemaVersion": true, "env": true, "service": true, "version": true,
+        "harvestedAt": true, "commit": true,
+        "kind": { "const": "full" },
+        "functions": { "$ref": "#/$defs/entities/properties/functions" },
+        "ingress": { "$ref": "#/$defs/entities/properties/ingress" },
+        "egress": { "$ref": "#/$defs/entities/properties/egress" },
+        "resources": { "$ref": "#/$defs/entities/properties/resources" },
+        "channels": { "$ref": "#/$defs/entities/properties/channels" },
+        "bindings": { "$ref": "#/$defs/entities/properties/bindings" }
+      },
+      "unevaluatedProperties": false
+    },
+
+    "deltaManifest": {
+      "allOf": [{ "$ref": "#/$defs/header" }],
+      "required": ["baseVersion"],
+      "properties": {
+        "schemaVersion": true, "env": true, "service": true, "version": true,
+        "harvestedAt": true, "commit": true,
+        "kind": { "const": "delta" },
+        "baseVersion": { "$ref": "#/$defs/version" },
+        "upsert": { "$ref": "#/$defs/entities" },
+        "delete": { "$ref": "#/$defs/deleteLists" }
+      },
+      "unevaluatedProperties": false
+    }
+  }
+}

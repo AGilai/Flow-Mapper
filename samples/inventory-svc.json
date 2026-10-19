@@ -1,0 +1,107 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "inventory-svc",
+    "kind": "service",
+    "team": "fulfilment",
+    "repo": "github.com/acme/inventory-svc",
+    "language": "go",
+    "description": "Stock levels and reservations"
+  },
+  "version": 9,
+  "harvestedAt": "2026-10-19T08:00:00Z",
+  "commit": "9c9d5d1",
+  "functions": [
+    {
+      "id": "ReserveHandler",
+      "name": "ReserveHandler",
+      "file": "internal/api/reserve.go",
+      "line": 22,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "stock",
+          "operation": "UpdateItem (conditional)",
+          "loop": true,
+          "note": "per line item"
+        }
+      ]
+    },
+    {
+      "id": "OnOrderEvent",
+      "name": "OnOrderEvent",
+      "file": "internal/consumer/orders.go",
+      "line": 15,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "CommitReservation"
+        }
+      ]
+    },
+    {
+      "id": "CommitReservation",
+      "name": "CommitReservation",
+      "file": "internal/stock/commit.go",
+      "line": 9,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "stock",
+          "operation": "TransactWriteItems"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.reserve",
+      "bindKey": "http:POST inventory-svc/reservations",
+      "transport": "http",
+      "handler": "ReserveHandler",
+      "details": {
+        "method": "POST",
+        "path": "/reservations"
+      }
+    },
+    {
+      "id": "in.orderEvents",
+      "bindKey": "sqs:inventory-order-events",
+      "transport": "sqs",
+      "handler": "OnOrderEvent"
+    }
+  ],
+  "resources": [
+    {
+      "id": "stock",
+      "kind": "dynamodb",
+      "name": "inventory-stock",
+      "bindKey": "dynamodb:inventory-stock"
+    }
+  ],
+  "channels": [
+    {
+      "bindKey": "sqs:inventory-order-events",
+      "kind": "sqs-queue",
+      "name": "inventory-order-events"
+    }
+  ],
+  "bindings": [
+    {
+      "id": "sub.orderEvents",
+      "from": "sns:order-events",
+      "to": "sqs:inventory-order-events",
+      "filter": {
+        "eventType": [
+          "OrderPlaced",
+          "OrderCancelled"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,96 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "notifications-svc",
+    "kind": "service",
+    "team": "engagement",
+    "repo": "github.com/acme/notifications-svc",
+    "language": "typescript",
+    "description": "Email and push notifications"
+  },
+  "version": 15,
+  "harvestedAt": "2026-10-19T08:00:00Z",
+  "commit": "3f88d0a",
+  "functions": [
+    {
+      "id": "onShippingEvent",
+      "name": "onShippingEvent",
+      "file": "src/consumers/shipping.ts",
+      "line": 7,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "users.contact",
+          "operation": "GET",
+          "note": "via public gateway"
+        },
+        {
+          "seq": 2,
+          "type": "call",
+          "target": "sendEmail"
+        }
+      ]
+    },
+    {
+      "id": "sendEmail",
+      "name": "sendEmail",
+      "file": "src/email.ts",
+      "line": 20,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "emailProvider",
+          "operation": "POST /v3/mail/send"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.shipping",
+      "bindKey": "amqp-queue:notify-shipping",
+      "transport": "amqp",
+      "handler": "onShippingEvent"
+    }
+  ],
+  "egress": [
+    {
+      "id": "users.contact",
+      "bindKey": "http:GET public/api/users/{id}/contact",
+      "transport": "http",
+      "mode": "sync",
+      "details": {
+        "method": "GET",
+        "path": "/api/users/{id}/contact",
+        "timeoutMs": 2000
+      }
+    }
+  ],
+  "resources": [
+    {
+      "id": "emailProvider",
+      "kind": "external-http",
+      "name": "email provider",
+      "bindKey": "external:email-provider"
+    }
+  ],
+  "channels": [
+    {
+      "bindKey": "amqp-queue:notify-shipping",
+      "kind": "amqp-queue",
+      "name": "notify-shipping"
+    }
+  ],
+  "bindings": [
+    {
+      "id": "bind.shipping",
+      "from": "amqp:shipping/shipping.*",
+      "match": "glob",
+      "to": "amqp-queue:notify-shipping"
+    }
+  ]
+}

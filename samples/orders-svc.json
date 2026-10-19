@@ -1,0 +1,196 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "orders-svc",
+    "kind": "service",
+    "team": "checkout",
+    "repo": "github.com/acme/orders-svc",
+    "language": "typescript",
+    "description": "Order lifecycle",
+    "tags": [
+      "core"
+    ]
+  },
+  "version": 12,
+  "harvestedAt": "2026-10-19T08:00:00Z",
+  "commit": "fb390dc",
+  "functions": [
+    {
+      "id": "OrderController.create",
+      "name": "OrderController.create",
+      "file": "src/controllers/order.ts",
+      "line": 21,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "OrderService.validate"
+        },
+        {
+          "seq": 2,
+          "type": "call",
+          "target": "OrderService.place"
+        }
+      ]
+    },
+    {
+      "id": "OrderService.validate",
+      "name": "OrderService.validate",
+      "file": "src/services/order.ts",
+      "line": 40,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "users.getPrefs",
+          "operation": "GET",
+          "note": "loads delivery preferences"
+        }
+      ]
+    },
+    {
+      "id": "OrderService.place",
+      "name": "OrderService.place",
+      "file": "src/services/order.ts",
+      "line": 75,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "inventory.reserve",
+          "operation": "POST"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "payments.charge",
+          "operation": "POST"
+        },
+        {
+          "seq": 3,
+          "type": "resource",
+          "target": "ordersDb",
+          "operation": "insertOne"
+        },
+        {
+          "seq": 4,
+          "type": "egress",
+          "target": "orderEvents.publish",
+          "mode": "async",
+          "operation": "publish OrderPlaced"
+        }
+      ]
+    },
+    {
+      "id": "OrderController.get",
+      "name": "OrderController.get",
+      "file": "src/controllers/order.ts",
+      "line": 60,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "cache",
+          "operation": "GET order:{id}"
+        },
+        {
+          "seq": 2,
+          "type": "resource",
+          "target": "ordersDb",
+          "operation": "findOne",
+          "condition": "cache miss"
+        },
+        {
+          "seq": 3,
+          "type": "resource",
+          "target": "cache",
+          "operation": "SET order:{id}",
+          "condition": "cache miss"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.create",
+      "bindKey": "http:POST orders-svc/orders",
+      "transport": "http",
+      "handler": "OrderController.create",
+      "details": {
+        "method": "POST",
+        "path": "/orders"
+      }
+    },
+    {
+      "id": "in.get",
+      "bindKey": "http:GET orders-svc/orders/{id}",
+      "transport": "http",
+      "handler": "OrderController.get",
+      "details": {
+        "method": "GET",
+        "path": "/orders/{id}"
+      }
+    }
+  ],
+  "egress": [
+    {
+      "id": "users.getPrefs",
+      "bindKey": "http:GET users-svc/users/{id}/prefs",
+      "transport": "http",
+      "mode": "sync",
+      "details": {
+        "method": "GET",
+        "path": "/users/{id}/prefs",
+        "timeoutMs": 2000
+      }
+    },
+    {
+      "id": "inventory.reserve",
+      "bindKey": "http:POST inventory-svc/reservations",
+      "transport": "http",
+      "mode": "sync",
+      "details": {
+        "method": "POST",
+        "path": "/reservations",
+        "timeoutMs": 2000
+      }
+    },
+    {
+      "id": "payments.charge",
+      "bindKey": "http:POST payments-svc/payments/charge",
+      "transport": "http",
+      "mode": "sync",
+      "details": {
+        "method": "POST",
+        "path": "/payments/charge",
+        "timeoutMs": 8000
+      }
+    },
+    {
+      "id": "orderEvents.publish",
+      "bindKey": "sns:order-events",
+      "transport": "sns",
+      "mode": "async",
+      "delivery": "multicast",
+      "details": {
+        "event": "OrderPlaced"
+      }
+    }
+  ],
+  "resources": [
+    {
+      "id": "ordersDb",
+      "kind": "mongodb",
+      "name": "orders-db.orders",
+      "bindKey": "mongodb:orders-db/orders"
+    },
+    {
+      "id": "cache",
+      "kind": "redis",
+      "name": "cache-main",
+      "bindKey": "redis:cache-main"
+    }
+  ]
+}

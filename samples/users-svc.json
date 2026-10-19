@@ -1,0 +1,89 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "users-svc",
+    "kind": "service",
+    "team": "identity",
+    "repo": "github.com/acme/users-svc",
+    "language": "python",
+    "description": "User profiles"
+  },
+  "version": 22,
+  "harvestedAt": "2026-10-19T08:00:00Z",
+  "commit": "2105419",
+  "functions": [
+    {
+      "id": "get_user",
+      "name": "get_user",
+      "file": "users/api.py",
+      "line": 14,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "cache",
+          "operation": "GET user:{id}"
+        },
+        {
+          "seq": 2,
+          "type": "resource",
+          "target": "usersDb",
+          "operation": "SELECT users",
+          "condition": "cache miss"
+        }
+      ]
+    },
+    {
+      "id": "get_contact",
+      "name": "get_contact",
+      "file": "users/api.py",
+      "line": 40,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "usersDb",
+          "operation": "SELECT contacts"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.getUser",
+      "bindKey": "http:GET users-svc/users/{id}",
+      "transport": "http",
+      "handler": "get_user",
+      "details": {
+        "method": "GET",
+        "path": "/users/{id}"
+      }
+    },
+    {
+      "id": "in.getContact",
+      "bindKey": "http:GET users-svc/users/{id}/contact",
+      "transport": "http",
+      "handler": "get_contact",
+      "details": {
+        "method": "GET",
+        "path": "/users/{id}/contact"
+      }
+    }
+  ],
+  "resources": [
+    {
+      "id": "usersDb",
+      "kind": "postgres",
+      "name": "users",
+      "bindKey": "postgres:users-db/users"
+    },
+    {
+      "id": "cache",
+      "kind": "redis",
+      "name": "cache-main",
+      "bindKey": "redis:cache-main"
+    }
+  ]
+}

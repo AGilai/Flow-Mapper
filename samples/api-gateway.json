@@ -1,0 +1,131 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "api-gateway",
+    "kind": "gateway",
+    "team": "platform",
+    "repo": "github.com/acme/api-gateway",
+    "language": "typescript",
+    "description": "Public entry point; routes /api/* to internal services",
+    "tags": [
+      "edge"
+    ]
+  },
+  "version": 7,
+  "harvestedAt": "2026-10-19T08:00:00Z",
+  "commit": "7732662",
+  "functions": [
+    {
+      "id": "routeCreateOrder",
+      "name": "route POST /api/orders",
+      "file": "routes/orders.ts",
+      "line": 12,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "orders.create"
+        }
+      ]
+    },
+    {
+      "id": "routeGetOrder",
+      "name": "route GET /api/orders/{id}",
+      "file": "routes/orders.ts",
+      "line": 30,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "orders.get"
+        }
+      ]
+    },
+    {
+      "id": "proxyUsers",
+      "name": "proxy /api/users/**",
+      "file": "routes/users.ts",
+      "line": 8,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "users.contact"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.createOrder",
+      "bindKey": "http:POST public/api/orders",
+      "transport": "http",
+      "handler": "routeCreateOrder",
+      "entryPoint": true,
+      "details": {
+        "method": "POST",
+        "path": "/api/orders"
+      }
+    },
+    {
+      "id": "in.getOrder",
+      "bindKey": "http:GET public/api/orders/{id}",
+      "transport": "http",
+      "handler": "routeGetOrder",
+      "entryPoint": true,
+      "details": {
+        "method": "GET",
+        "path": "/api/orders/{id}"
+      }
+    },
+    {
+      "id": "in.users",
+      "bindKey": "http:GET public/api/users/**",
+      "transport": "http",
+      "handler": "proxyUsers",
+      "match": "glob",
+      "entryPoint": true,
+      "details": {
+        "method": "GET",
+        "path": "/api/users/**"
+      }
+    }
+  ],
+  "egress": [
+    {
+      "id": "orders.create",
+      "bindKey": "http:POST orders-svc/orders",
+      "transport": "http",
+      "mode": "sync",
+      "details": {
+        "method": "POST",
+        "path": "/orders",
+        "timeoutMs": 5000
+      }
+    },
+    {
+      "id": "orders.get",
+      "bindKey": "http:GET orders-svc/orders/{id}",
+      "transport": "http",
+      "mode": "sync",
+      "details": {
+        "method": "GET",
+        "path": "/orders/{id}",
+        "timeoutMs": 2000
+      }
+    },
+    {
+      "id": "users.contact",
+      "bindKey": "http:GET users-svc/users/{id}/contact",
+      "transport": "http",
+      "mode": "sync",
+      "details": {
+        "method": "GET",
+        "path": "/users/{id}/contact",
+        "timeoutMs": 2000
+      }
+    }
+  ]
+}

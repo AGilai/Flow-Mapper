@@ -1,0 +1,136 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "payments-svc",
+    "kind": "service",
+    "team": "payments",
+    "repo": "github.com/acme/payments-svc",
+    "language": "python",
+    "description": "Charges and refunds",
+    "tags": [
+      "core",
+      "pci"
+    ]
+  },
+  "version": 31,
+  "harvestedAt": "2026-10-19T08:00:00Z",
+  "commit": "36bdd60",
+  "functions": [
+    {
+      "id": "charge",
+      "name": "charge_handler",
+      "file": "payments/api.py",
+      "line": 18,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "risk_check"
+        },
+        {
+          "seq": 2,
+          "type": "resource",
+          "target": "paymentsTable",
+          "operation": "PutItem"
+        },
+        {
+          "seq": 3,
+          "type": "egress",
+          "target": "paymentEvents.publish",
+          "mode": "async",
+          "operation": "publish PaymentCaptured"
+        }
+      ]
+    },
+    {
+      "id": "risk_check",
+      "name": "risk_check",
+      "file": "payments/risk.py",
+      "line": 5,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "cache",
+          "operation": "GET risk:{customer}"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "disputes.publish",
+          "mode": "async",
+          "condition": "score > 0.9",
+          "operation": "publish DisputeOpened"
+        }
+      ]
+    },
+    {
+      "id": "legacyRefund",
+      "name": "legacy_refund",
+      "file": "payments/legacy.py",
+      "line": 3,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "paymentsTable",
+          "operation": "UpdateItem"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.charge",
+      "bindKey": "http:POST payments-svc/payments/charge",
+      "transport": "http",
+      "handler": "charge",
+      "details": {
+        "method": "POST",
+        "path": "/payments/charge"
+      }
+    },
+    {
+      "id": "in.legacyRefund",
+      "bindKey": "http:POST payments-svc/refunds/legacy",
+      "transport": "http",
+      "handler": "legacyRefund",
+      "details": {
+        "method": "POST",
+        "path": "/refunds/legacy"
+      }
+    }
+  ],
+  "egress": [
+    {
+      "id": "paymentEvents.publish",
+      "bindKey": "sns:payment-events",
+      "transport": "sns",
+      "mode": "async",
+      "delivery": "multicast"
+    },
+    {
+      "id": "disputes.publish",
+      "bindKey": "sns:payment-disputes",
+      "transport": "sns",
+      "mode": "async",
+      "delivery": "multicast"
+    }
+  ],
+  "resources": [
+    {
+      "id": "paymentsTable",
+      "kind": "dynamodb",
+      "name": "payments",
+      "bindKey": "dynamodb:payments"
+    },
+    {
+      "id": "cache",
+      "kind": "redis",
+      "name": "cache-main",
+      "bindKey": "redis:cache-main"
+    }
+  ]
+}

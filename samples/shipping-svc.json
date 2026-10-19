@@ -1,0 +1,95 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "shipping-svc",
+    "kind": "service",
+    "team": "fulfilment",
+    "repo": "github.com/acme/shipping-svc",
+    "language": "typescript",
+    "description": "Shipments"
+  },
+  "version": 4,
+  "harvestedAt": "2026-10-19T08:00:00Z",
+  "commit": "8399ccd",
+  "functions": [
+    {
+      "id": "onOrderPlaced",
+      "name": "onOrderPlaced",
+      "file": "src/consumers/orderPlaced.ts",
+      "line": 10,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "createShipment"
+        }
+      ]
+    },
+    {
+      "id": "createShipment",
+      "name": "createShipment",
+      "file": "src/shipments.ts",
+      "line": 33,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "shipmentsDb",
+          "operation": "insertOne"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "shippingCreated.publish",
+          "mode": "async",
+          "operation": "publish shipping.created"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.orderPlaced",
+      "bindKey": "sqs:shipping-order-events",
+      "transport": "sqs",
+      "handler": "onOrderPlaced"
+    }
+  ],
+  "egress": [
+    {
+      "id": "shippingCreated.publish",
+      "bindKey": "amqp:shipping/shipping.created",
+      "transport": "amqp",
+      "mode": "async",
+      "delivery": "multicast",
+      "details": {
+        "exchange": "shipping",
+        "routingKey": "shipping.created"
+      }
+    }
+  ],
+  "resources": [
+    {
+      "id": "shipmentsDb",
+      "kind": "mongodb",
+      "name": "shipping-db.shipments",
+      "bindKey": "mongodb:shipping-db/shipments"
+    }
+  ],
+  "channels": [
+    {
+      "bindKey": "sqs:shipping-order-events",
+      "kind": "sqs-queue",
+      "name": "shipping-order-events"
+    }
+  ],
+  "bindings": [
+    {
+      "id": "sub.orderEvents",
+      "from": "sns:order-events",
+      "to": "sqs:shipping-order-events"
+    }
+  ]
+}
