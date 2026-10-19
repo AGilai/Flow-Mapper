@@ -1,0 +1,60 @@
+// Info panel content for the system map: a node (service, gateway, queue, store, missing target) or an edge.
+
+import { h } from '../dom.js';
+import { href } from '../router.js';
+import { chip } from '../format.js';
+import { section } from '../components/panel.js';
+
+const MAX = 12;
+const svcName = (id) => id.replace(/^(svc|ch|res|missing):/, '');
+
+export function nodePanel(n, edges, byId) {
+  const out = edges.filter((e) => e.from === n.id);
+  const inc = edges.filter((e) => e.to === n.id);
+  const kindLabel = { service: 'Service', gateway: 'Gateway', channel: n.sub, resource: `Data store (${n.sub})`, missing: 'No match' }[n.kind] ?? n.kind;
+  const head = h('div.stack', { style: { gap: '2px' } }, h('h2', { class: n.kind === 'missing' ? 'key' : '' }, n.label), h('span.small.muted', kindLabel, n.team ? `, team ${n.team}` : ''));
+
+  const neighbour = (e, other) => {
+    const o = byId.get(other);
+    const link = o && (o.kind === 'service' || o.kind === 'gateway') ? href(`/services/${encodeURIComponent(o.label)}`) : null;
+    return h('div.list-item',
+      e.broken ? chip('broken', 'broken') : (e.transports.filter((t) => t !== 'other').map((t) => chip(t)).slice(0, 2)),
+      e.modes.includes('async') && !e.modes.includes('sync') ? chip('async', 'async') : null,
+      link ? h('a.grow.truncate', { href: link }, o.label) : h('span.grow.truncate', { class: o?.kind === 'missing' ? 'key' : '' }, o?.label ?? svcName(other)),
+      h('span.xs.muted', `${e.endpoints.length}`));
+  };
+  const list = (es, side) => {
+    const sorted = [...es].sort((a, b) => Number(b.broken) - Number(a.broken) || b.endpoints.length - a.endpoints.length);
+    return [
+      h('div.list', sorted.slice(0, MAX).map((e) => neighbour(e, side === 'out' ? e.to : e.from))),
+      sorted.length > MAX ? h('p.xs.muted', `${sorted.length - MAX} more. Open the service view to see all.`) : null,
+    ];
+  };
+
+  const body = [];
+  if (n.stats) {
+    body.push(h('dl.kv',
+      h('dt', 'Ingress'), h('dd', String(n.stats.ingress)),
+      h('dt', 'Egress'), h('dd', String(n.stats.egress)),
+      h('dt', 'Functions'), h('dd', String(n.stats.functions)),
+      h('dt', 'Broken calls'), h('dd', { style: { color: n.stats.dangling ? 'var(--bad)' : '' } }, String(n.stats.dangling)),
+      h('dt', 'Never called'), h('dd', String(n.stats.orphans))));
+    body.push(h('div.row',
+      h('a.btn.primary', { href: href(`/services/${encodeURIComponent(n.label)}`) }, 'Open service'),
+      h('a.btn', { href: href('/flows', { service: n.label }) }, 'Trace flows')));
+  }
+  if (n.kind === 'missing') body.push(h('p.small', 'Something calls this key, but no service, queue or route matches it. Check the bind key the harvester produced on either side.'));
+  if (inc.length) body.push(section(n.kind === 'channel' ? 'Published by' : 'Called by', inc.length, list(inc, 'in')));
+  if (out.length) body.push(section(n.kind === 'channel' ? 'Delivers to' : 'Calls', out.length, list(out, 'out')));
+  return [head, body];
+}
+
+export function edgePanel(e, byId) {
+  const a = byId.get(e.from), b = byId.get(e.to);
+  const head = h('div.stack', { style: { gap: '2px' } }, h('h2', `${a?.label ?? e.from} to ${b?.label ?? e.to}`),
+    h('div.row', e.broken ? chip('broken', 'broken') : e.transports.filter((t) => t !== 'other').map((t) => chip(t)), e.modes.map((m) => h('span.xs.muted', m))));
+  const rows = e.endpoints.slice(0, 60).map((p) => h('div.stack', { style: { gap: '2px', padding: '8px 0', borderBottom: '1px solid var(--line)' } },
+    h('span.key', p.bindKey),
+    h('span.xs.muted', `${p.from} to ${p.to}`, p.via && p.via !== 'key' && p.via !== 'direct' ? `, via ${p.via}` : '')));
+  return [head, section('Endpoints', e.endpoints.length, rows, e.endpoints.length > 60 ? h('p.xs.muted', `${e.endpoints.length - 60} more`) : null)];
+}

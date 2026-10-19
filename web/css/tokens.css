@@ -1,0 +1,62 @@
+/* Design tokens. Transport colours are the system's "line colours" and mean the same thing in every view. */
+:root {
+  --paper: #f5f6fa;
+  --surface: #ffffff;
+  --surface-2: #eef0f6;
+  --line: #e1e4ee;
+  --line-strong: #c9cedd;
+  --ink: #1b2233;
+  --ink-2: #4a5268;
+  --muted: #7a8197;
+  --accent: #4a4fd6;
+  --accent-soft: #e8e9fb;
+  --focus: #4a4fd6;
+
+  --t-http: #2f6feb;
+  --t-sns: #d98200;
+  --t-sqs: #0b9a8a;
+  --t-amqp: #8a5cf0;
+  --t-cron: #5b6478;
+  --t-res: #8b93a7;
+  --t-broken: #d63a3a;
+  --t-gateway: #1b2233;
+
+  --ok: #1f9d55;
+  --warn: #c27c00;
+  --bad: #d63a3a;
+  --p0: #d63a3a; --p1: #e07a1f; --p2: #4a4fd6; --p3: #8b93a7;
+
+  --font: 'Schibsted Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 16px;
+  --shadow-panel: 0 12px 32px -12px rgba(27, 34, 51, 0.18);
+
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px;
+  --fs-xs: 11.5px; --fs-sm: 13px; --fs-md: 14.5px; --fs-lg: 18px; --fs-xl: 24px; --fs-2xl: 32px;
+
+  --rail: 220px;
+  --panel: 380px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --paper: #12151d; --surface: #1a1e29; --surface-2: #222736; --line: #2c3243; --line-strong: #3a4256;
+    --ink: #e7e9f0; --ink-2: #b5bacb; --muted: #8a90a6; --accent: #8f93ff; --accent-soft: #272b4a; --focus: #8f93ff;
+    --t-http: #6a9cff; --t-sns: #f0a537; --t-sqs: #36c3b1; --t-amqp: #ad8bff; --t-cron: #96a0b5; --t-res: #79819a;
+    --t-broken: #ff6b6b; --t-gateway: #e7e9f0;
+    --shadow-panel: 0 12px 32px -12px rgba(0, 0, 0, 0.6);
+    color-scheme: dark;
+  }
+}
+:root[data-theme='dark'] {
+  --paper: #12151d; --surface: #1a1e29; --surface-2: #222736; --line: #2c3243; --line-strong: #3a4256;
+  --ink: #e7e9f0; --ink-2: #b5bacb; --muted: #8a90a6; --accent: #8f93ff; --accent-soft: #272b4a; --focus: #8f93ff;
+  --t-http: #6a9cff; --t-sns: #f0a537; --t-sqs: #36c3b1; --t-amqp: #ad8bff; --t-cron: #96a0b5; --t-res: #79819a;
+  --t-broken: #ff6b6b; --t-gateway: #e7e9f0;
+  --shadow-panel: 0 12px 32px -12px rgba(0, 0, 0, 0.6);
+  color-scheme: dark;
+}

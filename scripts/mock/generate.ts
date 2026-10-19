@@ -100,25 +100,39 @@ export function generateMock(opts: MockOptions = {}): any[] {
     }
     if (R.chance(0.15)) { // call through the public gateway (matched by its glob route)
       const t = R.pick(allIngress.filter((x: any) => x.i.details.public && x.s !== s));
-      addEgress(s, { bindKey: `http:${t.i.details.method} public/api/${t.s.domain}${t.i.details.path}`, transport: 'http', mode: 'sync' }, R.pick(fns), { note: 'via public gateway' });
+      addEgress(s, { bindKey: `http:${t.i.details.method} partner/api/${t.s.domain}${t.i.details.path}`, transport: 'http', mode: 'sync' }, R.pick(fns), { note: 'via partner gateway' });
     }
   }
 
-  // ---- gateways: glob routes per domain, literal egress per public endpoint ----
+  // ---- gateways ----
+  // public-gateway: one literal route per public endpoint (route function → one egress).
+  // partner-gateway: one glob route per domain (`http:* partner/api/<domain>/**`) proxying a few endpoints.
   for (const gw of ['public-gateway', 'partner-gateway'].slice(0, n >= 40 ? 2 : 1)) {
     const m: any = {
       schemaVersion: '1.0', kind: 'full', env, service: { name: gw, kind: 'gateway', team: 'platform', language: 'go', tags: ['edge'] },
       version: R.int(10, 40), harvestedAt: T, functions: [], ingress: [], egress: [], resources: [], channels: [], bindings: [],
     };
     const g: Svc = { m, domain: 'platform', name: gw, fnSeq: 0, egSeq: 0 };
-    const host = gw === 'public-gateway' ? 'public' : 'partner';
+    const isPublic = gw === 'public-gateway';
     for (const d of new Set(svcs.map((s) => s.domain))) {
-      const fn = { id: `route.${d}`, name: `route /api/${d}/**`, file: `routes/${d}.go`, line: 1, steps: [] as any[] };
-      m.functions.push(fn);
-      m.ingress.push({ id: `in.${d}`, bindKey: `http:* ${host}/api/${d}/**`, match: 'glob', transport: 'http', handler: fn.id, entryPoint: true });
-      for (const { s, i } of allIngress.filter((x: any) => x.s.domain === d && (x.i.details.public || (!called.has(x.i.bindKey) && R.chance(0.85))) && (host === 'public' || R.chance(0.3)))) {
-        addEgress(g, { id: `to.${s.name}.${i.id}`, bindKey: i.bindKey, transport: 'http', mode: 'sync' }, fn, { operation: i.details.method });
-        called.add(i.bindKey);
+      const targets = allIngress.filter((x: any) => x.s.domain === d && (isPublic ? x.i.details.public || (!called.has(x.i.bindKey) && R.chance(0.85)) : R.chance(0.08)));
+      if (isPublic) {
+        for (const { s, i } of targets) {
+          const route = `route.${s.name}.${i.id.slice(3)}`;
+          const fn = { id: route, name: `${i.details.method} /api/${d}${i.details.path}`, file: `routes/${d}.go`, line: 1, steps: [] as any[] };
+          m.functions.push(fn);
+          m.ingress.push({ id: `in.${route}`, bindKey: `http:${i.details.method} public/api/${d}${i.details.path}`, transport: 'http', handler: route, entryPoint: true });
+          addEgress(g, { id: `to.${s.name}.${i.id}`, bindKey: i.bindKey, transport: 'http', mode: 'sync' }, fn, {});
+          called.add(i.bindKey);
+        }
+      } else if (targets.length) {
+        const fn = { id: `proxy.${d}`, name: `proxy /api/${d}/**`, file: `routes/${d}.go`, line: 1, steps: [] as any[] };
+        m.functions.push(fn);
+        m.ingress.push({ id: `in.${d}`, bindKey: `http:* partner/api/${d}/**`, match: 'glob', transport: 'http', handler: fn.id, entryPoint: true });
+        for (const { s, i } of targets.slice(0, 3)) {
+          addEgress(g, { id: `to.${s.name}.${i.id}`, bindKey: i.bindKey, transport: 'http', mode: 'sync' }, fn, { condition: `path ${i.details.path}` });
+          called.add(i.bindKey);
+        }
       }
     }
     svcs.push(g);

@@ -15,7 +15,7 @@ export interface Message {
   from: string; to: string; label: string; mode: Mode;
   kind: 'entry' | 'call' | 'egress' | 'deliver' | 'resource';
   depth: number; internal?: boolean; broken?: boolean; cycle?: boolean;
-  condition?: string; loop?: boolean; note?: string; fn?: string; service?: string;
+  condition?: string; loop?: boolean; note?: string; fn?: string; service?: string; transport?: string;
 }
 export interface Trace { start: { service: string; ingress?: string; fn: string }; scope: 'intra' | 'full'; participants: Participant[]; messages: Message[]; truncated: boolean }
 
@@ -65,19 +65,19 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
       } else if (st.type === 'resource') {
         const r = g.resources.get(sid(service, st.target));
         const to = part({ id: `res:${r?.bindKey ?? sid(service, st.target)}`, label: r?.name ?? st.target, kind: 'resource' });
-        push({ ...base, from: me, to, label: st.operation ?? 'use', mode: st.mode ?? 'sync', kind: 'resource' });
+        push({ ...base, from: me, to, label: st.operation ?? 'use', mode: st.mode ?? 'sync', kind: 'resource', transport: 'res' });
       } else {
         const e = g.egress.get(sid(service, st.target));
         if (!e) continue;
         const mode = st.mode ?? e.mode ?? 'sync';
-        const label = st.operation ? `${st.operation} ${e.bindKey}` : e.bindKey;
+        const label = st.operation && !e.bindKey.includes(st.operation) ? `${st.operation} ${e.bindKey}` : e.bindKey;
         const links = linksFrom(g, { type: 'egress', service, id: e.id });
         if (!links.length) {
           const to = part({ id: `missing:${e.bindKey}`, label: e.bindKey, kind: 'missing' });
-          push({ ...base, from: me, to, label, mode, kind: 'egress', broken: true });
+          push({ ...base, from: me, to, label, mode, kind: 'egress', broken: true, transport: e.transport });
           continue;
         }
-        for (const l of links) follow(me, l.to, label, mode, depth, stack, base);
+        for (const l of links) follow(me, l.to, label, mode, depth, stack, { ...base, transport: e.transport });
       }
     }
   };
@@ -91,7 +91,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
       if (scope === 'intra' || seenCh.includes(to.key)) return; // intra stops at the service boundary
       const next = linksFrom(g, to);
       if (!next.length) return;
-      for (const l of next) follow(ch, l.to, to.key, 'async', depth, stack, base, [...seenCh, to.key]);
+      for (const l of next) follow(ch, l.to, to.key, 'async', depth, stack, { ...base, transport: l.transport }, [...seenCh, to.key]);
       return;
     }
     if (to.type !== 'ingress') return;
@@ -109,7 +109,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
   };
 
   const client = part({ id: 'client', label: ing?.entryPoint ? 'client' : 'caller', kind: 'client' });
-  push({ from: client, to: fnPart(root, fnId), label: ing?.bindKey ?? fnId, mode: 'sync', kind: 'entry', depth: 0, service: root, fn: fnId });
+  push({ from: client, to: fnPart(root, fnId), label: ing?.bindKey ?? fnId, mode: 'sync', kind: 'entry', depth: 0, service: root, fn: fnId, transport: ing?.transport });
   visitFn(root, fnId, 1, [sid(root, fnId)]);
 
   return { start: { service: root, ingress: ing?.id, fn: fnId }, scope, participants: [...participants.values()], messages, truncated };

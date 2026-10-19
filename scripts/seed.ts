@@ -1,6 +1,6 @@
 // Loads manifests into the database.
 //   node scripts/seed.ts                 → samples/ (+ samples/deltas/)
-//   node scripts/seed.ts --mock [n]      → generated mock system with n services (default 100)
+//   node scripts/seed.ts --mock [n]      → generated mock system with n services (default 100) in env 'scale-test'
 //   node scripts/seed.ts --bugs          → also creates example bug reports
 // Uses FLOW_DB / FLOW_DATA_DIR like the server. Existing services are replaced (version bumped).
 
@@ -23,7 +23,7 @@ let manifests: any[];
 const mockIdx = args.indexOf('--mock');
 if (mockIdx >= 0) {
   const n = Number(args[mockIdx + 1]) || 100;
-  manifests = generateMock({ services: n, seed: 7 });
+  manifests = generateMock({ services: n, seed: 7, env: 'scale-test' });
 } else {
   const root = join(import.meta.dirname, '../samples');
   manifests = [...readDir(root), ...readDir(join(root, 'deltas'))];

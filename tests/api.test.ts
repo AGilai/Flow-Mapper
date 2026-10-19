@@ -139,3 +139,14 @@ test('MCP over HTTP: initialize, list tools, call tools', async () => {
   assert.equal(b.channel, 'mcp');
   assert.equal(b.attachments.length, 1);
 });
+
+test('serves the UI and browser-ready core modules', async () => {
+  const html = await fetch(app.base + '/');
+  assert.match(await html.text(), /<div class="app"/);
+  const core = await (await fetch(app.base + '/core/graph-index.js')).text();
+  assert.match(core, /from '\.\/resolve\.js'/);
+  assert.doesNotMatch(core, /import type|: GraphIndex/);
+  const deep = await fetch(app.base + '/services/orders-svc');
+  assert.equal(deep.status, 200, 'unknown paths fall back to the app shell');
+  assert.equal((await fetch(app.base + '/core/../server/app.ts')).status, 404);
+});
