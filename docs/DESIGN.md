@@ -144,25 +144,25 @@ UI (health page + badges in the system view), the API and MCP.
 
 ## 6. Bugs
 
-Bugs are tracked against the map: a bug points at services, functions, endpoints or a
-flow, so the graph can help locate and prioritize it.
+Bugs are reports about **Flow-Mapper itself** — the map data, the views, the API or MCP — from
+people using a released version. They can be reported three ways, all equal: the REST API, the
+"Report a bug" page, and the `report_bug` MCP tool (so a user can report from an agent chat).
 
-**Bug**: id, title, description, env, status, severity, priority, assignee, reporter,
-linked entities, attachments, comments, resolution, timestamps.
+**Bug**: id, title, description, steps, status, severity, priority (suggested or overridden),
+impact, `appVersion` (where it was seen), `fixedInVersion`, env, reporter, assignee, channel
+(api | web | mcp), resolution, links to map entities, log attachments, comments.
 
-- **Open** — from the UI, the API or MCP. Optionally start from a selected node or flow.
-- **Load logs** — upload log files (stored on disk now, S3 later; size-capped). On
-  upload the server scans for known service names and bind keys and **suggests linked
-  entities**; the user confirms them.
-- **Prioritize** — severity (S1–S4) is set by the reporter. The server computes
-  **impact** from the graph: how many entry points and flows pass through the linked
-  entities. Suggested priority (P0–P3) = f(severity, impact); a human can override.
-  The list view sorts by priority, then age.
-- **Fix** — status flow `open → triaged → in_progress → fixed → verified → closed`
-  (plus `wont_fix`, `duplicate`). A fix records a resolution: a code fix (PR link and
-  the service version it ships in) or a map-data fix (link to the changelog entry made
-  through CRUD). When a fixed bug's service is re-harvested at or above that version,
-  the UI prompts to verify.
+- **Versions** — every report records the version it was seen in (defaults to the running
+  version). Fixing records the version the fix ships in. When the running version reaches it,
+  the bug is flagged "ready to verify".
+- **Logs** — uploaded per bug (5 MB each). On upload the server scans the text for known service
+  names, endpoint keys and function names and suggests links; one click applies them.
+- **Prioritize** — severity (S1–S4) from the reporter; impact = how many traced entry flows pass
+  through the linked entities. Suggested priority = severity weight + impact boost (see API.md).
+  Anyone can override; clearing the override returns to the suggestion.
+- **Fix** — `open → triaged → in_progress → fixed → verified → closed`, plus `wont_fix`,
+  `duplicate` and reopen paths. `fixed` requires `fixedInVersion` and a resolution
+  (code | map-data | config | none, with a reference such as a PR).
 
 ---
 
@@ -194,31 +194,33 @@ linked entities, attachments, comments, resolution, timestamps.
 
 **MCP tools** (same service layer): `search`, `get_service`, `trace_flow`, `find_paths`,
 `link_health`, `changelog`, `upsert_entity`, `delete_entity`, `ingest_manifest`,
-`list_bugs`, `get_bug`, `create_bug`, `update_bug`, `attach_log`.
+`list_bugs`, `get_bug`, `report_bug`, `update_bug`. See [API.md](API.md).
 
 ---
 
 ## 9. Stack
 
-- TypeScript end to end (Node 22)
-- API: Fastify; validation from the JSON Schema in `schema/`
-- DB: SQLite via Drizzle ORM now; the same schema moves to Postgres later
-- UI: React + Vite, Cytoscape.js for the graph views, sequence view rendered from steps
-- MCP: official TypeScript MCP SDK
-- Hosting later: AWS App Runner + RDS Postgres + S3 for attachments, CI from GitHub
+- TypeScript end to end, **no runtime dependencies**: Node 22.18+ built-ins (`node:sqlite`,
+  `node:http`, type stripping). See [ARCHITECTURE.md](ARCHITECTURE.md).
+- DB: SQLite now; the schema is plain SQL in migrations and moves to Postgres when needed.
+- UI: plain ES modules, canvas for the system map, SVG for sequence diagrams, no bundler.
+- MCP: implemented directly (JSON-RPC over HTTP at `/mcp` and over stdio).
+- Hosting later: AWS App Runner (or ECS) + RDS Postgres + S3 for attachments, CI from GitHub.
 
-Target scale (≈100 services, 2,000 endpoints, 500 queues) fits in memory for traversal.
+Target scale (≈100 services, 2,000 endpoints, 500 queues) is exercised by the mock generator:
+resolution ≈ 0.2 s, system graph ≈ 0.1 s.
 
 ---
 
 ## 10. Phases
 
-1. **Design** — this doc, manifest schema, sample data *(this PR)*
-2. **Core** — DB schema, ingest (full + delta), resolver, CRUD, link health
-3. **UI** — system view → service view → sequence view → health page
-4. **MCP** server
-5. **Bugs** — model, logs, prioritization, workflow
-6. **Deploy** — AWS + CI
+1. **Design** — this doc, manifest schema, sample data — done
+2. **Core** — DB, ingest (full + delta), resolver, CRUD, link health — done
+3. **UI** — system map, services, service view, flows (sequence), link health — done
+4. **MCP** server — done (HTTP + stdio)
+5. **Bugs** — API, report page, triage, logs, versions — done
+6. **Deploy** — AWS + CI — next
+7. Later: authentication, point-in-time views, Postgres, harvester SDK
 
 ## 11. Open questions
 

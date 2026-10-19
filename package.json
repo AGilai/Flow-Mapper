@@ -1,15 +1,17 @@
 {
   "name": "flow-mapper",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Service-to-service flow mapping: visualizer for humans, MCP for agents",
   "type": "module",
-  "engines": { "node": ">=22" },
+  "engines": { "node": ">=22.18" },
   "scripts": {
-    "check:samples": "node scripts/check-samples.mjs"
-  },
-  "devDependencies": {
-    "ajv": "^8.17.1",
-    "ajv-formats": "^3.0.1"
+    "start": "NODE_ENV=production node --disable-warning=ExperimentalWarning server/main.ts",
+    "dev": "node --disable-warning=ExperimentalWarning --watch server/main.ts",
+    "mcp": "node --disable-warning=ExperimentalWarning server/mcp/stdio.ts",
+    "seed": "node --disable-warning=ExperimentalWarning scripts/seed.ts --bugs",
+    "seed:mock": "node --disable-warning=ExperimentalWarning scripts/seed.ts --mock 100 --bugs",
+    "test": "node --disable-warning=ExperimentalWarning --test tests/*.test.ts",
+    "preview": "node --disable-warning=ExperimentalWarning scripts/build-preview.ts"
   }
 }
