@@ -135,7 +135,7 @@ export const TOOLS: Tool[] = [
     },
   },
   {
-    name: 'get_channel', description: 'A topic, queue, exchange or event bus by key: publishers, subscriptions/rules with event filters, consumers, event types passing through, problems.',
+    name: 'get_channel', description: 'A topic, queue, exchange or event bus by key: publishers, subscriptions/rules with event filters, consumers, event types passing through, problems, and `flow`: merged subscription rows (declarations that disagree are named), a grid of event type x destination (handled, filtered, arrives with no handler) and a one-sentence summary with callouts.',
     inputSchema: obj({ env, key: { type: 'string' } }, ['key']),
     run: (c, a) => channelView(c.graph(envOf(a)), a.key) ?? (() => { throw new HttpError(404, 'NOT_FOUND', `channel '${a.key}' not found`); })(),
   },

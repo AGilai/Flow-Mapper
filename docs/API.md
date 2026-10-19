@@ -126,8 +126,30 @@ Example: `samples/dtos/prod.json` (loaded by `npm run seed`).
 |---|---|
 | `GET /api/envs/:env/inventory` | every object `{type: service \| channel \| store \| event, id, label, kind, group, team, connections, size, problems, hasDto}` (`hasDto` is set on event types: whether a message DTO exists) |
 | `GET /api/envs/:env/stores/:key` | a data store: `readers`, `writers`, `uses` (service, functions with code `source` and operations with `access`), `entryPoints` that reach it, `siblings` in its group, `schemas` |
-| `GET /api/envs/:env/channels/:key` | a topic/queue/exchange/bus: `publishers`, `feeds`, `subscriptions` (with `events` filter (entries starting with `!` exclude a type or glob), `conflict`), `consumers`, `events` passing through, `problems` |
+| `GET /api/envs/:env/channels/:key` | a topic/queue/exchange/bus: `publishers`, `feeds`, `subscriptions` (with `events` filter (entries starting with `!` exclude a type or glob), `conflict`), `consumers`, `events` passing through, `problems`, `definedBy` and `flow` (below) |
 | `GET /api/envs/:env/events/:type` | an event type: producers, consumers, `deliveries` (route `via`, handler), `problems`, `dto` |
+
+### Channel `flow`
+
+`flow` is what the channel page draws, computed in `core/channel-flow.ts` so agents (MCP `get_channel`)
+get the same answers. It is additive: the older fields are unchanged.
+
+- `layout`: `fanout` for a topic, bus or exchange (rows are its subscriptions) or `inbound` for a queue
+  (rows are what feeds it).
+- `rows[]`: one per real subscription. The declarations of every manifest are merged by (from, to).
+  `{id, from, to, filter, direct, consumers}`. `from` and `to` are `{key, name, kind, known, eventTypes}`
+  (`from` is null when publishers send straight into the queue; then `direct` lists them).
+  `filter` is `{events, declarations, agree, differs}`: `declarations` has one entry per source
+  (`service`, `id`, `events`, `at` code link, `verified`); when they do not `agree`, `differs` names the
+  field (`filter`) and `events` is the union of the claims. Filter entries starting with `!` exclude.
+  `consumers[]` are the readers of `to`: `{service, ingress, handler, handles: {all, types}}`.
+- `consumers[]`: the readers of this channel itself (a queue's consumers).
+- `grid`: event type by destination. `destinations[]` is `{rowId, queue, consumer}` (a queue nobody
+  reads has `consumer: null`); `rows[]` is `{type, producers, cells}` with one cell per destination:
+  `{status: handled | no-handler | filtered | no-consumer, handler, uncertain, why}`. `uncertain` means
+  the answer depends on which of the disagreeing declarations is right; `why` says so in words.
+- `summary`: `{text, segments: [{t, b?}], callouts: [{text, rowId, level: warn | info}]}`. One sentence,
+  plus one callout per problem; `rowId` is the `rows[].id` the callout is about, or null.
 
 ## Data-store schemas
 

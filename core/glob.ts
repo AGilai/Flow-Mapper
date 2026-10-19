@@ -40,6 +40,17 @@ export function filterAllows(entries: string[], type: string): boolean {
   return !pos.length && neg.length ? true : pos.some((p) => eventMatches(p, type));
 }
 
+export type FilterEvents = '*' | string[];
+
+/** A subscription filter as words: "all events", "OrderPlaced only", "all except X". */
+export function filterLabel(events: FilterEvents): string {
+  if (events === '*') return 'all events';
+  const pos = events.filter((e) => !e.startsWith('!'));
+  const neg = events.filter((e) => e.startsWith('!') && e.length > 1).map((e) => e.slice(1));
+  if (!pos.length) return neg.length ? `all except ${neg.join(', ')}` : 'no events';
+  return `${pos.join(', ')}${neg.length ? ` except ${neg.join(', ')}` : ' only'}`;
+}
+
 /** Higher sorts first: exact beats glob; then fewer wildcards; then longer literal prefix. */
 export function specificity(pattern: string, match: Match | undefined): [number, number, number] {
   if (match !== 'glob') return [1, 0, pattern.length];

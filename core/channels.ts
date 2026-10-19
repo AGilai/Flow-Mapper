@@ -6,6 +6,7 @@ import { linksFrom, linksInto, sid } from './graph-index.ts';
 import { eventReport } from './events.ts';
 import { keyMatches } from './glob.ts';
 import { codeLink } from './endpoint-info.ts';
+import { channelFlow } from './channel-flow.ts';
 
 export interface ChannelSummary { key: string; name: string; kind: string; publishers: number; consumers: number; subscriptions: number; problems: number }
 
@@ -16,9 +17,11 @@ export function channelView(g: GraphIndex, key: string) {
   const ref = { type: 'channel' as const, key };
   const conflicts = ev.conflicts.filter((x) => x.from === key);
   const into = linksInto(g, ref);
+  const unbound = g.resolution.unbound.filter((u) => u.channel.bindKey === key).map((u) => u.reason);
   return {
     key, name: c.name ?? key, kind: c.kind, details: c.details ?? {},
     definedAt: g.services.has(c.service) ? codeLink(g.services.get(c.service)!, c.source) : null, provenance: c.provenance ?? null,
+    definedBy: c.service,
     declaredBy: [...new Set(g.model.channels.filter((x) => x.bindKey === key).map((x) => x.service))],
     publishers: into.filter((l) => l.from.type === 'egress').map((l) => {
       const e = g.egress.get(sid((l.from as any).service, (l.from as any).id))!;
@@ -34,8 +37,9 @@ export function channelView(g: GraphIndex, key: string) {
       return { service: i.service, ingress: i.id, handler: i.handler, events: (i.events ?? []).map((e) => e.type) };
     }),
     events: eventsThrough(g, key),
+    flow: channelFlow(g, key, unbound),
     problems: [
-      ...g.resolution.unbound.filter((u) => u.channel.bindKey === key).map((u) => u.reason),
+      ...unbound,
       ...conflicts.map((x) => `subscription to ${x.to} is reported differently by ${x.declarations.map((d) => d.service).join(' and ')}`),
     ],
   };

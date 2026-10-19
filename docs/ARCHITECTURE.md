@@ -45,6 +45,7 @@ UI / agent ── GET /api/envs/:env/... ─► server/routes/queries.ts ─► 
 | `stores.ts` | data stores: keys and groups, read/write access, store view |
 | `reach.ts` | reverse reachability: entry points whose flows run a function |
 | `channels.ts` | topic/queue/bus view: publishers, subscriptions, consumers, events |
+| `channel-flow.ts`, `channel-summary.ts` | the flow of one channel: merged subscription rows, event type x destination grid, summary and callouts |
 | `events.ts` | event types over the links: deliveries, derived producers, per-event handlers, event checks |
 | `endpoint-info.ts` | an ingress with its handler, repo link to the handler's code, and DTOs |
 | `impact.ts` | bug impact (flows through linked entities) and suggested priority |
