@@ -7,7 +7,7 @@ import { icon } from '../icons.js';
 import { href } from '../router.js';
 import { ago, chip, splitKey } from '../format.js';
 import { jsonView } from '../components/json-view.js';
-import { eventLink } from './inventory-links.js';
+import { eventPath } from './inventory-links.js';
 
 /** Returns [head, ...content] for panel.open(). */
 export function endpointPanel(info, env) {
@@ -79,7 +79,7 @@ function eventCard(e, info, env, open) {
       : h('div.ep-link.disabled', h('span.ep-link-text', h('b', e.handler))))
     : null;
   return h('details.ep-card.ep-event', { open },
-    h('summary', h('span.ep-event-name', e.type.includes('*') ? e.type : eventLink(e.type)), e.pattern ? h('span.xs.muted', `via ${e.pattern}`) : null, meta),
+    h('summary', h('span.ep-event-name.key', e.type), e.pattern ? h('span.xs.muted', `via ${e.pattern}`) : null, meta),
     st ? h('p.ep-note.ep-pad', st[2]) : null,
     handler,
     h('div.ep-pad.stack', { style: { gap: 'var(--s1)' } },
@@ -88,7 +88,9 @@ function eventCard(e, info, env, open) {
     e.type.includes('*') ? null : h('div.ep-pad.stack', { style: { gap: 'var(--s1)' } },
       h('span.ep-label', 'Message', e.dto ? h('span.muted', ` · updated ${ago(e.dto.updatedAt)}`) : null),
       e.dto ? jsonView(e.dto.content) : h('div.ep-empty', h('p', 'No message DTO for this event type yet.'), h('code.key', `PUT /api/envs/${env}/event-dtos/${e.type}`))),
-    e.handler && !e.type.includes('*') ? h('div.ep-pad', h('a.btn.ghost', { href: href('/flows', { service: info.service, ingress: info.ingress.id, event: e.type }) }, icon('flow'), `Trace ${e.type}`)) : null);
+    e.type.includes('*') ? null : h('div.ep-pad.row', { style: { gap: 'var(--s2)' } },
+      e.handler ? h('a.btn.ghost', { href: href('/flows', { service: info.service, ingress: info.ingress.id, event: e.type }) }, icon('flow'), `Trace ${e.type}`) : null,
+      h('a.btn.ghost', { href: href(eventPath(e.type)) }, 'Open event type')));
 }
 
 function producerChip(p) {
