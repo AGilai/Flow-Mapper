@@ -82,7 +82,7 @@ endpoint takes, and what they are called, depends on the endpoint (`core/endpoin
 | sqs, sns, amqp | `request` (Message) |
 | event | `request` (Event) |
 | http POST / PUT / PATCH | `request` (Request body), `response` (Response body) |
-| http GET / DELETE / HEAD / OPTIONS | `response` (Response body) |
+| http GET / DELETE / HEAD / OPTIONS | `request` (Query / path params: `{params, query}`), `response` (Response body) |
 | grpc | `request` (Request message), `response` (Response message) |
 | cron | none |
 

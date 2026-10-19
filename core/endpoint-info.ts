@@ -44,7 +44,7 @@ export function dtoSlots(i: Ingress): { slots: { role: DtoRole; label: string }[
     case 'grpc': return { slots: [{ role: 'request', label: 'Request message' }, { role: 'response', label: 'Response message' }], note: null };
     case 'http': {
       const m = httpMethod(i);
-      if (m && NO_BODY_METHODS.includes(m)) return { slots: [{ role: 'response', label: 'Response body' }], note: `${m} requests have no body.` };
+      if (m && NO_BODY_METHODS.includes(m)) return { slots: [{ role: 'request', label: 'Query / path params' }, { role: 'response', label: 'Response body' }], note: `${m} requests have no body; the request DTO holds its path and query params.` };
       return { slots: [{ role: 'request', label: m && BODY_METHODS.includes(m) ? 'Request body' : 'Request' }, { role: 'response', label: 'Response body' }], note: null };
     }
     default: return { slots: [{ role: 'request', label: 'Request' }, { role: 'response', label: 'Response' }], note: null };

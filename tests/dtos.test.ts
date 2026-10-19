@@ -59,11 +59,14 @@ test('DTO slots follow the endpoint: queues take a message, GETs only a response
   assert.deepEqual(queue.body.slots.map((x: any) => [x.role, x.label]), [['request', 'Message']]);
   const get = await app.call('GET', '/api/envs/prod/endpoints/orders-svc/in.get');
   assert.equal(get.body.method, 'GET');
-  assert.deepEqual(get.body.slots.map((x: any) => [x.role, x.label]), [['response', 'Response body']]);
+  assert.deepEqual(get.body.slots.map((x: any) => [x.role, x.label]), [['request', 'Query / path params'], ['response', 'Response body']]);
   const noReply = await app.call('PUT', '/api/envs/prod/dtos/notifications-svc/response/in.shipping', {});
   assert.equal(noReply.status, 400);
   assert.match(noReply.body.error.message, /request = message/);
-  assert.equal((await app.call('PUT', '/api/envs/prod/dtos/orders-svc/request/in.get', {})).status, 400);
+  const params = { params: { id: 'string' }, query: { page: 'integer' } };
+  assert.equal((await app.call('PUT', '/api/envs/prod/dtos/orders-svc/request/in.get', params)).status, 200);
+  assert.deepEqual((await app.call('GET', '/api/envs/prod/endpoints/orders-svc/in.get')).body.slots[0].dto.content, params);
+  assert.equal((await app.call('DELETE', '/api/envs/prod/dtos/orders-svc/request/in.get')).status, 200);
 });
 
 test('bulk load is all or nothing', async () => {
@@ -83,7 +86,7 @@ test('DTOs survive re-ingest and go with their service', async () => {
   await app.call('PUT', '/api/envs/prod/dtos/users-svc/response/in.getUser', { id: 'u1' });
   const users = readSample('users-svc.json');
   assert.equal((await app.call('POST', '/api/ingest', { ...users, version: users.version + 10 })).status, 201);
-  const kept = (await app.call('GET', '/api/envs/prod/endpoints/users-svc/in.getUser')).body.slots[0];
+  const kept = (await app.call('GET', '/api/envs/prod/endpoints/users-svc/in.getUser')).body.slots.find((x: any) => x.role === 'response');
   assert.deepEqual(kept.dto.content, { id: 'u1' });
   assert.equal((await app.call('DELETE', '/api/envs/prod/services/users-svc')).status, 200);
   assert.equal((await app.call('GET', '/api/envs/prod/dtos?service=users-svc')).body.length, 0);

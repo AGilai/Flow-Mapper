@@ -100,13 +100,13 @@ export const TOOLS: Tool[] = [
     run: (c, a) => { const r = store.deleteEntity(c.db, envOf(a), a.service, listArg(a.list), a.key, 'mcp'); c.changed(r.env); return r; },
   },
   {
-    name: 'get_endpoint_info', description: "One ingress endpoint: its handler, a link to the handler's code in the repo, its DTO slots (a queue takes one message; a GET only a response body), and for event consumers each event type with its handler, derived/declared producers, status (ok, unhandled, never, declared-only) and Message DTO.",
+    name: 'get_endpoint_info', description: "One ingress endpoint: its handler, a link to the handler's code in the repo, its DTO slots (a queue takes one message; a GET its path/query params and a response body), and for event consumers each event type with its handler, derived/declared producers, status (ok, unhandled, never, declared-only) and Message DTO.",
     inputSchema: obj({ service: { type: 'string' }, ingress: { type: 'string', description: 'Ingress id' }, env }, ['service', 'ingress']),
     run: (c, a) => endpointInfo(c.graph(envOf(a)), a.service, a.ingress, dtos.endpointDtos(c.db, envOf(a), a.service, a.ingress), dtos.listEventDtos(c.db, envOf(a)))
       ?? (() => { throw new HttpError(404, 'NOT_FOUND', `ingress '${a.ingress}' of service '${a.service}' not found`); })(),
   },
   {
-    name: 'load_dtos', description: "Store DTO JSON (replaces an existing one). Endpoint DTO: {service, ingress, role, content}; queue/topic messages use role 'request', GET endpoints take only 'response'. Event DTO: {event, content}, the message of one event type. All or nothing.",
+    name: 'load_dtos', description: "Store DTO JSON (replaces an existing one). Endpoint DTO: {service, ingress, role, content}; queue/topic messages use role 'request', GET/DELETE endpoints take 'request' (their path/query params) and 'response'. Event DTO: {event, content}, the message of one event type. All or nothing.",
     inputSchema: obj({ env, dtos: { type: 'array', items: { type: 'object', properties: { service: { type: 'string' }, ingress: { type: 'string' }, role: { enum: ['request', 'response'] }, event: { type: 'string' }, content: {} }, required: ['content'] } } }, ['dtos']),
     run: (c, a) => dtos.loadDtos(c.db, envOf(a), a.dtos),
   },
