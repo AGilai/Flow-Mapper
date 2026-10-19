@@ -100,14 +100,14 @@ table.grid td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .json-view { border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface-2); overflow: hidden; }
 .json-tools { display: flex; gap: var(--s1); justify-content: flex-end; padding: 2px var(--s1); border-bottom: 1px solid var(--line); }
 .json-tools .btn { height: 24px; padding: 0 var(--s2); font-size: var(--fs-xs); }
-.json { font-family: var(--mono); font-size: 12px; line-height: 1.6; padding: var(--s2) var(--s3); overflow-x: auto; }
+.json { font-family: var(--mono); font-size: 12px; line-height: 1.6; padding: var(--s2) var(--s3); overflow-x: auto; overflow-wrap: anywhere; }
 .json-children { padding-left: 1.3em; border-left: 1px dashed var(--line-strong); margin-left: 0.3em; }
 .json-node > summary { cursor: pointer; list-style: none; white-space: nowrap; }
 .json-node > summary::-webkit-details-marker { display: none; }
 .json-node > summary::before { content: '▸'; display: inline-block; width: 1em; margin-left: -1em; color: var(--muted); }
 .json-node[open] > summary::before { content: '▾'; }
 .json-node { padding-left: 1em; }
-.json-row { padding-left: 1em; white-space: nowrap; }
+.json-row { padding-left: 1em; white-space: normal; }
 .json-node[open] > summary .json-count { display: none; }
 .json-count { color: var(--muted); font-family: var(--font); font-size: var(--fs-xs); margin-left: var(--s2); }
 .json-k { color: var(--ink); font-weight: 600; }

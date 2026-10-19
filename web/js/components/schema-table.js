@@ -23,6 +23,7 @@ function row(r) {
     h('td.schema-field', { style: { paddingLeft: `calc(var(--s3) + ${r.depth * 16}px)` } },
       h('code.key', r.name),
       r.description ? h('div.schema-desc', r.description) : null,
+      r.refDescription ? h('div.schema-desc', r.refDescription) : null,
       values ? h('div.schema-desc', `One of: ${values}`) : null),
     h('td.schema-type',
       h('code.key', r.type),

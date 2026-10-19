@@ -16,6 +16,8 @@ export interface SchemaRow {
   enum?: unknown[];
   /** Name of the $ref this field points to (the last path segment), when it has one. */
   ref?: string;
+  /** The referenced definition's own description, when it differs from the field's. */
+  refDescription?: string;
 }
 
 type S = Record<string, any>;
@@ -50,8 +52,9 @@ export function schemaRows(root: unknown): SchemaRow[] {
   };
 
   /** Follow $ref chains and merge allOf. `refs` is the chain of refs being expanded (cycle guard). */
-  function effective(s: S, refs: string[]): { s: S; ref?: string; refs: string[]; cyclic: boolean } {
+  function effective(s: S, refs: string[]): { s: S; ref?: string; refDesc?: string; refs: string[]; cyclic: boolean } {
     let ref: string | undefined;
+    let refDesc: string | undefined;
     let cur = s;
     let cyclic = false;
     while (typeof cur.$ref === 'string') {
@@ -60,6 +63,7 @@ export function schemaRows(root: unknown): SchemaRow[] {
       refs = [...refs, cur.$ref];
       const next = resolve(cur.$ref);
       if (!next) break;
+      if (typeof next.description === 'string' && next.description) refDesc ??= next.description;
       const { $ref: _r, ...own } = cur;
       cur = { ...next, ...own };
     }
@@ -71,7 +75,7 @@ export function schemaRows(root: unknown): SchemaRow[] {
         cur = { ...p, ...cur, properties: { ...p.properties, ...cur.properties }, required: [...(p.required ?? []), ...(cur.required ?? [])] };
       }
     }
-    return { s: cur, ref, refs, cyclic };
+    return { s: cur, ref, refDesc, refs, cyclic };
   }
 
   const typeOf = (s: S, refs: string[]): string => {
@@ -96,6 +100,7 @@ export function schemaRows(root: unknown): SchemaRow[] {
     const row: SchemaRow = { path, name, depth, type: typeOf(s, e.refs), required };
     const desc = s.description ?? s.title;
     if (typeof desc === 'string' && desc) row.description = desc;
+    if (e.refDesc && e.refDesc !== row.description) row.refDescription = e.refDesc;
     if (typeof s.format === 'string') row.format = s.format;
     if (Array.isArray(s.enum)) row.enum = s.enum;
     else if (s.const !== undefined) row.enum = [s.const];

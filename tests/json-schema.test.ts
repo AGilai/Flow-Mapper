@@ -56,3 +56,14 @@ test('allOf merges, oneOf shows the alternatives', () => {
   });
   assert.deepEqual(rows.map((r) => [r.path, r.type, r.required]), [['a', 'string', true], ['b', 'string | number', false]]);
 });
+
+test('a $ref field also carries the definition description when it differs', () => {
+  const rows = schemaRows({
+    type: 'object',
+    properties: { tenantId: { $ref: '#/$defs/tenant', description: 'Tenant being erased' } },
+    $defs: { tenant: { type: 'string', description: 'Tenant identifier: alphanumerics' } },
+  });
+  const r = rows.find((x) => x.name === 'tenantId');
+  assert.equal(r?.description, 'Tenant being erased');
+  assert.equal(r?.refDescription, 'Tenant identifier: alphanumerics');
+});
