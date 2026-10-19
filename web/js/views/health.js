@@ -6,7 +6,7 @@ import { state } from '../state.js';
 import { go, href, setQuery } from '../router.js';
 import { pageHead } from '../components/page.js';
 import { dataTable } from '../components/table.js';
-import { chip, coverageBar, pct, splitKey } from '../format.js';
+import { filterText, chip, coverageBar, pct, splitKey } from '../format.js';
 import { storeLink } from './inventory-links.js';
 
 const KINDS = [
@@ -105,7 +105,7 @@ function itemsTable(kind, rows) {
     drift: [{ key: 'service', label: 'Service', render: (x) => svc(x.service) }, { key: 'kind', label: 'Kind' }, { key: 'id', label: 'Item', render: (x) => h('span.key', x.id) },
       { key: 'producer', label: 'Checked by', render: (x) => h('span.small', [x.provenance.producer, x.provenance.runId].filter(Boolean).join(' · ')) }],
     subscriptionConflicts: [{ key: 'from', label: 'From', render: (x) => h('span.key', x.from) }, { key: 'to', label: 'To', render: (x) => h('span.key', x.to) },
-      { key: 'declarations', label: 'Reported as', nosort: true, render: (x) => x.declarations.map((d) => h('div.small', h('b', d.service), ': ', d.events === '*' ? 'all events' : d.events.join(', '))) }],
+      { key: 'declarations', label: 'Reported as', nosort: true, render: (x) => x.declarations.map((d) => h('div.small', h('b', d.service), ': ', filterText(d.events))) }],
     ambiguous: [{ key: 'service', label: 'Caller', render: (x) => svc(x.service) }, { key: 'bindKey', label: 'Key', render: (x) => keyCell(x.bindKey) }, { key: 'candidates', label: 'Matches', nosort: true, render: (x) => x.candidates.map((c) => h('div.key', c)) }],
   }[kind];
   return dataTable({ rows, columns, pageSize: 25, sortKey: columns[0].key, empty: 'Nothing here.' });

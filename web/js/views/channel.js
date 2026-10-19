@@ -9,6 +9,7 @@ import { pageHead } from '../components/page.js';
 import { jsonView } from '../components/json-view.js';
 import { box, codeLink, empty, fig, problems } from './detail-parts.js';
 import { channelLink, eventLink, serviceLink } from './inventory-links.js';
+import { filterChips } from '../format.js';
 import { titled } from '../components/object-icon.js';
 
 const KIND = { 'sns-topic': 'SNS topic', 'sqs-queue': 'SQS queue', 'amqp-exchange': 'RabbitMQ exchange', 'amqp-queue': 'RabbitMQ queue', 'eventbridge-bus': 'EventBridge bus' };
@@ -37,7 +38,7 @@ export async function render({ main, params }) {
             h('div.use-head', s.toChannel ? channelLink(s.to) : h('span.key', s.to),
               s.events === '*' ? h('span.pill', 'all events') : null, s.conflict ? h('span.pill.warn', 'conflict') : null, s.verified ? h('span.pill', { class: `verified-${s.verified}` }, s.verified) : null,
               h('span.grow'), h('span.xs.muted', `declared by ${s.service}`), s.at?.url ? codeLink(' source', s.at) : null),
-            s.events === '*' ? null : h('div.ep-producers', s.events.map((e) => h('span.ep-producer', h('span.key', e))))))
+            s.events === '*' ? null : h('div.ep-producers', filterChips(s.events))))
             : empty(isBus ? 'No rules.' : 'No subscriptions.')),
           box('Consumed by', v.consumers.length, v.consumers.length ? v.consumers.map((c) => h('div.use',
             h('div.use-head', h('b', serviceLink(c.service)), h('span.key.muted', c.ingress), h('span.xs.muted', `handler ${c.handler}`)),

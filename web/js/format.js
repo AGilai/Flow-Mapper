@@ -35,3 +35,21 @@ export function splitKey(key) {
   const i = key.indexOf(':');
   return i > 0 ? { transport: key.slice(0, i), rest: key.slice(i + 1) } : { transport: '', rest: key };
 }
+
+/** Subscription event filter as text: '!x' entries are exclusions ("all except x"), not event names. */
+export function filterText(events) {
+  if (events === '*') return 'all events';
+  const pos = events.filter((e) => !e.startsWith('!'));
+  const neg = events.filter((e) => e.startsWith('!') && e.length > 1).map((e) => e.slice(1));
+  return [pos.join(', '), neg.length ? `${pos.length ? 'except' : 'all except'} ${neg.join(', ')}` : ''].filter(Boolean).join(' ');
+}
+
+/** Chips for an event filter: one per accepted name, plus one "all except ..." chip for exclusions. */
+export function filterChips(events) {
+  const neg = events.filter((e) => e.startsWith('!') && e.length > 1).map((e) => e.slice(1));
+  const pos = events.filter((e) => !e.startsWith('!'));
+  return [
+    ...pos.map((e) => h('span.ep-producer', h('span.key', e))),
+    neg.length ? h('span.ep-producer.except', { title: `Passes every event except: ${neg.join(', ')}` }, pos.length ? 'except ' : 'all except ', h('span.key', neg.join(', '))) : null,
+  ];
+}

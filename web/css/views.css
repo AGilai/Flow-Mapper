@@ -144,3 +144,4 @@
 .at-link svg { width: 13px; height: 13px; }
 .pill.verified-match { background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); }
 .pill.verified-drift { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
+.ep-producer.except { border-style: dotted; }

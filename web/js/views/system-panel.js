@@ -2,7 +2,7 @@
 
 import { h } from '../dom.js';
 import { href } from '../router.js';
-import { chip } from '../format.js';
+import { chip, filterText } from '../format.js';
 import { section } from '../components/panel.js';
 import { channelPath, storePath } from './inventory-links.js';
 import { objectIcon } from '../components/object-icon.js';
@@ -54,7 +54,7 @@ export function nodePanel(n, edges, byId) {
   if (n.subscriptions?.length) body.push(section(n.sub === 'eventbridge-bus' ? 'Rules' : 'Subscriptions', n.subscriptions.length, h('div.list', n.subscriptions.map((s) =>
     h('div.list-item', { title: `declared by ${s.service} (${s.id})` },
       h('span.grow.truncate.key', s.to),
-      s.events === '*' ? h('span.pill', 'all events') : h('span.xs', s.events.join(', ')),
+      s.events === '*' ? h('span.pill', 'all events') : h('span.xs', filterText(s.events)),
       s.conflict ? h('span.pill.warn', { title: 'Reported differently by another manifest' }, 'conflict') : null)))));
   if (inc.length) body.push(section(n.kind === 'channel' ? 'Published by' : 'Called by', inc.length, list(inc, 'in')));
   if (out.length) body.push(section(n.kind === 'channel' ? 'Delivers to' : 'Calls', out.length, list(out, 'out')));
