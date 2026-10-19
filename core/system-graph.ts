@@ -33,7 +33,14 @@ export interface GraphEdge {
   transports: Transport[];
   modes: Mode[];
   broken: boolean;
-  endpoints: { from: string; to: string; bindKey: string; via: string }[];
+  endpoints: EdgeEndpoint[];
+}
+
+/** One resolved call behind an edge. `egress` / `ingress` are ids within the edge's from / to service
+ *  (absent on a channel side); `filter` is the event filter of the subscription the hop goes through. */
+export interface EdgeEndpoint {
+  from: string; to: string; bindKey: string; via: string;
+  egress?: string; ingress?: string; filter?: '*' | string[];
 }
 
 export interface SystemGraph { nodes: GraphNode[]; edges: GraphEdge[]; collapsedEdges: GraphEdge[] }
@@ -88,14 +95,19 @@ export function systemGraph(g: GraphIndex): SystemGraph {
     const from = nodeOf(l.from), to = nodeOf(l.to);
     if (!nodes.has(from) || !nodes.has(to)) continue;
     const key = l.from.type === 'egress' ? g.egress.get(sid(l.from.service, l.from.id))!.bindKey : label(l.from);
-    addEdge(from, to, l.transport, l.mode, { from: label(l.from), to: label(l.to), bindKey: key, via: l.via });
+    const b = l.binding ? g.bindings.get(sid(l.binding.service, l.binding.id)) : undefined;
+    addEdge(from, to, l.transport, l.mode, {
+      from: label(l.from), to: label(l.to), bindKey: key, via: l.via,
+      ...(l.from.type === 'egress' ? { egress: l.from.id } : {}), ...(l.to.type === 'ingress' ? { ingress: l.to.id } : {}),
+      ...(b?.events ? { filter: b.events } : {}),
+    });
   }
 
   for (const e of r.dangling) {
     if (g.channels.has(e.bindKey)) continue; // goes to a declared channel that leads nowhere; shown via channel node
     const id = `missing:${e.bindKey}`;
     if (!nodes.has(id)) nodes.set(id, { id, kind: 'missing', label: e.bindKey, sub: 'no match' });
-    addEdge(svcNode(e.service), id, e.transport, e.mode ?? 'sync', { from: `${e.service}:${e.id}`, to: '—', bindKey: e.bindKey, via: 'none' }, true);
+    addEdge(svcNode(e.service), id, e.transport, e.mode ?? 'sync', { from: `${e.service}:${e.id}`, to: '—', bindKey: e.bindKey, via: 'none', egress: e.id }, true);
   }
 
   // Resources shared by bindKey
@@ -119,7 +131,7 @@ export function systemGraph(g: GraphIndex): SystemGraph {
       const m = e.mode ?? (d.via.length ? 'async' : 'sync');
       if (!ce.modes.includes(m)) ce.modes.push(m);
       ce.endpoints.push({
-        from: `${e.service}:${e.id}`, to: `${d.ingress.service}:${d.ingress.id}`, bindKey: e.bindKey,
+        from: `${e.service}:${e.id}`, to: `${d.ingress.service}:${d.ingress.id}`, bindKey: e.bindKey, egress: e.id, ingress: d.ingress.id,
         via: d.via.length ? d.via.map((v) => (v.type === 'channel' ? v.key : '')).join(' → ') : 'direct',
       });
     }

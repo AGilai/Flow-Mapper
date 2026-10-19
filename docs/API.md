@@ -60,7 +60,7 @@ Add `?source=ui` to mark edits made from a UI in the changelog.
 
 | Path | Returns |
 |---|---|
-| `GET /api/envs/:env/views/system` | nodes, edges (with channels), collapsedEdges (service to service) |
+| `GET /api/envs/:env/views/system` | nodes, edges (with channels), collapsedEdges (service to service). Each edge lists its `endpoints`; those carry `egress` / `ingress` ids (within the edge's from / to service) and, through a subscription, its event `filter` |
 | `GET /api/envs/:env/views/service/:service` | ingress with callers, egress with targets, resources, functions |
 | `GET /api/envs/:env/entry-points` | where flows start |
 | `GET /api/envs/:env/trace?service=&ingress=\|fn=&scope=intra\|full&maxDepth=&maxMessages=` | participants and ordered messages |

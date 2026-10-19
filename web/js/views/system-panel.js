@@ -1,4 +1,5 @@
-// Info panel content for the system map: a node (service, gateway, queue, store, missing target) or an edge.
+// Info panel content for a node on the system map (service, gateway, queue, store, missing target).
+// Edges: see edge-panel.js.
 
 import { h } from '../dom.js';
 import { href } from '../router.js';
@@ -59,14 +60,4 @@ export function nodePanel(n, edges, byId) {
   if (inc.length) body.push(section(n.kind === 'channel' ? 'Published by' : 'Called by', inc.length, list(inc, 'in')));
   if (out.length) body.push(section(n.kind === 'channel' ? 'Delivers to' : 'Calls', out.length, list(out, 'out')));
   return [head, body];
-}
-
-export function edgePanel(e, byId) {
-  const a = byId.get(e.from), b = byId.get(e.to);
-  const head = h('div.stack', { style: { gap: '2px' } }, h('h2', `${a?.label ?? e.from} to ${b?.label ?? e.to}`),
-    h('div.row', e.broken ? chip('broken', 'broken') : e.transports.filter((t) => t !== 'other').map((t) => chip(t)), e.modes.map((m) => h('span.xs.muted', m))));
-  const rows = e.endpoints.slice(0, 60).map((p) => h('div.stack', { style: { gap: '2px', padding: '8px 0', borderBottom: '1px solid var(--line)' } },
-    h('span.key', p.bindKey),
-    h('span.xs.muted', `${p.from} to ${p.to}`, p.via && p.via !== 'key' && p.via !== 'direct' ? `, via ${p.via}` : '')));
-  return [head, section('Endpoints', e.endpoints.length, rows, e.endpoints.length > 60 ? h('p.xs.muted', `${e.endpoints.length - 60} more`) : null)];
 }

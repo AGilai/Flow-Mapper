@@ -88,6 +88,13 @@ test('system graph marks broken edges and collapses channels', () => {
   assert.ok(sg.collapsedEdges.some((e) => e.from === 'svc:orders-svc' && e.to === 'svc:shipping-svc'));
 });
 
+test('system graph edge calls carry egress and ingress ids and subscription filters', () => {
+  const sg = systemGraph(buildIndex(sampleModel()));
+  const call = sg.collapsedEdges.find((e) => e.from === 'svc:orders-svc' && e.to === 'svc:shipping-svc')!.endpoints[0];
+  assert.ok(call.egress && call.ingress);
+  assert.ok(sg.edges.some((e) => e.endpoints.some((p) => p.filter)), 'a hop through a filtered subscription reports its filter');
+});
+
 test('priority suggestion', () => {
   assert.equal(suggestPriority('S1', 5, 10), 'P0');
   assert.equal(suggestPriority('S1', 0, 10), 'P1');

@@ -15,7 +15,7 @@ export function createCanvasGraph(host, { onSelect, onHover } = {}) {
   const ctx = canvas.getContext('2d');
 
   let nodes = [], edges = [], pos = new Map(), byId = new Map(), degree = new Map();
-  let visible = null, highlight = null, selected = null, hovered = null, groups = [];
+  let visible = null, edgeOk = null, highlight = null, selected = null, hovered = null, groups = [];
   let k = 1, tx = 0, ty = 0, w = 0, hgt = 0, dpr = 1;
   let theme = readTheme();
   let raf = 0;
@@ -73,7 +73,7 @@ export function createCanvasGraph(host, { onSelect, onHover } = {}) {
     const density = Math.max(0, Math.min(1, 1 - (edges.length - 60) / 600));
     const batches = new Map();
     for (const e of edges) {
-      if (!isVis(e.from) || !isVis(e.to)) continue;
+      if (!isVis(e.from) || !isVis(e.to) || (edgeOk && !edgeOk(e))) continue;
       // With a centre (hovered/selected node), only its own edges are in focus.
       const center = hoverSet ? hovered : highlight && selected && highlight.has(selected) ? selected : null;
       const inFocus = focus && (center ? e.from === center || e.to === center : !dimmed(e.from) && !dimmed(e.to));
@@ -150,10 +150,10 @@ export function createCanvasGraph(host, { onSelect, onHover } = {}) {
   }
   function edgeAt(sx, sy) {
     const [wx, wy] = toWorld(sx, sy);
-    const tol = 5 / k;
+    const tol = 8 / k;
     let best = null, bd = tol;
     for (const e of edges) {
-      if (!isVis(e.from) || !isVis(e.to) || (highlight && (!highlight.has(e.from) || !highlight.has(e.to)))) continue;
+      if (!isVis(e.from) || !isVis(e.to) || (edgeOk && !edgeOk(e)) || (highlight && (!highlight.has(e.from) || !highlight.has(e.to)))) continue;
       const a = pos.get(e.from), b = pos.get(e.to);
       const dx = b.x - a.x, dy = b.y - a.y, l2 = dx * dx + dy * dy || 1;
       const t = Math.max(0, Math.min(1, ((wx - a.x) * dx + (wy - a.y) * dy) / l2));
@@ -250,6 +250,7 @@ export function createCanvasGraph(host, { onSelect, onHover } = {}) {
       });
     },
     setVisible(set) { visible = set; this.updateGroups(); schedule(); },
+    setEdgeFilter(fn) { edgeOk = fn; schedule(); },
     setHighlight(set) { highlight = set; schedule(); },
     select(id) { selected = id; schedule(); },
     fit,

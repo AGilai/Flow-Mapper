@@ -1,6 +1,7 @@
 // System map: services (and optionally channels and data stores) as a force-directed graph,
 // clustered by team. Filters: text (name, team, function), transport, team, broken only.
-// Selecting a node focuses it and its neighbours; the panel shows details.
+// A filter keeps the matches (plus N hops, default 0) and hides the rest; selecting a node does the
+// same around it (at least 1 hop). Clicking a node or a line opens the panel with its details.
 
 import { h, debounce } from '../dom.js';
 import { api } from '../api.js';
@@ -11,7 +12,9 @@ import { pageHead } from '../components/page.js';
 import { createPanel } from '../components/panel.js';
 import { createCanvasGraph } from '../graph/canvas-graph.js';
 import { layout } from '../graph/layout.js';
-import { nodePanel, edgePanel } from './system-panel.js';
+import { withinHops } from '../../core/subgraph.js';
+import { nodePanel } from './system-panel.js';
+import { edgePanel } from './edge-panel.js';
 
 const TRANSPORTS = ['http', 'rpc', 'grpc', 'sns', 'sqs', 'amqp', 'eventbridge'];
 
@@ -19,7 +22,7 @@ export async function render({ main, query }) {
   const data = await api.system(state.env);
   const opts = {
     q: query.get('q') ?? '', channels: query.get('channels') === '1', stores: query.get('stores') === '1',
-    broken: query.get('broken') === '1', team: query.get('team') ?? '',
+    broken: query.get('broken') === '1', team: query.get('team') ?? '', hops: Math.max(0, Math.min(3, Number(query.get('hops')) || 0)),
     transports: new Set((query.get('t') ?? TRANSPORTS.join(',')).split(',').filter(Boolean)),
   };
   const teams = [...new Set(data.nodes.map((n) => n.team).filter(Boolean))].sort();
@@ -28,7 +31,8 @@ export async function render({ main, query }) {
   const stage = h('div.graph-stage');
   const count = h('span.small.muted');
   const content = h('div.content.flush', stage, legend());
-  const panel = createPanel(content, { onClose: () => { graph.select(null); graph.setHighlight(null); setQuery({ sel: null }); } });
+  let selected = null;
+  const panel = createPanel(content, { onClose: () => { selected = null; graph.select(null); setQuery({ sel: null }); apply(); } });
   const search = h('input.input', { type: 'search', placeholder: 'Filter by service, team or function', value: opts.q, 'aria-label': 'Filter map' });
   const toggle = (key, label) => h('label.check', h('input', { type: 'checkbox', checked: opts[key], on: { change: (e) => { opts[key] = e.target.checked; persist(); rebuild(); } } }), label);
 
@@ -37,6 +41,9 @@ export async function render({ main, query }) {
       h('div.search', icon('search'), search),
       h('select.select', { 'aria-label': 'Team', on: { change: (e) => { opts.team = e.target.value; persist(); apply(); } } },
         h('option', { value: '' }, 'All teams'), teams.map((t) => h('option', { value: t, selected: t === opts.team }, t))),
+      h('label.small.muted.row', { title: 'How many connections out from the matches or the selected service to keep showing' }, 'Hops',
+        h('select.select', { 'aria-label': 'Hops around the filter or selection', on: { change: (e) => { opts.hops = Number(e.target.value); persist(); apply(); } } },
+          [0, 1, 2, 3].map((n) => h('option', { value: n, selected: n === opts.hops }, String(n))))),
       h('button.btn', { on: { click: () => graph.fit() } }, icon('fit'), 'Fit')),
     h('div.filter-bar',
       h('span.small.muted', 'Show'), toggle('channels', 'Queues and topics'), toggle('stores', 'Data stores'), h('label.check', h('input', { type: 'checkbox', checked: opts.broken, on: { change: (e) => { opts.broken = e.target.checked; persist(); rebuild(); } } }), 'Broken links only'),
@@ -51,7 +58,7 @@ export async function render({ main, query }) {
     onSelect: (hit) => {
       if (!hit) { panel.close(); return; }
       if (hit.type === 'node') selectNode(hit.item.id);
-      else { graph.select(hit.item.id); panel.open(...edgePanel(hit.item, byId)); }
+      else { graph.select(hit.item.id); panel.open(...edgePanel(hit.item, byId, state.env)); }
     },
   });
 
@@ -60,7 +67,7 @@ export async function render({ main, query }) {
 
   function persist() {
     setQuery({ q: opts.q || null, channels: opts.channels ? 1 : null, stores: opts.stores ? 1 : null, broken: opts.broken ? 1 : null,
-      team: opts.team || null, t: opts.transports.size === TRANSPORTS.length ? null : [...opts.transports].join(',') });
+      team: opts.team || null, hops: opts.hops || null, t: opts.transports.size === TRANSPORTS.length ? null : [...opts.transports].join(',') });
   }
 
   // Build the node/edge set for the current "show" toggles and lay it out (cached per combination).
@@ -105,27 +112,33 @@ export async function render({ main, query }) {
     const edgeOk = (e) => (opts.broken ? e.broken : true) && (e.broken || e.transports.some((t) => opts.transports.has(t) || t === 'other'));
     const edges = current.edges.filter(edgeOk);
     // Hits: nodes matching text and team. Nodes without a team (queues, stores, missing) never hit
-    // on team alone; they appear when connected to a hit.
+    // on team alone; they appear only within the hops of a hit.
     const hits = new Set(current.nodes.filter((n) => match(n) && (!opts.team || n.team === opts.team) && (!opts.team || n.team)).map((n) => n.id));
     const filtering = q || opts.team || opts.broken || opts.transports.size < TRANSPORTS.length;
-    let visible = null;
+    let visible = null, focus = null;
     if (filtering) {
-      visible = new Set(opts.broken ? [] : hits);
-      for (const e of edges) if (hits.has(e.from) || hits.has(e.to)) { visible.add(e.from); visible.add(e.to); }
+      const touched = new Set(edges.flatMap((e) => [e.from, e.to]));
+      const seeds = opts.broken ? [...hits].filter((id) => touched.has(id)) : hits;
+      visible = withinHops(seeds, edges, opts.hops);
     }
+    if (selected) { // the selection narrows the map to its own neighbourhood
+      focus = withinHops([selected], edges, Math.max(1, opts.hops));
+      visible = visible ? new Set([...focus].filter((id) => visible.has(id) || id === selected || opts.hops === 0)) : focus;
+    }
+    graph.setEdgeFilter(edgeOk);
     graph.setVisible(visible);
-    graph.setHighlight(q ? hits : null);
-    count.textContent = q ? `${hits.size} matching, ${visible.size} shown with their connections` : visible ? `${visible.size} of ${current.nodes.length} shown` : `${current.nodes.length} nodes`;
+    graph.setHighlight(focus ?? (q && opts.hops ? hits : null));
+    const hop = opts.hops ? ` within ${opts.hops} ${opts.hops === 1 ? 'hop' : 'hops'}` : '';
+    count.textContent = selected ? `${visible.size} shown around the selection` : q ? `${hits.size} matching${hop ? `, ${visible.size} shown${hop}` : ''}` : visible ? `${visible.size} of ${current.nodes.length} shown` : `${current.nodes.length} nodes`;
   }
 
   function selectNode(id) {
     const n = byId.get(id);
     if (!n) return;
-    const near = new Set([id]);
-    for (const e of current.edges) { if (e.from === id) near.add(e.to); if (e.to === id) near.add(e.from); }
+    selected = id;
     graph.select(id);
-    graph.setHighlight(near);
     setQuery({ sel: id });
+    apply();
     panel.open(...nodePanel(n, current.edges, byId));
   }
 
@@ -150,6 +163,7 @@ function legend() {
     item('<svg width="14" height="14"><rect x="2" y="2" width="10" height="10" rx="3" fill="currentColor"/></svg>', 'Gateway'),
     item('<svg width="14" height="14"><path d="M7 1l6 6-6 6-6-6z" fill="var(--t-sqs)"/></svg>', 'Queue / topic'),
     item('<svg width="14" height="14"><rect x="3" y="3" width="8" height="8" fill="none" stroke="var(--t-res)" stroke-width="1.6"/></svg>', 'Data store'),
-    item('<svg width="22" height="6"><path d="M1 3h20" stroke="var(--ink-2)" stroke-width="1.6" stroke-dasharray="4 3"/></svg>', 'Async'),
-    item('<svg width="22" height="6"><path d="M1 3h20" stroke="var(--t-broken)" stroke-width="1.6" stroke-dasharray="4 3"/></svg>', 'Broken'));
+    item('<svg width="22" height="6"><path d="M1 3h20" stroke="var(--ink-2)" stroke-width="1.6"/></svg>', 'Sync call (waits for the reply)'),
+    item('<svg width="22" height="6"><path d="M1 3h20" stroke="var(--ink-2)" stroke-width="1.6" stroke-dasharray="4 3"/></svg>', 'Async (queue, topic, event)'),
+    item('<svg width="22" height="6"><path d="M1 3h20" stroke="var(--t-broken)" stroke-width="1.6" stroke-dasharray="4 3"/></svg>', 'Broken (no target matches)'));
 }
