@@ -7,7 +7,7 @@ import { LISTS, keyOf, validateEntity, validateManifest, validateServiceHeader, 
 import { integrityErrors } from '../../core/integrity.ts';
 import { buildIndex } from '../../core/graph-index.ts';
 import { contractReport, type ContractReport } from '../../core/contract.ts';
-import { conflict, invalid, notFound } from '../errors.ts';
+import { HttpError, conflict, invalid, notFound } from '../errors.ts';
 import type { Model, Service } from '../../core/types.ts';
 
 type Entities = Partial<Record<ListName, any[]>>;
@@ -118,7 +118,7 @@ export function ingest(db: DB, manifest: any, source: Source = 'api', opts: { dr
 export function ingestBatch(db: DB, manifests: any[], source: Source = 'api', { dryRun = false } = {}): WriteResult[] {
   try {
     return tx(db, () => {
-      const applied = manifests.map((m) => apply(db, m, source));
+      const applied = manifests.map((m, i) => applyIn(db, m, source, manifests.length > 1 ? i : null));
       const index = new Map<string, ReturnType<typeof buildIndex>>();
       const results = applied.map(({ result, after }) => {
         if (!index.has(result.env)) index.set(result.env, buildIndex(loadModel(db, result.env)));
@@ -130,6 +130,19 @@ export function ingestBatch(db: DB, manifests: any[], source: Source = 'api', { 
   } catch (err) {
     if (err instanceof DryRun) return err.results;
     throw err;
+  }
+}
+
+/** In a real batch, say which manifest failed: message prefix plus details {batchIndex, service, ...}. */
+function applyIn(db: DB, manifest: any, source: Source, index: number | null) {
+  try {
+    return apply(db, manifest, source);
+  } catch (err) {
+    if (index === null || !(err instanceof HttpError)) throw err;
+    const service = typeof manifest?.service?.name === 'string' ? manifest.service.name : null;
+    const d = err.details;
+    const details = Array.isArray(d) ? { errors: d } : (d as object | undefined);
+    throw new HttpError(err.status, err.code, `manifests[${index}] (${service ?? 'unnamed service'}): ${err.message}`, { batchIndex: index, service, ...details });
   }
 }
 

@@ -35,6 +35,8 @@ returns the same and takes `dryRun: true`.
 | `VERSION_MISMATCH` | 409 | delta `baseVersion` ≠ stored version; `details.currentVersion` | send a full manifest |
 | `NOT_FOUND` | 404 | delta for a service that was never ingested | send a full manifest |
 
+In a batch (`manifests` with more than one entry) the failing manifest is named: `message` starts with `manifests[<i>] (<service>):` and `details` is an object `{batchIndex, service, ...}` (for `INVALID` the list moves to `details.errors`; `currentVersion` stays alongside). A single manifest keeps the plain shapes above.
+
 Schema: [`schema/manifest.schema.json`](../schema/manifest.schema.json). Examples: [`samples/`](../samples). Guide for harvester authors: [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md).
 
 ## Map CRUD

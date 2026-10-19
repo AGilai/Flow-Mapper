@@ -27,6 +27,21 @@ test('schema errors come back as 422 with paths', async () => {
   assert.ok(r.body.error.details.some((d: any) => d.path.startsWith('$.ingress[0]')));
 });
 
+test('a failing manifest in a batch is identified by index and service name', async () => {
+  const ok = { ...readSample('orders-svc.json'), version: 200 };
+  const bad = { ...readSample('orders-svc.json'), service: { name: 'second-svc', kind: 'service' }, version: 99, ingress: [{ id: 'x' }] };
+  const r = await app.call('POST', '/api/ingest', { manifests: [ok, bad] });
+  assert.equal(r.status, 422);
+  assert.equal(r.body.error.details.batchIndex, 1);
+  assert.equal(r.body.error.details.service, 'second-svc');
+  assert.ok(r.body.error.details.errors.some((d: any) => d.path.startsWith('$.ingress[0]')));
+  const stale = await app.call('POST', '/api/ingest', { manifests: [{ ...ok, version: 1 }, ok] });
+  assert.equal(stale.status, 409);
+  assert.equal(stale.body.error.details.batchIndex, 0);
+  assert.equal(stale.body.error.details.service, ok.service.name);
+  assert.equal(typeof stale.body.error.details.currentVersion, 'number');
+});
+
 test('integrity errors are rejected', async () => {
   const bad = readSample('orders-svc.json');
   bad.version = 50;
