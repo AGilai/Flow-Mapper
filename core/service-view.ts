@@ -5,6 +5,7 @@ import type { GraphIndex } from './graph-index.ts';
 import { downstreamIngress, sid, upstreamEgress } from './graph-index.ts';
 import type { Ref } from './types.ts';
 import { codeLink } from './endpoint-info.ts';
+import { eventReport } from './events.ts';
 
 const viaText = (via: Ref[]) => via.map((v) => (v.type === 'channel' ? v.key : '')).filter(Boolean);
 
@@ -16,15 +17,25 @@ export function serviceView(g: GraphIndex, name: string) {
   const orphans = new Set(g.resolution.orphans.map((i) => sid(i.service, i.id)));
   const fns = mine(g.model.functions);
 
-  const ingress = mine(g.model.ingress).map((i) => ({
-    ...i,
-    at: codeLink(s, i.source),
-    orphan: orphans.has(sid(i.service, i.id)),
-    callers: upstreamEgress(g, i).map((u) => ({
-      service: u.egress.service, egress: u.egress.id, bindKey: u.egress.bindKey,
-      transport: u.egress.transport, via: viaText(u.via),
-    })),
-  }));
+  const deliveries = eventReport(g).deliveries;
+  const ingress = mine(g.model.ingress).map((i) => {
+    const all = upstreamEgress(g, i).map((u) => {
+      const e = u.egress;
+      const mineD = deliveries.filter((d) => d.producer.service === e.service && d.producer.egress === e.id && d.consumer.service === i.service && d.consumer.ingress === i.id);
+      const gaps = (e.unresolved ?? []).filter((x) => x.what === 'event');
+      const blind = gaps.some((x) => !x.candidates?.length); // an event type with no candidates: could be anything
+      // Callers whose events the subscription filters out are dropped; unknown events are 'maybe'.
+      const state = mineD.some((d) => !d.possible) ? 'yes' : mineD.length || blind ? 'maybe' : e.events?.length || gaps.length ? 'no' : 'yes';
+      return { state, caller: { service: e.service, egress: e.id, bindKey: e.bindKey, transport: e.transport, via: viaText(u.via) } };
+    });
+    return {
+      ...i,
+      at: codeLink(s, i.source),
+      orphan: orphans.has(sid(i.service, i.id)),
+      callers: all.filter((c) => c.state === 'yes').map((c) => c.caller),
+      maybeCallers: all.filter((c) => c.state === 'maybe').map((c) => c.caller),
+    };
+  });
 
   const egress = mine(g.model.egress).map((e) => ({
     ...e,

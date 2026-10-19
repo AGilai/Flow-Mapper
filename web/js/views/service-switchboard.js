@@ -26,12 +26,13 @@ export function switchboard(v, name, q, onInfo) {
     h('h2', 'Ingress', h('span.muted.small', String(ingress.length))),
     byT.length ? byT.map(([t, items]) => details(chip(t), items.length, items.length <= OPEN_LIMIT || !!q,
       items.map((i) => h('div.sb-row', { 'data-t': gapOf(i) ? 'gap' : i.orphan ? 'broken' : i.transport, class: '' },
-        h('span', h('a.key', { href: href('/flows', { service: name, ingress: i.id }) , title: 'Trace from here' }, gapOf(i) && i.bindKey.startsWith('unresolved:') ? i.id : splitKey(i.bindKey).rest), atLink(i.at)),
+        h('span', h('a.key', { href: href('/flows', { service: name, ingress: i.id }) , title: 'Trace from here' }, gapOf(i) && i.bindKey.startsWith('unresolved:') ? (i.id || gapOf(i).detail || '(no id)') : splitKey(i.bindKey).rest), atLink(i.at)),
         h('span.xs.sb-actions', gapOf(i) ? gapPill(gapOf(i)) : i.entryPoint ? h('span.pill', 'entry') : i.orphan ? h('span.pill.warn', 'never called') : null,
           i.events?.length ? h('span.pill', { title: i.events.map((e) => e.type).join(', ') }, `${i.events.length} event ${i.events.length === 1 ? 'type' : 'types'}`) : null,
           onInfo ? h('button.btn.ghost.icon-btn', { type: 'button', title: 'Endpoint info', 'aria-label': `Info for ${i.bindKey}`, on: { click: () => onInfo(i.id) } }, icon('info')) : null),
         h('div.peers', h('span', 'handler ', h('span.key', i.handler)),
           i.callers.length ? h('span', 'from ', join(uniq(i.callers.map((c) => c.service)).map(svcLink))) : null,
+          i.maybeCallers?.length ? h('span', { title: 'Event types not resolved by the harvester; may pass the subscription filter' }, 'maybe from ', join(uniq(i.maybeCallers.map((c) => c.service)).map(svcLink))) : null,
           uniq(i.callers.flatMap((c) => c.via)).length ? h('span', 'via ', uniq(i.callers.flatMap((c) => c.via)).join(', ')) : null))))) :
       h('p.small.muted', q ? 'No ingress matches.' : 'This service has no ingress.'));
 
@@ -48,7 +49,7 @@ export function switchboard(v, name, q, onInfo) {
         : broken ? h('span', { style: { color: 'var(--bad)' } }, 'No match') : h('span.truncate', target.split(', ').length > 1 ? `Fan-out to ${target.split(', ').length} services` : target);
       return details(label, items.length, items.length <= OPEN_LIMIT || broken || !!q, items.map((e) =>
         h('div.sb-row', { 'data-t': gapOf(e) ? 'gap' : e.dangling ? 'broken' : e.transport },
-          h('span', h('span.key', gapOf(e) && e.bindKey.startsWith('unresolved:') ? (gapOf(e).detail ?? e.id) : e.bindKey), atLink(e.at)),
+          h('span', h('span.key', gapOf(e) && e.bindKey.startsWith('unresolved:') ? (gapOf(e).detail || e.id || (e.source ? `${e.source.file}:${e.source.line ?? ''}` : '(no id)')) : e.bindKey), atLink(e.at)),
           h('span', gapOf(e) ? gapPill(gapOf(e)) : chip(e.transport), e.mode === 'async' ? ' ' : null, e.mode === 'async' ? chip('async', 'async') : null),
           h('div.peers',
             e.usedBy.length ? h('span', 'from ', e.usedBy.slice(0, 3).map((f) => h('span.key', f + ' '))) : null,
