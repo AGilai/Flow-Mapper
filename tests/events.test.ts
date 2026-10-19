@@ -124,3 +124,13 @@ test('expanding a service in a full trace draws its functions as lifelines', asy
   assert.ok(fns.includes('fn:orders-svc:OrderService.place'));
   assert.ok(x.messages.some((m: any) => m.kind === 'call' && m.from === 'fn:orders-svc:OrderController.create' && m.to === 'fn:orders-svc:OrderService.validate'));
 });
+
+test('subscription filters support "!" exclusions (anything-but, negated prefix)', async () => {
+  const { filterAllows } = await import('../core/glob.ts');
+  assert.equal(filterAllows(['!revision.status'], 'revision.status'), false);
+  assert.equal(filterAllows(['!revision.status'], 'OrderPlaced'), true);
+  assert.equal(filterAllows(['Order*', '!OrderDraft*'], 'OrderDraftSaved'), false);
+  assert.equal(filterAllows(['Order*', '!OrderDraft*'], 'OrderPlaced'), true);
+  assert.equal(filterAllows(['Order*', '!OrderDraft*'], 'User'), false);
+  assert.equal(filterAllows(['A', 'B'], 'A'), true);
+});

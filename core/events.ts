@@ -11,7 +11,7 @@
 import type { GraphIndex } from './graph-index.ts';
 import { linksFrom, sid } from './graph-index.ts';
 import { refKey } from './resolve.ts';
-import { compareSpecificity, eventMatches, specificity } from './glob.ts';
+import { compareSpecificity, eventMatches, filterAllows, specificity } from './glob.ts';
 import type { Binding, Ingress, Link, Ref } from './types.ts';
 
 export interface Delivery {
@@ -41,7 +41,7 @@ export interface EventReport {
 export function passes(g: GraphIndex, l: Link, event: string | undefined): boolean {
   if (!event || !l.binding) return true;
   const b = g.bindings.get(sid(l.binding.service, l.binding.id));
-  return !b?.events || b.events === '*' || b.events.some((p) => eventMatches(p, event));
+  return !b?.events || b.events === '*' || filterAllows(b.events, event);
 }
 
 /** The handler for an event type at a consumer: the most specific matching entry; the ingress handler when it lists none. */

@@ -47,7 +47,7 @@
         { "const": "*" },
         { "type": "array", "items": { "$ref": "#/$defs/eventPattern" } }
       ],
-      "description": "Event types a subscription lets through. Absent means all."
+      "description": "Event types a subscription lets through. Absent means all. An entry starting with '!' excludes a type or glob (SNS anything-but / prefix exclusion): [\"!revision.status\"] is everything except that type; [\"Order*\", \"!OrderDraft*\"] is Order types except drafts."
     },
 
     "source": {

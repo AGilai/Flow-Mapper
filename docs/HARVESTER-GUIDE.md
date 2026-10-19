@@ -191,7 +191,11 @@ them as `bindings`, with the event types each lets through:
 ]
 ```
 
-`events` is `"*"` (everything, the default) or a list of names and globs. Channel kinds:
+`events` is `"*"` (everything, the default) or a list of names and globs.
+An entry starting with `!` excludes a name or glob, for filters such as SNS `anything-but` or a
+negated prefix: `["!revision.status"]` lets everything through except that type; `["Order*", "!OrderDraft*"]`
+lets `Order` types through except drafts. With only `!` entries, all other types pass; with positive entries,
+a type must match one and no `!` entry. Channel kinds:
 `sns-topic`, `sqs-queue`, `amqp-exchange`, `amqp-queue`, `eventbridge-bus`. If a service also
 declares the same subscription with a different filter, Flow-Mapper shows a conflict; it does not
 choose one.

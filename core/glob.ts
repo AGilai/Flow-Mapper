@@ -29,6 +29,17 @@ export function eventMatches(pattern: string, type: string): boolean {
   return pattern.includes('*') ? globToRegExp(pattern).test(type) : pattern === type;
 }
 
+/**
+ * Whether a subscription's event filter lets a type through. Entries starting with '!' exclude (name or glob).
+ * With positive entries the type must match one and no exclusion; with only exclusions everything else passes.
+ */
+export function filterAllows(entries: string[], type: string): boolean {
+  const pos = entries.filter((p) => !p.startsWith('!'));
+  const neg = entries.filter((p) => p.startsWith('!') && p.length > 1);
+  if (neg.some((p) => eventMatches(p.slice(1), type))) return false;
+  return !pos.length && neg.length ? true : pos.some((p) => eventMatches(p, type));
+}
+
 /** Higher sorts first: exact beats glob; then fewer wildcards; then longer literal prefix. */
 export function specificity(pattern: string, match: Match | undefined): [number, number, number] {
   if (match !== 'glob') return [1, 0, pattern.length];
