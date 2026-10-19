@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Channel mockup: sns:order-events</title>
+<!-- Static design mockup of the redesigned channel page. No JS. Tokens copied from web/css/tokens.css. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
+<style>
+:root {
+  --paper: #f5f6fa; --surface: #ffffff; --surface-2: #eef0f6; --line: #e1e4ee; --line-strong: #c9cedd;
+  --ink: #1b2233; --ink-2: #4a5268; --muted: #7a8197; --accent: #4a4fd6; --accent-soft: #e8e9fb;
+  --t-http: #2f6feb; --t-rpc: #7a8a10; --t-eb: #d6246e; --t-sns: #d98200; --t-sqs: #0b9a8a; --t-amqp: #8a5cf0;
+  --t-broken: #d63a3a;
+  --ok: #1f9d55; --warn: #c27c00; --bad: #d63a3a;
+  --font: 'Schibsted Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --r-sm: 6px; --r-md: 10px;
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px;
+  --fs-xs: 11.5px; --fs-sm: 13px; --fs-md: 14.5px; --fs-lg: 18px; --fs-xl: 24px;
+  --rail: 220px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --paper: #12151d; --surface: #1a1e29; --surface-2: #222736; --line: #2c3243; --line-strong: #3a4256;
+    --ink: #e7e9f0; --ink-2: #b5bacb; --muted: #8a90a6; --accent: #8f93ff; --accent-soft: #272b4a;
+    --t-http: #6a9cff; --t-rpc: #b9c84a; --t-eb: #ff5c9d; --t-sns: #f0a537; --t-sqs: #36c3b1; --t-amqp: #ad8bff; --t-broken: #ff6b6b;
+    color-scheme: dark;
+  }
+}
+:root[data-theme='dark'] {
+  --paper: #12151d; --surface: #1a1e29; --surface-2: #222736; --line: #2c3243; --line-strong: #3a4256;
+  --ink: #e7e9f0; --ink-2: #b5bacb; --muted: #8a90a6; --accent: #8f93ff; --accent-soft: #272b4a;
+  --t-http: #6a9cff; --t-rpc: #b9c84a; --t-eb: #ff5c9d; --t-sns: #f0a537; --t-sqs: #36c3b1; --t-amqp: #ad8bff; --t-broken: #ff6b6b;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--paper); color: var(--ink); font: 400 var(--fs-md)/1.5 var(--font); -webkit-font-smoothing: antialiased; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.01em; }
+p { margin: 0; }
+.mono, code { font-family: var(--mono); font-size: 0.92em; }
+.muted { color: var(--muted); }
+.xs { font-size: var(--fs-xs); }
+.sm { font-size: var(--fs-sm); }
+
+/* App shell (simplified) */
+.app { display: grid; grid-template-columns: var(--rail) 1fr; min-height: 100vh; }
+.rail { background: var(--surface); border-right: 1px solid var(--line); padding: var(--s5) var(--s3); display: flex; flex-direction: column; gap: 2px; }
+.brand { font-weight: 700; color: var(--accent); font-size: 17px; padding: 0 var(--s2) var(--s5); }
+.nav { padding: 8px 12px; border-radius: var(--r-sm); color: var(--ink-2); }
+.nav.on { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
+.main { min-width: 0; display: flex; flex-direction: column; }
+
+.head { background: var(--surface); border-bottom: 1px solid var(--line); padding: var(--s4) var(--s5); display: flex; gap: var(--s4); align-items: flex-start; }
+.head .grow { flex: 1; min-width: 0; }
+.title { display: flex; align-items: center; gap: var(--s2); }
+.title h1 { font-size: var(--fs-lg); }
+.kind { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 4px; font-size: var(--fs-xs); font-weight: 700;
+  background: color-mix(in srgb, var(--t-sns) 14%, transparent); color: var(--t-sns); }
+.kind::before { content: ''; width: 10px; height: 3px; border-radius: 2px; background: currentColor; }
+.kind.sqs { background: color-mix(in srgb, var(--t-sqs) 14%, transparent); color: var(--t-sqs); }
+.meta { margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: var(--fs-sm); color: var(--muted); }
+.meta b { color: var(--ink-2); font-weight: 500; }
+.btn { display: inline-flex; align-items: center; height: 32px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); color: var(--accent); background: var(--surface); font-size: var(--fs-sm); white-space: nowrap; }
+
+.content { padding: var(--s5); display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s5); max-width: 1240px; }
+
+/* Verdict: the answer in one line, then the one thing to act on */
+.verdict { display: grid; gap: var(--s2); }
+.verdict p.lead { font-size: var(--fs-md); color: var(--ink-2); }
+.verdict p.lead b { color: var(--ink); font-weight: 600; }
+.issue-link { display: flex; align-items: center; gap: var(--s2); font-size: var(--fs-sm); padding: 8px 12px; border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--warn) 10%, var(--surface)); border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent); color: var(--ink); }
+.issue-link .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); flex: none; }
+.issue-link a { margin-left: auto; white-space: nowrap; }
+
+.section { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); }
+.section > header { display: flex; align-items: baseline; gap: var(--s3); padding: var(--s3) var(--s4); border-bottom: 1px solid var(--line); }
+.section > header h2 { font-size: var(--fs-md); font-weight: 600; }
+.section > header .hint { font-size: var(--fs-sm); color: var(--muted); }
+
+/* ---------- Flow lanes: publisher -> topic -> filter -> queue -> consumer ---------- */
+.lanes { overflow-x: auto; padding: var(--s3) var(--s4) var(--s4); }
+.grid { display: grid; min-width: 960px;
+  grid-template-columns: minmax(170px, 1fr) 28px minmax(120px, 0.6fr) 36px minmax(300px, 1.4fr) minmax(200px, 1.1fr) 28px minmax(240px, 1.5fr);
+  row-gap: var(--s3); }
+.colhead { font-size: var(--fs-xs); color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; padding-bottom: 2px; }
+.node { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 8px 10px; align-self: center; min-width: 0; }
+.node .name { font-weight: 600; }
+.node .name a { color: var(--ink); }
+.node .sub { font-family: var(--mono); font-size: var(--fs-xs); color: var(--muted); overflow-wrap: anywhere; }
+.node.svc { border-left: 3px solid var(--ink-2); }
+.node.topic { border-left: 3px solid var(--t-sns); align-self: center; background: color-mix(in srgb, var(--t-sns) 6%, var(--surface)); }
+.node.queue { border-left: 3px solid var(--t-sqs); }
+.node.queue .name { font-family: var(--mono); font-weight: 500; font-size: var(--fs-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.node.warn { border-color: color-mix(in srgb, var(--warn) 45%, transparent); border-left-color: var(--t-sqs); }
+.span3 { grid-row: 2 / span 3; }
+
+/* connectors */
+.arrow { align-self: center; height: 2px; position: relative; }
+.arrow::after { content: ''; position: absolute; right: 0; top: -4px; border: 5px solid transparent; border-left: 7px solid currentColor; border-right: 0; }
+.arrow { background: currentColor; margin-right: 2px; }
+.arrow.sns { color: var(--t-sns); }
+.arrow.sqs { color: var(--t-sqs); }
+.arrow.dash { background: repeating-linear-gradient(90deg, currentColor 0 5px, transparent 5px 9px); }
+.fan { position: relative; color: var(--t-sns); }
+.fan::before { content: ''; position: absolute; left: 0; width: 2px; background: currentColor; }
+.fan::after { content: ''; position: absolute; left: 0; right: 7px; top: calc(50% - 1px); height: 2px; background: currentColor; }
+.fan.first::before { top: 50%; bottom: calc(-1 * var(--s3)); }
+.fan.mid::before { top: calc(-1 * var(--s3)); bottom: calc(-1 * var(--s3)); }
+.fan.last::before { top: calc(-1 * var(--s3)); bottom: 50%; }
+.fan i { position: absolute; right: 0; top: calc(50% - 5px); border: 5px solid transparent; border-left: 7px solid currentColor; border-right: 0; }
+.trunk { align-self: center; height: 2px; background: var(--t-sns); position: relative; }
+
+/* filter cell */
+.filter { align-self: center; min-width: 0; display: flex; align-items: center; }
+.filter > .f { display: grid; gap: 4px; padding: 6px 8px; border: 1px dashed var(--line-strong); border-radius: var(--r-sm); background: var(--surface); flex: 0 0 270px; }
+.filter::after { content: ''; flex: 1; min-width: 20px; height: 2px; background: var(--t-sns); margin-right: 2px; }
+.filter > .tip { width: 0; height: 0; border: 5px solid transparent; border-left: 7px solid var(--t-sns); border-right: 0; order: 2; margin-right: 6px; }
+.filter.dash::after { background: repeating-linear-gradient(90deg, var(--t-sns) 0 5px, transparent 5px 9px); }
+.filter > .disagree { flex: 0 0 270px; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.ev { font-family: var(--mono); font-size: var(--fs-xs); height: 22px; display: inline-flex; align-items: center; padding: 0 7px; border-radius: 11px; border: 1px solid var(--line-strong); color: var(--ink); background: var(--surface); }
+.all { font-size: var(--fs-xs); height: 22px; display: inline-flex; align-items: center; padding: 0 8px; border-radius: 4px; background: var(--surface-2); color: var(--ink-2); font-weight: 600; }
+.who { font-size: var(--fs-xs); color: var(--muted); }
+
+/* disagreement block: one row, both claims side by side */
+.disagree { border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent); border-radius: var(--r-sm); background: color-mix(in srgb, var(--warn) 7%, var(--surface)); padding: 6px 8px; display: grid; gap: 5px; }
+.disagree .tag { font-size: var(--fs-xs); font-weight: 700; color: var(--warn); display: flex; align-items: center; gap: 6px; }
+.claim { display: grid; grid-template-columns: 86px 1fr; gap: 2px 6px; align-items: center; font-size: var(--fs-xs); }
+.claim .src { color: var(--ink-2); font-weight: 600; }
+.claim .src a { font-weight: 400; }
+.claim .note { color: var(--muted); grid-column: 1 / -1; }
+.diff { background: color-mix(in srgb, var(--warn) 22%, transparent); border-color: color-mix(in srgb, var(--warn) 55%, transparent); }
+
+.handles { font-size: var(--fs-xs); color: var(--muted); margin-top: 3px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.handles .ev { height: 20px; }
+
+/* ---------- Delivery matrix: event type x destination ---------- */
+table.matrix { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+.matrix th, .matrix td { text-align: left; padding: 9px var(--s4); border-top: 1px solid var(--line); vertical-align: top; }
+.matrix thead th { border-top: 0; font-size: var(--fs-sm); color: var(--ink); font-weight: 600; }
+.matrix thead th span { display: block; font-size: var(--fs-xs); color: var(--muted); font-family: var(--mono); font-weight: 400; }
+.matrix thead th:first-child { font-size: var(--fs-xs); color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; vertical-align: bottom; }
+.matrix tbody th { font-family: var(--mono); font-weight: 500; font-size: var(--fs-sm); white-space: nowrap; }
+.matrix tbody th .xs { display: block; font-family: var(--font); font-weight: 400; color: var(--muted); }
+.st { display: flex; gap: 8px; align-items: flex-start; }
+.st .ic { width: 16px; height: 16px; border-radius: 50%; flex: none; display: grid; place-items: center; font-size: 11px; font-weight: 700; margin-top: 2px; color: #fff; }
+.st.ok .ic { background: var(--ok); }
+.st.skip .ic { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line-strong); }
+.st.warn .ic { background: var(--warn); }
+.st .what { display: grid; }
+.st .what small { color: var(--muted); font-size: var(--fs-xs); }
+.st.warn .what b { color: var(--warn); font-weight: 600; }
+.matrix td.cell-warn { background: color-mix(in srgb, var(--warn) 7%, var(--surface)); }
+
+.foot { font-size: var(--fs-xs); color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.legend { display: flex; gap: 16px; font-size: var(--fs-xs); color: var(--muted); padding: 0 var(--s4) var(--s3); flex-wrap: wrap; }
+.legend span::before { content: ''; display: inline-block; width: 14px; height: 2px; vertical-align: middle; margin-right: 6px; background: currentColor; }
+.legend .l-sns { color: var(--t-sns); } .legend .l-sqs { color: var(--t-sqs); }
+.legend .l-dash::before { background: repeating-linear-gradient(90deg, var(--t-sns) 0 4px, transparent 4px 7px); }
+.legend .l-dash { color: var(--muted); }
+.legend span em { color: var(--muted); font-style: normal; }
+
+@media (max-width: 760px) {
+  .app { grid-template-columns: 1fr; }
+  .rail { display: none; }
+  .head { flex-direction: column; padding: var(--s3) var(--s4); }
+  .content { padding: var(--s4); }
+  .matrix th, .matrix td { padding: 8px 10px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="rail">
+    <div class="brand">Flow-Mapper</div>
+    <a class="nav">System map</a>
+    <a class="nav on">Inventory</a>
+    <a class="nav">Flows</a>
+    <a class="nav">Link health</a>
+    <a class="nav">Bugs</a>
+  </nav>
+
+  <div class="main">
+    <!-- 1. Identity: what is this, who owns the definition, is it real -->
+    <header class="head">
+      <div class="grow">
+        <div class="title"><h1>order-events</h1><span class="kind">SNS topic</span></div>
+        <div class="meta">
+          <span class="mono">sns:order-events</span>
+          <span>Defined by <b>infra</b> in <a href="#">order-events.tf:4</a></span>
+          <span>Live AWS <b style="color:var(--ok)">matches code</b></span>
+        </div>
+      </div>
+      <a class="btn" href="#">Show on map</a>
+      <a class="btn" href="#">All topics and queues</a>
+    </header>
+
+    <div class="content">
+      <!-- 2. The answer in one sentence + the single thing to act on -->
+      <div class="verdict">
+        <p class="lead"><b>orders-svc</b> publishes <b>2 event types</b> here; the topic fans out to <b>3 queues</b>, each read by one service.</p>
+        <div class="issue-link"><span class="dot"></span>
+          <span><b>shipping-order-events</b>: infra and shipping-svc disagree on the filter, so <span class="mono">OrderCancelled</span> may reach shipping-svc, which has no handler for it.</span>
+          <a href="#sub-shipping">See below</a>
+        </div>
+      </div>
+
+      <!-- 3. The flow, left to right -->
+      <section class="section">
+        <header><h2>How events flow</h2><span class="hint">publisher → topic → subscription filter → queue → consumer</span></header>
+        <div class="lanes">
+          <div class="grid">
+            <div class="colhead">Publisher</div><div></div>
+            <div class="colhead">Topic</div><div></div>
+            <div class="colhead">Subscription filter</div>
+            <div class="colhead">Queue</div><div></div>
+            <div class="colhead">Consumer · handler</div>
+
+            <!-- publisher + topic span the three subscription rows -->
+            <div class="node svc span3" style="grid-column:1">
+              <div class="name"><a href="#">orders-svc</a></div>
+              <div class="sub">orderEvents.publish</div>
+              <div class="handles"><span class="ev">OrderPlaced</span><span class="ev">OrderCancelled</span></div>
+            </div>
+            <div class="arrow sns span3" style="grid-column:2"></div>
+            <div class="node topic span3" style="grid-column:3">
+              <div class="name">order-events</div>
+              <div class="sub">→ 3 queues</div>
+            </div>
+
+            <!-- row 1: analytics -->
+            <div class="fan first" style="grid-column:4;grid-row:2"><i></i></div>
+            <div class="filter" style="grid-column:5;grid-row:2">
+              <div class="f"><div class="chips"><span class="all">all events</span></div><div class="who">declared by analytics-svc</div></div><i class="tip"></i>
+            </div>
+            <div class="node queue" style="grid-column:6;grid-row:2"><div class="name"><a href="#">analytics-all-events</a></div><div class="sub">sqs · 12 event types</div></div>
+            <div class="arrow sqs" style="grid-column:7;grid-row:2"></div>
+            <div class="node svc" style="grid-column:8;grid-row:2">
+              <div class="name"><a href="#">analytics-svc</a></div>
+              <div class="sub">in.events → ingest_event</div>
+              <div class="handles">handles <span class="all">all events</span></div>
+            </div>
+
+            <!-- row 2: inventory -->
+            <div class="fan mid" style="grid-column:4;grid-row:3"><i></i></div>
+            <div class="filter" style="grid-column:5;grid-row:3">
+              <div class="f"><div class="chips"><span class="ev">OrderPlaced</span><span class="ev">OrderCancelled</span></div><div class="who">declared by inventory-svc</div></div><i class="tip"></i>
+            </div>
+            <div class="node queue" style="grid-column:6;grid-row:3"><div class="name"><a href="#">inventory-order-events</a></div><div class="sub">sqs</div></div>
+            <div class="arrow sqs" style="grid-column:7;grid-row:3"></div>
+            <div class="node svc" style="grid-column:8;grid-row:3">
+              <div class="name"><a href="#">inventory-svc</a></div>
+              <div class="sub">in.orderEvents → OnOrderEvent</div>
+              <div class="handles">handles <span class="ev">OrderPlaced</span><span class="ev">OrderCancelled</span></div>
+            </div>
+
+            <!-- row 3: shipping, two declarations merged into one row -->
+            <div class="fan last" style="grid-column:4;grid-row:4"><i></i></div>
+            <div class="filter dash" id="sub-shipping" style="grid-column:5;grid-row:4">
+              <div class="disagree">
+                <div class="tag">⚠ 2 declarations disagree on the filter</div>
+                <div class="claim"><span class="src">infra <a href="#">tf:22</a></span><span class="chips"><span class="ev diff">OrderPlaced</span><span class="xs muted">only</span></span>
+                  <span class="note">live AWS differs from this code (drift)</span></div>
+                <div class="claim"><span class="src">shipping-svc</span><span class="chips"><span class="all diff">all events</span></span></div>
+              </div><i class="tip"></i>
+            </div>
+            <div class="node queue warn" style="grid-column:6;grid-row:4"><div class="name"><a href="#">shipping-order-events</a></div><div class="sub">sqs</div></div>
+            <div class="arrow sqs" style="grid-column:7;grid-row:4"></div>
+            <div class="node svc" style="grid-column:8;grid-row:4">
+              <div class="name"><a href="#">shipping-svc</a></div>
+              <div class="sub">in.orderPlaced → onOrderPlaced</div>
+              <div class="handles">handles <span class="ev">OrderPlaced</span> only</div>
+            </div>
+          </div>
+        </div>
+        <div class="legend"><span class="l-sns">SNS <em>publish / fan-out</em></span><span class="l-sqs">SQS <em>deliver / poll</em></span><span class="l-dash">uncertain: declarations disagree</span></div>
+      </section>
+
+      <!-- 4. Per-event-type delivery: status sits in the cell it describes -->
+      <section class="section">
+        <header><h2>Where each event type ends up</h2><span class="hint">filter applied, then whether the consumer has a handler</span></header>
+        <table class="matrix">
+          <thead><tr>
+            <th style="width:20%">Event type</th>
+            <th>analytics-svc<span>analytics-all-events</span></th>
+            <th>inventory-svc<span>inventory-order-events</span></th>
+            <th>shipping-svc<span>shipping-order-events</span></th>
+          </tr></thead>
+          <tbody>
+            <tr>
+              <th><a href="#">OrderPlaced</a><span class="xs">from orders-svc</span></th>
+              <td><div class="st ok"><span class="ic">✓</span><span class="what">handled<small>ingest_event</small></span></div></td>
+              <td><div class="st ok"><span class="ic">✓</span><span class="what">handled<small>OnOrderEvent</small></span></div></td>
+              <td><div class="st ok"><span class="ic">✓</span><span class="what">handled<small>onOrderPlaced</small></span></div></td>
+            </tr>
+            <tr>
+              <th><a href="#">OrderCancelled</a><span class="xs">from orders-svc</span></th>
+              <td><div class="st ok"><span class="ic">✓</span><span class="what">handled<small>ingest_event</small></span></div></td>
+              <td><div class="st ok"><span class="ic">✓</span><span class="what">handled<small>OnOrderEvent</small></span></div></td>
+              <td class="cell-warn"><div class="st warn"><span class="ic">!</span><span class="what"><b>arrives, no handler</b><small>if shipping-svc's “all events” is right. With infra's filter it is not delivered.</small></span></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <div class="foot">
+        <span>Subscriptions declared by analytics-svc, inventory-svc, infra, shipping-svc</span>
+        <span>Harvested 11 h ago</span>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
