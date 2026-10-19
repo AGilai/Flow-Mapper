@@ -8,7 +8,10 @@ Each run is a cheap check; only when there is something to do does it start a **
 ## Lead session: each run
 
 1. `GET http://localhost:3000/api/bugs?updatedSince=<last check>` (the last check time is in
-   `data/bug-loop.last`, git-ignored; first run: the last 24 hours). Write the new check time.
+   `data/bug-loop.last`, git-ignored; first run: the last 24 hours). Write the new check time
+   (taken before the request) only here, never after deploying or closing bugs.
+   Also `GET /api/bugs?open=true` and add any open bug with no `flow-mapper` comment and no running
+   agent: this catches anything a moved checkpoint skipped.
 2. Drop bugs whose last comment is from `flow-mapper`, and bugs in `fixed`, `verified`, `closed`,
    `wont_fix`, `duplicate` unless the reporter moved them back to `in_progress` or asked something.
 3. Nothing left: say so in one line and stop.
