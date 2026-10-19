@@ -22,6 +22,9 @@ const KINDS = [
   { id: 'subscriptionConflicts', label: 'Subscription conflicts', help: 'The same subscription is reported by more than one manifest with different event filters.' },
   { id: 'multipleWriters', label: 'Stores with several writers', help: 'More than one service writes to the same collection, table or key. Those services are coupled through the data.', store: true },
   { id: 'unusedStores', label: 'Unused stores', help: 'A data store a service declares but no function uses.', store: true },
+  { id: 'unresolved', label: 'Unresolved by harvesters', help: 'Calls, consumers and event types a harvester found but could not resolve, with its reason. Not counted as broken links.', harvest: true },
+  { id: 'mixedCommits', label: 'Mixed commits', help: 'Services whose items were scanned at different commits. Code links follow each item\'s own commit.', harvest: true },
+  { id: 'drift', label: 'Drift from live', help: 'Items a harvester checked against the live system and found different.', harvest: true },
 ];
 
 export async function render({ main, query }) {
@@ -34,7 +37,8 @@ export async function render({ main, query }) {
     fig(t.links.toLocaleString(), 'Links'),
     ...KINDS.slice(0, 5).map((k) => fig(t[k.id], k.label, t[k.id] > 0 && k.id !== 'orphans')),
     fig(KINDS.slice(5, 10).reduce((n, k) => n + t[k.id], 0), 'Event problems', KINDS.slice(5, 10).some((k) => t[k.id] > 0)),
-    fig(t.multipleWriters + t.unusedStores, 'Store problems', t.multipleWriters > 0));
+    fig(t.multipleWriters + t.unusedStores, 'Store problems', t.multipleWriters > 0),
+    fig(t.unresolved, 'Unresolved by harvesters'));
 
   const itemsBox = h('div.box');
   const tabs = h('div.tabs', { role: 'tablist' });
@@ -43,11 +47,14 @@ export async function render({ main, query }) {
     setQuery({ kind: id });
     fill(tabs, KINDS.map((k) => h('button', { role: 'tab', 'aria-selected': String(k.id === id), on: { click: () => showKind(k.id) } }, `${k.label} (${t[k.id]})`)));
     const k = KINDS.find((x) => x.id === id);
-    fill(itemsBox, h('div.box-head', h('p.small.muted', k.help)), itemsTable(id, r.items[id]).el);
+    // unresolved: how many per reason, so the biggest gaps in the harvesters are obvious
+    const byReason = id === 'unresolved' ? [...r.items.unresolved.reduce((m, x) => m.set(x.reason, (m.get(x.reason) ?? 0) + 1), new Map())].sort((a, b) => b[1] - a[1]) : [];
+    fill(itemsBox, h('div.box-head', h('p.small.muted', k.help),
+      byReason.length ? h('div.ep-producers', byReason.map(([reason, n]) => h('span.pill.gap', `${reason} ${n}`))) : null), itemsTable(id, r.items[id]).el);
   }
 
   const worst = dataTable({
-    rows: r.services.filter((s) => s.dangling || s.orphans || s.unbound || s.ambiguous || s.eventIssues || s.storeIssues), pageSize: 15,
+    rows: r.services.filter((s) => s.dangling || s.orphans || s.unbound || s.ambiguous || s.eventIssues || s.storeIssues || s.unresolved), pageSize: 15,
     sortKey: 'dangling', sortDir: 'desc', onRow: (s) => go(`/services/${encodeURIComponent(s.service)}`),
     empty: 'Every service connects cleanly.',
     columns: [
@@ -58,6 +65,7 @@ export async function render({ main, query }) {
       { key: 'unbound', label: 'Unbound', num: true },
       { key: 'eventIssues', label: 'Event problems', num: true },
       { key: 'storeIssues', label: 'Store problems', num: true },
+      { key: 'unresolved', label: 'Unresolved', num: true },
     ],
   });
 
@@ -88,6 +96,14 @@ function itemsTable(kind, rows) {
     declaredNotSeen: [{ key: 'service', label: 'Consumer', render: (x) => svc(x.service) }, ev, { key: 'producer', label: 'Declared producer', render: (x) => svc(x.producer) }],
     multipleWriters: [{ key: 'key', label: 'Data store', render: (x) => storeLink(x.key) }, { key: 'kind', label: 'Kind' }, { key: 'service', label: 'Writer', render: (x) => svc(x.service) }, { key: 'writers', label: 'All writers', nosort: true, render: (x) => h('span.small', x.writers.join(', ')) }],
     unusedStores: [{ key: 'key', label: 'Data store', render: (x) => storeLink(x.key) }, { key: 'kind', label: 'Kind' }, { key: 'service', label: 'Declared by', render: (x) => svc(x.service) }],
+    unresolved: [{ key: 'reason', label: 'Reason', render: (x) => h('span.pill.gap', x.reason) }, { key: 'service', label: 'Service', render: (x) => svc(x.service) },
+      { key: 'id', label: 'Where', render: (x) => h('div.stack', { style: { gap: 0 } }, h('span.key', x.id), h('span.xs.muted', `${x.kind}, ${x.what === 'event' ? 'event type' : 'target'}`)) },
+      { key: 'detail', label: 'Detail', render: (x) => h('span.small.key', x.detail ?? '') },
+      { key: 'candidates', label: 'Candidates', nosort: true, render: (x) => x.candidates.map((c) => h('div.key.small', c, x.possible.some((p) => p.candidate === c) ? h('span.xs.muted', ` → ${x.possible.filter((p) => p.candidate === c).map((p) => p.service).join(', ')}`) : null)) }],
+    mixedCommits: [{ key: 'service', label: 'Service', render: (x) => svc(x.service) }, { key: 'commit', label: 'Manifest commit', render: (x) => h('span.key', x.commit ?? '') },
+      { key: 'others', label: 'Items at other commits', nosort: true, render: (x) => x.others.map((o) => h('div.small', h('span.key', o.commit), ` ${o.items} items`)) }],
+    drift: [{ key: 'service', label: 'Service', render: (x) => svc(x.service) }, { key: 'kind', label: 'Kind' }, { key: 'id', label: 'Item', render: (x) => h('span.key', x.id) },
+      { key: 'producer', label: 'Checked by', render: (x) => h('span.small', [x.provenance.producer, x.provenance.runId].filter(Boolean).join(' · ')) }],
     subscriptionConflicts: [{ key: 'from', label: 'From', render: (x) => h('span.key', x.from) }, { key: 'to', label: 'To', render: (x) => h('span.key', x.to) },
       { key: 'declarations', label: 'Reported as', nosort: true, render: (x) => x.declarations.map((d) => h('div.small', h('b', d.service), ': ', d.events === '*' ? 'all events' : d.events.join(', '))) }],
     ambiguous: [{ key: 'service', label: 'Caller', render: (x) => svc(x.service) }, { key: 'bindKey', label: 'Key', render: (x) => keyCell(x.bindKey) }, { key: 'candidates', label: 'Matches', nosort: true, render: (x) => x.candidates.map((c) => h('div.key', c)) }],

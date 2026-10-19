@@ -9,6 +9,11 @@ import { storeLink } from './inventory-links.js';
 import { objectIcon } from '../components/object-icon.js';
 
 const OPEN_LIMIT = 15;
+const UNRESOLVED = '\u0001Unresolved by the harvester';
+const gapOf = (x) => x.unresolved?.find((u) => u.what === 'target');
+/** Pill for an item the harvester could not resolve; the reason is in the tooltip. */
+const gapPill = (u) => h('span.pill.gap', { title: [u.reason, u.detail, u.candidates?.length ? `candidates: ${u.candidates.join(', ')}` : null].filter(Boolean).join('\n') }, `unresolved: ${u.reason}`);
+const atLink = (at) => (at?.url ? h('a.at-link', { href: at.url, target: '_blank', rel: 'noopener noreferrer', title: `${at.file ?? ''}${at.line ? ':' + at.line : ''}` }, icon('external')) : null);
 const svcLink = (s) => h('a', { href: href(`/services/${encodeURIComponent(s)}`) }, s);
 
 export function switchboard(v, name, q, onInfo) {
@@ -20,9 +25,9 @@ export function switchboard(v, name, q, onInfo) {
   const left = h('div.sb-col.sb-left',
     h('h2', 'Ingress', h('span.muted.small', String(ingress.length))),
     byT.length ? byT.map(([t, items]) => details(chip(t), items.length, items.length <= OPEN_LIMIT || !!q,
-      items.map((i) => h('div.sb-row', { 'data-t': i.orphan ? 'broken' : i.transport, class: '' },
-        h('a.key', { href: href('/flows', { service: name, ingress: i.id }) , title: 'Trace from here' }, splitKey(i.bindKey).rest),
-        h('span.xs.sb-actions', i.entryPoint ? h('span.pill', 'entry') : i.orphan ? h('span.pill.warn', 'never called') : null,
+      items.map((i) => h('div.sb-row', { 'data-t': gapOf(i) ? 'gap' : i.orphan ? 'broken' : i.transport, class: '' },
+        h('span', h('a.key', { href: href('/flows', { service: name, ingress: i.id }) , title: 'Trace from here' }, gapOf(i) && i.bindKey.startsWith('unresolved:') ? i.id : splitKey(i.bindKey).rest), atLink(i.at)),
+        h('span.xs.sb-actions', gapOf(i) ? gapPill(gapOf(i)) : i.entryPoint ? h('span.pill', 'entry') : i.orphan ? h('span.pill.warn', 'never called') : null,
           i.events?.length ? h('span.pill', { title: i.events.map((e) => e.type).join(', ') }, `${i.events.length} event ${i.events.length === 1 ? 'type' : 'types'}`) : null,
           onInfo ? h('button.btn.ghost.icon-btn', { type: 'button', title: 'Endpoint info', 'aria-label': `Info for ${i.bindKey}`, on: { click: () => onInfo(i.id) } }, icon('info')) : null),
         h('div.peers', h('span', 'handler ', h('span.key', i.handler)),
@@ -32,18 +37,19 @@ export function switchboard(v, name, q, onInfo) {
 
   // ---- egress, grouped by the service reached ----
   const egress = v.egress.filter((e) => hit(e.bindKey, ...e.usedBy, ...e.targets.map((t) => t.service)));
-  const byTarget = group(egress, (e) => (e.dangling ? '\u0000No match' : uniq(e.targets.map((t) => t.service)).join(', ') || 'No consumer'))
-    .sort((a, b) => Number(b[0].startsWith('\u0000')) - Number(a[0].startsWith('\u0000')));
+  const byTarget = group(egress, (e) => (gapOf(e) ? UNRESOLVED : e.dangling ? '\u0000No match' : uniq(e.targets.map((t) => t.service)).join(', ') || 'No consumer'))
+    .sort((a, b) => Number(b[0] < '\u0002') - Number(a[0] < '\u0002'));
   const resources = v.resources.filter((r) => hit(r.name, r.kind, ...r.operations.map((o) => o.fn)));
   const right = h('div.sb-col.sb-right',
     h('h2', 'Egress', h('span.muted.small', String(egress.length))),
     byTarget.map(([target, items]) => {
       const broken = target.startsWith('\u0000');
-      const label = broken ? h('span', { style: { color: 'var(--bad)' } }, 'No match') : h('span.truncate', target.split(', ').length > 1 ? `Fan-out to ${target.split(', ').length} services` : target);
+      const label = target === UNRESOLVED ? h('span.muted', 'Unresolved by the harvester')
+        : broken ? h('span', { style: { color: 'var(--bad)' } }, 'No match') : h('span.truncate', target.split(', ').length > 1 ? `Fan-out to ${target.split(', ').length} services` : target);
       return details(label, items.length, items.length <= OPEN_LIMIT || broken || !!q, items.map((e) =>
-        h('div.sb-row', { 'data-t': e.dangling ? 'broken' : e.transport },
-          h('span.key', e.bindKey),
-          h('span', chip(e.transport), e.mode === 'async' ? ' ' : null, e.mode === 'async' ? chip('async', 'async') : null),
+        h('div.sb-row', { 'data-t': gapOf(e) ? 'gap' : e.dangling ? 'broken' : e.transport },
+          h('span', h('span.key', gapOf(e) && e.bindKey.startsWith('unresolved:') ? (gapOf(e).detail ?? e.id) : e.bindKey), atLink(e.at)),
+          h('span', gapOf(e) ? gapPill(gapOf(e)) : chip(e.transport), e.mode === 'async' ? ' ' : null, e.mode === 'async' ? chip('async', 'async') : null),
           h('div.peers',
             e.usedBy.length ? h('span', 'from ', e.usedBy.slice(0, 3).map((f) => h('span.key', f + ' '))) : null,
             e.targets.length ? h('span', 'to ', join(uniq(e.targets.map((t) => t.service)).slice(0, 6).map(svcLink))) : null,

@@ -41,7 +41,12 @@ curl -sS -X POST "$FLOW/api/ingest"          -H 'content-type: application/json'
 
 **Versions.** `version` is an integer that only grows: a CI build number or a commit count works.
 `harvestedAt` is when you ran (ISO time). `commit` is the commit you read; Flow-Mapper builds code
-links from `service.repo` + `commit` + each function's `file` and `line`.
+links from `service.repo` + `commit` + each item's `file` and `line`.
+
+**One commit per service.** Scan every layer of a service (routes, outgoing calls, producers, flows)
+at the same commit and put it in `commit`. If one item really was read at another commit, set
+`commit` on that function or `source.commit` on that item; its code link then uses it, and the
+service is flagged "mixed commits" in link health so it is visible.
 
 **Full or delta.** A full manifest replaces everything Flow-Mapper knows about the service. A
 delta (`kind: "delta"`, `baseVersion`, `upsert`, `delete`) patches it; send one only when you know
@@ -91,6 +96,43 @@ inside the system calls them). Put `method` and `path` in `details` for HTTP.
 
 **Resources**: every data store used. `kind` (`mongodb`, `redis`, `dynamodb`, `postgres`, `s3`…),
 a readable `name`, and a `bindKey` (below) so services using the same store are linked.
+
+## Where things are defined, and how you know
+
+Any ingress, egress, channel, binding or resource can say where it is declared and which run
+produced it. Code links in the UI use it (ingress routes, call sites, Terraform lines):
+
+```json
+"source": { "file": "infra/messaging/order-events.tf", "line": 4, "url": "https://…", "repo": "…", "commit": "…" },
+"provenance": { "producer": "iac-scanner", "runId": "l1-2026-10-19", "verified": "match" }
+```
+
+All fields are optional. `url` wins over building a link from `repo` + `commit` + `file` + `line`.
+`verified` is `match` or `drift` when you compared with the live system (e.g. AWS), `code-only` when
+you did not; drift shows up in link health.
+
+## When you cannot resolve something
+
+Do not invent a key and do not drop the item. Say what you found and why it is unresolved:
+
+```json
+{ "id": "audit.record", "transport": "http",
+  "unresolved": [{ "what": "target", "reason": "method_or_path_unresolved",
+                   "detail": "POST ${AUDIT_URL}/events", "candidates": ["http:POST audit-svc/events"] }] }
+```
+
+- `what: "target"` on an **egress** or **ingress**: the call target or consumed key is unknown.
+  `bindKey` may be left out. On a **step**, `target` may be left out (a call-graph gap, e.g. dynamic
+  dispatch). Without an `unresolved` entry, a missing key or target is rejected.
+- `what: "event"` on an **egress**: the event type is unknown or one of several. Put the possible
+  types in `candidates`; they are shown as *possible* producers, never as confirmed, and they
+  keep consumers off "nothing sends it". Known types still go in `events`.
+- `reason` is a short stable code (`no_endpoint`, `method_or_path_unresolved`, `var.env unresolved`,
+  `dynamic_dispatch`, `attribution_ambiguous`…); link health groups by it. `detail` is what you
+  saw in code. `candidates` are bind keys (target) or event types (event); target candidates are
+  checked against real endpoints and shown as possible matches.
+
+Unresolved items are never counted as broken links; they have their own section in link health.
 
 ## Bind keys
 
@@ -192,5 +234,6 @@ Which DTO roles an endpoint takes depends on what it is; others are rejected (40
   match" (`items.dangling`) unless the target really is not harvested yet, and none of your
   ingress under "never called" (`items.orphans`) unless it is public (mark it `entryPoint`).
 - Event consumers list their event types, and no event shows as "unhandled" unless it really is.
+- Anything you could not resolve is sent with `unresolved` and a reason, not dropped and not faked.
 - Running the harvester twice on the same commit produces the same manifest (stable ids, stable
   order), only with a higher `version`.

@@ -79,6 +79,13 @@
           "type": "resource",
           "target": "paymentsTable",
           "operation": "UpdateItem"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "refundEvents.publish",
+          "mode": "async",
+          "operation": "publish"
         }
       ]
     }
@@ -125,6 +132,22 @@
       "delivery": "multicast",
       "events": [
         "DisputeOpened"
+      ]
+    },
+    {
+      "id": "refundEvents.publish",
+      "bindKey": "sns:payment-events",
+      "transport": "sns",
+      "unresolved": [
+        {
+          "what": "event",
+          "reason": "runtime_event_name",
+          "detail": "this.event.eventName",
+          "candidates": [
+            "PaymentRefunded",
+            "PaymentChargeback"
+          ]
+        }
       ]
     }
   ],

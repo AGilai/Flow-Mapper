@@ -52,6 +52,20 @@
           "target": "shippingCreated.publish",
           "mode": "async",
           "operation": "publish shipping.created"
+        },
+        {
+          "seq": 3,
+          "type": "call",
+          "unresolved": [
+            {
+              "what": "target",
+              "reason": "dynamic_dispatch",
+              "detail": "handlers[event.kind](event)",
+              "candidates": [
+                "onOrderPlaced"
+              ]
+            }
+          ]
         }
       ]
     }

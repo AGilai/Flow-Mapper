@@ -180,6 +180,8 @@ Computed after every resolution, per environment and per service:
 | Declared producer not seen | A declared producer is harvested but does not send that event type there |
 | Store with several writers | More than one service writes the same collection, table or key: coupled through data |
 | Unused store | Declared, but no function uses it |
+| Unresolved (harvester) | Reported by the harvester with a reason; not a broken link. Grouped by reason |
+| Mixed commits / drift | Items scanned at another commit; items that differ from the live system |
 | Subscription conflict | The same subscription (from, to) is reported by several manifests with different event filters |
 | Coverage | Resolved egress ÷ total egress, per service |
 

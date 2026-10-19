@@ -3,7 +3,7 @@
 // Pure; used by the server and the static preview.
 
 import type { GraphIndex } from './graph-index.ts';
-import type { Fn, Ingress, Service } from './types.ts';
+import type { Fn, Ingress, Service, Source } from './types.ts';
 import { ingressEvents, type EventRow } from './events.ts';
 
 export type DtoRole = 'request' | 'response';
@@ -19,6 +19,8 @@ export interface EventInfo extends EventRow { source: SourceLink | null; dto: Ev
 export interface EndpointInfo {
   service: string; ingress: Ingress; method: string | null; handler: Fn | null; source: SourceLink | null;
   harvestedAt: string; slots: DtoSlot[]; note: string | null; events: EventInfo[];
+  /** Where the route / consumer itself is declared, when the harvester reports it. */
+  definedAt: SourceLink | null;
 }
 
 const BODY_METHODS = ['POST', 'PUT', 'PATCH'];
@@ -61,12 +63,21 @@ export function repoUrl(repo: string): string | null {
 
 /** Where the handler's code starts: file and line at the harvested commit (GitHub/GitLab /blob/ URLs). */
 export function sourceLink(svc: Service, fn: Fn | null): SourceLink | null {
-  if (!svc.repo) return null;
-  const base = repoUrl(svc.repo);
-  const ref = svc.commit ?? 'HEAD';
-  const file = fn?.file?.replace(/^\.?\/+/, '');
-  const url = base && file ? `${base}/blob/${ref}/${file}${fn?.line ? `#L${fn.line}` : ''}` : base;
-  return { repo: svc.repo, url, ref, file, line: fn?.line };
+  return codeLink(svc, fn ? { file: fn.file, line: fn.line, commit: fn.commit } : {});
+}
+
+/** Link to an item's own source (ingress, egress, channel, binding, resource). Its url, repo and
+ *  commit win over the service's, so items scanned at another commit still point at the right lines. */
+export function codeLink(svc: Service, src: Source | undefined | null): SourceLink | null {
+  if (!src) return null;
+  const repo = src.repo ?? svc.repo;
+  const ref = src.commit ?? svc.commit ?? 'HEAD';
+  const file = src.file?.replace(/^\.?\/+/, '');
+  if (src.url) return { repo: repo ?? '', url: src.url, ref, file, line: src.line };
+  if (!repo) return null;
+  const base = repoUrl(repo);
+  const url = base && file ? `${base}/blob/${ref}/${file}${src.line ? `#L${src.line}` : ''}` : base;
+  return { repo, url, ref, file, line: src.line };
 }
 
 export function endpointInfo(g: GraphIndex, service: string, ingressId: string, dtos: Dto[], eventDtos: EventDto[] = []): EndpointInfo | null {
@@ -77,6 +88,7 @@ export function endpointInfo(g: GraphIndex, service: string, ingressId: string, 
   const { slots, note } = dtoSlots(ingress);
   return {
     service, ingress, method: httpMethod(ingress), handler, source: sourceLink(svc, handler), harvestedAt: svc.harvestedAt, note,
+    definedAt: codeLink(svc, ingress.source),
     events: ingressEvents(g, ingress).map((r) => ({
       ...r,
       source: r.handler ? sourceLink(svc, g.model.functions.find((f) => f.service === service && f.id === r.handler) ?? null) : null,

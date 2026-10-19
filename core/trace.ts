@@ -14,10 +14,12 @@ import type { GraphIndex } from './graph-index.ts';
 import { linksFrom, sid } from './graph-index.ts';
 import type { Mode, Ref } from './types.ts';
 import { handlerFor, passes } from './events.ts';
-import { sourceLink, type SourceLink } from './endpoint-info.ts';
+import { codeLink, sourceLink, type SourceLink } from './endpoint-info.ts';
+import { unresolvedTarget } from './resolve.ts';
+import type { Unresolved } from './types.ts';
 
 export interface Participant {
-  id: string; label: string; kind: 'client' | 'function' | 'service' | 'channel' | 'resource' | 'missing'; service?: string;
+  id: string; label: string; kind: 'client' | 'function' | 'service' | 'channel' | 'resource' | 'missing' | 'unresolved'; service?: string;
   /** Service lifelines: function calls inside that service on this trace (what expanding would show). */
   internalCalls?: number;
 }
@@ -31,11 +33,13 @@ export interface Message {
   target?: { service: string; ingress: string; fn?: string }; // ingress reached, and the handler that runs
   store?: string;                                            // data-store key, for resource steps
   calls?: string;                                            // function called, for call steps (same service)
+  egress?: string;                                           // egress id, for calls out (its call site is in `code`)
+  gap?: Unresolved;                                          // the harvester could not resolve this call; why
 }
 export interface Trace {
   start: { service: string; ingress?: string; fn: string; event?: string }; scope: 'intra' | 'full';
   participants: Participant[]; messages: Message[]; truncated: boolean;
-  /** Code location of every function on the trace, by `${service}:${fn}`. */
+  /** Code location of every function on the trace, by `${service}:${fn}`, and of call sites, by `egress:${service}:${id}`. */
   code: Record<string, SourceLink | null>;
 }
 
@@ -77,6 +81,15 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
     for (const st of [...f.steps].sort((a, b) => a.seq - b.seq)) {
       if (truncated) return;
       const base = { depth, condition: st.condition, loop: st.loop, note: st.note, fn: f.id, service, seq: st.seq };
+      // A gap the harvester reported: the step's own target, or the egress it goes through, is unresolved.
+      const out = st.type === 'egress' && st.target ? g.egress.get(sid(service, st.target)) : undefined;
+      const gap = (!st.target ? st.unresolved?.find((u) => u.what === 'target') : undefined) ?? (out ? unresolvedTarget(out) : undefined);
+      if (gap) {
+        const to = part({ id: `gap:${gap.reason}`, label: `unresolved: ${gap.reason}`, kind: 'unresolved' });
+        push({ ...base, from: me, to, label: gap.detail ?? st.operation ?? gap.reason, mode: st.mode ?? 'sync', kind: st.type === 'resource' ? 'resource' : st.type === 'call' ? 'call' : 'egress', gap, egress: out?.id, transport: out?.transport });
+        continue;
+      }
+      if (!st.target) continue;
       if (st.type === 'call') {
         const key = sid(service, st.target);
         const cycle = stack.includes(key);
@@ -96,10 +109,10 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
         const links = linksFrom(g, { type: 'egress', service, id: e.id }).filter((l) => passes(g, l, event));
         if (!links.length) {
           const to = part({ id: `missing:${e.bindKey}`, label: e.bindKey, kind: 'missing' });
-          push({ ...base, from: me, to, label, mode, kind: 'egress', broken: true, transport: e.transport });
+          push({ ...base, from: me, to, label, mode, kind: 'egress', broken: true, transport: e.transport, egress: e.id });
           continue;
         }
-        for (const l of links) follow(me, l.to, label, mode, depth, stack, { ...base, transport: e.transport, event });
+        for (const l of links) follow(me, l.to, label, mode, depth, stack, { ...base, transport: e.transport, event, egress: e.id });
       }
     }
   };
@@ -150,6 +163,8 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
       const k = svc && fn ? sid(svc, fn) : null;
       if (k && !(k in code)) code[k] = g.services.has(svc!) ? sourceLink(g.services.get(svc!)!, g.fns.get(k) ?? null) : null;
     }
+    const e = m.egress && m.service ? g.egress.get(sid(m.service, m.egress)) : undefined;
+    if (e?.source && !(`egress:${m.service}:${e.id}` in code)) code[`egress:${m.service}:${e.id}`] = codeLink(g.services.get(m.service!)!, e.source);
   }
   return { code, start: { service: root, ingress: ing?.id, fn: fnId, event: start.event }, scope, participants: [...participants.values()], messages, truncated };
 }

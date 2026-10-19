@@ -5,6 +5,7 @@ import type { GraphIndex } from './graph-index.ts';
 import { linksFrom, linksInto, sid } from './graph-index.ts';
 import { eventReport } from './events.ts';
 import { keyMatches } from './glob.ts';
+import { codeLink } from './endpoint-info.ts';
 
 export interface ChannelSummary { key: string; name: string; kind: string; publishers: number; consumers: number; subscriptions: number; problems: number }
 
@@ -17,14 +18,16 @@ export function channelView(g: GraphIndex, key: string) {
   const into = linksInto(g, ref);
   return {
     key, name: c.name ?? key, kind: c.kind, details: c.details ?? {},
+    definedAt: g.services.has(c.service) ? codeLink(g.services.get(c.service)!, c.source) : null, provenance: c.provenance ?? null,
     declaredBy: [...new Set(g.model.channels.filter((x) => x.bindKey === key).map((x) => x.service))],
     publishers: into.filter((l) => l.from.type === 'egress').map((l) => {
       const e = g.egress.get(sid((l.from as any).service, (l.from as any).id))!;
-      return { service: e.service, egress: e.id, events: e.events ?? [] };
+      return { service: e.service, egress: e.id, events: e.events ?? [], at: codeLink(g.services.get(e.service)!, e.source) };
     }),
     feeds: into.filter((l) => l.from.type === 'channel').map((l) => (l.from as any).key as string),
     subscriptions: g.model.bindings.filter((b) => keyMatches(b.from, b.match, key)).map((b) => ({
       id: b.id, service: b.service, to: b.to, toChannel: g.channels.has(b.to), events: b.events ?? '*' as const, conflict: conflicts.some((x) => x.to === b.to),
+      at: g.services.has(b.service) ? codeLink(g.services.get(b.service)!, b.source) : null, verified: b.provenance?.verified ?? null,
     })),
     consumers: linksFrom(g, ref).filter((l) => l.to.type === 'ingress').map((l) => {
       const i = g.ingress.get(sid((l.to as any).service, (l.to as any).id))!;

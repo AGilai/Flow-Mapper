@@ -81,6 +81,13 @@
           "mode": "async",
           "operation": "publish",
           "event": "OrderPlaced"
+        },
+        {
+          "seq": 5,
+          "type": "egress",
+          "target": "audit.record",
+          "mode": "async",
+          "operation": "POST"
         }
       ]
     },
@@ -122,6 +129,14 @@
       "details": {
         "method": "POST",
         "path": "/orders"
+      },
+      "source": {
+        "file": "src/routes/orders.ts",
+        "line": 8
+      },
+      "provenance": {
+        "producer": "rest-scanner",
+        "runId": "r4-2026-10-19"
       }
     },
     {
@@ -156,6 +171,15 @@
         "method": "POST",
         "path": "/reservations",
         "timeoutMs": 2000
+      },
+      "source": {
+        "file": "src/clients/inventory.ts",
+        "line": 31,
+        "commit": "a51c0d2"
+      },
+      "provenance": {
+        "producer": "rest-scanner",
+        "runId": "r4-2026-10-19"
       }
     },
     {
@@ -182,6 +206,26 @@
         "OrderPlaced",
         "OrderCancelled"
       ]
+    },
+    {
+      "id": "audit.record",
+      "transport": "http",
+      "mode": "async",
+      "unresolved": [
+        {
+          "what": "target",
+          "reason": "method_or_path_unresolved",
+          "detail": "POST ${AUDIT_URL}/events",
+          "candidates": [
+            "http:POST audit-svc/events",
+            "http:GET users-svc/users/{id}"
+          ]
+        }
+      ],
+      "source": {
+        "file": "src/clients/audit.ts",
+        "line": 12
+      }
     }
   ],
   "resources": [

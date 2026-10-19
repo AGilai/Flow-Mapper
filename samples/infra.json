@@ -16,7 +16,16 @@
     {
       "bindKey": "sns:order-events",
       "kind": "sns-topic",
-      "name": "order-events"
+      "name": "order-events",
+      "source": {
+        "file": "infra/messaging/order-events.tf",
+        "line": 4
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-19",
+        "verified": "match"
+      }
     },
     {
       "bindKey": "sns:payment-events",
@@ -81,7 +90,16 @@
       "to": "sqs:shipping-order-events",
       "events": [
         "OrderPlaced"
-      ]
+      ],
+      "source": {
+        "file": "infra/messaging/order-events.tf",
+        "line": 22
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-19",
+        "verified": "drift"
+      }
     },
     {
       "id": "rule.userEvents",
@@ -89,7 +107,16 @@
       "to": "sqs:analytics-all-events",
       "events": [
         "User*"
-      ]
+      ],
+      "source": {
+        "file": "infra/events/acme-bus.tf",
+        "line": 40
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-19",
+        "verified": "match"
+      }
     }
   ]
 }

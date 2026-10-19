@@ -50,6 +50,44 @@
       "description": "Event types a subscription lets through. Absent means all."
     },
 
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Where the item is defined (code or IaC). commit and repo override the manifest's for this item's code link; set commit only when this item was scanned at a different commit.",
+      "properties": {
+        "file": { "type": "string" },
+        "line": { "type": "integer", "minimum": 1 },
+        "url": { "type": "string" },
+        "repo": { "type": "string" },
+        "commit": { "type": "string" }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Which harvester run produced the item, and whether it was checked against the live system.",
+      "properties": {
+        "producer": { "type": "string" },
+        "runId": { "type": "string" },
+        "verified": { "enum": ["match", "drift", "code-only"] }
+      }
+    },
+    "unresolved": {
+      "type": "array",
+      "description": "What the harvester found but could not resolve, and why. what=target: the call target or consumed key (bindKey, or a step's target, may then be left out). what=event: the event type (candidates = the possible types).",
+      "items": {
+        "type": "object",
+        "required": ["what", "reason"],
+        "additionalProperties": false,
+        "properties": {
+          "what": { "enum": ["target", "event"] },
+          "reason": { "type": "string", "minLength": 1 },
+          "detail": { "type": "string" },
+          "candidates": { "type": "array", "items": { "type": "string" }, "description": "Possible bind keys (target) or event types (event)." }
+        }
+      }
+    },
+
     "details": {
       "type": "object",
       "description": "Free-form transport details (method, path, queue URL, timeouts, …).",
@@ -73,7 +111,7 @@
 
     "step": {
       "type": "object",
-      "required": ["seq", "type", "target"],
+      "required": ["seq", "type"],
       "additionalProperties": false,
       "properties": {
         "seq": { "type": "integer", "minimum": 1 },
@@ -85,6 +123,7 @@
         "loop": { "type": "boolean", "default": false },
         "note": { "type": "string" },
         "event": { "$ref": "#/$defs/eventType", "description": "For an egress step: the event type it publishes." },
+        "unresolved": { "$ref": "#/$defs/unresolved" },
         "access": { "enum": ["read", "write"], "description": "For a resource step: read or write. Default: from the operation name (find, GET, SELECT, GetItem… are reads)." }
       }
     },
@@ -98,13 +137,14 @@
         "name": { "type": "string" },
         "file": { "type": "string" },
         "line": { "type": "integer", "minimum": 1 },
+        "commit": { "type": "string", "description": "Only when this function was scanned at a different commit than the manifest's." },
         "steps": { "type": "array", "items": { "$ref": "#/$defs/step" }, "default": [] }
       }
     },
 
     "ingress": {
       "type": "object",
-      "required": ["id", "bindKey", "transport", "handler"],
+      "required": ["id", "transport", "handler"],
       "additionalProperties": false,
       "properties": {
         "id": { "$ref": "#/$defs/id" },
@@ -114,6 +154,9 @@
         "handler": { "$ref": "#/$defs/id", "description": "Function id that handles this ingress." },
         "entryPoint": { "type": "boolean", "default": false, "description": "Public API, cron, etc. Excluded from orphan stats." },
         "details": { "$ref": "#/$defs/details" },
+        "source": { "$ref": "#/$defs/source" },
+        "provenance": { "$ref": "#/$defs/provenance" },
+        "unresolved": { "$ref": "#/$defs/unresolved" },
         "events": {
           "type": "array",
           "description": "Event types this consumer handles, each with its own handler. The most specific match wins.",
@@ -133,7 +176,7 @@
 
     "egress": {
       "type": "object",
-      "required": ["id", "bindKey", "transport"],
+      "required": ["id", "transport"],
       "additionalProperties": false,
       "properties": {
         "id": { "$ref": "#/$defs/id" },
@@ -142,6 +185,9 @@
         "mode": { "$ref": "#/$defs/mode" },
         "delivery": { "$ref": "#/$defs/delivery" },
         "details": { "$ref": "#/$defs/details" },
+        "source": { "$ref": "#/$defs/source" },
+        "provenance": { "$ref": "#/$defs/provenance" },
+        "unresolved": { "$ref": "#/$defs/unresolved" },
         "events": { "type": "array", "items": { "$ref": "#/$defs/eventType" }, "description": "Event types published through this egress." }
       }
     },
@@ -155,7 +201,9 @@
         "kind": { "type": "string", "examples": ["mongodb", "redis", "dynamodb", "postgres", "s3", "elasticsearch"] },
         "name": { "type": "string" },
         "bindKey": { "$ref": "#/$defs/bindKey", "description": "Shared key so services using the same store are grouped: {kind}:{cluster or db}/{collection, table or key pattern}, e.g. mongodb:orders-db/orders, redis:cache-main/order:{id}. The part before '/' groups keys of one cluster." },
-        "details": { "$ref": "#/$defs/details" }
+        "details": { "$ref": "#/$defs/details" },
+        "source": { "$ref": "#/$defs/source" },
+        "provenance": { "$ref": "#/$defs/provenance" }
       }
     },
 
@@ -168,7 +216,9 @@
         "kind": { "enum": ["sns-topic", "sqs-queue", "amqp-exchange", "amqp-queue", "eventbridge-bus", "other"] },
         "name": { "type": "string" },
         "delivery": { "$ref": "#/$defs/delivery" },
-        "details": { "$ref": "#/$defs/details" }
+        "details": { "$ref": "#/$defs/details" },
+        "source": { "$ref": "#/$defs/source" },
+        "provenance": { "$ref": "#/$defs/provenance" }
       }
     },
 
@@ -183,7 +233,9 @@
         "to": { "$ref": "#/$defs/bindKey", "description": "Target channel or ingress key (literal)." },
         "filter": { "type": "object", "additionalProperties": true, "description": "e.g. SNS filter policy" },
         "events": { "$ref": "#/$defs/eventFilter" },
-        "details": { "$ref": "#/$defs/details" }
+        "details": { "$ref": "#/$defs/details" },
+        "source": { "$ref": "#/$defs/source" },
+        "provenance": { "$ref": "#/$defs/provenance" }
       }
     },
 

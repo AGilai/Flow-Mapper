@@ -4,7 +4,9 @@
 // event types through. A consumer's ingress maps each event type (name or glob) to a handler.
 // A delivery is one event type travelling from a producer's egress to a consumer's ingress along
 // links whose subscriptions let it through. Producers of an event type are derived from deliveries;
-// a consumer may also declare producers that are not harvested.
+// a consumer may also declare producers that are not harvested. When a producer only knows the type
+// is one of several (`unresolved` what: 'event', candidates), each candidate is a *possible* delivery:
+// shown, never counted as unhandled, and enough to keep a consumer off "never arrives".
 
 import type { GraphIndex } from './graph-index.ts';
 import { linksFrom, sid } from './graph-index.ts';
@@ -18,6 +20,7 @@ export interface Delivery {
   consumer: { service: string; ingress: string };
   handler: string | null;     // null: the consumer lists event types and none matches
   via: string[];              // channel keys on the way
+  possible?: boolean;         // one of the producer's candidate types, not a confirmed one
 }
 
 export interface EventReport {
@@ -60,7 +63,10 @@ export function eventReport(g: GraphIndex): EventReport {
   const dangling = new Set(g.resolution.dangling.map((e) => sid(e.service, e.id)));
 
   for (const e of g.model.egress) {
-    for (const event of e.events ?? []) {
+    const candidates = (e.unresolved ?? []).filter((u) => u.what === 'event').flatMap((u) => u.candidates ?? []);
+    const types: [string, boolean][] = [...(e.events ?? []).map((t): [string, boolean] => [t, false]),
+      ...candidates.filter((t) => !e.events?.includes(t)).map((t): [string, boolean] => [t, true])];
+    for (const [event, possible] of types) {
       const seen = new Set<string>();
       let n = 0;
       const walk = (r: Ref, via: string[]) => {
@@ -71,13 +77,13 @@ export function eventReport(g: GraphIndex): EventReport {
           seen.add(k);
           if (l.to.type === 'ingress') {
             const i = g.ingress.get(sid(l.to.service, l.to.id))!;
-            deliveries.push({ event, producer: { service: e.service, egress: e.id }, consumer: { service: i.service, ingress: i.id }, handler: handlerFor(i, event), via });
+            deliveries.push({ event, producer: { service: e.service, egress: e.id }, consumer: { service: i.service, ingress: i.id }, handler: handlerFor(i, event), via, ...(possible ? { possible } : {}) });
             n++;
           } else walk(l.to, l.to.type === 'channel' ? [...via, l.to.key] : via);
         }
       };
       walk({ type: 'egress', service: e.service, id: e.id }, []);
-      if (!n && !dangling.has(sid(e.service, e.id))) undelivered.push({ service: e.service, egress: e.id, bindKey: e.bindKey, event });
+      if (!n && !possible && !dangling.has(sid(e.service, e.id))) undelivered.push({ service: e.service, egress: e.id, bindKey: e.bindKey, event });
     }
   }
 
@@ -95,7 +101,7 @@ export function eventReport(g: GraphIndex): EventReport {
 
   const report = {
     deliveries, undelivered, neverArrives, declaredNotSeen,
-    unhandled: deliveries.filter((d) => d.handler === null),
+    unhandled: deliveries.filter((d) => d.handler === null && !d.possible),
     conflicts: subscriptionConflicts(g.model.bindings),
   };
   cache.set(g, report);
@@ -119,9 +125,9 @@ export interface EventRow {
   type: string;               // event type, or the declared pattern when nothing matching arrives
   pattern: string | null;     // the consumer entry that matched, when it is a glob
   handler: string | null;
-  status: 'ok' | 'declared-only' | 'never' | 'unhandled';
+  status: 'ok' | 'possible' | 'declared-only' | 'never' | 'unhandled';
   /** derived: found from harvested data. declared: listed by the consumer. harvested: Flow-Mapper knows the service. */
-  producers: { service: string; egress?: string; derived: boolean; declared: boolean; harvested: boolean }[];
+  producers: { service: string; egress?: string; derived: boolean; declared: boolean; harvested: boolean; possible?: boolean }[];
 }
 
 /** Every event type at one consumer: what it declares to handle and what actually arrives. */
@@ -137,7 +143,7 @@ export function ingressEvents(g: GraphIndex, i: Ingress): EventRow[] {
     const entry = i.events?.find((e) => e.handler === d.handler && eventMatches(e.type, d.event));
     const r = row(d.event, entry && entry.type !== d.event ? entry.type : null, d.handler);
     if (!r.producers.some((p) => p.service === d.producer.service && p.egress === d.producer.egress)) {
-      r.producers.push({ service: d.producer.service, egress: d.producer.egress, derived: true, declared: false, harvested: true });
+      r.producers.push({ service: d.producer.service, egress: d.producer.egress, derived: true, declared: false, harvested: true, ...(d.possible ? { possible: true } : {}) });
     }
   }
   for (const ie of i.events ?? []) {
@@ -150,19 +156,26 @@ export function ingressEvents(g: GraphIndex, i: Ingress): EventRow[] {
     }
   }
   for (const r of rows.values()) {
-    r.status = r.handler === null ? 'unhandled'
-      : r.producers.some((p) => p.derived) ? 'ok'
+    const confirmed = r.producers.some((p) => p.derived && !p.possible);
+    r.status = confirmed ? (r.handler === null ? 'unhandled' : 'ok')
+      : r.producers.some((p) => p.possible) ? 'possible'
+      : r.handler === null ? 'unhandled'
       : r.producers.length ? 'declared-only' : 'never';
   }
   return [...rows.values()].sort((a, b) => order(a) - order(b) || a.type.localeCompare(b.type));
 }
-const order = (r: EventRow) => ({ unhandled: 0, never: 1, 'declared-only': 2, ok: 3 })[r.status];
+const order = (r: EventRow) => ({ unhandled: 0, never: 1, possible: 2, 'declared-only': 3, ok: 4 })[r.status];
 
 /** All event types in the environment with who produces and who consumes them. */
 export function eventTypes(g: GraphIndex) {
   const types = new Map<string, { type: string; producers: { service: string; egress: string }[]; consumers: { service: string; ingress: string; handler: string | null }[] }>();
   const t = (type: string) => { if (!types.has(type)) types.set(type, { type, producers: [], consumers: [] }); return types.get(type)!; };
-  for (const e of g.model.egress) for (const ev of e.events ?? []) t(ev).producers.push({ service: e.service, egress: e.id });
+  for (const e of g.model.egress) {
+    for (const ev of e.events ?? []) t(ev).producers.push({ service: e.service, egress: e.id });
+    for (const u of e.unresolved ?? []) if (u.what === 'event') {
+      for (const ev of u.candidates ?? []) if (!e.events?.includes(ev)) t(ev).producers.push({ service: e.service, egress: e.id, possible: true } as any);
+    }
+  }
   for (const i of g.model.ingress) for (const ie of i.events ?? []) if (!ie.type.includes('*')) t(ie.type);
   for (const d of eventReport(g).deliveries) {
     const c = t(d.event).consumers;

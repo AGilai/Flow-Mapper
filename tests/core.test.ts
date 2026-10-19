@@ -96,8 +96,12 @@ test('priority suggestion', () => {
 });
 
 test('integrity catches broken references', () => {
-  const errs = integrityErrors({ functions: [{ id: 'a', steps: [{ seq: 1, type: 'call', target: 'nope' }] }], ingress: [{ id: 'i', handler: 'x' }] });
+  const errs = integrityErrors({ functions: [{ id: 'a', steps: [{ seq: 1, type: 'call', target: 'nope' }] }], ingress: [{ id: 'i', bindKey: 'http:GET a/x', handler: 'x' }] });
   assert.equal(errs.length, 2);
+  // a missing bind key or step target is fine only when `unresolved` explains it
+  const gap = { what: 'target', reason: 'no_endpoint' };
+  assert.equal(integrityErrors({ functions: [{ id: 'a', steps: [{ seq: 1, type: 'egress' }] }], egress: [{ id: 'e' }], ingress: [{ id: 'i', handler: 'a' }] }).length, 3);
+  assert.deepEqual(integrityErrors({ functions: [{ id: 'a', steps: [{ seq: 1, type: 'egress', unresolved: [gap] }] }], egress: [{ id: 'e', unresolved: [gap] }], ingress: [{ id: 'i', handler: 'a', unresolved: [gap] }] }), []);
 });
 
 test('rpc is a synchronous request/reply transport with request and response DTOs', () => {

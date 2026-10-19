@@ -8,12 +8,22 @@
 //   channel → ingress   (queue consumed by an ingress with a matching key)
 // A binding target is a declared channel if one has that key, otherwise matching ingress.
 
-import type { Binding, Channel, Delivery, Egress, Ingress, Link, Model, Ref, Resolution, Transport } from './types.ts';
+import type { Binding, Channel, Delivery, Egress, Ingress, Link, Model, Ref, Resolution, Transport, Unresolved } from './types.ts';
 import { compareSpecificity, keyMatches, specificity } from './glob.ts';
 
 export const DEFAULT_DELIVERY: Record<string, Delivery> = {
   http: 'unicast', rpc: 'unicast', grpc: 'unicast', sqs: 'unicast', sns: 'multicast', amqp: 'multicast', eventbridge: 'multicast',
 };
+
+/** The harvester could not resolve this item's target (call target or consumed key); it takes no part in matching. */
+export const unresolvedTarget = (x: { unresolved?: Unresolved[] }) => x.unresolved?.find((u) => u.what === 'target');
+
+/** Unresolved items may come without a bind key; give them a readable placeholder that matches nothing. */
+export function withPlaceholderKeys(model: Model): Model {
+  const fill = <T extends { bindKey?: string; unresolved?: Unresolved[] }>(x: T): T =>
+    (x.bindKey ? x : { ...x, bindKey: `unresolved:${unresolvedTarget(x)?.reason ?? 'unknown'}` });
+  return { ...model, ingress: model.ingress.map(fill), egress: model.egress.map(fill) };
+}
 
 /** Request/reply transports: calls are synchronous unless the egress says otherwise. */
 export const SYNC = new Set<Transport>(['http', 'rpc', 'grpc']);
@@ -40,12 +50,13 @@ export function mergedChannels(model: Model): Map<string, Channel> {
 
 export function resolve(model: Model): Resolution {
   const channels = mergedChannels(model);
+  const consumers = model.ingress.filter((i) => !unresolvedTarget(i));
   const links: Link[] = [];
   const ambiguous: Resolution['ambiguous'] = [];
   const brokenBindings: Binding[] = [];
 
   const matchIngress = (key: string, delivery: Delivery) => {
-    const cands = model.ingress.filter((i) => keyMatches(i.bindKey, i.match, key));
+    const cands = consumers.filter((i) => keyMatches(i.bindKey, i.match, key));
     if (delivery === 'multicast' || cands.length <= 1) return { picked: cands, tied: [] as Ingress[] };
     const ranked = cands
       .map((c) => ({ c, s: specificity(c.bindKey, c.match) }))
@@ -60,7 +71,7 @@ export function resolve(model: Model): Resolution {
   const targetsOfBinding = new Map<Binding, Ref[]>();
   for (const b of model.bindings) {
     const ch = channels.get(b.to);
-    const refs: Ref[] = ch ? [{ type: 'channel', key: b.to }] : model.ingress.filter((i) => keyMatches(i.bindKey, i.match, b.to)).map(ingressRef);
+    const refs: Ref[] = ch ? [{ type: 'channel', key: b.to }] : consumers.filter((i) => keyMatches(i.bindKey, i.match, b.to)).map(ingressRef);
     targetsOfBinding.set(b, refs);
     if (!refs.length) brokenBindings.push(b);
   }
@@ -72,6 +83,7 @@ export function resolve(model: Model): Resolution {
   };
 
   for (const e of model.egress) {
+    if (unresolvedTarget(e)) continue; // reported as unresolved, with the harvester's reason
     const from: Ref = { type: 'egress', service: e.service, id: e.id };
     const mode = e.mode ?? (SYNC.has(e.transport) ? 'sync' : 'async');
     const { picked, tied } = matchIngress(e.bindKey, deliveryOf(e));
@@ -86,7 +98,7 @@ export function resolve(model: Model): Resolution {
     const t = channelTransport(c);
     addBindingLinks(from, key, 'async', t);
     if (c.kind === 'sqs-queue' || c.kind === 'amqp-queue') {
-      for (const i of model.ingress.filter((i) => keyMatches(i.bindKey, i.match, key)))
+      for (const i of consumers.filter((i) => keyMatches(i.bindKey, i.match, key)))
         links.push({ from, to: ingressRef(i), via: i.match === 'glob' ? 'pattern' : 'key', mode: 'async', transport: t });
     }
   }
@@ -113,17 +125,17 @@ export function resolve(model: Model): Resolution {
     }
     return found;
   };
-  const dangling = model.egress.filter((e) => !reachesIngress({ type: 'egress', service: e.service, id: e.id }));
+  const dangling = model.egress.filter((e) => !unresolvedTarget(e) && !reachesIngress({ type: 'egress', service: e.service, id: e.id }));
   for (const [key] of channels) reachesIngress({ type: 'channel', key });
   for (const b of model.bindings) for (const r of targetsOfBinding.get(b)!) if (r.type === 'ingress') reached.add(refKey(r));
 
-  const orphans = model.ingress.filter((i) => !i.entryPoint && !reached.has(refKey(ingressRef(i))));
+  const orphans = consumers.filter((i) => !i.entryPoint && !reached.has(refKey(ingressRef(i))));
 
   const unbound: Resolution['unbound'] = [];
   for (const [key, c] of channels) {
     if (c.kind === 'sns-topic' && !bindingsFrom(key).length) unbound.push({ channel: c, reason: 'topic has no subscription' });
     if (c.kind === 'eventbridge-bus' && !bindingsFrom(key).length) unbound.push({ channel: c, reason: 'bus has no rule' });
-    if ((c.kind === 'sqs-queue' || c.kind === 'amqp-queue') && !model.ingress.some((i) => keyMatches(i.bindKey, i.match, key)))
+    if ((c.kind === 'sqs-queue' || c.kind === 'amqp-queue') && !consumers.some((i) => keyMatches(i.bindKey, i.match, key)))
       unbound.push({ channel: c, reason: 'queue has no consumer' });
     if (c.kind === 'amqp-exchange' && !model.bindings.some((b) => b.from === key || b.from.startsWith(key + '/')))
       unbound.push({ channel: c, reason: 'exchange has no binding' });

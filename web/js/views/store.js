@@ -51,7 +51,8 @@ export async function render({ main, params }) {
 function use(u) {
   const accesses = [...new Set(u.functions.flatMap((f) => f.operations.map((o) => o.access)))].filter((a) => a !== 'unknown');
   return h('div.use',
-    h('div.use-head', h('b', serviceLink(u.service)), accesses.map((a) => h('span.pill', { class: a }, a)), h('span.xs.muted', `as ${u.resource}`)),
+    h('div.use-head', h('b', serviceLink(u.service)), accesses.map((a) => h('span.pill', { class: a }, a)), h('span.xs.muted', `as ${u.resource}`),
+      u.verified ? h('span.pill', { class: `verified-${u.verified}` }, u.verified) : null, u.declaredAt?.url ? codeLink('declared here', u.declaredAt) : null),
     u.functions.map((f) => h('div.use-fn', codeLink(f.name, f.source),
       f.operations.map((o) => h('span.pill', { class: o.access, title: o.access }, o.operation)))));
 }

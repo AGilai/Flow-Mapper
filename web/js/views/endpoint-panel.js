@@ -17,20 +17,26 @@ export function endpointPanel(info, env) {
     h('div.ep-title', method ? h('span.ep-method', { 'data-m': method }, method) : chip(i.transport), h('span.ep-target', target)),
     h('div.ep-sub', h('span', service), method ? chip(i.transport) : null, i.entryPoint ? h('span.pill', 'entry point') : null));
 
-  return [head, codeCard(fn, i, source), ...info.slots.map((s) => dtoCard(s, env, service, i.id)),
+  return [head, codeCard(fn, i, source, info.definedAt), ...info.slots.map((s) => dtoCard(s, env, service, i.id)),
     info.events.length ? eventsSection(info, env) : null,
     info.note ? h('p.ep-note', info.note) : null,
     h('a.btn.primary.ep-trace', { href: href('/flows', { service, ingress: i.id }) }, icon('flow'), 'Trace from here')];
 }
 
-function codeCard(fn, i, source) {
+function codeCard(fn, i, source, definedAt) {
   const loc = fn?.file ? `${fn.file}${fn.line ? ':' + fn.line : ''}` : null;
   const ref = source && (source.ref === 'HEAD' ? 'default branch' : source.ref);
   const body = source?.url
     ? h('a.ep-link', { href: source.url, target: '_blank', rel: 'noopener noreferrer', title: source.url },
         h('span.ep-link-text', h('b', fn?.name ?? i.handler), h('span.key', loc ?? source.repo)), icon('external'))
     : h('div.ep-link.disabled', h('span.ep-link-text', h('b', fn?.name ?? i.handler), h('span.key', loc ?? 'no file recorded')));
-  return card('Code', ref ? h('span.ep-meta', icon('commit'), ref) : null, body,
+  const verified = i.provenance?.verified;
+  const route = definedAt?.url ? h('a.ep-link', { href: definedAt.url, target: '_blank', rel: 'noopener noreferrer', title: definedAt.url },
+    h('span.ep-link-text', h('span.ep-label', 'Route declared at'), h('span.key', `${definedAt.file ?? definedAt.url}${definedAt.line ? ':' + definedAt.line : ''}`)), icon('external')) : null;
+  const gap = i.unresolved?.find((u) => u.what === 'target');
+  return card('Code', h('span.ep-meta', verified ? h('span.pill', { class: `verified-${verified}`, title: `checked against the live system: ${verified}` }, verified) : null, ref ? [icon('commit'), ref] : null),
+    body, route,
+    gap ? h('p.ep-note.ep-pad', `Unresolved by the harvester: ${gap.reason}${gap.detail ? ` (${gap.detail})` : ''}.`) : null,
     source ? null : h('p.ep-note', 'No repository recorded for this service.'));
 }
 
@@ -49,6 +55,7 @@ const card = (label, meta, ...content) => h('section.ep-card', h('header', h('h3
 const STATUS = {
   unhandled: ['bad', 'no handler', 'Arrives here, but no handler matches it. Handle it in the ingress events, or filter it out in the subscription.'],
   never: ['warn', 'nothing sends it', 'Handled here, but no harvested service publishes it on a route into this queue, and no producer is declared.'],
+  possible: ['', 'possible', 'A producer may send it: the type is one of its candidates, not confirmed.'],
   'declared-only': ['', 'declared producers only', 'Only producers declared by this consumer; Flow-Mapper does not harvest them, so the route is not verified.'],
   ok: null,
 };
@@ -85,10 +92,10 @@ function eventCard(e, info, env, open) {
 }
 
 function producerChip(p) {
-  const tag = p.derived && p.declared ? 'confirmed'
+  const tag = p.possible ? 'possible' : p.derived && p.declared ? 'confirmed'
     : p.declared && p.harvested ? 'declared, not seen'
     : p.declared ? 'declared, not harvested' : null;
-  const cls = p.declared && p.harvested && !p.derived ? 'warn' : p.declared && !p.derived ? 'declared' : '';
+  const cls = p.possible ? 'declared' : p.declared && p.harvested && !p.derived ? 'warn' : p.declared && !p.derived ? 'declared' : '';
   const title = p.derived ? 'Found from harvested data' : p.harvested ? 'Declared by the consumer, but this service does not send it here' : 'Declared by the consumer; Flow-Mapper does not harvest this service';
   return h('span.ep-producer', { class: cls, title },
     p.harvested ? h('a', { href: href(`/services/${encodeURIComponent(p.service)}`) }, p.service) : h('span', p.service),

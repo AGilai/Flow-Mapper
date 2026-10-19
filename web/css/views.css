@@ -136,3 +136,11 @@
 .pill.write { background: color-mix(in srgb, var(--t-sns) 16%, transparent); color: var(--t-sns); }
 .route { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: var(--fs-sm); }
 .route .sep { color: var(--muted); }
+
+/* ---- harvester-reported gaps (unresolved) and source links ---- */
+.pill.gap { background: var(--surface-2); color: var(--ink-2); border: 1px dashed var(--line-strong); }
+.sb-row[data-t='gap'] { --c: var(--line-strong); }
+.at-link { margin-left: 6px; color: var(--muted); vertical-align: middle; }
+.at-link svg { width: 13px; height: 13px; }
+.pill.verified-match { background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); }
+.pill.verified-drift { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }

@@ -7,7 +7,7 @@ import { state } from '../state.js';
 import { href } from '../router.js';
 import { pageHead } from '../components/page.js';
 import { jsonView } from '../components/json-view.js';
-import { box, empty, fig, problems } from './detail-parts.js';
+import { box, codeLink, empty, fig, problems } from './detail-parts.js';
 import { channelLink, eventLink, serviceLink } from './inventory-links.js';
 import { titled } from '../components/object-icon.js';
 
@@ -35,7 +35,8 @@ export async function render({ main, params }) {
           box('Published by', pubs.length, pubs.length ? pubs : empty('Nothing publishes here.')),
           box(isBus ? 'Rules' : 'Subscriptions', v.subscriptions.length, v.subscriptions.length ? v.subscriptions.map((s) => h('div.use',
             h('div.use-head', s.toChannel ? channelLink(s.to) : h('span.key', s.to),
-              s.events === '*' ? h('span.pill', 'all events') : null, s.conflict ? h('span.pill.warn', 'conflict') : null, h('span.grow'), h('span.xs.muted', `declared by ${s.service}`)),
+              s.events === '*' ? h('span.pill', 'all events') : null, s.conflict ? h('span.pill.warn', 'conflict') : null, s.verified ? h('span.pill', { class: `verified-${s.verified}` }, s.verified) : null,
+              h('span.grow'), h('span.xs.muted', `declared by ${s.service}`), s.at?.url ? codeLink(' source', s.at) : null),
             s.events === '*' ? null : h('div.ep-producers', s.events.map((e) => h('span.ep-producer', h('span.key', e))))))
             : empty(isBus ? 'No rules.' : 'No subscriptions.')),
           box('Consumed by', v.consumers.length, v.consumers.length ? v.consumers.map((c) => h('div.use',
@@ -46,6 +47,8 @@ export async function render({ main, params }) {
           box('Event types passing through', v.events.length, v.events.length ? h('div.list', v.events.map((e) => h('div.list-item',
             eventLink(e.type), h('span.grow.truncate.xs.muted', `${e.producers.join(', ')} → ${e.consumers.join(', ')}`),
             e.unhandled ? h('span.pill.bad', 'unhandled') : null))) : empty('No typed events pass through.')),
-          h('p.xs.muted', `Declared by ${v.declaredBy.join(', ')}`),
+          h('p.xs.muted', `Declared by ${v.declaredBy.join(', ')}`,
+            v.definedAt?.url ? [' at ', codeLink(`${v.definedAt.file ?? 'source'}${v.definedAt.line ? ':' + v.definedAt.line : ''}`, v.definedAt)] : null,
+            v.provenance?.verified ? [' · ', h('span.pill', { class: `verified-${v.provenance.verified}` }, v.provenance.verified)] : null),
           Object.keys(v.details).length ? box('Details', null, jsonView(v.details)) : null)))));
 }

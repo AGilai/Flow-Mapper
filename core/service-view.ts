@@ -4,6 +4,7 @@
 import type { GraphIndex } from './graph-index.ts';
 import { downstreamIngress, sid, upstreamEgress } from './graph-index.ts';
 import type { Ref } from './types.ts';
+import { codeLink } from './endpoint-info.ts';
 
 const viaText = (via: Ref[]) => via.map((v) => (v.type === 'channel' ? v.key : '')).filter(Boolean);
 
@@ -17,6 +18,7 @@ export function serviceView(g: GraphIndex, name: string) {
 
   const ingress = mine(g.model.ingress).map((i) => ({
     ...i,
+    at: codeLink(s, i.source),
     orphan: orphans.has(sid(i.service, i.id)),
     callers: upstreamEgress(g, i).map((u) => ({
       service: u.egress.service, egress: u.egress.id, bindKey: u.egress.bindKey,
@@ -26,6 +28,7 @@ export function serviceView(g: GraphIndex, name: string) {
 
   const egress = mine(g.model.egress).map((e) => ({
     ...e,
+    at: codeLink(s, e.source),
     dangling: dangling.has(sid(e.service, e.id)),
     usedBy: fns.filter((f) => f.steps.some((st) => st.type === 'egress' && st.target === e.id)).map((f) => f.id),
     targets: downstreamIngress(g, { type: 'egress', service: e.service, id: e.id }).map((d) => ({

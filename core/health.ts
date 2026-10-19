@@ -3,6 +3,7 @@
 import type { GraphIndex } from './graph-index.ts';
 import { eventReport } from './events.ts';
 import { stores } from './stores.ts';
+import { drift, mixedCommits, unresolvedItems, type UnresolvedItem } from './harvest-quality.ts';
 
 export interface ServiceHealth {
   service: string;
@@ -14,12 +15,13 @@ export interface ServiceHealth {
   ambiguous: number;
   eventIssues: number;     // unhandled, undelivered, never-arriving and declared-not-seen event types
   storeIssues: number;     // stores it shares writes to, or declares and never uses
+  unresolved: number;      // items its harvester could not resolve (reported, with a reason)
   coverage: number | null; // resolved egress / egress, null when the service has no egress
 }
 
 export interface HealthReport {
   env: string;
-  totals: Omit<ServiceHealth, 'service' | 'version' | 'eventIssues' | 'storeIssues'> & { services: number; links: number; brokenBindings: number } & Record<EventKind, number>;
+  totals: Omit<ServiceHealth, 'service' | 'version' | 'eventIssues' | 'storeIssues' | 'unresolved'> & { services: number; links: number; brokenBindings: number } & Record<EventKind, number>;
   services: ServiceHealth[];
   items: {
     dangling: { service: string; id: string; bindKey: string; transport: string }[];
@@ -34,12 +36,17 @@ export interface HealthReport {
     subscriptionConflicts: { service: string; from: string; to: string; declarations: { service: string; id: string; events: '*' | string[] }[] }[];
     multipleWriters: { service: string; key: string; kind: string; writers: string[] }[];
     unusedStores: { service: string; key: string; kind: string }[];
+    unresolved: UnresolvedItem[];
+    mixedCommits: { service: string; commit?: string; others: { commit: string; items: number }[] }[];
+    drift: { service: string; kind: string; id: string; provenance: unknown }[];
   };
 }
 
 export const EVENT_KINDS = ['unhandledEvents', 'undeliveredEvents', 'neverArrives', 'declaredNotSeen', 'subscriptionConflicts'] as const;
 export const STORE_KINDS = ['multipleWriters', 'unusedStores'] as const;
-type EventKind = (typeof EVENT_KINDS)[number] | (typeof STORE_KINDS)[number];
+/** Reported by the harvesters themselves; shown apart from link problems. */
+export const HARVEST_KINDS = ['unresolved', 'mixedCommits', 'drift'] as const;
+type EventKind = (typeof EVENT_KINDS)[number] | (typeof STORE_KINDS)[number] | (typeof HARVEST_KINDS)[number];
 
 export function health(g: GraphIndex): HealthReport {
   const r = g.resolution;
@@ -55,6 +62,9 @@ export function health(g: GraphIndex): HealthReport {
     multipleWriters: stores(g).filter((s) => s.writers.length > 1)
       .flatMap((s) => s.writers.map((w) => ({ service: w, key: s.key, kind: s.kind, writers: s.writers }))),
     unusedStores: stores(g).filter((s) => !s.used).flatMap((s) => s.services.map((svc) => ({ service: svc, key: s.key, kind: s.kind }))),
+    unresolved: unresolvedItems(g),
+    mixedCommits: mixedCommits(g),
+    drift: drift(g),
     dangling: r.dangling.map((e) => ({ service: e.service, id: e.id, bindKey: e.bindKey, transport: e.transport })),
     orphans: r.orphans.map((i) => ({ service: i.service, id: i.id, bindKey: i.bindKey, transport: i.transport })),
     unbound: r.unbound.map((u) => ({ service: u.channel.service, bindKey: u.channel.bindKey, kind: u.channel.kind, reason: u.reason })),
@@ -75,6 +85,7 @@ export function health(g: GraphIndex): HealthReport {
       ambiguous: count(items.ambiguous, s.name),
       eventIssues: EVENT_KINDS.reduce((n, k) => n + count(items[k], s.name), 0),
       storeIssues: STORE_KINDS.reduce((n, k) => n + count(items[k], s.name), 0),
+      unresolved: count(items.unresolved, s.name),
       coverage: egress ? (egress - dangling) / egress : null,
     };
   });
@@ -93,6 +104,7 @@ export function health(g: GraphIndex): HealthReport {
       ...Object.fromEntries(EVENT_KINDS.map((k) => [k, items[k].length])) as Record<EventKind, number>,
       multipleWriters: new Set(items.multipleWriters.map((x) => x.key)).size,
       unusedStores: new Set(items.unusedStores.map((x) => x.key)).size,
+      unresolved: items.unresolved.length, mixedCommits: items.mixedCommits.length, drift: items.drift.length,
       coverage: egressTotal ? (egressTotal - items.dangling.length) / egressTotal : null,
     },
     services: services.sort((a, b) => (a.coverage ?? 2) - (b.coverage ?? 2) || a.service.localeCompare(b.service)),

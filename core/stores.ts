@@ -4,7 +4,7 @@
 // `redis:cache-main`). Each use is classified as a read or a write from its operation.
 
 import type { GraphIndex } from './graph-index.ts';
-import { sourceLink, type SourceLink } from './endpoint-info.ts';
+import { codeLink, sourceLink, type SourceLink } from './endpoint-info.ts';
 import { entryPointsReaching, type EntryHit } from './reach.ts';
 import type { Resource, Step } from './types.ts';
 
@@ -26,7 +26,7 @@ export const groupOf = (key: string) => (key.includes('/') ? key.slice(0, key.in
 const leafName = (key: string) => (key.includes('/') ? key.slice(key.indexOf('/') + 1) : key);
 
 export interface StoreUse {
-  service: string; resource: string; access: Access;
+  service: string; resource: string; access: Access; declaredAt: SourceLink | null; verified: string | null;
   functions: { fn: string; name: string; source: SourceLink | null; operations: { operation: string; access: Access }[] }[];
 }
 export interface StoreSummary { key: string; name: string; kind: string; group: string; services: string[]; readers: string[]; writers: string[]; used: boolean }
@@ -73,7 +73,7 @@ export function storeView(g: GraphIndex, key: string): StoreView | null {
       operations: steps.map((s) => ({ operation: s.operation ?? 'use', access: accessOf(s) })),
     }));
     const access = functions.flatMap((f) => f.operations).reduce<Access>((a, o) => merge(a, o.access), 'unknown');
-    return { service: r.service, resource: r.id, access, functions };
+    return { service: r.service, resource: r.id, access, functions, declaredAt: codeLink(svc, r.source), verified: r.provenance?.verified ?? null };
   });
   return {
     ...summary,

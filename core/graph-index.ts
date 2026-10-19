@@ -2,7 +2,7 @@
 // so the expensive resolve() runs once per model change (server caches it per environment).
 
 import type { Binding, Channel, Egress, Fn, Ingress, Link, Model, Ref, Resolution, Resource, Service } from './types.ts';
-import { mergedChannels, refKey, resolve } from './resolve.ts';
+import { mergedChannels, refKey, resolve, withPlaceholderKeys } from './resolve.ts';
 
 export interface GraphIndex {
   model: Model;
@@ -20,7 +20,8 @@ export interface GraphIndex {
 
 export const sid = (service: string, id: string) => `${service}:${id}`;
 
-export function buildIndex(model: Model): GraphIndex {
+export function buildIndex(raw: Model): GraphIndex {
+  const model = withPlaceholderKeys(raw);
   const resolution = resolve(model);
   const by = <T extends { service: string; id: string }>(xs: T[]) => new Map(xs.map((x) => [sid(x.service, x.id), x]));
   const out = new Map<string, Link[]>();

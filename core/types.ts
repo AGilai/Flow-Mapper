@@ -8,6 +8,13 @@ export type Match = 'exact' | 'glob';
 export type ServiceKind = 'service' | 'gateway' | 'lambda' | 'infra';
 export type Details = Record<string, unknown>;
 
+/** Where an item is defined: code or IaC file and line. `commit`/`repo` override the service's for this item's link. */
+export interface Source { file?: string; line?: number; url?: string; repo?: string; commit?: string }
+/** Which harvester run produced an item, and whether it was checked against the live system. */
+export interface Provenance { producer?: string; runId?: string; verified?: 'match' | 'drift' | 'code-only' }
+/** Something the harvester found but could not resolve: the target (call or consumer) or the event type. */
+export interface Unresolved { what: 'target' | 'event'; reason: string; detail?: string; candidates?: string[] }
+
 export interface Service {
   name: string;
   kind: ServiceKind;
@@ -24,6 +31,7 @@ export interface Service {
 export interface Step {
   seq: number;
   type: 'call' | 'egress' | 'resource';
+  /** Absent only when `unresolved` says why (a call-graph gap). */
   target: string;
   mode?: Mode;
   operation?: string;
@@ -34,32 +42,37 @@ export interface Step {
   event?: string;
   /** For a resource step: read or write, when the operation name does not make it clear. */
   access?: 'read' | 'write';
+  unresolved?: Unresolved[];
 }
 
-export interface Fn { service: string; id: string; name: string; file?: string; line?: number; steps: Step[] }
+export interface Fn { service: string; id: string; name: string; file?: string; line?: number; commit?: string; steps: Step[] }
 /** An event type a consumer handles. `type` may be a glob (`Order*`, `*`); `producers` are declared, not derived. */
 export interface IngressEvent { type: string; handler: string; producers?: string[] }
 export interface Ingress {
   service: string; id: string; bindKey: string; match?: Match; transport: Transport;
   handler: string; entryPoint?: boolean; details?: Details;
   events?: IngressEvent[];
+  source?: Source; provenance?: Provenance; unresolved?: Unresolved[];
 }
 export interface Egress {
   service: string; id: string; bindKey: string; transport: Transport;
   mode?: Mode; delivery?: Delivery; details?: Details;
   /** Event types published through this egress (literal). */
   events?: string[];
+  source?: Source; provenance?: Provenance; unresolved?: Unresolved[];
 }
-export interface Resource { service: string; id: string; kind: string; name: string; bindKey?: string; details?: Details }
+export interface Resource { service: string; id: string; kind: string; name: string; bindKey?: string; details?: Details; source?: Source; provenance?: Provenance }
 export interface Channel {
   service: string; bindKey: string; kind: 'sns-topic' | 'sqs-queue' | 'amqp-exchange' | 'amqp-queue' | 'eventbridge-bus' | 'other';
   name?: string; delivery?: Delivery; details?: Details;
+  source?: Source; provenance?: Provenance;
 }
 export interface Binding {
   service: string; id: string; from: string; match?: Match; to: string;
   filter?: Details; details?: Details;
   /** Event types this subscription lets through: '*' or a list of names/globs. Absent means all. */
   events?: '*' | string[];
+  source?: Source; provenance?: Provenance;
 }
 
 /** Everything known about one environment. */
