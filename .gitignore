@@ -1,6 +1,6 @@
 node_modules/
-*.db
-*.db-journal
-.env
+data/
 dist/
-uploads/
+*.db
+*.db-*
+.env
