@@ -376,6 +376,23 @@
         },
         "id": 17
       }
+    },
+    {
+      "event": "PaymentFailed",
+      "content": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "Payment failed",
+        "type": "object",
+        "required": ["paymentId", "orderId", "reason"],
+        "properties": {
+          "paymentId": { "$ref": "#/$defs/id", "description": "The failed payment" },
+          "orderId": { "$ref": "#/$defs/id" },
+          "reason": { "type": "string", "enum": ["card_declined", "insufficient_funds", "expired_card", "fraud_suspected"], "description": "Why the provider refused it" },
+          "failedAt": { "type": "string", "format": "date-time" },
+          "attempt": { "type": "object", "properties": { "number": { "type": "integer" }, "retryAt": { "type": ["string", "null"], "format": "date-time" } } }
+        },
+        "$defs": { "id": { "type": "string", "description": "Opaque id", "pattern": "^[a-z]_[0-9a-f]+$" } }
+      }
     }
   ]
 }

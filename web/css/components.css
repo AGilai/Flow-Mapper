@@ -117,6 +117,28 @@ table.grid td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .json-n { color: var(--t-http); }
 .json-b { color: var(--t-amqp); }
 
+/* JSON Schema field table */
+.json-tools { align-items: center; flex-wrap: wrap; }
+.json-tools .btn, .json-tools .seg button { white-space: nowrap; }
+.json-tools .spacer { flex: 1; }
+.json-tools .seg { height: 24px; }
+.json-tools .seg button { height: 22px; font-size: var(--fs-xs); }
+.json-tree-tools { display: inline-flex; gap: var(--s1); }
+.json-view [hidden] { display: none; }
+.schema-view { background: var(--surface); overflow-x: auto; }
+.schema-title { margin: 0; padding: var(--s2) var(--s3); font-size: var(--fs-sm); color: var(--ink-2); border-bottom: 1px solid var(--line); }
+.schema-table th { position: static; font-size: var(--fs-xs); }
+.schema-table td { padding: 6px var(--s3); }
+.schema-table tbody tr:last-child td { border-bottom: 0; }
+.schema-table .key { word-break: normal; overflow-wrap: anywhere; }
+.schema-table { table-layout: auto; }
+.schema-field { min-width: 9em; }
+.schema-type { width: 9em; max-width: 9em; }
+.schema-desc { font-size: var(--fs-xs); color: var(--muted); margin-top: 2px; overflow-wrap: anywhere; }
+.schema-req { color: var(--ink); font-weight: 600; }
+.schema-table td:last-child { font-size: var(--fs-xs); white-space: nowrap; }
+.schema-empty { padding: var(--s3); color: var(--muted); font-size: var(--fs-sm); }
+
 /* ---- object icons (AWS Architecture Icons, brand logos) ---- */
 .obj-icon { flex: none; display: inline-block; vertical-align: middle; border-radius: 4px; }
 svg.obj-icon { color: var(--ink-2); }

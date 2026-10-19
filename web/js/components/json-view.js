@@ -1,6 +1,9 @@
 // Read-only JSON viewer: a collapsible tree (first two levels open) with copy and expand/collapse all.
+// A JSON Schema opens as a field table instead, with a toggle to the raw JSON.
 
 import { h, toast } from '../dom.js';
+import { isJsonSchema } from '../../core/json-schema.js';
+import { schemaTable } from './schema-table.js';
 
 export function jsonView(value) {
   const tree = h('div.json', node(value, null, 0));
@@ -9,12 +12,24 @@ export function jsonView(value) {
     try { await navigator.clipboard.writeText(JSON.stringify(value, null, 2)); toast('JSON copied'); }
     catch { toast('Copy is not available here'); }
   };
-  return h('div.json-view',
-    h('div.json-tools',
-      h('button.btn.ghost.xs', { type: 'button', on: { click: () => setAll(true) } }, 'Expand all'),
-      h('button.btn.ghost.xs', { type: 'button', on: { click: () => setAll(false) } }, 'Collapse all'),
-      h('button.btn.ghost.xs', { type: 'button', on: { click: copy } }, 'Copy')),
-    tree);
+  const btn = (label, click) => h('button.btn.ghost.xs', { type: 'button', on: { click } }, label);
+  const treeTools = [btn('Expand all', () => setAll(true)), btn('Collapse all', () => setAll(false))];
+  if (!isJsonSchema(value)) return h('div.json-view', h('div.json-tools', treeTools, btn('Copy', copy)), tree);
+
+  // A JSON Schema reads best as a field table; the raw JSON stays one click away.
+  const fields = schemaTable(value);
+  const modes = [['fields', 'Fields', fields], ['raw', 'Raw JSON', tree]];
+  const seg = h('div.seg.xs', { role: 'group', 'aria-label': 'View' });
+  const treeBox = h('span.json-tree-tools', treeTools);
+  const show = (m) => {
+    modes.forEach(([k, , el]) => { el.hidden = k !== m; });
+    treeBox.hidden = m !== 'raw';
+    seg.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === m)));
+  };
+  seg.append(...modes.map(([k, label]) => h('button', { type: 'button', 'data-mode': k, on: { click: () => show(k) } }, label)));
+  const view = h('div.json-view', h('div.json-tools', seg, h('span.spacer'), treeBox, btn('Copy', copy)), fields, tree);
+  show('fields');
+  return view;
 }
 
 function node(v, label, depth) {

@@ -75,7 +75,9 @@ Add `?source=ui` to mark edits made from a UI in the changelog.
 ## Endpoint info and DTOs
 
 An ingress endpoint can carry DTO JSON, stored under role `request` or `response`. Which roles an
-endpoint takes, and what they are called, depends on the endpoint (`core/endpoint-info.ts` `dtoSlots`):
+endpoint takes, and what they are called, depends on the endpoint (`core/endpoint-info.ts` `dtoSlots`).
+DTO content may be example JSON or a JSON Schema (`$schema`, or `type: object` with `properties`); the UI
+shows a schema as a field table (local `$ref` into `$defs`/`definitions` resolved) with a toggle to the raw JSON.
 
 | Endpoint | Roles (label) |
 |---|---|
