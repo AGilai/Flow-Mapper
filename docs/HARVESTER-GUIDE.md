@@ -21,7 +21,8 @@ Contract files: [`schema/manifest.schema.json`](../schema/manifest.schema.json) 
 
 1. Build the manifest (below). Use `kind: "full"` the first time and whenever in doubt.
 2. Validate without writing: `POST /api/ingest?dryRun=1`. It runs every check (schema, internal
-   references, version) and returns the changes it would make. Nothing is stored.
+   references, version) and returns the changes it would make, plus a `contract` report (below).
+   Nothing is stored.
 3. Send it: `POST /api/ingest`. Several at once: `{"manifests": [ ... ]}`.
 4. Push DTOs and store schemas (separate endpoints, below).
 5. Check the result: `GET /api/envs/{env}/health`. Calls with no match are almost always bind
@@ -31,6 +32,22 @@ Contract files: [`schema/manifest.schema.json`](../schema/manifest.schema.json) 
 curl -sS -X POST "$FLOW/api/ingest?dryRun=1" -H 'content-type: application/json' --data @manifest.json
 curl -sS -X POST "$FLOW/api/ingest"          -H 'content-type: application/json' --data @manifest.json
 ```
+
+**Contract report.** Every ingest result (dry or real) has `contract: {errors, warnings, infos,
+findings}`; each finding is `{level, code, service, kind, id, message, fix}`. It never rejects
+anything. Fix `error`s, read `warn`s, `info` is for completeness.
+
+| Code | Level | Means | Fix |
+|---|---|---|---|
+| `missing-bindkey-unexplained` | error | ingress/egress without `bindKey`, or step without `target`, and no `unresolved` | send the key, or `unresolved: [{what: "target", reason}]` |
+| `unresolved-no-reason` | warn | an `unresolved` entry with an empty `reason` or `detail` | say why and what you could not resolve |
+| `missing-source` | info | ingress/egress without `source.file`, or steps of a function without `file` (one finding per service) | send `source: {file, line}`, and `file` on functions |
+| `binding-no-events` | info | SNS/EventBridge subscription without `events`: everything is delivered | send the filter policy as `events`, or `"*"` |
+| `egress-no-events` | warn | publish to a topic/bus without `events` (or event `unresolved`): subscriber filters cannot be applied | send `events`, or `unresolved` what `event` with `candidates` |
+| `dangling-egress` | warn | `bindKey` matches no ingress or channel in the env | fix the key to match the callee; ignore if the callee is not harvested yet |
+| `filter-matches-nothing` | warn | subscription `events` match none of the types published to its source | fix the filter or the publisher's `events` |
+| `mixed-commit` | info | items scanned at a commit other than the manifest's | scan at one commit, or set `source.commit` |
+| `drift` | info | item you marked `provenance.verified: drift` | align code and live system |
 
 | Error | Status | Do this |
 |---|---|---|
@@ -233,7 +250,8 @@ Which DTO roles an endpoint takes depends on what it is; others are rejected (40
 
 ## Done when
 
-- `POST /api/ingest?dryRun=1` returns 200 for your manifest.
+- `POST /api/ingest?dryRun=1` returns 200 for your manifest, and its `contract` has no `error`
+  findings (and you have read the `warn`s).
 - After sending, `GET /api/envs/{env}/health` shows none of your egress under "calls with no
   match" (`items.dangling`) unless the target really is not harvested yet, and none of your
   ingress under "never called" (`items.orphans`) unless it is public (mark it `entryPoint`).

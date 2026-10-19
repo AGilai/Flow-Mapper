@@ -11,7 +11,22 @@ All endpoints are JSON unless noted. Errors look like
 |---|---|---|---|
 | POST | `/api/ingest` | a manifest, or `{"manifests": [...]}` | `kind: full` replaces the service; `kind: delta` patches it. `?dryRun=1` validates and returns the changes without writing (200) |
 
-Responses: `201 {results: [{env, service, fromVersion, toVersion, changes, changelogId}]}`.
+Responses: `201 {results: [{env, service, fromVersion, toVersion, changes, changelogId, contract}]}`;
+a dry run returns `200 {dryRun: true, results: [...]}` with the same result shape (nothing written).
+
+`contract` reports what the manifest leaves out or cannot link, judged against the env as it would be
+after the write. It never rejects:
+
+```json
+{"errors": 0, "warnings": 1, "infos": 1, "findings": [
+  {"level": "warn", "code": "dangling-egress", "service": "orders-svc", "kind": "egress", "id": "pay.charge",
+   "message": "egress 'pay.charge' (http:POST payments/charge) matches no ingress or channel in env 'prod'",
+   "fix": "Check the bindKey spelling against the callee's ingress or the declared channel; ..."}]}
+```
+
+`level` is `error`, `warn` or `info`; `kind` is `ingress`, `egress`, `step`, `binding`, `channel` or
+`service`. Codes are listed in HARVESTER-GUIDE.md ("Contract report"). Over MCP, `ingest_manifest`
+returns the same and takes `dryRun: true`.
 
 | Code | Status | Meaning | Harvester should |
 |---|---|---|---|

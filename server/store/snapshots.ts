@@ -5,13 +5,15 @@ import type { DB } from '../db/connection.ts';
 import { tx } from '../db/connection.ts';
 import { LISTS, keyOf, validateEntity, validateManifest, validateServiceHeader, type ListName } from '../schema.ts';
 import { integrityErrors } from '../../core/integrity.ts';
+import { buildIndex } from '../../core/graph-index.ts';
+import { contractReport, type ContractReport } from '../../core/contract.ts';
 import { conflict, invalid, notFound } from '../errors.ts';
 import type { Model, Service } from '../../core/types.ts';
 
 type Entities = Partial<Record<ListName, any[]>>;
 export type Source = 'api' | 'ui' | 'mcp' | 'seed';
 export interface Changes { added: Partial<Record<ListName, string[]>>; changed: Partial<Record<ListName, string[]>>; removed: Partial<Record<ListName, string[]>> }
-export interface WriteResult { env: string; service: string; fromVersion: number | null; toVersion: number; changes: Changes; changelogId: number }
+export interface WriteResult { env: string; service: string; fromVersion: number | null; toVersion: number; changes: Changes; changelogId: number; contract?: ContractReport }
 
 const now = () => new Date().toISOString();
 
@@ -149,7 +151,9 @@ function apply(db: DB, manifest: any, source: Source, dryRun: boolean): WriteRes
     upsertSnapshot(db, env, header, manifest.version, manifest.harvestedAt, manifest.commit);
     replaceEntities(db, env, name, after);
     const changelogId = writeChangelog(db, env, name, cur?.version ?? null, manifest.version, manifest.kind, source, changes);
-    const result = { env, service: name, fromVersion: cur?.version ?? null, toVersion: manifest.version, changes, changelogId };
+    // what the manifest leaves out or cannot link, judged against the env as it would be after this write
+    const contract = contractReport({ service: name, ...after }, buildIndex(loadModel(db, env)));
+    const result = { env, service: name, fromVersion: cur?.version ?? null, toVersion: manifest.version, changes, changelogId, contract };
     if (dryRun) throw new DryRun(result); // tx rolls back
     return result;
   });

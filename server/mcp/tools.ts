@@ -79,9 +79,9 @@ export const TOOLS: Tool[] = [
     run: (c, a) => store.listChangelog(c.db, envOf(a), { service: a.service, limit: Math.min(a.limit ?? 20, 200) }),
   },
   {
-    name: 'ingest_manifest', description: 'Submit a harvester manifest (kind full or delta). See schema/manifest.schema.json.',
-    inputSchema: obj({ manifest: { type: 'object' } }, ['manifest']),
-    run: (c, a) => { const r = store.ingest(c.db, a.manifest, 'mcp'); c.changed(r.env); return r; },
+    name: 'ingest_manifest', description: 'Submit a harvester manifest (kind full or delta). See schema/manifest.schema.json. The result has a `contract` report (what the manifest leaves out or cannot link, with a fix per finding). dryRun: true validates and reports without writing.',
+    inputSchema: obj({ manifest: { type: 'object' }, dryRun: { type: 'boolean' } }, ['manifest']),
+    run: (c, a) => { const r = store.ingest(c.db, a.manifest, 'mcp', { dryRun: !!a.dryRun }); if (!a.dryRun) c.changed(r.env); return a.dryRun ? { dryRun: true, ...r } : r; },
   },
   {
     name: 'upsert_entity', description: `Create or replace one entity of a service. list: ${LISTS.join(', ')}.`,
