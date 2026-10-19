@@ -15,6 +15,12 @@ graph, humans use the web UI, agents use MCP.
 - No dependencies. Node ≥ 22.18 runs `.ts` directly. Do not add packages without asking.
 - Schema changes edit `server/db/migrations/001_init.sql` (no incremental migrations yet); then `npm run db:install -- --force`.
 - `npm test` must pass. `npm run seed` loads samples; `npm run seed:mock` loads 100 mock services.
+- One suite: `node --disable-warning=ExperimentalWarning --test tests/core.test.ts`; add
+  `--test-name-pattern='<regex>'` for one test. API tests use `startApp()` in `tests/helpers.ts`
+  (random port, temp DB), so they never touch `data/`.
+- CI runs `npm test` and `npm run preview`, so the static preview build has to keep working too.
+- Scratch server without touching `data/`: set `FLOW_DB` / `FLOW_DATA_DIR` and `PORT` (see `server/config.ts`).
+- Commits fixing a harvester bug are titled `Fix #<bug id>: …`; user-visible fixes bump `version` in `package.json`.
 - `npm run dev` serves UI + API + MCP on :3000. `npm run preview` builds a static UI into `dist/preview`.
 - core/ is pure and shared with the browser: no `node:` imports, `import type` for types.
 - Keep files small (~250 lines) and single-purpose; read only the file you need.
@@ -26,7 +32,7 @@ graph, humans use the web UI, agents use MCP.
   `node --disable-warning=ExperimentalWarning scripts/seed.ts` (no `--bugs`).
 - Restart the server by stopping the process whose command line is exactly
   `node --disable-warning=ExperimentalWarning server/main.ts` (`pgrep -f -x`; a loose pattern
-  matches your own shell), then `setsid nohup data/serve.sh &`.
+  matches your own shell), then `setsid nohup data/serve.sh &`. Its output goes to `data/server.log`.
 - Bugs from harvesters are handled by `docs/BUG-LOOP.md`. CI (`.github/workflows/test.yml`) runs
   the tests on every push.
 
@@ -34,3 +40,8 @@ graph, humans use the web UI, agents use MCP.
 - Non-trivial features: the lead session writes a self-contained brief; an implementer agent works
   in its own git worktree; a separate QA agent runs the tests, reviews the diff and checks the UI
   with the headless browser in `/home/ubuntu/tools/qa-browser` before merge. Small fixes stay inline.
+- UI work: design before code. Follow `docs/UI-GUIDE.md` and the frontend-design skill
+  (`~/.claude/plugins/cache/claude-plugins-official/frontend-design/*/skills/frontend-design/SKILL.md`).
+  New or reworked pages start as a static mockup in `design/mockups/` that the maintainer approves;
+  the implementer builds to it and a designer agent compares screenshots with the mockup before merge.
+  `design/AUDIT.md` lists the known readability problems per page.
