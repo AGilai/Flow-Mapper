@@ -38,6 +38,17 @@ comments). The repo is your worktree; the live checkout is `/home/ubuntu/Flow-Ma
 - **Unclear**: comment the question, set `triaged`.
 - **Already possible / not a Flow-Mapper problem**: comment how; `wont_fix` if appropriate.
 
+Reproduce first. The reporter's data usually is not on this server. For a bug about what the map
+shows or how things link:
+- No manifest attached: comment asking for the evidence listed in `docs/HARVESTER-GUIDE.md`
+  ("Attach the evidence"), set `triaged`, and stop there for that bug.
+- Attached: load the manifest into a scratch DB (`FLOW_DATA_DIR=<tmp> PORT=3100`, never the live
+  `data/`), run `POST /api/ingest?dryRun=1` and look at its `contract` section, then reproduce.
+  If the manifest is what is wrong (a missing `events`, `source`, `detail`, bind key …), do not change
+  code: comment exactly what to change in the manifest and set `triaged` (or `wont_fix` if nothing
+  on our side). Only a problem that reproduces with their data is fixed in code.
+- Contract or feature requests (a field that does not exist yet) need no reproduction.
+
 Fixing:
 - Keep schema changes additive (optional fields). Change the schema, samples,
   `docs/HARVESTER-GUIDE.md` and `docs/API.md` together. If `server/db/migrations/001_init.sql`

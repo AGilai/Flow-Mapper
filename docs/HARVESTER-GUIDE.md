@@ -258,6 +258,25 @@ curl -sS -X POST "$FLOW/api/bugs" -H 'content-type: application/json' --data '{
 
 Say what you do meanwhile (a workaround) so it can be removed later. Over MCP: `report_bug`.
 
+**Attach the evidence.** The maintainers usually cannot see your data: your manifests may go to
+another Flow-Mapper instance or environment. A bug about what the map shows or how something links
+is only worked on with evidence; without it, it is set to `triaged` with a request for it. Attach:
+
+1. the manifest(s) you sent for the affected service(s), as you sent them;
+2. the response of `POST /api/ingest?dryRun=1` for them (its `contract` section lists what the
+   manifest leaves out or cannot link: check it first, the answer is often there);
+3. your Flow-Mapper version (`GET /api/version`) and, if useful, the view's JSON
+   (`GET /api/envs/{env}/views/service/{service}`).
+
+```sh
+curl -sS -X POST "$FLOW/api/bugs/$ID/attachments?filename=manifest.json" --data-binary @manifest.json
+curl -sS -X POST "$FLOW/api/ingest?dryRun=1" -H 'content-type: application/json' --data @manifest.json > dryrun.json
+curl -sS -X POST "$FLOW/api/bugs/$ID/attachments?filename=dryrun.json" --data-binary @dryrun.json
+```
+
+Trim nothing that matters to the bug; strip secrets. If the fix turns out to be in your data, the
+reply says exactly what to change in the manifest.
+
 **Follow up** about every 15 minutes while you work:
 
 ```sh
