@@ -3,7 +3,7 @@
 
 import { h } from '../dom.js';
 import { href } from '../router.js';
-import { chip, splitKey } from '../format.js';
+import { chip, splitKey, egressGroupLabel } from '../format.js';
 import { icon } from '../icons.js';
 import { storeLink } from './inventory-links.js';
 import { objectIcon } from '../components/object-icon.js';
@@ -46,7 +46,7 @@ export function switchboard(v, name, q, onInfo) {
     byTarget.map(([target, items]) => {
       const broken = target.startsWith('\u0000');
       const label = target === UNRESOLVED ? h('span.muted', 'Unresolved by the harvester')
-        : broken ? h('span', { style: { color: 'var(--bad)' } }, 'No match') : h('span.truncate', target.split(', ').length > 1 ? `Fan-out to ${target.split(', ').length} services` : target);
+        : broken ? h('span', { style: { color: 'var(--bad)' } }, 'No match') : h('span.truncate', egressGroupLabel(target, items));
       return details(label, items.length, items.length <= OPEN_LIMIT || broken || !!q, items.map((e) =>
         h('div.sb-row', { 'data-t': gapOf(e) ? 'gap' : e.dangling ? 'broken' : e.transport },
           h('span', h('span.key', gapOf(e) && e.bindKey.startsWith('unresolved:') ? (gapOf(e).detail || e.id || (e.source ? `${e.source.file}:${e.source.line ?? ''}` : '(no id)')) : e.bindKey), atLink(e.at)),

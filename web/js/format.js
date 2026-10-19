@@ -53,3 +53,15 @@ export function filterChips(events) {
     neg.length ? h('span.ep-producer.except', { title: `Passes every event except: ${neg.join(', ')}` }, pos.length ? 'except ' : 'all except ', h('span.key', neg.join(', '))) : null,
   ];
 }
+
+/** Egress group title. `key` is the confirmed targets joined by ', ', or 'Maybe a, b' when only unresolved events could reach them.
+ *  Confirmed targets are counted; 'maybe' consumers are shown apart so they never read as confirmed. */
+export function egressGroupLabel(key, items) {
+  const onlyMaybe = key.startsWith('Maybe ');
+  const confirmed = onlyMaybe ? [] : key.split(', ');
+  const maybe = onlyMaybe ? key.slice(6).split(', ')
+    : [...new Set(items.flatMap((e) => (e.maybeTargets ?? []).map((t) => t.service)))].filter((x) => !confirmed.includes(x));
+  if (onlyMaybe && maybe.length === 1) return key;
+  const tail = maybe.length ? (confirmed.length ? ` (+${maybe.length} maybe)` : ` (${maybe.length} maybe)`) : '';
+  return (confirmed.length === 1 ? confirmed[0] : `Fan-out to ${confirmed.length}${confirmed.length ? ' services' : ''}`) + tail;
+}
