@@ -40,7 +40,7 @@ function fanout(v) {
   const isBus = v.kind === 'eventbridge-bus';
   const rows = v.flow.rows;
   const queues = rows.every((r) => /queue/.test(r.to.kind));
-  const widths = ['minmax(150px, 0.8fr)', '24px', 'minmax(120px, 0.6fr)', '28px', 'minmax(190px, 0.9fr)', 'minmax(150px, 1.2fr)', '24px', 'minmax(170px, 1.2fr)'];
+  const widths = ['minmax(150px, 0.8fr)', '24px', 'minmax(170px, 0.6fr)', '28px', 'minmax(260px, 1.3fr)', 'minmax(200px, 1fr)', '24px', 'minmax(170px, 1.2fr)'];
   const heads = ['Publisher', '', NOUN[v.kind] ?? 'Channel', '', isBus ? 'Rule' : 'Subscription filter', queues ? 'Queue' : 'Target', '', 'Consumer and handler'];
   const publisher = () => h('div.lane-stack',
     v.publishers.length ? publisherNode(v.publishers) : h('div.lane-node.empty', 'No harvested service publishes here. The publisher\'s harvester may be missing.'),
@@ -74,7 +74,7 @@ function inbound(v) {
   const here = { key: v.key, name: v.name, kind: v.kind, known: true };
   const qt = transportOf(v.kind);
   const topics = rows.every((r) => !r.from || r.from.kind === 'sns-topic');
-  const widths = ['minmax(130px, 0.8fr)', '28px', 'minmax(190px, 0.9fr)', '40px', 'minmax(160px, 1.2fr)', '24px', 'minmax(180px, 1.2fr)'];
+  const widths = ['minmax(130px, 0.8fr)', '28px', 'minmax(260px, 1.3fr)', '40px', 'minmax(200px, 1fr)', '24px', 'minmax(180px, 1.2fr)'];
   const heads = [topics ? 'Topic' : 'Source', '', 'Subscription filter', '', 'This queue', '', 'Consumer and handler'];
   const draw = (shown, control) => {
     const n = Math.max(shown.length, 1);
@@ -85,12 +85,11 @@ function inbound(v) {
       lanes.put(consumerNode(v.flow.consumers), 2, 0);
       return lanes.el;
     }
-    const sticky = shown.length > STICKY_ROWS;
     const ts = shown.map((r) => (r.from ? transportOf(r.from.kind) : 'async'));
-    const joinT = new Set(ts).size === 1 ? ts[0] : 'async';
     const lanes = flowLanes(heads.map((head, i) => ({ head, width: widths[i] })), {
       footer: control,
       hint: 'Scroll to see the queue and its consumers',
+      hintSeen: 'Scroll to see the consumers',
       legend: legendFor([...ts, qt], rows.some((r) => r.filter && !r.filter.agree) ? 'sns' : null),
     });
     shown.forEach((row, i) => {
@@ -98,14 +97,15 @@ function inbound(v) {
       lanes.arrow(1, i, ts[i]);
       lanes.put(filterFor(row, ts[i], { tip: false }), 2, i);
     });
-    if (n === 1) lanes.arrow(3, 0, joinT, { dash: !!shown[0].filter && !shown[0].filter.agree });
+    // The queue and its consumers sit level with the first row: that is where the merge line ends.
+    if (n === 1) lanes.arrow(3, 0, ts[0], { dash: !!shown[0].filter && !shown[0].filter.agree });
     else {
       lanes.merge(3, 0, n, ts, shown.map((r) => !!r.filter && !r.filter.agree));
-      lanes.arrow(3, 0, joinT, { span: n, half: true, top: sticky });
+      lanes.arrow(3, 0, qt, { half: true });
     }
-    lanes.put(channelNode(here, { here: true }), 4, 0, n, { sticky });
-    lanes.arrow(5, 0, qt, { span: n, top: sticky });
-    lanes.put(consumerNode(v.flow.consumers), 6, 0, n, { sticky });
+    lanes.put(channelNode(here, { here: true }), 4, 0);
+    lanes.arrow(5, 0, qt);
+    lanes.put(consumerNode(v.flow.consumers), 6, 0);
     return lanes.el;
   };
   return showAll(rows, ROW_LIMIT, draw, 'upstream sources');

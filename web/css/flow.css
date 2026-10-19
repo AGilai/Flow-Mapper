@@ -113,7 +113,7 @@
 .decl .who a { color: var(--accent); }
 .decl.disagree { border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent); background: color-mix(in srgb, var(--warn) 7%, var(--surface)); gap: 6px; }
 .decl-tag { display: flex; align-items: center; gap: 6px; font-size: var(--fs-xs); font-weight: 600; color: var(--warn); }
-.decl-tag svg { width: 14px; height: 14px; }
+.decl-tag .ic { width: 14px; height: 14px; border-radius: 50%; flex: none; display: grid; place-items: center; font-size: 10px; font-weight: 700; color: #fff; background: var(--warn); }
 .claim { display: grid; grid-template-columns: auto 1fr; gap: 2px var(--s2); align-items: baseline; font-size: var(--fs-xs); }
 .claim .src { color: var(--ink-2); font-weight: 600; }
 .claim .src a { font-weight: 400; }

@@ -3,7 +3,6 @@
 // source with the differing value highlighted. See docs/UI-GUIDE.md §3.
 
 import { h } from '../dom.js';
-import { icon } from '../icons.js';
 import { filterChips } from './event-chips.js';
 
 /** Plain-language gloss for the provenance words. */
@@ -27,7 +26,7 @@ export function declaration(filter) {
   }
   const n = filter.declarations.length;
   return h('div.decl.disagree',
-    h('div.decl-tag', icon('health'), `${n} declarations disagree on the filter`),
+    h('div.decl-tag', h('span.ic', { 'aria-hidden': 'true' }, '!'), `${n} declarations disagree on the filter`),
     filter.declarations.map((d) => h('div.claim',
       h('span.src', d.service, source(d, true)),
       h('span.val', filterChips(d.events, { limit: 3, cls: 'diff', nowrap: d.events === '*' || d.events.length <= 2 }), Array.isArray(d.events) && !d.events.some((e) => e.startsWith('!')) ? h('span.who', 'only') : null),

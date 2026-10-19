@@ -13,15 +13,19 @@ export const transportOf = (kind) => TRANSPORT[kind] ?? 'async';
  * cols: [{ head, width }]; width is a CSS track size, head '' for connector columns.
  * `footer` sits directly under the last row (above the legend); `hint` is shown while the lanes scroll.
  */
-export function flowLanes(cols, { legend = [], footer = null, hint = 'Scroll to see the rest of the flow' } = {}) {
+export function flowLanes(cols, { legend = [], footer = null, hint = 'Scroll to see the rest of the flow', hintSeen = null } = {}) {
   const grid = h('div.lane-grid', { style: { gridTemplateColumns: cols.map((c) => c.width).join(' ') } });
   const scroller = h('div.lane-scroll', grid);
-  const el = h('div.lanes', scroller, h('p.lane-hint', hint), footer, legend.length ? h('div.lane-legend', legend.map((l) => h('span', { class: l.dash ? 'dash' : '', 'data-t': l.t }, l.text))) : null);
+  const hintEl = h('p.lane-hint', hint);
+  const el = h('div.lanes', scroller, hintEl, footer, legend.length ? h('div.lane-legend', legend.map((l) => h('span', { class: l.dash ? 'dash' : '', 'data-t': l.t }, l.text))) : null);
   cols.forEach((c, i) => grid.append(h('div.lane-head', { style: { gridColumn: String(i + 1), gridRow: '1' } }, c.head)));
   // Scrolling is only switched on when needed: an overflow container would stop the sticky nodes sticking.
   const check = () => {
     const wide = scroller.scrollWidth > scroller.clientWidth + 4;
     el.classList.toggle('scrolls', wide);
+    // Once the page's own channel is in view, the hint names only what is still off-screen.
+    const here = grid.querySelector('.lane-node.here');
+    if (hintSeen && here) hintEl.textContent = here.getBoundingClientRect().right <= scroller.getBoundingClientRect().right + 1 ? hintSeen : hint;
     el.classList.toggle('at-end', !wide || scroller.scrollLeft + scroller.clientWidth >= scroller.scrollWidth - 4);
   };
   scroller.addEventListener('scroll', check, { passive: true });

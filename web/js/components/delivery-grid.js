@@ -36,13 +36,16 @@ export function deliveryGrid(grid, { limit = 8 } = {}) {
     h('th', eventLink(r.type), h('span.xs', `from ${r.producers.join(', ') || 'unknown'}`)), r.cells.map(cell)))));
   const full = showAll(grid.rows, limit, (rows, control) => h('div', h('div.matrix-wrap', body(rows)), control), 'event types');
 
-  const allHandled = grid.rows.length > 1 && dests.length && grid.rows.every((r) => r.cells.every((c) => c.status === 'handled' && !c.uncertain && !c.possible));
+  const allHandled = grid.rows.length > 1 && dests.length && grid.rows.every((r) => r.cells.every((c) => c.status === 'handled' && !c.uncertain));
   if (!allHandled) return full;
   const consumers = [...new Set(dests.map((d) => d.consumer?.service))];
   const handlers = [...new Set(dests.map((d) => d.consumer?.handler))];
-  const sentence = `All ${grid.rows.length} event types are handled by ${list(consumers)}${dests.length === 1 && handlers.length === 1 ? ' in ' : ''}`;
+  const maybe = grid.rows.filter((r) => r.possible).length;
+  const inHandler = dests.length === 1 && handlers.length === 1 ? ' in ' : '';
+  const sentence = maybe ? `All handled by ${list(consumers)}${inHandler}` : `All ${grid.rows.length} event types are handled by ${list(consumers)}${inHandler}`;
+  const tail = maybe ? `, except ${maybe} possible.` : '.';
   const wrap = h('div.matrix-collapsed');
-  const draw = (open) => wrap.replaceChildren(open ? full : h('p.matrix-line', sentence, dests.length === 1 ? h('span.mono', handlers[0]) : null, '.'),
+  const draw = (open) => wrap.replaceChildren(open ? full : h('p.matrix-line', sentence, dests.length === 1 ? h('span.mono', handlers[0]) : null, tail),
     h('button.btn.ghost.show-more', { type: 'button', on: { click: () => draw(!open) } }, open ? 'Show less' : 'Show all event types'));
   draw(false);
   return wrap;
