@@ -32,7 +32,7 @@ with one column per hop and a header over each column.
 | Page | Lanes |
 |---|---|
 | SNS topic / EventBridge bus | publisher → topic → subscription filter / rule → queue → consumer · handler |
-| SQS / AMQP queue | upstream topic (with its filter) → queue → consumer · handler |
+| SQS / AMQP queue | source (topic or bus) → subscription filter → **this queue** → consumer · handler. Several sources join in a merge bracket, with one arrow into the queue |
 | Event type | producer → channel(s) → queue → consumer · handler |
 | Data store | caller function → operation (read/write) → store |
 | Service | ingress (callers) → service → egress (targets) |
@@ -43,6 +43,15 @@ with one column per hop and a header over each column.
 - One row per path. A shared upstream node (publisher, topic) spans all its rows, with a fan-out
   bracket.
 - The filter or rule belongs **on the connector** between topic and queue, not in a separate list.
+- The consumer node shows the endpoint, "calls" and the handler (`in.events calls ingest_event`),
+  then what it handles; beyond 3 event types it shows "+N more".
+- A filter that lets everything through is a small "all events" label on the connector, not a box.
+  Boxes are for real filters and for disagreements.
+- Beyond 4 rows the shared nodes (publisher, topic, queue, consumer) stay in view while you scroll
+  the lanes. Beyond 8 rows the lanes collapse, with "Show all N" directly under the last row.
+- When the lanes are wider than the page they scroll inside their card, with a fade on the right
+  edge and a hint that says what is off-screen.
+- Identifiers break after `-`, `.` and `_` (use `<wbr>`), never in the middle of a word.
 - Do: one "How events flow" lane block.
   Don't: separate "Published by", "Subscriptions" and "Consumed by" boxes stacked vertically.
 
@@ -69,6 +78,13 @@ declarations by identity (for example a `from`+`to` subscription, or a channel k
 - Use a matrix when a status depends on two things (event type × destination): rows are event
   types, columns are destinations, and the cell says "handled · onOrderPlaced", "filtered out" or
   "arrives, no handler".
+- Status words are fixed: **Handled**, **Arrives, no handler**, **Filtered out**, **No reader**
+  and **Possible** (muted: the publisher could only say the event is one of several candidates;
+  never counted as a problem).
+- A callout about a row ends with a "Show the row" link that scrolls to the row and flashes it
+  (and expands the list if the row is collapsed).
+- When everything in a grid is Handled, collapse it to one sentence ("All 11 event types are
+  handled by analytics-svc in `ingest_event`") with "Show all event types".
 - Every warning says **why** and **what follows**: "arrives, no handler, if shipping-svc's
   'all events' is right".
 - Do: tint the problem cell. Don't: a red `unhandled` pill at the far end of a truncated
@@ -83,7 +99,8 @@ whether the zero is normal for this kind of object.
 - Explain structural zeros: an SNS topic has no direct consumers, so say "Delivered through 3 queue
   subscriptions" instead of "Consumers 0". A queue has no subscriptions, so hide that box.
 - Hide sections that cannot apply to the kind (subscriptions on a queue, "Other keys in X: None").
-- Name the next step for real gaps: "Nothing publishes here. The harvester for X may be missing."
+- Name the next step for real gaps, left-aligned: "No harvested service reads this queue. Its
+  consumer's harvester may be missing."
 - Use `--bad` red only for a non-zero problem count. A zero is `--muted`, not green and not red.
 - Do: "No problems". Don't: a "0 Problems" tile with the same weight as real counts.
 
@@ -108,8 +125,8 @@ whether the zero is normal for this kind of object.
 - One weight step per level: the page title `--fs-lg`/600, section titles `--fs-md`/600, body
   `--fs-sm`/400, meta `--fs-xs` in `--muted`. Don't use `<h2>` at `--fs-lg` for every box: that
   turns six boxes into six equal headlines.
-- Column headers over lanes are `--fs-xs`, uppercase, 600, in `--muted`. Never uppercase an
-  identifier (service, queue or event name).
+- Column headers over lanes are `--fs-xs`, sentence case, 600, in `--muted`. Never uppercase
+  anything: identifiers (service, queue, event name) keep their spelling.
 - Show counts in the box title as plain `--muted` text ("Subscriptions 3"), not as a second number
   tile.
 

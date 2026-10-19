@@ -5,8 +5,8 @@ import { h } from '../dom.js';
 export const evChip = (type, cls = '') => h('span.ev-chip', { class: cls }, type);
 
 /** Chips for a list of event types; beyond `limit` a "+N more" button expands the rest. */
-export function eventChips(types, { limit = 3, cls = '' } = {}) {
-  const wrap = h('span.chips');
+export function eventChips(types, { limit = 3, cls = '', nowrap = false } = {}) {
+  const wrap = h('span.chips', { class: nowrap ? 'nowrap' : '' });
   const draw = (all) => wrap.replaceChildren(...[
     ...(all ? types : types.slice(0, limit)).map((t) => evChip(t, cls)),
     !all && types.length > limit
@@ -18,11 +18,11 @@ export function eventChips(types, { limit = 3, cls = '' } = {}) {
 }
 
 /** A subscription filter: "all events", the accepted names, or "all except x" for '!' entries. */
-export function filterChips(events, { limit = 4, cls = '' } = {}) {
-  if (events === '*') return h('span.chips', h('span.all-chip', { class: cls }, 'all events'));
+export function filterChips(events, { limit = 4, cls = '', nowrap = false } = {}) {
+  if (events === '*') return h('span.chips', { class: nowrap ? 'nowrap' : '' }, h('span.all-chip', { class: cls }, 'all events'));
   const pos = events.filter((e) => !e.startsWith('!'));
   const neg = events.filter((e) => e.startsWith('!') && e.length > 1).map((e) => e.slice(1));
-  return h('span.chips',
-    pos.length ? eventChips(pos, { limit, cls }) : null,
-    neg.length ? [h('span.all-chip', { class: cls }, pos.length ? 'except' : 'all except'), eventChips(neg, { limit, cls })] : null);
+  return h('span.chips', { class: nowrap ? 'nowrap' : '' },
+    pos.length ? eventChips(pos, { limit, cls, nowrap }) : null,
+    neg.length ? [h('span.all-chip', { class: cls }, pos.length ? 'except' : 'all except'), eventChips(neg, { limit, cls, nowrap })] : null);
 }

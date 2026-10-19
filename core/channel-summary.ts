@@ -35,12 +35,15 @@ function sentence(i: Input): Segment[] {
   }
   const noun = NOUN[i.kind] ?? 'channel';
   const pubs = [...new Set(i.publishers.map((p) => p.service))];
-  const n = i.grid.rows.length;
+  const n = i.grid.rows.filter((r) => !r.possible).length;
+  const maybe = i.grid.rows.length - n;
   if (!pubs.length) t('No harvested service publishes here yet');
   else {
     t(pubs.length > 2 ? plural(pubs.length, 'service') : list(pubs), true);
     t(pubs.length === 1 ? ' publishes ' : ' publish ');
-    if (n) { t(plural(n, 'event type'), true); t(' here'); } else t('here, but its event types are not listed');
+    if (n) { t(plural(n, 'event type'), true); t(' here'); if (maybe) t(`, and possibly ${maybe} more`); }
+    else if (maybe) { t('here, possibly '); t(plural(maybe, 'event type'), true); }
+    else t('here, but its event types are not listed');
   }
   if (!i.rows.length) { t('.'); return seg; }
   const queues = i.rows.every((r) => /queue/.test(r.to.kind));
@@ -71,9 +74,9 @@ export function flowSummary(i: Input): Summary {
     const maybe = new Set<string>();
     i.grid.destinations.forEach((dest, d) => {
       if (dest.rowId !== row.id && i.layout === 'fanout') return;
-      const evs = eventsWhere(d, (c) => c.uncertain);
+      const evs = eventsWhere(d, (c) => c.uncertain && !c.possible);
       evs.forEach((e) => maybe.add(e));
-      const nh = eventsWhere(d, (c) => c.uncertain && c.status === 'no-handler');
+      const nh = eventsWhere(d, (c) => c.uncertain && !c.possible && c.status === 'no-handler');
       if (nh.length && dest.consumer) noHandler.push(`${some(nh)} may reach ${dest.consumer.service}, which has no handler for ${nh.length === 1 ? 'it' : 'them'}`);
     });
     const tail = noHandler.length ? `, so ${list(noHandler)}.`
@@ -85,7 +88,7 @@ export function flowSummary(i: Input): Summary {
   // Events that arrive where nothing handles them, for sure.
   i.grid.destinations.forEach((dest, d) => {
     if (!dest.consumer) return;
-    const evs = eventsWhere(d, (c) => !c.uncertain && c.status === 'no-handler');
+    const evs = eventsWhere(d, (c) => !c.uncertain && !c.possible && c.status === 'no-handler');
     if (!evs.length) return;
     const prefix = i.layout === 'fanout' && dest.queue ? `${dest.queue.name}: ` : '';
     callouts.push({ text: `${prefix}${some(evs)} ${evs.length === 1 ? 'reaches' : 'reach'} ${dest.consumer.service}, which has no handler for ${evs.length === 1 ? 'it' : 'them'}.`, rowId: dest.rowId || null, level: 'warn' });
@@ -93,7 +96,7 @@ export function flowSummary(i: Input): Summary {
 
   // Published, but every subscription filters it out.
   if (i.layout === 'fanout' && i.grid.destinations.length) {
-    const lost = i.grid.rows.filter((r) => r.cells.every((c) => c.status === 'filtered')).map((r) => r.type);
+    const lost = i.grid.rows.filter((r) => !r.possible && r.cells.every((c) => c.status === 'filtered')).map((r) => r.type);
     if (lost.length) callouts.push({ text: `${some(lost)} ${lost.length === 1 ? 'is' : 'are'} published here, but no subscription lets ${lost.length === 1 ? 'it' : 'them'} through.`, rowId: null, level: 'warn' });
   }
   // The resolver's terse reasons, in the reader's words. A queue nobody reads is already in the sentence.
@@ -101,7 +104,7 @@ export function flowSummary(i: Input): Summary {
   for (const reason of i.unbound) {
     if (reason === 'queue has no consumer') continue;
     if (reason === 'bus has no rule') callouts.push({ text: 'No rule sends events from this bus anywhere yet, so events published here are not delivered.', rowId: null, level: 'warn' });
-    else if (NOUN_OF[reason]) callouts.push({ text: `Nothing subscribes to this ${NOUN_OF[reason]} yet, so events published here are not delivered anywhere.`, rowId: null, level: 'warn' });
+    else if (NOUN_OF[reason]) callouts.push({ text: `Nothing subscribes to this ${NOUN_OF[reason]} yet, so events published here are not delivered anywhere. The subscribing service's harvester may be missing.`, rowId: null, level: 'warn' });
     else callouts.push({ text: reason, rowId: null, level: 'warn' });
   }
   return { text: segments.map((s) => s.t).join(''), segments, callouts };

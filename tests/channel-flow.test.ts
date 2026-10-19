@@ -102,6 +102,40 @@ test('a topic nobody subscribes to explains itself, and a queue nobody reads get
   assert.match(unread.summary.text, /no harvested reader yet/);
 });
 
+test('candidate event types show as possible and are not counted as problems', () => {
+  const m = model({
+    egress: [{ service: 'pub', id: 'out', bindKey: 'sns:t', transport: 'sns', events: ['A'], unresolved: [{ what: 'event', reason: 'dynamic', candidates: ['B', 'C'] }] }],
+    bindings: [{ service: 'infra', id: 's1', from: 'sns:t', to: 'sqs:q', events: '*' }],
+  });
+  const f = flow(m, 'sns:t');
+  const row = (t: string) => f.grid.rows.find((r) => r.type === t)!;
+  assert.equal(row('A').possible, undefined);
+  assert.equal(row('B').possible, true);
+  assert.equal(row('B').cells[0].possible, true);
+  assert.equal(row('B').cells[0].status, 'no-handler'); // the consumer lists A only
+  assert.equal(f.summary.text, 'pub publishes 1 event type here, and possibly 2 more; the topic fans out to 1 queue, read by 1 service.');
+  assert.equal(f.summary.callouts.length, 0);
+  assert.equal(flow(m, 'sqs:q').grid.rows.length, 3);
+});
+
+test('a topic that forwards to another topic resolves the consumers through the chain, with its filters', () => {
+  const m = model({
+    channels: [{ service: 'infra', bindKey: 'sns:t', kind: 'sns-topic' }, { service: 'infra', bindKey: 'sns:t2', kind: 'sns-topic' }, { service: 'infra', bindKey: 'sqs:q', kind: 'sqs-queue' }],
+    bindings: [
+      { service: 'infra', id: 'a', from: 'sns:t', to: 'sns:t2', events: '*' },
+      { service: 'infra', id: 'b', from: 'sns:t2', to: 'sqs:q', events: ['A'] },
+    ],
+    ingress: [{ service: 'sub', id: 'in', bindKey: 'sqs:q', transport: 'sqs', handler: 'h', events: [{ type: 'A', handler: 'onA' }, { type: 'B', handler: 'onB' }] }],
+  });
+  const f = flow(m, 'sns:t');
+  assert.equal(f.rows.length, 1);
+  assert.deepEqual(f.rows[0].consumers.map((c) => c.service), ['sub']);
+  assert.deepEqual([cells(f).A.status, cells(f).A.handler], ['handled', 'onA']);
+  assert.equal(cells(f).B.status, 'filtered'); // the second hop only lets A through
+  assert.match(cells(f).B.why, /further down/);
+  assert.deepEqual(flow(m, 'sqs:q').grid.rows.map((r) => [r.type, r.cells[0].status]), [['A', 'handled'], ['B', 'filtered']]);
+});
+
 let app: Awaited<ReturnType<typeof startApp>>;
 before(async () => {
   app = await startApp();

@@ -13,7 +13,7 @@ export const eventPath = (type) => `/events/${enc(type)}`;
 /** Detail path for an inventory item {type, id}. */
 export const detailPath = (x) => ({ service: servicePath, store: storePath, channel: channelPath, event: eventPath })[x.type](x.id);
 
-export const serviceLink = (name) => h('a', { href: href(servicePath(name)) }, name);
+export const serviceLink = (name, label = name) => h('a', { href: href(servicePath(name)) }, label);
 export const storeLink = (key, label = key) => h('a.key', { href: href(storePath(key)) }, label);
 export const channelLink = (key, label = key) => h('a.key', { href: href(channelPath(key)) }, label);
 export const eventLink = (type) => h('a.key', { href: href(eventPath(type)) }, type);

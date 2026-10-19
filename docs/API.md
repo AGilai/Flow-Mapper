@@ -146,7 +146,9 @@ get the same answers. It is additive: the older fields are unchanged.
 - `consumers[]`: the readers of this channel itself (a queue's consumers).
 - `grid`: event type by destination. `destinations[]` is `{rowId, queue, consumer}` (a queue nobody
   reads has `consumer: null`); `rows[]` is `{type, producers, cells}` with one cell per destination:
-  `{status: handled | no-handler | filtered | no-consumer, handler, uncertain, why}`. `uncertain` means
+  `{status: handled | no-handler | filtered | no-consumer, handler, uncertain, why, possible?}`. `possible` is set when
+  the event type is only a candidate (the publisher could not say which of several it sends; such rows have
+  `possible: true` too, and are never counted as problems). `uncertain` means
   the answer depends on which of the disagreeing declarations is right; `why` says so in words.
 - `summary`: `{text, segments: [{t, b?}], callouts: [{text, rowId, level: warn | info}]}`. One sentence,
   plus one callout per problem; `rowId` is the `rows[].id` the callout is about, or null.
