@@ -7,7 +7,7 @@ import { unresolvedTarget } from './resolve.ts';
 import type { Provenance, Unresolved } from './types.ts';
 
 export interface UnresolvedItem {
-  service: string; kind: 'ingress' | 'egress' | 'step'; id: string; fn?: string;
+  service: string; kind: 'ingress' | 'egress' | 'step' | 'resource'; id: string; fn?: string;
   what: Unresolved['what']; reason: string; detail?: string; candidates: string[];
   /** For target candidates: the endpoints each candidate key would reach. */
   possible: { candidate: string; service: string; ingress: string }[];
@@ -22,6 +22,7 @@ export function unresolvedItems(g: GraphIndex): UnresolvedItem[] {
   return [
     ...g.model.ingress.flatMap((i) => (i.unresolved ?? []).map((u) => item({ service: i.service, kind: 'ingress', id: i.id }, u))),
     ...g.model.egress.flatMap((e) => (e.unresolved ?? []).map((u) => item({ service: e.service, kind: 'egress', id: e.id }, u))),
+    ...g.model.resources.flatMap((r) => (r.unresolved ?? []).map((u) => item({ service: r.service, kind: 'resource', id: r.id }, u))),
     ...g.model.functions.flatMap((f) => f.steps.flatMap((s) => (s.unresolved ?? []).map((u) =>
       item({ service: f.service, kind: 'step', id: `${f.id}#${s.seq}`, fn: f.id }, u)))),
   ];

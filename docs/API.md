@@ -66,7 +66,7 @@ Add `?source=ui` to mark edits made from a UI in the changelog.
 | `GET /api/envs/:env/trace?service=&ingress=\|fn=&scope=intra\|full&maxDepth=&maxMessages=` | participants and ordered messages |
 | `GET /api/envs/:env/paths?from=&to=&limit=` | service-level paths, including through queues |
 | `GET /api/envs/:env/search?q=&limit=` | services, functions, endpoints, channels, resources |
-| `GET /api/envs/:env/health` | link-health totals, per-service numbers, broken items (including the event checks: `unhandledEvents`, `undeliveredEvents`, `neverArrives`, `declaredNotSeen`, `subscriptionConflicts`; the store checks `multipleWriters`, `unusedStores`; and what harvesters report: `unresolved` (with reason, candidates and their possible matches), `mixedCommits`, `drift`) |
+| `GET /api/envs/:env/health` | link-health totals, per-service numbers, broken items (including the event checks: `unhandledEvents`, `undeliveredEvents`, `neverArrives`, `declaredNotSeen`, `subscriptionConflicts`; the store checks `multipleWriters`, `unusedStores`; and what harvesters report: `unresolved` (on ingress, egress, steps and resources; with reason, candidates and their possible matches), `mixedCommits`, `drift`) |
 | `GET /api/envs/:env/health/history?service=` | health per service version |
 | `GET /api/envs/:env/changelog?service=&limit=&before=` | changes, newest first |
 | `GET /api/envs/:env/model` | the raw model (for clients running `core/` themselves) |

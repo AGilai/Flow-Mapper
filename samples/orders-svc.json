@@ -240,6 +240,14 @@
       "kind": "redis",
       "name": "order:{id}",
       "bindKey": "redis:cache-main/order:{id}"
+    },
+    {
+      "id": "sessionCache",
+      "kind": "redis",
+      "name": "session client in AppContext",
+      "unresolved": [
+        { "what": "target", "reason": "redis_no_key_pattern", "detail": "client creation only; key patterns not harvested yet" }
+      ]
     }
   ]
 }

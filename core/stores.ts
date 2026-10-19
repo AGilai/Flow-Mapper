@@ -6,6 +6,7 @@
 import type { GraphIndex } from './graph-index.ts';
 import { codeLink, sourceLink, type SourceLink } from './endpoint-info.ts';
 import { entryPointsReaching, type EntryHit } from './reach.ts';
+import { unresolvedTarget } from './resolve.ts';
 import type { Resource, Step } from './types.ts';
 
 export type Access = 'read' | 'write' | 'unknown';
@@ -20,7 +21,8 @@ export function accessOf(step: Step): Access {
   return READ.test(op) ? 'read' : 'write';
 }
 
-export const storeKey = (r: Resource) => r.bindKey ?? `${r.service}:${r.id}`;
+/** A resource whose harvester says its key is unresolved stands alone (never grouped by a key), like an unresolved ingress matches nothing. */
+export const storeKey = (r: Resource) => (unresolvedTarget(r) ? undefined : r.bindKey) ?? `${r.service}:${r.id}`;
 /** `mongodb:orders-db/orders` → `mongodb:orders-db`; keys without '/' are their own group. */
 export const groupOf = (key: string) => (key.includes('/') ? key.slice(0, key.indexOf('/')) : key);
 const leafName = (key: string) => (key.includes('/') ? key.slice(key.indexOf('/') + 1) : key);
@@ -29,7 +31,8 @@ export interface StoreUse {
   service: string; resource: string; access: Access; declaredAt: SourceLink | null; verified: string | null;
   functions: { fn: string; name: string; source: SourceLink | null; operations: { operation: string; access: Access }[] }[];
 }
-export interface StoreSummary { key: string; name: string; kind: string; group: string; services: string[]; readers: string[]; writers: string[]; used: boolean }
+export interface StoreSummary { key: string; name: string; kind: string; group: string; services: string[]; readers: string[]; writers: string[]; used: boolean;
+  /** Why the harvester could not give this store a key (its `unresolved` reason). */ keyUnknown?: string }
 export interface StoreView extends StoreSummary {
   details: Record<string, unknown>; uses: StoreUse[]; entryPoints: EntryHit[]; siblings: StoreSummary[];
 }
@@ -46,7 +49,7 @@ export function stores(g: GraphIndex): StoreSummary[] {
   const by = new Map<string, StoreSummary>();
   for (const r of g.model.resources) {
     const key = storeKey(r);
-    const s = by.get(key) ?? { key, name: r.bindKey ? leafName(key) : r.name, kind: r.kind, group: groupOf(key), services: [], readers: [], writers: [], used: false };
+    const s = by.get(key) ?? { key, name: r.bindKey && !unresolvedTarget(r) ? leafName(key) : r.name, kind: r.kind, group: groupOf(key), services: [], readers: [], writers: [], used: false, keyUnknown: unresolvedTarget(r)?.reason };
     by.set(key, s);
     if (!s.services.includes(r.service)) s.services.push(r.service);
     for (const { steps } of usesOf(g, r)) {

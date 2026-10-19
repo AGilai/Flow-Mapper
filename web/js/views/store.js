@@ -20,6 +20,7 @@ export async function render({ main, params }) {
   const fns = v.uses.flatMap((u) => u.functions);
   const issues = [
     v.writers.length > 1 ? `Written by ${v.writers.length} services (${v.writers.join(', ')}). They are coupled through this data.` : null,
+    v.keyUnknown ? `Key unknown: ${v.keyUnknown}. The harvester could not say which store this is.` : null,
     !v.used ? 'Declared, but no function uses it.' : null,
   ].filter(Boolean);
 

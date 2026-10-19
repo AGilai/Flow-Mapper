@@ -61,7 +61,7 @@ export function health(g: GraphIndex): HealthReport {
     // A store written by more than one service couples them through its data; listed under each writer.
     multipleWriters: stores(g).filter((s) => s.writers.length > 1)
       .flatMap((s) => s.writers.map((w) => ({ service: w, key: s.key, kind: s.kind, writers: s.writers }))),
-    unusedStores: stores(g).filter((s) => !s.used).flatMap((s) => s.services.map((svc) => ({ service: svc, key: s.key, kind: s.kind }))),
+    unusedStores: stores(g).filter((s) => !s.used && !s.keyUnknown).flatMap((s) => s.services.map((svc) => ({ service: svc, key: s.key, kind: s.kind }))),
     unresolved: unresolvedItems(g),
     mixedCommits: mixedCommits(g),
     drift: drift(g),

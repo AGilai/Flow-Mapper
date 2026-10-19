@@ -39,7 +39,7 @@ anything. There are currently no `error`-level codes (422 rejections come from v
 
 | Code | Level | Means | Fix |
 |---|---|---|---|
-| `unresolved-no-detail` | warn | an `unresolved` entry with an empty `detail` (or blank `reason`) | say what you could not resolve |
+| `unresolved-no-detail` | warn | an `unresolved` entry (on ingress, egress, step or resource) with an empty `detail` (or blank `reason`) | say what you could not resolve |
 | `binding-empty-events` | warn | subscription with `events: []`: delivers nothing | send the types it lets through, or omit `events` |
 | `missing-source` | info | ingress/egress without `source.file`, or steps of a function without `file` (one finding per service) | send `source: {file, line}`, and `file` on functions |
 | `binding-no-events` | info | SNS/EventBridge subscription without `events`: everything is delivered | send the filter policy as `events`, or `"*"` |
@@ -112,7 +112,10 @@ inside the system calls them). Put `method` and `path` in `details` for HTTP.
 `mode: "async"` for fire-and-forget.
 
 **Resources**: every data store used. `kind` (`mongodb`, `redis`, `dynamodb`, `postgres`, `s3`…),
-a readable `name`, and a `bindKey` (below) so services using the same store are linked.
+a readable `name`, and a `bindKey` (below) so services using the same store are linked. If you
+cannot give the key yet (cluster not read, key patterns not harvested), leave `bindKey` out and send
+`unresolved: [{ "what": "target", "reason": "redis_no_key_pattern", "detail": "client creation only" }]`;
+the store stands alone (not grouped with others) and shows "Key unknown: <reason>".
 
 ## Where things are defined, and how you know
 
@@ -141,6 +144,9 @@ Do not invent a key and do not drop the item. Say what you found and why it is u
 - `what: "target"` on an **egress** or **ingress**: the call target or consumed key is unknown.
   `bindKey` may be left out. On a **step**, `target` may be left out (a call-graph gap, e.g. dynamic
   dispatch). Without an `unresolved` entry, a missing key or target is rejected.
+- `what: "target"` on a **resource**: its store key is unknown. `bindKey` may be left out; the
+  resource is listed under Unresolved in link health and is never grouped with other stores, and not reported as an unused store (the harvester
+  may simply not have sent its steps yet).
 - `what: "event"` on an **egress**: the event type is unknown or one of several. Put the possible
   types in `candidates`; they are shown as *possible* producers, never as confirmed, and they
   keep consumers off "nothing sends it". Known types still go in `events`.

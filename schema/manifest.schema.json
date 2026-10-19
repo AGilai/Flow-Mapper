@@ -200,6 +200,7 @@
         "id": { "$ref": "#/$defs/id" },
         "kind": { "type": "string", "examples": ["mongodb", "redis", "dynamodb", "postgres", "s3", "elasticsearch"] },
         "name": { "type": "string" },
+        "unresolved": { "$ref": "#/$defs/unresolved" },
         "bindKey": { "$ref": "#/$defs/bindKey", "description": "Shared key so services using the same store are grouped: {kind}:{cluster or db}/{collection, table or key pattern}, e.g. mongodb:orders-db/orders, redis:cache-main/order:{id}. The part before '/' groups keys of one cluster." },
         "details": { "$ref": "#/$defs/details" },
         "source": { "$ref": "#/$defs/source" },

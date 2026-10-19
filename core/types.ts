@@ -61,7 +61,7 @@ export interface Egress {
   events?: string[];
   source?: Source; provenance?: Provenance; unresolved?: Unresolved[];
 }
-export interface Resource { service: string; id: string; kind: string; name: string; bindKey?: string; details?: Details; source?: Source; provenance?: Provenance }
+export interface Resource { service: string; id: string; kind: string; name: string; bindKey?: string; details?: Details; source?: Source; provenance?: Provenance; unresolved?: Unresolved[] }
 export interface Channel {
   service: string; bindKey: string; kind: 'sns-topic' | 'sqs-queue' | 'amqp-exchange' | 'amqp-queue' | 'eventbridge-bus' | 'other';
   name?: string; delivery?: Delivery; details?: Details;
