@@ -1,15 +1,17 @@
 // Flows: pick a starting point (entry point, ingress or function), see its sequence diagram.
 // Starts inside the service ("Inside the service"), then expands to the whole route ("Full flow").
 
-import { h, clear, fill, debounce } from '../dom.js';
+import { h, fill, debounce } from '../dom.js';
 import { api } from '../api.js';
 import { state } from '../state.js';
 import { icon } from '../icons.js';
 import { href, setQuery } from '../router.js';
 import { pageHead } from '../components/page.js';
-import { createPanel, section } from '../components/panel.js';
+import { createPanel } from '../components/panel.js';
 import { chip, splitKey } from '../format.js';
 import { renderSequence } from './sequence-render.js';
+import { messagePanel } from './flow-panel.js';
+import { participantMenu } from './flow-menu.js';
 
 const LIST_CAP = 300;
 
@@ -19,6 +21,7 @@ export async function render({ main, query }) {
   const opts = {
     scope: query.get('scope') ?? (start.fn ? 'intra' : 'full'),
     internal: query.get('internal') !== '0', stores: query.get('stores') !== '0', depth: query.get('depth') ?? 'all',
+    expand: new Set((query.get('expand') ?? '').split(',').filter(Boolean)), // services shown function by function
   };
 
   // Starting points: a service's ingress, or every entry point in the environment.
@@ -64,18 +67,22 @@ export async function render({ main, query }) {
   const seg = h('div.seg', { role: 'group', 'aria-label': 'Scope' }, [['intra', 'Inside the service'], ['full', 'Full flow']].map(([id, label]) =>
     h('button', { 'aria-pressed': String(opts.scope === id), on: { click: async () => { opts.scope = id; persist(); await load(); seg.querySelectorAll('button').forEach((b, i) => b.setAttribute('aria-pressed', String(['intra', 'full'][i] === id))); } } }, label)));
   const check = (key, label) => h('label.check', h('input', { type: 'checkbox', checked: opts[key], on: { change: (e) => { opts[key] = e.target.checked; persist(); draw(); } } }), label);
+  const internalCheck = check('internal', 'Internal calls');
+  const internalBox = internalCheck.querySelector('input');
   const depth = h('select.select', { 'aria-label': 'Depth', on: { change: (e) => { opts.depth = e.target.value; persist(); draw(); } } },
     ['all', '1', '2', '3', '4', '6', '8'].map((d) => h('option', { value: d, selected: d === opts.depth }, d === 'all' ? 'All depths' : `Depth ${d}`)));
 
-  mainPane.prepend(h('div.seq-toolbar', seg, check('internal', 'Internal calls'), check('stores', 'Data stores'), depth, h('span.spacer'), info), scroller);
+  mainPane.prepend(h('div.seq-toolbar', seg, internalCheck, check('stores', 'Data stores'), depth, h('span.spacer'),
+    h('span.xs.muted', 'Right-click a lifeline to see inside it'), info), scroller);
 
   function persist() {
-    setQuery({ scope: opts.scope, internal: opts.internal ? null : '0', stores: opts.stores ? null : '0', depth: opts.depth === 'all' ? null : opts.depth });
+    setQuery({ scope: opts.scope, internal: opts.internal ? null : '0', stores: opts.stores ? null : '0', depth: opts.depth === 'all' ? null : opts.depth,
+      expand: [...opts.expand].join(',') || null });
   }
   async function load() {
     fill(scroller, h('div.loading', 'Tracing…'));
     try {
-      trace = await api.trace(state.env, { service: start.service, ingress: start.ingress, fn: start.fn, event: start.event, scope: opts.scope, maxMessages: 800 });
+      trace = await api.trace(state.env, { service: start.service, ingress: start.ingress, fn: start.fn, event: start.event, scope: opts.scope, maxMessages: 800, expand: [...opts.expand].join(',') || null });
     } catch (err) {
       fill(scroller, h('div.content', h('div.error-box', err.message)));
       return;
@@ -84,8 +91,12 @@ export async function render({ main, query }) {
   }
   function draw() {
     const seq = renderSequence(trace, {
-      internal: opts.internal, stores: opts.stores, maxDepth: opts.depth === 'all' ? Infinity : Number(opts.depth),
-      onMessage: (m, g) => { mainPane.querySelector('.msg.active')?.classList.remove('active'); g.classList.add('active'); panel.open(...messagePanel(m, trace)); },
+      internal: opts.internal, stores: opts.stores, maxDepth: opts.depth === 'all' ? Infinity : Number(opts.depth), expanded: opts.expand,
+      onParticipant: (p, x, y) => participantMenu(p, x, y, {
+        trace, scope: opts.scope, expanded: opts.expand,
+        setExpanded: async (svc, on) => { on ? opts.expand.add(svc) : opts.expand.delete(svc); if (on) { opts.internal = true; internalBox.checked = true; } persist(); await load(); },
+      }),
+      onMessage: (m, g) => { mainPane.querySelector('.msg.active')?.classList.remove('active'); g.classList.add('active'); panel.open(...messagePanel(m, trace, state.env)); },
     });
     const services = new Set(trace.messages.map((m) => m.service).filter(Boolean));
     info.textContent = `${trace.start.event ? `${trace.start.event}: ` : ''}${seq.shown} of ${seq.total} steps, ${services.size} services${trace.truncated ? ', truncated' : ''}`;
@@ -93,25 +104,4 @@ export async function render({ main, query }) {
   }
   await load();
   return { dispose: panel.dispose };
-}
-
-function messagePanel(m, trace) {
-  const p = (id) => trace.participants.find((x) => x.id === id);
-  const kind = { entry: 'Entry', call: 'Function call', egress: m.mode === 'async' ? 'Publish / async call' : 'Call', deliver: 'Delivery from queue', resource: 'Data store access' }[m.kind];
-  const head = h('div.stack', { style: { gap: '2px' } }, h('h2', kind), h('span.small.muted', `Depth ${m.depth}`));
-  return [head,
-    h('dl.kv',
-      h('dt', 'From'), h('dd', p(m.from)?.label ?? m.from),
-      h('dt', 'To'), h('dd', { class: m.broken ? 'key' : '' }, p(m.to)?.label ?? m.to),
-      h('dt', 'What'), h('dd.key', m.label),
-      m.event ? [h('dt', 'Event type'), h('dd.key', m.event)] : null,
-      m.transport && m.transport !== 'res' ? [h('dt', 'Transport'), h('dd', chip(m.transport))] : null,
-      h('dt', 'Mode'), h('dd', m.mode),
-      m.condition ? [h('dt', 'Only if'), h('dd', m.condition)] : null,
-      m.loop ? [h('dt', 'Repeats'), h('dd', 'In a loop')] : null,
-      m.note ? [h('dt', 'Note'), h('dd', m.note)] : null,
-      m.service ? [h('dt', 'In'), h('dd', h('a', { href: href(`/services/${encodeURIComponent(m.service)}`) }, m.service), m.fn ? h('span.key', ` ${m.fn}`) : null)] : null),
-    m.unhandled ? section('Why it is broken', null, h('p.small', `${m.event} reaches this consumer, but none of its event handlers matches it. It will fail or go to the dead-letter queue.`))
-      : m.broken ? section('Why it is broken', null, h('p.small', 'No ingress, queue or route matches this key. Either the target was renamed, or a harvester produced a different key on one side.')) : null,
-    m.cycle ? h('p.small.muted', 'This call leads back into a function already on the path, so the trace stops here.') : null];
 }

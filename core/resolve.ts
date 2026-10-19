@@ -12,8 +12,11 @@ import type { Binding, Channel, Delivery, Egress, Ingress, Link, Model, Ref, Res
 import { compareSpecificity, keyMatches, specificity } from './glob.ts';
 
 export const DEFAULT_DELIVERY: Record<string, Delivery> = {
-  http: 'unicast', grpc: 'unicast', sqs: 'unicast', sns: 'multicast', amqp: 'multicast', eventbridge: 'multicast',
+  http: 'unicast', rpc: 'unicast', grpc: 'unicast', sqs: 'unicast', sns: 'multicast', amqp: 'multicast', eventbridge: 'multicast',
 };
+
+/** Request/reply transports: calls are synchronous unless the egress says otherwise. */
+export const SYNC = new Set<Transport>(['http', 'rpc', 'grpc']);
 
 export const deliveryOf = (e: { delivery?: Delivery; transport: Transport }): Delivery =>
   e.delivery ?? DEFAULT_DELIVERY[e.transport] ?? 'unicast';
@@ -70,7 +73,7 @@ export function resolve(model: Model): Resolution {
 
   for (const e of model.egress) {
     const from: Ref = { type: 'egress', service: e.service, id: e.id };
-    const mode = e.mode ?? (e.transport === 'http' || e.transport === 'grpc' ? 'sync' : 'async');
+    const mode = e.mode ?? (SYNC.has(e.transport) ? 'sync' : 'async');
     const { picked, tied } = matchIngress(e.bindKey, deliveryOf(e));
     if (tied.length) ambiguous.push({ egress: e, candidates: tied });
     for (const i of picked) links.push({ from, to: ingressRef(i), via: i.match === 'glob' ? 'pattern' : 'key', mode, transport: e.transport });

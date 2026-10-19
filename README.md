@@ -31,6 +31,7 @@ Static preview of the UI with bundled data (no server): `npm run preview`, then 
 
 | Path | What |
 |---|---|
+| `docs/HARVESTER-GUIDE.md` | **Start here if you write a harvester:** what to extract, bind keys, events, DTOs, how to push and check |
 | `docs/DESIGN.md` | Model, bind keys and wildcards, versions/deltas, environments, link health, bugs, views |
 | `docs/API.md` | REST, ingest error codes, bug workflow, MCP tools |
 | `docs/ARCHITECTURE.md` | Code map, request path, conventions |

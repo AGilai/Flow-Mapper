@@ -5,6 +5,7 @@ import { href } from '../router.js';
 import { chip } from '../format.js';
 import { section } from '../components/panel.js';
 import { channelPath, storePath } from './inventory-links.js';
+import { objectIcon } from '../components/object-icon.js';
 
 const MAX = 12;
 const svcName = (id) => id.replace(/^(svc|ch|res|missing):/, '');
@@ -13,7 +14,9 @@ export function nodePanel(n, edges, byId) {
   const out = edges.filter((e) => e.from === n.id);
   const inc = edges.filter((e) => e.to === n.id);
   const kindLabel = { service: 'Service', gateway: 'Gateway', channel: n.sub, resource: `Data store (${n.sub})`, missing: 'No match' }[n.kind] ?? n.kind;
-  const head = h('div.stack', { style: { gap: '2px' } }, h('h2', { class: n.kind === 'missing' ? 'key' : '' }, n.label), h('span.small.muted', kindLabel, n.team ? `, team ${n.team}` : ''));
+  const type = n.kind === 'channel' ? 'channel' : n.kind === 'resource' ? 'store' : n.kind === 'missing' ? null : 'service';
+  const kind = type === 'service' ? n.svcKind ?? n.kind : n.sub;
+  const head = h('div.stack', { style: { gap: '2px' } }, h('h2.titled', { class: n.kind === 'missing' ? 'key' : '' }, type ? objectIcon(type, kind, 24) : null, h('span', n.label)), h('span.small.muted', kindLabel, n.team ? `, team ${n.team}` : ''));
 
   const neighbour = (e, other) => {
     const o = byId.get(other);

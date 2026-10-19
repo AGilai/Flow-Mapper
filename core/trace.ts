@@ -2,6 +2,7 @@
 //
 // scope 'intra': lifelines are the functions of the start service; anything outside is one lifeline
 //                per service / channel / resource and is not expanded.
+// expand       : services drawn as one lifeline per function in either scope (zoom in place).
 // scope 'full' : lifelines are services, channels and resources; the flow is followed across
 //                services through REST, queues and topics. Function calls inside a service are
 //                kept as `internal` self-messages so the UI can show or hide them.
@@ -13,23 +14,38 @@ import type { GraphIndex } from './graph-index.ts';
 import { linksFrom, sid } from './graph-index.ts';
 import type { Mode, Ref } from './types.ts';
 import { handlerFor, passes } from './events.ts';
+import { sourceLink, type SourceLink } from './endpoint-info.ts';
 
-export interface Participant { id: string; label: string; kind: 'client' | 'function' | 'service' | 'channel' | 'resource' | 'missing'; service?: string }
+export interface Participant {
+  id: string; label: string; kind: 'client' | 'function' | 'service' | 'channel' | 'resource' | 'missing'; service?: string;
+  /** Service lifelines: function calls inside that service on this trace (what expanding would show). */
+  internalCalls?: number;
+}
 export interface Message {
   from: string; to: string; label: string; mode: Mode;
   kind: 'entry' | 'call' | 'egress' | 'deliver' | 'resource';
   depth: number; internal?: boolean; broken?: boolean; cycle?: boolean;
   condition?: string; loop?: boolean; note?: string; fn?: string; service?: string; transport?: string;
   event?: string; unhandled?: boolean;
+  seq?: number;                                              // step number in the calling function
+  target?: { service: string; ingress: string; fn?: string }; // ingress reached, and the handler that runs
+  store?: string;                                            // data-store key, for resource steps
+  calls?: string;                                            // function called, for call steps (same service)
 }
-export interface Trace { start: { service: string; ingress?: string; fn: string; event?: string }; scope: 'intra' | 'full'; participants: Participant[]; messages: Message[]; truncated: boolean }
+export interface Trace {
+  start: { service: string; ingress?: string; fn: string; event?: string }; scope: 'intra' | 'full';
+  participants: Participant[]; messages: Message[]; truncated: boolean;
+  /** Code location of every function on the trace, by `${service}:${fn}`. */
+  code: Record<string, SourceLink | null>;
+}
 
-export interface TraceOptions { scope?: 'intra' | 'full'; maxDepth?: number; maxMessages?: number }
+export interface TraceOptions { scope?: 'intra' | 'full'; maxDepth?: number; maxMessages?: number; expand?: string[] }
 
 export function trace(g: GraphIndex, start: { service: string; ingress?: string; fn?: string; event?: string }, opts: TraceOptions = {}): Trace | null {
   const scope = opts.scope ?? 'full';
   const maxDepth = opts.maxDepth ?? 25;
   const maxMessages = opts.maxMessages ?? 500;
+  const expand = new Set(opts.expand ?? []);
   const ing = start.ingress ? g.ingress.get(sid(start.service, start.ingress)) : undefined;
   const fnId = start.fn ?? (ing && start.event ? handlerFor(ing, start.event) : ing?.handler);
   if (!fnId || !g.fns.get(sid(start.service, fnId))) return null;
@@ -41,7 +57,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
 
   const part = (p: Participant) => { if (!participants.has(p.id)) participants.set(p.id, p); return p.id; };
   const fnPart = (service: string, fn: string) => {
-    if (scope === 'intra' && service === root) {
+    if ((scope === 'intra' && service === root) || expand.has(service)) {
       const f = g.fns.get(sid(service, fn));
       return part({ id: `fn:${service}:${fn}`, label: f?.name ?? fn, kind: 'function', service });
     }
@@ -60,17 +76,17 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
     const me = fnPart(service, fn);
     for (const st of [...f.steps].sort((a, b) => a.seq - b.seq)) {
       if (truncated) return;
-      const base = { depth, condition: st.condition, loop: st.loop, note: st.note, fn: f.id, service };
+      const base = { depth, condition: st.condition, loop: st.loop, note: st.note, fn: f.id, service, seq: st.seq };
       if (st.type === 'call') {
         const key = sid(service, st.target);
         const cycle = stack.includes(key);
         const target = g.fns.get(key);
-        if (!push({ ...base, from: me, to: fnPart(service, st.target), label: target?.name ?? st.target, mode: st.mode ?? 'sync', kind: 'call', internal: true, cycle })) return;
+        if (!push({ ...base, from: me, to: fnPart(service, st.target), label: target?.name ?? st.target, mode: st.mode ?? 'sync', kind: 'call', internal: true, cycle, calls: st.target })) return;
         if (!cycle && depth < maxDepth) visitFn(service, st.target, depth + 1, [...stack, key]);
       } else if (st.type === 'resource') {
         const r = g.resources.get(sid(service, st.target));
         const to = part({ id: `res:${r?.bindKey ?? sid(service, st.target)}`, label: r?.name ?? st.target, kind: 'resource' });
-        push({ ...base, from: me, to, label: st.operation ?? 'use', mode: st.mode ?? 'sync', kind: 'resource', transport: 'res' });
+        push({ ...base, from: me, to, label: st.operation ?? 'use', mode: st.mode ?? 'sync', kind: 'resource', transport: 'res', store: r?.bindKey ?? sid(service, st.target) });
       } else {
         const e = g.egress.get(sid(service, st.target));
         if (!e) continue;
@@ -108,13 +124,13 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
     if (!handler) {
       // The event reaches a consumer that lists event types but has no handler for this one.
       push({ ...base, from, to: part({ id: `svc:${i.service}`, label: i.service, kind: 'service', service: i.service }),
-        label: `${label} → no handler`, mode, kind: crossing, depth, broken: true, unhandled: true } as Message);
+        label: `${label} → no handler`, mode, kind: crossing, depth, broken: true, unhandled: true, target: { service: i.service, ingress: i.id } } as Message);
       return;
     }
     const target = scope === 'intra' && i.service !== root
       ? part({ id: `svc:${i.service}`, label: i.service, kind: 'service', service: i.service })
       : fnPart(i.service, handler);
-    if (!push({ ...base, from, to: target, label: crossing === 'deliver' ? `${label} → ${handler}` : label, mode, kind: crossing, depth } as Message)) return;
+    if (!push({ ...base, from, to: target, label: crossing === 'deliver' ? `${label} → ${handler}` : label, mode, kind: crossing, depth, target: { service: i.service, ingress: i.id, fn: handler } } as Message)) return;
     const key = sid(i.service, handler);
     if (scope === 'intra' && i.service !== root) return;
     if (stack.includes(key)) { messages[messages.length - 1].cycle = true; return; }
@@ -122,10 +138,20 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
   };
 
   const client = part({ id: 'client', label: ing?.entryPoint ? 'client' : 'caller', kind: 'client' });
-  push({ from: client, to: fnPart(root, fnId), label: (ing?.bindKey ?? fnId) + (start.event ? ` · ${start.event}` : ''), event: start.event, mode: 'sync', kind: 'entry', depth: 0, service: root, fn: fnId, transport: ing?.transport });
+  push({ from: client, to: fnPart(root, fnId), label: (ing?.bindKey ?? fnId) + (start.event ? ` · ${start.event}` : ''), event: start.event, mode: 'sync', kind: 'entry', depth: 0, service: root, fn: fnId, transport: ing?.transport, target: ing ? { service: root, ingress: ing.id, fn: fnId } : undefined });
   visitFn(root, fnId, 1, [sid(root, fnId)]);
 
-  return { start: { service: root, ingress: ing?.id, fn: fnId, event: start.event }, scope, participants: [...participants.values()], messages, truncated };
+  for (const p of participants.values()) {
+    if (p.kind === 'service') p.internalCalls = messages.filter((m) => m.kind === 'call' && m.service === p.service).length;
+  }
+  const code: Trace['code'] = {};
+  for (const m of messages) {
+    for (const [svc, fn] of [[m.service, m.fn], [m.target?.service, m.target?.fn], [m.service, m.calls]]) {
+      const k = svc && fn ? sid(svc, fn) : null;
+      if (k && !(k in code)) code[k] = g.services.has(svc!) ? sourceLink(g.services.get(svc!)!, g.fns.get(k) ?? null) : null;
+    }
+  }
+  return { code, start: { service: root, ingress: ing?.id, fn: fnId, event: start.event }, scope, participants: [...participants.values()], messages, truncated };
 }
 
 /** Entry points to start a trace from: ingress marked entryPoint, else ingress nothing reaches. */

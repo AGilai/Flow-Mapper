@@ -16,7 +16,10 @@ export function registerMap(r: Router, ctx: Ctx) {
   r.post('/api/ingest', async (req) => {
     const body = await req.json();
     const manifests = Array.isArray(body?.manifests) ? body.manifests : [body];
-    const results = manifests.map((m: any) => store.ingest(db, m, source(req.query)));
+    // ?dryRun=1: validate and diff against what is stored, write nothing
+    const dryRun = req.query.get('dryRun') === '1' || req.query.get('dryRun') === 'true';
+    const results = manifests.map((m: any) => store.ingest(db, m, source(req.query), { dryRun }));
+    if (dryRun) return { dryRun: true, results };
     new Set(results.map((x: any) => x.env)).forEach((env) => ctx.changed(env as string));
     return created({ results });
   });

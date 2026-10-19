@@ -26,5 +26,5 @@ export async function startApp() {
     try { json = text ? JSON.parse(text) : null; } catch { json = text; }
     return { status: res.status, body: json };
   };
-  return { base, ctx, call, close: () => new Promise<void>((r) => server.close(() => r())) };
+  return { base, ctx, dbPath: join(dir, 'test.db'), call, close: () => new Promise<void>((r) => server.close(() => r())) };
 }

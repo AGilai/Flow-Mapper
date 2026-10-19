@@ -1,7 +1,7 @@
 // Shared types for the in-memory graph model. Pure types — no runtime code.
 // The model mirrors the manifest (schema/manifest.schema.json) with service/env attached.
 
-export type Transport = 'http' | 'grpc' | 'sns' | 'sqs' | 'amqp' | 'eventbridge' | 'cron' | 'event' | 'other';
+export type Transport = 'http' | 'rpc' | 'grpc' | 'sns' | 'sqs' | 'amqp' | 'eventbridge' | 'cron' | 'event' | 'other';
 export type Delivery = 'unicast' | 'multicast';
 export type Mode = 'sync' | 'async';
 export type Match = 'exact' | 'glob';

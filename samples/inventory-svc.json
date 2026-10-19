@@ -56,6 +56,20 @@
           "operation": "TransactWriteItems"
         }
       ]
+    },
+    {
+      "id": "StockService.Check",
+      "name": "StockService.Check",
+      "file": "internal/rpc/stock.go",
+      "line": 12,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "stock",
+          "operation": "GetItem"
+        }
+      ]
     }
   ],
   "ingress": [
@@ -102,6 +116,16 @@
           "handler": "OnOrderEvent"
         }
       ]
+    },
+    {
+      "id": "in.rpc.checkStock",
+      "bindKey": "rpc:inventory-svc/Stock.Check",
+      "transport": "rpc",
+      "handler": "StockService.Check",
+      "details": {
+        "protocol": "json-rpc",
+        "method": "Stock.Check"
+      }
     }
   ],
   "resources": [

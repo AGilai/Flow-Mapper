@@ -1,6 +1,8 @@
 // Node and edge styling for the canvas map. Shapes encode kind; colours encode transport.
 //   service  circle      gateway  rounded square (ink)     missing  dashed red ring
 //   channel  diamond in its transport colour               resource small square (grey)
+// Nodes with an object icon (AWS service icon or brand logo, see components/object-icon.js) draw
+// the icon instead of the shape.
 
 export function readTheme() {
   const cs = getComputedStyle(document.documentElement);
@@ -9,25 +11,29 @@ export function readTheme() {
     font: v('--font') || 'sans-serif', ink: v('--ink'), ink2: v('--ink-2'), muted: v('--muted'), surface: v('--surface'),
     paper: v('--paper'), line: v('--line-strong'), accent: v('--accent'), broken: v('--t-broken'), halo: v('--paper'),
     district: v('--muted'),
-    t: { http: v('--t-http'), sns: v('--t-sns'), sqs: v('--t-sqs'), amqp: v('--t-amqp'), cron: v('--t-cron'), other: v('--t-res'), res: v('--t-res') },
+    t: { http: v('--t-http'), rpc: v('--t-rpc'), grpc: v('--t-http'), eventbridge: v('--t-eb'), sns: v('--t-sns'), sqs: v('--t-sqs'), amqp: v('--t-amqp'), cron: v('--t-cron'), other: v('--t-res'), res: v('--t-res') },
   };
 }
 
 export function nodeRadius(n, degree) {
   if (!n) return 6;
   const d = degree.get(n.id) ?? 0;
-  if (n.kind === 'channel' || n.kind === 'resource') return 4.5;
+  if (n.kind === 'channel' || n.kind === 'resource') return 7;
   if (n.kind === 'missing') return 5;
   return Math.min(n.kind === 'gateway' ? 13 : 15, 5 + Math.sqrt(d) * 1.1);
 }
 
 const channelColor = (n, theme) => theme.t[(n.transports ?? [])[0]] ?? theme.t.other;
 
-export function drawNode(ctx, n, [x, y], k, degree, theme, { dim, selected, hovered }) {
+export function drawNode(ctx, n, [x, y], k, degree, theme, { dim, selected, hovered, img }) {
   const r = nodeRadius(n, degree) * Math.max(0.5, Math.min(k, 1.25));
   ctx.globalAlpha = dim ? 0.18 : 1;
   ctx.lineWidth = selected ? 3 : hovered ? 2.4 : 1.6;
-  if (n.kind === 'channel') {
+  if (img) {
+    const s = Math.max(12, r * 2);
+    if (selected || hovered) { ctx.strokeStyle = selected ? theme.accent : theme.ink2; roundRect(ctx, x - s / 2 - 3, y - s / 2 - 3, s + 6, s + 6, 5); ctx.stroke(); }
+    ctx.drawImage(img, x - s / 2, y - s / 2, s, s);
+  } else if (n.kind === 'channel') {
     ctx.fillStyle = channelColor(n, theme);
     ctx.beginPath(); ctx.moveTo(x, y - r * 1.25); ctx.lineTo(x + r * 1.25, y); ctx.lineTo(x, y + r * 1.25); ctx.lineTo(x - r * 1.25, y); ctx.closePath();
     ctx.fill();

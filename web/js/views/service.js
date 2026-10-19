@@ -12,6 +12,7 @@ import { createPanel } from '../components/panel.js';
 import { ago } from '../format.js';
 import { switchboard } from './service-switchboard.js';
 import { endpointPanel } from './endpoint-panel.js';
+import { titled } from '../components/object-icon.js';
 
 export async function render({ main, params, query }) {
   const name = params.name;
@@ -49,7 +50,7 @@ export async function render({ main, params, query }) {
   }
 
   main.append(
-    pageHead(name, s.description ?? null,
+    pageHead(titled('service', s.kind, name), s.description ?? null,
       h('a.btn', { href: href('/system', { sel: `svc:${name}` }) }, icon('system'), 'Show on map'),
       h('a.btn', { href: href('/bugs/new', { service: name }) }, icon('bug'), 'Report a bug'),
       h('a.btn.primary', { href: href('/flows', { service: name }) }, icon('flow'), 'Trace a flow')),

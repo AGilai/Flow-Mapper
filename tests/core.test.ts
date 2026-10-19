@@ -10,6 +10,7 @@ import { findPaths } from '../core/paths.ts';
 import { systemGraph } from '../core/system-graph.ts';
 import { suggestPriority } from '../core/impact.ts';
 import { integrityErrors } from '../core/integrity.ts';
+import { dtoSlots } from '../core/endpoint-info.ts';
 import type { Model } from '../core/types.ts';
 import { sampleManifests } from './helpers.ts';
 
@@ -97,4 +98,12 @@ test('priority suggestion', () => {
 test('integrity catches broken references', () => {
   const errs = integrityErrors({ functions: [{ id: 'a', steps: [{ seq: 1, type: 'call', target: 'nope' }] }], ingress: [{ id: 'i', handler: 'x' }] });
   assert.equal(errs.length, 2);
+});
+
+test('rpc is a synchronous request/reply transport with request and response DTOs', () => {
+  const g = buildIndex(sampleModel());
+  const link = g.resolution.links.find((l) => l.from.type === 'egress' && l.from.id === 'inventory.checkStock');
+  assert.deepEqual([link?.to, link?.mode, link?.transport], [{ type: 'ingress', service: 'inventory-svc', id: 'in.rpc.checkStock' }, 'sync', 'rpc']);
+  const i = g.model.ingress.find((x) => x.id === 'in.rpc.checkStock')!;
+  assert.deepEqual(dtoSlots(i).slots.map((s) => s.role), ['request', 'response']);
 });

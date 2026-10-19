@@ -99,3 +99,28 @@ test('MCP event_types lists producers and consumers', async () => {
   assert.deepEqual(t.producers, [{ service: 'users-svc', egress: 'userEvents.publish' }]);
   assert.deepEqual(t.consumers.map((c: any) => [c.service, c.handler]), [['analytics-svc', 'ingest_event']]);
 });
+
+test('trace arrows say where the call is made, what handles it, and which store they touch', async () => {
+  const t = (await app.call('GET', '/api/envs/prod/trace?service=orders-svc&ingress=in.create&scope=full')).body;
+  const publish = t.messages.find((m: any) => m.kind === 'egress' && m.event === 'OrderPlaced');
+  assert.equal(publish.fn, 'OrderService.place');
+  assert.ok(publish.seq > 0);
+  assert.match(t.code[`orders-svc:${publish.fn}`].url, /#L\d+$/);
+  const delivery = t.messages.find((m: any) => m.kind === 'deliver' && m.target?.service === 'shipping-svc');
+  assert.deepEqual(delivery.target, { service: 'shipping-svc', ingress: 'in.orderPlaced', fn: 'onOrderPlaced' });
+  assert.ok(t.code['shipping-svc:onOrderPlaced']);
+  assert.ok(t.messages.some((m: any) => m.kind === 'resource' && m.store === 'mongodb:orders-db/orders'));
+  assert.ok(t.messages.some((m: any) => m.kind === 'call' && m.calls === 'OrderService.place'));
+});
+
+test('expanding a service in a full trace draws its functions as lifelines', async () => {
+  const base = '/api/envs/prod/trace?service=api-gateway&ingress=in.createOrder&scope=full';
+  const t = (await app.call('GET', base)).body;
+  const orders = t.participants.find((p: any) => p.id === 'svc:orders-svc');
+  assert.ok(orders.internalCalls > 0, 'collapsed service reports its internal calls');
+  const x = (await app.call('GET', `${base}&expand=orders-svc`)).body;
+  assert.ok(!x.participants.some((p: any) => p.id === 'svc:orders-svc'));
+  const fns = x.participants.filter((p: any) => p.kind === 'function' && p.service === 'orders-svc').map((p: any) => p.id);
+  assert.ok(fns.includes('fn:orders-svc:OrderService.place'));
+  assert.ok(x.messages.some((m: any) => m.kind === 'call' && m.from === 'fn:orders-svc:OrderController.create' && m.to === 'fn:orders-svc:OrderService.validate'));
+});

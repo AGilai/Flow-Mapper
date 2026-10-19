@@ -98,7 +98,23 @@ function upsertSnapshot(db: DB, env: string, svc: { name: string; kind?: string;
 
 // ---------- ingest ----------
 
-export function ingest(db: DB, manifest: any, source: Source = 'api'): WriteResult {
+/** Thrown at the end of a dry run so the transaction rolls back; carries the result. */
+class DryRun extends Error {
+  result: WriteResult;
+  constructor(result: WriteResult) { super('dry run'); this.result = result; }
+}
+
+/** Ingest a manifest. With dryRun, everything runs (validation, version checks, diff) and is rolled back. */
+export function ingest(db: DB, manifest: any, source: Source = 'api', { dryRun = false } = {}): WriteResult {
+  try {
+    return apply(db, manifest, source, dryRun);
+  } catch (err) {
+    if (err instanceof DryRun) return err.result;
+    throw err;
+  }
+}
+
+function apply(db: DB, manifest: any, source: Source, dryRun: boolean): WriteResult {
   const errs = validateManifest(manifest);
   if (errs.length) throw invalid('manifest does not match schema', errs.slice(0, 50));
   const env = manifest.env ?? 'default';
@@ -133,7 +149,9 @@ export function ingest(db: DB, manifest: any, source: Source = 'api'): WriteResu
     upsertSnapshot(db, env, header, manifest.version, manifest.harvestedAt, manifest.commit);
     replaceEntities(db, env, name, after);
     const changelogId = writeChangelog(db, env, name, cur?.version ?? null, manifest.version, manifest.kind, source, changes);
-    return { env, service: name, fromVersion: cur?.version ?? null, toVersion: manifest.version, changes, changelogId };
+    const result = { env, service: name, fromVersion: cur?.version ?? null, toVersion: manifest.version, changes, changelogId };
+    if (dryRun) throw new DryRun(result); // tx rolls back
+    return result;
   });
 }
 

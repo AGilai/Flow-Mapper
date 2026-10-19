@@ -9,6 +9,7 @@ import { pageHead } from '../components/page.js';
 import { jsonView } from '../components/json-view.js';
 import { box, empty, fig, problems } from './detail-parts.js';
 import { channelLink, eventLink, serviceLink } from './inventory-links.js';
+import { titled } from '../components/object-icon.js';
 
 const KIND = { 'sns-topic': 'SNS topic', 'sqs-queue': 'SQS queue', 'amqp-exchange': 'RabbitMQ exchange', 'amqp-queue': 'RabbitMQ queue', 'eventbridge-bus': 'EventBridge bus' };
 
@@ -22,7 +23,7 @@ export async function render({ main, params }) {
   ];
 
   main.append(
-    pageHead(v.name, `${KIND[v.kind] ?? v.kind} · ${v.key}`,
+    pageHead(titled('channel', v.kind, v.name), `${KIND[v.kind] ?? v.kind} · ${v.key}`,
       h('a.btn', { href: href('/system', { channels: 1, sel: `ch:${v.key}` }) }, 'Show on map'),
       h('a.btn', { href: href('/inventory', { type: 'channel' }) }, 'All topics and queues')),
     h('div.content', h('div.page-grid',

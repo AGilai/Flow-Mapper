@@ -6,6 +6,7 @@ import { href } from '../router.js';
 import { chip, splitKey } from '../format.js';
 import { icon } from '../icons.js';
 import { storeLink } from './inventory-links.js';
+import { objectIcon } from '../components/object-icon.js';
 
 const OPEN_LIMIT = 15;
 const svcLink = (s) => h('a', { href: href(`/services/${encodeURIComponent(s)}`) }, s);
@@ -50,7 +51,7 @@ export function switchboard(v, name, q, onInfo) {
     }),
     resources.length ? details(h('span', 'Data stores'), resources.length, true, resources.map((r) =>
       h('div.sb-row', { 'data-t': 'res' },
-        h('span', h('b', storeLink(r.bindKey ?? `${name}:${r.id}`, r.name)), h('span.muted.small', ` ${r.kind}`)),
+        h('span.name-cell', objectIcon('store', r.kind, 18), h('b', storeLink(r.bindKey ?? `${name}:${r.id}`, r.name)), h('span.muted.small', r.kind)),
         h('span.xs.muted', r.sharedWith.length ? `shared with ${r.sharedWith.length}` : ''),
         h('div.peers', uniq(r.operations.map((o) => o.operation)).slice(0, 6).map((o) => h('span.key', o)))))) : null,
     !egress.length && !resources.length ? h('p.small.muted', q ? 'No egress matches.' : 'This service calls nothing.') : null);

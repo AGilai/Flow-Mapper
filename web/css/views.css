@@ -40,7 +40,7 @@
 .sb-row .peers { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: var(--fs-xs); color: var(--muted); }
 .sb-left .sb-row { border-right: 3px solid var(--c, transparent); }
 .sb-right .sb-row { border-left: 3px solid var(--c, transparent); }
-.sb-row[data-t='http'] { --c: var(--t-http); } .sb-row[data-t='sns'] { --c: var(--t-sns); } .sb-row[data-t='sqs'] { --c: var(--t-sqs); }
+.sb-row[data-t='http'] { --c: var(--t-http); } .sb-row[data-t='rpc'] { --c: var(--t-rpc); } .sb-row[data-t='grpc'] { --c: var(--t-http); } .sb-row[data-t='eventbridge'] { --c: var(--t-eb); } .sb-row[data-t='sns'] { --c: var(--t-sns); } .sb-row[data-t='sqs'] { --c: var(--t-sqs); }
 .sb-row[data-t='amqp'] { --c: var(--t-amqp); } .sb-row[data-t='cron'] { --c: var(--t-cron); } .sb-row[data-t='res'] { --c: var(--t-res); }
 .sb-row[data-t='broken'] { --c: var(--t-broken); }
 .tabs { display: flex; gap: var(--s1); border-bottom: 1px solid var(--line); margin-bottom: var(--s4); overflow-x: auto; }

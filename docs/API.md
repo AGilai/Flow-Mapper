@@ -9,7 +9,7 @@ All endpoints are JSON unless noted. Errors look like
 
 | Method | Path | Body | Notes |
 |---|---|---|---|
-| POST | `/api/ingest` | a manifest, or `{"manifests": [...]}` | `kind: full` replaces the service; `kind: delta` patches it |
+| POST | `/api/ingest` | a manifest, or `{"manifests": [...]}` | `kind: full` replaces the service; `kind: delta` patches it. `?dryRun=1` validates and returns the changes without writing (200) |
 
 Responses: `201 {results: [{env, service, fromVersion, toVersion, changes, changelogId}]}`.
 
@@ -20,7 +20,7 @@ Responses: `201 {results: [{env, service, fromVersion, toVersion, changes, chang
 | `VERSION_MISMATCH` | 409 | delta `baseVersion` ≠ stored version; `details.currentVersion` | send a full manifest |
 | `NOT_FOUND` | 404 | delta for a service that was never ingested | send a full manifest |
 
-Schema: [`schema/manifest.schema.json`](../schema/manifest.schema.json). Examples: [`samples/`](../samples).
+Schema: [`schema/manifest.schema.json`](../schema/manifest.schema.json). Examples: [`samples/`](../samples). Guide for harvester authors: [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md).
 
 ## Map CRUD
 
@@ -97,7 +97,7 @@ An ingress that lists `events` takes no endpoint DTO: its messages are described
 DTOs. `GET .../endpoints/:service/:ingress` returns `events`: one row per event type at that
 consumer with `handler`, `pattern` (the glob that matched), `status` (`ok`, `unhandled`, `never`,
 `declared-only`), `producers` (`derived`, `declared`, `harvested`), the handler's `source` link
-and the `dto`. `GET .../trace` takes `event` to start from that event type's handler.
+and the `dto`. `GET .../trace` takes `event` to start from that event type's handler, and `expand` (comma-separated services) to draw those services function by function. Each message carries `seq`, `target` {service, ingress, fn}, `store` or `calls`, and the trace has `code`: the source link of every function on it.
 
 Example: `samples/dtos/prod.json` (loaded by `npm run seed`).
 

@@ -315,6 +315,13 @@
           "type": "resource",
           "target": "cache",
           "operation": "GET"
+        },
+        {
+          "seq": 3,
+          "type": "egress",
+          "target": "inventory.checkStock",
+          "operation": "Stock.Check",
+          "condition": "cache miss"
         }
       ]
     },
@@ -1474,6 +1481,15 @@
       "events": [
         "ReviewPosted"
       ]
+    },
+    {
+      "id": "inventory.checkStock",
+      "bindKey": "rpc:inventory-svc/Stock.Check",
+      "transport": "rpc",
+      "details": {
+        "protocol": "json-rpc",
+        "timeoutMs": 500
+      }
     },
     {
       "id": "users.getContact",

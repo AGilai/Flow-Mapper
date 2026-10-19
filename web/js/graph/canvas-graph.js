@@ -3,6 +3,7 @@
 // ~3,000 edges stay smooth. Colours come from CSS tokens.
 
 import { drawNode, nodeRadius, edgeStyle, readTheme } from './graph-style.js';
+import { iconImage } from '../components/object-icon.js';
 
 export function createCanvasGraph(host, { onSelect, onHover } = {}) {
   const canvas = document.createElement('canvas');
@@ -25,6 +26,10 @@ export function createCanvasGraph(host, { onSelect, onHover } = {}) {
   const toWorld = (sx, sy) => [(sx - tx) / k, (sy - ty) / k];
   const isVis = (id) => !visible || visible.has(id);
   const schedule = () => { if (!raf) raf = requestAnimationFrame(draw); };
+  // Map node → object icon (null until loaded, or when the object has none).
+  const iconFor = (n) => (n.kind === 'channel' ? iconImage('channel', n.sub, schedule)
+    : n.kind === 'resource' ? iconImage('store', n.sub, schedule)
+    : n.kind === 'gateway' || n.svcKind === 'lambda' ? iconImage('service', n.svcKind ?? n.kind, schedule) : null);
 
   function resize() {
     const r = host.getBoundingClientRect();
@@ -101,7 +106,7 @@ export function createCanvasGraph(host, { onSelect, onHover } = {}) {
     // Nodes.
     const order = nodes.filter((n) => isVis(n.id));
     for (const n of order) drawNode(ctx, n, toScreen(pos.get(n.id)), k, degree, theme, {
-      dim: dimmed(n.id), selected: selected === n.id, hovered: hovered === n.id,
+      dim: dimmed(n.id), selected: selected === n.id, hovered: hovered === n.id, img: iconFor(n),
     });
 
     // Labels: most important first, skip any that would overlap one already drawn.

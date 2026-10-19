@@ -11,6 +11,7 @@ import { pageHead } from '../components/page.js';
 import { jsonView } from '../components/json-view.js';
 import { box, codeLink, empty, fig, problems } from './detail-parts.js';
 import { serviceLink, storeLink } from './inventory-links.js';
+import { titled } from '../components/object-icon.js';
 
 const SOURCE = { code: 'From code', db: 'From the database', manual: 'Entered by hand' };
 
@@ -23,9 +24,9 @@ export async function render({ main, params }) {
   ].filter(Boolean);
 
   main.append(
-    pageHead(v.name, `${v.kind} in ${v.group}`,
+    pageHead(titled('store', v.kind, v.name), `${v.kind} in ${v.group}`,
       h('a.btn', { href: href('/system', { stores: 1, sel: `res:${v.key}` }) }, 'Show on map'),
-      h('a.btn', { href: href('/inventory', { type: 'store' }) }, 'All data stores')),
+      h('a.btn', { href: href('/inventory', { type: `store:${v.kind}` }) }, `All ${v.kind} stores`)),
     h('div.content', h('div.page-grid',
       h('div.figures', fig(v.services.length, 'Services'), fig(v.readers.length, 'Readers'), fig(v.writers.length, 'Writers', v.writers.length > 1),
         fig(fns.length, 'Functions'), fig(v.entryPoints.length, 'Entry points reach it')),

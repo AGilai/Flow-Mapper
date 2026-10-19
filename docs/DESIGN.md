@@ -67,6 +67,9 @@ enforced):
 | Transport | Convention | Example |
 |---|---|---|
 | HTTP | `http:{METHOD} {host}{pathTemplate}` | `http:GET orders-svc/orders/{id}` |
+| RPC (JSON-RPC, Thrift, in-house) | `rpc:{service}/{Service.Method}` | `rpc:inventory-svc/Stock.Check` |
+| gRPC | `grpc:{service}/{package.Service}/{Method}` | `grpc:pricing-svc/pricing.v1.Pricing/Quote` |
+| EventBridge bus | `eventbridge:{bus}` | `eventbridge:acme-bus` |
 | SNS topic | `sns:{topic}` | `sns:order-events` |
 | SQS queue | `sqs:{queue}` | `sqs:inventory-order-events` |
 | AMQP publish | `amqp:{exchange}/{routingKey}` | `amqp:shipping/shipping.created` |
@@ -95,7 +98,7 @@ exact keys first, then patterns. What happens next depends on `delivery`:
   longer literal prefix wins. A tie is reported as *ambiguous*.
 - **`multicast`** (SNS, AMQP fan-out): link to **every** match.
 
-Defaults: `http` → unicast, `sns` → multicast, `sqs` → unicast, `amqp` → multicast.
+Defaults: `http`, `rpc`, `grpc` → unicast and synchronous; `sns` → multicast, `sqs` → unicast, `amqp` → multicast.
 Harvesters may override per endpoint.
 
 Pub/sub path: `egress sns:order-events` → channel `sns:order-events` → binding →
@@ -226,7 +229,12 @@ impact, `appVersion` (where it was seen), `fixedInVersion`, env, reporter, assig
    harvested commit) and its request/response DTOs in a JSON viewer.
 3. **Sequence view** — starts with one function's intra-service steps; expand any egress
    to follow it into the next service, until the whole flow from an entry point is shown.
-   Async hops are drawn with open arrows and marked as such.
+   Async hops are drawn with open arrows and marked as such. Clicking an arrow shows where the
+   call is made (function, file and line, step), what handles it, and its DTO (event message,
+   request/response body, or the store's schema). Right-clicking (or clicking) a lifeline opens
+   a menu: show a service's function calls in place (one lifeline per function; `expand` on the
+   trace), zoom in to that service's own flow from where this flow enters it, open the code, or
+   open the object's page.
 4. **Link health** — the stats in §5 with drill-down to each broken item.
 5. **Bugs** — list (sort/filter by priority, status, service), bug detail with logs and
    the linked part of the graph.

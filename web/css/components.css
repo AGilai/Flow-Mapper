@@ -33,7 +33,7 @@
   background: var(--surface-2); font-size: var(--fs-xs); font-weight: 600; color: var(--ink-2); white-space: nowrap;
 }
 .chip::before { content: ''; width: 12px; height: 3px; border-radius: 2px; background: var(--c, var(--t-res)); }
-.chip[data-t='http'] { --c: var(--t-http); }
+.chip[data-t='http'] { --c: var(--t-http); } .chip[data-t='rpc'] { --c: var(--t-rpc); } .chip[data-t='grpc'] { --c: var(--t-http); } .chip[data-t='eventbridge'] { --c: var(--t-eb); }
 .chip[data-t='sns'] { --c: var(--t-sns); }
 .chip[data-t='sqs'] { --c: var(--t-sqs); }
 .chip[data-t='amqp'] { --c: var(--t-amqp); }
@@ -116,3 +116,25 @@ table.grid td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .json-s { color: var(--t-sqs); }
 .json-n { color: var(--t-http); }
 .json-b { color: var(--t-amqp); }
+
+/* ---- object icons (AWS Architecture Icons, brand logos) ---- */
+.obj-icon { flex: none; display: inline-block; vertical-align: middle; border-radius: 4px; }
+svg.obj-icon { color: var(--ink-2); }
+.titled { display: inline-flex; align-items: center; gap: var(--s2); min-width: 0; }
+.name-cell { display: flex; align-items: center; gap: var(--s2); }
+.seg button .obj-icon { margin-right: 6px; }
+
+/* ---- context menu ---- */
+.ctx-menu { position: fixed; z-index: 50; min-width: 240px; max-width: 340px; padding: 4px; background: var(--surface);
+  border: 1px solid var(--line-strong); border-radius: var(--r-md); box-shadow: var(--shadow-panel); }
+.ctx-title { padding: 6px 10px 4px; font-size: var(--fs-xs); font-weight: 650; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.ctx-divider { height: 1px; margin: 4px 0; background: var(--line); }
+.ctx-item { display: flex; align-items: flex-start; gap: 8px; width: 100%; padding: 7px 10px; border: 0; border-radius: var(--r-sm);
+  background: none; color: var(--ink); font: inherit; font-size: var(--fs-sm); text-align: left; cursor: pointer; }
+.ctx-item:hover:not([disabled]), .ctx-item:focus-visible { background: var(--accent-soft); outline: none; }
+.ctx-item[disabled] { color: var(--muted); cursor: default; }
+.ctx-item svg, .ctx-gap { width: 16px; height: 16px; flex: none; margin-top: 1px; }
+.ctx-text { display: grid; gap: 1px; }
+.ctx-hint { font-size: var(--fs-xs); color: var(--muted); }
+.seq-part { cursor: context-menu; }
+.seq-part.expanded rect:first-child { stroke: var(--accent); stroke-dasharray: 4 3; }

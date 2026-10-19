@@ -348,6 +348,34 @@
         "userId": "c_81f2a9",
         "occurredAt": "2026-10-19T08:10:00Z"
       }
+    },
+    {
+      "service": "inventory-svc",
+      "ingress": "in.rpc.checkStock",
+      "role": "request",
+      "content": {
+        "jsonrpc": "2.0",
+        "method": "Stock.Check",
+        "params": {
+          "sku": "SKU-1042",
+          "warehouse": "TLV-1"
+        },
+        "id": 17
+      }
+    },
+    {
+      "service": "inventory-svc",
+      "ingress": "in.rpc.checkStock",
+      "role": "response",
+      "content": {
+        "jsonrpc": "2.0",
+        "result": {
+          "sku": "SKU-1042",
+          "available": 14,
+          "reserved": 3
+        },
+        "id": 17
+      }
     }
   ]
 }

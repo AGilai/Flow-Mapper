@@ -11,6 +11,7 @@ import { jsonView } from '../components/json-view.js';
 import { icon } from '../icons.js';
 import { box, empty, fig, problems } from './detail-parts.js';
 import { channelLink, serviceLink } from './inventory-links.js';
+import { titled } from '../components/object-icon.js';
 
 export async function render({ main, params }) {
   const v = await api.eventType(state.env, params.type);
@@ -24,7 +25,7 @@ export async function render({ main, params }) {
   const deliveries = v.deliveries ?? [];
 
   main.append(
-    pageHead(v.type, 'Event type',
+    pageHead(titled('event', 'event', v.type), 'Event type',
       h('a.btn', { href: href('/inventory', { type: 'event' }) }, 'All event types')),
     h('div.content', h('div.page-grid',
       h('div.figures', fig(v.producers.length, 'Producers'), fig(v.consumers.length, 'Consumers'), fig(deliveries.length, 'Routes'),

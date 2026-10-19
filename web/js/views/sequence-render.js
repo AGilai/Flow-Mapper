@@ -4,14 +4,15 @@
 //   solid arrow, filled head  = sync call      dashed, open head = async
 //   red dashed with ×          = call that matches nothing
 //   arrow colour               = transport (http, sns, sqs, amqp, data store)
+// Right-click (or click) a lifeline header to get its menu: onParticipant(participant, x, y).
 
 import { h, s } from '../dom.js';
 
 const COL = 168, HEAD = 56, ROW = 30, PAD = 24, GUTTER = 44;
 const KIND_LABEL = { client: 'caller', function: 'function', service: 'service', channel: 'queue / topic', resource: 'data store', missing: 'no match' };
-const T_VAR = { http: '--t-http', grpc: '--t-http', sns: '--t-sns', sqs: '--t-sqs', amqp: '--t-amqp', cron: '--t-cron', res: '--t-res' };
+const T_VAR = { http: '--t-http', rpc: '--t-rpc', grpc: '--t-http', eventbridge: '--t-eb', sns: '--t-sns', sqs: '--t-sqs', amqp: '--t-amqp', cron: '--t-cron', res: '--t-res' };
 
-export function renderSequence(trace, { onMessage, internal = true, stores = true, maxDepth = Infinity } = {}) {
+export function renderSequence(trace, { onMessage, onParticipant, expanded = new Set(), internal = true, stores = true, maxDepth = Infinity } = {}) {
   const msgs = trace.messages.filter((m) => (internal || m.kind !== 'call') && (stores || m.kind !== 'resource') && m.depth <= maxDepth);
   const used = new Set(msgs.flatMap((m) => [m.from, m.to]));
   const parts = trace.participants.filter((p) => used.has(p.id));
@@ -20,13 +21,15 @@ export function renderSequence(trace, { onMessage, internal = true, stores = tru
   const height = PAD + msgs.length * ROW + PAD;
 
   const head = s('svg', { width, height: HEAD, class: 'seq-head', role: 'presentation' },
-    parts.map((p) => {
+    parts.map((p, i) => {
       const cx = x.get(p.id);
-      return s('g', { class: `seq-part k-${p.kind}`, transform: `translate(${cx - COL / 2 + 8},8)` },
+      // functions of a service other than the trace's start are labelled with their service
+      const sub = p.kind === 'function' && p.service !== trace.start.service ? `fn in ${p.service}` : KIND_LABEL[p.kind] ?? p.kind;
+      return s('g', { class: `seq-part k-${p.kind}${p.kind === 'function' && expanded.has(p.service) ? ' expanded' : ''}`, 'data-p': i, transform: `translate(${cx - COL / 2 + 8},8)` },
         s('rect', { width: COL - 16, height: HEAD - 16, rx: 8 }),
         s('rect', { class: 'stripe', width: 4, height: HEAD - 16, rx: 2, style: p.kind === 'channel' ? `fill: var(${T_VAR[chType(p.id)] ?? '--t-res'})` : null }),
         s('text', { x: 12, y: 18, class: 'name' }, clip(p.label, 20)),
-        s('text', { x: 12, y: 33, class: 'sub' }, KIND_LABEL[p.kind] ?? p.kind),
+        s('text', { x: 12, y: 33, class: 'sub' }, clip(sub, 24)),
         s('title', {}, p.label));
     }));
 
@@ -36,6 +39,15 @@ export function renderSequence(trace, { onMessage, internal = true, stores = tru
       s('marker', { id: 'ao', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 8, markerHeight: 8, orient: 'auto-start-reverse' }, s('path', { d: 'M1 1L9 5L1 9', fill: 'none', stroke: 'context-stroke', 'stroke-width': 1.5 }))),
     parts.map((p) => s('line', { class: 'lifeline', x1: x.get(p.id), x2: x.get(p.id), y1: 0, y2: height })),
     msgs.map((m, i) => message(m, i, x)));
+
+  const partMenu = (ev) => {
+    const g = ev.target.closest?.('[data-p]');
+    if (!g || !onParticipant) return;
+    ev.preventDefault();
+    onParticipant(parts[Number(g.dataset.p)], ev.clientX, ev.clientY);
+  };
+  head.addEventListener('contextmenu', partMenu);
+  head.addEventListener('click', partMenu);
 
   body.addEventListener('click', (ev) => {
     const g = ev.target.closest?.('[data-i]');

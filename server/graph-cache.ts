@@ -1,4 +1,6 @@
-// Caches the resolved GraphIndex per environment; any write invalidates that environment.
+// Caches the resolved GraphIndex per environment; any write invalidates that environment. Writes by
+// another process (a seed script, a second server on the same file) are noticed through SQLite's
+// data_version, which changes when another connection commits; then every environment is rebuilt.
 // Also records per-service health after each write so the UI can show a trend per version.
 
 import type { DB } from './db/connection.ts';
@@ -7,8 +9,16 @@ import { health } from '../core/health.ts';
 import { loadModel } from './store/snapshots.ts';
 
 const cache = new Map<string, GraphIndex>();
+let seenVersion: number | null = null;
+
+function dropIfChangedElsewhere(db: DB) {
+  const v = (db.prepare('PRAGMA data_version').get() as { data_version: number }).data_version;
+  if (seenVersion !== null && v !== seenVersion) cache.clear();
+  seenVersion = v;
+}
 
 export function graphFor(db: DB, env: string): GraphIndex {
+  dropIfChangedElsewhere(db);
   let g = cache.get(env);
   if (!g) cache.set(env, (g = buildIndex(loadModel(db, env))));
   return g;

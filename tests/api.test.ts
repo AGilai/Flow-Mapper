@@ -150,3 +150,29 @@ test('serves the UI and browser-ready core modules', async () => {
   assert.equal(deep.status, 200, 'unknown paths fall back to the app shell');
   assert.equal((await fetch(app.base + '/core/../server/app.ts')).status, 404);
 });
+
+test('dry-run ingest validates and reports changes without writing', async () => {
+  const m = readSample('users-svc.json');
+  const before = (await app.call('GET', '/api/envs/prod/services/users-svc')).body.service.version;
+  const ok = await app.call('POST', '/api/ingest?dryRun=1', { ...m, version: before + 1, resources: m.resources.filter((r: any) => r.id !== 'sessions') });
+  assert.equal(ok.status, 200, JSON.stringify(ok.body));
+  assert.equal(ok.body.dryRun, true);
+  assert.deepEqual(ok.body.results[0].changes.removed.resources, ['sessions']);
+  assert.equal((await app.call('GET', '/api/envs/prod/services/users-svc')).body.service.version, before, 'nothing written');
+  const bad = await app.call('POST', '/api/ingest?dryRun=1', { ...m, version: before + 1, ingress: [{ id: 'x' }] });
+  assert.equal(bad.status, 422);
+  const old = await app.call('POST', '/api/ingest?dryRun=1', { ...m, version: 1 });
+  assert.equal(old.body.error.code, 'VERSION_NOT_NEWER');
+});
+
+test('writes by another process show up without a restart', async () => {
+  const { openDb } = await import('../server/db/connection.ts');
+  const { ingest } = await import('../server/store/snapshots.ts');
+  assert.equal((await app.call('GET', '/api/envs/prod/views/system')).status, 200); // warm the cache
+  const other = openDb(app.dbPath);
+  const m = { ...readSample('users-svc.json'), service: { ...readSample('users-svc.json').service, name: 'side-svc' }, version: 1 };
+  ingest(other, m, 'seed');
+  other.close();
+  const names = (await app.call('GET', '/api/envs/prod/services')).body.map((s: any) => s.name);
+  assert.ok(names.includes('side-svc'));
+});

@@ -13,7 +13,7 @@ import { createCanvasGraph } from '../graph/canvas-graph.js';
 import { layout } from '../graph/layout.js';
 import { nodePanel, edgePanel } from './system-panel.js';
 
-const TRANSPORTS = ['http', 'sns', 'sqs', 'amqp'];
+const TRANSPORTS = ['http', 'rpc', 'grpc', 'sns', 'sqs', 'amqp', 'eventbridge'];
 
 export async function render({ main, query }) {
   const data = await api.system(state.env);
