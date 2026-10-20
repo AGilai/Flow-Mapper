@@ -8,6 +8,7 @@ Add a row here with every fix or feature (newest first). A row without a working
 
 | Version | Bug | What to look at | Link |
 |---|---|---|---|
+| 0.9.3 | #43 | `start_erase` publishes the same status event from three places; the controller answers by asking both erasers again. The saga is expanded under the first delivery; the other two are one muted line "↩ seen at step N" (before: 43 messages, now 21); click it to see the first step | `#/flows?service=erase-saga-demo&ingress=in.start` |
 | 0.9.2 | #35 | Fan-out of 12 queues, consumers called first by the gateway: the lifelines read topic, queue, consumer, queue, consumer; only the gateway's own queue points left | `#/flows?service=stress-gateway&ingress=in.startChecked` |
 | 0.9.2 | #35 | Same topic, consumers seen nowhere else; labels on the publish/delivery rows are clipped to their arrows | `#/flows?service=stress-gateway&ingress=in.start` |
 | 0.9.2 | #40 | A delivery through a filtered subscription names the matched event ("· account.tenant.deleted"); the side panel says "Delivered as" | `#/flows?service=account-lambda-erase-controller&ingress=in.publishDeviceEvent` |

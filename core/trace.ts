@@ -50,6 +50,7 @@ export interface Message {
   group?: string;                                            // SNS fan-out: id of the publish (`m<index of the publish message>`), on the publish and on each of its deliveries
   deliveries?: number;                                       // on the publish message of a fan-out: how many deliveries follow it
   matched?: string[];                                        // on deliveries of an untyped publish: the event types (its events / candidates) that the subscription's filter let through
+  repeatOf?: number;                                         // a delivery already expanded earlier in this trace (#43): the 1-based step (message number) of the first one. Nothing is expanded below it; it does not count toward maxMessages
   delivery?: number;                                         // on the topic -> queue and queue -> consumer messages of one delivery: 1-based ordinal within the group
 }
 export interface Trace {
@@ -78,6 +79,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
   let truncated = false;
   const root = start.service;
 
+  const expanded = new Map<string, number>(); // deliveries expanded so far (consumer, ingress, handler, event) -> step number of the first (#43)
   const part = (p: Participant) => { if (!participants.has(p.id)) participants.set(p.id, p); return p.id; };
   const fnPart = (service: string, fn: string) => {
     if ((scope === 'intra' && service === root) || expand.has(service)) {
@@ -106,7 +108,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
     if (++c.counts[c.branch] > c.max) { c.max = c.counts[c.branch]; tally(c.parent); }
   };
   const push = (m: Message) => {
-    if (m.kind === 'frontier') { messages.push(m); return true; } // markers are free, as documented on TraceOptions.frontier
+    if (m.kind === 'frontier' || m.repeatOf) { messages.push(m); return true; } // markers are free, as documented on TraceOptions.frontier (and #43 for repeats)
     if (counted >= maxMessages && wouldCount(altCtx)) { truncated = true; return false; }
     tally(altCtx);
     messages.push(m);
@@ -260,10 +262,16 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
     const target = scope === 'intra' && i.service !== root
       ? part({ id: `svc:${i.service}`, label: i.service, kind: 'service', service: i.service })
       : fnPart(i.service, handler);
-    if (!push({ ...base, from, to: target, label: crossing === 'deliver' ? `${label} → ${handler}` : label, mode, kind: crossing, depth, target: { service: i.service, ingress: i.id, fn: handler } } as Message)) return;
     const key = sid(i.service, handler);
+    // One expansion per delivery and trace, wherever it sits (siblings, other alt branches): the first in trace order wins. An ancestor on the path stays a [cycle].
+    const seenKey = scope === 'intra' && i.service !== root ? undefined : `${key}|${i.id}|${base.event ?? ''}|${base.matched?.join(',') ?? ''}`;
+    const first = seenKey && !stack.includes(key) ? expanded.get(seenKey) : undefined;
+    const text = crossing === 'deliver' ? `${label} → ${handler}` : label;
+    if (!push({ ...base, from, to: target, label: first ? `${text} ↩ seen at step ${first}` : text, mode, kind: crossing, depth, target: { service: i.service, ingress: i.id, fn: handler }, ...(first ? { repeatOf: first } : {}) } as Message)) return;
     if (scope === 'intra' && i.service !== root) return;
     if (stack.includes(key)) { messages[messages.length - 1].cycle = true; return; }
+    if (first) return;
+    if (seenKey) expanded.set(seenKey, messages.length);
     if (depth < maxDepth) visitFn(i.service, handler, depth + 1, [...stack, key]);
   };
 

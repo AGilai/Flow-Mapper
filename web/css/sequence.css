@@ -43,6 +43,8 @@
   .flows-list { border-right: 0; border-bottom: 1px solid var(--line); }
 }
 .msg.frontier .label { fill: var(--muted); font-style: italic; text-decoration: underline dotted; }
+.msg.repeat .label { fill: var(--muted); font-style: italic; }
+.msg.repeat .arrow { opacity: .55; }
 .msg.leaf .label { fill: var(--ink-2); }
 .msg.from-frontier .arrow { opacity: .75; }
 .msg.gap .label { fill: var(--muted); font-style: italic; }

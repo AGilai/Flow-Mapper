@@ -35,11 +35,13 @@ export function messagePanel(m, trace, env) {
     m.unhandled ? section('Why it is broken', null, h('p.small', `${m.event} reaches this consumer, but none of its event handlers matches it. It will fail or go to the dead-letter queue.`))
       : m.broken ? section('Why it is broken', null, h('p.small', 'No ingress, queue or route matches this key. Either the target was renamed, or a harvester produced a different key on one side.')) : null,
     m.origin === 'frontier' ? h('p.small.muted', 'A frontier step: part of a call tree that reaches no sink.') : null,
+    m.repeatOf ? h('p.small', `↩ Already expanded at step ${m.repeatOf}: `, h('span.key', trace.messages[m.repeatOf - 1]?.label ?? ''), '. The same delivery (consumer, ingress, event) is drawn once per trace, so nothing is shown below this arrow.') : null,
     m.cycle ? h('p.small.muted', 'This call leads back into a function already on the path, so the trace stops here.') : null,
     h('dl.kv',
       h('dt', 'From'), h('dd', p(m.from)?.label ?? m.from),
       h('dt', 'To'), h('dd', { class: m.broken ? 'key' : '' }, p(m.to)?.label ?? m.to),
       h('dt', 'Mode'), h('dd', m.mode),
+      h('dt', 'Step'), h('dd', String(trace.messages.indexOf(m) + 1)),
       h('dt', 'Depth'), h('dd', String(m.depth)),
       ...(m.delivery ? [h('dt', 'Delivery'), h('dd', `${m.depth}.${m.delivery}`)] : []),
       ...(m.matched?.length ? [h('dt', 'Delivered as'), h('dd', m.matched.map((t) => eventLink(t)), h('span.xs.muted', ' the publish names no event; these types of it pass the subscription filter'))] : []),
