@@ -21,7 +21,7 @@ export function callerFor(first) {
   if (t === 'cron') return { id: 'src', label: 'schedule', sub: ['cron', stripType(key)].filter(Boolean).join(' · '), kind: 'source' };
   if (t === 'socket') return { id: 'client', label: 'client', sub: `${socketProtocol(first)} socket`, kind: 'client' };
   const q = stripType(key);
-  return { id: 'src', label: q || t, sub: `${t === 'amqp-queue' ? 'amqp' : t} queue`, kind: 'source' };
+  return { id: 'src', label: q || t, sub: `${t === 'amqp-queue' ? 'amqp' : t} queue`, kind: 'source', ...(t === 'amqp' ? { transport: 'amqp' } : {}) };
 }
 
 /** The trace request of the flow a delivery row starts: its consumer's ingress with the delivered event (only that handler runs). */

@@ -76,6 +76,12 @@
       "bindKey": "amqp-queue:domain-events-swg",
       "transport": "amqp",
       "handler": "onDeviceLogout",
+      "events": [
+        {
+          "type": "DeviceLoggedOut",
+          "handler": "onDeviceLogout"
+        }
+      ],
       "source": {
         "file": "src/consumers/index.ts",
         "line": 5

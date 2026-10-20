@@ -96,7 +96,7 @@ export function systemGraph(g: GraphIndex): SystemGraph {
     if (!nodes.has(from) || !nodes.has(to)) continue;
     const key = l.from.type === 'egress' ? g.egress.get(sid(l.from.service, l.from.id))!.bindKey : label(l.from);
     const b = l.binding ? g.bindings.get(sid(l.binding.service, l.binding.id)) : undefined;
-    addEdge(from, to, l.transport, l.mode, {
+    addEdge(from, to, key.startsWith('amqp-rpc:') ? 'rpc' : l.transport, l.mode, { // an RPC over AMQP is a call: olive (rpc), not grape
       from: label(l.from), to: label(l.to), bindKey: key, via: l.via,
       ...(l.from.type === 'egress' ? { egress: l.from.id } : {}), ...(l.to.type === 'ingress' ? { ingress: l.to.id } : {}),
       ...(b?.events ? { filter: b.events } : {}),
@@ -107,7 +107,7 @@ export function systemGraph(g: GraphIndex): SystemGraph {
     if (g.channels.has(e.bindKey)) continue; // goes to a declared channel that leads nowhere; shown via channel node
     const id = `missing:${e.bindKey}`;
     if (!nodes.has(id)) nodes.set(id, { id, kind: 'missing', label: e.bindKey, sub: 'no match' });
-    addEdge(svcNode(e.service), id, e.transport, e.mode ?? 'sync', { from: `${e.service}:${e.id}`, to: '—', bindKey: e.bindKey, via: 'none', egress: e.id }, true);
+    addEdge(svcNode(e.service), id, e.bindKey.startsWith('amqp-rpc:') ? 'rpc' : e.transport, e.mode ?? 'sync', { from: `${e.service}:${e.id}`, to: '—', bindKey: e.bindKey, via: 'none', egress: e.id }, true);
   }
 
   // Resources shared by bindKey

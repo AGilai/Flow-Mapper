@@ -49,7 +49,7 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
   const keys = new Map();
   const mk = (c) => { c.ci = cols.length; cols.push(c); return c; };
   const special = (id, label, sub, k) => cols.find((c) => c.id === id) ?? mk({ id, label, sub, kind: k, ci: Infinity });
-  const unresolvedCol = () => special('unresolved', 'unresolved', 'no match / gap', 'unresolved');
+  const unresolvedCol = (rpc) => special('unresolved', 'unresolved', rpc ? 'no harvested target' : 'no match / gap', 'unresolved');
   if (!msgs.length) return { columns: [], events, bars, altMsgs: [], altRows: [] };
 
   const first = msgs[0];
@@ -155,7 +155,7 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
     if (m.kind === 'frontier') { push({ type: 'frontier', msg: m, bar: top }); return; }
     if (isPublish(m)) { emitChain(top, chainAt.get(idx)); return; }
     const k = kind.get(m.to), service = svcOf(m.to);
-    if (m.broken || m.gap || !service || k === 'missing' || k === 'unresolved') { push({ type: 'unresolved', msg: m, bar: top, col: unresolvedCol(), label: callLabel(m), chip: isRpc(m) ? 'no server harvested' : null }); return; }
+    if (m.broken || m.gap || !service || k === 'missing' || k === 'unresolved') { push({ type: 'unresolved', msg: m, bar: top, col: unresolvedCol(isRpc(m)), label: callLabel(m), chip: isRpc(m) ? 'no server harvested' : null }); return; }
     if (scope === 'intra' && service !== root) { push({ type: 'call', msg: m, from: top.col, fromBar: top, to: pickCol(service, top.col), bar: null, label: callLabel(m) }); return; }
     open(m, top.col, top, service, pickCol(service, top.col), isSyncCall(m), isRpc(m) ? plan1(top.col.ci, service, m.rpc) : null);
   });

@@ -75,7 +75,7 @@ function componentSets(g: GraphIndex): Map<string, string[]> {
       const routed = linksFrom(g, { type: 'egress', service: f.service, id: out.id }).filter(ok);
       // A publish to an exchange that fans out to several queues, or routes nowhere, draws the exchange as a lifeline (a single queue is reached directly).
       const ex = splitAmqpKey(out.bindKey)?.exchange, to = new Set(routed.map((l) => refKey(l.to)));
-      if (ex && !rpcOf(out) && !g.channels.has(out.bindKey)) {
+      if (ex && !rpcOf(out) && !g.channels.has(out.bindKey) && (g.channels.has(`amqp:${ex}`) || g.model.bindings.some((b) => splitAmqpKey(b.from)?.exchange === ex))) {
         const r = routeKey(g.model.bindings, g.channels.get(`amqp:${ex}`)?.details, out.bindKey, out.details);
         if (r && ((to.size > 1 && routed.every((l) => l.to.type === 'channel')) || (!to.size && !r.matched.length && !r.possible.length))) node.local.add(`c:amqp:${ex}`);
       }

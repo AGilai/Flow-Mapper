@@ -55,6 +55,16 @@
       "bindKey": "amqp-queue:domain-events-dpc",
       "transport": "amqp",
       "handler": "DeviceEventHandler.handle",
+      "events": [
+        {
+          "type": "DeviceLoggedOut",
+          "handler": "DeviceEventHandler.handle"
+        },
+        {
+          "type": "DeviceSynced",
+          "handler": "DeviceEventHandler.handle"
+        }
+      ],
       "source": {
         "file": "src/events/index.ts",
         "line": 6

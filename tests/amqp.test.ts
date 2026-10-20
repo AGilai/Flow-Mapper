@@ -57,7 +57,7 @@ test('a single matching binding goes straight to the queue (as before); the exis
 });
 
 test('RPC over AMQP: linked by amqp-rpc:{command}, sync, unicast, details from both sides, nested RPC, no server', () => {
-  assert.equal(deliveryOf({ transport: 'amqp', mode: 'sync' }), 'unicast');
+  assert.equal(deliveryOf({ transport: 'amqp', mode: 'sync', bindKey: 'amqp-rpc:x' }), 'unicast');
   assert.equal(deliveryOf({ transport: 'amqp', mode: 'async' }), 'multicast');
   const t = run('swg-api', 'in.policyCheck');
   const rpcs = t.messages.filter((m) => m.rpc);
@@ -90,6 +90,19 @@ test('lane: chip on the first call per pair, glyph on later ones, replies, olive
   assert.equal(lo.events.filter((e: any) => e.type === 'hop' && e.trunk).length, 2);
   assert.ok(lo.events.some((e: any) => e.type === 'amqpnote' && /2 bindings don't match: audit\.#, system\.#/.test(e.text)));
   assert.ok(lo.events.some((e: any) => e.type === 'hop' && e.end?.none === 'no binding matches'));
+});
+
+test('a publish to an undeclared exchange with no binding stays a broken arrow to "missing"; unicast only for RPC', () => {
+  const m = sampleModel();
+  m.egress.push({ service: 'cp-middleware', id: 'ghost.publish', bindKey: 'amqp:ghost/a.b', transport: 'amqp', mode: 'async', details: {} });
+  m.functions.find((f: any) => f.service === 'cp-middleware' && f.id === 'DeviceController.audit').steps.push({ seq: 2, type: 'egress', target: 'ghost.publish', mode: 'async' });
+  const t = trace(buildIndex(m), { service: 'cp-middleware', ingress: 'in.deviceAudit' }, { scope: 'full' })!;
+  const ghost = t.messages.find((x) => x.egress === 'ghost.publish')!;
+  assert.ok(ghost.broken && t.participants.find((p) => p.id === ghost.to)!.kind === 'missing');
+  assert.ok(!ghost.amqp);
+  assert.equal(deliveryOf({ transport: 'amqp', mode: 'sync', bindKey: 'amqp:x/y' }), 'multicast', 'other sync amqp keeps the old default');
+  assert.equal(deliveryOf({ transport: 'amqp', mode: 'sync', bindKey: 'amqp-rpc:c' }), 'unicast');
+  assert.equal(deliveryOf({ transport: 'amqp', mode: 'sync', bindKey: 'x', details: { rpc: {} } }), 'unicast');
 });
 
 test('lane helpers: replies, timeout text, marker by exchange type', () => {

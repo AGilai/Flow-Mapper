@@ -33,8 +33,11 @@ export function withPlaceholderKeys(model: Model): Model {
 export const SYNC = new Set<Transport>(['http', 'rpc', 'grpc']);
 
 /** A sync call over AMQP (an RPC) goes to one server; a publish goes to every matching binding. */
-export const deliveryOf = (e: { delivery?: Delivery; transport: Transport; mode?: Mode }): Delivery =>
-  e.delivery ?? (e.transport === 'amqp' && e.mode === 'sync' ? 'unicast' : DEFAULT_DELIVERY[e.transport]) ?? 'unicast';
+/** An RPC over AMQP: sync amqp with an `amqp-rpc:` key or `details.rpc`. */
+const isRpcEgress = (e: { transport: Transport; mode?: Mode; bindKey?: string; details?: Record<string, unknown> }) =>
+  e.transport === 'amqp' && e.mode === 'sync' && (!!e.details?.rpc || String(e.bindKey ?? '').startsWith('amqp-rpc:'));
+export const deliveryOf = (e: { delivery?: Delivery; transport: Transport; mode?: Mode; bindKey?: string; details?: Record<string, unknown> }): Delivery =>
+  e.delivery ?? (isRpcEgress(e) ? 'unicast' : DEFAULT_DELIVERY[e.transport]) ?? 'unicast';
 
 export const refKey = (r: Ref): string =>
   r.type === 'channel' ? `channel|${r.key}` : `${r.type}|${r.service}|${r.id}`;

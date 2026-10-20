@@ -4,7 +4,8 @@ import { h } from '../dom.js';
 import { section } from '../components/panel.js';
 import { timeoutText, noMatchText } from './flow-amqp.js';
 
-const row = (k, v, sub) => (v == null || v === '' ? [] : [h('dt', k), h('dd', h('span.key', String(v)), sub ? h('span.xs.muted', ` ${sub}`) : null)]);
+const brk = (t) => String(t).split(/(?<=[.\-_/:{}])/).flatMap((x, i) => (i ? [h('wbr'), x] : [x])); // may break after punctuation, never mid-word
+const row = (k, v, sub, prose = false) => (v == null || v === '' ? [] : [h('dt', k), h('dd', prose ? String(v) : h('span.key', { style: { wordBreak: 'normal', overflowWrap: 'break-word' } }, brk(v)), sub ? h('span.xs.muted', ` ${sub}`) : null)]);
 
 /** The "AMQP" card of an RPC call: exchange, command queue, reply queue, correlation, timeout, library, prefetch. */
 export function rpcCard(m) {
@@ -19,7 +20,7 @@ export function rpcCard(m) {
     ...row('Timeout', r.timeoutMs ? timeoutText(r.timeoutMs) : null, r.timeoutMs ? 'the reply is "reply or timeout"' : ''),
     ...row('Library', r.library),
     ...row('Prefetch', r.prefetch, 'the server handles this many at once'),
-    ...row('Declared by', r.declaredBy === 'both' ? 'caller and server (they agree on the command)' : 'the caller only')));
+    ...row('Declared by', r.declaredBy === 'both' ? 'caller and server (they agree on the command)' : 'the caller only', '', true)));
 }
 
 /** Why an RPC has no server: which harvester to look for. */

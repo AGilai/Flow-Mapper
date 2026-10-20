@@ -159,6 +159,9 @@
       "transport": "amqp",
       "mode": "async",
       "delivery": "multicast",
+      "events": [
+        "DeviceLoggedOut"
+      ],
       "details": {
         "exchange": "saferx.EventExchange",
         "routingKey": "device.{deviceId}.logout"
@@ -174,6 +177,9 @@
       "transport": "amqp",
       "mode": "async",
       "delivery": "multicast",
+      "events": [
+        "FirmwareUpdated"
+      ],
       "details": {
         "exchange": "saferx.EventExchange",
         "routingKey": "firmware.{deviceId}.updated"
@@ -189,6 +195,9 @@
       "transport": "amqp",
       "mode": "async",
       "delivery": "multicast",
+      "events": [
+        "DeviceSynced"
+      ],
       "details": {
         "exchange": "saferx.EventExchange",
         "routingKey": "device.{deviceId}.synced"

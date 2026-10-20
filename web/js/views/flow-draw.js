@@ -21,7 +21,7 @@ const T_VAR = { http: '--t-http', rpc: '--t-rpc', grpc: '--t-http', eventbridge:
 const colorOf = (t) => `var(${T_VAR[t] ?? '--ink-2'})`;
 const SUB_CH = 19, LINE_H = 14, TILE_PX = 6.6;
 const tileW = (t) => Math.max(22, Math.ceil(String(t).length * TILE_PX) + 12);
-const markW = (m) => Math.ceil(m.label.length * 6.4) + 30;
+const markW = (m) => Math.ceil(m.label.length * (m.kind === 'key' ? 6.9 : 6.4)) + 30; // an exchange's binding key is mono
 const FUNNEL = 'M1.5 2h9L7 6.3V10l-2-1V6.3z';
 
 /**
@@ -53,7 +53,7 @@ export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, o
   const layout = (col) => {
     const xs = centres(PAD + GUTTER + col / 2, columnGaps(columns.length, spans, (i) => Math.round((headW(columns[i], col) + headW(columns[i + 1], col)) / 2 + 8)));
     const last = columns[columns.length - 1];
-    const reach = Math.max(xs[xs.length - 1] + (isCh(last) ? 92 : 200), ...events.filter((e) => e.type === 'amqpnote').map((e) => xs[idx.get(e.col)] + 10 + labelWidth(e.text) * 0.9));
+    const reach = Math.max(xs[xs.length - 1] + (isCh(last) ? 92 : 200), ...events.filter((e) => e.type === 'amqpnote').map((e) => xs[idx.get(e.col)] + 10 + e.text.length * 5.6 + 100));
     return { xs, col, width: Math.ceil(reach + PAD) };
   };
   let L = layout(COL);
@@ -75,7 +75,7 @@ export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, o
 
   const headBox = (c) => headW(c, COLW);
   const head = s('svg', { width, height: HEAD, class: 'seq-head', role: 'presentation' }, columns.map((c, i) =>
-    s('g', { class: `seq-part k-${c.kind}${c.fan ? ' fan' : ''}`, 'data-p': i, style: isCh(c) ? `--mc:${colorOf(c.transport)}` : null, transform: `translate(${colX.get(c) - headBox(c) / 2},8)`, tabindex: c.fan ? 0 : null, role: c.fan ? 'button' : null },
+    s('g', { class: `seq-part k-${c.kind}${c.fan ? ' fan' : ''}`, 'data-p': i, style: isCh(c) || c.transport ? `--mc:${colorOf(c.transport)}` : null, transform: `translate(${colX.get(c) - headBox(c) / 2},8)`, tabindex: c.fan ? 0 : null, role: c.fan ? 'button' : null },
       s('rect', { width: headBox(c), height: boxH, rx: 8 }), s('rect', { class: 'stripe', width: 4, height: boxH, rx: 2 }),
       heads[i].name.map((t, k) => s('text', { x: 12, y: 18 + k * LINE_H, class: 'name' }, t)),
       isCh(c) ? headChip(c, heads[i].name.length * LINE_H + 5) : heads[i].sub.map((t, k) => s('text', { x: 12, y: 18 + heads[i].name.length * LINE_H + 1 + k * 13, class: 'sub' }, t)),
@@ -154,7 +154,8 @@ export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, o
     }
     if (e.type === 'amqpnote') { // the bindings that do not route this publish, under the fork; the exchange page lists them
       const x0 = colX.get(e.col) + 10;
-      return s('g', { class: 'amqpnote' }, s('a', { href: href(`/instances/${encodeURIComponent('amqp:' + e.exchange)}`), 'aria-label': `${e.text}. Open the exchange ${e.exchange}` }, s('text', { x: x0, y: y0 + 4 }, e.text), s('title', {}, `${e.text}\nOpen the exchange ${e.exchange}`)));
+      return s('g', { class: 'amqpnote' }, s('text', { x: x0, y: y0 + 4 }, e.text),
+        s('a', { href: href(`/instances/${encodeURIComponent('amqp:' + e.exchange)}`), 'aria-label': `Exchange page of ${e.exchange}` }, s('text', { class: 'lnk', x: x0 + e.text.length * 5.6 + 12, y: y0 + 4 }, 'Exchange page'), s('title', {}, `Open the exchange ${e.exchange}`)));
     }
     if (e.type === 'store') {
       const x0 = barX(e.bar, 1), w = Math.max(e.verb.length * 7, e.name.length * 6) + 18;

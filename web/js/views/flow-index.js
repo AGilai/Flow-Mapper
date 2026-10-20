@@ -89,8 +89,7 @@ export function renderIndex(tree, ctx) {
   function groupEl(g, depth = 0) {
     const seen = g.rows.filter((r) => r.seenIn).length, fresh = g.rows.length - seen;
     const el = h('div.grp', { id: `${uid}-pub-${g.pub}` },
-      h('div.grp-h', tc(g.transport, g.transport), h('span.mono', g.amqp ? `${g.amqp.exchange}${g.amqp.routingKey != null && g.amqp.type !== 'fanout' ? ` · routing key ${g.amqp.routingKey}` : ''}` : `${g.topic.replace(/^[^:]+:/, '')} · ${g.event}`),
-        g.amqp && !g.rows.length && !g.amqp.matched ? h('span.chip-warn', { title: 'No binding of the exchange routes this routing key' }, 'no binding matches') : null,
+      h('div.grp-h', tc(g.transport, g.transport), h('span.mono', g.amqp ? `${g.amqp.exchange}${g.amqp.routingKey != null && g.amqp.type !== 'fanout' ? ` · routing key ${g.amqp.routingKey}` : ''}` : g.topic.replace(/^[^:]+:/, '') === g.event ? g.event : `${g.topic.replace(/^[^:]+:/, '')} · ${g.event}`),
         g.branch ? h('span.from', `branch ${g.branch.n}${g.branch.condition ? ` · ${g.branch.condition}` : ''}`) : null,
         h('span.sum', g.amqp && !g.amqp.matched ? (g.amqp.alternateExchange ? `no binding matches: goes to the alternate exchange ${g.amqp.alternateExchange}` : 'no binding matches: RabbitMQ drops it (no alternate exchange)')
           : g.rows.length ? (g.amqp ? `${g.amqp.matched} of ${g.amqp.matched + g.amqp.nonMatching.length} bindings match · ` : '') + (fresh ? `${flowsLabel(g.rows.length)}${seen ? ` · ${fresh} new, ${seen} seen before` : ''}` : `${flowsLabel(g.rows.length)} · all seen before`) : 'no consumers')),

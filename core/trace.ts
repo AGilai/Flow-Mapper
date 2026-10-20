@@ -214,7 +214,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
         const set = event ? undefined : untypedEventSet(e);
         // RPC over AMQP, or a publish to an exchange: what the trace adds about the routing (additive fields).
         const rpc = rpcOf(e), ex = splitAmqpKey(e.bindKey)?.exchange;
-        const route = !rpc && ex && !g.channels.has(e.bindKey) ? routeKey(g.model.bindings, g.channels.get(`amqp:${ex}`)?.details, e.bindKey, e.details) : null;
+        const route = !rpc && ex && !g.channels.has(e.bindKey) && (g.channels.has(`amqp:${ex}`) || g.model.bindings.some((b) => splitAmqpKey(b.from)?.exchange === ex)) ? routeKey(g.model.bindings, g.channels.get(`amqp:${ex}`)?.details, e.bindKey, e.details) : null;
         const extra = rpc ? { rpc } : route ? { amqp: routeInfo(route, g.channels.get(`amqp:${ex}`)?.details) } : {};
         const ok = (l: Parameters<typeof passes>[1]) => (set ? passesUntyped(g, l, set) !== false : passes(g, l, event));
         const all = distinct(linksFrom(g, { type: 'egress', service, id: e.id }).filter(ok));

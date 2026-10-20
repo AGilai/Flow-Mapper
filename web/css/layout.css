@@ -54,7 +54,7 @@
 }
 .panel.open { display: flex; }
 .panel-head { display: flex; align-items: flex-start; gap: var(--s2); padding: var(--s4); border-bottom: 1px solid var(--line); }
-.panel-body { flex: 1; min-height: 0; padding: var(--s4); overflow-y: auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s4); align-content: start; }
+.panel-body { flex: 1; min-height: 0; padding: var(--s4); overflow-y: auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s4); align-content: start; grid-auto-rows: max-content; }
 
 @media (max-width: 860px) {
   .app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }

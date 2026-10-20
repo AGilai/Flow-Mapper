@@ -35,6 +35,12 @@
       "bindKey": "amqp-queue:saferx.activitylog",
       "transport": "amqp",
       "handler": "ActivityLog.record",
+      "events": [
+        {
+          "type": "DeviceLoggedOut",
+          "handler": "ActivityLog.record"
+        }
+      ],
       "source": {
         "file": "src/index.ts",
         "line": 9
