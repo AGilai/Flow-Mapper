@@ -83,8 +83,11 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
   const chPart = (key: string) => part({ id: `ch:${key}`, label: g.channels.get(key)?.name ?? key, kind: 'channel' });
   // The same subscription declared twice (by the topic's owner and by the consumer) is one link, one arrow.
   const distinct = <T extends { to: Ref }>(ls: T[]) => ls.filter((l, i) => ls.findIndex((o) => refKey(o.to) === refKey(l.to)) === i);
+  let counted = 0; // messages that count toward maxMessages: everything but the folded frontier markers
   const push = (m: Message) => {
-    if (messages.length >= maxMessages) { truncated = true; return false; }
+    if (m.kind === 'frontier') { messages.push(m); return true; } // markers are free, as documented on TraceOptions.frontier
+    if (counted >= maxMessages) { truncated = true; return false; }
+    counted++;
     messages.push(m);
     return true;
   };

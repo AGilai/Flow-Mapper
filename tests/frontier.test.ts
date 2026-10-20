@@ -91,3 +91,21 @@ test('API: ingest accepts origin and leaf, reports no unresolved; trace takes fr
   const bad = await app.call('POST', '/api/ingest?dryRun=1', { manifests: [{ ...readSample('orders-svc.json'), version: 9, functions: [{ id: 'x', name: 'x', steps: [{ seq: 1, type: 'call', origin: 'nope' }] }] }] });
   assert.ok(bad.status >= 400 && bad.status < 500);
 });
+
+test('many frontier markers do not use up maxMessages: the real messages are the same as without frontier steps (#39)', () => {
+  const build = (withFrontier: boolean) => {
+    const n = 10;
+    const fns: any[] = [{ service: 's', id: 'main', name: 'main', steps: Array.from({ length: n }, (_, i) => ({ seq: i + 1, type: 'call', target: `f${i}` })) }];
+    for (let i = 0; i < n; i++) fns.push({ service: 's', id: `f${i}`, name: `f${i}`, steps: [{ seq: 1, type: 'call', operation: 'op', note: 'x', kind: 'leaf' }, ...(withFrontier ? [{ seq: 2, type: 'call', target: 'main', origin: 'frontier' }] : [])] });
+    return buildIndex({ env: 't', services: [{ name: 's', kind: 'service', version: 1, harvestedAt: '2026-01-01' } as any], functions: fns, ingress: [{ service: 's', id: 'in', bindKey: 'http:GET s/x', transport: 'http', handler: 'main' } as any], egress: [], resources: [], channels: [], bindings: [] });
+  };
+  const real = (t: any) => t.messages.filter((m: any) => m.kind !== 'frontier');
+  for (const maxMessages of [8, 15, 500]) {
+    const plain = trace(build(false), { service: 's', ingress: 'in' }, { scope: 'full', maxMessages })!;
+    const folded = trace(build(true), { service: 's', ingress: 'in' }, { scope: 'full', maxMessages })!;
+    assert.equal(real(folded).length, real(plain).length, `maxMessages ${maxMessages}`);
+    assert.equal(folded.truncated, plain.truncated);
+  }
+  const t = trace(build(true), { service: 's', ingress: 'in' }, { scope: 'full', maxMessages: 500 })!;
+  assert.equal(t.messages.filter((m) => m.kind === 'frontier').length, 10);
+});
