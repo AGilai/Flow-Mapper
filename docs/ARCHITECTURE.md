@@ -81,6 +81,7 @@ team, quiet edges that brighten on focus, and labels placed by importance withou
 tables render one page at a time; long lists are capped with "type to narrow"; the flows page draws one activation bar per call
 (`flow-lane.js`, `flow-scan.js`: pure layout rules; `flow-draw.js`: SVG), folds internal calls into a pill, ends
 publishes at a rail and lists the async work in an index of expandable cards (`flow-async.js`, `flow-index.js`);
+flow tabs (0.13.0): `flows.js` owns the open tabs and mirrors them in the URL (`tabs=` stable keys, `tab=`); `flow-tabs-state.js` is the pure part (keys, URL encode/decode, open/close/reopen order, "distinct" selection, keyboard map), `flow-tab-data.js` loads a tab by key (a sub-flow tab is one row of its origin's async tree, no request), `flow-tab-view.js` is one tab's DOM (breadcrumb, diagram, async list; kept alive while hidden, which is the tab memory), `flow-tabs.js` the strip and overflow list, `flow-tabs-anim.js` the 280 ms open animation, `flow-list.js` the entry-point list;
 `flow-mw.js` holds the pure rules for ingress middleware segments (fold over 3, row spans), drawn on top of the bar by `flow-draw.js`; `flow-inside.js` and `flow-inside-panel.js` are the drill-down (middleware chain first). Data-store stubs and deep levels can be hidden.
 
 Design tokens are in `css/tokens.css`. Transport colours (http, sns, sqs, amqp, data store,

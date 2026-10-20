@@ -19,7 +19,7 @@ import { eventLink, serviceLink, storeLink } from './inventory-links.js';
 const KIND = { entry: 'Entry', call: 'Function call', egress: 'Call', deliver: 'Delivery from queue', resource: 'Data store access', leaf: 'Leaf step (classified by the harvester)', frontier: 'Frontier steps (folded)' };
 
 /** Returns [head, ...content] for panel.open(). */
-export function messagePanel(m, trace, env, scope = 'full') {
+export function messagePanel(m, trace, env, scope = 'full', openEntry = null) {
   const flow = asyncFlowOf(m);
   const p = (id) => trace.participants.find((x) => x.id === id);
   const kind = m.kind === 'egress' && m.mode === 'async' ? 'Publish / async call' : KIND[m.kind];
@@ -31,7 +31,7 @@ export function messagePanel(m, trace, env, scope = 'full') {
   loadDto(m, env).then((cards) => fill(dto, cards)).catch((err) => fill(dto, h('p.small.muted', err.message)));
 
   return [head,
-    flow ? h('div.ep-pad', h('a.btn', { href: href('/flows', { service: flow.service, ingress: flow.ingress, scope }) }, 'Open the async flow'), h('span.xs.muted', ` ${flow.service} · ${flow.ingress}`)) : null,
+    flow ? h('div.ep-pad', openEntry ? h('button.btn', { type: 'button', on: { click: () => openEntry({ service: flow.service, ingress: flow.ingress, scope }) } }, 'Open the async flow in a tab') : h('a.btn', { href: href('/flows', { service: flow.service, ingress: flow.ingress, scope }) }, 'Open the async flow'), h('span.xs.muted', ` ${flow.service} · ${flow.ingress}`)) : null,
     m.gap ? gapCard(m.gap) : null,
     codeCard(m, trace),
     m.gap ? null : dto,

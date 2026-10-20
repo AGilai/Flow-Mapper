@@ -14,8 +14,8 @@ const wrapId = (t) => idParts(t).flatMap((x, i) => (i ? [h('wbr'), x] : [x]));
 const codeLoc = (c) => (c?.file ? `${c.file}${c.line ? ':' + c.line : ''}` : null);
 const codeLink = (c) => (c?.url ? h('a.fi-code', { href: c.url, target: '_blank', rel: 'noopener noreferrer', title: c.url }, codeLoc(c) ?? 'code', ' ', icon('external')) : null);
 
-/** createInside(host, { env, onClose, onOpen, onStep }) -> { open(bar, trace), close, isOpen, el } */
-export function createInside(host, { env, onClose, onOpen, onStep }) {
+/** createInside(host, { env, onClose, onOpen, onStep, isActive? }) -> { open(bar, trace), close, isOpen, el } */
+export function createInside(host, { env, onClose, onOpen, onStep, isActive }) {
   const el = h('aside.fi', { 'aria-label': 'Inside the service', hidden: true });
   host.append(el);
   let current = null;
@@ -56,7 +56,7 @@ export function createInside(host, { env, onClose, onOpen, onStep }) {
     api.service(env, bar.service).then((v) => { if (current === bar.id && !el.hidden) all.textContent = `All ${v.functions.length} functions of ${bar.service} ›`; }).catch(() => {});
   }
   function close() { if (el.hidden) return; el.hidden = true; current = null; onClose?.(); }
-  const onKey = (e) => { if (e.key === 'Escape' && !el.hidden) { close(); } };
+  const onKey = (e) => { if (e.key === 'Escape' && !el.hidden && (!isActive || isActive())) { close(); } };
   addEventListener('keydown', onKey);
   return { open, close, isOpen: () => !el.hidden, el, dispose: () => removeEventListener('keydown', onKey) };
 }

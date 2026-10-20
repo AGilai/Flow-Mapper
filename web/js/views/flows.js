@@ -1,169 +1,155 @@
-// Flows: pick a starting point (entry point, ingress or function), see its sequence diagram.
-// Starts inside the service ("Inside the service"), then expands to the whole route ("Full flow").
+// Flows: every flow is a tab. Pick an entry point on the left (or an async row, a rail badge, "Start a full flow from
+// here") and it opens a tab; tabs are equal and closable. Each tab keeps its own diagram, list and drill-down.
+// The state (open tabs, active one, closed stack) is pure (flow-tabs-state.js) and mirrored in the URL: tabs= and tab=.
 
-import { h, fill, debounce } from '../dom.js';
+import { h, fill } from '../dom.js';
 import { api } from '../api.js';
 import { state } from '../state.js';
 import { icon } from '../icons.js';
-import { href, setQuery, go } from '../router.js';
+import { setQuery, go } from '../router.js';
 import { pageHead } from '../components/page.js';
 import { createPanel } from '../components/panel.js';
-import { chip, splitKey } from '../format.js';
-import { renderLane } from './flow-draw.js';
-import { buildLane } from './flow-lane.js';
-import { asyncTree } from './flow-async.js';
-import { renderIndex } from './flow-index.js';
-import { createInside } from './flow-inside-panel.js';
-import { messagePanel } from './flow-panel.js';
-import { participantMenu, barMenu } from './flow-menu.js';
 import { resizer } from '../components/resizer.js';
-import { describeCount } from '../../core/flow-counts.js';
-
-const LIST_CAP = 300;
-
-/** "(8)" after an entry point: distinct services, channels and stores its flow reaches; the breakdown is the tooltip. */
-const countBadge = (c) => c ? h('span.count', { title: describeCount(c) }, ` (${c.total})`) : null;
+import { createList } from './flow-list.js';
+import { createTabStrip } from './flow-tabs.js';
+import { createTabData } from './flow-tab-data.js';
+import { createTabView } from './flow-tab-view.js';
+import { swap } from './flow-tabs-anim.js';
+import * as T from './flow-tabs-state.js';
 
 export async function render({ main, query }) {
   const service = query.get('service');
-  const start = { service, ingress: query.get('ingress'), fn: query.get('fn'), event: query.get('event') };
-  const opts = {
-    scope: query.get('scope') ?? (start.fn ? 'intra' : 'full'),
-    stores: query.get('stores') !== '0', queues: query.get('queues') === '1', depth: query.get('depth') ?? 'all',
-    frontier: query.get('frontier') === '1', // steps the harvester marked as frontier (call trees that reach no sink)
-  };
+  const opts = { stores: query.get('stores') !== '0', queues: query.get('queues') === '1', depth: query.get('depth') ?? 'all',
+    frontier: query.get('frontier') === '1' }; // steps the harvester marked as frontier (call trees that reach no sink)
+  let S = T.decodeUrl(query);
+  const views = new Map(), slots = new Map(), stale = new Set();
+  let token = 0, disposed = false;
 
-  // Starting points: a service's ingress, or every entry point in the environment.
   const points = service
     ? (await api.service(state.env, service)).ingress.map((i) => ({ service, id: i.id, bindKey: i.bindKey, transport: i.transport, handler: i.handler, entryPoint: i.entryPoint }))
     : await api.entryPoints(state.env);
-
-  // Components each entry point's flow reaches, from one batched call; the list works without it.
   const counts = new Map((await api.flowCounts(state.env).catch(() => [])).map((c) => [`${c.service}:${c.ingress}`, c]));
-  const listBody = h('div.flows-scroll');
-  const filter = h('input.input', { type: 'search', placeholder: service ? 'Filter ingress' : 'Filter entry points', 'aria-label': 'Filter starting points' });
-  const drawList = () => {
-    const q = filter.value.trim().toLowerCase();
-    const xs = points.filter((p) => !q || p.bindKey.toLowerCase().includes(q) || p.service.includes(q) || p.handler.toLowerCase().includes(q));
-    const groups = new Map();
-    for (const p of xs.slice(0, LIST_CAP)) { if (!groups.has(p.service)) groups.set(p.service, []); groups.get(p.service).push(p); }
-    fill(listBody, 
-      service ? h('a.small', { href: href('/flows'), style: { padding: '0 var(--s2)' } }, 'Show all entry points') : null,
-      [...groups].map(([svc, ps]) => [h('h3', svc), ps.map((p) => h('a.entry', {
-        href: href('/flows', { service: p.service, ingress: p.id, scope: opts.scope }),
-        'aria-current': String(p.service === start.service && p.id === start.ingress),
-      }, h('span.row', chip(p.transport), p.entryPoint ? h('span.xs.muted', 'entry point') : null), h('span.key', splitKey(p.bindKey).rest, countBadge(counts.get(`${p.service}:${p.id}`)))))]),
-      xs.length > LIST_CAP ? h('p.xs.muted', { style: { padding: 'var(--s2)' } }, `${xs.length - LIST_CAP} more. Type to narrow the list.`) : null,
-      !xs.length ? h('p.small.muted', { style: { padding: 'var(--s2)' } }, 'No starting points match.') : null);
-  };
-  filter.addEventListener('input', debounce(drawList, 120));
-  drawList();
+  const data = createTabData(state.env, () => opts);
 
   const mainPane = h('div.flows-main');
   const rightEl = h('div.flows-right', mainPane); // the message panel is this grid's second column, so it squeezes the diagram
-  const panel = createPanel(rightEl, { onClose: () => { flowsEl.classList.remove('mp-open'); mainPane.querySelector('.msg.active')?.classList.remove('active'); } });
-  const listEl = h('aside.flows-list', h('div.search', icon('search'), filter), listBody);
-  const flowsEl = h('div.flows', listEl, rightEl);
-  resizer(listEl, { edge: 'right', key: 'flows-list', defaultWidth: 300, label: 'Resize entry point list',
-    width: () => listEl.offsetWidth, apply: (px) => flowsEl.style.setProperty('--list-w', `${px}px`) });
+  const panel = createPanel(rightEl, { onClose: () => { flowsEl.classList.remove('mp-open'); views.get(S.active)?.clearMessage(); } });
+  const list = createList({ points, counts, service, onPick: (p) => openEntry({ service: p.service, ingress: p.id }),
+    onAll: () => go('/flows', { tabs: S.keys.join(',') || null, tab: S.keys.length > 1 ? S.active : null }) });
+  const flowsEl = h('div.flows', list.el, rightEl);
+  resizer(list.el, { edge: 'right', key: 'flows-list', defaultWidth: 300, label: 'Resize entry point list',
+    width: () => list.el.offsetWidth, apply: (px) => flowsEl.style.setProperty('--list-w', `${px}px`) });
   resizer(panel.el, { edge: 'left', key: 'flow-panel', defaultWidth: 380, label: 'Resize flow details',
     width: () => panel.el.offsetWidth, apply: (px) => { panel.el.style.width = `${px}px`; } });
+  main.append(pageHead('Flows', service ? `Starting points in ${service}` : `${points.length} entry points in ${state.env}`), h('div.content.flush', flowsEl));
 
-  main.append(
-    pageHead('Flows', service ? `Starting points in ${service}` : `${points.length} entry points in ${state.env}`),
-    h('div.content.flush', flowsEl));
-
-  if (!start.ingress && !start.fn) {
-    mainPane.append(h('div.empty', h('h2', 'Pick a starting point'),
-      h('p', 'Choose an entry point on the left to see every call, queue and data store it touches, in order.')));
-    return { dispose: panel.dispose };
-  }
-
-  let trace, tree, index, lane, mwOpen = new Set(); // keys of the bars whose long middleware chain is unfolded
-  const scroller = h('div.seq-scroll');
-  const hint = h('span.seq-hint', 'More to the right. Scroll sideways ›');
-  const wrap = h('div.seq-wrap', scroller, hint);
-  const body = h('div.flow-body', wrap);
-  const edge = () => { wrap.classList.toggle('scrolls', scroller.scrollWidth > scroller.clientWidth + 2); wrap.classList.toggle('at-end', scroller.scrollLeft + scroller.clientWidth >= scroller.scrollWidth - 4); };
-  scroller.addEventListener('scroll', edge, { passive: true });
-  const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(edge) : null;
-  ro?.observe(scroller);
-  const inside = createInside(body, { env: state.env, onOpen: () => { panel.close(); flowsEl.classList.add('fi-open'); }, onClose: () => { flowsEl.classList.remove('fi-open'); select(null); }, onStep: (m) => markArrow(m) });
+  // ---- toolbar ----
   const info = h('span.small.muted');
   const seg = h('div.seg', { role: 'group', 'aria-label': 'Scope' }, [['intra', 'Inside the service'], ['full', 'Full flow']].map(([id, label]) =>
-    h('button', { 'aria-pressed': String(opts.scope === id), on: { click: async () => { opts.scope = id; persist(); await load(); seg.querySelectorAll('button').forEach((b, i) => b.setAttribute('aria-pressed', String(['intra', 'full'][i] === id))); } } }, label)));
-  const check = (key, label, title) => h('label.check', { title }, h('input', { type: 'checkbox', checked: opts[key], on: { change: (e) => { opts[key] = e.target.checked; persist(); draw(); } } }), label);
+    h('button', { 'data-scope': id, on: { click: () => setScope(id) } }, label)));
+  const check = (key, label, title) => h('label.check', { title }, h('input', { type: 'checkbox', checked: opts[key], on: { change: (e) => { opts[key] = e.target.checked; persist(); views.forEach((v, k) => (k === S.active ? v.draw() : stale.add(k))); } } }), label);
   const frontierCheck = h('label.check', { title: 'Call trees the harvester marked as reaching no sink. Folded into one marker per function by default.' },
-    h('input', { type: 'checkbox', checked: opts.frontier, on: { change: async (e) => { opts.frontier = e.target.checked; persist(); await load(); } } }), 'Frontier steps');
-  const depth = h('select.select', { 'aria-label': 'Depth', on: { change: (e) => { opts.depth = e.target.value; persist(); draw(); } } },
+    h('input', { type: 'checkbox', checked: opts.frontier, on: { change: (e) => { opts.frontier = e.target.checked; persist(); reloadAll(); } } }), 'Frontier steps');
+  const depth = h('select.select', { 'aria-label': 'Depth', on: { change: (e) => { opts.depth = e.target.value; persist(); views.forEach((v, k) => (k === S.active ? v.draw() : stale.add(k))); } } },
     ['all', '1', '2', '3', '4', '6', '8'].map((d) => h('option', { value: d, selected: d === opts.depth }, d === 'all' ? 'All depths' : `Depth ${d}`)));
+  // The "Queues and topics" checkbox (opts.queues) stays hidden: a sub-flow's diagram starts at its delivery, so there is
+  // no queue or topic lifeline for it to add inside a tab. See docs/DESIGN.md, flow tabs.
+  const toolbar = h('div.seq-toolbar', seg, check('stores', 'Data stores'), frontierCheck, depth, h('span.spacer'),
+    h('span.xs.muted', 'Double-click a bar, or right-click it, to look inside'), info);
 
-  // TODO: the "Queues and topics" checkbox (opts.queues) returns with part 2, when queue/topic lifelines are drawn inside sub-flows.
-  mainPane.prepend(h('div.seq-toolbar', seg, check('stores', 'Data stores'), frontierCheck, depth, h('span.spacer'),
-    h('span.xs.muted', 'Double-click a bar, or right-click it, to look inside'), info), body);
+  // ---- tabs ----
+  const strip = createTabStrip({ describe: data.describe, onActivate: (k) => commit(T.activate(S, k)), onClose: (k) => commit(T.closeTab(S, k)),
+    onCloseOthers: (k) => commit(T.closeOthers(S, k)), onCloseAll: () => commit(T.closeAll(S)) });
+  const empty = h('div.emptyst', h('div.emptyst-i', icon('flow')), h('h3', 'Pick an entry point'),
+    h('p.muted', 'Choose one in the list on the left. Every entry point you pick opens in its own tab, next to the others.'));
+  mainPane.append(toolbar, strip.el, empty);
 
   function persist() {
-    setQuery({ scope: opts.scope, stores: opts.stores ? null : '0', queues: opts.queues ? '1' : null, depth: opts.depth === 'all' ? null : opts.depth, frontier: opts.frontier ? '1' : null });
+    setQuery({ ...T.encodeUrl(S), stores: opts.stores ? null : '0', queues: opts.queues ? '1' : null, depth: opts.depth === 'all' ? null : opts.depth, frontier: opts.frontier ? '1' : null });
   }
-  async function load() {
-    fill(scroller, h('div.loading', 'Tracing…'));
-    try {
-      trace = await api.trace(state.env, { service: start.service, ingress: start.ingress, fn: start.fn, event: start.event, scope: opts.scope, maxMessages: 800, frontier: opts.frontier ? '1' : null });
-    } catch (err) {
-      fill(scroller, h('div.content', h('div.error-box', err.message)));
-      return;
-    }
-    tree = asyncTree(trace.messages);
-    inside.close();
-    draw();
-  }
-  function select(bar) {
-    document.querySelectorAll('.act.selected').forEach((e) => e.classList.remove('selected'));
-    bar?.el?.classList.add('selected');
-  }
-  function markArrow(m) { // a step in the drill-down marks its arrow
-    mainPane.querySelectorAll('.msg.active').forEach((e) => e.classList.remove('active'));
-    const g = [...mainPane.querySelectorAll('.seq-body')].map((b) => ({ b, k: b.__events?.findIndex((e) => e.msg === m) })).find((x) => x.k >= 0);
-    const el = g?.b.querySelector(`[data-e="${g.k}"]`);
-    el?.classList.add('active');
-    el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
-  }
-  const laneOpts = () => ({ mwOpen, stores: opts.stores, scope: opts.scope, maxDepth: opts.depth === 'all' ? Infinity : Number(opts.depth) });
-  const openFlow = (row, full) => go('/flows', { service: row.service, ingress: row.ingress, scope: full ? 'full' : opts.scope });
-  const lookInside = (bar) => { select(bar); inside.open(bar, trace); };
-  const handlers = {
-    onMw: (bar, sel) => { const k = bar?.mw?.key; if (!k) return; if (!mwOpen.delete(k)) mwOpen.add(k); draw(); mainPane.querySelector(`${sel ?? '.mwlab'}[data-mwfold="${bar.id}"]`)?.focus(); }, // fold or unfold one bar's long middleware chain
-    onBar: (bar, mode) => { if (mode === 'select') select(bar); else lookInside(bar); },
-    onBarMenu: (bar, x, y) => barMenu(bar, x, y, { trace, inside: () => lookInside(bar), toIndex: index ? () => index.el.scrollIntoView({ behavior: 'smooth' }) : null }),
-    onParticipant: (p, x, y) => participantMenu(p, x, y, { trace, scope: opts.scope }),
-    onBadge: (ev) => { // one flow: open it; several: scroll to their group in the index below
-      const at = trace.messages.indexOf(ev.msg), g = index?.groupEl(at);
-      const only = ev.flows === 1 ? tree.rows.find((r) => r.i > at && g?.contains(document.getElementById(`row-${r.label}`))) : null;
-      if (only?.ingress && !only.noHandler) { openFlow(only, false); return; }
-      g?.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      g?.classList.add('flash');
-      setTimeout(() => g?.classList.remove('flash'), 1600);
-    },
-    onMessage: async (m, g) => { // clicking a frontier marker expands the frontier steps
-      if (m.kind === 'frontier') { opts.frontier = true; frontierCheck.querySelector('input').checked = true; persist(); await load(); return; }
-      mainPane.querySelectorAll('.msg.active').forEach((e) => e.classList.remove('active'));
-      g.classList.add('active');
-      inside.close(); // one side panel at a time
-      flowsEl.classList.add('mp-open');
-      panel.open(...messagePanel(m, trace, state.env, opts.scope));
-    },
+  const host = {
+    env: state.env, opts, panel, flowsEl, describe: data.describe, isActive: (k) => S.active === k,
+    openTab: (key, o) => commit(T.openTab(S, key, o)),
+    openSub: (row, origin) => commit(T.openTab(S, T.subKey(row, origin))),
+    openFull: (row, origin) => commit(T.openTab(S, T.fullKey(row.service, row.ingress, origin))),
+    openMany: (rows, origin) => { const keys = rows.map((r) => T.subKey(r, origin)); commit(keys.reduce((s, k) => T.openTab(s, k, { activate: false }), S), { to: keys[0] }); },
+    isOpen: (row, origin) => S.keys.includes(T.subKey(row, origin)),
+    jumpToLabel: (label) => { const k = S.keys.find((x) => data.peek(x)?.label === label); if (k) commit(T.activate(S, k)); },
+    openEntry: (e) => openEntry(e),
+    setFrontier: () => { opts.frontier = true; frontierCheck.querySelector('input').checked = true; persist(); reloadAll(); },
   };
-  function draw() {
-    const lo = laneOpts();
-    const msgs = trace.messages.filter((m) => m.depth <= lo.maxDepth);
-    lane = renderLane(buildLane(msgs, { mwOpen: lo.mwOpen, stores: lo.stores, scope: trace.scope, participants: trace.participants }), handlers);
-    index = tree.groups.length ? renderIndex(tree, { trace, lane: lo, handlers, open: openFlow }) : null;
-    const services = new Set(trace.messages.map((m) => m.service).filter(Boolean));
-    info.textContent = `${trace.start.event ? `${trace.start.event}: ` : ''}${trace.messages.length} steps, ${services.size} ${services.size === 1 ? 'service' : 'services'}${trace.truncated ? ', truncated' : ''}`;
-    fill(scroller, lane.el, index?.el);
-    edge();
-    requestAnimationFrame(edge);
+  const openEntry = ({ service: s, ingress, fn, event, scope }) => commit(T.openTab(S, ingress ? T.entryKey(s, ingress, event, scope) : T.fnKey(s, fn, event, scope)));
+  function setScope(scope) {
+    const to = T.withScope(S.active, scope);
+    if (to !== S.active) commit(T.rekey(S, S.active, to));
   }
-  await load();
-  return { dispose: () => { panel.dispose(); inside.dispose(); ro?.disconnect(); } };
+
+  /** Build the view of a tab (a slot at once, the diagram when its data arrives). */
+  function ensure(key) {
+    if (slots.has(key)) return;
+    const slot = h('div.tab-slot', { hidden: true }, h('div.loading', 'Tracing…'));
+    slots.set(key, slot);
+    mainPane.insertBefore(slot, empty);
+    data.load(key).then((d) => {
+      if (disposed || slots.get(key) !== slot) return;
+      const v = createTabView(d, host);
+      views.set(key, v);
+      slot.replaceChildren(v.el);
+      if (S.active === key) { v.restore(); paintChrome(); }
+      strip.render(S);
+    }).catch((err) => { if (slots.get(key) === slot) { slot.replaceChildren(h('div.content', h('div.error-box', err.message))); strip.render(S); } });
+  }
+  function drop(key) { views.get(key)?.dispose(); views.delete(key); slots.get(key)?.remove(); slots.delete(key); stale.delete(key); }
+
+  function paintChrome() {
+    const act = S.active, p = act ? T.parseKey(act) : null, scoped = p && (p.kind === 'entry' || p.kind === 'fn');
+    seg.querySelectorAll('button').forEach((b) => {
+      b.setAttribute('aria-pressed', String(!!p && (p.kind === 'full' ? 'full' : p.kind === 'sub' ? null : p.scope) === b.dataset.scope));
+      b.disabled = !scoped;
+      b.title = scoped ? '' : p ? 'The scope applies to entry-point tabs. This tab is a sub-flow.' : '';
+    });
+    info.textContent = views.get(act)?.info() ?? '';
+    list.mark(S);
+    empty.hidden = !!S.keys.length;
+    views.get(act)?.refreshDots();
+  }
+
+  /** Move to a new state: build and drop views, update URL and chrome, animate the swap. */
+  async function commit(next, { to } = {}) {
+    const prev = S.active, added = next.keys.filter((k) => !S.keys.includes(k));
+    views.get(prev)?.save();
+    S = to ? T.activate(next, to) : next;
+    for (const k of [...slots.keys()]) if (!S.keys.includes(k)) drop(k);
+    S.keys.forEach(ensure);
+    persist(); strip.render(S);
+    const my = ++token, act = S.active, v = views.get(act);
+    if (v && stale.delete(act)) v.draw();
+    if (prev !== act) { panel.close(); flowsEl.classList.toggle('fi-open', !!v?.insideOpen()); }
+    paintChrome();
+    if (prev !== act && act) {
+      await swap(slots.get(prev) ?? null, slots.get(act), { opening: added.length === 1 && added[0] === act && S.keys.length > 1, tabEl: strip.tabEl(act) });
+      views.get(act)?.restore();
+    }
+    if (my === token) slots.forEach((s, k) => { s.hidden = k !== S.active; });
+  }
+  function reloadAll() { // frontier changed: every trace is stale
+    data.clear(); [...slots.keys()].forEach(drop); S.keys.forEach(ensure);
+    slots.forEach((s, k) => { s.hidden = k !== S.active; });
+  }
+  const onKey = (e) => {
+    const a = T.keyAction(e);
+    if (!a || !document.querySelector('.flows')) return;
+    e.preventDefault();
+    if (a.type === 'prev' || a.type === 'next') commit(T.step(S, a.type === 'next' ? 1 : -1));
+    else if (a.type === 'jump') commit(T.nth(S, a.n));
+    else if (a.type === 'close') { if (S.active) commit(T.closeTab(S, S.active)); }
+    else commit(T.reopenTab(S));
+  };
+  addEventListener('keydown', onKey);
+
+  S.keys.forEach(ensure);
+  slots.get(S.active)?.removeAttribute('hidden');
+  strip.render(S); paintChrome();
+  if (S.keys.length) persist(); // old single-flow links become tabs=
+  return { dispose: () => { disposed = true; removeEventListener('keydown', onKey); strip.closeMenu(); panel.dispose(); views.forEach((v) => v.dispose()); } };
 }

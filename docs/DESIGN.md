@@ -298,3 +298,15 @@ resolution ≈ 0.2 s, system graph ≈ 0.1 s.
 - Who is the source of truth for SNS/RabbitMQ bindings — consumer services, an infra
   harvester, or both? The model supports both.
 - Authentication for the UI, API and MCP.
+
+## Flow tabs (0.13.0)
+
+Every flow is a tab; there is no main tab and picking never replaces. Tab keys are stable and carry no display numbers:
+`service/ingress` (entry; `~event`, `!intra` when not the defaults), `fn:service/function`, `queue/handler@origin` (a
+delivery opened from the tab `origin`), `full:service/ingress[@origin]`. The URL is `tabs=<keys>&tab=<key>`; an old
+`service=&ingress=` link becomes one tab. A sub-flow tab is a row of its origin's trace drawn as its own page, so it
+costs no request and survives its origin being closed (the origin is resolved by key, and the breadcrumb reopens it).
+The scope (inside the service / full flow) belongs to a tab and is part of its key.
+
+The "Queues and topics" checkbox stays hidden: a sub-flow's diagram starts at its delivery, so there is no queue or topic
+lifeline for it to add inside a tab; the checkbox returns when a diagram that spans publishes (nested async work) exists.
