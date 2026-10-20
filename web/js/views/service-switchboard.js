@@ -34,7 +34,7 @@ export function switchboard(v, name, q, onInfo) {
         h('div.peers', h('span', 'handler ', h('span.key', i.handler)),
           i.callers.length ? h('span', 'from ', join(uniq(i.callers.map((c) => c.service)).map(svcLink))) : null,
           i.maybeCallers?.length ? h('span', { title: 'Event types not resolved by the harvester; may pass the subscription filter' }, 'maybe from ', join(uniq(i.maybeCallers.map((c) => c.service)).map(svcLink))) : null,
-          uniq(i.callers.flatMap((c) => c.via)).length ? h('span', 'via ', uniq(i.callers.flatMap((c) => c.via)).join(', ')) : null))))) :
+          uniq(i.callers.flatMap((c) => c.via)).length ? h('span', 'through ', uniq(i.callers.flatMap((c) => c.via)).join(', ')) : null))))) :
       h('p.small.muted', q ? 'No ingress matches.' : 'This service has no ingress.'));
 
   // ---- egress, grouped by the service reached ----
@@ -56,7 +56,7 @@ export function switchboard(v, name, q, onInfo) {
             e.usedBy.length ? h('span', 'from ', e.usedBy.slice(0, 3).map((f) => h('span.key', f + ' '))) : null,
             e.targets.length ? h('span', 'to ', join(uniq(e.targets.map((t) => t.service)).slice(0, 6).map(svcLink))) : null,
             e.maybeTargets?.length ? h('span', { title: 'Event types not resolved by the harvester; may pass the subscription filter' }, 'maybe to ', join(uniq(e.maybeTargets.map((t) => t.service)).slice(0, 6).map(svcLink))) : null,
-            uniq(e.targets.flatMap((t) => t.via)).length ? h('span', 'via ', uniq(e.targets.flatMap((t) => t.via)).join(', ')) : null,
+            uniq(e.targets.flatMap((t) => t.via)).length ? h('span', 'through ', uniq(e.targets.flatMap((t) => t.via)).join(', ')) : null,
             viaChip(e.via), callSitesList(e.callSites)))));
     }),
     resources.length ? details(h('span', 'Data stores'), resources.length, true, resources.map((r) =>
