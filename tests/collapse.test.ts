@@ -31,6 +31,7 @@ test('labels: the control says what a click does; the strip names the service; t
   assert.equal(stripLabel({ active: 'api-gateway/in.createOrder~Ev!intra' }), 'api-gateway');
   assert.equal(stripLabel({ active: 'full:saga-controller/in.start@x' }), 'saga-controller');
   assert.equal(stripLabel({ count: 12 }), 'Entry points (12)');
-  assert.equal(envShort('prod'), 'pro');
+  assert.equal(envShort('prod'), 'prod');
+  assert.equal(envShort('scale-test'), 'scale');
   assert.equal(envShort(''), '·');
 });

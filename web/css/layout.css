@@ -22,7 +22,7 @@
 .rail-c .nav-link { justify-content: center; padding: 8px 0; position: relative; }
 .rail-c .nav-badge { position: absolute; top: 2px; right: 4px; margin: 0; font-size: 10px; font-weight: 600; color: var(--accent); }
 .rail-c .rail-foot { padding: var(--s3) 0 0; justify-items: center; }
-.rail-c .env-chip { display: block; font: 600 11px var(--font); color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 4px 6px; cursor: pointer; text-transform: uppercase; }
+.rail-c .env-chip { display: block; font: 600 11px var(--font); color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 4px 6px; cursor: pointer; max-width: 44px; overflow: hidden; text-overflow: ellipsis; }
 .rail-c .env-chip:hover { color: var(--ink); border-color: var(--line-strong); }
 .brand-mark { width: 28px; height: 28px; flex: none; }
 .brand-name { font-weight: 700; font-size: 16px; letter-spacing: -0.02em; }

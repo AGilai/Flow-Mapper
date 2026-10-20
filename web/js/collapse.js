@@ -27,4 +27,4 @@ export function stripLabel({ service = null, active = null, count = 0 } = {}) {
 }
 
 /** The compact environment indicator of the collapsed rail: up to three characters. */
-export const envShort = (env) => String(env ?? '').slice(0, 3) || '·';
+export const envShort = (env) => String(env ?? '').slice(0, 5) || '·';
