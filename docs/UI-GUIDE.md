@@ -177,6 +177,9 @@ whether the zero is normal for this kind of object.
   `--line` rules.
 - Tabs are for peer views of the same data. If the tab labels don't fit the width, use a
   segmented filter or a select instead. Don't clip "Subscriptions to nothing (0".
+- A details or info panel squeezes the page: it takes its own column on the right and the page
+  narrows to make room. It never overlays the content (maintainer rule, 2026-10-20). Below
+  860px the panel may take the full width instead.
 
 ## Checklist before merge
 
