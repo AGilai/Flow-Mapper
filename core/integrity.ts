@@ -1,8 +1,11 @@
 // Checks references inside one service: ingress (and per-event) handlers and step targets must exist, IDs unique.
+// A step with no target may also be a classified leaf (kind: leaf, or a call with an operation or note).
 // A bind key or step target may be missing only when `unresolved` says why (what: 'target').
 
+import { isLeaf } from './types.ts';
+
 export interface ServiceEntities {
-  functions?: { id: string; steps?: { seq: number; type: string; target?: string; unresolved?: { what: string }[] }[] }[];
+  functions?: { id: string; steps?: { seq: number; type: string; target?: string; unresolved?: { what: string }[]; kind?: 'leaf'; operation?: string; note?: string }[] }[];
   ingress?: { id: string; bindKey?: string; handler: string; events?: { type: string; handler: string }[]; unresolved?: { what: string }[] }[];
   egress?: { id: string; bindKey?: string; unresolved?: { what: string }[] }[];
   resources?: { id: string }[];
@@ -35,7 +38,7 @@ export function integrityErrors(e: ServiceEntities): string[] {
     for (const s of f.steps ?? []) {
       if (seqs.has(s.seq)) errs.push(`function '${f.id}': duplicate step seq ${s.seq}`);
       seqs.add(s.seq);
-      if (!s.target) { if (!explained(s)) errs.push(`function '${f.id}' step ${s.seq}: target is required unless unresolved (what: target) says why`); continue; }
+      if (!s.target) { if (!explained(s) && !isLeaf(s)) errs.push(`function '${f.id}' step ${s.seq}: target is required unless unresolved (what: target) says why, or it is a leaf (kind: leaf, or a call with an operation or note)`); continue; }
       const pool = s.type === 'call' ? fns : s.type === 'egress' ? egs : rs;
       if (!pool.has(s.target)) errs.push(`function '${f.id}' step ${s.seq}: ${s.type} target '${s.target}' not found`);
     }

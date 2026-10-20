@@ -12,6 +12,7 @@
 
 import type { GraphIndex } from './graph-index.ts';
 import { linksFrom, sid } from './graph-index.ts';
+import { isLeaf } from './types.ts';
 import type { Mode, Ref } from './types.ts';
 import { handlerFor, passes } from './events.ts';
 import { codeLink, sourceLink, type SourceLink } from './endpoint-info.ts';
@@ -26,7 +27,7 @@ export interface Participant {
 }
 export interface Message {
   from: string; to: string; label: string; mode: Mode;
-  kind: 'entry' | 'call' | 'egress' | 'deliver' | 'resource';
+  kind: 'entry' | 'call' | 'egress' | 'deliver' | 'resource' | 'leaf' | 'frontier';
   depth: number; internal?: boolean; broken?: boolean; cycle?: boolean;
   condition?: string; loop?: boolean; note?: string; fn?: string; service?: string; transport?: string;
   event?: string; unhandled?: boolean;
@@ -37,6 +38,8 @@ export interface Message {
   egress?: string;                                           // egress id, for calls out (its call site is in `code`)
   via?: LinkedHop[];                                         // wrappers the call goes through (last one calls the SDK); display only
   handlerVia?: LinkedHop[];                                  // how the ingress resolved to its handler (registration / bind hops); display only
+  origin?: 'frontier';                                       // a step the harvester marked as frontier (shown because the trace was asked to expand them)
+  frontierSteps?: number;                                    // on a kind 'frontier' marker: frontier steps folded into it (this function's and those of the frontier calls below it)
   gap?: Unresolved;                                          // the harvester could not resolve this call; why
 }
 export interface Trace {
@@ -46,13 +49,16 @@ export interface Trace {
   code: Record<string, SourceLink | null>;
 }
 
-export interface TraceOptions { scope?: 'intra' | 'full'; maxDepth?: number; maxMessages?: number; expand?: string[] }
+export interface TraceOptions { scope?: 'intra' | 'full'; maxDepth?: number; maxMessages?: number; expand?: string[];
+  /** Show steps marked `origin: 'frontier'`. Off by default: each function gets one collapsed marker and they do not count toward maxMessages. */
+  frontier?: boolean }
 
 export function trace(g: GraphIndex, start: { service: string; ingress?: string; fn?: string; event?: string }, opts: TraceOptions = {}): Trace | null {
   const scope = opts.scope ?? 'full';
   const maxDepth = opts.maxDepth ?? 25;
   const maxMessages = opts.maxMessages ?? 500;
   const expand = new Set(opts.expand ?? []);
+  const showFrontier = !!opts.frontier;
   const ing = start.ingress ? g.ingress.get(sid(start.service, start.ingress)) : undefined;
   const fnId = start.fn ?? (ing && start.event ? handlerFor(ing, start.event) : ing?.handler);
   if (!fnId || !g.fns.get(sid(start.service, fnId))) return null;
@@ -79,13 +85,38 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
     return true;
   };
 
+  // Frontier steps below a function: its own, plus those of the functions its frontier calls reach (each counted once).
+  const frontierCount = (service: string, fn: string) => {
+    const seen = new Set<string>();
+    const walk = (k: string): number => {
+      if (seen.has(k)) return 0;
+      seen.add(k);
+      let n = 0;
+      for (const st of g.fns.get(k)?.steps ?? []) {
+        if (st.origin !== 'frontier') continue;
+        n++;
+        if (st.type === 'call' && st.target) n += walk(sid(service, st.target));
+      }
+      return n;
+    };
+    return walk(sid(service, fn));
+  };
+
   const visitFn = (service: string, fn: string, depth: number, stack: string[]) => {
     const f = g.fns.get(sid(service, fn));
     if (!f) return;
     const me = fnPart(service, fn);
+    let folded = false;
     for (const st of [...f.steps].sort((a, b) => a.seq - b.seq)) {
       if (truncated) return;
-      const base = { depth, condition: st.condition, loop: st.loop, note: st.note, fn: f.id, service, seq: st.seq };
+      if (st.origin === 'frontier' && !showFrontier) {
+        if (!folded) { // one marker per function, where its first frontier step would be
+          folded = true;
+          push({ from: me, to: me, label: `frontier: ${frontierCount(service, fn)} steps`, mode: 'sync', kind: 'frontier', depth, service, fn: f.id, seq: st.seq, frontierSteps: frontierCount(service, fn) });
+        }
+        continue;
+      }
+      const base = { depth, condition: st.condition, loop: st.loop, note: st.note, fn: f.id, service, seq: st.seq, ...(st.origin === 'frontier' ? { origin: 'frontier' as const } : {}) };
       // A gap the harvester reported: the step's own target, or the egress it goes through, is unresolved.
       const out = st.type === 'egress' && st.target ? g.egress.get(sid(service, st.target)) : undefined;
       const gap = (!st.target ? st.unresolved?.find((u) => u.what === 'target') : undefined) ?? (out ? unresolvedTarget(out) : undefined);
@@ -94,7 +125,11 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
         push({ ...base, from: me, to, label: gap.detail ?? st.operation ?? gap.reason, mode: st.mode ?? 'sync', kind: st.type === 'resource' ? 'resource' : st.type === 'call' ? 'call' : 'egress', gap, egress: out?.id, transport: out?.transport });
         continue;
       }
-      if (!st.target) continue;
+      if (!st.target) {
+        // A classified leaf (db access, external package…): shown as a note on the function, never a gap.
+        if (isLeaf(st)) push({ ...base, from: me, to: me, label: st.operation && st.note ? `${st.operation} · ${st.note}` : st.operation ?? st.note ?? 'leaf', mode: st.mode ?? 'sync', kind: 'leaf' });
+        continue;
+      }
       if (st.type === 'call') {
         const key = sid(service, st.target);
         const cycle = stack.includes(key);

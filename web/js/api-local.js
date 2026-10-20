@@ -60,7 +60,7 @@ export const api = {
   eventType: async (env, type) => ({ ...(eventView(g(env), type) ?? fail(`event type '${type}' not found`)), flow: eventFlow(g(env), type), dto: (data.eventDtos?.[env] ?? []).find((d) => d.event === type) ?? null }),
   endpoint: async (env, service, ingress) => endpointInfo(g(env), service, ingress,
     (data.dtos?.[env] ?? []).filter((d) => d.service === service && d.ingress === ingress), data.eventDtos?.[env] ?? []) ?? fail('endpoint not found'),
-  trace: async (env, q) => trace(g(env), q, { scope: q.scope, maxMessages: q.maxMessages ?? 500, expand: q.expand?.split(',').filter(Boolean) }) ?? fail('start point not found'),
+  trace: async (env, q) => trace(g(env), q, { scope: q.scope, maxMessages: q.maxMessages ?? 500, expand: q.expand?.split(',').filter(Boolean), frontier: q.frontier === '1' || q.frontier === true }) ?? fail('start point not found'),
   paths: async (env, from, to) => findPaths(g(env), from, to),
   search: async (env, q, limit) => search(g(env), q, limit),
   health: async (env) => health(g(env)),

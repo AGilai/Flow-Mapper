@@ -22,6 +22,7 @@ export async function render({ main, query }) {
     scope: query.get('scope') ?? (start.fn ? 'intra' : 'full'),
     internal: query.get('internal') !== '0', stores: query.get('stores') !== '0', depth: query.get('depth') ?? 'all',
     expand: new Set((query.get('expand') ?? '').split(',').filter(Boolean)), // services shown function by function
+    frontier: query.get('frontier') === '1', // steps the harvester marked as frontier (call trees that reach no sink)
   };
 
   // Starting points: a service's ingress, or every entry point in the environment.
@@ -67,22 +68,24 @@ export async function render({ main, query }) {
   const seg = h('div.seg', { role: 'group', 'aria-label': 'Scope' }, [['intra', 'Inside the service'], ['full', 'Full flow']].map(([id, label]) =>
     h('button', { 'aria-pressed': String(opts.scope === id), on: { click: async () => { opts.scope = id; persist(); await load(); seg.querySelectorAll('button').forEach((b, i) => b.setAttribute('aria-pressed', String(['intra', 'full'][i] === id))); } } }, label)));
   const check = (key, label) => h('label.check', h('input', { type: 'checkbox', checked: opts[key], on: { change: (e) => { opts[key] = e.target.checked; persist(); draw(); } } }), label);
+  const frontierCheck = h('label.check', { title: 'Call trees the harvester marked as reaching no sink. Folded into one marker per function by default.' },
+    h('input', { type: 'checkbox', checked: opts.frontier, on: { change: async (e) => { opts.frontier = e.target.checked; persist(); await load(); } } }), 'Frontier steps');
   const internalCheck = check('internal', 'Internal calls');
   const internalBox = internalCheck.querySelector('input');
   const depth = h('select.select', { 'aria-label': 'Depth', on: { change: (e) => { opts.depth = e.target.value; persist(); draw(); } } },
     ['all', '1', '2', '3', '4', '6', '8'].map((d) => h('option', { value: d, selected: d === opts.depth }, d === 'all' ? 'All depths' : `Depth ${d}`)));
 
-  mainPane.prepend(h('div.seq-toolbar', seg, internalCheck, check('stores', 'Data stores'), depth, h('span.spacer'),
+  mainPane.prepend(h('div.seq-toolbar', seg, internalCheck, check('stores', 'Data stores'), frontierCheck, depth, h('span.spacer'),
     h('span.xs.muted', 'Right-click a lifeline to see inside it'), info), scroller);
 
   function persist() {
     setQuery({ scope: opts.scope, internal: opts.internal ? null : '0', stores: opts.stores ? null : '0', depth: opts.depth === 'all' ? null : opts.depth,
-      expand: [...opts.expand].join(',') || null });
+      expand: [...opts.expand].join(',') || null, frontier: opts.frontier ? '1' : null });
   }
   async function load() {
     fill(scroller, h('div.loading', 'Tracing…'));
     try {
-      trace = await api.trace(state.env, { service: start.service, ingress: start.ingress, fn: start.fn, event: start.event, scope: opts.scope, maxMessages: 800, expand: [...opts.expand].join(',') || null });
+      trace = await api.trace(state.env, { service: start.service, ingress: start.ingress, fn: start.fn, event: start.event, scope: opts.scope, maxMessages: 800, expand: [...opts.expand].join(',') || null, frontier: opts.frontier ? '1' : null });
     } catch (err) {
       fill(scroller, h('div.content', h('div.error-box', err.message)));
       return;
@@ -96,7 +99,8 @@ export async function render({ main, query }) {
         trace, scope: opts.scope, expanded: opts.expand,
         setExpanded: async (svc, on) => { on ? opts.expand.add(svc) : opts.expand.delete(svc); if (on) { opts.internal = true; internalBox.checked = true; } persist(); await load(); },
       }),
-      onMessage: (m, g) => { mainPane.querySelector('.msg.active')?.classList.remove('active'); g.classList.add('active'); panel.open(...messagePanel(m, trace, state.env)); },
+      onMessage: async (m, g) => { // clicking a frontier marker expands the frontier steps
+        if (m.kind === 'frontier') { opts.frontier = true; frontierCheck.querySelector('input').checked = true; persist(); await load(); return; } mainPane.querySelector('.msg.active')?.classList.remove('active'); g.classList.add('active'); panel.open(...messagePanel(m, trace, state.env)); },
     });
     const services = new Set(trace.messages.map((m) => m.service).filter(Boolean));
     info.textContent = `${trace.start.event ? `${trace.start.event}: ` : ''}${seq.shown} of ${seq.total} steps, ${services.size} services${trace.truncated ? ', truncated' : ''}`;

@@ -14,7 +14,7 @@ import { dtoSource } from '../components/dto-source.js';
 import { viaChip } from '../components/via-chip.js';
 import { eventLink, serviceLink, storeLink } from './inventory-links.js';
 
-const KIND = { entry: 'Entry', call: 'Function call', egress: 'Call', deliver: 'Delivery from queue', resource: 'Data store access' };
+const KIND = { entry: 'Entry', call: 'Function call', egress: 'Call', deliver: 'Delivery from queue', resource: 'Data store access', leaf: 'Leaf step (classified by the harvester)', frontier: 'Frontier steps (folded)' };
 
 /** Returns [head, ...content] for panel.open(). */
 export function messagePanel(m, trace, env) {
@@ -33,6 +33,7 @@ export function messagePanel(m, trace, env) {
     m.gap ? null : dto,
     m.unhandled ? section('Why it is broken', null, h('p.small', `${m.event} reaches this consumer, but none of its event handlers matches it. It will fail or go to the dead-letter queue.`))
       : m.broken ? section('Why it is broken', null, h('p.small', 'No ingress, queue or route matches this key. Either the target was renamed, or a harvester produced a different key on one side.')) : null,
+    m.origin === 'frontier' ? h('p.small.muted', 'A frontier step: part of a call tree that reaches no sink.') : null,
     m.cycle ? h('p.small.muted', 'This call leads back into a function already on the path, so the trace stops here.') : null,
     h('dl.kv',
       h('dt', 'From'), h('dd', p(m.from)?.label ?? m.from),

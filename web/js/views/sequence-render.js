@@ -65,12 +65,12 @@ function message(m, i, x) {
   const y = PAD + i * ROW + ROW / 2 + 4;
   const x1 = x.get(m.from), x2 = x.get(m.to);
   const color = m.broken ? 'var(--t-broken)' : m.gap ? 'var(--muted)' : m.transport ? `var(${T_VAR[m.transport] ?? '--ink-2'})` : 'var(--ink-2)';
-  const dashed = m.broken || m.gap || m.mode === 'async';
-  const g = s('g', { class: `msg${m.broken ? ' broken' : ''}${m.gap ? ' gap' : ''}`, 'data-i': i, tabindex: 0, role: 'button', style: `--mc: ${color}` });
+  const dashed = m.broken || m.gap || m.mode === 'async' || m.kind === 'frontier';
+  const g = s('g', { class: `msg${m.broken ? ' broken' : ''}${m.gap ? ' gap' : ''}${m.kind === 'frontier' ? ' frontier' : ''}${m.kind === 'leaf' ? ' leaf' : ''}${m.origin === 'frontier' ? ' from-frontier' : ''}`, 'data-i': i, tabindex: 0, role: 'button', style: `--mc: ${color}` });
   // depth rail in the gutter
   g.append(s('text', { x: 8, y: y + 4, class: 'depth' }, String(m.depth)));
   const tags = [m.loop ? 'loop' : null, m.condition ? `if ${m.condition}` : null, m.cycle ? 'cycle' : null].filter(Boolean).join(', ');
-  const label = clip(m.label, Math.max(34, Math.floor(Math.abs(x2 - x1) / 7.2) || 34)) + (tags ? `  [${tags}]` : '');
+  const label = clip(m.kind === 'frontier' ? `${m.label}  (click to show)` : m.label, Math.max(34, Math.floor(Math.abs(x2 - x1) / 7.2) || 34)) + (tags ? `  [${tags}]` : '');
   if (x1 === x2) {
     g.append(s('path', { d: `M${x1} ${y - 8} h28 v14 h-26`, class: 'arrow', 'marker-end': dashed ? 'url(#ao)' : 'url(#ah)', 'stroke-dasharray': dashed ? '5 4' : null }));
     g.append(s('text', { x: x1 + 34, y: y + 2, class: 'label' }, label));

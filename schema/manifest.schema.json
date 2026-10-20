@@ -192,7 +192,9 @@
         "event": { "$ref": "#/$defs/eventType", "description": "For an egress step: the event type it publishes." },
         "unresolved": { "$ref": "#/$defs/unresolved" },
         "source": { "$ref": "#/$defs/source", "description": "Where the call is made: file, line, col. Shown as a code link on the trace message." },
-        "access": { "enum": ["read", "write"], "description": "For a resource step: read or write. Default: from the operation name (find, GET, SELECT, GetItem… are reads)." }
+        "access": { "enum": ["read", "write"], "description": "For a resource step: read or write. Default: from the operation name (find, GET, SELECT, GetItem… are reads)." },
+        "origin": { "enum": ["path", "frontier"], "default": "path", "description": "'frontier': part of a call tree that reaches no sink. Traces fold frontier steps into one marker per function and do not count them toward maxMessages unless asked to expand them. Default 'path': as before." },
+        "kind": { "enum": ["leaf"], "description": "'leaf': a step that ends the call tree and has no target (db_access, external_pkg…); say what it is in `operation` and `note`. A `call` step with no target but an `operation` or `note` is a leaf too. Not an unresolved gap." }
       }
     },
 

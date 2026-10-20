@@ -15,6 +15,7 @@ function reverse(g: GraphIndex): Reverse {
   r = { callers: new Map(), handled: new Map(), usesEgress: new Map() };
   const add = <T>(m: Map<string, T[]>, k: string, v: T) => { if (!m.has(k)) m.set(k, []); m.get(k)!.push(v); };
   for (const f of g.model.functions) for (const s of f.steps) {
+    if (!s.target) continue;
     if (s.type === 'call') add(r.callers, sid(f.service, s.target), f.id);
     if (s.type === 'egress') add(r.usesEgress, sid(f.service, s.target), f.id);
   }

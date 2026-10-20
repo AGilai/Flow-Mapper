@@ -106,7 +106,23 @@ repo root, `line` is where the function starts.
 Optional on any step: `condition` (it only happens if…), `loop: true`, `mode: "async"`, `note`, and
 `source: {"file", "line", "col"}`, the exact place in code that makes this call (same shape as the
 `source` of ingress and egress). The trace's side panel shows it as a code link "Called at".
-Every `target` must exist in the same manifest, or the manifest is rejected.
+Every `target` must exist in the same manifest, or the manifest is rejected, except for the two cases below.
+
+**Frontier steps** (`origin`): call trees that reach no sink (a flow that ends in the service) can be
+large. Mark the steps of such a tree `origin: "frontier"`; the steps on the way to a cross-service hop
+or a data store stay unmarked (or `origin: "path"`, the default, which behaves exactly as before).
+Traces fold frontier steps into one marker per function, "frontier: 23 steps" (this function's frontier
+steps plus those of the frontier calls below it), and do not count them toward `maxMessages`. The flow page
+shows the marker; click it (or tick "Frontier steps") to expand. The trace API takes `frontier=1` and
+MCP `trace_flow` takes `frontier: true`. Frontier steps still count for the service view, health and
+stores; only the trace folds them.
+
+**Classified leaf steps**: a step that ends the tree and has no target, such as a database call in a
+library, a Redis call you cannot map to a store yet, or an external package. Send `type: "call"` with
+`kind: "leaf"` (or just an `operation` or `note`) and no `target`, and say what it is:
+`{ "seq": 4, "type": "call", "kind": "leaf", "operation": "findOne", "note": "db_access: Order.findOne" }`.
+It is shown as a self-call note in traces, and is not `unresolved`: it does not count in link health or
+the contract report. Use `unresolved` (what: `target`) only for a call you could not classify.
 
 **Ingress**: every way into the service: HTTP routes, RPC methods, queue consumers, crons.
 `handler` is the function that runs. Mark public routes and crons `entryPoint: true` (nothing

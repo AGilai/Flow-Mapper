@@ -60,8 +60,8 @@ export const TOOLS: Tool[] = [
   {
     name: 'trace_flow',
     description: "Follow a flow from an ingress or function (egress messages carry `via`, the wrapper chain; display only): ordered calls, DB access, REST calls and async hops across services. scope 'intra' stays inside the service.",
-    inputSchema: obj({ service: { type: 'string' }, ingress: { type: 'string' }, fn: { type: 'string' }, event: { type: 'string', description: 'Start from the handler of this event type at the ingress' }, expand: { type: 'array', items: { type: 'string' }, description: 'Services to show function by function' }, scope: { enum: ['intra', 'full'] }, env, maxMessages: { type: 'integer' } }, ['service']),
-    run: (c, a) => trace(c.graph(envOf(a)), a, { scope: a.scope, maxMessages: Math.min(a.maxMessages ?? 300, 2000), expand: a.expand })
+    inputSchema: obj({ service: { type: 'string' }, ingress: { type: 'string' }, fn: { type: 'string' }, event: { type: 'string', description: 'Start from the handler of this event type at the ingress' }, expand: { type: 'array', items: { type: 'string' }, description: 'Services to show function by function' }, scope: { enum: ['intra', 'full'] }, env, maxMessages: { type: 'integer' }, frontier: { type: 'boolean', description: "Also show steps the harvester marked origin 'frontier' (call trees that reach no sink). Off by default: one 'frontier: N steps' marker per function, not counted in maxMessages" } }, ['service']),
+    run: (c, a) => trace(c.graph(envOf(a)), a, { scope: a.scope, maxMessages: Math.min(a.maxMessages ?? 300, 2000), expand: a.expand, frontier: a.frontier === true })
       ?? (() => { throw new HttpError(404, 'NOT_FOUND', 'start point not found (give ingress or fn)'); })(),
   },
   {

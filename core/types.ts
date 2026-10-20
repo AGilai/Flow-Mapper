@@ -32,8 +32,12 @@ export interface Service {
 export interface Step {
   seq: number;
   type: 'call' | 'egress' | 'resource';
-  /** Absent only when `unresolved` says why (a call-graph gap). */
-  target: string;
+  /** Absent only when `unresolved` says why (a call-graph gap), or for a classified leaf (see `isLeaf`). */
+  target?: string;
+  /** 'frontier': part of a call tree that reaches no sink; collapsed in traces unless asked for. Default 'path'. */
+  origin?: 'path' | 'frontier';
+  /** 'leaf': a step that ends the tree and has no target (its `operation` and `note` say what it is). */
+  kind?: 'leaf';
   mode?: Mode;
   operation?: string;
   condition?: string;
@@ -47,6 +51,10 @@ export interface Step {
   /** Where the call is made (file, line, col). */
   source?: Source;
 }
+
+/** A step with no target that the harvester classified: `kind: 'leaf'`, or a call with an operation or note. */
+export const isLeaf = (st: Pick<Step, 'type' | 'target' | 'kind' | 'operation' | 'note'>) =>
+  !st.target && (st.kind === 'leaf' || (st.type === 'call' && !!(st.operation || st.note)));
 
 export interface Fn { service: string; id: string; name: string; file?: string; line?: number; commit?: string; steps: Step[]; unresolved?: Unresolved[] }
 /** An event type a consumer handles. `type` may be a glob (`Order*`, `*`); `producers` are declared, not derived. */

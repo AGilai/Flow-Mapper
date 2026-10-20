@@ -140,6 +140,100 @@
           ]
         }
       ]
+    },
+    {
+      "id": "OrderController.remove",
+      "name": "OrderController.remove",
+      "file": "src/services/order-archive.ts",
+      "line": 20,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "ordersDb",
+          "operation": "deleteOne"
+        },
+        {
+          "seq": 2,
+          "type": "call",
+          "target": "OrderService.archive",
+          "origin": "frontier",
+          "note": "frontier: not on the way to a sink"
+        }
+      ]
+    },
+    {
+      "id": "OrderService.archive",
+      "name": "OrderService.archive",
+      "file": "src/services/order-archive.ts",
+      "line": 10,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "OrderService.collectRefs",
+          "origin": "frontier"
+        },
+        {
+          "seq": 2,
+          "type": "call",
+          "target": "OrderService.loadAddons",
+          "origin": "frontier"
+        },
+        {
+          "seq": 3,
+          "type": "resource",
+          "target": "cache",
+          "operation": "DEL order:{id}",
+          "origin": "frontier"
+        }
+      ]
+    },
+    {
+      "id": "OrderService.collectRefs",
+      "name": "OrderService.collectRefs",
+      "file": "src/services/order-archive.ts",
+      "line": 40,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "cache",
+          "operation": "GET refs:{id}",
+          "origin": "frontier"
+        },
+        {
+          "seq": 2,
+          "type": "call",
+          "kind": "leaf",
+          "operation": "findOne",
+          "note": "db_access: Order.findOne (mongoose)",
+          "origin": "frontier"
+        }
+      ]
+    },
+    {
+      "id": "OrderService.loadAddons",
+      "name": "OrderService.loadAddons",
+      "file": "src/services/order-archive.ts",
+      "line": 60,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "kind": "leaf",
+          "operation": "uuid.v4",
+          "note": "external_pkg: uuid",
+          "origin": "frontier"
+        },
+        {
+          "seq": 2,
+          "type": "resource",
+          "target": "cache",
+          "operation": "SET addons:{id}",
+          "origin": "frontier"
+        }
+      ]
     }
   ],
   "ingress": [
@@ -182,6 +276,17 @@
       "handler": "OrderController.get",
       "details": {
         "method": "GET",
+        "path": "/orders/{id}"
+      }
+    },
+    {
+      "id": "in.remove",
+      "bindKey": "http:DELETE orders-svc/orders/{id}",
+      "transport": "http",
+      "handler": "OrderController.remove",
+      "entryPoint": true,
+      "details": {
+        "method": "DELETE",
         "path": "/orders/{id}"
       }
     }

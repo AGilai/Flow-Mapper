@@ -39,5 +39,8 @@
   .flows { grid-template-columns: 1fr; grid-template-rows: 220px 1fr; }
   .flows-list { border-right: 0; border-bottom: 1px solid var(--line); }
 }
+.msg.frontier .label { fill: var(--muted); font-style: italic; text-decoration: underline dotted; }
+.msg.leaf .label { fill: var(--ink-2); }
+.msg.from-frontier .arrow { opacity: .75; }
 .msg.gap .label { fill: var(--muted); font-style: italic; }
 .seq-part.k-unresolved rect:first-child { stroke-dasharray: 4 3; fill: var(--surface-2); }
