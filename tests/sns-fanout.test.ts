@@ -30,16 +30,27 @@ test('a send to a single queue is not a fan-out: no group, no delivery', () => {
   assert.ok(full({ service: 'account-lambda-erase-controller', ingress: 'in.notifyBilling' }).messages.every((m) => !m.group && !m.delivery));
 });
 
-test('rows: the two halves of a delivery share a row; without the fields every message has its own', async () => {
+test('rows: every hop of one delivery shares a row; a fan-out publish keeps its own (#35)', async () => {
   const { rowsOf } = await import('../web/js/views/sequence-render.js');
   const t = full();
   const { rows, count } = rowsOf(t.messages);
-  assert.equal(count, t.messages.length - 3);
+  assert.equal(count, t.messages.length - 6); // 3 fan-out legs, the payment-events chain (2), the amqp send to a queue (1)
   for (const n of [1, 2, 3]) {
     const a = t.messages.findIndex((m) => m.delivery === n);
     assert.equal(rows[a], rows[a + 1]);
   }
-  assert.equal(rowsOf(t.messages.map(({ group, deliveries, delivery, ...m }) => m)).count, t.messages.length);
+  const pub = t.messages.findIndex((m) => m.deliveries);
+  assert.notEqual(rows[pub], rows[pub + 1]);
+  // a single-queue send: publish and delivery on one row
+  const s = full({ service: 'account-lambda-erase-controller', ingress: 'in.notifyBilling' }).messages;
+  const r = rowsOf(s).rows;
+  assert.equal(r[1], r[2]);
+});
+
+test('lifelines run producer > topic > queue > consumer even when the consumer was met first (#35)', async () => {
+  const t = full();
+  const at = (id: string) => t.participants.findIndex((p) => p.id === id);
+  for (const m of t.messages) if (m.to.startsWith('ch:') && !m.from.startsWith('ch:') && m.from !== m.to) assert.ok(at(m.from) < at(m.to), `${m.from} -> ${m.to}`);
 });
 
 test('API and MCP trace return the fan-out fields', async () => {
@@ -53,4 +64,33 @@ test('API and MCP trace return the fan-out fields', async () => {
     const mcp = JSON.parse((await app.call('POST', '/mcp', { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'trace_flow', arguments: { env: 'prod', service: 'api-gateway', ingress: 'in.createOrder' } } })).body.result.content[0].text);
     assert.equal(mcp.messages.filter((m: any) => m.delivery).length, 6);
   } finally { app.close(); }
+});
+
+test('a topic sits right of its producer even when the consumer service comes first on the trace (#35)', () => {
+  const svc = (name: string) => ({ name, kind: 'service', version: 1, harvestedAt: '2026-01-01' }) as any;
+  const m: any = {
+    env: 't', services: ['c', 'p', 'infra'].map(svc),
+    functions: [
+      { service: 'c', id: 'h', name: 'h', steps: [{ seq: 1, type: 'egress', target: 'toP' }] },
+      { service: 'c', id: 'hq', name: 'hq', steps: [] },
+      { service: 'p', id: 'hp', name: 'hp', steps: [{ seq: 1, type: 'egress', target: 'pub', event: 'A' }] },
+    ],
+    ingress: [
+      { service: 'c', id: 'in.s', bindKey: 'http:GET c/s', transport: 'http', handler: 'h', entryPoint: true },
+      { service: 'c', id: 'in.q', bindKey: 'sqs:q', transport: 'sqs', handler: 'hq' },
+      { service: 'p', id: 'in.x', bindKey: 'http:GET p/x', transport: 'http', handler: 'hp' },
+    ],
+    egress: [
+      { service: 'c', id: 'toP', bindKey: 'http:GET p/x', transport: 'http' },
+      { service: 'p', id: 'pub', bindKey: 'sns:t', transport: 'sns', events: ['A'] },
+    ],
+    resources: [],
+    channels: [{ service: 'infra', bindKey: 'sns:t', kind: 'sns-topic' }, { service: 'infra', bindKey: 'sqs:q', kind: 'sqs-queue' }],
+    bindings: [{ service: 'infra', id: 'b', from: 'sns:t', to: 'sqs:q' }],
+  };
+  const t = trace(buildIndex(m), { service: 'c', ingress: 'in.s' }, { scope: 'full' })!;
+  const ids = t.participants.map((p) => p.id);
+  assert.ok(t.messages.some((x) => x.to === 'ch:sns:t'), JSON.stringify(t.messages.map((x) => [x.from, x.to])));
+  assert.ok(ids.indexOf('svc:p') < ids.indexOf('ch:sns:t'), ids.join(' '));
+  assert.ok(ids.indexOf('ch:sns:t') < ids.indexOf('ch:sqs:q'), ids.join(' '));
 });

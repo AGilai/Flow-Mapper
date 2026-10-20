@@ -262,5 +262,15 @@ function deliveryOrder(parts: Participant[], messages: Message[]): Participant[]
       moved = true;
     }
   }
+  // A channel a service sends to sits right of that sender (and a queue right of the topic that feeds it), so the
+  // publish arrow points right: producer -> topic -> queue. Only moves what is backwards; a consumer further left
+  // (a loop back to an earlier service) stays where it is.
+  for (const m of messages) {
+    if (!m.to.startsWith('ch:') || m.from === m.to) continue;
+    const a = order.findIndex((p) => p.id === m.from), b = order.findIndex((p) => p.id === m.to);
+    if (a < 0 || b < 0 || b > a) continue;
+    const [ch] = order.splice(b, 1);
+    order.splice(a, 0, ch); // the sender moved one place left when the channel was taken out
+  }
   return order;
 }

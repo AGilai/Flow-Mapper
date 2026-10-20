@@ -36,15 +36,17 @@ export function bridgeChannels(messages) {
 }
 
 /**
- * Row of each message. One row per message, except that the two halves of an SNS delivery
- * (topic -> queue, queue -> consumer) share one, so a queue sits level with the consumer that pulls from it.
+ * Row of each message. One row per message, except that the hops of one delivery share a row:
+ * publish -> queue -> consumer for a single queue, topic -> queue -> consumer for each leg of a fan-out.
+ * The queue sits level with the consumer that pulls from it.
  */
 export function rowsOf(msgs) {
   const rows = [];
   let n = -1;
   msgs.forEach((m, i) => {
     const p = msgs[i - 1];
-    const sameDelivery = p && m.delivery && p.group === m.group && p.delivery === m.delivery && p.to === m.from && m.from.startsWith('ch:');
+    // A hop out of a channel continues the hop into it, unless that hop is a fan-out publish (its deliveries get their own rows).
+    const sameDelivery = p && p.to === m.from && p.from !== p.to && m.from.startsWith('ch:') && !p.deliveries;
     rows.push(sameDelivery ? n : ++n);
   });
   return { rows, count: n + 1 };
@@ -113,8 +115,8 @@ export function renderSequence(trace, { onMessage, onParticipant, expanded = new
 /** Left-rail label: the call depth; a delivery of a fan-out is `depth.delivery`, shown once per row. */
 function rail(msgs, rows, i) {
   const m = msgs[i];
-  if (!m.delivery) return String(m.depth);
-  return rows[i - 1] === rows[i] ? '' : `${m.depth}.${m.delivery}`;
+  if (i && rows[i - 1] === rows[i]) return '';
+  return m.delivery ? `${m.depth}.${m.delivery}` : String(m.depth);
 }
 
 function message(m, i, x, y, railLabel) {
@@ -125,7 +127,10 @@ function message(m, i, x, y, railLabel) {
   // depth rail in the gutter
   g.append(s('text', { x: 8, y: y + 4, class: 'depth' }, railLabel));
   const tags = [m.loop ? 'loop' : null, m.condition ? `if ${m.condition}` : null, m.cycle ? 'cycle' : null].filter(Boolean).join(', ');
-  const label = clip(m.kind === 'frontier' ? `${m.label}  (click to show)` : m.label, Math.max(34, Math.floor(Math.abs(x2 - x1) / 7.2) || 34)) + (tags ? `  [${tags}]` : '');
+  // A label never runs past its arrow: on a short hop it is clipped (the full text is the tooltip), so neighbours on one row do not overlap.
+  const suffix = tags ? `  [${tags}]` : '';
+  const room = x1 === x2 ? 34 : Math.max(8, Math.floor((Math.abs(x2 - x1) - 12) / 6.6));
+  const label = clip(m.kind === 'frontier' ? `${m.label}  (click to show)` : m.label, Math.max(6, room - suffix.length)) + suffix;
   if (x1 === x2) {
     g.append(s('path', { d: `M${x1} ${y - 8} h28 v14 h-26`, class: 'arrow', 'marker-end': dashed ? 'url(#ao)' : 'url(#ah)', 'stroke-dasharray': dashed ? '5 4' : null }));
     g.append(s('text', { x: x1 + 34, y: y + 2, class: 'label' }, label));
