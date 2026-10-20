@@ -9,6 +9,9 @@ import { h } from '../dom.js';
 const TRANSPORT = { 'sns-topic': 'sns', 'sqs-queue': 'sqs', 'eventbridge-bus': 'eventbridge', 'amqp-exchange': 'amqp', 'amqp-queue': 'amqp' };
 export const transportOf = (kind) => TRANSPORT[kind] ?? 'async';
 
+/** One connector cell: cls is arrow, fan first|mid|last, merge first|mid|last or plain. */
+export const connector = (cls, t, dash) => h('div', { class: `lane-conn ${cls}${dash ? ' dash' : ''}`, 'data-t': t }, cls.startsWith('fan') ? h('i') : null);
+
 /**
  * cols: [{ head, width }]; width is a CSS track size, head '' for connector columns.
  * `footer` sits directly under the last row (above the legend); `hint` is shown while the lanes scroll.
@@ -38,7 +41,7 @@ export function flowLanes(cols, { legend = [], footer = null, hint = 'Scroll to 
     grid.append(node);
     return node;
   };
-  const line = (cls, t, dash) => h('div', { class: `lane-conn ${cls}${dash ? ' dash' : ''}`, 'data-t': t }, cls.startsWith('fan') ? h('i') : null);
+  const line = connector;
   return {
     el,
     put: place,

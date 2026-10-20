@@ -8,6 +8,7 @@ import * as bugs from '../store/bugs.ts';
 import * as dtos from '../store/dtos.ts';
 import { endpointInfo } from '../../core/endpoint-info.ts';
 import { eventTypes } from '../../core/events.ts';
+import { eventFlow } from '../../core/event-flow.ts';
 import { inventory } from '../../core/inventory.ts';
 import { storeView, stores } from '../../core/stores.ts';
 import { channelView } from '../../core/channels.ts';
@@ -116,13 +117,14 @@ export const TOOLS: Tool[] = [
   },
   {
     name: 'event_types',
-    description: 'Event types in the environment: who publishes each one and which consumers (and handlers) receive it after subscription filters. Give type for one event type with its Message DTO.',
+    description: 'Event types in the environment: who publishes each one and which consumers (and handlers) receive it after subscription filters. Give type for one event type with its Message DTO and `flow`: per producer service its call sites and, per topic or direct send, one row per queue and consumer service with the outcome (handled, no-handler, possible, filtered, no-reader), a one-sentence summary and callouts.',
     inputSchema: obj({ env, type: { type: 'string' } }),
     run: (c, a) => {
-      const all = eventTypes(c.graph(envOf(a)));
+      const g = c.graph(envOf(a));
+      const all = eventTypes(g);
       if (!a.type) return all;
       const t = all.find((x) => x.type === a.type) ?? (() => { throw new HttpError(404, 'NOT_FOUND', `event type '${a.type}' not found`); })();
-      return { ...t, dto: dtos.getEventDto(c.db, envOf(a), a.type) };
+      return { ...t, flow: eventFlow(g, a.type), dto: dtos.getEventDto(c.db, envOf(a), a.type) };
     },
   },
   {

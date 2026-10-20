@@ -7,6 +7,7 @@ import type { Ctx } from '../context.ts';
 import { badRequest, notFound } from '../errors.ts';
 import { endpointInfo } from '../../core/endpoint-info.ts';
 import { eventTypes, eventView } from '../../core/events.ts';
+import { eventFlow } from '../../core/event-flow.ts';
 import * as dtos from '../store/dtos.ts';
 
 /** PUT bodies are the DTO itself, so provenance rides in the query as JSON: ?meta={"source":{...}}. */
@@ -46,10 +47,11 @@ export function registerDtos(r: Router, ctx: Ctx) {
   });
 
   r.get('/api/envs/:env/events/*type', (req) => {
-    const t = eventView(ctx.graph(req.params.env), req.params.type);
+    const g = ctx.graph(req.params.env);
+    const t = eventView(g, req.params.type);
     const dto = dtos.getEventDto(db, req.params.env, req.params.type);
     if (!t && !dto) throw notFound(`event type '${req.params.type}'`);
-    return { ...(t ?? { type: req.params.type, producers: [], consumers: [] }), dto };
+    return { ...(t ?? { type: req.params.type, producers: [], consumers: [] }), flow: eventFlow(g, req.params.type), dto };
   });
 
   r.put('/api/envs/:env/event-dtos/*type', async (req) =>

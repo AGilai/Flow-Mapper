@@ -48,7 +48,14 @@ with one column per hop and a header over each column.
 - A filter that lets everything through is a small "all events" label on the connector, not a box.
   Boxes are for real filters and for disagreements.
 - Beyond 4 rows the shared nodes (publisher, topic, queue, consumer) stay in view while you scroll
-  the lanes. Beyond 8 rows the lanes collapse, with "Show all N" directly under the last row.
+  the lanes. Beyond 8 rows the lanes collapse, with "Show all N" directly under the last row. Where
+  rows hang off a fan (the event page: queues of a topic), the "Show all N" stub sits inside that fan,
+  as its last branch, and only Handled rows collapse: problem and possible rows always stay visible.
+- A service that several rows reach (one consumer reading two queues, or one producer with several
+  call sites) is one node, with a merge bracket in front of it. The outcome for the page's subject sits
+  inside the node (Handled / Arrives, no handler / Possible), not in a separate grid.
+- A route that a subscription filters out is not drawn on a page about the event type: as far as that
+  page goes the queue is not subscribed. The API still returns it (`outcome: filtered`).
 - When the lanes are wider than the page they scroll inside their card, with a fade on the right
   edge and a hint that says what is off-screen.
 - Identifiers break after `-`, `.` and `_` (use `<wbr>`), never in the middle of a word.

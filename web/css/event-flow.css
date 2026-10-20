@@ -1,0 +1,78 @@
+/* Event page: producer to consumer lanes with the outcome inside the consumer node, and its side panel.
+   Builds on flow.css (lanes, connectors, chips). See docs/UI-GUIDE.md §2 and design/mockups/event-type.html. */
+
+.lane-node.svc[role='button'] { cursor: pointer; }
+.lane-node.svc[role='button']:hover { border-color: var(--line-strong); border-left-color: var(--ink-2); background: color-mix(in srgb, var(--accent) 3%, var(--surface)); }
+.lane-node.svc[role='button']:focus-visible, .lane-node.selected { outline: 2px solid var(--accent); outline-offset: 1px; }
+.lane-node.svc > .nm { color: var(--accent); }
+.lane-node.svc > .node-block + .node-block, .lane-node.svc > .node-block { margin: 0; padding: 0; border: 0; }
+.lane-node.svc > .node-block + .node-block { margin-top: 2px; }
+.lane-node.warn { background: color-mix(in srgb, var(--warn) 7%, var(--surface)); border-color: color-mix(in srgb, var(--warn) 40%, transparent); border-left-color: var(--ink-2); }
+.lane-node .badge { float: right; font-size: var(--fs-xs); color: var(--muted); font-weight: 500; }
+.lane-node .anchor { display: block; height: 0; }
+.lane-node .sub-id .w { font-family: var(--font); }
+.possible-chip { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 4px; border: 1px dashed var(--line-strong); color: var(--ink-2); font-size: var(--fs-xs); font-weight: 600; margin-top: 4px; }
+.panel-head h3 .possible-chip { margin: 0 0 0 var(--s2); }
+.all-chip .star { font-family: var(--mono); font-weight: 600; color: var(--ink); }
+.lane-node .handles { color: var(--muted); }
+
+/* The outcome for this event type, inside the consumer node (the delivery grid's cell, moved here) */
+.st.maybe { flex-wrap: nowrap; margin-top: 0; } /* .maybe in flow.css is the "May also send" row */
+.lane-node .st { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); }
+
+/* Every node sits at the top of its rows and every branch hits the name line (--y), so a node that spans
+   rows (producer, topic, merged consumer) lines up with the first row whatever the heights are. */
+.ev { --y: 18px; }
+.ev .lane-node, .ev .lane-sticky { align-self: start; }
+.ev .lane-conn.arrow::before, .ev .lane-conn.plain::before, .ev .lane-conn.fan::after, .ev .lane-conn.merge::after { top: calc(var(--y) - 1px); }
+.ev .lane-conn.arrow::after, .ev .lane-conn i { top: calc(var(--y) - 5px); }
+.ev .lane-conn.fan.first::before, .ev .lane-conn.merge.first::before { top: var(--y); }
+.ev .lane-conn.fan.last::before, .ev .lane-conn.merge.last::before { top: calc(-1 * var(--s3)); bottom: auto; height: calc(var(--y) + var(--s3)); }
+.ev .lane-pass { align-self: start; height: calc(2 * var(--y)); }
+.ev .lane-pass::before { top: calc(var(--y) - 1px); }
+.ev .lane-pass span { margin-top: calc(var(--y) - 10px); height: 20px; display: flex; align-items: center; }
+
+/* Connectors: a trunk shared by direct sends and topics, a bare trunk cell between branches, a quiet line */
+.lane-conn.fan::before { background: var(--trunk, currentColor); }
+.lane-conn.fan.thru::after, .lane-conn.fan.thru i { display: none; }
+.lane-conn.muted { color: var(--line-strong); }
+.lane-conn.has-tip { cursor: help; }
+.lane-conn.has-tip::before { top: calc(50% - 1px); }
+.lane-pass { position: relative; align-self: stretch; color: var(--c); display: flex; align-items: center; }
+.lane-pass::before { content: ''; position: absolute; left: 0; right: 0; top: calc(50% - 1px); height: 2px; background: currentColor; }
+.lane-pass span { position: relative; margin: 0 auto; padding: 0 8px; background: var(--surface); font-size: var(--fs-xs); color: var(--ink-2); font-weight: 600; }
+
+/* Collapsed rows sit where they would be, inside their fan */
+.lane-stub { display: flex; align-items: center; gap: var(--s3); padding: 6px 10px; border: 1px dashed var(--line-strong); border-radius: var(--r-sm); font-size: var(--fs-sm); color: var(--ink-2); min-width: 0; }
+.lane-stub .btn { height: 26px; margin-left: auto; flex: none; }
+.lane-gap { border-top: 1px solid var(--line); height: 0; margin: 2px 0; }
+.lane-node.empty a { white-space: nowrap; }
+.lane-node .mono { font-family: var(--mono); font-size: var(--fs-xs); }
+
+/* Tooltip on a dashed edge */
+.tip-pop { display: none; position: absolute; z-index: 4; left: 8px; top: calc(50% + 10px); width: 320px; background: var(--ink); color: var(--surface); font-size: var(--fs-xs);
+  line-height: 1.45; padding: 8px 10px; border-radius: var(--r-sm); box-shadow: var(--shadow-panel); pointer-events: none; }
+.has-tip:hover .tip-pop { display: block; }
+.ev .tip-pop { top: calc(var(--y) + 10px); }
+.tip-pop code { font-family: var(--mono); }
+.tip-pop .hl { background: color-mix(in srgb, var(--surface) 22%, transparent); border-radius: 3px; padding: 0 3px; }
+
+/* Message, collapsed to a preview */
+.msg-box { display: grid; gap: var(--s2); padding: var(--s3) var(--s4); }
+.msg-box .show-more { margin: 0; }
+.msg-pre { margin: 0; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--paper); font: 400 12px/1.6 var(--mono); padding: 10px 12px; color: var(--ink-2); overflow: auto; }
+
+/* Side panel */
+.panel-section-t { font-size: var(--fs-sm); font-weight: 600; display: flex; gap: 8px; align-items: baseline; }
+.panel-section-t span { color: var(--muted); font-weight: 400; font-size: var(--fs-xs); }
+.panel-head h3 { display: flex; gap: 8px; align-items: center; font-size: var(--fs-md); }
+.panel-head .sub { font-size: var(--fs-xs); color: var(--muted); margin-top: 4px; }
+.panel-actions { display: flex; gap: var(--s2); flex-wrap: wrap; }
+.ep-card > header h4 { margin: 0; font: 600 var(--fs-sm) var(--mono); overflow-wrap: anywhere; }
+.ep-route { padding: var(--s2) var(--s3) 0; font-size: var(--fs-xs); color: var(--muted); }
+.ep-route .mono, .ep-link-text b { font-family: var(--mono); }
+.ep-link-text b { font-size: var(--fs-sm); overflow-wrap: anywhere; }
+.ep-link-text .key { font-family: var(--mono); font-size: var(--fs-xs); overflow-wrap: anywhere; }
+.ep-card > .st { margin: 0 var(--s3) var(--s3); }
+.cand { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px var(--s3) var(--s3); }
+.ev-chip.this { border-color: var(--accent); color: var(--accent); }

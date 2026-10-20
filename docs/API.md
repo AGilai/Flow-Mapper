@@ -138,7 +138,7 @@ Example: `samples/dtos/prod.json` (loaded by `npm run seed`).
 | `GET /api/envs/:env/inventory` | every object `{type: service \| channel \| store \| event, id, label, kind, group, team, connections, size, problems, hasDto}` (`hasDto` is set on event types: whether a message DTO exists) |
 | `GET /api/envs/:env/stores/:key` | a data store: `readers`, `writers`, `uses` (service, functions with code `source` and operations with `access`), `entryPoints` that reach it, `siblings` in its group, `schemas` |
 | `GET /api/envs/:env/channels/:key` | a topic/queue/exchange/bus: `publishers`, `feeds`, `subscriptions` (with `events` filter (entries starting with `!` exclude a type or glob), `conflict`), `consumers`, `events` passing through, `problems`, `definedBy` and `flow` (below) |
-| `GET /api/envs/:env/events/:type` | an event type: producers, consumers, `deliveries` (route `via`, handler), `problems`, `dto` |
+| `GET /api/envs/:env/events/:type` | an event type: producers, consumers, `deliveries` (route `via`, handler), `problems`, `dto` and `flow` (below) |
 
 ### Channel `flow`
 
@@ -163,6 +163,29 @@ get the same answers. It is additive: the older fields are unchanged.
   the answer depends on which of the disagreeing declarations is right; `why` says so in words.
 - `summary`: `{text, segments: [{t, b?}], callouts: [{text, rowId, level: warn | info}]}`. One sentence,
   plus one callout per problem; `rowId` is the `rows[].id` the callout is about, or null.
+
+### Event type `flow`
+
+`flow` is what the event page draws (`core/event-flow.ts`; MCP `event_types` with `type` returns it too).
+Additive: the older fields are unchanged. Outcomes agree with `deliveries` and `problems`.
+
+- `groups[]`: one per producer service, confirmed first. `{producer, possible, callSites, targets}`.
+  `possible` is true when every call site only lists this type as one of several candidates.
+  `callSites[]` is `{egress, bindKey, at (code link), possible, to: [node], candidates}`.
+- `targets[]`: `{topic, direct, possible, rows}`. `topic` is the first topic or bus the producer sends
+  to (a node `{key, name, kind, known}`), or null with `direct: true` for a send straight to a queue.
+- `rows[]`: one per queue and consumer service: `{id, queue, via, filter, consumer, ingresses, outcome, ifSent?}`.
+  `via` lists topics between the target's topic and the queue; `filter` is the merged subscription
+  filter (same shape as in the channel `flow`) or null. `ingresses[]` is `{id, bindKey, handler,
+  ingressHandler, outcome, any, handles, code, at}`: `handler` is null when it lists event types and none
+  matches, `any` means it accepts any type, `code` links the handler.
+- `outcome`: `handled`, `no-handler` (arrives, no handler), `possible` (only a candidate producer sends it;
+  `ifSent` says what would happen), `no-reader` (the queue has no harvested consumer) or `filtered`
+  (a subscription on the way does not let the type through). Filtered rows are kept for agents; the
+  UI does not draw them and the summary does not count them.
+- `unresolved[]`: `{service, egress, reason, detail, at}` for call sites with no resolved target.
+- `unfed[]`: targets (same shape) of consumers that list this exact type while no harvested producer reaches them.
+- `summary`: as in the channel `flow`.
 
 ## Data-store schemas
 

@@ -56,7 +56,7 @@ const sameFilter = (a: Events, b: Events) => JSON.stringify(a === '*' ? a : [...
 
 const allows = (events: Events, type: string) => events === '*' || filterAllows(events, type);
 
-function mergeFilter(bs: Binding[], g: GraphIndex): FlowFilter {
+export function mergeFilter(bs: Binding[], g: GraphIndex): FlowFilter {
   const declarations: Declaration[] = bs.map((b) => ({
     service: b.service, id: b.id, events: norm(b.events),
     at: g.services.has(b.service) ? codeLink(g.services.get(b.service)!, b.source) : null, verified: b.provenance?.verified ?? null,
@@ -150,7 +150,7 @@ function publishersInto(g: GraphIndex, key: string): Publisher[] {
   });
 }
 
-function node(g: GraphIndex, key: string, types?: number): FlowNode {
+export function node(g: GraphIndex, key: string, types?: number): FlowNode {
   const c = g.channels.get(key);
   return { key, name: c?.name ?? key, kind: c?.kind ?? 'other', known: !!c, eventTypes: types ?? 0 };
 }

@@ -14,6 +14,7 @@ import { inventory } from '../core/inventory.js';
 import { storeView } from '../core/stores.js';
 import { channelView } from '../core/channels.js';
 import { eventView } from '../core/events.js';
+import { eventFlow } from '../core/event-flow.js';
 
 const data = globalThis.FLOW_PREVIEW;
 const indexes = new Map();
@@ -55,7 +56,7 @@ export const api = {
   inventory: async (env) => inventory(g(env), (data.eventDtos?.[env] ?? []).map((d) => d.event)),
   store: async (env, key) => ({ ...(storeView(g(env), key) ?? fail(`data store '${key}' not found`)), schemas: (data.schemas?.[env] ?? []).filter((s) => s.key === key) }),
   channel: async (env, key) => channelView(g(env), key) ?? fail(`channel '${key}' not found`),
-  eventType: async (env, type) => ({ ...(eventView(g(env), type) ?? fail(`event type '${type}' not found`)), dto: (data.eventDtos?.[env] ?? []).find((d) => d.event === type) ?? null }),
+  eventType: async (env, type) => ({ ...(eventView(g(env), type) ?? fail(`event type '${type}' not found`)), flow: eventFlow(g(env), type), dto: (data.eventDtos?.[env] ?? []).find((d) => d.event === type) ?? null }),
   endpoint: async (env, service, ingress) => endpointInfo(g(env), service, ingress,
     (data.dtos?.[env] ?? []).filter((d) => d.service === service && d.ingress === ingress), data.eventDtos?.[env] ?? []) ?? fail('endpoint not found'),
   trace: async (env, q) => trace(g(env), q, { scope: q.scope, maxMessages: q.maxMessages ?? 500, expand: q.expand?.split(',').filter(Boolean) }) ?? fail('start point not found'),
