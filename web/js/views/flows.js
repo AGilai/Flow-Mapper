@@ -36,8 +36,10 @@ export async function render({ main, query }) {
   const rightEl = h('div.flows-right', mainPane); // the message panel is this grid's second column, so it squeezes the diagram
   const panel = createPanel(rightEl, { onClose: () => { flowsEl.classList.remove('mp-open'); views.get(S.active)?.clearMessage(); } });
   const list = createList({ points, counts, service, onPick: (p) => openEntry({ service: p.service, ingress: p.id }),
-    onAll: () => go('/flows', { tabs: S.keys.join(',') || null, tab: S.keys.length > 1 ? S.active : null }) });
+    onAll: () => go('/flows', { tabs: S.keys.join(',') || null, tab: S.keys.length > 1 ? S.active : null }),
+    onCollapse: (c) => flowsEl.classList.toggle('list-c', c) });
   const flowsEl = h('div.flows', list.el, rightEl);
+  flowsEl.classList.toggle('list-c', list.collapsed());
   resizer(list.el, { edge: 'right', key: 'flows-list', defaultWidth: 300, label: 'Resize entry point list',
     width: () => list.el.offsetWidth, apply: (px) => flowsEl.style.setProperty('--list-w', `${px}px`) });
   resizer(panel.el, { edge: 'left', key: 'flow-panel', defaultWidth: 380, label: 'Resize flow details',

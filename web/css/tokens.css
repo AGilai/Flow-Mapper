@@ -42,6 +42,7 @@
 
   --flow-1: #c0392b; --flow-2: #a68a00; --flow-3: #2e8b3d; --flow-4: #0e8fb3; --flow-5: #4f46e5; --flow-6: #b5179e; --flow-7: #8d5a2b; --flow-8: #5b7aa6; /* async sub-flows: dots and bands */
   --rail: 220px;
+  --rail-c: 56px;
   --panel: 380px;
   color-scheme: light;
 }

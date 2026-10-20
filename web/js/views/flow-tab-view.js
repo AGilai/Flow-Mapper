@@ -41,6 +41,9 @@ export function createTabView(data, host) {
   let sized = false; // the first time the tab has a width (it is drawn before it is attached, or while hidden), lay the lanes out to fit it
   const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(() => { edge(); if (!sized && scroller.clientWidth > 0 && render) { sized = true; render.relane(); render.laneBox.style.visibility = ''; edge(); } }) : null;
   ro?.observe(scroller);
+  // a side panel was collapsed or expanded: this tab has another width, so its lanes lay themselves out again (a hidden tab does so when it is shown)
+  const onLayout = () => { if (!render) return; if (scroller.clientWidth > 0) { render.relane(); edge(); } else sized = false; };
+  document.addEventListener('fm:layout', onLayout);
   const select = (bar) => { body.querySelectorAll('.act.selected').forEach((e) => e.classList.remove('selected')); bar?.el?.classList.add('selected'); };
   const inside = createInside(body, { env: host.env, isActive: () => host.isActive(key),
     desc: root ? (bar) => descBlock(host.desc, root, bar.service, { title: `What ${bar.service} does here`, onGenerate: () => generate(bar.service) }) : null,
@@ -88,7 +91,7 @@ export function createTabView(data, host) {
   }
   draw();
   return {
-    el: body, key, data, draw, insideOpen: () => inside.isOpen(), dispose: () => { inside.dispose(); ro?.disconnect(); tip?.dispose(); descs.forEach((d) => d?.dispose()); },
+    el: body, key, data, draw, insideOpen: () => inside.isOpen(), dispose: () => { document.removeEventListener('fm:layout', onLayout); inside.dispose(); ro?.disconnect(); tip?.dispose(); descs.forEach((d) => d?.dispose()); },
     save: () => { saved = scroller.scrollTop; },
     restore: () => { scroller.scrollTop = saved; edge(); requestAnimationFrame(edge); },
     refreshDots: () => render?.index()?.refresh(),

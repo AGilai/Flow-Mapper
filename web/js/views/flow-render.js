@@ -44,7 +44,7 @@ export function createFlowRender({ trace, tree, key, ancestors = [], sticky = tr
   }
   const makeFlow = async (row, childAncestors) => {
     const t = await sh.traceFor(subRequest(row, opts));
-    return createFlowRender({ trace: t, tree: asyncTree(t.messages, row.label), key, ancestors: childAncestors, sticky: false, depth: depth + 1 }, sh);
+    return createFlowRender({ trace: t, tree: asyncTree(t.messages, row.label, tree.known), key, ancestors: childAncestors, sticky: false, depth: depth + 1 }, sh);
   };
   function drawIndex() {
     index = tree.groups.length ? renderIndex(tree, { trace, handlers, depth, key, ancestors, makeFlow,

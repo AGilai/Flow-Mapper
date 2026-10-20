@@ -5,7 +5,7 @@
 //  - a call into a service (entry, or a sync/async egress to a service) opens a bar; the bar closes when the trace
 //    returns to a message at its depth or above; a second call is a second bar;
 //  - calls inside a service ("call" steps) are not drawn: they are counted on the bar (the pill);
-//  - a publish is a chain of arrows: service -> topic / bus / exchange -> each subscribed queue (flow-chain.js). It stops at the queue: an end
+//  - a publish is one arrow through the topic / bus / exchange that forks to each subscribed queue (flow-chain.js). It stops at the queue: an end
 //    marker with the number of each async flow that starts there (the row of the async index); the consumer's work is not in the lane (flow-async.js);
 //  - a call that matches nothing ends at the "unresolved" column, without a bar or a return; that column comes after the last lifeline, after the topic and queue lifelines (narrow, grouped per topic);
 //  - middleware (m.middlewareChain on the call) is a run of segments on top of the bar: one "mw" row per segment, then the rows of
@@ -38,7 +38,7 @@ export const storeLabel = (m) => ({ verb: m.label, name: (m.store ?? '').replace
  * buildLane(msgs, { stores, scope, participants })
  * -> { columns: [{ id, label, sub, kind }], events, bars, altMsgs, altRows }
  * Event types: call (opens a bar, or an arrow to a plain lifeline), return, store, hop (one arrow of a publish chain), unresolved, pill, frontier.
- * hop: { msg, from, to, fromBar (the first hop only), label (the event type), transport, marker (filter), legs, end: { tiles, items, none } | null }.
+ * hop: one arrow row of a publish: { msg, from, via (the topic lifeline the arrow passes through, first row only), to, fromBar (first row), label (the event type; drawn once, on `trunk`), trunk, fork (a branch row that forks off the topic), trunkTransport (colour up to the topic), transport (colour after it), marker (filter, on the topic -> queue part), legs, end: { tiles, items, none } | null }.
  * options: numbers (Map delivery message -> { label, shows, seen, noHandler }, from deliveryNumbers(tree): the number tiles at the queues), fanOpen (Set of topics whose queues are all drawn).
  * Every event has `row` (its index). Bars: { id, service, col, level, transport, sync, msg, depth, internal: {n, gaps}, msgs, start, end }.
  */
@@ -107,21 +107,29 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
       ? { id: `ch:${key}`, label: `+${o.queues.length} queues`, sub: chType(o.queues[0]), kind: 'channel', transport: chType(o.queues[0]), ord, fan: plan.folds.get(o.topic), folded: o.queues }
       : { id: `ch:${key}`, label: chName(key), sub: chType(key), kind: 'channel', transport: chType(key), ord, fan: plan.folds.get(key)?.open ? plan.folds.get(key) : null });
   };
-  // One publish: an arrow per leg (queues that fold into "+N queues" share one), each end with the tiles of the flows that start there.
+  // One publish is ONE arrow (0.17.1): service -> topic -> queue, in the topic's colour up to the topic lifeline and in the queue's colour after it. The first branch
+  // continues the trunk on the same row; every further queue is a branch row that forks off the topic lifeline. Queues that fold into "+N queues" share one branch.
   const emitChain = (top, chain) => {
     const rows = [];
     for (const leg of chain.legs) {
       const to = plan.colOf(leg.to), prev = to.startsWith('fold:') ? rows.find((r) => r.to === to && r.from === leg.from) : null;
       if (prev) prev.legs.push(leg); else rows.push({ to, from: leg.from, legs: [leg] });
     }
-    for (const r of rows) {
+    const event = hopLabel(chain.legs[0].msg), root = chain.root, through = rows.length > 1 && rows[1].from === root;
+    const info = (r) => {
       const l = r.legs[0], delivers = r.legs.flatMap((x) => x.delivers), leaf = !chain.legs.some((x) => x.from != null && r.legs.some((y) => y.to === x.from));
       const items = delivers.flatMap((d) => (numbers.get(d) ? [numbers.get(d)] : []));
       const end = !leaf ? null : delivers.length ? { items, tiles: badgesAt(items), none: null, bad: items.some((i) => i.noHandler) }
-        : { items: [], tiles: [], none: CH_KIND(r.legs[0].to) === 'queue' ? 'no reader' : 'no consumers' };
+        : { items: [], tiles: [], none: CH_KIND(l.to) === 'queue' ? 'no reader' : 'no consumers' };
       const marker = r.legs.length > 1 ? { kind: 'fold', label: `${r.legs.length} queues`, full: `${r.legs.length} queues, folded: ${r.legs.map((x) => chName(x.to)).join(', ')}` } : filterMarker(l.filter, l.msg.transport);
-      push({ type: 'hop', msg: l.msg, from: l.first ? top.col : chanCol(r.from), fromBar: l.first ? top : null, to: chanCol(r.to), label: hopLabel(l.msg), transport: l.msg.transport, marker, legs: r.legs, topic: l.first ? l.to : l.from, queue: l.first ? null : l.to, end });
-    }
+      return { msg: l.msg, legs: r.legs, end, marker, to: chanCol(r.to), queue: l.to, transport: chType(l.to) };
+    };
+    rows.forEach((r, k) => {
+      if (k === 1 && through) return;
+      const b = k === 0 && through ? info(rows[1]) : info(r), trunk = k === 0, fork = !trunk && r.from === root;
+      push({ type: 'hop', ...b, from: trunk ? top.col : chanCol(r.from), fromBar: trunk ? top : null, via: trunk && through ? chanCol(root) : null, label: event, trunk, fork, topic: root,
+        trunkTransport: chType(root), queue: isQueueKey(b.queue) ? b.queue : null });
+    });
   };
   lane.forEach((idx, n) => {
     const m = msgs[idx];
@@ -163,7 +171,7 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
     b.mw.spans = mwSpans(b.mw.labels.map((ev) => ev.row), remap.get(events[e]));
   }
   const rank = (c) => (c.kind === 'channel' ? 1 : c.kind === 'unresolved' ? 2 : 0); // topics and queues sit right after the last service lifeline, grouped per topic; the unresolved column follows
-  const columns = cols.filter((c) => events.some((e) => e.from === c || e.to === c || e.col === c) || c === source || c === rootCol)
+  const columns = cols.filter((c) => events.some((e) => e.from === c || e.to === c || e.via === c || e.col === c) || c === source || c === rootCol)
     .sort((a, b) => rank(a) - rank(b) || (a.kind === 'channel' ? a.ord - b.ord : a.ci - b.ci));
   const altEvents = kept.filter((e) => e.msg);
   return { columns, events: kept, bars, altMsgs: altEvents.map((e) => e.msg), altRows: altEvents.map((e) => e.row) };

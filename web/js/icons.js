@@ -6,6 +6,7 @@ const P = {
   flow: '<path d="M6 3v18M18 3v18"/><path d="M6 8h10l-2-2M18 14H8l2 2"/>',
   health: '<path d="M3 12h4l2-5 4 10 2-5h6"/>',
   bug: '<rect x="7" y="7" width="10" height="13" rx="5"/><path d="M12 7V4M9 4.5l1.5 2.5M15 4.5L13.5 7M3 13h4M17 13h4M4 8l3 2M20 8l-3 2M4 19l3-2M20 19l-3-2"/>',
+  chev: '<path d="M15 6l-6 6 6 6"/>',
   search: '<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/>',
   close: '<path d="M6 6l12 12M18 6L6 18"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',

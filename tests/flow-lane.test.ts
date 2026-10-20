@@ -88,7 +88,7 @@ test('publishes are chains: service -> topic -> queues; nothing of the consumers
   const t = create();
   const lane = laneOf(t);
   const hops = lane.events.filter((e: any) => e.type === 'hop');
-  const pubs = hops.filter((e: any) => e.fromBar);
+  const pubs = hops.filter((e: any) => e.trunk);
   assert.deepEqual(pubs.map((e: any) => e.topic), ['sns:payment-disputes', 'sns:payment-events', 'sns:order-events']);
   assert.ok(!lane.columns.some((c: any) => c.kind === 'rail'), 'no rail');
   assert.ok(!lane.events.some((e: any) => e.msg?.kind === 'deliver'));
@@ -102,8 +102,8 @@ test('publishes are chains: service -> topic -> queues; nothing of the consumers
   // every hop carries the event type like a REST arrow carries its path; a topic nobody subscribes to says so; the queue end carries the tiles
   assert.ok(hops.every((e: any) => e.label && e.label !== 'publish'));
   assert.equal(hops.find((e: any) => e.topic === 'sns:payment-disputes').end.none, 'no consumers');
-  const order = hops.filter((e: any) => e.topic === 'sns:order-events' && !e.fromBar);
-  assert.equal(order.length, 3);
+  const order = hops.filter((e: any) => e.topic === 'sns:order-events');
+  assert.equal(order.length, 3, 'one arrow to the first queue, a branch for each other one');
   assert.ok(order.every((e: any) => e.end.items.length === 0 && e.end.tiles.length === 0), 'without a list there are no numbers, but the end is still marked');
   assert.ok(order.every((e: any) => e.end.none === null && e.end.tiles.length === 0));
 });

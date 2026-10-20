@@ -36,13 +36,15 @@ export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, o
   const isCh = (c) => c.kind === 'channel', headW = (c, col) => (isCh(c) ? CH_HEAD : col - 8);
   // The room right of a queue for its number tiles (or "no reader"): the next lifeline in that direction must clear it.
   const endW = (e) => (e.end ? (e.end.none ? e.end.none.length * 8 + 36 : e.end.tiles.reduce((n, t) => n + tileW(t.text) + 4, 0)) + 14 : 0);
-  // A label between two topic or queue lifelines may run past the arrow's tip (over the next lifelines, with its halo) instead of widening every gap.
-  const over = (e) => e.type === 'hop' && isCh(e.from);
-  const overruns = (e) => over(e); // an event type between two topic / queue lifelines always starts at the first one and is never cut
+  // A publish is one arrow: the event type sits on its first part (service -> topic), the filter marker on the second (topic -> queue). Branch rows carry the marker only.
+  const hopSpans = (e) => {
+    const a = idx.get(e.from), b = idx.get(e.to), v = e.via ? idx.get(e.via) : null, lab = e.trunk ? labelWidth(e.label) + 8 + BAR + 2 * NEST : 0, mk = e.marker ? markW(e.marker) + 16 : 0;
+    return v == null ? [{ a, b, need: Math.max(lab, mk) }] : [{ a, b: v, need: lab }, { a: v, b, need: mk }];
+  };
   const spans = events.flatMap((e) => {
-    const ends = arrowEnds(e);
+    const ends = e.type === 'hop' ? [e.from, e.to] : arrowEnds(e);
     if (!ends) return [];
-    const a = idx.get(ends[0]), b = idx.get(ends[1]), out = [{ a, b, need: Math.max(over(e) ? 0 : labelWidth(e.label) + 8 + BAR + 2 * NEST, e.marker ? markW(e.marker) + 16 : 0) }];
+    const a = idx.get(ends[0]), b = idx.get(ends[1]), out = e.type === 'hop' ? hopSpans(e) : [{ a, b, need: labelWidth(e.label) + 8 + BAR + 2 * NEST }];
     if (e.end) { const n = b + (Math.sign(b - a) || 1); if (n >= 0 && n < columns.length) out.push({ a: b, b: n, need: endW(e) + 14 }); }
     return out;
   });
@@ -50,8 +52,7 @@ export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, o
   const layout = (col) => {
     const xs = centres(PAD + GUTTER + col / 2, columnGaps(columns.length, spans, (i) => Math.round((headW(columns[i], col) + headW(columns[i + 1], col)) / 2 + 8)));
     const last = columns[columns.length - 1];
-    let reach = xs[xs.length - 1] + (isCh(last) ? 92 : col / 2 + 200 - col / 2);
-    for (const e of events) if (over(e)) { const x = xs[idx.get(e.from)]; if (xs[idx.get(e.to)] > x) reach = Math.max(reach, x + 6 + labelWidth(e.label)); }
+    const reach = xs[xs.length - 1] + (isCh(last) ? 92 : 200);
     return { xs, col, width: Math.ceil(reach + PAD) };
   };
   let L = layout(COL);
@@ -85,12 +86,12 @@ export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, o
   }
 
   const arrowHead = (x, dir, open) => s('path', { d: open ? `M${x - dir * 7} -4L${x} 0L${x - dir * 7} 4` : `M${x - dir * 8} -4L${x} 0L${x - dir * 8} 4z`, class: open ? 'head open' : 'head' });
-  const arrow = (x1, x2, y0, { dashed, open, label, italic, color, cross, over } = {}) => {
+  const arrow = (x1, x2, y0, { dashed, open, label, italic, color, cross, bare } = {}) => {
     const dir = Math.sign(x2 - x1) || 1;
     return s('g', { class: 'arr', style: `--mc:${color}` },
-      s('line', { class: 'arrow', x1, x2: x2 - dir * 2, y1: y0, y2: y0, 'stroke-dasharray': dashed ? '5 4' : null }),
-      s('g', { transform: `translate(0 ${y0})` }, arrowHead(x2, dir, open)),
-      label ? s('text', { class: `label${italic ? ' ret' : ''}`, x: over ? x1 + dir * 6 : (x1 + x2) / 2, y: y0 - 6, 'text-anchor': over ? (dir > 0 ? 'start' : 'end') : 'middle' }, label) : null,
+      s('line', { class: 'arrow', x1, x2: bare ? x2 : x2 - dir * 2, y1: y0, y2: y0, 'stroke-dasharray': dashed ? '5 4' : null }),
+      bare ? null : s('g', { transform: `translate(0 ${y0})` }, arrowHead(x2, dir, open)),
+      label ? s('text', { class: `label${italic ? ' ret' : ''}`, x: (x1 + x2) / 2, y: y0 - 6, 'text-anchor': 'middle' }, label) : null,
       cross ? s('path', { d: `M${x2 - 5} ${y0 - 5}l10 10M${x2 + 5} ${y0 - 5}l-10 10`, class: 'x' }) : null);
   };
 
@@ -134,10 +135,15 @@ export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, o
       const x1 = barX(owner, 1), x2 = colX.get(e.col) - 8;
       return g('broken', arrow(x1, x2, y0, { dashed: true, label: e.label, color: 'var(--t-broken)', cross: true }), hit(x1, x2), s('title', {}, e.msg.label));
     }
-    if (e.type === 'hop') { // one arrow of a publish chain, in its transport's colour; the event type reads like a REST path
-      const dir = Math.sign(colX.get(e.to) - colX.get(e.from)) || 1;
-      const x1 = edge(e.fromBar, e.from, dir), x2 = colX.get(e.to), mid = (x1 + x2) / 2, mc = colorOf(e.transport);
-      return g('hop', arrow(x1, x2, y0, { label: e.label, color: mc, over: overruns(e) }), e.marker ? marker(e.marker, mid, y0, mc) : null, e.end ? stop(e.end, x2, dir, y0, mc, r) : null, hit(x1, x2), s('title', {}, [e.msg.label, e.marker?.full].filter(Boolean).join('\n')));
+    if (e.type === 'hop') { // one arrow through the topic: its colour changes exactly on the topic lifeline; the event type reads like a REST path
+      const x1 = edge(e.fromBar, e.from, 1), x2 = colX.get(e.to), tx = e.via ? colX.get(e.via) : e.fork ? colX.get(e.from) : null, mc = colorOf(e.transport), tc = colorOf(e.trunkTransport);
+      let kids, left = x1, mid;
+      if (e.via) { kids = [arrow(x1, tx, y0, { label: e.label, color: tc, bare: true }), arrow(tx, x2, y0, { color: mc }), s('circle', { class: 'via', cx: tx, cy: y0, r: 3.2, style: `--mc:${mc}` })]; mid = (tx + x2) / 2; }
+      else if (e.fork) { // a branch: leaves the topic lifeline downwards from the arrow above it and turns right
+        left = tx; mid = (tx + 6 + x2) / 2;
+        kids = [s('path', { class: 'fork', d: `M${tx} ${ys[r - 1]}V${y0 - 7}Q${tx} ${y0} ${tx + 7} ${y0}`, style: `--mc:${mc}` }), arrow(tx + 6, x2, y0, { color: mc })];
+      } else { kids = [arrow(x1, x2, y0, { label: e.trunk ? e.label : null, color: mc })]; mid = (x1 + x2) / 2; }
+      return g('hop', ...kids, e.marker ? marker(e.marker, mid, y0, mc) : null, e.end ? stop(e.end, x2, 1, y0, mc, r) : null, hit(left, x2), s('title', {}, [e.msg.label, e.marker?.full].filter(Boolean).join('\n')));
     }
     if (e.type === 'store') {
       const x0 = barX(e.bar, 1), w = Math.max(e.verb.length * 7, e.name.length * 6) + 18;

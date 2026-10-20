@@ -207,3 +207,5 @@
 @media (max-width: 860px) { .card-h .svc, .card-h .svc * { white-space: normal; overflow-wrap: anywhere; } .card-h .svc wbr { display: initial; } }
 
 .layer.seenref { background: var(--surface); color: var(--ink-2); border: 1px dashed var(--ink-2); padding: 1px 5px; }
+.msg.hop .fork { fill: none; stroke: var(--mc); stroke-width: 1.6; }
+.msg.hop .via { fill: var(--mc); stroke: var(--paper); stroke-width: 1.5; }

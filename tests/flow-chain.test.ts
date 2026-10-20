@@ -53,7 +53,7 @@ test('every arrow carries the event type; topics and queues are lifelines right 
   const lane = buildLane(t.messages, { participants: t.participants });
   const hops = lane.events.filter((e: any) => e.type === 'hop');
   assert.ok(hops.every((h: any) => /^account\.tenant\.terminated\.priority\d+$/.test(h.label)));
-  assert.ok(hops.every((h: any) => h.transport === 'sns'), 'routing hops are solid arrows in the hop transport colour');
+  assert.ok(hops.every((h: any) => h.trunkTransport === 'sns' && h.transport === 'sqs'), 'topic colour up to the topic lifeline, queue colour after it');
   const kinds = lane.columns.map((c: any) => c.kind);
   assert.deepEqual(kinds.slice(kinds.indexOf('channel')).filter((k: string) => k !== 'channel'), [], 'channels are the last columns');
   assert.equal(lane.columns[kinds.indexOf('channel')].label, 'production-event-bus-sns', 'the topic comes first, then its queues');
@@ -136,22 +136,22 @@ test('filters on the arrows: the trace carries the subscription of a hop, the la
   assert.equal(billing.length, 4);
   assert.ok(billing.every((e: any) => e.marker.label === '1 type' || e.marker.label === '2 types' || e.marker.kind === 'types'));
   // the priority-15 branch reaches 4 queues; the ones its subscriptions filter out have no arrow in that branch
-  const rows15 = lane.events.filter((e: any) => e.type === 'hop' && e.label.endsWith('priority15') && !e.fromBar);
-  assert.equal(rows15.length, 4);
+  const rows15 = lane.events.filter((e: any) => e.type === 'hop' && e.label.endsWith('priority15'));
+  assert.equal(rows15.length, 4, 'one row per queue; the first continues the trunk');
 });
 
 test('EventBridge: service -> bus -> (rule marker) -> target queue; AMQP: service -> exchange -> queue (routing key marker); a direct send is service -> queue', () => {
   const eb = trace(g, { service: 'users-svc', fn: 'register_user' }, { scope: 'full' })!;
   const el = buildLane(eb.messages, { participants: eb.participants });
   const ebh = el.events.filter((e: any) => e.type === 'hop');
-  assert.deepEqual(ebh.map((e: any) => [e.from.label, e.to.label, e.transport]), [['users-svc', 'acme-bus', 'eventbridge'], ['acme-bus', 'analytics-all-events', 'eventbridge']]);
-  assert.equal(ebh[1].marker.label, 'rule userEvents');
+  assert.deepEqual(ebh.map((e: any) => [e.from.label, e.via.label, e.to.label, e.trunkTransport, e.transport]), [['users-svc', 'acme-bus', 'analytics-all-events', 'eventbridge', 'sqs']], 'one arrow through the bus: bus colour, then the target colour');
+  assert.equal(ebh[0].marker.label, 'rule userEvents');
   assert.ok(ebh.every((e: any) => e.label === 'UserRegistered'));
   const t = run('shipping-svc', 'in.orderPlaced');
   const al = buildLane(t.messages, { participants: t.participants });
   const ah = al.events.filter((e: any) => e.type === 'hop');
-  assert.deepEqual(ah.map((e: any) => [e.from.label, e.to.label, e.to.sub]), [['shipping-svc', 'shipping', 'amqp'], ['shipping', 'notify-shipping', 'amqp']]);
-  assert.equal(ah[1].marker.label, 'shipping.*');
+  assert.deepEqual(ah.map((e: any) => [e.from.label, e.via.label, e.to.label, e.to.sub]), [['shipping-svc', 'shipping', 'notify-shipping', 'amqp']]);
+  assert.equal(ah[0].marker.label, 'shipping.*');
   assert.equal(ah[0].label, 'shipping.created');
   // a send straight to a queue with no topic
   const m2 = sampleModel();
@@ -244,7 +244,7 @@ test('routing runs left to right: no topic -> queue hop has its queue left of it
     const t = run(s, i);
     const lane = buildLane(t.messages, { participants: t.participants });
     const at = new Map(lane.columns.map((c: any, k: number) => [c, k]));
-    for (const e of lane.events.filter((x: any) => x.type === 'hop')) assert.ok(at.get(e.to)! > at.get(e.from)!, `${s}: ${e.label} runs left to right`);
+    for (const e of lane.events.filter((x: any) => x.type === 'hop')) assert.ok(at.get(e.to)! > at.get(e.from)! && (!e.via || (at.get(e.via)! > at.get(e.from)! && at.get(e.to)! > at.get(e.via)!)), `${s}: ${e.label} runs left to right`);
   }
 });
 
@@ -256,4 +256,46 @@ test('lifeline head names: at most two lines, broken after - . _ : and never wit
   assert.deepEqual(wrapId('abcdefghijkl-m', 12).filter((l: string) => /^[-._:]$/.test(l)), []);
   const long = clampLines(wrapId('a-very-long-queue-name-that-goes-on-and-on-forever', 12), 12);
   assert.equal(long.length, 2); assert.ok(long[1].endsWith('…'));
+});
+
+test('0.17.1 one arrow per delivery: a trunk per publish, the colour changes on the topic, one label, markers on the branches, branches never point left', () => {
+  const t = run('account-lambda-erase-controller', 'in.advanceErase');
+  const lane = buildLane(t.messages, { participants: t.participants });
+  const hops = lane.events.filter((e: any) => e.type === 'hop'), at = new Map(lane.columns.map((c: any, k: number) => [c, k]));
+  const trunks = hops.filter((e: any) => e.trunk);
+  assert.equal(trunks.length, scanLane(t.messages).publishes.length, 'one trunk per publish');
+  assert.ok(trunks.every((e: any) => e.fromBar && e.via?.kind === 'channel' && e.via.id === `ch:${e.topic}`), 'the arrow passes through its topic lifeline: the colour split point is the topic x');
+  assert.ok(trunks.every((e: any) => e.trunkTransport === 'sns' && e.transport === 'sqs'));
+  const forks = hops.filter((e: any) => e.fork);
+  assert.ok(forks.length > 0 && forks.every((e: any) => !e.trunk && !e.fromBar && e.from.kind === 'channel' && !e.via), 'further queues fork off the topic');
+  hops.forEach((e: any, k: number) => { if (e.fork) assert.equal(e.from, (hops.slice(0, k).reverse().find((x: any) => x.trunk) as any).via); });
+  assert.ok(hops.filter((e: any) => e.marker && e.marker.kind !== 'fold').every((e: any) => e.queue), 'filter markers sit on branches that end at a queue');
+  for (const e of hops) { assert.ok(at.get(e.to)! > at.get(e.from)!); if (e.via) assert.ok(at.get(e.via)! > at.get(e.from)! && at.get(e.to)! > at.get(e.via)!); }
+  const t2 = run('api-gateway', 'in.createOrder');
+  const a = buildLane(t2.messages, { participants: t2.participants });
+  const none = a.events.find((e: any) => e.type === 'hop' && e.to.label === 'payment-disputes');
+  assert.ok(!none.via && none.end.none === 'no consumers' && none.trunk);
+});
+
+test('saga-controller: the shallowest delivery is the original (like the core repeatOf), a lazily traced card never re-decides it', () => {
+  const t = run('saga-controller', 'in.start');
+  const eb = t.messages.filter((m: any) => m.kind === 'deliver' && m.target?.service === 'saga-eraser-b');
+  assert.ok(eb[0].depth < eb[1].depth && eb[1].repeatOf === t.messages.indexOf(eb[0]) + 1, 'the core: the depth-1 delivery is the original');
+  const tree = asyncTree(t.messages);
+  const top = tree.groups.flatMap((x: any) => x.rows).filter((r: any) => /^\d+$/.test(r.label));
+  assert.deepEqual(top.map((r: any) => [r.label, r.service, r.seenIn]), [['1', 'saga-eraser-a', null], ['2', 'saga-eraser-b', null]]);
+  assert.ok(top[1].range && top[1].msgs.length > 1, 'row 2 is expandable');
+  const nested = tree.rows.find((r: any) => r.label === '1.1.2');
+  assert.equal(nested.service, 'saga-eraser-b'); assert.equal(nested.seenIn, '2');
+  const lane = buildLane(t.messages, { participants: t.participants, numbers: deliveryNumbers(tree) });
+  const texts = lane.events.filter((e: any) => e.type === 'hop' && e.end).flatMap((e: any) => e.end.tiles.map((x: any) => x.text));
+  assert.deepEqual(texts, ['1', '2']);
+  // the card of row 1.1 is traced on its own but gets the parent's numbers: eraser-b there is "seen in 2" with the tile "↩2"
+  const card = tree.rows.find((r: any) => r.label === '1.1');
+  const ct = trace(g, subRequest(card), { scope: 'full', maxMessages: 800 })!;
+  const ctree = asyncTree(ct.messages, card.label, tree.known);
+  const eraserB = ctree.rows.find((r: any) => r.service === 'saga-eraser-b');
+  assert.equal(eraserB.label, '1.1.2'); assert.equal(eraserB.seenIn, '2');
+  const cl = buildLane(ct.messages, { participants: ct.participants, numbers: deliveryNumbers(ctree) });
+  assert.ok(cl.events.some((e: any) => e.type === 'hop' && e.end?.tiles.some((x: any) => x.text === '↩2')));
 });

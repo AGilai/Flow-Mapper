@@ -36,8 +36,10 @@ export function summaryOf(msgs) {
  * A delivery is "seen" when its consumer + handler already has a row in another publish (or the trace marks it a
  * repeat); the same consumer + handler twice in ONE publish is a "suspect" row (still a normal row).
  */
-export function asyncTree(messages, prefix = '') {
-  const rows = [], firstOf = new Map(), byIndex = new Map();
+export function asyncTree(messages, prefix = '', known = new Map()) {
+  // The shallowest occurrence of a delivery is the original (like the core's repeatOf): the tree is numbered level by level, never depth first.
+  // `known`: consumers an enclosing flow already numbers (key -> label); a card traced on its own shows them as "seen in N".
+  const rows = [], firstOf = new Map([...known].map(([k, label]) => [k, { label, group: null }])), byIndex = new Map(), pending = [];
   const groupsIn = (lo, hi, prefix, scopeMsgs) => {
     const { publishes } = scanLane(messages, lo, hi);
     const groups = [];
@@ -68,14 +70,18 @@ export function asyncTree(messages, prefix = '') {
         r.range = rg;
         r.msgs = [m, ...messages.slice(rg.start, rg.end + 1)];
         r.summary = summaryOf(r.msgs);
-        r.groups = groupsIn(rg.start, rg.end, label);
+        pending.push({ r, rg, label });
       }
       groups.push(group);
     }
     return groups;
   };
   const groups = groupsIn(0, messages.length - 1, prefix);
-  return { groups, rows, byLabel: new Map(rows.map((r) => [r.label, r])) };
+  for (let k = 0; k < pending.length; k++) { const { r, rg, label } = pending[k]; r.groups = groupsIn(rg.start, rg.end, label); }
+  rows.sort((a, b) => a.i - b.i); // list order stays the trace order
+  const own = new Map(known);
+  for (const r of rows) if (!r.seenIn && !r.noHandler && !own.has(r.key)) own.set(r.key, r.label);
+  return { groups, rows, byLabel: new Map(rows.map((r) => [r.label, r])), known: own };
 }
 
 /** Counts for the heading: deliveries, distinct consumers, publishes (groups, all levels not counted). */
