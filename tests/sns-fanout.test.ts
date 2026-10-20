@@ -17,10 +17,14 @@ test('a fan-out publish carries a group and a delivery count; each delivery gets
   assert.deepEqual(dl.map((m) => [m.delivery, m.group === pub.group, m.from.slice(0, 3), m.to.slice(0, 3)]),
     [[1, true, 'ch:', 'ch:'], [1, true, 'ch:', 'svc'], [2, true, 'ch:', 'ch:'], [2, true, 'ch:', 'svc'], [3, true, 'ch:', 'ch:'], [3, true, 'ch:', 'svc']]);
   assert.deepEqual(dl.filter((m) => m.to.startsWith('svc')).map((m) => m.target?.service), ['analytics-svc', 'shipping-svc', 'inventory-svc']);
-  // the consumer's own calls sit between its delivery and the next one, in order
-  const idx = (n: number) => t.messages.findIndex((m) => m.delivery === n && m.to.startsWith('ch:'));
-  assert.ok(t.messages.slice(idx(2), idx(3)).some((m) => m.from === 'svc:shipping-svc' && m.kind === 'call'));
-  assert.ok(!t.messages.slice(idx(1), idx(2)).some((m) => m.from === 'svc:shipping-svc'));
+  // the consumers' own calls hang under the bar, after the last delivery, one delivery after another (never between deliveries)
+  const lastDelivery = t.messages.reduce((a, m, i) => (m.delivery ? i : a), -1);
+  const first = t.messages.indexOf(pub);
+  assert.ok(t.messages.slice(first, lastDelivery + 1).every((m) => m === pub || m.delivery), 'only the deliveries sit inside the bar');
+  const after = t.messages.slice(lastDelivery + 1);
+  const at = (svc: string) => after.findIndex((m) => m.from === `svc:${svc}`);
+  assert.ok(at('shipping-svc') >= 0 && at('inventory-svc') > at('shipping-svc'), 'delivery 2 is expanded before delivery 3');
+  assert.ok(after.some((m) => m.from === 'svc:shipping-svc' && m.kind === 'call'));
 });
 
 test('a send to a single queue is not a fan-out: no group, no delivery', () => {
@@ -93,4 +97,31 @@ test('a topic sits right of its producer even when the consumer service comes fi
   assert.ok(t.messages.some((x) => x.to === 'ch:sns:t'), JSON.stringify(t.messages.map((x) => [x.from, x.to])));
   assert.ok(ids.indexOf('svc:p') < ids.indexOf('ch:sns:t'), ids.join(' '));
   assert.ok(ids.indexOf('ch:sns:t') < ids.indexOf('ch:sqs:q'), ids.join(' '));
+});
+
+test('under a topic activation bar sit only its own deliveries; no other arrow crosses the bar (#35)', async () => {
+  const { rowsOf, colX } = await import('../web/js/views/sequence-render.js');
+  const g = buildIndex(sampleModel());
+  let bars = 0;
+  for (const i of g.model.ingress) {
+    const t = trace(g, { service: i.service, ingress: i.id }, { scope: 'full' })!;
+    const x = new Map(t.participants.map((p, k) => [p.id, colX(k)]));
+    const { rows } = rowsOf(t.messages, x);
+    t.messages.forEach((pub, p) => {
+      if (!pub.deliveries) return;
+      bars++;
+      const last = t.messages.reduce((a, m, k) => (m.group === pub.group && m.delivery ? k : a), p);
+      for (let k = p + 1; k <= last; k++) {
+        const m = t.messages[k];
+        assert.ok(m.group === pub.group && m.delivery, `${i.service}/${i.id}: step ${k + 1} (${m.label}) sits inside the bar of step ${p + 1}`);
+      }
+      const bar = x.get(pub.to)!;
+      for (const [k, m] of t.messages.entries()) {
+        if (rows[k] < rows[p] || rows[k] > rows[last] || (k >= p && k <= last)) continue;
+        const [a, b] = [x.get(m.from)!, x.get(m.to)!].sort((u, v) => u - v);
+        assert.ok(!(a < bar && bar < b), `${i.service}/${i.id}: step ${k + 1} crosses the bar of step ${p + 1}`);
+      }
+    });
+  }
+  assert.ok(bars >= 5);
 });

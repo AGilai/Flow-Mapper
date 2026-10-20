@@ -9,13 +9,13 @@ import { sampleModel } from './helpers.ts';
 const run = (opts: object = {}) => trace(buildIndex(sampleModel()), { service: 'saga-controller', ingress: 'in.start' }, { scope: 'full', ...opts })!;
 const toStatus = (t: any) => t.messages.filter((m: any) => m.kind === 'deliver' && m.target?.fn === 'on_status' && !m.cycle);
 
-test('three sibling publishes of one event: the controller saga is expanded under the first only', () => {
+test('status events from erasers A (three sites) and B: the controller is expanded under the first only', () => {
   const t = run();
   const d = toStatus(t);
-  assert.equal(d.length, 3, 'every delivery is still drawn (the fan-out stays visible)');
+  assert.equal(d.length, 4, 'every delivery is still drawn (the fan-out stays visible)');
   const first = t.messages.indexOf(d[0]) + 1;
   assert.equal(d[0].repeatOf, undefined);
-  assert.deepEqual(d.slice(1).map((m: any) => m.repeatOf), [first, first]);
+  assert.deepEqual(d.slice(1).map((m: any) => m.repeatOf), [first, first, first]);
   assert.match(d[1].label, new RegExp(`↩ seen at step ${first}$`));
   assert.equal(t.messages.filter((m: any) => m.egress === 'advance.again' && !m.from.startsWith('ch:') && m.fn === 'on_status').length, 1, 'the controller publishes once');
   for (const m of d.slice(1)) {
@@ -26,7 +26,7 @@ test('three sibling publishes of one event: the controller saga is expanded unde
 
 test('ancestor cycles keep their [cycle] marker; repeats do not count toward maxMessages', () => {
   const t = run();
-  assert.ok(t.messages.some((m) => m.cycle && m.target?.fn === 'on_status'), 'the eraser publishes back into the controller on the path');
+  assert.ok(t.messages.some((m) => m.cycle && m.target?.fn === 'erase_a'), 'the controller advances eraser A again while it is on the path');
   assert.ok(!t.messages.some((m) => m.cycle && m.repeatOf));
   const n = t.messages.filter((m) => !m.repeatOf).length;
   const capped = run({ maxMessages: n });

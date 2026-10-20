@@ -220,6 +220,9 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
   };
 
   // Deliver from `from` to a link target, expanding channels and crossing into other services.
+  // A fan-out's deliveries are drawn first (publish, then topic -> queue -> consumer for each), and only then what each consumer does
+  // (its calls, stores, publishes, nested deliveries), in delivery order: nothing hangs between the deliveries, under the topic's activation bar.
+  let deferred: (() => void)[] | null = null;
   const follow = (from: string, to: Ref, label: string, mode: Mode, depth: number, stack: string[], base: Partial<Message>, seenCh: string[] = [], set?: EventSet) => {
     if (truncated) return;
     if (to.type === 'channel') {
@@ -238,6 +241,8 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
       const group = next.length > 1 ? `m${messages.length - 1}` : undefined;
       if (group) Object.assign(messages[messages.length - 1], { group, deliveries: next.length });
       const { deliveries: _n, ...inherited } = base; // a delivery's ordinal rides along to its queue -> consumer message; an inner fan-out replaces it
+      const outerDeferred = deferred, later: (() => void)[] = outerDeferred ?? [];
+      if (group) deferred = later;
       next.forEach((l, k) => {
         const possible = !!inherited.possible || (!!set && passesUntyped(g, l, set) === 'possible');
         // An untyped publish gets through a filtered subscription by the types of its set that the filter allows: name them (#40).
@@ -246,6 +251,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
         follow(ch, l.to, to.key + (base.event ? ` · ${base.event}` : matched?.length ? ` · ${matched.join(', ')}` : '') + (possible ? ' · possible' : ''), 'async', depth, stack,
           { ...inherited, transport: l.transport, ...(matched?.length ? { matched } : {}), ...(possible ? { possible } : {}), ...(group ? { group, delivery: k + 1 } : {}) }, [...seenCh, to.key], set);
       });
+      if (group) { deferred = outerDeferred; if (!outerDeferred) for (const run of later) run(); }
       return;
     }
     if (to.type !== 'ingress') return;
@@ -272,7 +278,10 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
     if (stack.includes(key)) { messages[messages.length - 1].cycle = true; return; }
     if (first) return;
     if (seenKey) expanded.set(seenKey, messages.length);
-    if (depth < maxDepth) visitFn(i.service, handler, depth + 1, [...stack, key]);
+    if (depth < maxDepth) {
+      const go = () => visitFn(i.service, handler, depth + 1, [...stack, key]);
+      if (deferred) deferred.push(go); else go();
+    }
   };
 
   const client = part({ id: 'client', label: ing?.entryPoint ? 'client' : 'caller', kind: 'client' });
