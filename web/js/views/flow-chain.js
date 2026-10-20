@@ -107,18 +107,19 @@ export function foldFanout(queues, { limit = FOLD_LIMIT, open = false } = {}) {
  * fanOpen: Set of topic keys (or true) the user has unfolded.
  */
 export function planChains(chains, { fanOpen = false } = {}) {
-  const groups = [], at = new Map(); // at: key -> group
+  const groups = [], at = new Map(), feeders = new Map(); // at: root -> group; feeders: queue -> groups of the topics that feed it
   const health = new Map();
   for (const c of chains) {
-    const g = at.get(c.root) ?? (groups.push({ root: c.root, keys: [] }), at.set(c.root, groups[groups.length - 1]), groups[groups.length - 1]);
-    for (const l of c.legs) {
-      if (l.from == null || at.has(l.to)) continue;
-      at.set(l.to, g); g.keys.push(l.to);
-    }
+    const g = at.get(c.root) ?? (groups.push({ root: c.root, keys: [], n: groups.length }), at.set(c.root, groups[groups.length - 1]), groups[groups.length - 1]);
+    for (const l of c.legs) if (l.from != null) feeders.set(l.to, [...(feeders.get(l.to) ?? []), g]);
     for (const l of c.legs) if (l.from != null) health.set(l.to, (health.get(l.to) ?? true) && isHealthy(l));
   }
+  // Routing runs left to right: a queue sits after the rightmost topic that feeds it. A queue that is also sent to directly drops its own group then.
+  const home = new Map([...feeders].map(([k, gs]) => [k, gs.reduce((a, b) => (b.n > a.n ? b : a))]));
+  for (const c of chains) for (const l of c.legs) if (l.from != null && !home.get(l.to).keys.includes(l.to)) home.get(l.to).keys.push(l.to);
+  const live = groups.filter((g) => !(isQueueKey(g.root) && home.has(g.root) && home.get(g.root) !== g));
   const order = [], folds = new Map(), fold = new Map();
-  groups.forEach((g, n) => {
+  live.forEach((g, n) => {
     order.push({ key: g.root, role: isQueueKey(g.root) ? 'queue' : 'topic', group: n });
     const open = fanOpen === true || (fanOpen instanceof Set && fanOpen.has(g.root));
     const items = g.keys.map((key) => ({ key, healthy: health.get(key) !== false })), closed = foldFanout(items);
@@ -152,11 +153,12 @@ export function rangeLabel(labels) {
  */
 export function badgesAt(items) {
   const make = (list, seen) => {
+    const show = (i) => (seen ? `↩${i.shows}` : i.shows);
     const by = [...new Map(list.map((i) => [i.shows, i])).values()].sort((a, b) => cmpLabel(a.shows, b.shows));
     const own = (rows) => list.filter((i) => rows.some((r) => r.shows === i.shows)).map((i) => i.label);
     if (!by.length) return [];
-    if (by.length <= 2) return by.map((i) => ({ text: i.shows, jump: i.shows, seen, n: 1, own: own([i]), title: seen ? `Seen before: the flow ${i.shows} already shows this delivery` : `Async flow ${i.shows}` }));
-    return [{ text: rangeLabel(by.map((i) => i.shows)), jump: by[0].shows, seen, n: by.length, own: own(by), title: `${by.length} ${seen ? 'repeated ' : ''}async flows` }];
+    if (by.length <= 2) return by.map((i) => ({ text: show(i), jump: i.shows, seen, n: 1, own: own([i]), title: seen ? `Seen before: the flow ${i.shows} already shows this delivery` : `Async flow ${i.shows}` }));
+    return [{ text: (seen ? '↩' : '') + rangeLabel(by.map((i) => i.shows)), jump: by[0].shows, seen, n: by.length, own: own(by), title: `${by.length} ${seen ? 'repeated ' : ''}async flows` }];
   };
   return [...make(items.filter((i) => !i.seen), false), ...make(items.filter((i) => i.seen), true)];
 }

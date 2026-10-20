@@ -66,8 +66,8 @@ test('lifeline order and reuse: one lifeline per queue even when several topics 
   const plan = planChains(publishes.map((p: any) => chainOf(t.messages, p)));
   const keys = plan.order.map((o: any) => o.key);
   assert.equal(new Set(keys).size, keys.length);
-  assert.deepEqual(keys, ['sns:payment-disputes', 'sns:payment-events', 'sqs:analytics-all-events', 'sns:order-events', 'sqs:shipping-order-events', 'sqs:inventory-order-events']);
-  assert.deepEqual(plan.order.map((o: any) => o.role), ['topic', 'topic', 'queue', 'topic', 'queue', 'queue']);
+  assert.deepEqual(keys, ['sns:payment-disputes', 'sns:payment-events', 'sns:order-events', 'sqs:analytics-all-events', 'sqs:shipping-order-events', 'sqs:inventory-order-events']);
+  assert.deepEqual(plan.order.map((o: any) => o.role), ['topic', 'topic', 'topic', 'queue', 'queue', 'queue']);
   assert.ok(plan.order.every((o: any, i: number) => i === 0 || o.group >= plan.order[i - 1].group), 'grouped per topic');
 });
 
@@ -187,7 +187,7 @@ test('rangeLabel and badgesAt: one tile per consumer row up to two, then a range
   assert.deepEqual(r.map((b: any) => [b.text, b.jump, b.n]), [['3–5', '3', 3]]);
   assert.deepEqual(r[0].own, ['3', '4', '5']);
   const s = badgesAt([item('2', '1', true)]);
-  assert.deepEqual(s.map((b: any) => [b.text, b.seen, b.jump, b.own]), [['1', true, '1', ['2']]]);
+  assert.deepEqual(s.map((b: any) => [b.text, b.seen, b.jump, b.own]), [['↩1', true, '1', ['2']]]);
   assert.equal(hopLabel({ event: 'X', label: 'a' }), 'X');
 });
 
@@ -237,4 +237,23 @@ test('arrows from a bar to a topic cross no unrelated bar in the sample demos', 
     const lane = buildLane(t.messages, { participants: t.participants });
     assert.deepEqual(crossings(lane).filter((c: any) => c.event.type === 'hop').map((c: any) => `${c.event.label}x${c.bar.service}`), [], `${s}: no hop crosses a bar`);
   }
+});
+
+test('routing runs left to right: no topic -> queue hop has its queue left of its topic', () => {
+  for (const [s, i] of [['api-gateway', 'in.createOrder'], ['account-lambda-erase-controller', 'in.advanceErase'], ['saga-controller', 'in.start'], ['stress-gateway', 'in.startChecked'], ['shipping-svc', 'in.orderPlaced']]) {
+    const t = run(s, i);
+    const lane = buildLane(t.messages, { participants: t.participants });
+    const at = new Map(lane.columns.map((c: any, k: number) => [c, k]));
+    for (const e of lane.events.filter((x: any) => x.type === 'hop')) assert.ok(at.get(e.to)! > at.get(e.from)!, `${s}: ${e.label} runs left to right`);
+  }
+});
+
+test('lifeline head names: at most two lines, broken after - . _ : and never with a separator alone', async () => {
+  // @ts-ignore
+  const { wrapId, clampLines } = await import('../web/js/views/flow-cols.js');
+  assert.deepEqual(clampLines(wrapId('account-lambda-erase-controller', 16), 16), ['account-lambda-', 'erase-controller']);
+  assert.deepEqual(clampLines(wrapId('saga-erase-a-q', 14), 14), ['saga-erase-a-q']);
+  assert.deepEqual(wrapId('abcdefghijkl-m', 12).filter((l: string) => /^[-._:]$/.test(l)), []);
+  const long = clampLines(wrapId('a-very-long-queue-name-that-goes-on-and-on-forever', 12), 12);
+  assert.equal(long.length, 2); assert.ok(long[1].endsWith('…'));
 });

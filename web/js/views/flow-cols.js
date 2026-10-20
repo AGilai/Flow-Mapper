@@ -44,9 +44,16 @@ export function wrapId(text, max) {
   for (let p of parts) {
     if ((cur + p).length <= max) { cur += p; continue; }
     if (cur) { lines.push(cur); cur = ''; }
-    while (p.length > max) { lines.push(p.slice(0, max)); p = p.slice(max); }
+    while (p.length > max) { const cut = p.length === max + 1 && /[-._/:@]/.test(p[max]) ? max + 1 : max; lines.push(p.slice(0, cut)); p = p.slice(cut); } // never leave a separator alone on a line
     cur = p;
   }
   if (cur) lines.push(cur);
   return lines.length ? lines : [''];
+}
+
+/** At most `n` lines: what does not fit ends the last line with an ellipsis (the head's title keeps the whole name). */
+export function clampLines(lines, max, n = 2) {
+  if (lines.length <= n) return lines;
+  const rest = lines.slice(n - 1).join('');
+  return [...lines.slice(0, n - 1), rest.length > max ? `${rest.slice(0, max - 1)}…` : rest];
 }

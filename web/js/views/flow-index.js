@@ -46,7 +46,7 @@ export function renderIndex(tree, ctx) {
   function rowEl(row, group, depth) {
     parents.set(row, group);
     if (row.seenIn) {
-      const el = h('div.crow.seen', { id: `${uid}-row-${row.label}` }, h('span.seenic', '↩'), h('span.layer', row.label),
+      const el = h('div.crow.seen', { id: `${uid}-row-${row.label}` }, h('span.layer', row.label), h('span.layer.seenref', { title: `Seen before: the flow ${row.seenIn} already shows this delivery` }, `↩${row.seenIn}`),
         h('span.lane', h('span.svc', h('b', row.service), h('span.mono', ` · ${row.handler}`))),
         h('span.sum', `↩ seen in ${row.seenIn}`), h('button.btn.sm.ghost', { on: { click: () => reveal(row.seenIn) } }, `Jump to ${row.seenIn}`));
       rowNodes.set(row.label, el);

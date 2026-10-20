@@ -9,10 +9,10 @@
 import { h, s } from '../dom.js';
 import { altFrames, stripsByRow, drawFrames, STRIP } from './sequence-alt.js';
 import { mwLabel, isLongChain } from './flow-mw.js';
-import { arrowEnds, columnGaps, centres, labelWidth, wrapId } from './flow-cols.js';
+import { arrowEnds, columnGaps, centres, labelWidth, wrapId, clampLines } from './flow-cols.js';
 import { chName } from './flow-chain.js';
 
-const COL = 138, COL_MIN = 96, PAD = 16, GUTTER = 8, BAR = 12, NEST = 8, CH_HEAD = 110; // CH_HEAD: a topic or queue head is narrower than a service head
+const COL = 138, COL_MIN = 132, PAD = 16, GUTTER = 8, BAR = 12, NEST = 8, CH_HEAD = 116; // CH_HEAD: a topic or queue head is narrower than a service head
 const ROWH = { call: 46, return: 36, pill: 32, mw: 34, store: 46, hop: 48, unresolved: 42, frontier: 32 };
 const rowH = (e) => (e.type === 'hop' && e.marker ? 56 : ROWH[e.type]);
 const LINE = { call: 30, return: 22, pill: 16, mw: 17, store: 23, hop: 30, unresolved: 28, frontier: 16 };
@@ -35,10 +35,10 @@ export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, o
   const idx = new Map(columns.map((c, i) => [c, i]));
   const isCh = (c) => c.kind === 'channel', headW = (c, col) => (isCh(c) ? CH_HEAD : col - 8);
   // The room right of a queue for its number tiles (or "no reader"): the next lifeline in that direction must clear it.
-  const endW = (e) => (e.end ? (e.end.none ? e.end.none.length * 7 + 32 : e.end.tiles.reduce((n, t) => n + tileW(t.text) + 4, 0)) + 14 : 0);
+  const endW = (e) => (e.end ? (e.end.none ? e.end.none.length * 8 + 36 : e.end.tiles.reduce((n, t) => n + tileW(t.text) + 4, 0)) + 14 : 0);
   // A label between two topic or queue lifelines may run past the arrow's tip (over the next lifelines, with its halo) instead of widening every gap.
   const over = (e) => e.type === 'hop' && isCh(e.from);
-  const overruns = (e, len) => over(e) && labelWidth(e.label) + 14 > len;
+  const overruns = (e) => over(e); // an event type between two topic / queue lifelines always starts at the first one and is never cut
   const spans = events.flatMap((e) => {
     const ends = arrowEnds(e);
     if (!ends) return [];
@@ -51,15 +51,15 @@ export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, o
     const xs = centres(PAD + GUTTER + col / 2, columnGaps(columns.length, spans, (i) => Math.round((headW(columns[i], col) + headW(columns[i + 1], col)) / 2 + 8)));
     const last = columns[columns.length - 1];
     let reach = xs[xs.length - 1] + (isCh(last) ? 92 : col / 2 + 200 - col / 2);
-    for (const e of events) if (over(e)) { const x = xs[idx.get(e.from)], len = Math.abs(xs[idx.get(e.to)] - x); if (overruns(e, len) && xs[idx.get(e.to)] > x) reach = Math.max(reach, x + 6 + labelWidth(e.label)); }
+    for (const e of events) if (over(e)) { const x = xs[idx.get(e.from)]; if (xs[idx.get(e.to)] > x) reach = Math.max(reach, x + 6 + labelWidth(e.label)); }
     return { xs, col, width: Math.ceil(reach + PAD) };
   };
   let L = layout(COL);
   for (let col = COL - 6; fit && L.width > fit && col >= COL_MIN; col -= 6) L = layout(col);
-  const { xs, col: COLW, width } = L, HEAD_BOX = COLW - 8, nameCh = (c) => Math.max(9, Math.floor((headW(c, COLW) - 18) / 6.9));
+  const { xs, col: COLW, width } = L, HEAD_BOX = COLW - 8, nameCh = (c) => Math.max(9, Math.floor((headW(c, COLW) - 14) / 6.6));
   const colX = new Map(columns.map((c, i) => [c, xs[i]]));
   // a queue head drops its transport prefix and the 'queue delivery' line (the title keeps both): two lines at most
-  const heads = columns.map((c) => (c.sub === 'queue delivery' ? { name: wrapId(c.label.replace(/^[^:]+:/, ''), nameCh(c)), sub: [] } : { name: wrapId(c.label, nameCh(c)), sub: isCh(c) ? [c.sub] : wrapId(c.sub ?? '', SUB_CH) }));
+  const heads = columns.map((c) => (c.sub === 'queue delivery' ? { name: clampLines(wrapId(c.label.replace(/^[^:]+:/, ''), nameCh(c)), nameCh(c)), sub: [] } : { name: clampLines(wrapId(c.label, nameCh(c)), nameCh(c)), sub: isCh(c) ? [c.sub] : wrapId(c.sub ?? '', SUB_CH) }));
   const boxH = 12 + Math.max(...heads.map((x) => x.name.length * LINE_H + x.sub.length * 13)) + 6, HEAD = boxH + 16;
   const frames = altFrames(lane.altMsgs), strips = stripsByRow(frames, lane.altRows);
   const nStrips = (r) => strips.get(r)?.length ?? 0;
@@ -105,7 +105,7 @@ export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, o
   const stop = (end, x2, dir, y0, mc, r) => {
     let x = x2 + dir * 9;
     const kids = [s('path', { class: 'stopbar', d: `M${x2} ${y0 - 6}V${y0 + 8}`, style: `stroke:${mc}` })];
-    if (end.none) { const w = end.none.length * 7 + 18, bx = dir > 0 ? x : x - w; kids.push(s('g', { class: 'badge warn' }, s('rect', { x: bx, y: y0 + 2, width: w, height: 18, rx: 9 }), s('text', { x: bx + 9, y: y0 + 15 }, end.none))); }
+    if (end.none) { const w = end.none.length * 8 + 20, bx = dir > 0 ? x : x - w; kids.push(s('g', { class: 'badge warn' }, s('rect', { x: bx, y: y0 + 2, width: w, height: 18, rx: 9 }), s('text', { x: bx + 10, y: y0 + 15 }, end.none))); }
     for (const t of end.tiles) {
       const w = tileW(t.text), bx = dir > 0 ? x : x - w;
       kids.push(s('g', { class: `numtile${t.seen ? ' seen' : ''}${end.bad ? ' bad' : ''}`, 'data-num': t.jump, 'data-own': t.own.join(' '), tabindex: 0, role: 'link', 'aria-label': t.title },
@@ -137,7 +137,7 @@ export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, o
     if (e.type === 'hop') { // one arrow of a publish chain, in its transport's colour; the event type reads like a REST path
       const dir = Math.sign(colX.get(e.to) - colX.get(e.from)) || 1;
       const x1 = edge(e.fromBar, e.from, dir), x2 = colX.get(e.to), mid = (x1 + x2) / 2, mc = colorOf(e.transport);
-      return g('hop', arrow(x1, x2, y0, { label: e.label, color: mc, over: overruns(e, Math.abs(x2 - x1)) }), e.marker ? marker(e.marker, mid, y0, mc) : null, e.end ? stop(e.end, x2, dir, y0, mc, r) : null, hit(x1, x2), s('title', {}, [e.msg.label, e.marker?.full].filter(Boolean).join('\n')));
+      return g('hop', arrow(x1, x2, y0, { label: e.label, color: mc, over: overruns(e) }), e.marker ? marker(e.marker, mid, y0, mc) : null, e.end ? stop(e.end, x2, dir, y0, mc, r) : null, hit(x1, x2), s('title', {}, [e.msg.label, e.marker?.full].filter(Boolean).join('\n')));
     }
     if (e.type === 'store') {
       const x0 = barX(e.bar, 1), w = Math.max(e.verb.length * 7, e.name.length * 6) + 18;

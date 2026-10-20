@@ -11,7 +11,7 @@
   background: var(--surface); border: 1px solid var(--line-strong); box-shadow: var(--shadow-panel); pointer-events: none; }
 .seq-wrap.scrolls:not(.at-end)::after { opacity: 1; }
 .seq-wrap.scrolls:not(.at-end) .seq-hint { display: block; }
-.arr .label { paint-order: stroke; stroke: var(--halo, var(--paper)); stroke-width: 5px; stroke-linejoin: round; }
+.arr .label { paint-order: stroke; stroke: var(--halo, var(--paper)); stroke-width: 6px; stroke-linejoin: round; stroke-opacity: 1; }
 .card-lane { --halo: var(--surface); }
 
 .seq-part.k-service .stripe { fill: var(--ink); }
@@ -67,8 +67,8 @@
 .numtile { cursor: pointer; outline: none; }
 .numtile rect { fill: var(--surface-2); stroke: var(--line-strong); }
 .numtile text { font: 700 10.5px var(--mono); fill: var(--ink-2); }
-.numtile.seen rect { fill: var(--surface); stroke: var(--muted); stroke-dasharray: 3 2; }
-.numtile.seen text { fill: var(--muted); }
+.numtile.seen rect { fill: var(--surface); stroke: var(--ink-2); stroke-dasharray: 4 2.5; }
+.numtile.seen text { fill: var(--ink-2); }
 .numtile.bad rect { stroke: var(--bad); }
 .numtile:hover rect, .numtile.hl rect, .numtile:focus-visible rect { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.6; }
 .numtile:hover text, .numtile.hl text, .numtile:focus-visible text { fill: var(--accent); }
@@ -205,3 +205,5 @@
 /* <wbr> still breaks a line under nowrap: off in a single-line header, on again where the row may wrap */
 .card-h .svc wbr { display: none; }
 @media (max-width: 860px) { .card-h .svc, .card-h .svc * { white-space: normal; overflow-wrap: anywhere; } .card-h .svc wbr { display: initial; } }
+
+.layer.seenref { background: var(--surface); color: var(--ink-2); border: 1px dashed var(--ink-2); padding: 1px 5px; }
