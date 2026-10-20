@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hub views mockup</title>
+<!-- Static design mockup of the compact hub views (topic, queue, event type) and the Compact | Full toggle.
+     No JS. Tokens copied from web/css/tokens.css; connector rules follow web/css/flow.css (fan/merge),
+     the panel follows layout.css .panel, the toggle is components.css .seg.
+     Frame 1: topic page, compact, production scale (12 producers, 50 queues), one queue expanded,
+              info pane open on a subscription whose declarations disagree.
+     Frame 2: queue page, compact.   Frame 3: event-type page, compact.   Frame 4: the header toggle. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
+<style>
+:root {
+  --paper: #f5f6fa; --surface: #ffffff; --surface-2: #eef0f6; --line: #e1e4ee; --line-strong: #c9cedd;
+  --ink: #1b2233; --ink-2: #4a5268; --muted: #7a8197; --accent: #4a4fd6; --accent-soft: #e8e9fb;
+  --t-http: #2f6feb; --t-rpc: #7a8a10; --t-eb: #d6246e; --t-sns: #d98200; --t-sqs: #0b9a8a; --t-amqp: #8a5cf0;
+  --t-res: #8b93a7; --t-broken: #d63a3a;
+  --ok: #1f9d55; --warn: #c27c00; --bad: #d63a3a;
+  --font: 'Schibsted Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --r-sm: 6px; --r-md: 10px;
+  --shadow-panel: 0 12px 32px -12px rgba(27, 34, 51, 0.18);
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px;
+  --fs-xs: 11.5px; --fs-sm: 13px; --fs-md: 14.5px; --fs-lg: 18px;
+  --rail: 220px; --pane: 370px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --paper: #12151d; --surface: #1a1e29; --surface-2: #222736; --line: #2c3243; --line-strong: #3a4256;
+    --ink: #e7e9f0; --ink-2: #b5bacb; --muted: #8a90a6; --accent: #8f93ff; --accent-soft: #272b4a;
+    --t-http: #6a9cff; --t-rpc: #b9c84a; --t-eb: #ff5c9d; --t-sns: #f0a537; --t-sqs: #36c3b1; --t-amqp: #ad8bff; --t-res: #79819a; --t-broken: #ff6b6b;
+    --bad: #ff6b6b;
+    --shadow-panel: 0 12px 32px -12px rgba(0, 0, 0, 0.6);
+    color-scheme: dark;
+  }
+}
+:root[data-theme='dark'] {
+  --paper: #12151d; --surface: #1a1e29; --surface-2: #222736; --line: #2c3243; --line-strong: #3a4256;
+  --ink: #e7e9f0; --ink-2: #b5bacb; --muted: #8a90a6; --accent: #8f93ff; --accent-soft: #272b4a;
+  --t-http: #6a9cff; --t-rpc: #b9c84a; --t-eb: #ff5c9d; --t-sns: #f0a537; --t-sqs: #36c3b1; --t-amqp: #ad8bff; --t-res: #79819a; --t-broken: #ff6b6b;
+  --bad: #ff6b6b;
+  --shadow-panel: 0 12px 32px -12px rgba(0, 0, 0, 0.6);
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--paper); color: var(--ink); font: 400 var(--fs-md)/1.5 var(--font); -webkit-font-smoothing: antialiased; }
+a { color: var(--accent); text-decoration: none; }
+h1, h2, h3, h4 { margin: 0; font-weight: 600; letter-spacing: -0.01em; }
+p { margin: 0; }
+.mono { font-family: var(--mono); font-size: 0.92em; }
+.muted { color: var(--muted); }
+
+/* Mockup chrome: frame labels (not part of the design) */
+.frame-label { padding: 28px 24px 10px; font-size: var(--fs-sm); color: var(--ink-2); border-top: 2px dashed var(--line-strong); background: var(--paper); max-width: 1180px; }
+.frame-label:first-child { border-top: 0; padding-top: 14px; }
+.frame-label b { color: var(--ink); }
+
+/* App shell (simplified) */
+.app { display: grid; grid-template-columns: var(--rail) minmax(0, 1fr); }
+.rail { background: var(--surface); border-right: 1px solid var(--line); padding: var(--s5) var(--s3); display: flex; flex-direction: column; gap: 2px; }
+.brand { font-weight: 700; color: var(--accent); font-size: 17px; padding: 0 var(--s2) var(--s5); }
+.nav { padding: 8px 12px; border-radius: var(--r-sm); color: var(--ink-2); }
+.nav.on { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
+.main { min-width: 0; display: flex; flex-direction: column; }
+
+.page-head { background: var(--surface); border-bottom: 1px solid var(--line); padding: var(--s4) var(--s5); display: flex; gap: var(--s2); align-items: flex-start; }
+.page-head .grow { flex: 1; min-width: 0; }
+.title-row { display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; }
+.title-row h1 { font-size: var(--fs-lg); font-weight: 600; overflow-wrap: anywhere; }
+.title-row h1.key { font-family: var(--mono); }
+.kind { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 4px; font-size: var(--fs-xs); font-weight: 600; background: color-mix(in srgb, var(--c) 14%, transparent); color: var(--c); }
+.kind::before { content: ''; width: 10px; height: 3px; border-radius: 2px; background: currentColor; }
+.kind.plain { background: var(--surface-2); color: var(--ink-2); }
+.kind.plain::before { display: none; }
+.meta { margin-top: 4px; display: flex; flex-wrap: wrap; gap: 2px var(--s4); font-size: var(--fs-sm); color: var(--muted); }
+.meta b { color: var(--ink-2); font-weight: 500; }
+.btn { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); color: var(--accent); background: var(--surface); font: inherit; font-size: var(--fs-sm); white-space: nowrap; cursor: pointer; }
+.btn.sm { height: 26px; padding: 0 10px; font-size: var(--fs-xs); }
+.btn.ghost { border-color: transparent; background: none; }
+.btn svg { width: 14px; height: 14px; }
+
+/* Existing .seg (components.css), used as the view toggle */
+.seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: var(--r-sm); overflow: hidden; height: 32px; }
+.seg button { border: 0; background: var(--surface); padding: 0 var(--s3); height: 100%; cursor: pointer; color: var(--ink-2); font: inherit; font-size: var(--fs-sm); }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed='true'] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.head-tools { display: flex; gap: var(--s2); align-items: center; }
+.head-tools .sep { width: 1px; height: 22px; background: var(--line); margin: 0 var(--s1); }
+
+.content { padding: var(--s5); min-width: 0; }
+.flow-page { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s5); max-width: 1240px; }
+
+/* Verdict (summary.js) */
+.verdict { display: grid; gap: var(--s2); }
+.verdict .lead { color: var(--ink-2); max-width: 82ch; }
+.verdict .lead b { color: var(--ink); font-weight: 600; }
+.callout { display: flex; align-items: baseline; gap: var(--s2); font-size: var(--fs-sm); padding: 8px 12px; border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--warn) 10%, var(--surface)); border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent); }
+.callout.bad { background: color-mix(in srgb, var(--bad) 7%, var(--surface)); border-color: color-mix(in srgb, var(--bad) 30%, transparent); }
+.callout .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); flex: none; align-self: center; }
+.callout.bad .dot { background: var(--bad); }
+.callout a { margin-left: auto; white-space: nowrap; padding-left: var(--s3); }
+
+.flow-section { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); min-width: 0; }
+.flow-section > header { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; padding: var(--s3) var(--s4); border-bottom: 1px solid var(--line); }
+.flow-section > header h2 { font-size: var(--fs-md); font-weight: 600; }
+.flow-section .hint { font-size: var(--fs-sm); color: var(--muted); }
+.flow-section > header .tools { margin-left: auto; display: flex; gap: var(--s2); align-items: center; }
+.find { height: 26px; width: 170px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); font: inherit; font-size: var(--fs-xs); padding: 0 8px; }
+.find::placeholder { color: var(--muted); }
+
+/* ======================= NEW: hub graph (web/js/components/hub-graph.js) =======================
+   Three columns: entries | hub | exits. Each side is a stack of items; every item draws its own piece of
+   the bracket (like flow.css fan/merge), so an expanded exit can grow without moving the others.
+   --mid is the height of an item's first line: edges always meet that line, also when the item expands. */
+[data-t='sns'] { --c: var(--t-sns); } [data-t='sqs'] { --c: var(--t-sqs); } [data-t='eb'] { --c: var(--t-eb); } [data-t='res'] { --c: var(--t-res); }
+.hub { --mid: 16px; --gap: 6px; --in: 22px; --out: 104px;
+  display: grid; grid-template-columns: minmax(150px, 0.8fr) auto minmax(250px, 1.6fr); align-items: center; padding: var(--s3) var(--s4) var(--s4); }
+.hub-head { display: contents; }
+.hub-head > div { font-size: var(--fs-xs); color: var(--muted); font-weight: 600; padding-bottom: var(--s2); align-self: end; }
+.hub-head > div:nth-child(3) { padding-left: var(--out); }
+.stack { display: flex; flex-direction: column; gap: var(--gap); min-width: 0; }
+
+/* items */
+.in-item { display: grid; grid-template-columns: minmax(0, 1fr) var(--in); }
+.out-item { display: grid; grid-template-columns: var(--out) minmax(0, 1fr); }
+.n { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-sm); min-width: 0; }
+.n-line { min-height: calc(var(--mid) * 2); display: flex; flex-wrap: wrap; align-items: center; gap: 0 8px; padding: 6px 10px; line-height: 20px; min-width: 0; font-size: var(--fs-sm); }
+.n.svc { border-left: 3px solid var(--ink-2); }
+.n.chan { border-left: 3px solid var(--c); }
+.n .nm { font-weight: 600; color: var(--accent); overflow-wrap: anywhere; }
+.n .nm.key { font-family: var(--mono); font-weight: 500; font-size: var(--fs-sm); }
+.n .aside { font-size: var(--fs-xs); color: var(--muted); min-width: 0; }
+.n .aside .mono { color: var(--ink-2); }
+.n .end { margin-left: auto; display: flex; align-items: center; gap: 6px; flex: none; }
+.out-item .n.chan .n-line .nm { flex-basis: calc(100% - 28px); }
+.out-item .n.chan .n-line .aside { flex: 1; padding-left: 20px; }
+.hub.tall { align-items: start; }
+.hub.tall .hub-mid { margin-top: 0; position: sticky; top: 12px; } /* sticky in the build: the hub stays in view while you scroll 50 exits */
+.n.sel { outline: 2px solid var(--accent); outline-offset: 1px; }
+.n.maybe { border-style: dashed; border-left-style: solid; }
+
+/* the hub node */
+.hub-mid { display: grid; grid-template-columns: 20px auto 16px; align-items: center; }
+.hub-node { width: 158px; padding: 12px 14px; border-radius: var(--r-md); border: 1px solid color-mix(in srgb, var(--c) 45%, var(--line)); border-left: 4px solid var(--c);
+  background: color-mix(in srgb, var(--c) 7%, var(--surface)); display: grid; gap: 4px; }
+.hub-node.ev { --c: var(--ink-2); background: var(--surface-2); border-color: var(--line-strong); border-left-color: var(--ink-2); }
+.hub-node .nm { font: 600 var(--fs-sm)/1.35 var(--mono); color: var(--ink); }
+.hub-node .kindline { font-size: var(--fs-xs); color: var(--muted); }
+.hub-node .io { display: grid; grid-template-columns: auto 1fr; gap: 0 8px; font-size: var(--fs-xs); color: var(--ink-2); padding-top: 6px; border-top: 1px solid color-mix(in srgb, var(--c) 25%, var(--line)); margin-top: 2px; }
+.hub-node .io b { font-weight: 600; color: var(--ink); text-align: right; }
+.h-line { height: 2px; background: var(--c); position: relative; }
+.h-line.arrow::after { content: ''; position: absolute; right: -1px; top: -4px; border: 5px solid transparent; border-left: 7px solid var(--c); border-right: 0; }
+
+/* bracket pieces: the edge cell of each item */
+.e { position: relative; color: var(--c); min-height: calc(var(--mid) * 2); }
+.e::before, .e::after { content: ''; position: absolute; }
+/* vertical trunk piece */
+.out-item .e::before { left: 0; width: 2px; background: var(--trunk, var(--c)); }
+.in-item .e::before { right: 0; width: 2px; background: var(--trunk, var(--c)); }
+.first .e::before { top: var(--mid); bottom: calc(-1 * var(--gap)); }
+.mid .e::before { top: calc(-1 * var(--gap)); bottom: calc(-1 * var(--gap)); }
+.last .e::before { top: calc(-1 * var(--gap)); height: calc(var(--mid) + var(--gap) + 1px); }
+/* horizontal branch */
+.e::after { top: calc(var(--mid) - 1px); height: 2px; background: currentColor; }
+.out-item .e::after { left: 0; right: 7px; }
+.in-item .e::after { left: 0; right: 0; }
+.e > i { position: absolute; right: 0; top: calc(var(--mid) - 5px); border: 5px solid transparent; border-left: 7px solid currentColor; border-right: 0; }
+.e.dash::after { background: repeating-linear-gradient(90deg, currentColor 0 5px, transparent 5px 9px); }
+.e.grey { color: var(--line-strong); }
+.e.selected::after { height: 3px; top: calc(var(--mid) - 1.5px); }
+
+/* NEW: edge markers sit on the branch, centred, on a surface chip so the line reads through */
+.mk { position: absolute; top: var(--mid); left: 10px; transform: translateY(-50%); display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 7px; border-radius: 10px;
+  background: var(--surface); border: 1px solid var(--line-strong); font-size: var(--fs-xs); color: var(--ink-2); white-space: nowrap; z-index: 1; }
+.mk svg { width: 11px; height: 11px; flex: none; color: var(--ink-2); }
+.mk .mono { font-size: 11px; color: var(--ink); }
+.mk.warn { border-color: color-mix(in srgb, var(--warn) 55%, transparent); background: color-mix(in srgb, var(--warn) 10%, var(--surface)); color: var(--ink); }
+.mk.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.wdot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); flex: none; }
+
+/* NEW: outcome marks on nodes */
+.om { display: inline-flex; align-items: center; gap: 5px; font-size: var(--fs-xs); white-space: nowrap; color: var(--ink-2); }
+.om .ic { width: 15px; height: 15px; border-radius: 50%; display: grid; place-items: center; font-size: 10px; font-weight: 700; color: #fff; flex: none; }
+.om.ok .ic { background: var(--ok); }
+.om.bad { color: var(--bad); font-weight: 600; }
+.om.bad .ic { background: var(--bad); }
+.om.maybe { color: var(--muted); }
+.om.maybe .ic { background: transparent; color: var(--muted); border: 1px dashed var(--line-strong); }
+.possible-chip { display: inline-flex; align-items: center; height: 18px; padding: 0 6px; border-radius: 4px; border: 1px dashed var(--line-strong); color: var(--ink-2); font-size: var(--fs-xs); font-weight: 600; }
+.n.bad { background: color-mix(in srgb, var(--bad) 5%, var(--surface)); border-color: color-mix(in srgb, var(--bad) 30%, transparent); }
+.n.bad.chan { border-left-color: var(--c); }
+.n.bad.svc { border-left-color: var(--ink-2); }
+
+/* expand control */
+.xp { width: 20px; height: 20px; display: grid; place-items: center; border-radius: 4px; color: var(--ink-2); flex: none; margin-left: -4px; }
+.xp svg { width: 12px; height: 12px; }
+.xp:hover { background: var(--surface-2); }
+
+/* NEW: expanded exit, the consumer line inline under the queue */
+.n-more { border-top: 1px solid var(--line); padding: 8px 10px 10px 30px; display: grid; gap: 6px; position: relative; }
+.n-more::before { content: ''; position: absolute; left: 15px; top: 0; height: 21px; width: 12px; border-left: 2px solid var(--t-sqs); border-bottom: 2px solid var(--t-sqs); border-bottom-left-radius: 4px; }
+.cons { display: grid; gap: 1px; }
+.cons .nm { font-weight: 600; color: var(--accent); }
+.cons .sub-id { font-family: var(--mono); font-size: var(--fs-xs); color: var(--muted); }
+.cons .sub-id .w { font-family: var(--font); }
+.outcomes { display: grid; gap: 4px; font-size: var(--fs-xs); }
+.outcomes .row { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.ev-chip { overflow-wrap: normal; font-family: var(--mono); font-size: var(--fs-xs); min-height: 20px; display: inline-flex; align-items: center; padding: 0 7px; border-radius: 11px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); }
+.ev-chip.badc { border-color: color-mix(in srgb, var(--bad) 45%, transparent); background: color-mix(in srgb, var(--bad) 6%, var(--surface)); }
+.evl { list-style: none; margin: 0 0 2px; padding: 0 0 0 20px; display: grid; gap: 1px; font: 400 11px/1.5 var(--mono); color: var(--ink); }
+.all-chip { font-size: var(--fs-xs); min-height: 20px; display: inline-flex; align-items: center; padding: 0 7px; border-radius: 4px; background: var(--surface-2); color: var(--ink-2); font-weight: 600; }
+
+/* NEW: collapsed exits, inside the fan as its last branch */
+.stub { border: 1px dashed var(--line-strong); border-radius: var(--r-sm); background: var(--surface); }
+.stub .n-line { flex-wrap: nowrap; gap: 10px; font-size: var(--fs-sm); color: var(--ink-2); }
+.stub .btn { margin-left: auto; }
+.group-gap { height: 4px; }
+.group-label { font-size: var(--fs-xs); color: var(--muted); padding: 2px 0 0 var(--out); }
+
+.hub-legend { display: flex; flex-wrap: wrap; gap: 6px var(--s4); padding: 0 var(--s4) var(--s3); font-size: var(--fs-xs); color: var(--muted); align-items: center; }
+.hub-legend > span { display: inline-flex; align-items: center; gap: 6px; }
+.hub-legend .ln { width: 16px; height: 2px; background: var(--c); }
+.hub-legend .ln.dash { background: repeating-linear-gradient(90deg, var(--c) 0 4px, transparent 4px 7px); }
+.hub-legend .mk { position: static; transform: none; }
+
+/* page with docked info pane */
+.with-pane { display: grid; grid-template-columns: minmax(0, 1fr) var(--pane); align-items: stretch; }
+.pane { background: var(--surface); border-left: 1px solid var(--line); box-shadow: var(--shadow-panel); min-width: 0; }
+.panel-head { display: flex; align-items: flex-start; gap: var(--s2); padding: var(--s4); border-bottom: 1px solid var(--line); }
+.panel-head .grow { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.panel-head .over { font-size: var(--fs-xs); color: var(--muted); }
+.panel-head h3 { font: 600 var(--fs-sm)/1.4 var(--mono); overflow-wrap: anywhere; }
+.panel-head h3 .arr { font-family: var(--font); color: var(--muted); font-weight: 400; }
+.panel-body { padding: var(--s4); display: grid; gap: var(--s4); align-content: start; }
+.p-sec { display: grid; gap: var(--s2); }
+.p-sec > h4 { font-size: var(--fs-sm); font-weight: 600; display: flex; gap: 8px; align-items: baseline; }
+.p-sec > h4 span { color: var(--muted); font-weight: 400; font-size: var(--fs-xs); }
+.p-sec p { font-size: var(--fs-sm); color: var(--ink-2); }
+/* reused from channel-sns mockup / declaration.js */
+.disagree { border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent); border-radius: var(--r-sm); background: color-mix(in srgb, var(--warn) 7%, var(--surface)); padding: 8px 10px; display: grid; gap: 8px; }
+.disagree .tag { font-size: var(--fs-sm); font-weight: 600; color: var(--warn); display: flex; align-items: center; gap: 6px; }
+.claim { display: grid; gap: 4px; font-size: var(--fs-xs); padding-top: 8px; border-top: 1px solid color-mix(in srgb, var(--warn) 25%, transparent); }
+.claim .src { color: var(--ink-2); display: flex; gap: 6px; flex-wrap: wrap; align-items: baseline; }
+.claim .src b { font-weight: 600; color: var(--ink); }
+.claim .chips { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.claim .note { color: var(--muted); }
+.diff { background: color-mix(in srgb, var(--warn) 22%, var(--surface)); border-color: color-mix(in srgb, var(--warn) 55%, transparent); }
+table.whatif { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+.whatif th, .whatif td { text-align: left; padding: 7px 8px; border-top: 1px solid var(--line); vertical-align: top; }
+.whatif thead th { border-top: 0; font-size: var(--fs-xs); color: var(--muted); font-weight: 600; }
+.whatif td.num { font-variant-numeric: tabular-nums; }
+.whatif td.badcell { background: color-mix(in srgb, var(--bad) 7%, var(--surface)); color: var(--bad); font-weight: 600; }
+.whatif td.zero { color: var(--muted); }
+.cons-card { border: 1px solid var(--line); border-left: 3px solid var(--ink-2); border-radius: var(--r-sm); padding: 8px 10px; display: grid; gap: 4px; }
+.panel-actions { display: flex; gap: var(--s2); flex-wrap: wrap; }
+.p-foot { font-size: var(--fs-xs); color: var(--muted); }
+
+/* Frame 4: toggle sheet */
+.sheet { padding: var(--s5); display: grid; gap: var(--s4); max-width: 1240px; }
+.sheet .page-head { border: 1px solid var(--line); border-radius: var(--r-md); }
+.url { font: 400 var(--fs-xs)/1.4 var(--mono); color: var(--ink-2); background: var(--surface-2); border-radius: 4px; padding: 2px 6px; }
+.sheet-cap { font-size: var(--fs-sm); color: var(--ink-2); display: flex; gap: var(--s3); align-items: baseline; flex-wrap: wrap; }
+
+@media (max-width: 760px) {
+  .app { grid-template-columns: 1fr; }
+  .rail { display: none; }
+  .with-pane { grid-template-columns: 1fr; }
+  .page-head { flex-direction: column; padding: var(--s3) var(--s4); }
+  .content { padding: var(--s4); }
+  .hub { overflow-x: auto; }
+}
+</style>
+</head>
+<body>
+
+<!-- SVG symbols -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="funnel" viewBox="0 0 16 16"><path d="M2 3h12l-4.6 5.4V13l-2.8 1.2V8.4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></symbol>
+  <symbol id="funnel-x" viewBox="0 0 16 16"><path d="M2 3h12l-4.6 5.4V13l-2.8 1.2V8.4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M1.5 14.5l13-13" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="chev-r" viewBox="0 0 12 12"><path d="M4.5 2.5l3.5 3.5-3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="chev-d" viewBox="0 0 12 12"><path d="M2.5 4.5l3.5 3.5 3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="close" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="ext" viewBox="0 0 16 16"><path d="M9 3h4v4M13 3L7.5 8.5M11 9.5V13H3V5h3.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+
+<!-- ===================================================================== FRAME 1 -->
+<div class="frame-label"><b>1. Topic page, compact (default).</b> Production scale: 12 producers, 50 queues. Problem queues come first, then alphabetical; beyond 12 the healthy rest folds into the fan's last branch. <span class="mono">tenant-notifications</span> is expanded; the edge to <span class="mono">crm-sync-events</span> is selected and the info pane is open on it.</div>
+<div class="app">
+  <nav class="rail">
+    <div class="brand">Flow-Mapper</div>
+    <a class="nav">System map</a>
+    <a class="nav on">Inventory</a>
+    <a class="nav">Flows</a>
+    <a class="nav">Link health</a>
+    <a class="nav">Bugs</a>
+  </nav>
+  <div class="main">
+    <header class="page-head">
+      <div class="grow">
+        <div class="title-row"><h1>production-event-bus-sns</h1><span class="kind" data-t="sns">SNS topic</span></div>
+        <div class="meta">
+          <span class="mono">sns:production-event-bus-sns</span>
+          <span>Defined by <b>account-infra</b> in <a href="#">topics.tf:4</a></span>
+          <span>Live AWS <b style="color:var(--ok)">matches code</b></span>
+        </div>
+      </div>
+      <div class="head-tools">
+        <div class="seg" role="group" aria-label="View"><button aria-pressed="true">Compact</button><button aria-pressed="false">Full</button></div>
+        <span class="sep"></span>
+        <a class="btn" href="#">Show on map</a>
+      </div>
+    </header>
+
+    <div class="with-pane">
+      <div class="content"><div class="flow-page">
+        <div class="verdict">
+          <p class="lead"><b>12 services</b> publish <b>23 event types</b> here; the topic fans out to <b>50 queues</b>, read by 41 services. Two queues need a look.</p>
+          <div class="callout"><span class="dot"></span>
+            <span><b>crm-sync-events</b>: account-infra and crm-sync disagree on the filter. If crm-sync's “all events” is right, 18 event types arrive with no handler.</span>
+            <a href="#">Show the row</a></div>
+          <div class="callout bad"><span class="dot"></span>
+            <span><b>tenant-notifications</b>: 3 event types arrive and tenant-notifier has no handler for them.</span>
+            <a href="#">Show the row</a></div>
+        </div>
+
+        <section class="flow-section">
+          <header><h2>How events flow</h2><span class="hint">Click an edge or a queue for its filter and outcome.</span>
+            <div class="tools"><input class="find" placeholder="Find a queue or service" aria-label="Find a queue or service"><button class="btn sm">Expand all</button></div>
+          </header>
+
+          <div class="hub tall" data-t="sns">
+            <div class="hub-head"><div>Producers 12</div><div></div><div>Queues 50</div></div>
+
+            <!-- entries -->
+            <div class="stack">
+              <div class="in-item first"><div class="n svc"><div class="n-line"><span class="nm">account-lambda-erase-controller</span><span class="aside">6 types</span></div></div><div class="e"></div></div>
+              <div class="in-item mid"><div class="n svc maybe"><div class="n-line"><span class="nm">account-admin-api</span><span class="end"><span class="possible-chip">Possible</span></span></div></div><div class="e dash"></div></div>
+              <div class="in-item mid"><div class="n svc"><div class="n-line"><span class="nm">tenant-lifecycle-svc</span><span class="aside">5 types</span></div></div><div class="e"></div></div>
+              <div class="in-item mid"><div class="n svc"><div class="n-line"><span class="nm">billing-svc</span><span class="aside">3 types</span></div></div><div class="e"></div></div>
+              <div class="in-item mid"><div class="n svc"><div class="n-line"><span class="nm">identity-svc</span><span class="aside">2 types</span></div></div><div class="e"></div></div>
+              <div class="in-item mid"><div class="n svc"><div class="n-line"><span class="nm">org-directory</span><span class="aside">2 types</span></div></div><div class="e"></div></div>
+              <div class="in-item mid"><div class="n svc"><div class="n-line"><span class="nm">license-manager</span><span class="aside">2 types</span></div></div><div class="e"></div></div>
+              <div class="in-item mid"><div class="n svc"><div class="n-line"><span class="nm">device-registry</span><span class="aside">2 types</span></div></div><div class="e"></div></div>
+              <div class="in-item mid"><div class="n svc"><div class="n-line"><span class="nm">sso-gateway</span><span class="aside">1 type</span></div></div><div class="e"></div></div>
+              <div class="in-item mid"><div class="n svc"><div class="n-line"><span class="nm">audit-exporter</span><span class="aside">1 type</span></div></div><div class="e"></div></div>
+              <div class="in-item mid"><div class="n svc"><div class="n-line"><span class="nm">support-console</span><span class="aside">1 type</span></div></div><div class="e"></div></div>
+              <div class="in-item last"><div class="n svc"><div class="n-line"><span class="nm">plan-catalog</span><span class="aside">1 type</span></div></div><div class="e"></div></div>
+            </div>
+
+            <!-- hub -->
+            <div class="hub-mid">
+              <div class="h-line arrow"></div>
+              <div class="hub-node">
+                <div class="nm">production-<wbr>event-<wbr>bus-<wbr>sns</div>
+                <div class="kindline">SNS topic</div>
+                <div class="io"><b>23</b><span>event types in</span><b>50</b><span>queues out</span></div>
+              </div>
+              <div class="h-line"></div>
+            </div>
+
+            <!-- exits -->
+            <div class="stack">
+              <!-- problem rows first -->
+              <div class="out-item first"><div class="e dash selected"><span class="mk warn on"><span class="wdot"></span>disagree</span><i></i></div>
+                <div class="n chan sel bad" data-t="sqs"><div class="n-line"><span class="xp"><svg><use href="#chev-r"/></svg></span><span class="nm key">crm-sync-events</span><span class="aside">crm-sync</span>
+                  <span class="end"><span class="om bad"><span class="ic">!</span>18 arrive, no handler</span></span></div></div></div>
+
+              <div class="out-item mid"><div class="e"><span class="mk"><svg><use href="#funnel-x"/></svg>all but 1</span><i></i></div>
+                <div class="n chan bad" data-t="sqs">
+                  <div class="n-line"><span class="xp"><svg><use href="#chev-d"/></svg></span><span class="nm key">tenant-notifications</span><span class="aside">tenant-notifier</span>
+                    <span class="end"><span class="om bad"><span class="ic">!</span>3 arrive, no handler</span></span></div>
+                  <div class="n-more">
+                    <div class="cons"><span class="nm">tenant-notifier</span><span class="sub-id">in.tenant <span class="w">calls</span> notifyTenant</span></div>
+                    <div class="outcomes">
+                      <div class="row"><span class="om ok"><span class="ic">✓</span>Handled 2</span><span class="ev-chip">account.tenant.created</span><span class="ev-chip">account.tenant.suspended</span></div>
+                      <div class="row"><span class="om bad"><span class="ic">!</span>Arrives, no handler 3</span></div>
+                      <ul class="evl"><li>account.<wbr>tenant.<wbr>terminated.<wbr>priority15</li><li>account.<wbr>tenant.<wbr>terminated.<wbr>priority20</li><li>account.<wbr>tenant.<wbr>terminated.<wbr>priority30</li></ul>
+                      <div class="row muted">Filtered out 18, of the 23 types this topic carries. <a href="#">Show all</a></div>
+                    </div>
+                  </div>
+                </div></div>
+
+              <!-- then alphabetical -->
+              <div class="out-item mid"><div class="e"></div><div class="n chan" data-t="sqs"><div class="n-line"><span class="xp"><svg><use href="#chev-r"/></svg></span><span class="nm key">analytics-all-events</span><span class="aside">analytics-svc</span><span class="end"><span class="om ok"><span class="ic">✓</span></span></span></div></div></div>
+              <div class="out-item mid"><div class="e"><span class="mk"><svg><use href="#funnel"/></svg>1 type</span><i></i></div><div class="n chan" data-t="sqs"><div class="n-line"><span class="xp"><svg><use href="#chev-r"/></svg></span><span class="nm key">archive-erase-events</span><span class="aside">archive-eraser</span><span class="end"><span class="om ok"><span class="ic">✓</span></span></span></div></div></div>
+              <div class="out-item mid"><div class="e"><span class="mk"><svg><use href="#funnel"/></svg>4 types</span><i></i></div><div class="n chan" data-t="sqs"><div class="n-line"><span class="xp"><svg><use href="#chev-r"/></svg></span><span class="nm key">audit-account-events</span><span class="aside">audit-log-svc</span><span class="end"><span class="om ok"><span class="ic">✓</span></span></span></div></div></div>
+              <div class="out-item mid"><div class="e"><span class="mk"><svg><use href="#funnel"/></svg>6 types</span><i></i></div><div class="n chan" data-t="sqs"><div class="n-line"><span class="xp"><svg><use href="#chev-r"/></svg></span><span class="nm key">billing-tenant-events</span><span class="aside">billing-eraser</span><span class="end"><span class="om ok"><span class="ic">✓</span></span></span></div></div></div>
+              <div class="out-item mid"><div class="e"><span class="mk"><svg><use href="#funnel"/></svg>2 types</span><i></i></div><div class="n chan" data-t="sqs"><div class="n-line"><span class="xp"><svg><use href="#chev-r"/></svg></span><span class="nm key">compliance-tenant-events</span><span class="aside">compliance-svc</span><span class="end"><span class="om ok"><span class="ic">✓</span></span></span></div></div></div>
+              <div class="out-item mid"><div class="e"></div><div class="n chan" data-t="sqs"><div class="n-line"><span class="xp"><svg><use href="#chev-r"/></svg></span><span class="nm key">data-lake-all-events</span><span class="aside">data-lake-ingest</span><span class="end"><span class="om ok"><span class="ic">✓</span></span></span></div></div></div>
+              <div class="out-item mid"><div class="e"><span class="mk"><svg><use href="#funnel"/></svg>1 type</span><i></i></div><div class="n chan" data-t="sqs"><div class="n-line"><span class="xp"><svg><use href="#chev-r"/></svg></span><span class="nm key">ledger-erase-events</span><span class="aside">ledger-eraser</span><span class="end"><span class="om ok"><span class="ic">✓</span></span></span></div></div></div>
+              <div class="out-item mid"><div class="e"><span class="mk"><svg><use href="#funnel"/></svg>1 type</span><i></i></div><div class="n chan" data-t="sqs"><div class="n-line"><span class="xp"><svg><use href="#chev-r"/></svg></span><span class="nm key">metrics-erase-events</span><span class="aside">metrics-eraser</span><span class="end"><span class="om ok"><span class="ic">✓</span></span></span></div></div></div>
+              <div class="out-item mid"><div class="e"><span class="mk"><svg><use href="#funnel"/></svg>1 type</span><i></i></div><div class="n chan" data-t="sqs"><div class="n-line"><span class="xp"><svg><use href="#chev-r"/></svg></span><span class="nm key">quota-erase-events</span><span class="aside">quota-eraser</span><span class="end"><span class="om ok"><span class="ic">✓</span></span></span></div></div></div>
+              <div class="out-item mid"><div class="e"><span class="mk"><svg><use href="#funnel"/></svg>1 type</span><i></i></div><div class="n chan" data-t="sqs"><div class="n-line"><span class="xp"><svg><use href="#chev-r"/></svg></span><span class="nm key">search-erase-priority10</span><span class="aside">search-eraser</span><span class="end"><span class="om ok"><span class="ic">✓</span></span></span></div></div></div>
+              <!-- the rest, folded into the fan -->
+              <div class="out-item last"><div class="e"><i></i></div>
+                <div class="stub"><div class="n-line"><span style="white-space:nowrap"><b>38 more queues</b>, all handled</span><button class="btn sm">Show all 50</button></div></div></div>
+            </div>
+          </div>
+
+          <div class="hub-legend">
+            <span data-t="sns"><span class="ln"></span>SNS publish and fan-out</span>
+            <span data-t="sns"><span class="ln dash"></span>uncertain: possible producer or filters disagree</span>
+            <span><span class="mk"><svg><use href="#funnel"/></svg>1 type</span>filter lets these through</span>
+            <span><span class="mk"><svg><use href="#funnel-x"/></svg>all but</span>filter blocks these</span>
+            <span><span class="wdot"></span>declarations disagree</span>
+            <span class="om bad"><span class="ic">!</span></span><span style="margin-left:-10px">arrives, no handler</span>
+            <span class="om ok"><span class="ic">✓</span></span><span style="margin-left:-10px">all handled</span>
+          </div>
+        </section>
+        <p class="muted" style="font-size:var(--fs-xs)">The event type × queue grid is not shown in compact: each queue's column of it is in its expanded row and info pane. Full view keeps the grid.</p>
+      </div></div>
+
+      <!-- Info pane, docked (panel.js) -->
+      <aside class="pane" aria-label="Details">
+        <div class="panel-head">
+          <div class="grow"><span class="over">Subscription</span><h3>production-<wbr>event-<wbr>bus-<wbr>sns <span class="arr">to</span> crm-<wbr>sync-<wbr>events</h3></div>
+          <button class="btn ghost" aria-label="Close details"><svg><use href="#close"/></svg></button>
+        </div>
+        <div class="panel-body">
+          <div class="disagree">
+            <div class="tag"><span class="wdot"></span>2 declarations disagree on the filter</div>
+            <div class="claim">
+              <div class="src"><b>account-infra</b><a href="#">subscriptions.tf:34</a></div>
+              <div class="chips"><span class="ev-chip diff">account.tenant.created</span><span class="ev-chip diff">account.tenant.updated</span><span class="ev-chip diff">account.tenant.suspended</span><span class="muted">only</span></div>
+              <div class="note">Live AWS differs from this code.</div>
+            </div>
+            <div class="claim">
+              <div class="src"><b>crm-sync</b><a href="#">config/consumers.yaml:12</a></div>
+              <div class="chips"><span class="all-chip diff">all events</span></div>
+            </div>
+          </div>
+
+          <div class="p-sec">
+            <h4>What reaches crm-sync</h4>
+            <p style="font-size:var(--fs-xs);color:var(--muted)">Of the 23 event types this topic carries, depending on whose filter is right.</p>
+            <table class="whatif">
+              <thead><tr><th></th><th>account-infra</th><th>crm-sync</th></tr></thead>
+              <tbody>
+                <tr><td>Handled</td><td class="num">3</td><td class="num">5</td></tr>
+                <tr><td>Arrives, no handler</td><td class="num zero">0</td><td class="num badcell">18</td></tr>
+                <tr><td>Filtered out</td><td class="num">20</td><td class="num zero">0</td></tr>
+              </tbody>
+            </table>
+            <p>Ask account-infra or crm-sync which filter is meant. <a href="#">Show the 18 event types</a></p>
+          </div>
+
+          <div class="p-sec">
+            <h4>Consumer</h4>
+            <div class="cons-card">
+              <span style="font-weight:600;color:var(--accent)">crm-sync</span>
+              <span class="mono muted" style="font-size:var(--fs-xs)">in.accountEvents <span style="font-family:var(--font)">calls</span> onAccountEvent</span>
+              <div class="claim" style="border:0;padding:0"><div class="chips"><span class="muted">handles</span><span class="ev-chip">account.tenant.created</span><span class="ev-chip">account.tenant.updated</span><span class="ev-chip">account.tenant.suspended</span><a href="#">+2 more</a></div></div>
+            </div>
+          </div>
+
+          <div class="panel-actions">
+            <a class="btn" href="#">Open crm-sync-events</a>
+            <a class="btn" href="#">Show in full view</a>
+          </div>
+          <div class="p-foot">Queue declared by account-infra in <a href="#">queues.tf:88</a>. Harvested 3 h ago.</div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+
+<!-- ===================================================================== FRAME 2 -->
+<div class="frame-label"><b>2. Queue page, compact.</b> The mirror: sources on the left with their filter on the edge, the queue in the middle, consumers on the right with their outcome. Nothing is expanded or selected.</div>
+<div class="app">
+  <nav class="rail">
+    <div class="brand">Flow-Mapper</div>
+    <a class="nav">System map</a>
+    <a class="nav on">Inventory</a>
+    <a class="nav">Flows</a>
+    <a class="nav">Link health</a>
+    <a class="nav">Bugs</a>
+  </nav>
+  <div class="main">
+    <header class="page-head">
+      <div class="grow">
+        <div class="title-row"><h1>analytics-all-events</h1><span class="kind" data-t="sqs">SQS queue</span></div>
+        <div class="meta"><span class="mono">sqs:analytics-all-events</span><span>Declared by <b>analytics-svc</b></span></div>
+      </div>
+      <div class="head-tools">
+        <div class="seg" role="group" aria-label="View"><button aria-pressed="true">Compact</button><button aria-pressed="false">Full</button></div>
+        <span class="sep"></span>
+        <a class="btn" href="#">Show on map</a>
+      </div>
+    </header>
+    <div class="content"><div class="flow-page">
+      <div class="verdict">
+        <p class="lead">Fed by <b>6 sources</b>, read by <b>analytics-svc</b>, which handles all <b>13 event types</b> that arrive; 2 of them are only possibly sent.</p>
+      </div>
+      <section class="flow-section">
+        <header><h2>How events flow</h2><span class="hint">Click an edge for its filter, or the consumer for its handler.</span></header>
+        <div class="hub" data-t="sqs" style="grid-template-columns: minmax(250px, 1fr) auto minmax(260px, 1fr); --in: 128px; --out: 34px;">
+          <div class="hub-head"><div>Sources 6</div><div></div><div style="padding-left:34px">Consumer 1</div></div>
+          <div class="stack">
+            <div class="in-item first" data-t="eb" style="grid-template-columns: minmax(0,1fr) var(--in)"><div class="n chan"><div class="n-line"><span class="nm key">acme-bus</span><span class="aside">EventBridge bus</span></div></div>
+              <div class="e"><span class="mk" style="left:auto;right:14px"><svg><use href="#funnel"/></svg><span class="mono">User*</span></span></div></div>
+            <div class="in-item mid" data-t="sns"><div class="n chan"><div class="n-line"><span class="nm key">catalog-price-events</span><span class="aside">SNS topic</span></div></div><div class="e"></div></div>
+            <div class="in-item mid" data-t="sns"><div class="n chan"><div class="n-line"><span class="nm key">catalog-product-events</span><span class="aside">SNS topic</span></div></div><div class="e"></div></div>
+            <div class="in-item mid" data-t="sns"><div class="n chan"><div class="n-line"><span class="nm key">catalog-review-events</span><span class="aside">SNS topic</span></div></div><div class="e"></div></div>
+            <div class="in-item mid" data-t="sns"><div class="n chan"><div class="n-line"><span class="nm key">order-events</span><span class="aside">SNS topic</span></div></div><div class="e"></div></div>
+            <div class="in-item last" data-t="sns"><div class="n chan"><div class="n-line"><span class="nm key">payment-events</span><span class="aside">SNS topic</span></div></div><div class="e"></div></div>
+          </div>
+          <div class="hub-mid" style="grid-template-columns: 26px auto 0">
+            <div class="h-line arrow"></div>
+            <div class="hub-node">
+              <div class="nm">analytics-<wbr>all-<wbr>events</div>
+              <div class="kindline">SQS queue</div>
+              <div class="io"><b>6</b><span>sources</span><b>13</b><span>event types</span><b>1</b><span>consumer</span></div>
+            </div>
+            <div></div>
+          </div>
+          <div class="stack">
+            <div class="out-item" style="grid-template-columns: var(--out) minmax(0,1fr)"><div class="e"><i></i></div>
+              <div class="n svc"><div class="n-line"><span class="xp"><svg><use href="#chev-r"/></svg></span><span class="nm">analytics-svc</span><span class="aside"><span class="mono">in.events</span> calls <span class="mono">ingest_event</span></span></div>
+                <div class="n-line" style="border-top:1px solid var(--line);gap:14px"><span class="om ok"><span class="ic">✓</span>Handled 11</span><span class="om maybe"><span class="ic">?</span>Possible 2</span></div></div></div>
+          </div>
+        </div>
+        <div class="hub-legend">
+          <span data-t="eb"><span class="ln"></span>EventBridge rule</span>
+          <span data-t="sns"><span class="ln"></span>SNS fan-out</span>
+          <span data-t="sqs"><span class="ln"></span>SQS deliver and poll</span>
+          <span><span class="mk"><svg><use href="#funnel"/></svg>User*</span>filter or rule lets these through</span>
+        </div>
+      </section>
+    </div></div>
+  </div>
+</div>
+
+<!-- ===================================================================== FRAME 3 -->
+<div class="frame-label"><b>3. Event-type page, compact.</b> The event is the hub. Exits are the consuming services, each with its outcome; the queue it arrives on is named in muted text and the full route (topic, queue, filter) is in the info pane.</div>
+<div class="app">
+  <nav class="rail">
+    <div class="brand">Flow-Mapper</div>
+    <a class="nav">System map</a>
+    <a class="nav on">Inventory</a>
+    <a class="nav">Flows</a>
+    <a class="nav">Link health</a>
+    <a class="nav">Bugs</a>
+  </nav>
+  <div class="main">
+    <header class="page-head">
+      <div class="grow">
+        <div class="title-row"><h1 class="key">account.<wbr>tenant.<wbr>terminated.<wbr>priority10</h1><span class="kind plain">Event type</span></div>
+        <div class="meta"><span>No message DTO yet</span><span>Producers and consumers harvested 3 h ago</span></div>
+      </div>
+      <div class="head-tools">
+        <div class="seg" role="group" aria-label="View"><button aria-pressed="true">Compact</button><button aria-pressed="false">Full</button></div>
+        <span class="sep"></span>
+        <a class="btn" href="#">All event types</a>
+      </div>
+    </header>
+    <div class="content"><div class="flow-page">
+      <div class="verdict">
+        <p class="lead"><b>account-lambda-erase-controller</b> publishes it; it reaches <b>8 services</b> through 9 queues. <b>account-admin-api</b> may also send it, which would reach 2 more.</p>
+        <div class="callout bad"><span class="dot"></span>
+          <span><b>crm-sync</b> receives it on <span class="mono">crm-sync-events</span> but has no handler for it, so the message is read and dropped.</span>
+          <a href="#">Show the row</a></div>
+      </div>
+      <section class="flow-section">
+        <header><h2>How it flows</h2><span class="hint">Click a consumer for its route and handler.</span><div class="tools"><input class="find" placeholder="Find a service" aria-label="Find a service"></div></header>
+        <div class="hub" data-t="sqs" style="--out: 60px; grid-template-columns: minmax(250px, 1fr) auto minmax(380px, 1.7fr);">
+          <div class="hub-head"><div>Producers 2</div><div></div><div style="padding-left:60px">Consumers 10</div></div>
+          <div class="stack" data-t="sns">
+            <div class="in-item first"><div class="n svc"><div class="n-line"><span class="nm">account-lambda-erase-controller</span></div></div><div class="e"></div></div>
+            <div class="in-item last"><div class="n svc maybe"><div class="n-line"><span class="nm">account-admin-api</span><span class="end"><span class="possible-chip">Possible</span></span></div></div><div class="e dash"></div></div>
+          </div>
+          <div class="hub-mid" style="--c: var(--ink-2)">
+            <div class="h-line arrow" style="background:var(--t-sns);--c:var(--t-sns)"></div>
+            <div class="hub-node ev">
+              <div class="nm">account.<wbr>tenant.<wbr>terminated.<wbr>priority10</div>
+              <div class="kindline">Event type</div>
+              <div class="io"><b>2</b><span>producers</span><b>10</b><span>consumers</span></div>
+            </div>
+            <div class="h-line" style="background:var(--t-sqs)"></div>
+          </div>
+          <div class="stack">
+            <div class="out-item first"><div class="e"><i></i></div><div class="n svc bad"><div class="n-line"><span class="nm">crm-sync</span><span class="aside">on <span class="mono">crm-sync-events</span></span><span class="end"><span class="om bad"><span class="ic">!</span>Arrives, no handler</span></span></div></div></div>
+            <div class="out-item mid"><div class="e"><i></i></div><div class="n svc"><div class="n-line"><span class="nm">archive-eraser</span><span class="aside">on <span class="mono">archive-erase-events</span></span><span class="end"><span class="om ok"><span class="ic">✓</span>Handled</span></span></div></div></div>
+            <div class="out-item mid"><div class="e"><i></i></div><div class="n svc"><div class="n-line"><span class="nm">billing-eraser</span><span class="aside">on 2 queues, one a direct send</span><span class="end"><span class="om ok"><span class="ic">✓</span>Handled</span></span></div></div></div>
+            <div class="out-item mid"><div class="e"><i></i></div><div class="n svc"><div class="n-line"><span class="nm">data-lake-ingest</span><span class="aside">on <span class="mono">data-lake-all-events</span></span><span class="end"><span class="om ok"><span class="ic">✓</span>Handled</span></span></div></div></div>
+            <div class="out-item mid"><div class="e"><i></i></div><div class="n svc"><div class="n-line"><span class="nm">ledger-eraser</span><span class="aside">on <span class="mono">ledger-erase-events</span></span><span class="end"><span class="om ok"><span class="ic">✓</span>Handled</span></span></div></div></div>
+            <div class="out-item mid"><div class="e"><i></i></div><div class="n svc"><div class="n-line"><span class="nm">metrics-eraser</span><span class="aside">on <span class="mono">metrics-erase-events</span></span><span class="end"><span class="om ok"><span class="ic">✓</span>Handled</span></span></div></div></div>
+            <div class="out-item mid"><div class="e"><i></i></div><div class="n svc"><div class="n-line"><span class="nm">quota-eraser</span><span class="aside">on <span class="mono">quota-erase-events</span></span><span class="end"><span class="om ok"><span class="ic">✓</span>Handled</span></span></div></div></div>
+            <div class="out-item mid"><div class="e"><i></i></div><div class="n svc"><div class="n-line"><span class="nm">search-eraser</span><span class="aside">on <span class="mono">search-erase-priority10</span></span><span class="end"><span class="om ok"><span class="ic">✓</span>Handled</span></span></div></div></div>
+            <div class="out-item mid"><div class="e dash" style="color:var(--t-sqs)"><i></i></div><div class="n svc maybe"><div class="n-line"><span class="nm">audit-log-svc</span><span class="aside">if account-admin-api sends it</span><span class="end"><span class="om maybe"><span class="ic">?</span>Possible</span></span></div></div></div>
+            <div class="out-item last"><div class="e dash"><i></i></div><div class="n svc maybe"><div class="n-line"><span class="nm">compliance-svc</span><span class="aside">if account-admin-api sends it, no handler</span><span class="end"><span class="om maybe"><span class="ic">?</span>Possible</span></span></div></div></div>
+          </div>
+        </div>
+        <div class="hub-legend">
+          <span data-t="sns"><span class="ln"></span>publish</span>
+          <span data-t="sqs"><span class="ln"></span>delivered through a queue</span>
+          <span data-t="sqs"><span class="ln dash"></span>possible: only if the possible producer sends it</span>
+          <span class="om ok"><span class="ic">✓</span>Handled</span>
+          <span class="om bad"><span class="ic">!</span>Arrives, no handler</span>
+          <span class="om maybe"><span class="ic">?</span>Possible</span>
+        </div>
+      </section>
+    </div></div>
+  </div>
+</div>
+
+<!-- ===================================================================== FRAME 4 -->
+<div class="frame-label"><b>4. Header toggle.</b> The existing <span class="mono">.seg</span> control, left of the page actions. Compact is the default and has no query; Full adds <span class="mono">?view=full</span>, so a link keeps the view. Full is exactly today's lanes.</div>
+<div class="sheet">
+  <div class="sheet-cap"><b>Compact</b><span class="url">#/channels/sns%3Aproduction-event-bus-sns</span></div>
+  <header class="page-head">
+    <div class="grow">
+      <div class="title-row"><h1>production-event-bus-sns</h1><span class="kind" data-t="sns">SNS topic</span></div>
+      <div class="meta"><span class="mono">sns:production-event-bus-sns</span><span>Defined by <b>account-infra</b> in <a href="#">topics.tf:4</a></span></div>
+    </div>
+    <div class="head-tools">
+      <div class="seg" role="group" aria-label="View"><button aria-pressed="true">Compact</button><button aria-pressed="false">Full</button></div>
+      <span class="sep"></span><a class="btn" href="#">Show on map</a><a class="btn" href="#">All topics and queues</a>
+    </div>
+  </header>
+  <div class="sheet-cap"><b>Full</b><span class="url">#/channels/sns%3Aproduction-event-bus-sns?view=full</span><span class="muted">The lanes, the grid and “Show all N” behave as today.</span></div>
+  <header class="page-head">
+    <div class="grow">
+      <div class="title-row"><h1>production-event-bus-sns</h1><span class="kind" data-t="sns">SNS topic</span></div>
+      <div class="meta"><span class="mono">sns:production-event-bus-sns</span><span>Defined by <b>account-infra</b> in <a href="#">topics.tf:4</a></span></div>
+    </div>
+    <div class="head-tools">
+      <div class="seg" role="group" aria-label="View"><button aria-pressed="false">Compact</button><button aria-pressed="true">Full</button></div>
+      <span class="sep"></span><a class="btn" href="#">Show on map</a><a class="btn" href="#">All topics and queues</a>
+    </div>
+  </header>
+</div>
+
+</body>
+</html>
