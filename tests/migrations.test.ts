@@ -5,6 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, readFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import { spawn } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
@@ -102,4 +103,24 @@ test('a changed applied migration is refused', () => {
   raw.prepare("UPDATE schema_migrations SET checksum = 'old' WHERE name = '001_init.sql'").run();
   raw.close();
   assert.throws(() => openDb(path), /add a new NNN_\*\.sql instead/);
+});
+
+test('concurrent openers of an old database all succeed and the backup stays pre-migration', async () => {
+  const path = join(dir(), 'race.db');
+  oldDb(path);
+  const code = `import('${join(import.meta.dirname, '../server/db/connection.ts')}').then((m) => { m.openDb(process.argv[1]).close(); })`;
+  const run = () => new Promise<{ code: number | null; err: string }>((resolve) => {
+    const c = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', '-e', code, path]);
+    let err = ''; c.stderr.on('data', (d) => (err += d));
+    c.on('close', (n) => resolve({ code: n, err }));
+  });
+  const results = await Promise.all([run(), run(), run()]);
+  for (const r of results) assert.equal(r.code, 0, r.err);
+  const db = new DatabaseSync(path);
+  assert.equal(count(db, 'SELECT count(*) AS n FROM schema_migrations'), 2);
+  assert.equal(count(db, 'SELECT count(*) AS n FROM endpoint_dtos'), 2);
+  db.close();
+  const b = new DatabaseSync(`${path}.pre-002.bak`, { readOnly: true });
+  assert.equal(count(b, "SELECT count(*) AS n FROM pragma_table_info('endpoint_dtos') WHERE name = 'status'"), 0);
+  b.close();
 });

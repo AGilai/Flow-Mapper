@@ -2,7 +2,7 @@
 // Uses Node's built-in node:sqlite, so the project has no native dependencies.
 
 import { DatabaseSync } from 'node:sqlite';
-import { readdirSync, readFileSync, mkdirSync, rmSync } from 'node:fs';
+import { readdirSync, readFileSync, mkdirSync, rmSync, linkSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { dirname, join } from 'node:path';
 
@@ -13,7 +13,7 @@ const MIGRATIONS = join(import.meta.dirname, 'migrations');
 export function openDb(path: string): DB {
   if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true });
   const db = new DatabaseSync(path);
-  db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;');
+  db.exec('PRAGMA busy_timeout = 5000; PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
   migrate(db, path);
   return db;
 }
@@ -46,15 +46,26 @@ function migrate(db: DB, path: string) {
   if (!pending.length) return;
   if (path !== ':memory:' && done.size > 0) {
     const bak = `${path}.pre-${pending[0].file.split('_')[0]}.bak`;
-    rmSync(bak, { force: true });
-    db.exec(`VACUUM INTO '${bak.replaceAll("'", "''")}'`);
-    console.log(`flow-mapper: backed up ${path} to ${bak} before applying ${pending.map((p) => p.file).join(', ')}`);
+    // Never overwrite a backup: it holds the state before the first upgrade. Write a temp file, then
+    // link it into place (fails if another process got there first).
+    const tmp = `${bak}.${process.pid}.tmp`;
+    try {
+      db.exec(`VACUUM INTO '${tmp.replaceAll("'", "''")}'`);
+      linkSync(tmp, bak);
+      console.log(`flow-mapper: backed up ${path} to ${bak} before applying ${pending.map((p) => p.file).join(', ')}`);
+    } catch (err: any) {
+      if (err?.code !== 'EEXIST') throw err;
+    } finally {
+      rmSync(tmp, { force: true });
+    }
   }
   for (const { file, sql, sum } of pending) {
     const fkOff = /^--\s*migrate:\s*foreign_keys\s*=\s*off\s*$/m.test(sql);
     if (fkOff) db.exec('PRAGMA foreign_keys = OFF');
     try {
       tx(db, () => {
+        // Another process may have applied it since we looked; then there is nothing to do.
+        if (db.prepare('SELECT 1 FROM schema_migrations WHERE name = ?').get(file)) return;
         db.exec(sql);
         if (fkOff) {
           const bad = db.prepare('PRAGMA foreign_key_check').all();
