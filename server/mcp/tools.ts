@@ -14,6 +14,7 @@ import { channelView } from '../../core/channels.ts';
 import * as schemas from '../store/schemas.ts';
 import { search } from '../../core/search.ts';
 import { serviceView } from '../../core/service-view.ts';
+import { viaMatches } from '../../core/via.ts';
 import { entryPoints, trace } from '../../core/trace.ts';
 import { findPaths } from '../../core/paths.ts';
 import { health } from '../../core/health.ts';
@@ -42,9 +43,12 @@ export const TOOLS: Tool[] = [
     run: (c, a) => health(c.graph(envOf(a))).services,
   },
   {
-    name: 'get_service', description: "A service's ingress (with callers), egress (with targets), resources, channels and functions.",
-    inputSchema: obj({ service: { type: 'string' }, env }, ['service']),
-    run: (c, a) => serviceView(c.graph(envOf(a)), a.service) ?? (() => { throw new HttpError(404, 'NOT_FOUND', `service '${a.service}' not found`); })(),
+    name: 'get_service', description: "A service's ingress (with callers), egress (with targets), resources, channels and functions. Egress carries `via` (wrapper hops, the last one calls the SDK) and `callSites[].via`; one call is one egress, hops are not producers. `via` filters egress to calls through a wrapper whose function or file contains the text.",
+    inputSchema: obj({ service: { type: 'string' }, via: { type: 'string', description: 'Only egress via a wrapper matching this substring, e.g. SNSManager' }, env }, ['service']),
+    run: (c, a) => {
+      const v = serviceView(c.graph(envOf(a)), a.service) ?? (() => { throw new HttpError(404, 'NOT_FOUND', `service '${a.service}' not found`); })();
+      return a.via ? { ...v, egress: v.egress.filter((e) => viaMatches(e, String(a.via))) } : v;
+    },
   },
   {
     name: 'list_entry_points', description: 'Ingress points where flows start (public APIs, crons, and anything nothing else calls).',
@@ -53,7 +57,7 @@ export const TOOLS: Tool[] = [
   },
   {
     name: 'trace_flow',
-    description: "Follow a flow from an ingress or function: ordered calls, DB access, REST calls and async hops across services. scope 'intra' stays inside the service.",
+    description: "Follow a flow from an ingress or function (egress messages carry `via`, the wrapper chain; display only): ordered calls, DB access, REST calls and async hops across services. scope 'intra' stays inside the service.",
     inputSchema: obj({ service: { type: 'string' }, ingress: { type: 'string' }, fn: { type: 'string' }, event: { type: 'string', description: 'Start from the handler of this event type at the ingress' }, expand: { type: 'array', items: { type: 'string' }, description: 'Services to show function by function' }, scope: { enum: ['intra', 'full'] }, env, maxMessages: { type: 'integer' } }, ['service']),
     run: (c, a) => trace(c.graph(envOf(a)), a, { scope: a.scope, maxMessages: Math.min(a.maxMessages ?? 300, 2000), expand: a.expand })
       ?? (() => { throw new HttpError(404, 'NOT_FOUND', 'start point not found (give ingress or fn)'); })(),
@@ -100,7 +104,7 @@ export const TOOLS: Tool[] = [
     run: (c, a) => { const r = store.deleteEntity(c.db, envOf(a), a.service, listArg(a.list), a.key, 'mcp'); c.changed(r.env); return r; },
   },
   {
-    name: 'get_endpoint_info', description: "One ingress endpoint: its handler, a link to the handler's code in the repo, its DTO slots (a queue takes one message; a GET its path/query params and a response body), and for event consumers each event type with its handler, derived/declared producers, status (ok, unhandled, never, declared-only) and Message DTO.",
+    name: 'get_endpoint_info', description: "One ingress endpoint (producers of its events carry `via` when they call through a wrapper): its handler, a link to the handler's code in the repo, its DTO slots (a queue takes one message; a GET its path/query params and a response body), and for event consumers each event type with its handler, derived/declared producers, status (ok, unhandled, never, declared-only) and Message DTO.",
     inputSchema: obj({ service: { type: 'string' }, ingress: { type: 'string', description: 'Ingress id' }, env }, ['service', 'ingress']),
     run: (c, a) => endpointInfo(c.graph(envOf(a)), a.service, a.ingress, dtos.endpointDtos(c.db, envOf(a), a.service, a.ingress), dtos.listEventDtos(c.db, envOf(a)))
       ?? (() => { throw new HttpError(404, 'NOT_FOUND', `ingress '${a.ingress}' of service '${a.service}' not found`); })(),

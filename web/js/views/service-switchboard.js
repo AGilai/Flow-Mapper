@@ -7,6 +7,7 @@ import { chip, splitKey, egressGroupLabel } from '../format.js';
 import { icon } from '../icons.js';
 import { storeLink } from './inventory-links.js';
 import { objectIcon } from '../components/object-icon.js';
+import { viaChip, callSitesList } from '../components/via-chip.js';
 
 const OPEN_LIMIT = 15;
 const UNRESOLVED = '\u0001Unresolved by the harvester';
@@ -55,7 +56,8 @@ export function switchboard(v, name, q, onInfo) {
             e.usedBy.length ? h('span', 'from ', e.usedBy.slice(0, 3).map((f) => h('span.key', f + ' '))) : null,
             e.targets.length ? h('span', 'to ', join(uniq(e.targets.map((t) => t.service)).slice(0, 6).map(svcLink))) : null,
             e.maybeTargets?.length ? h('span', { title: 'Event types not resolved by the harvester; may pass the subscription filter' }, 'maybe to ', join(uniq(e.maybeTargets.map((t) => t.service)).slice(0, 6).map(svcLink))) : null,
-            uniq(e.targets.flatMap((t) => t.via)).length ? h('span', 'via ', uniq(e.targets.flatMap((t) => t.via)).join(', ')) : null))));
+            uniq(e.targets.flatMap((t) => t.via)).length ? h('span', 'via ', uniq(e.targets.flatMap((t) => t.via)).join(', ')) : null,
+            viaChip(e.via), callSitesList(e.callSites)))));
     }),
     resources.length ? details(h('span', 'Data stores'), resources.length, true, resources.map((r) =>
       h('div.sb-row', { 'data-t': 'res' },

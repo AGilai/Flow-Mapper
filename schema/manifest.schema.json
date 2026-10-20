@@ -72,6 +72,36 @@
         "verified": { "enum": ["match", "drift", "code-only"] }
       }
     },
+    "via": {
+      "type": "array",
+      "description": "Wrapper hops between the caller's call site and the real SDK call, in call order (the last hop is the one that calls the SDK). The call still counts once: hops are never producers, nodes or edges.",
+      "items": {
+        "type": "object",
+        "required": ["function"],
+        "additionalProperties": false,
+        "properties": {
+          "function": { "type": "string", "description": "The wrapper, e.g. SNSManager.publish." },
+          "file": { "type": "string" },
+          "line": { "type": "integer", "minimum": 1 },
+          "col": { "type": "integer", "minimum": 1 },
+          "kind": { "type": "string", "default": "wrapper" },
+          "repo": { "type": "string" },
+          "commit": { "type": "string" }
+        }
+      }
+    },
+    "callSite": {
+      "type": "object",
+      "required": ["file"],
+      "additionalProperties": false,
+      "description": "One place in the service's code that makes this call, with the wrappers it goes through.",
+      "properties": {
+        "file": { "type": "string" },
+        "line": { "type": "integer", "minimum": 1 },
+        "function": { "type": "string", "description": "The caller's function." },
+        "via": { "$ref": "#/$defs/via" }
+      }
+    },
     "unresolved": {
       "type": "array",
       "description": "What the harvester found but could not resolve, and why. what=target: the call target or consumed key (bindKey, or a step's target, may then be left out). what=event: the event type (candidates = the possible types).",
@@ -188,7 +218,9 @@
         "source": { "$ref": "#/$defs/source" },
         "provenance": { "$ref": "#/$defs/provenance" },
         "unresolved": { "$ref": "#/$defs/unresolved" },
-        "events": { "type": "array", "items": { "$ref": "#/$defs/eventType" }, "description": "Event types published through this egress." }
+        "events": { "type": "array", "items": { "$ref": "#/$defs/eventType" }, "description": "Event types published through this egress." },
+        "via": { "$ref": "#/$defs/via" },
+        "callSites": { "type": "array", "items": { "$ref": "#/$defs/callSite" }, "description": "Every place that makes this call, each with its own `via`. `details.via` and `details.callSites` are still accepted." }
       }
     },
 

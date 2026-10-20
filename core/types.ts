@@ -54,9 +54,14 @@ export interface Ingress {
   events?: IngressEvent[];
   source?: Source; provenance?: Provenance; unresolved?: Unresolved[];
 }
+/** One wrapper between a call site and the real SDK call (the last hop calls the SDK). Never a node or edge. */
+export interface ViaHop { function: string; file?: string; line?: number; col?: number; kind?: string; repo?: string; commit?: string }
+export interface CallSite { file: string; line?: number; function?: string; via?: ViaHop[] }
 export interface Egress {
   service: string; id: string; bindKey: string; transport: Transport;
   mode?: Mode; delivery?: Delivery; details?: Details;
+  /** Wrapper chain; `details.via` is read too (see core/via.ts). */
+  via?: ViaHop[]; callSites?: CallSite[];
   /** Event types published through this egress (literal). */
   events?: string[];
   source?: Source; provenance?: Provenance; unresolved?: Unresolved[];

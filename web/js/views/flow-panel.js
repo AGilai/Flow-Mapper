@@ -11,6 +11,7 @@ import { ago, chip } from '../format.js';
 import { section } from '../components/panel.js';
 import { jsonView } from '../components/json-view.js';
 import { dtoSource } from '../components/dto-source.js';
+import { viaChip } from '../components/via-chip.js';
 import { eventLink, serviceLink, storeLink } from './inventory-links.js';
 
 const KIND = { entry: 'Entry', call: 'Function call', egress: 'Call', deliver: 'Delivery from queue', resource: 'Data store access' };
@@ -63,6 +64,7 @@ function codeCard(m, trace) {
   if (m.target?.fn) rows.push(codeRow(m.kind === 'entry' ? 'Handled by' : 'Runs', m.target.service, m.target.fn, at(m.target.service, m.target.fn), `ingress ${m.target.ingress}`));
   const callSite = m.egress ? trace.code?.[`egress:${m.service}:${m.egress}`] : null;
   if (callSite) rows.push(codeRow('Call site', m.service, m.egress, callSite));
+  if (m.via?.length) rows.push(h('div.ep-pad.stack', { style: { gap: 'var(--s1)' } }, h('span.ep-label', 'Goes through'), viaChip(m.via)));
   if (m.store) rows.push(h('div.ep-pad.stack', { style: { gap: '2px' } }, h('span.ep-label', 'Data store'), storeLink(m.store)));
   if (m.note) rows.push(h('p.ep-note.ep-pad', m.note));
   return rows.length ? h('section.ep-card', h('header', h('h3', 'Code')), rows) : null;

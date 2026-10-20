@@ -205,6 +205,41 @@
       "events": [
         "OrderPlaced",
         "OrderCancelled"
+      ],
+      "via": [
+        {
+          "function": "EventPublisher.publish",
+          "file": "src/common/event-publisher.ts",
+          "line": 24,
+          "kind": "wrapper"
+        },
+        {
+          "function": "SNSManager.publish",
+          "file": "src/common/sns-manager.ts",
+          "line": 20,
+          "kind": "wrapper"
+        }
+      ],
+      "callSites": [
+        {
+          "file": "src/services/order.ts",
+          "line": 96,
+          "function": "OrderService.place",
+          "via": [
+            {
+              "function": "EventPublisher.publish",
+              "file": "src/common/event-publisher.ts",
+              "line": 24,
+              "kind": "wrapper"
+            },
+            {
+              "function": "SNSManager.publish",
+              "file": "src/common/sns-manager.ts",
+              "line": 20,
+              "kind": "wrapper"
+            }
+          ]
+        }
       ]
     },
     {
@@ -246,7 +281,11 @@
       "kind": "redis",
       "name": "session client in AppContext",
       "unresolved": [
-        { "what": "target", "reason": "redis_no_key_pattern", "detail": "client creation only; key patterns not harvested yet" }
+        {
+          "what": "target",
+          "reason": "redis_no_key_pattern",
+          "detail": "client creation only; key patterns not harvested yet"
+        }
       ]
     }
   ]

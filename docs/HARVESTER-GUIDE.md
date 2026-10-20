@@ -111,6 +111,15 @@ inside the system calls them). Put `method` and `path` in `details` for HTTP.
 **Egress**: every way out: HTTP and RPC clients, publishes to topics, queues and buses. Set
 `mode: "async"` for fire-and-forget.
 
+*Calls through a wrapper.* If the code reaches the SDK through your own wrapper (for example
+`TerminateAccountService` -> `SNSManager.publish` -> the SNS client), send **one** egress, not one
+per layer. Describe the wrappers with `via`: ordered hops from the caller's call site to the real SDK
+call, each `{ "function": "SNSManager.publish", "file": "...", "line": 20, "kind": "wrapper" }` (only
+`function` is required). The UI shows the call once with a chip "via SNSManager.publish" (the last
+hop) and the full chain on expand; hops never become producers, nodes or edges. `via` on the egress is
+the usual chain; `callSites: [{ "file", "line", "function", "via": [...] }]` lists each place that makes
+the call, when chains differ. Sending them inside `details.via` / `details.callSites` still works.
+
 **Resources**: every data store used. `kind` (`mongodb`, `redis`, `dynamodb`, `postgres`, `s3`…),
 a readable `name`, and a `bindKey` (below) so services using the same store are linked. If you
 cannot give the key yet (cluster not read, key patterns not harvested), leave `bindKey` out and send

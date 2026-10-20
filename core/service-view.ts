@@ -6,6 +6,7 @@ import { downstreamIngress, sid, upstreamEgress } from './graph-index.ts';
 import type { Ref } from './types.ts';
 import { codeLink } from './endpoint-info.ts';
 import { eventReport } from './events.ts';
+import { egressVia } from './via.ts';
 
 const viaText = (via: Ref[]) => via.map((v) => (v.type === 'channel' ? v.key : '')).filter(Boolean);
 
@@ -48,6 +49,7 @@ export function serviceView(g: GraphIndex, name: string) {
     });
     return {
       ...e,
+      ...egressVia(s, e), // normalised `via` and `callSites` (from fields or details), with code links
       at: codeLink(s, e.source),
       dangling: dangling.has(sid(e.service, e.id)),
       usedBy: fns.filter((f) => f.steps.some((st) => st.type === 'egress' && st.target === e.id)).map((f) => f.id),

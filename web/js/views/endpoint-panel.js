@@ -9,6 +9,7 @@ import { ago, chip, splitKey } from '../format.js';
 import { jsonView } from '../components/json-view.js';
 import { dtoSource } from '../components/dto-source.js';
 import { eventPath } from './inventory-links.js';
+import { viaChip } from '../components/via-chip.js';
 
 /** Returns [head, ...content] for panel.open(). */
 export function endpointPanel(info, env) {
@@ -100,8 +101,9 @@ function producerChip(p) {
     : p.declared ? 'declared, not harvested' : null;
   const cls = p.possible ? 'declared' : p.declared && p.harvested && !p.derived ? 'warn' : p.declared && !p.derived ? 'declared' : '';
   const title = p.derived ? 'Found from harvested data' : p.harvested ? 'Declared by the consumer, but this service does not send it here' : 'Declared by the consumer; Flow-Mapper does not harvest this service';
-  return h('span.ep-producer', { class: cls, title },
+  const pill = h('span.ep-producer', { class: cls, title },
     p.harvested ? h('a', { href: href(`/services/${encodeURIComponent(p.service)}`) }, p.service) : h('span', p.service),
     p.egress ? h('span.key.muted', p.egress) : null,
     tag ? h('span.xs.muted', tag) : null);
+  return p.via?.length ? h('span.ep-producer-box', pill, viaChip(p.via)) : pill;
 }

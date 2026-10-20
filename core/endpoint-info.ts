@@ -5,6 +5,7 @@
 import type { GraphIndex } from './graph-index.ts';
 import type { Fn, Ingress, Service, Source } from './types.ts';
 import { ingressEvents, type EventRow } from './events.ts';
+import { egressVia, type LinkedHop } from './via.ts';
 
 export type DtoRole = 'request' | 'response';
 export const DTO_ROLES: DtoRole[] = ['request', 'response'];
@@ -18,7 +19,8 @@ export interface SourceLink { repo: string; url: string | null; ref: string; fil
 export interface DtoSlot { role: DtoRole; status: string; label: string; dto: Dto | null; stale: boolean }
 export interface EventDto { event: string; content: unknown; meta?: DtoMeta | null; link?: SourceLink | null; updatedAt: string }
 /** One event type at a consumer, with its handler's code link and the event type's Message DTO. */
-export interface EventInfo extends EventRow { source: SourceLink | null; dto: EventDto | null }
+export type ProducerInfo = EventRow['producers'][number] & { via?: LinkedHop[] };
+export interface EventInfo extends Omit<EventRow, 'producers'> { producers: ProducerInfo[]; source: SourceLink | null; dto: EventDto | null }
 export interface EndpointInfo {
   service: string; ingress: Ingress; method: string | null; handler: Fn | null; source: SourceLink | null;
   harvestedAt: string; slots: DtoSlot[]; note: string | null; events: EventInfo[];
@@ -107,6 +109,7 @@ export function endpointInfo(g: GraphIndex, service: string, ingressId: string, 
     definedAt: codeLink(svc, ingress.source),
     events: ingressEvents(g, ingress).map((r) => ({
       ...r,
+      producers: r.producers.map((p) => withVia(g, p)),
       source: r.handler ? sourceLink(svc, g.model.functions.find((f) => f.service === service && f.id === r.handler) ?? null) : null,
       dto: eventDtos.find((d) => d.event === r.type) ?? null,
     })),
@@ -116,6 +119,14 @@ export function endpointInfo(g: GraphIndex, service: string, ingressId: string, 
       return { ...x, dto: dto && { ...dto, link: dtoLink(dto.meta, svc) }, stale: !!dto && dto.updatedAt < svc.harvestedAt };
     }),
   };
+}
+
+/** A producer with the wrapper chain of its egress (display only: the producer stays the calling service). */
+function withVia(g: GraphIndex, p: EventRow['producers'][number]): ProducerInfo {
+  const e = p.egress ? g.model.egress.find((x) => x.service === p.service && x.id === p.egress) : undefined;
+  const svc = e && g.model.services.find((s) => s.name === e.service);
+  const via = e && svc ? egressVia(svc, e).via : [];
+  return via.length ? { ...p, via } : p;
 }
 
 /** The endpoint's slots, with one more response slot per stored error status ("Response 404"). */

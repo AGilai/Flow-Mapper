@@ -1,0 +1,15 @@
+/* "via wrapper" chip (components/via-chip.js) */
+.via-chip { display: inline-block; vertical-align: middle; max-width: 100%; font-size: var(--fs-xs); color: var(--ink-2); }
+.via-chip > summary { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 7px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); cursor: pointer; list-style: none; }
+.via-chip > summary::-webkit-details-marker { display: none; }
+.via-chip > summary:hover, .via-chip[open] > summary { border-color: var(--line-strong); background: var(--accent-soft); }
+.via-chip .key { font-size: var(--fs-xs); word-break: normal; }
+.via-n { color: var(--muted); }
+.via-hops { margin: 4px 0 0; padding: 6px 8px 6px 22px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); display: grid; gap: 3px; }
+.via-hops li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+.via-hops .at-link, .via-site .at-link { margin-left: 0; display: inline-flex; align-items: center; gap: 4px; color: var(--accent); }
+.via-loc { font-family: var(--mono); font-size: var(--fs-xs); word-break: break-all; }
+.via-sites { grid-column: 1 / -1; font-size: var(--fs-xs); }
+.via-sites > summary { cursor: pointer; color: var(--muted); }
+.via-site { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; padding: 3px 0; }
+.ep-producer-box { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 3px; }

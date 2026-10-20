@@ -17,6 +17,7 @@ import { handlerFor, passes } from './events.ts';
 import { codeLink, sourceLink, type SourceLink } from './endpoint-info.ts';
 import { unresolvedTarget } from './resolve.ts';
 import type { Unresolved } from './types.ts';
+import { egressVia, type LinkedHop } from './via.ts';
 
 export interface Participant {
   id: string; label: string; kind: 'client' | 'function' | 'service' | 'channel' | 'resource' | 'missing' | 'unresolved'; service?: string;
@@ -34,6 +35,7 @@ export interface Message {
   store?: string;                                            // data-store key, for resource steps
   calls?: string;                                            // function called, for call steps (same service)
   egress?: string;                                           // egress id, for calls out (its call site is in `code`)
+  via?: LinkedHop[];                                         // wrappers the call goes through (last one calls the SDK); display only
   gap?: Unresolved;                                          // the harvester could not resolve this call; why
 }
 export interface Trace {
@@ -164,6 +166,11 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
       if (k && !(k in code)) code[k] = g.services.has(svc!) ? sourceLink(g.services.get(svc!)!, g.fns.get(k) ?? null) : null;
     }
     const e = m.egress && m.service ? g.egress.get(sid(m.service, m.egress)) : undefined;
+    if (e && m.kind === 'egress' && !String(m.from).startsWith('ch:')) { // the call itself, not a hop between channels
+      const v = egressVia(g.services.get(m.service!)!, e);
+      const via = v.callSites.find((c) => c.function && c.function === m.fn && c.via.length)?.via ?? v.via;
+      if (via.length) m.via = via;
+    }
     if (e?.source && !(`egress:${m.service}:${e.id}` in code)) code[`egress:${m.service}:${e.id}`] = codeLink(g.services.get(m.service!)!, e.source);
   }
   return { code, start: { service: root, ingress: ing?.id, fn: fnId, event: start.event }, scope, participants: [...participants.values()], messages, truncated };
