@@ -1,0 +1,83 @@
+/* Compact hub views (topic, queue, event type) and the info pane. Builds on flow.css (lanes, connectors).
+   See docs/UI-GUIDE.md and design/mockups/hub-views.html. */
+
+.hub .lane-grid { min-width: 540px; }
+.hub-tools { margin-left: auto; display: inline-flex; align-items: center; gap: var(--s2); }
+.hub-tools .search { position: relative; }
+.hub-tools .search .input { width: 240px; height: 30px; }
+.hub-tools .btn { height: 30px; }
+
+/* The hub node: name, kind, counts */
+.hub-node { padding: 12px; border-left-width: 3px; }
+.hub-node .nm { font-family: var(--mono); font-size: var(--fs-sm); }
+.hub-stats { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); font-size: var(--fs-xs); color: var(--muted); display: grid; gap: 2px; }
+.hub-stats b { color: var(--ink); font-weight: 600; }
+.lane-node.chan[data-t='async'].here { --c: var(--t-res); }
+
+/* Producers */
+.hub-pub { padding: 6px 10px; }
+.hub-pub .possible-chip { margin-top: 0; float: right; }
+.hub-pub[role='button'] { cursor: pointer; }
+.hub-pub[role='button']:hover { border-color: var(--line-strong); background: color-mix(in srgb, var(--accent) 3%, var(--surface)); }
+
+/* Queue and consumer rows */
+.hub-q, .hub-c { padding: 8px 10px; }
+.hub-q { cursor: pointer; }
+.hub-c[role='button'] { cursor: pointer; }
+.hub-q:hover, .hub-c[role='button']:hover { border-color: var(--line-strong); }
+.hub-q.selected, .hub-c.selected, .hub-pub.selected { outline: 2px solid var(--accent); outline-offset: 1px; }
+.hub-q.bad, .hub-c.bad { background: color-mix(in srgb, var(--bad) 6%, var(--surface)); border-color: color-mix(in srgb, var(--bad) 35%, transparent); }
+.hub-q.warn { background: color-mix(in srgb, var(--warn) 6%, var(--surface)); border-color: color-mix(in srgb, var(--warn) 35%, transparent); }
+.hub-q-head { display: flex; align-items: center; gap: var(--s2); min-width: 0; }
+.hub-q-name { flex: 1; min-width: 0; }
+.hub-q-name a.key { font-family: var(--mono); font-size: var(--fs-sm); font-weight: 600; overflow-wrap: anywhere; }
+.hub-chev { border: 0; background: none; width: 18px; height: 22px; padding: 0; cursor: pointer; color: var(--muted); font-size: 16px; line-height: 1; flex: none; }
+.hub-chev:hover { color: var(--ink); }
+
+.hub-badge { display: inline-flex; align-items: center; gap: 5px; font-size: var(--fs-xs); font-weight: 600; white-space: nowrap; flex: none; }
+.hub-badge i, .hub-out-t i { font-style: normal; width: 16px; height: 16px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 10px; font-weight: 700; color: #fff; flex: none; }
+.hub-badge.ok i, .hub-out-t.ok i { background: var(--ok); }
+.hub-badge.bad, .hub-out-t.bad { color: var(--bad); }
+.hub-badge.bad i, .hub-out-t.bad i { background: var(--bad); }
+.hub-badge.maybe, .hub-out-t.maybe { color: var(--muted); }
+.hub-badge.maybe i, .hub-out-t.maybe i { background: transparent; color: var(--muted); border: 1px dashed var(--line-strong); }
+
+/* Expanded queue */
+.hub-detail { margin: 8px 0 2px 26px; padding-top: 8px; border-top: 1px solid var(--line); display: grid; gap: 8px; cursor: default; }
+.hub-consumer { display: flex; gap: var(--s2); align-items: baseline; flex-wrap: wrap; }
+.hub-out { display: grid; gap: 4px; }
+.hub-out-t { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-xs); font-weight: 600; }
+.hub-counts { display: flex; gap: var(--s4); margin-top: 6px; }
+.hub-list { margin: 0 0 0 22px; padding: 0; list-style: none; font-family: var(--mono); font-size: var(--fs-xs); overflow-wrap: anywhere; display: grid; gap: 2px; }
+.hub-filtered { display: flex; gap: var(--s2); align-items: baseline; flex-wrap: wrap; }
+.lane-node.warn { background: color-mix(in srgb, var(--warn) 7%, var(--surface)); border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
+
+/* Edges: the whole cell is clickable; the marker sits on the line */
+.hub-edge { cursor: pointer; }
+.hub-edge:hover .tail { height: 3px; }
+.hub-edge.selected { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: var(--r-sm); }
+.hub-mark { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px; border: 1px solid var(--line-strong); border-radius: 11px; background: var(--surface); color: var(--ink-2);
+  font-size: var(--fs-xs); font-weight: 600; white-space: nowrap; cursor: pointer; position: relative; z-index: 1; }
+.hub-mark svg { display: block; }
+.hub-mark.disagree { border-color: color-mix(in srgb, var(--warn) 55%, transparent); background: color-mix(in srgb, var(--warn) 12%, var(--surface)); color: var(--warn); }
+.hub-mark .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); }
+.lane-filter .hub-mark + .tail { margin-left: 0; }
+
+/* Info pane */
+.mono-title { font-family: var(--mono); font-size: var(--fs-md); overflow-wrap: anywhere; }
+.reach { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+.reach th, .reach td { padding: 6px 8px; border-top: 1px solid var(--line); text-align: left; }
+.reach thead th { border-top: 0; font-size: var(--fs-xs); color: var(--muted); font-weight: 600; }
+.reach td { font-variant-numeric: tabular-nums; }
+.reach td.bad { background: color-mix(in srgb, var(--bad) 10%, var(--surface)); color: var(--bad); font-weight: 700; }
+.reach td.zero { color: var(--muted); }
+.reach-list { font-size: var(--fs-sm); }
+.reach-list summary { cursor: pointer; color: var(--accent); margin-bottom: 6px; }
+.hub-card { border: 1px solid var(--line); border-radius: var(--r-sm); padding: 8px 10px; display: grid; gap: 4px; border-left: 3px solid var(--ink-2); }
+.hub-card h4 { font-size: var(--fs-sm); }
+.bad-text { color: var(--bad); }
+
+@media (max-width: 760px) {
+  .hub-tools { margin-left: 0; width: 100%; }
+  .hub-tools .search .input { width: 100%; }
+}

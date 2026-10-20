@@ -9,13 +9,13 @@ import { showAll } from './show-all.js';
 const LABEL = { handled: 'Handled', 'no-handler': 'Arrives, no handler', filtered: 'Filtered out', 'no-consumer': 'No reader' };
 
 function cell(c) {
-  const kind = c.possible ? 'maybe' : c.status === 'handled' && !c.uncertain ? 'ok' : c.status === 'filtered' || c.status === 'no-consumer' ? 'skip' : 'warn';
-  const mark = { ok: '✓', skip: '–', warn: '!', maybe: '?' }[kind];
+  const kind = c.possible ? 'maybe' : c.status === 'handled' && !c.uncertain ? 'ok' : c.status === 'filtered' || c.status === 'no-consumer' ? 'skip' : c.status === 'no-handler' ? 'bad' : 'warn';
+  const mark = { ok: '✓', skip: '–', warn: '!', bad: '!', maybe: '?' }[kind];
   const title = c.possible ? 'Possible' : LABEL[c.status] + (c.status === 'handled' && c.uncertain ? ', if the filter is right' : '');
   const why = c.possible
     ? ({ handled: 'If the publisher sends it.', 'no-handler': 'If sent, it would arrive with no handler.', filtered: 'If sent, it would be filtered out.', 'no-consumer': '' })[c.status]
     : c.why;
-  return h('td', { class: kind === 'warn' ? 'cell-warn' : '' },
+  return h('td', { class: kind === 'warn' ? 'cell-warn' : kind === 'bad' ? 'cell-bad' : '' },
     h('div.st', { class: kind },
       h('span.ic', { 'aria-hidden': 'true' }, mark),
       h('span.what',

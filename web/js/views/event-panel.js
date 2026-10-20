@@ -36,7 +36,7 @@ export function consumerPanel(flow, service) {
     const maybe = mine.every((e) => e.r.outcome === 'possible');
     const state = maybe ? ['maybe', 'Possible', `${mine[0].r.ifSent === 'handled' ? 'handled' : 'arrives with no handler'}, if ${mine[0].g.producer} sends it`]
       : i.outcome === 'handled' ? ['ok', 'Handled', filterNote(mine)]
-      : ['warn', 'Arrives, no handler', i.handles.length ? `handles ${plural(i.handles.length, 'other event type')}, not this one. Add it to ${i.id} or filter it out of the subscription.` : null];
+      : ['bad', 'Arrives, no handler', i.handles.length ? `handles ${plural(i.handles.length, 'other event type')}, not this one. Add it to ${i.id} or filter it out of the subscription.` : null];
     return card(i.id, i.bindKey,
       h('div.ep-route', mine.flatMap((e, k) => [k ? ' and ' : null, route(e)])),
       i.handler

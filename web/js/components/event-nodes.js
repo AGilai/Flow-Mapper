@@ -21,9 +21,9 @@ export function outcomeOf(rows, producer) {
     return { kind: 'ok', title: 'Handled', small: ings.length > 1 ? (ings.length === 2 ? 'by both ingresses' : `by all ${ings.length} ingresses`) : catchAll ? 'by its catch-all handler' : null };
   }
   const bad = ings.filter((i) => i.outcome !== 'handled');
-  if (ok.length) return { kind: 'warn', title: `Handled by ${ok.length} of ${ings.length} ingresses`, small: `no handler at ${list(bad.map((i) => i.id))}` };
+  if (ok.length) return { kind: 'bad', title: `Handled by ${ok.length} of ${ings.length} ingresses`, small: `no handler at ${list(bad.map((i) => i.id))}` };
   const n = bad[0].handles.length;
-  return { kind: 'warn', title: 'Arrives, no handler', small: n ? `handles ${plural(n, 'other event type')}, not this one` : 'its ingress lists no handler for it' };
+  return { kind: 'bad', title: 'Arrives, no handler', small: n ? `handles ${plural(n, 'other event type')}, not this one` : 'its ingress lists no handler for it' };
 }
 
 export const uniqueIngresses = (rows) => {
@@ -33,7 +33,7 @@ export const uniqueIngresses = (rows) => {
 };
 
 export const statusMark = (kind, title, small) => h('div.st', { class: kind },
-  h('span.ic', { 'aria-hidden': 'true' }, { ok: '✓', warn: '!', maybe: '?' }[kind]),
+  h('span.ic', { 'aria-hidden': 'true' }, { ok: '✓', warn: '!', bad: '!', maybe: '?' }[kind]),
   h('span.what', h('b', title), small ? h('small', small) : null));
 
 const clickable = (el, open) => {
@@ -59,7 +59,7 @@ export function producerNode(group, open, { possible = false } = {}) {
 export function consumerNode(service, rows, producer, open, { outcome = true } = {}) {
   const ings = uniqueIngresses(rows);
   const o = outcome ? outcomeOf(rows, producer) : null;
-  return clickable(h('div.lane-node.svc', { class: o?.kind === 'warn' ? 'warn' : '', id: rows[0].id, 'aria-label': `${service}, consumer` },
+  return clickable(h('div.lane-node.svc', { class: o?.kind === 'bad' ? 'bad' : '', id: rows[0].id, 'aria-label': `${service}, consumer` },
     h('div.nm', wbr(service), ings.length > 1 ? h('span.badge', `${ings.length} ingresses`) : null),
     ings.slice(0, 3).map((i) => h('div.node-block',
       h('div.sub-id', wbr(i.id), i.handler ? [h('span.w', ' calls '), wbr(i.handler)] : h('span.w', ' has no handler for this type')),

@@ -1,4 +1,4 @@
-/* App shell: navigation rail, page header, content, slide-in info panel. */
+/* App shell: navigation rail, page header, content, info panel that squeezes the page. */
 .app { display: grid; grid-template-columns: var(--rail) 1fr; height: 100%; }
 .rail {
   display: flex; flex-direction: column; gap: var(--s1);
@@ -31,13 +31,12 @@
 .content.flush { padding: 0; overflow: hidden; position: relative; }
 
 .panel {
-  position: absolute; top: 0; right: 0; bottom: 0; width: min(var(--panel), 100%);
-  background: var(--surface); border-left: 1px solid var(--line); box-shadow: var(--shadow-panel);
-  display: flex; flex-direction: column; transform: translateX(100%); transition: transform 0.18s ease-out; z-index: 5;
+  flex: none; width: min(var(--panel), 100%); position: relative; min-height: 0;
+  background: var(--surface); border-left: 1px solid var(--line); display: none; flex-direction: column;
 }
-.panel.open { transform: none; }
+.panel.open { display: flex; }
 .panel-head { display: flex; align-items: flex-start; gap: var(--s2); padding: var(--s4); border-bottom: 1px solid var(--line); }
-.panel-body { padding: var(--s4); overflow-y: auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s4); align-content: start; }
+.panel-body { flex: 1; min-height: 0; padding: var(--s4); overflow-y: auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s4); align-content: start; }
 
 @media (max-width: 860px) {
   .app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
@@ -51,6 +50,11 @@
   .page-head { padding: var(--s3) var(--s4); }
 }
 
-/* A page whose panel slides over its scrolling content (service view). */
-.panel-host { flex: 1; min-height: 0; position: relative; display: flex; flex-direction: column; overflow: hidden; }
-.panel-host > .panel { width: min(520px, 100%); }
+/* A page with a panel: the panel is its own column on the right and the content narrows; it never overlays.
+   Below 860px the open panel takes the whole width. */
+.panel-host { flex: 1; min-height: 0; position: relative; display: flex; flex-direction: row; overflow: hidden; }
+.panel-host > .content { flex: 1; min-width: 0; }
+.panel-host > .panel { width: min(440px, 100%); }
+.content.flush:has(> .panel) { display: flex; }
+.content.flush > .stage-wrap { flex: 1; min-width: 0; position: relative; }
+@media (max-width: 860px) { .panel.open { position: absolute; inset: 0; width: 100%; z-index: 5; border-left: 0; } }

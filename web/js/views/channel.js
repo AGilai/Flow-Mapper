@@ -15,6 +15,12 @@ import { transportOf } from '../components/flow-lanes.js';
 import { codeLink, box } from './detail-parts.js';
 import { flowBlock } from './channel-flow.js';
 import { chip } from '../format.js';
+import { createPanel } from '../components/panel.js';
+import { viewToggle } from './hub-parts.js';
+import { topicCompact } from './hub-topic.js';
+import { queueCompact } from './hub-queue.js';
+import { consumerPane, edgePane } from './hub-pane.js';
+import { channelPath } from './inventory-links.js';
 
 const KIND = { 'sns-topic': 'SNS topic', 'sqs-queue': 'SQS queue', 'amqp-exchange': 'RabbitMQ exchange', 'amqp-queue': 'RabbitMQ queue', 'eventbridge-bus': 'EventBridge bus' };
 
@@ -30,15 +36,36 @@ function meta(v) {
     v.provenance?.verified ? h('span', { class: `verified-${v.provenance.verified}` }, VERIFIED[v.provenance.verified]) : null);
 }
 
-export async function render({ main, params }) {
+const COMPACT_KINDS = ['sns-topic', 'sqs-queue', 'amqp-queue'];
+
+export async function render({ main, params, query }) {
   const v = await api.channel(state.env, params.key);
+  const compactOk = COMPACT_KINDS.includes(v.kind);
+  const compact = compactOk && query?.get('view') !== 'full';
+  const isQueue = v.flow.layout === 'inbound';
+  const head = pageHead(h('span.title-row', titled('channel', v.kind, v.name), chip(transportOf(v.kind), KIND[v.kind] ?? v.kind)), meta(v),
+    compactOk ? viewToggle(channelPath(v.key), compact ? 'compact' : 'full') : null,
+    h('a.btn', { href: href('/system', { channels: 1, sel: `ch:${v.key}` }) }, 'Show on map'),
+    h('a.btn', { href: href('/inventory', { type: 'channel' }) }, 'All topics and queues'));
+
+  if (compact) {
+    const host = h('div.panel-host');
+    const panel = createPanel(host, { onClose: () => host.querySelector('.selected')?.classList.remove('selected') });
+    const hub = isQueue
+      ? queueCompact(v, { openEdge: (row) => panel.open(...edgePane(v, row)), openConsumer: (o) => panel.open(...consumerPane(v, o)) })
+      : topicCompact(v, { openEdge: (row) => panel.open(...edgePane(v, row)) });
+    const hint = isQueue ? 'Click an edge for its filter, or the consumer for its handler.' : 'Click an edge or a queue for its filter and outcome.';
+    host.prepend(h('div.content', h('div.flow-page',
+      summary(v.flow.summary, { reveal: (id) => hub.reveal(id) }),
+      h('section.flow-section', h('header', h('h2', 'How events flow'), h('span.hint', hint), hub.toolbar ?? null), hub),
+      Object.keys(v.details).length ? box('Details', null, jsonView(v.details)) : null)));
+    main.append(head, host);
+    return { dispose: panel.dispose };
+  }
+
   const flow = flowBlock(v);
   const grid = v.flow.grid;
-  const isQueue = v.flow.layout === 'inbound';
-  main.append(
-    pageHead(h('span.title-row', titled('channel', v.kind, v.name), chip(transportOf(v.kind), KIND[v.kind] ?? v.kind)), meta(v),
-      h('a.btn', { href: href('/system', { channels: 1, sel: `ch:${v.key}` }) }, 'Show on map'),
-      h('a.btn', { href: href('/inventory', { type: 'channel' }) }, 'All topics and queues')),
+  main.append(head,
     h('div.content', h('div.flow-page',
       summary(v.flow.summary, { reveal: () => flow.reveal() }),
       section('How events flow', 'From the publisher to the consumer, left to right.', flow),

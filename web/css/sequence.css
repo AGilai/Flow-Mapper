@@ -80,3 +80,5 @@
 .flow-band.c6 { --fc: var(--flow-6); }
 .flow-band.c7 { --fc: var(--flow-7); }
 .flow-band.c8 { --fc: var(--flow-8); }
+.flows-row { display: flex; min-width: 0; min-height: 0; position: relative; }
+.flows-row > .flows-main { flex: 1; min-width: 0; }

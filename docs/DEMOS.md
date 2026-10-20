@@ -8,6 +8,12 @@ Add a row here with every fix or feature (newest first). A row without a working
 
 | Version | Bug | What to look at | Link |
 |---|---|---|---|
+| 0.10.0 | — | Compact topic page: producers, topic, queues; problem queues first (red "arrive, no handler"), the rest by name; queue rows expand in place; click an edge or a queue for the info pane (squeezes the page) | `#/channels/sns%3Aproduction-event-bus-sns` |
+| 0.10.0 | — | Disagreeing declarations: amber "disagree" chip on a dashed edge; the pane shows both declarations with code links and what reaches the consumer under each | `#/channels/sns%3Aorder-events` |
+| 0.10.0 | — | Topic with 13 queues: 12 shown, then "1 more queue, all handled · Show all 13"; "Find a queue or service" and "Expand all"; the topic stays in view while scrolling | `#/channels/sns%3Astress-events` |
+| 0.10.0 | — | Compact queue page: sources with their filter on the edge (funnel "1 type"), the queue, the consumer with Handled and Possible counts | `#/channels/sqs%3Aanalytics-all-events` |
+| 0.10.0 | — | Compact event page: producers, event type, consuming services with "on <queue>" and the outcome; Compact | Full toggle (Full is today's lanes, `?view=full`) | `#/events/account.tenant.terminated.priority10` |
+| 0.10.0 | — | "No handler" is red in the verdict, the lanes and the grid (Full view); side panels squeeze the page | `#/channels/sns%3Aorder-events?view=full` |
 | 0.9.6 | #35 | A consumer first met as the consumer of a queue sits right of that queue even when a second topic feeds the same queue (controller after `saga2-account-sqs-erase`, not 3rd column); only the entry eraser (an upstream caller) is pointed back to | `#/flows?service=saga2-eraser-entry&ingress=in.erase` |
 | 0.9.5 | — | Async deliveries end in a coloured dot: click jumps to that consumer's sub-flow lower on the page (shaded band in the dot's colour, half-row gap above it), right-click or shift-click opens its own flow; nested flows nest their bands | `#/flows?service=saga-controller&ingress=in.start` |
 | 0.9.4 | #35 | Under a topic's activation bar only its own deliveries (rows 2.1, 2.2, ...) now sit; what the consumers do hangs under the bar, delivery 1 first | `#/flows?service=api-gateway&ingress=in.createOrder` and `#/flows?service=saga-controller&ingress=in.start` |

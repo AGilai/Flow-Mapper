@@ -46,6 +46,7 @@ UI / agent ── GET /api/envs/:env/... ─► server/routes/queries.ts ─► 
 | `clients.ts` | how services reach stores (`client`): rows, driver majors, mixed-major flag, counts |
 | `reach.ts` | reverse reachability: entry points whose flows run a function |
 | `channels.ts` | topic/queue/bus view: publishers, subscriptions, consumers, events |
+| `hub.ts` | the compact hub views: edge markers, per-queue outcomes, problem-first order and fold, the event page's consumers |
 | `channel-flow.ts`, `channel-summary.ts` | the flow of one channel: merged subscription rows, event type x destination grid, summary and callouts |
 | `events.ts` | event types over the links: deliveries, derived producers, per-event handlers, event checks |
 | `event-flow.ts`, `event-flow-summary.ts` | the flow of one event type: producer service, topic, queue, consumer service with the outcome (handled, no handler, possible, filtered), summary and callouts |

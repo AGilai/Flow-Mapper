@@ -14,6 +14,9 @@ import { createPanel } from '../components/panel.js';
 import { summary } from '../components/summary.js';
 import { titled } from '../components/object-icon.js';
 import { eventFlowBlock } from './event-flow.js';
+import { eventCompact } from './hub-event.js';
+import { viewToggle } from './hub-parts.js';
+import { eventPath } from './inventory-links.js';
 import { consumerPanel, producerPanel } from './event-panel.js';
 
 const PREVIEW_LINES = 10;
@@ -32,32 +35,33 @@ function message(v) {
   return box;
 }
 
-export async function render({ main, params }) {
+export async function render({ main, params, query }) {
+  const compact = query?.get('view') !== 'full';
   const v = await api.eventType(state.env, params.type);
   const flow = v.flow;
   const host = h('div.panel-host');
   let selected = null;
-  const panel = createPanel(host, { onClose: () => { selected?.classList.remove('selected'); selected = null; host.classList.remove('panel-open'); } });
+  const panel = createPanel(host, { onClose: () => { selected?.classList.remove('selected'); selected = null; } });
   const open = (kind, service, el) => {
     selected?.classList.remove('selected');
     selected = el;
     el.classList.add('selected');
     panel.open(...(kind === 'producer' ? producerPanel(flow, service) : consumerPanel(flow, service)));
-    // If the panel would cover the node, make room for it and bring the node into view.
-    const covered = () => el.getBoundingClientRect().right > panel.el.getBoundingClientRect().left;
-    host.classList.remove('panel-open');
-    if (covered()) host.classList.add('panel-open');
     el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   };
-  const lanes = eventFlowBlock(flow, { type: v.type, open });
+  const lanes = compact ? eventCompact(flow, { open }) : eventFlowBlock(flow, { type: v.type, open });
   const meta = v.dto ? h('span.meta', h('span', 'Message DTO updated ', h('b', ago(v.dto.updatedAt)))) : h('span.meta', h('span', 'No message DTO yet'));
 
   main.append(
     pageHead(h('span.title-row', titled('event', 'event', v.type), chip('event', 'Event type')), meta,
+      viewToggle(eventPath(v.type), compact ? 'compact' : 'full'),
       h('a.btn', { href: href('/inventory', { type: 'event' }) }, 'All event types')),
     host);
   host.prepend(h('div.content', h('div.flow-page',
     summary(flow.summary, { reveal: () => lanes.reveal() }),
-    section('How it flows', 'From each producer to each consumer, left to right. Click a service for its code and handler.', lanes),
+    compact
+      ? h('section.flow-section', h('header', h('h2', 'How it flows'), h('span.hint', 'Click a consumer for its route and handler.'), lanes.toolbar), lanes)
+      : section('How it flows', 'From each producer to each consumer, left to right. Click a service for its code and handler.', lanes),
     section('Message', v.dto ? `Updated ${ago(v.dto.updatedAt)}` : null, message(v)))));
+  return { dispose: panel.dispose };
 }

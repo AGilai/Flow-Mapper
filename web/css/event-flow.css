@@ -7,7 +7,7 @@
 .lane-node.svc > .nm { color: var(--accent); }
 .lane-node.svc > .node-block + .node-block, .lane-node.svc > .node-block { margin: 0; padding: 0; border: 0; }
 .lane-node.svc > .node-block + .node-block { margin-top: 2px; }
-.lane-node.warn { background: color-mix(in srgb, var(--warn) 7%, var(--surface)); border-color: color-mix(in srgb, var(--warn) 40%, transparent); border-left-color: var(--ink-2); }
+.lane-node.bad { background: color-mix(in srgb, var(--bad) 7%, var(--surface)); border-color: color-mix(in srgb, var(--bad) 40%, transparent); border-left-color: var(--bad); }
 .lane-node .badge { float: right; font-size: var(--fs-xs); color: var(--muted); font-weight: 500; }
 .lane-node .anchor { display: block; height: 0; }
 .lane-node .sub-id .w { font-family: var(--font); }
@@ -81,7 +81,6 @@
 
 /* Narrow pages: producer and topic shrink first, the outcome column clips last (the lanes scroll) */
 .lane-grid.ev { min-width: 700px; }
-.panel-host.panel-open > .content { padding-right: calc(min(520px, 100%) + var(--s4)); }
 .lane-foot { margin: var(--s3) 0 0; font-size: var(--fs-xs); color: var(--muted); }
 /* Publisher's "May also send" chips stay inside the node */
 .maybe { min-width: 0; }

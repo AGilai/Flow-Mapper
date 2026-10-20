@@ -73,7 +73,7 @@ export function eventFlowSummary(i: Input): Summary {
     if (seen.has(k)) continue;
     seen.add(k);
     const ing = r.ingresses.find((n) => n.outcome === 'no-handler')!.id;
-    callouts.push({ text: `${r.consumer} receives it${r.queue ? ` on ${r.queue.name}` : ''} but has no handler for it, so the message is read and dropped. Add it to ${ing} or filter it out of the subscription.`, rowId: r.id, level: 'warn' });
+    callouts.push({ text: `${r.consumer} receives it${r.queue ? ` on ${r.queue.name}` : ''} but has no handler for it, so the message is read and dropped. Add it to ${ing} or filter it out of the subscription.`, rowId: r.id, level: 'bad' });
   }
   return { text: seg.map((s) => s.t).join(''), segments: seg, callouts };
 }

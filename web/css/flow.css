@@ -165,3 +165,10 @@
   .callout { flex-wrap: wrap; }
   .callout a { margin-left: 16px; padding-left: 0; }
 }
+
+/* "Arrives, no handler" is red everywhere; amber is for what is uncertain (declarations disagree). */
+.callout.bad { background: color-mix(in srgb, var(--bad) 9%, var(--surface)); border-color: color-mix(in srgb, var(--bad) 35%, transparent); }
+.callout.bad .dot { background: var(--bad); }
+.st.bad .ic { background: var(--bad); }
+.st.bad .what b { color: var(--bad); font-weight: 600; }
+.matrix td.cell-bad { background: color-mix(in srgb, var(--bad) 7%, var(--surface)); }

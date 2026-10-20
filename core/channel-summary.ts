@@ -5,7 +5,7 @@ import type { Cell, DeliveryGrid, FlowRow, Publisher } from './channel-flow.ts';
 import { filterLabel } from './glob.ts';
 
 export interface Segment { t: string; b?: boolean }
-export interface Callout { text: string; /** id of the flow row it is about */ rowId: string | null; level: 'warn' | 'info' }
+export interface Callout { text: string; /** id of the flow row it is about */ rowId: string | null; level: 'warn' | 'bad' | 'info' }
 export interface Summary { text: string; segments: Segment[]; callouts: Callout[] }
 
 interface Input {
@@ -91,7 +91,7 @@ export function flowSummary(i: Input): Summary {
     const evs = eventsWhere(d, (c) => !c.uncertain && !c.possible && c.status === 'no-handler');
     if (!evs.length) return;
     const prefix = i.layout === 'fanout' && dest.queue ? `${dest.queue.name}: ` : '';
-    callouts.push({ text: `${prefix}${some(evs)} ${evs.length === 1 ? 'reaches' : 'reach'} ${dest.consumer.service}, which has no handler for ${evs.length === 1 ? 'it' : 'them'}.`, rowId: dest.rowId || null, level: 'warn' });
+    callouts.push({ text: `${prefix}${some(evs)} ${evs.length === 1 ? 'reaches' : 'reach'} ${dest.consumer.service}, which has no handler for ${evs.length === 1 ? 'it' : 'them'}.`, rowId: dest.rowId || null, level: 'bad' });
   });
 
   // Published, but every subscription filters it out.

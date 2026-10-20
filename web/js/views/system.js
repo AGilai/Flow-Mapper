@@ -30,7 +30,7 @@ export async function render({ main, query }) {
 
   const stage = h('div.graph-stage');
   const count = h('span.small.muted');
-  const content = h('div.content.flush', stage, legend());
+  const content = h('div.content.flush', h('div.stage-wrap', stage, legend()));
   let selected = null;
   const panel = createPanel(content, { onClose: () => { selected = null; graph.select(null); setQuery({ sel: null }); apply(); } });
   const search = h('input.input', { type: 'search', placeholder: 'Filter by service, team or function', value: opts.q, 'aria-label': 'Filter map' });

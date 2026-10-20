@@ -58,9 +58,10 @@ export async function render({ main, query }) {
   drawList();
 
   const mainPane = h('div.flows-main');
-  const panel = createPanel(mainPane, { onClose: () => mainPane.querySelector('.msg.active')?.classList.remove('active') });
+  const row = h('div.flows-row', mainPane);
+  const panel = createPanel(row, { onClose: () => mainPane.querySelector('.msg.active')?.classList.remove('active') });
   const listEl = h('aside.flows-list', h('div.search', icon('search'), filter), listBody);
-  const flowsEl = h('div.flows', listEl, mainPane);
+  const flowsEl = h('div.flows', listEl, row);
   resizer(listEl, { edge: 'right', key: 'flows-list', defaultWidth: 300, label: 'Resize entry point list',
     width: () => listEl.offsetWidth, apply: (px) => flowsEl.style.setProperty('--list-w', `${px}px`) });
   resizer(panel.el, { edge: 'left', key: 'flow-panel', defaultWidth: 380, label: 'Resize flow details',

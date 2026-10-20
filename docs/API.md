@@ -163,8 +163,8 @@ get the same answers. It is additive: the older fields are unchanged.
   the event type is only a candidate (the publisher could not say which of several it sends; such rows have
   `possible: true` too, and are never counted as problems). `uncertain` means
   the answer depends on which of the disagreeing declarations is right; `why` says so in words.
-- `summary`: `{text, segments: [{t, b?}], callouts: [{text, rowId, level: warn | info}]}`. One sentence,
-  plus one callout per problem; `rowId` is the `rows[].id` the callout is about, or null.
+- `summary`: `{text, segments: [{t, b?}], callouts: [{text, rowId, level: bad | warn | info}]}`. One sentence,
+  plus one callout per problem; `rowId` is the `rows[].id` the callout is about, or null. `bad` is a delivery that arrives with no handler (red in the UI).
 
 ### Event type `flow`
 
