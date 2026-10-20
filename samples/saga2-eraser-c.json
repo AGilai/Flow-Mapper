@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "saga2-eraser-c",
+    "kind": "lambda",
+    "team": "account-platform",
+    "repo": "github.com/acme/saga2-eraser-c",
+    "language": "python",
+    "description": "Demo (#35): an eraser fed by the event bus"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-20T08:00:00Z",
+  "commit": "4e1c9a0",
+  "functions": [
+    {
+      "id": "erase_c",
+      "name": "erase_c",
+      "file": "saga2/c.py",
+      "line": 8,
+      "steps": []
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.erasec",
+      "bindKey": "sqs:saga2-eraser-c-q",
+      "transport": "sqs",
+      "handler": "erase_c",
+      "source": {
+        "file": "saga2/consumers.py",
+        "line": 5
+      },
+      "provenance": {
+        "producer": "saga2-demo",
+        "runId": "r1-2026-10-20"
+      }
+    }
+  ],
+  "egress": [],
+  "resources": [],
+  "channels": [],
+  "bindings": []
+}

@@ -1,0 +1,138 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "saga2-eraser-entry",
+    "kind": "lambda",
+    "team": "account-platform",
+    "repo": "github.com/acme/saga2-eraser-entry",
+    "language": "python",
+    "description": "Demo (#35): an eraser consuming the internal erase queue; reports status from several sites and is also a consumer of the priority events (repeat)"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-20T08:00:00Z",
+  "commit": "4e1c9a0",
+  "functions": [
+    {
+      "id": "erase_entry",
+      "name": "erase_entry",
+      "file": "saga2/entry.py",
+      "line": 8,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "status.1",
+          "event": "domain.saga2.status.change",
+          "source": {
+            "file": "saga2/entry.py",
+            "line": 101
+          }
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "status.2",
+          "event": "domain.saga2.status.change",
+          "source": {
+            "file": "saga2/entry.py",
+            "line": 102
+          }
+        },
+        {
+          "seq": 3,
+          "type": "egress",
+          "target": "status.3",
+          "event": "domain.saga2.status.change",
+          "source": {
+            "file": "saga2/entry.py",
+            "line": 103
+          }
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.erase",
+      "bindKey": "sqs:saga2-erase-internal",
+      "transport": "sqs",
+      "handler": "erase_entry",
+      "source": {
+        "file": "saga2/consumers.py",
+        "line": 5
+      },
+      "provenance": {
+        "producer": "saga2-demo",
+        "runId": "r1-2026-10-20"
+      },
+      "entryPoint": true
+    }
+  ],
+  "egress": [
+    {
+      "id": "status.1",
+      "bindKey": "sns:saga2-erase-status-sns",
+      "transport": "sns",
+      "mode": "async",
+      "events": [
+        "domain.saga2.status.change"
+      ],
+      "source": {
+        "file": "saga2/x.py",
+        "line": 101
+      },
+      "callSites": [
+        {
+          "file": "saga2/x.py",
+          "line": 101,
+          "function": "x"
+        }
+      ]
+    },
+    {
+      "id": "status.2",
+      "bindKey": "sns:saga2-erase-status-sns",
+      "transport": "sns",
+      "mode": "async",
+      "events": [
+        "domain.saga2.status.change"
+      ],
+      "source": {
+        "file": "saga2/x.py",
+        "line": 102
+      },
+      "callSites": [
+        {
+          "file": "saga2/x.py",
+          "line": 102,
+          "function": "x"
+        }
+      ]
+    },
+    {
+      "id": "status.3",
+      "bindKey": "sns:saga2-erase-status-sns",
+      "transport": "sns",
+      "mode": "async",
+      "events": [
+        "domain.saga2.status.change"
+      ],
+      "source": {
+        "file": "saga2/x.py",
+        "line": 103
+      },
+      "callSites": [
+        {
+          "file": "saga2/x.py",
+          "line": 103,
+          "function": "x"
+        }
+      ]
+    }
+  ],
+  "resources": [],
+  "channels": [],
+  "bindings": []
+}

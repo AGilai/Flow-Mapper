@@ -32,7 +32,7 @@ test('traces of every sample entry without frontier steps are unchanged (hash re
   const g = buildIndex(m);
   const h = createHash('sha256');
   let n = 0;
-  for (const i of m.ingress.filter((x) => !x.service.startsWith('stress-') && !x.service.startsWith('saga-') && ![demo, demo35, demo26, demo36, ...demo40, demo41, ...demo42].some((d) => x.service === d.service && x.id === d.ingress))) for (const scope of ['intra', 'full'] as const) {
+  for (const i of m.ingress.filter((x) => !x.service.startsWith('stress-') && !x.service.startsWith('saga') && ![demo, demo35, demo26, demo36, ...demo40, demo41, ...demo42].some((d) => x.service === d.service && x.id === d.ingress))) for (const scope of ['intra', 'full'] as const) {
     h.update(JSON.stringify([i.service, i.id, scope, trace(g, { service: i.service, ingress: i.id }, { scope })]));
     n++;
   }

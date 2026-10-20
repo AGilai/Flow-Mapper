@@ -347,6 +347,17 @@ export function deliveryOrder(parts: Participant[], messages: Message[], fanOut 
     const [ch] = order.splice(b, 1);
     order.splice(a, 0, ch); // the sender moved one place left when the channel was taken out
   }
+  // The pass above can pull a queue right of its consumer (a second topic feeds the same queue and sits further right).
+  // A lifeline whose first appearance is as the consumer of a queue (so not an upstream caller) goes right after that queue (#35).
+  const first = new Map<string, Message>();
+  for (const m of messages) for (const id of [m.from, m.to]) if (!first.has(id)) first.set(id, m);
+  for (const m of messages) {
+    if (!m.from.startsWith('ch:') || m.to.startsWith('ch:') || first.get(m.to) !== m) continue;
+    const a = order.findIndex((p) => p.id === m.from), b = order.findIndex((p) => p.id === m.to);
+    if (a < 0 || b < 0 || b > a) continue;
+    const [svc] = order.splice(b, 1);
+    order.splice(a, 0, svc); // the queue moved one place left when the consumer was taken out, so this is right after it
+  }
   return fanOut ? fanOutOrder(order, messages) : order;
 }
 

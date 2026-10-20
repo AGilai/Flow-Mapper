@@ -1,0 +1,248 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "saga2-erase-controller",
+    "kind": "lambda",
+    "team": "account-platform",
+    "repo": "github.com/acme/saga2-erase-controller",
+    "language": "python",
+    "description": "Demo (#35): consumes the status queue, publishes priority events to the event bus"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-20T08:00:00Z",
+  "commit": "4e1c9a0",
+  "functions": [
+    {
+      "id": "on_status",
+      "name": "on_status",
+      "file": "saga2/controller.py",
+      "line": 20,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "prio",
+          "event": "domain.saga2.priority",
+          "source": {
+            "file": "saga2/controller.py",
+            "line": 58
+          }
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.status",
+      "bindKey": "sqs:saga2-account-sqs-erase",
+      "transport": "sqs",
+      "handler": "on_status",
+      "source": {
+        "file": "saga2/consumers.py",
+        "line": 5
+      },
+      "provenance": {
+        "producer": "saga2-demo",
+        "runId": "r1-2026-10-20"
+      }
+    }
+  ],
+  "egress": [
+    {
+      "id": "prio",
+      "bindKey": "sns:saga2-event-bus-sns",
+      "transport": "sns",
+      "mode": "async",
+      "events": [
+        "domain.saga2.priority"
+      ],
+      "source": {
+        "file": "saga2/x.py",
+        "line": 58
+      },
+      "callSites": [
+        {
+          "file": "saga2/x.py",
+          "line": 58,
+          "function": "x"
+        }
+      ]
+    }
+  ],
+  "resources": [],
+  "channels": [
+    {
+      "bindKey": "sns:saga2-erase-status-sns",
+      "kind": "sns-topic",
+      "name": "saga2-erase-status-sns",
+      "source": {
+        "file": "infra/saga2.tf",
+        "line": 1
+      },
+      "provenance": {
+        "producer": "saga2-demo",
+        "runId": "r1-2026-10-20"
+      }
+    },
+    {
+      "bindKey": "sns:saga2-event-bus-sns",
+      "kind": "sns-topic",
+      "name": "saga2-event-bus-sns",
+      "source": {
+        "file": "infra/saga2.tf",
+        "line": 7
+      },
+      "provenance": {
+        "producer": "saga2-demo",
+        "runId": "r1-2026-10-20"
+      }
+    },
+    {
+      "bindKey": "sqs:saga2-account-sqs-erase",
+      "kind": "sqs-queue",
+      "name": "saga2-account-sqs-erase",
+      "source": {
+        "file": "infra/saga2.tf",
+        "line": 13
+      },
+      "provenance": {
+        "producer": "saga2-demo",
+        "runId": "r1-2026-10-20"
+      }
+    },
+    {
+      "bindKey": "sqs:saga2-erase-internal",
+      "kind": "sqs-queue",
+      "name": "saga2-erase-internal",
+      "source": {
+        "file": "infra/saga2.tf",
+        "line": 19
+      },
+      "provenance": {
+        "producer": "saga2-demo",
+        "runId": "r1-2026-10-20"
+      }
+    },
+    {
+      "bindKey": "sqs:saga2-eraser-a-q",
+      "kind": "sqs-queue",
+      "name": "saga2-eraser-a-q",
+      "source": {
+        "file": "infra/saga2.tf",
+        "line": 25
+      },
+      "provenance": {
+        "producer": "saga2-demo",
+        "runId": "r1-2026-10-20"
+      }
+    },
+    {
+      "bindKey": "sqs:saga2-eraser-b-q",
+      "kind": "sqs-queue",
+      "name": "saga2-eraser-b-q",
+      "source": {
+        "file": "infra/saga2.tf",
+        "line": 31
+      },
+      "provenance": {
+        "producer": "saga2-demo",
+        "runId": "r1-2026-10-20"
+      }
+    },
+    {
+      "bindKey": "sqs:saga2-eraser-c-q",
+      "kind": "sqs-queue",
+      "name": "saga2-eraser-c-q",
+      "source": {
+        "file": "infra/saga2.tf",
+        "line": 37
+      },
+      "provenance": {
+        "producer": "saga2-demo",
+        "runId": "r1-2026-10-20"
+      }
+    }
+  ],
+  "bindings": [
+    {
+      "id": "sub.0",
+      "from": "sns:saga2-erase-status-sns",
+      "to": "sqs:saga2-account-sqs-erase",
+      "source": {
+        "file": "infra/saga2.tf",
+        "line": 60
+      },
+      "provenance": {
+        "producer": "saga2-demo",
+        "runId": "r1-2026-10-20"
+      }
+    },
+    {
+      "id": "sub.1",
+      "from": "sns:saga2-event-bus-sns",
+      "to": "sqs:saga2-erase-internal",
+      "source": {
+        "file": "infra/saga2.tf",
+        "line": 65
+      },
+      "provenance": {
+        "producer": "saga2-demo",
+        "runId": "r1-2026-10-20"
+      }
+    },
+    {
+      "id": "sub.2",
+      "from": "sns:saga2-event-bus-sns",
+      "to": "sqs:saga2-account-sqs-erase",
+      "source": {
+        "file": "infra/saga2.tf",
+        "line": 70
+      },
+      "provenance": {
+        "producer": "saga2-demo",
+        "runId": "r1-2026-10-20"
+      }
+    },
+    {
+      "id": "sub.3",
+      "from": "sns:saga2-event-bus-sns",
+      "to": "sqs:saga2-eraser-a-q",
+      "source": {
+        "file": "infra/saga2.tf",
+        "line": 75
+      },
+      "provenance": {
+        "producer": "saga2-demo",
+        "runId": "r1-2026-10-20"
+      }
+    },
+    {
+      "id": "sub.4",
+      "from": "sns:saga2-event-bus-sns",
+      "to": "sqs:saga2-eraser-b-q",
+      "source": {
+        "file": "infra/saga2.tf",
+        "line": 80
+      },
+      "provenance": {
+        "producer": "saga2-demo",
+        "runId": "r1-2026-10-20"
+      }
+    },
+    {
+      "id": "sub.5",
+      "from": "sns:saga2-event-bus-sns",
+      "to": "sqs:saga2-eraser-c-q",
+      "source": {
+        "file": "infra/saga2.tf",
+        "line": 85
+      },
+      "provenance": {
+        "producer": "saga2-demo",
+        "runId": "r1-2026-10-20"
+      }
+    }
+  ]
+}

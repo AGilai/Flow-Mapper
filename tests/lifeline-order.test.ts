@@ -88,3 +88,13 @@ test('the fan-out demo has 12 queues on one topic, none of the consumers on the 
   const t = run('in.start');
   assert.ok(t.messages.find((m) => m.deliveries)!.deliveries! >= 12);
 });
+
+test('a consumer first met as the consumer of a queue sits right of that queue, even when a later topic pulls the queue right (#35)', () => {
+  const t = trace(g, { service: 'saga2-eraser-entry', ingress: 'in.erase' }, { scope: 'full' })!;
+  const o = ids(t);
+  const q = 'ch:sqs:saga2-account-sqs-erase', c = 'svc:saga2-erase-controller';
+  assert.ok(o.indexOf(c) > o.indexOf(q), 'controller right of its queue');
+  assert.equal(o.filter((id) => id === c).length, 1);
+  const left = t.messages.filter((m) => m.kind === 'deliver' && o.indexOf(m.to) < o.indexOf(m.from));
+  assert.deepEqual(left.map((m) => `${m.from} > ${m.to}`), ['ch:sqs:saga2-erase-internal > svc:saga2-eraser-entry'], 'only the entry service (an upstream caller) is pointed back to');
+});
