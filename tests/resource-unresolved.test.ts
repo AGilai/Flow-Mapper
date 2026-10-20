@@ -28,3 +28,24 @@ test('the contract warns about an empty detail on a resource', () => {
   const f = contractReport(m, buildIndex({ services: [], functions: [], ingress: [], egress: [], resources: [], channels: [], bindings: [] } as any)).findings;
   assert.ok(f.some((x) => x.code === 'unresolved-no-detail' && x.kind === 'resource'));
 });
+
+test('#38: an unresolved DB instance keeps the bindKey: one shared store, schemas attach, health lists it', async () => {
+  const key = 'mongodb:shipping-db/shipments';
+  const v = (await app.call('GET', `/api/envs/prod/stores/${encodeURIComponent(key)}`)).body;
+  assert.deepEqual([...v.services].sort(), ['billing-api', 'shipping-svc']);
+  assert.deepEqual(v.instanceUnknown, { reason: 'instance_id_null_until_MG-b', detail: 'p81/p81-production' });
+  assert.equal(v.keyUnknown, undefined);
+  const put = await app.call('PUT', `/api/envs/prod/schemas/code/${encodeURIComponent(key)}`, { content: { type: 'object' } });
+  assert.ok(put.status < 300, `schema attach: ${put.status}`);
+  const h = (await app.call('GET', '/api/envs/prod/health')).body;
+  const u = h.items.unresolved.find((x: any) => x.kind === 'resource' && x.id === 'shipmentsRef');
+  assert.deepEqual([u.what, u.detail], ['instance', 'p81/p81-production']);
+});
+
+test('#38: details.instance {id: null} is read as a fallback; the contract checks what instance', async () => {
+  const { instanceUnknown } = await import('../core/stores.ts');
+  assert.deepEqual(instanceUnknown({ service: 'a', id: 'r', kind: 'mongodb', name: 'n', details: { instance: { id: null, text: 'c/db', reason: 'x' } } }), { reason: 'x', detail: 'c/db' });
+  const m = { service: 'a', resources: [{ id: 'r', unresolved: [{ what: 'instance' as const, reason: 'x', detail: '' }] }] };
+  const f = contractReport(m, buildIndex({ services: [], functions: [], ingress: [], egress: [], resources: [], channels: [], bindings: [] } as any)).findings;
+  assert.ok(f.some((x) => x.code === 'unresolved-no-detail' && x.kind === 'resource'));
+});

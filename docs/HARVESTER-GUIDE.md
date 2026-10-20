@@ -133,6 +133,8 @@ library, a Redis call you cannot map to a store yet, or an external package. Sen
 It is shown as a self-call note in traces, and is not `unresolved`: it does not count in link health or
 the contract report. Use `unresolved` (what: `target`) only for a call you could not classify.
 
+**Unknown DB instance.** When a resource's collection is known (`bindKey` set) but the DB instance id is not yet (e.g. Mongo cluster and db known as text, instance id comes later), send `unresolved: [{"what": "instance", "reason": "instance_id_null_until_MG-b", "detail": "p81/p81-production"}]` and keep the `bindKey`. Unlike `target`, this does not touch the store key: the resource still groups with the same collection's other users and schemas still attach. The store page shows "Instance unknown: <reason> (<detail>)", health lists it under Unresolved (kind resource, what instance). `details.instance = {id: null, text, reason}` is still read as a fallback.
+
 **Ingress**: every way into the service: HTTP routes, RPC methods, queue consumers, crons.
 `handler` is the function that runs. Mark public routes and crons `entryPoint: true` (nothing
 inside the system calls them). Put `method` and `path` in `details` for HTTP.

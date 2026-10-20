@@ -36,5 +36,13 @@
       ]
     }
   ],
-  "resources": []
+  "resources": [
+    {
+      "id": "shipmentsRef",
+      "kind": "mongodb",
+      "name": "shipping-db.shipments",
+      "bindKey": "mongodb:shipping-db/shipments",
+      "unresolved": [{ "what": "instance", "reason": "instance_id_null_until_MG-b", "detail": "p81/p81-production" }]
+    }
+  ]
 }

@@ -31,8 +31,17 @@ export interface StoreUse {
   service: string; resource: string; access: Access; declaredAt: SourceLink | null; verified: string | null;
   functions: { fn: string; name: string; source: SourceLink | null; operations: { operation: string; access: Access; fields?: StepField[] }[] }[];
 }
+/** The collection is known but the DB instance id is not (`unresolved` what 'instance', or the older `details.instance` {id: null, text, reason}). Does not change the store key. */
+export function instanceUnknown(r: Resource): { reason: string; detail?: string } | undefined {
+  const u = r.unresolved?.find((x) => x.what === 'instance');
+  if (u) return { reason: u.reason, detail: u.detail };
+  const d = r.details?.instance as { id?: unknown; text?: string; reason?: string } | undefined;
+  return d && typeof d === 'object' && d.id == null && d.reason ? { reason: d.reason, detail: d.text } : undefined;
+}
+
 export interface StoreSummary { key: string; name: string; kind: string; group: string; services: string[]; readers: string[]; writers: string[]; used: boolean;
-  /** Why the harvester could not give this store a key (its `unresolved` reason). */ keyUnknown?: string }
+  /** Why the harvester could not give this store a key (its `unresolved` reason). */ keyUnknown?: string;
+  /** The DB instance is not known yet; the key is unaffected. */ instanceUnknown?: { reason: string; detail?: string } }
 export interface StoreView extends StoreSummary {
   details: Record<string, unknown>; uses: StoreUse[]; entryPoints: EntryHit[]; siblings: StoreSummary[];
 }
@@ -50,6 +59,7 @@ export function stores(g: GraphIndex): StoreSummary[] {
   for (const r of g.model.resources) {
     const key = storeKey(r);
     const s = by.get(key) ?? { key, name: r.bindKey && !unresolvedTarget(r) ? leafName(key) : r.name, kind: r.kind, group: groupOf(key), services: [], readers: [], writers: [], used: false, keyUnknown: unresolvedTarget(r)?.reason };
+    s.instanceUnknown ??= instanceUnknown(r);
     by.set(key, s);
     if (!s.services.includes(r.service)) s.services.push(r.service);
     for (const { steps } of usesOf(g, r)) {

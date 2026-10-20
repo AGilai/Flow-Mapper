@@ -35,6 +35,7 @@ Add a row here with every fix or feature (newest first). A row without a working
 | 0.5.0 | — | Queue fed by 6 sources, possible event types | `#/channels/sqs%3Aanalytics-all-events` |
 | 0.4.8 | #25 | JSON Schema DTO shown as a field table (nested object, enum, `$ref`), with a Raw JSON toggle | `#/events/PaymentFailed` |
 | 0.4.7 | #24 | Event types without a message DTO | `#/inventory?type=event&dto=no` |
+| 0.8.8 | #38 | A store whose DB instance is unknown, shared by two services: "Instance unknown: instance_id_null_until_MG-b (p81/p81-production)" | `#/stores/mongodb%3Ashipping-db%2Fshipments` |
 | 0.4.4 | #22 | A data store whose key the harvester could not resolve: "Key unknown: <reason>" | `#/stores/orders-svc%3AsessionCache` |
 | 0.4.3 | #19, #20 | System map: type a filter (e.g. `orders`), then raise Hops | `#/system` |
 | 0.4.3 | #21 | System map: click a line for the connection's calls, code links and filter | `#/system` |

@@ -141,13 +141,13 @@
     },
     "unresolved": {
       "type": "array",
-      "description": "What the harvester found but could not resolve, and why. what=target: the call target or consumed key (bindKey, or a step's target, may then be left out). what=event: the event type (candidates = the possible types). what=client (on a resource or egress): a field of its `client` the harvester could not resolve; `detail` names the field (e.g. driver.version or lib.driver.version), `reason` says why (e.g. lockfile_not_found). what=caller (on a function): the backward walk stopped here because no caller could be resolved (reason e.g. unknown_receiver, callback_passed; candidates = possible callers, as function ids).",
+      "description": "What the harvester found but could not resolve, and why. what=target: the call target or consumed key (bindKey, or a step's target, may then be left out). what=event: the event type (candidates = the possible types). what=client (on a resource or egress): a field of its `client` the harvester could not resolve; `detail` names the field (e.g. driver.version or lib.driver.version), `reason` says why (e.g. lockfile_not_found). what=instance (on a resource): the collection is known (bindKey set) but the DB instance id is not yet; the resource keeps its bindKey and groups with the same collection's other users (schemas still attach); `detail` is the known text, e.g. p81/p81-production. what=caller (on a function): the backward walk stopped here because no caller could be resolved (reason e.g. unknown_receiver, callback_passed; candidates = possible callers, as function ids).",
       "items": {
         "type": "object",
         "required": ["what", "reason"],
         "additionalProperties": false,
         "properties": {
-          "what": { "enum": ["target", "event", "caller", "client"] },
+          "what": { "enum": ["target", "event", "caller", "client", "instance"] },
           "reason": { "type": "string", "minLength": 1 },
           "detail": { "type": "string" },
           "candidates": { "type": "array", "items": { "type": "string" }, "description": "Possible bind keys (target) or event types (event)." }

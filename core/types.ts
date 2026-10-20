@@ -14,7 +14,7 @@ export interface Source { file?: string; line?: number; col?: number; url?: stri
 export interface Provenance { producer?: string; runId?: string; verified?: 'match' | 'drift' | 'code-only' }
 /** Something the harvester found but could not resolve: the target (call or consumer) or the event type. */
 /** what=caller (on a function): the backward walk stopped here because nothing could be resolved as its caller. */
-export interface Unresolved { what: 'target' | 'event' | 'caller' | 'client'; reason: string; detail?: string; candidates?: string[] }
+export interface Unresolved { what: 'target' | 'event' | 'caller' | 'client' | 'instance'; reason: string; detail?: string; candidates?: string[] }
 
 export interface Service {
   name: string;
