@@ -97,6 +97,9 @@ test('REST: the human record is written and read with the trace hash; AI is not 
     assert.equal((await a.call('PUT', ING, { service: 'api-gateway', ingress: 'in.createOrder', callee: 'ghost', text: 'x' })).status, 400);
     assert.equal((await a.call('PUT', ING, { service: 'api-gateway', ingress: 'in.createOrder' })).status, 400);
     assert.equal((await a.call('GET', `${ING}?service=api-gateway`)).status, 400);
+    const noEnv = await a.call('GET', '/api/envs/nope/descriptions?service=api-gateway&ingress=in.createOrder');
+    assert.equal(noEnv.status, 404);
+    assert.match(noEnv.body.error.message, /env 'nope'/);
   } finally { await a.close(); }
 });
 
@@ -126,6 +129,9 @@ test('MCP set_description writes the AI record only; trace_flow and get_service 
     // errors: unknown ingress, no model, no text
     assert.equal(out(await mcp(a, 'set_description', { service: 'api-gateway', ingress: 'in.nope', text: 'x', model: 'm' }).then((r) => ({ body: { result: { content: [{ text: JSON.stringify({ e: r.body.result.isError }) }] } } }))).e, true);
     assert.equal((await mcp(a, 'set_description', { service: 'api-gateway', ingress: 'in.createOrder', text: 'x', model: '' })).body.result.isError, true);
+    const extra = await mcp(a, 'set_description', { service: 'api-gateway', ingress: 'in.createOrder', text: 'x', model: 'm', source: 'human' });
+    assert.equal(extra.body.result.isError, true);
+    assert.match(extra.body.result.content[0].text, /unknown argument/);
     // the flow changes: the stored hash no longer matches
     a.ctx.db.prepare("UPDATE descriptions SET trace_hash = 'old' WHERE source = 'ai' AND callee = ''").run();
     const read = await a.call('GET', `${ING}?service=api-gateway&ingress=in.createOrder`);

@@ -6,6 +6,8 @@
 .btn:hover { border-color: var(--ink-2); }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .btn.primary:hover { filter: brightness(1.08); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) .btn.primary { color: var(--paper); } }
+:root[data-theme='dark'] .btn.primary { color: var(--paper); }
 .btn.ghost { border-color: transparent; background: transparent; }
 .btn.ghost:hover { background: var(--surface-2); }
 .btn[disabled] { opacity: 0.5; cursor: default; }

@@ -22,8 +22,10 @@ export function allRows(db: DB, env: string): (DescRow & { service: string; ingr
     .map((r) => ({ ...toRow(r), service: r.service, ingress: r.ingress }));
 }
 
-const flowTrace =(g: GraphIndex, env: string, service: string, ingress: string) =>
-  trace(g, { service, ingress }, HASH_TRACE) ?? (() => { throw notFound(`ingress '${ingress}' of service '${service}' in env '${env}'`); })();
+function flowTrace(g: GraphIndex, env: string, service: string, ingress: string) {
+  if (!g.model.services.length) throw notFound(`env '${env}'`);
+  return trace(g, { service, ingress }, HASH_TRACE) ?? (() => { throw notFound(`ingress '${ingress}' of service '${service}' in env '${env}'`); })();
+}
 
 /** The descriptions of one flow with their outdated flags (read against the flow's current trace). */
 export function describeFlow(db: DB, g: GraphIndex, env: string, service: string, ingress: string): FlowDescriptions {

@@ -73,7 +73,11 @@ export const TOOLS: Tool[] = [
     name: 'set_description',
     description: "Save the AI description of a flow (no callee) or of one service in it (callee: the service name, or 'service:handler' for one delivery). Writes the AI record only: a human note on the same flow is never touched. Stores the model and the flow's trace hash, so the UI marks the text outdated when the flow changes. Read the flow first with trace_flow and get_service; use only facts found there.",
     inputSchema: obj({ service: { type: 'string', description: "The flow's entry service" }, ingress: { type: 'string', description: "The flow's entry ingress id" }, callee: { type: 'string', description: "Omit for the whole flow; a service name (or service:handler) for that service's part" }, text: { type: 'string', description: 'Plain text, at most 4000 characters' }, model: { type: 'string', description: 'Your model name, for example claude-sonnet-5-5' }, env }, ['service', 'ingress', 'text', 'model']),
-    run: (c, a) => desc.putAi(c.db, c.graph(envOf(a)), envOf(a), a),
+    run: (c, a) => {
+      const extra = Object.keys(a).filter((k) => !['env', 'service', 'ingress', 'callee', 'text', 'model'].includes(k));
+      if (extra.length) throw new HttpError(400, 'BAD_REQUEST', `unknown argument(s): ${extra.join(', ')}. set_description writes the AI record only`);
+      return desc.putAi(c.db, c.graph(envOf(a)), envOf(a), a);
+    },
   },
   {
     name: 'find_paths', description: 'Service-level paths from one service to another, including through queues and topics.',

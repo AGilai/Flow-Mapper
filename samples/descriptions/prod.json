@@ -1,7 +1,7 @@
 {
   "env": "prod",
   "descriptions": [
-    { "service": "api-gateway", "ingress": "in.createOrder", "source": "human", "editedBy": "Asaf",
+    { "service": "api-gateway", "ingress": "in.createOrder", "source": "human", "editedBy": "maintainer",
       "text": "The main checkout path. Owned by the checkout team. Do not change the OrderPlaced payload without telling analytics and shipping." },
     { "service": "api-gateway", "ingress": "in.createOrder", "source": "ai", "model": "claude-sonnet-5-5", "generatedAt": "2026-10-19T09:30:00.000Z",
       "text": "A customer places an order through the public API. The gateway hands it to orders-svc, which checks it, reserves stock and takes payment, then stores the order and announces OrderPlaced. Shipping, inventory and analytics react to that event on their own.\n\nWhy it exists: turn a checkout click into a paid, stock-backed order, and keep slow follow-up work (shipments, emails) out of the customer's wait." },

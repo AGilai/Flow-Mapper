@@ -10,7 +10,7 @@ const none = { human: null, ai: null };
 const pairOf = (d, callee) => (!d ? none : callee ? d.callees[callee] ?? none : d.flow);
 export const fmtDate = (iso) => { try { return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); } catch { return ''; } };
 const OPEN_KEY = 'flow-mapper.desc-ai-open';
-const aiOpen = () => { try { return localStorage.getItem(OPEN_KEY) !== '0'; } catch { return true; } };
+const aiOpen = () => { try { const v = localStorage.getItem(OPEN_KEY); return v === null ? null : v === '1'; } catch { return null; } }; // null: the user never chose
 const setAiOpen = (v) => { try { localStorage.setItem(OPEN_KEY, v ? '1' : '0'); } catch { /* storage unavailable */ } };
 
 /** createDescStore(env) -> { watch(root, fn) -> unwatch, peek(root), save(root, callee, text), refresh(root) }. root: { service, ingress }. fn(data|null, error?) */
@@ -66,7 +66,7 @@ const paras = (text) => String(text).split(/\n{2,}/).map((p) => h('p', { class: 
  */
 export function descBlock(store, root, callee, { title, wholeFlow, onGenerate }) {
   const el = h('section.desc2', { 'aria-label': title });
-  let data = null, error = null, editing = false, open = aiOpen();
+  let data = null, error = null, editing = false, pendingFocus = false, choice = aiOpen();
 
   function human(p) {
     if (editing) {
@@ -81,20 +81,21 @@ export function descBlock(store, root, callee, { title, wholeFlow, onGenerate })
       h('span.grow'), h('a', { href: '#', on: { click: start } }, 'Edit')), paras(p.human.text));
   }
   function ai(p) {
-    const gen = (label) => h('button.btn.sm', { title: 'Copy a prompt for your AI tool', on: { click: () => onGenerate() } }, label);
+    const gen = (label) => h('button.btn.sm.gen', { title: 'Copy a prompt for your AI tool', on: { click: () => { pendingFocus = true; onGenerate(); } } }, label);
     if (!p.ai) return h('div.dbox.aibox.empty', h('span.ai.off', 'AI'), h('i', 'No AI description yet'), h('span.grow'), gen('✦ Generate…'));
-    const a = p.ai;
-    const chev = h('button.chev', { 'aria-expanded': String(open), 'aria-label': open ? 'Collapse the AI description' : 'Expand the AI description', on: { click: () => { open = !open; setAiOpen(open); render(); } } },
+    const a = p.ai, open = choice ?? !p.human; // collapsed by default when a Human note is there
+    const chev = h('button.chev', { 'aria-expanded': String(open), 'aria-label': open ? 'Collapse the AI description' : 'Expand the AI description', on: { click: () => { choice = !open; setAiOpen(choice); render(); } } },
       h('span.chev-i', { class: open ? 'open' : '' }, '›'));
     return h('div.dbox.aibox', { class: a.outdated ? 'outdated' : '' }, h('div.dbox-h', chev, h('span.ai', 'AI'), h('span.who', 'AI'), h('span.meta', [a.model, fmtDate(a.generatedAt)].filter(Boolean).join(' · ')),
       a.outdated ? h('span.chip-warn', { title: 'The flow has changed since this was written. Generate it again to bring it up to date.' }, 'outdated') : null, h('span.grow'), gen('Generate…')),
-      open ? [paras(a.text), h('div.desc-f', 'Written by an AI tool through the MCP server. Not editable here; use Generate again to replace it.')] : null);
+      open ? [paras(a.text), h('div.desc-f', a.outdated ? 'Written from an earlier version of this flow. Use Generate to refresh.' : 'Written by an AI tool through the MCP server. Not editable here; use Generate again to replace it.')] : null);
   }
   function render() {
     if (editing && el.querySelector('.editing')) return; // a refresh from elsewhere must not eat what is being typed
     if (error && !data) { el.replaceChildren(h('div.desc-t', title), h('div.dbox.empty', h('i', `Descriptions are not available: ${error}`))); return; }
-    const p = pairOf(data, callee), missing = !p.human && !p.ai;
-    el.replaceChildren(h('div.desc-t', title, wholeFlow && data && missing ? h('span.chip-warn', 'No description yet') : null), human(p), ai(p));
+    const p = pairOf(data, callee);
+    el.replaceChildren(h('div.desc-t', title), human(p), ai(p));
+    if (pendingFocus && !document.querySelector('.dlg')) { pendingFocus = false; el.querySelector('.gen')?.focus(); } // the refresh replaced the button the dialog came from
   }
   render();
   const unwatch = store.watch(root, (d, e) => { data = d; error = e; render(); });
@@ -104,7 +105,7 @@ export function descBlock(store, root, callee, { title, wholeFlow, onGenerate })
 /** One line (sub-flow tab header): the Human note if there is one, else the AI text, with the action that fits. keys: callee keys, most specific first. */
 export function descLine(store, root, keys, { onGenerate }) {
   const el = h('div.descl');
-  let data = null, editing = false;
+  let data = null, editing = false, pendingFocus = false;
   const saveKey = keys[keys.length - 1];
   function render() {
     if (editing) {
@@ -114,11 +115,14 @@ export function descLine(store, root, keys, { onGenerate }) {
       return;
     }
     const p = keys.map((k) => pairOf(data, k)).find((x) => x.human || x.ai) ?? none, l = lineText(p);
-    const note = h('a', { href: '#', on: { click: (e) => { e.preventDefault(); editing = true; render(); } } }, p.human ? 'Edit' : 'Add a note');
+    const link = (label, fn, cls = '') => h('a', { href: '#', class: cls, on: { click: (e) => { e.preventDefault(); fn(); } } }, label);
+    const note = link(p.human ? 'Edit' : 'Add a note', () => { editing = true; render(); });
+    const gen = link('Generate…', () => { pendingFocus = true; onGenerate(); }, 'gen');
     el.className = `descl${l ? '' : ' empty'}`;
-    el.replaceChildren(...(l ? [l.who === 'human' ? h('span.who-b', 'Human') : h('span.ai', 'AI'), h('span.dtxt', { title: l.text }, l.text), l.outdated ? h('span.chip-warn', { title: 'The flow has changed since this was written.' }, 'outdated') : null, note,
-      p.human ? null : h('a', { href: '#', on: { click: (e) => { e.preventDefault(); onGenerate(); } } }, 'Generate…')]
-      : [h('span.ai.off', 'AI'), h('i', data ? 'No description yet' : 'Loading…'), note, h('a', { href: '#', on: { click: (e) => { e.preventDefault(); onGenerate(); } } }, 'Generate…')]));
+    el.replaceChildren(...(l ? [l.who === 'human' ? h('span.who-b', 'Human') : h('span.ai', 'AI'), h('span.dtxt', { title: l.text }, l.text),
+      h('span.descl-a', l.outdated ? h('span.chip-warn', { title: 'The flow has changed since this was written.' }, 'outdated') : null, note, p.human ? null : gen)]
+      : [h('span.ai.off', 'AI'), h('i.dtxt', data ? 'No description yet' : 'Loading…'), h('span.descl-a', note, gen)]));
+    if (pendingFocus && !document.querySelector('.dlg')) { pendingFocus = false; el.querySelector('.gen')?.focus(); }
   }
   render();
   const unwatch = store.watch(root, (d) => { data = d; if (!editing) render(); });

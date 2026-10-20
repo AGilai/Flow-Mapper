@@ -20,7 +20,7 @@ export function createTip(store, root) {
     const p = d?.callees?.[bar.service], l = lineText(p);
     const at = l ? (l.who === 'human' ? p.human.editedAt : p.ai.generatedAt) : null;
     el = h('div.desctip', { role: 'tooltip' }, h('div.tip-t', `${bar.service} in this flow`), l ? h('p', l.text) : h('p.muted', bar.msg.label),
-      h('div.tip-f', l ? [l.who === 'human' ? h('span.who-b', 'Human') : h('span.ai', 'AI'), ` ${fmtDate(at)}`, l.outdated ? h('span.chip-warn', 'outdated') : null] : 'No description yet', ' · double-click for the full chain'));
+      h('div.tip-f', l ? [l.who === 'human' ? h('span.who-b', 'Human') : h('span.ai', 'AI'), ` ${fmtDate(at)}`, l.outdated ? h('span.chip-warn', 'outdated') : null, ' · double-click for the full chain'] : 'Double-click for the full chain'));
     document.body.append(el);
     place(anchor);
   }
