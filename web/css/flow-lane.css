@@ -171,3 +171,9 @@
 
 /* With the drill-down open the entry list steps aside, so the diagram keeps the room it needs next to the column. */
 @media (min-width: 861px) { .flows.fi-open, .flows.mp-open { grid-template-columns: minmax(0, 1fr); } .flows.fi-open > .flows-list, .flows.mp-open > .flows-list { display: none; } }
+
+/* 0.15.0: an expanded card holds a whole flow: its lane, then its own async list (a nested .cards fits the card instead of the page) */
+.card-nest .cards { position: static; width: auto; max-width: none; padding: 0; }
+.card-nest:empty, .card-nest:has(.flow-idx:empty) { display: none; }
+.card-loading { padding: var(--s3) var(--s4); color: var(--muted); font-size: var(--fs-sm); }
+.flow-idx:empty { display: none; }

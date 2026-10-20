@@ -28,7 +28,7 @@ export function summaryOf(msgs) {
 }
 
 /**
- * asyncTree(messages) -> { groups, rows, byLabel }
+ * asyncTree(messages, prefix = '') -> { groups, rows, byLabel }   (prefix: the label of the row this flow sits under, so its rows read 3.1, 3.2)
  * group: { pub: index of the publish, topic, event, branch: {n, of, condition}|null, rows: [] }
  * row: { label: '1' | '3.1', i: delivery index, queue, service, ingress, handler, noHandler, transport,
  *        seenIn: label | null, suspect, range: {start,end}|null (what the consumer does), msgs: [...] (delivery + range),
@@ -36,7 +36,7 @@ export function summaryOf(msgs) {
  * A delivery is "seen" when its consumer + handler already has a row in another publish (or the trace marks it a
  * repeat); the same consumer + handler twice in ONE publish is a "suspect" row (still a normal row).
  */
-export function asyncTree(messages) {
+export function asyncTree(messages, prefix = '') {
   const rows = [], firstOf = new Map(), byIndex = new Map();
   const groupsIn = (lo, hi, prefix, scopeMsgs) => {
     const { publishes } = scanLane(messages, lo, hi);
@@ -54,7 +54,7 @@ export function asyncTree(messages) {
         const key = `${m.target?.service ?? m.to}|${m.target?.ingress ?? ''}|${handlerOf(m)}`;
         const noHandler = !!m.unhandled || !m.target?.ingress || m.broken;
         const r = { label, i: d, queue: m.from.slice(3), service: m.target?.service ?? m.to.replace(/^svc:/, ''), ingress: m.target?.ingress ?? null,
-          handler: handlerOf(m), noHandler, transport: m.transport, seenIn: null, suspect: false, range: null, msgs: [m], summary: '', groups: [], key, matched: m.matched ?? null };
+          handler: handlerOf(m), event: m.event ?? null, noHandler, transport: m.transport, seenIn: null, suspect: false, range: null, msgs: [m], summary: '', groups: [], key, matched: m.matched ?? null };
         if (inGroup.has(key)) r.suspect = true;
         else inGroup.set(key, label);
         const repeat = m.repeatOf ? byIndex.get(m.repeatOf - 1) : null;
@@ -74,7 +74,7 @@ export function asyncTree(messages) {
     }
     return groups;
   };
-  const groups = groupsIn(0, messages.length - 1, '');
+  const groups = groupsIn(0, messages.length - 1, prefix);
   return { groups, rows, byLabel: new Map(rows.map((r) => [r.label, r])) };
 }
 

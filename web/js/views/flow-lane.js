@@ -6,12 +6,13 @@
 //    returns to a message at its depth or above; a second call is a second bar;
 //  - calls inside a service ("call" steps) are not drawn: they are counted on the bar (the pill);
 //  - a publish ends at the "published events" rail; the async work below it is not in the lane (flow-async.js);
-//  - a call that matches nothing ends at the "unresolved" column, without a bar or a return;
+//  - a call that matches nothing ends at the "unresolved" column, without a bar or a return; that column and the rail come after the last lifeline, rail first;
 //  - middleware (m.middlewareChain on the call) is a run of segments on top of the bar: one "mw" row per segment, then the rows of
 //    its calls; the handler's part (and the internal-calls pill) follow. Chains over 3 fold into one segment unless its key is in `mwOpen` (a Set of bar keys, or true for all);
 //  - a callee reuses its service's column unless the arrow would cross another open bar, then it gets a new column.
 
 import { scanLane, isPublish } from './flow-scan.js';
+import { callerFor } from './flow-sub.js';
 import { mwSegments, segmentOf, mwSpans } from './flow-mw.js';
 
 const SYNC_TRANSPORT = new Set(['http', 'rpc', 'grpc']);
@@ -49,9 +50,7 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
   if (!msgs.length) return { columns: [], events, bars, altMsgs: [], altRows: [] };
 
   const first = msgs[0];
-  const source = mk(first.kind === 'deliver'
-    ? { id: 'src', label: first.from.replace(/^ch:/, ''), sub: 'queue delivery', kind: 'source' }
-    : { id: 'client', label: 'client', sub: 'browser', kind: 'client' });
+  const source = mk(callerFor(first));
   const root = svcOf(first.to);
 
   const between = (c, a, b) => c.ci > Math.min(a.ci, b.ci) && c.ci < Math.max(a.ci, b.ci);
@@ -138,7 +137,7 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
     let e = b.mw.endIdx; while (e > 0 && remap.get(events[e]) < 0) e--;
     b.mw.spans = mwSpans(b.mw.labels.map((ev) => ev.row), remap.get(events[e]));
   }
-  const rank = (c) => (c.kind === 'unresolved' ? 1 : c.kind === 'rail' ? 2 : 0);
+  const rank = (c) => (c.kind === 'rail' ? 1 : c.kind === 'unresolved' ? 2 : 0); // the rail sits right after the last lifeline that is used (it must show without scrolling); the unresolved column follows it
   const columns = cols.filter((c) => events.some((e) => e.from === c || e.to === c || e.col === c) || c === source || c === rootCol)
     .sort((a, b) => rank(a) - rank(b) || a.ci - b.ci);
   const altEvents = kept.filter((e) => e.msg);

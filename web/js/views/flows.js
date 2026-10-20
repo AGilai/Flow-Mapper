@@ -69,10 +69,10 @@ export async function render({ main, query }) {
     setQuery({ ...T.encodeUrl(S), ...(S.keys.length ? { service: null } : {}), stores: opts.stores ? null : '0', queues: opts.queues ? '1' : null, depth: opts.depth === 'all' ? null : opts.depth, frontier: opts.frontier ? '1' : null });
   }
   const host = {
-    env: state.env, opts, panel, flowsEl, describe: data.describe, desc, rootOf: (k) => T.flowRoot(k), isActive: (k) => S.active === k,
+    env: state.env, opts, panel, flowsEl, traceFor: data.traceFor, describe: data.describe, desc, rootOf: (k) => T.flowRoot(k), isActive: (k) => S.active === k,
     openTab: (key, o) => commit(T.openTab(S, key, o)),
     openSub: (row, origin) => commit(T.openTab(S, T.subKey(row, origin))),
-    openFull: (row, origin) => commit(T.openTab(S, T.fullKey(row.service, row.ingress, origin))),
+    openFull: (row, origin) => commit(T.openTab(S, T.fullKey(row.service, row.ingress, origin, row.event))),
     openMany: (rows, origin) => { const keys = rows.map((r) => T.subKey(r, origin)); commit(keys.reduce((s, k) => T.openTab(s, k, { activate: false }), S), { to: keys[0] }); },
     isOpen: (row, origin) => S.keys.includes(T.subKey(row, origin)),
     jumpToLabel: (label) => { const k = S.keys.find((x) => data.peek(x)?.label === label); if (k) commit(T.activate(S, k)); },

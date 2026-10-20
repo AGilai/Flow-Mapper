@@ -89,7 +89,7 @@ test('publishes end at the rail with their consumer count; async work is not dra
   const lane = laneOf(t);
   const pubs = lane.events.filter((e: any) => e.type === 'publish');
   assert.deepEqual(pubs.map((e: any) => [e.topic, e.flows]), [['sns:payment-disputes', 0], ['sns:payment-events', 1], ['sns:order-events', 3]]);
-  assert.equal(lane.columns[lane.columns.length - 1].kind, 'rail');
+  assert.equal(lane.columns.findIndex((c: any) => c.kind === 'rail'), lane.columns.filter((c: any) => c.kind !== 'unresolved').length - 1, 'the rail sits right after the last lifeline used');
   assert.ok(!lane.columns.some((c: any) => c.id.startsWith('ch:')), 'no queue or topic lifelines');
   assert.ok(!lane.events.some((e: any) => e.msg?.kind === 'deliver'));
   assert.ok(!lane.columns.some((c: any) => ['shipping-svc', 'analytics-svc', 'notifications-svc'].includes(c.label)), 'consumers only appear in the async index');
@@ -100,7 +100,7 @@ test('unresolved calls: red arrow to the unresolved column, no bar, no return', 
   const lane = laneOf(t);
   const un = lane.events.filter((e: any) => e.type === 'unresolved');
   assert.ok(un.length >= 2);
-  assert.equal(lane.columns[lane.columns.length - 2].kind, 'unresolved');
+  assert.equal(lane.columns[lane.columns.length - 1].kind, 'unresolved', 'after the rail');
   assert.ok(un.every((e: any) => e.col.kind === 'unresolved'));
   assert.ok(lane.bars.every((b: any) => !un.some((e: any) => e.msg === b.msg)));
 });

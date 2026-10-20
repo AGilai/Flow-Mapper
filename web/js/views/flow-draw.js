@@ -10,31 +10,43 @@ import { altFrames, stripsByRow, drawFrames, STRIP } from './sequence-alt.js';
 import { mwLabel, isLongChain } from './flow-mw.js';
 import { arrowEnds, columnGaps, centres, labelWidth, wrapId } from './flow-cols.js';
 
-const COL = 138, HEAD_BOX = COL - 8, PAD = 24, GUTTER = 8, BAR = 12, NEST = 8;
+const COL = 138, COL_MIN = 96, PAD = 16, GUTTER = 8, BAR = 12, NEST = 8;
 const ROWH = { call: 46, return: 36, pill: 32, mw: 34, store: 46, publish: 66, unresolved: 42, frontier: 32 };
 const LINE = { call: 30, return: 22, pill: 16, mw: 17, store: 23, publish: 30, unresolved: 28, frontier: 16 };
 const T_VAR = { http: '--t-http', rpc: '--t-rpc', grpc: '--t-http', eventbridge: '--t-eb', sns: '--t-sns', sqs: '--t-sqs', amqp: '--t-amqp', cron: '--t-cron', res: '--t-res' };
 const colorOf = (t) => `var(${T_VAR[t] ?? '--ink-2'})`;
-const NAME_CH = 16, SUB_CH = 19, CHIP_PX = 7, LINE_H = 14;
+const SUB_CH = 19, CHIP_PX = 7, LINE_H = 14;
 
 /**
  * renderLane(lane, handlers) -> { el, body, events, bars }
  * handlers: onMessage(msg, g, event), onBar(bar, 'select'?) (double-click, pill: look inside; click: select),
  * onBarMenu(bar, x, y), onParticipant(p, x, y), onBadge(publishEvent). `selected`: bar id drawn highlighted.
  */
-export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, onBadge, onMw, onBarTip, selected = null, sticky = true } = {}) {
+export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, onBadge, onMw, onBarTip, selected = null, sticky = true, fit = 0 } = {}) {
   const { columns, events, bars } = lane;
   // Each gap between lifelines grows to fit the longest arrow label that crosses it: a label is never cut.
   const idx = new Map(columns.map((c, i) => [c, i]));
-  const spans = events.flatMap((e) => { const ends = arrowEnds(e); return ends ? [{ a: idx.get(ends[0]), b: idx.get(ends[1]), need: labelWidth(e.label) + 16 + BAR + 2 * NEST }] : []; });
-  const xs = centres(PAD + GUTTER + COL / 2, columnGaps(columns.length, spans, COL));
-  const colX = new Map(columns.map((c, i) => [c, xs[i]]));
   const chipW = (e) => e.topic.length * CHIP_PX + 18;
-  const railX = columns.some((c) => c.kind === 'rail') ? colX.get(columns.find((c) => c.kind === 'rail')) : null;
-  const chipRight = railX == null ? 0 : railX + 12 + Math.max(60, ...events.filter((e) => e.type === 'publish').map(chipW));
-  const width = Math.ceil(Math.max(xs[xs.length - 1] + COL / 2 + (railX == null ? 200 - COL / 2 : 0) + PAD, chipRight + PAD));
+  // A publish arrow is short: its event name sits over the topic chip, both centred on the rail, so the rail needs only half of the wider one on each side.
+  const pubW = (e) => Math.max(60, chipW(e), labelWidth(e.label));
+  const chipMax = Math.max(60, ...events.filter((e) => e.type === 'publish').map(pubW));
+  const spans = events.flatMap((e) => { const ends = arrowEnds(e); return ends ? [{ a: idx.get(ends[0]), b: idx.get(ends[1]), need: e.type === 'publish' ? pubW(e) / 2 + BAR + 2 * NEST + 24 : labelWidth(e.label) + 8 + BAR + 2 * NEST }] : []; });
+  const rIdx = columns.findIndex((c) => c.kind === 'rail');
+  if (rIdx >= 0 && rIdx < columns.length - 1) spans.push({ a: rIdx, b: rIdx + 1, need: chipMax / 2 + 40 }); // the unresolved column must clear the topic chips (they sit on the rail)
+  // `fit`: the room the diagram has. The plain gap shrinks (to COL_MIN) until the rail and its chips show without scrolling.
+  const layout = (col) => {
+    const xs = centres(PAD + GUTTER + col / 2, columnGaps(columns.length, spans, col));
+    const railX = rIdx >= 0 ? xs[rIdx] : null;
+    const chipRight = railX == null ? 0 : railX + chipMax / 2;
+    const reach = railX == null ? xs[xs.length - 1] + col / 2 + 200 - col / 2 : Math.max(xs[xs.length - 1] + col / 2, chipRight);
+    return { xs, col, width: Math.ceil(reach + PAD), railEnd: railX == null ? 0 : chipRight + PAD };
+  };
+  let L = layout(COL);
+  for (let col = COL - 6; fit && L.railEnd > fit && col >= COL_MIN; col -= 6) L = layout(col);
+  const { xs, col: COLW, width } = L, HEAD_BOX = COLW - 8, nameCh = Math.max(9, Math.floor((HEAD_BOX - 18) / 6.9));
+  const colX = new Map(columns.map((c, i) => [c, xs[i]]));
   // a queue head drops its transport prefix and the 'queue delivery' line (the title keeps both): two lines at most
-  const heads = columns.map((c) => (c.sub === 'queue delivery' ? { name: wrapId(c.label.replace(/^[^:]+:/, ''), NAME_CH), sub: [] } : { name: wrapId(c.label, NAME_CH), sub: wrapId(c.sub ?? '', SUB_CH) }));
+  const heads = columns.map((c) => (c.sub === 'queue delivery' ? { name: wrapId(c.label.replace(/^[^:]+:/, ''), nameCh), sub: [] } : { name: wrapId(c.label, nameCh), sub: wrapId(c.sub ?? '', SUB_CH) }));
   const boxH = 12 + Math.max(...heads.map((x) => x.name.length * LINE_H + x.sub.length * 13)) + 6, HEAD = boxH + 16;
   const frames = altFrames(lane.altMsgs), strips = stripsByRow(frames, lane.altRows);
   const nStrips = (r) => strips.get(r)?.length ?? 0;
@@ -82,12 +94,12 @@ export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, o
       return g('broken', arrow(x1, x2, y0, { dashed: true, label: e.label, color: 'var(--t-broken)', cross: true }), hit(x1, x2), s('title', {}, e.msg.label));
     }
     if (e.type === 'publish') {
-      const x1 = barX(owner, 1), x2 = colX.get(e.col) - 2, cx = x2 + 10, w = Math.max(60, chipW(e)), none = !e.flows;
-      const bw = none ? 92 : 56 + String(e.flows).length * 7;
-      return g('publish', arrow(x1, x2, y0, { label: e.label, color: colorOf(e.msg.transport) }), hit(x1, x2),
+      const w = Math.max(60, chipW(e)), cx = colX.get(e.col) - w / 2, x1 = barX(owner, 1), x2 = cx - 2, none = !e.flows;
+      const bw = none ? 92 : 56 + String(e.flows).length * 7, bx = colX.get(e.col) - bw / 2;
+      return g('publish', arrow(x1, x2, y0, { color: colorOf(e.msg.transport) }), s('text', { class: 'label', x: colX.get(e.col), y: y0 - 16, 'text-anchor': 'middle' }, e.label), hit(Math.min(x1, colX.get(e.col) - pubW(e) / 2), colX.get(e.col) + pubW(e) / 2),
         s('g', { class: 'chipg', style: `--mc:${colorOf(e.msg.transport)}` }, s('rect', { class: 'chip', x: cx, y: y0 - 10, width: w, height: 20, rx: 4 }), s('text', { class: 'chipt', x: cx + 7, y: y0 + 4 }, e.topic)),
         s('g', { class: `badge ${none ? 'warn' : 'async'}`, 'data-badge': r, tabindex: none ? null : 0, role: none ? null : 'link' },
-          s('rect', { x: cx, y: y0 + 14, width: bw, height: 18, rx: 9 }), s('text', { x: cx + 8, y: y0 + 27 }, none ? 'no consumers' : `↓ ${e.flows} ${e.flows === 1 ? 'flow' : 'flows'}`)), s('title', {}, e.msg.label));
+          s('rect', { x: bx, y: y0 + 14, width: bw, height: 18, rx: 9 }), s('text', { x: bx + 8, y: y0 + 27 }, none ? 'no consumers' : `↓ ${e.flows} ${e.flows === 1 ? 'flow' : 'flows'}`)), s('title', {}, e.msg.label));
     }
     if (e.type === 'store') {
       const x0 = barX(e.bar, 1), w = Math.max(e.verb.length * 7, e.name.length * 6) + 18;

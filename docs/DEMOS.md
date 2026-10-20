@@ -8,6 +8,12 @@ Add a row here with every fix or feature (newest first). A row without a working
 
 | Version | Bug | What to look at | Link |
 |---|---|---|---|
+| 0.15.0 | — | An expanded async row is a full flow that starts at the consumer: its queue is the first lifeline (never the SNS topic), then the consumer's bar, stores, calls, the published-events rail and its own async list underneath. Expand row 1 | `#/flows?tabs=api-gateway/in.createOrder` |
+| 0.15.0 | — | A consumer with a complex flow of its own: shipping-svc stores a shipment, publishes to AMQP, and notifications-svc (nested 1) calls users-svc over http and sends mail. Expand row 3, then its nested row | `#/flows?tabs=api-gateway/in.createOrder` |
+| 0.15.0 | — | Nested expansion two levels deep (saga-controller: eraser, then the controller again); a consumer that is already running above shows "loops back" and is not expanded again | `#/flows?tabs=saga-controller/in.start` |
+| 0.15.0 | — | A sub-flow tab and the "Full flow" tab of the same consumer draw the same diagram (the tabs are open side by side) | `#/flows?tabs=api-gateway/in.createOrder,sqs:shipping-order-events/onOrderPlaced@api-gateway/in.createOrder,full:shipping-svc/in.orderPlaced~OrderPlaced@api-gateway/in.createOrder&tab=sqs:shipping-order-events/onOrderPlaced@api-gateway/in.createOrder` |
+| 0.15.0 | — | A full flow that starts at a queue labels its caller lifeline with the queue and transport (not "client · browser") | `#/flows?tabs=shipping-svc/in.orderPlaced` |
+| 0.15.0 | — | The published-events rail is visible at 1440 wide with the entry list open (the rail follows the last lifeline; chips sit on the rail) | `#/flows?tabs=api-gateway/in.createOrder` |
 | 0.14.0 | — | Flow descriptions: a Human note (green edge, "Edit") and a collapsible AI box (model, date, no Edit, "Generate…") at the top of an entry-point tab | `#/flows?tabs=api-gateway/in.createOrder` |
 | 0.14.0 | — | "Generate…" opens a dialog with two copyable prompts for an AI tool that has the Flow-Mapper MCP connected: the whole flow with all its services, and one service (pick it in the list). Copy button; the AI tool saves with MCP `set_description` | `#/flows?tabs=api-gateway/in.createOrder` (click Generate…) |
 | 0.14.0 | — | An outdated AI description: amber "outdated" chip and edge. The flow has no Human note and its AI text was written from an older trace | `#/flows?tabs=orders-svc/in.remove` |

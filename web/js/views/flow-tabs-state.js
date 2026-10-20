@@ -12,7 +12,7 @@ const CLOSED_CAP = 20;
 // The scope is part of an entry or fn key only when it is not the default (an ingress starts "full", a function "intra").
 export const entryKey = (service, ingress, event, scope) => `${esc(service)}/${esc(ingress)}${event ? `~${esc(event)}` : ''}${scope === 'intra' ? '!intra' : ''}`;
 export const fnKey = (service, fn, event, scope) => `fn:${esc(service)}/${esc(fn)}${event ? `~${esc(event)}` : ''}${scope === 'full' ? '!full' : ''}`;
-export const fullKey = (service, ingress, origin) => `full:${esc(service)}/${esc(ingress)}${origin ? `@${origin}` : ''}`;
+export const fullKey = (service, ingress, origin, event) => `full:${esc(service)}/${esc(ingress)}${event ? `~${esc(event)}` : ''}${origin ? `@${origin}` : ''}`;
 /** A delivery (queue + handler) opened from the tab `origin`. */
 export const subKey = (row, origin) => `${esc(row.queue)}/${esc(row.handler)}@${origin}`;
 
@@ -28,7 +28,7 @@ export function parseKey(key) {
     const [a, b, ...rest] = main.split('/');
     if (rest.length || !a || !b) return null;
     const event = ev ? unesc(ev) : null;
-    if (a.startsWith('full:')) return { key, kind: 'full', service: unesc(a.slice(5)), ingress: unesc(b), origin };
+    if (a.startsWith('full:')) return { key, kind: 'full', service: unesc(a.slice(5)), ingress: unesc(b), event, origin };
     if (origin) return /:/.test(a) ? { key, kind: 'sub', queue: unesc(a), handler: unesc(b), origin } : null;
     if (a.startsWith('fn:')) return { key, kind: 'fn', service: unesc(a.slice(3)), fn: unesc(b), event, scope: explicit ?? 'intra' };
     return /^[^:]+$/.test(a) ? { key, kind: 'entry', service: unesc(a), ingress: unesc(b), event, scope: explicit ?? 'full' } : null;
