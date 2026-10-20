@@ -10,6 +10,8 @@ import { h, s } from '../dom.js';
 import { altFrames, stripsByRow, drawFrames, STRIP } from './sequence-alt.js';
 
 const COL = 168, HEAD = 56, ROW = 30, PAD = 24, GUTTER = 44;
+const CH = 7.4; // width of one label character: 12px monospace is 7.2px, plus a little room
+export const colX = (i) => GUTTER + PAD + i * COL + COL / 2;
 const KIND_LABEL = { client: 'caller', function: 'function', service: 'service', channel: 'queue / topic', resource: 'data store', missing: 'no match', unresolved: 'harvester gap' };
 const T_VAR = { http: '--t-http', rpc: '--t-rpc', grpc: '--t-http', eventbridge: '--t-eb', sns: '--t-sns', sqs: '--t-sqs', amqp: '--t-amqp', cron: '--t-cron', res: '--t-res' };
 
@@ -59,9 +61,10 @@ export function renderSequence(trace, { onMessage, onParticipant, expanded = new
   const msgs = (queues ? trace.messages : bridgeChannels(trace.messages).map(plain)).filter((m) => (internal || m.kind !== 'call') && (stores || m.kind !== 'resource') && m.depth <= maxDepth);
   const used = new Set(msgs.flatMap((m) => [m.from, m.to]));
   const parts = trace.participants.filter((p) => used.has(p.id));
-  const x = new Map(parts.map((p, i) => [p.id, GUTTER + PAD + i * COL + COL / 2]));
+  const x = new Map(parts.map((p, i) => [p.id, colX(i)]));
   const width = GUTTER + PAD * 2 + parts.length * COL;
   const { rows, count } = rowsOf(msgs);
+  const plan = labelPlan(msgs, rows, x);
   // Alt frames: each section gets a strip for its condition above its first row, so rows below shift down.
   const frames = altFrames(msgs);
   const strips = stripsByRow(frames, rows);
@@ -98,7 +101,7 @@ export function renderSequence(trace, { onMessage, onParticipant, expanded = new
     drawFrames(frames, rows, strips, rowTop, (r) => rowTop(r) + nStrips(r) * STRIP + ROW, width, GUTTER),
     parts.map((p) => s('line', { class: 'lifeline', x1: x.get(p.id), x2: x.get(p.id), y1: 0, y2: height })),
     bars,
-    msgs.map((m, i) => message(m, i, x, rowY(rows[i]), rail(msgs, rows, i))));
+    msgs.map((m, i) => message(m, i, x, rowY(rows[i]), rail(msgs, rows, i), plan[i])));
 
   const partMenu = (ev) => {
     const g = ev.target.closest?.('[data-p]');
@@ -121,6 +124,38 @@ export function renderSequence(trace, { onMessage, onParticipant, expanded = new
   return { el: h('div.seq', h('div.seq-sticky', head), body), shown: msgs.length, total: trace.messages.length };
 }
 
+
+/**
+ * Where each label goes and how much of it fits (#35). A label starts at its own arrow's start and never runs past
+ * the arrow's end, so arrows side by side on one row (a publish and its delivery) keep their own labels. Where arrow
+ * spans still overlap on a row (a long arrow back across others), a label also stops short of the next label to its
+ * right. Clipped text ends in an ellipsis; the full text is the tooltip. Returns [{ x, text, width }] per message.
+ */
+export function labelPlan(msgs, rows, x) {
+  const plan = msgs.map((m) => {
+    const x1 = x.get(m.from), x2 = x.get(m.to);
+    const tags = [m.loop ? 'loop' : null, m.condition && !m.alt ? `if ${m.condition}` : null, m.cycle ? 'cycle' : null].filter(Boolean).join(', ');
+    const suffix = tags ? `  [${tags}]` : '';
+    const full = (m.kind === 'frontier' ? `${m.label}  (click to show)` : m.label);
+    const start = x1 === x2 ? x1 + 34 : Math.min(x1, x2) + 6;
+    const room = x1 === x2 ? 34 : Math.max(4, Math.floor((Math.abs(x2 - x1) - 12) / CH));
+    return { start, full, suffix, room };
+  });
+  const byRow = new Map();
+  plan.forEach((p, i) => byRow.set(rows[i], [...(byRow.get(rows[i]) ?? []), i]));
+  for (const idx of byRow.values()) {
+    idx.sort((a, b) => plan[a].start - plan[b].start);
+    idx.forEach((i, k) => {
+      const next = plan[idx[k + 1]];
+      if (next && next.start > plan[i].start) plan[i].room = Math.max(4, Math.min(plan[i].room, Math.floor((next.start - plan[i].start - 6) / CH)));
+    });
+  }
+  return plan.map((p) => {
+    const text = clip(p.full, Math.max(4, p.room - p.suffix.length)) + p.suffix;
+    return { x: p.start, text, width: text.length * CH };
+  });
+}
+
 /** Left-rail label: the call depth; a delivery of a fan-out is `depth.delivery`, shown once per row. */
 function rail(msgs, rows, i) {
   const m = msgs[i];
@@ -128,7 +163,7 @@ function rail(msgs, rows, i) {
   return m.delivery ? `${m.depth}.${m.delivery}` : String(m.depth);
 }
 
-function message(m, i, x, y, railLabel) {
+function message(m, i, x, y, railLabel, plan) {
   const x1 = x.get(m.from), x2 = x.get(m.to);
   const color = m.broken ? 'var(--t-broken)' : m.gap ? 'var(--muted)' : m.transport ? `var(${T_VAR[m.transport] ?? '--ink-2'})` : 'var(--ink-2)';
   const dashed = m.broken || m.gap || m.mode === 'async' || m.possible || m.kind === 'frontier';
@@ -136,21 +171,18 @@ function message(m, i, x, y, railLabel) {
   // depth rail in the gutter
   g.append(s('text', { x: 8, y: y + 4, class: 'depth' }, railLabel));
   const tags = [m.loop ? 'loop' : null, m.condition && !m.alt ? `if ${m.condition}` : null, m.cycle ? 'cycle' : null].filter(Boolean).join(', ');
-  // A label never runs past its arrow: on a short hop it is clipped (the full text is the tooltip), so neighbours on one row do not overlap.
-  const suffix = tags ? `  [${tags}]` : '';
-  const room = x1 === x2 ? 34 : Math.max(8, Math.floor((Math.abs(x2 - x1) - 12) / 6.6));
-  const label = clip(m.kind === 'frontier' ? `${m.label}  (click to show)` : m.label, Math.max(6, room - suffix.length)) + suffix;
+  const { text: label, x: labelX } = plan;
   if (x1 === x2) {
     g.append(s('path', { d: `M${x1} ${y - 8} h28 v14 h-26`, class: 'arrow', 'marker-end': dashed ? 'url(#ao)' : 'url(#ah)', 'stroke-dasharray': dashed ? '5 4' : null }));
-    g.append(s('text', { x: x1 + 34, y: y + 2, class: 'label' }, label));
+    g.append(s('text', { x: labelX, y: y + 2, class: 'label' }, label));
   } else {
     const dir = Math.sign(x2 - x1);
     g.append(s('line', { x1, x2: x2 - dir * 2, y1: y, y2: y, class: 'arrow', 'marker-end': dashed ? 'url(#ao)' : 'url(#ah)', 'stroke-dasharray': dashed ? '5 4' : null }));
-    g.append(s('text', { x: Math.min(x1, x2) + 6, y: y - 6, class: 'label' }, label));
+    g.append(s('text', { x: labelX, y: y - 6, class: 'label' }, label));
     if (m.broken) g.append(s('path', { d: `M${x2 - 5} ${y - 5}l10 10M${x2 + 5} ${y - 5}l-10 10`, class: 'x' }));
   }
   g.append(s('rect', { x: Math.min(x1, x2) - 4, y: y - 16, width: Math.max(40, Math.abs(x2 - x1) + 40), height: ROW - 2, class: 'hit' }));
-  g.append(s('title', {}, `${m.label}${m.fn ? `\nin ${m.service}: ${m.fn}` : ''}`));
+  g.append(s('title', {}, `${m.label}${m.condition ? `  [if ${m.condition}]` : ''}${m.fn ? `\nin ${m.service}: ${m.fn}` : ''}`));
   return g;
 }
 

@@ -49,6 +49,7 @@ export interface Message {
   gap?: Unresolved;                                          // the harvester could not resolve this call; why
   group?: string;                                            // SNS fan-out: id of the publish (`m<index of the publish message>`), on the publish and on each of its deliveries
   deliveries?: number;                                       // on the publish message of a fan-out: how many deliveries follow it
+  matched?: string[];                                        // on deliveries of an untyped publish: the event types (its events / candidates) that the subscription's filter let through
   delivery?: number;                                         // on the topic -> queue and queue -> consumer messages of one delivery: 1-based ordinal within the group
 }
 export interface Trace {
@@ -84,6 +85,12 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
       return part({ id: `fn:${service}:${fn}`, label: f?.name ?? fn, kind: 'function', service });
     }
     return part({ id: `svc:${service}`, label: service, kind: 'service', service });
+  };
+  // Event types of an untyped publish that a subscription's own filter lets through (none for a catch-all: it says nothing).
+  const matchedTypes = (l: Parameters<typeof passes>[1], set: EventSet): string[] => {
+    const b = l.binding ? g.bindings.get(sid(l.binding.service, l.binding.id)) : undefined;
+    if (!b?.events || b.events === '*') return [];
+    return [...set.known, ...set.candidates].filter((t) => passes(g, l, t));
   };
   const chPart = (key: string) => part({ id: `ch:${key}`, label: g.channels.get(key)?.name ?? key, kind: 'channel' });
   // The same subscription declared twice (by the topic's owner and by the consumer) is one link, one arrow.
@@ -231,8 +238,11 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
       const { deliveries: _n, ...inherited } = base; // a delivery's ordinal rides along to its queue -> consumer message; an inner fan-out replaces it
       next.forEach((l, k) => {
         const possible = !!inherited.possible || (!!set && passesUntyped(g, l, set) === 'possible');
-        follow(ch, l.to, to.key + (base.event ? ` · ${base.event}` : '') + (possible ? ' · possible' : ''), 'async', depth, stack,
-          { ...inherited, transport: l.transport, ...(possible ? { possible } : {}), ...(group ? { group, delivery: k + 1 } : {}) }, [...seenCh, to.key], set);
+        // An untyped publish gets through a filtered subscription by the types of its set that the filter allows: name them (#40).
+        const own = set && l.binding ? matchedTypes(l, set) : [];
+        const matched = own.length ? own : inherited.matched;
+        follow(ch, l.to, to.key + (base.event ? ` · ${base.event}` : matched?.length ? ` · ${matched.join(', ')}` : '') + (possible ? ' · possible' : ''), 'async', depth, stack,
+          { ...inherited, transport: l.transport, ...(matched?.length ? { matched } : {}), ...(possible ? { possible } : {}), ...(group ? { group, delivery: k + 1 } : {}) }, [...seenCh, to.key], set);
       });
       return;
     }
@@ -297,7 +307,7 @@ export function entryPoints(g: GraphIndex) {
  * Lifelines in delivery order: a topic or queue sits left of whatever it delivers to, so a delivery
  * arrow never points backwards. A channel that is right of its target moves to just before it.
  */
-function deliveryOrder(parts: Participant[], messages: Message[]): Participant[] {
+export function deliveryOrder(parts: Participant[], messages: Message[], fanOut = true): Participant[] {
   const order = [...parts];
   for (let pass = 0, moved = true; moved && pass < 10; pass++) { // a topic may have to move again after its queue did
     moved = false;
@@ -319,6 +329,41 @@ function deliveryOrder(parts: Participant[], messages: Message[]): Participant[]
     if (a < 0 || b < 0 || b > a) continue;
     const [ch] = order.splice(b, 1);
     order.splice(a, 0, ch); // the sender moved one place left when the channel was taken out
+  }
+  return fanOut ? fanOutOrder(order, messages) : order;
+}
+
+/**
+ * A fan-out reads left to right (#35): [topic] [q1] [c1] [q2] [c2] ... in delivery order, so each queue -> consumer
+ * arrow points right and sits next to its queue. A lifeline cannot appear twice, so one met before the publish stays
+ * where it is when moving it would turn an earlier arrow around: it called someone (an upstream caller), or something
+ * right of the topic called it. Then its delivery arrow may point left. One only called from the left (the producer
+ * checks on every consumer first) moves with its queue. A consumer reached through several queues goes after the first.
+ */
+function fanOutOrder(order: Participant[], messages: Message[]): Participant[] {
+  const placed = new Set<string>();
+  for (const [pi, pub] of messages.entries()) {
+    if (!pub.deliveries || !pub.group) continue;
+    const before = messages.slice(0, pi);
+    const left = (id: string) => order.findIndex((p) => p.id === id) <= order.findIndex((p) => p.id === pub.to);
+    const movable = (id: string) => !before.some((m) => m.from !== m.to && (m.from === id || (m.to === id && !left(m.from))));
+    const legs: string[] = [];
+    for (const [i, m] of messages.entries()) {
+      if (m.group !== pub.group || !m.delivery || m.from !== pub.to) continue;
+      const out = messages.slice(i + 1).find((x) => x.group === pub.group && x.delivery === m.delivery && x.from === m.to);
+      for (const id of [m.to, out?.to]) if (id && id !== pub.to && !placed.has(id) && movable(id)) { placed.add(id); legs.push(id); }
+    }
+    // data stores that followed a moved consumer stay with it
+    const moved = legs.flatMap((id) => {
+      const at = order.findIndex((p) => p.id === id);
+      if (at < 0) return [];
+      let end = at + 1;
+      while (order[end]?.kind === 'resource' && !legs.includes(order[end].id)) end++;
+      return order.slice(at, end);
+    });
+    const rest = order.filter((p) => !moved.includes(p));
+    rest.splice(rest.findIndex((p) => p.id === pub.to) + 1, 0, ...moved);
+    order = rest;
   }
   return order;
 }

@@ -1,0 +1,259 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "stress-gateway",
+    "kind": "service",
+    "team": "stress-demo",
+    "repo": "github.com/acme/stress-gateway",
+    "language": "typescript",
+    "description": "Stress demo (#35): entry that calls the hub and also consumes one of its queues"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-19T08:00:00Z",
+  "commit": "5b35c01",
+  "functions": [
+    {
+      "id": "start",
+      "name": "start",
+      "file": "src/start.ts",
+      "line": 5,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "hub.broadcast"
+        }
+      ]
+    },
+    {
+      "id": "onEvent",
+      "name": "onEvent",
+      "file": "src/onEvent.ts",
+      "line": 5,
+      "steps": []
+    },
+    {
+      "id": "startChecked",
+      "name": "startChecked",
+      "file": "src/start.ts",
+      "line": 20,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "prepare.01"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "prepare.02"
+        },
+        {
+          "seq": 3,
+          "type": "egress",
+          "target": "prepare.03"
+        },
+        {
+          "seq": 4,
+          "type": "egress",
+          "target": "prepare.05"
+        },
+        {
+          "seq": 5,
+          "type": "egress",
+          "target": "prepare.06"
+        },
+        {
+          "seq": 6,
+          "type": "egress",
+          "target": "prepare.07"
+        },
+        {
+          "seq": 7,
+          "type": "egress",
+          "target": "prepare.08"
+        },
+        {
+          "seq": 8,
+          "type": "egress",
+          "target": "prepare.09"
+        },
+        {
+          "seq": 9,
+          "type": "egress",
+          "target": "prepare.10"
+        },
+        {
+          "seq": 10,
+          "type": "egress",
+          "target": "prepare.11"
+        },
+        {
+          "seq": 11,
+          "type": "egress",
+          "target": "prepare.12"
+        },
+        {
+          "seq": 12,
+          "type": "egress",
+          "target": "hub.broadcast"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.start",
+      "bindKey": "http:POST stress-gateway/start",
+      "transport": "http",
+      "handler": "start",
+      "entryPoint": true,
+      "details": {
+        "method": "POST",
+        "path": "/start"
+      }
+    },
+    {
+      "id": "in.startChecked",
+      "bindKey": "http:POST stress-gateway/start-checked",
+      "transport": "http",
+      "handler": "startChecked",
+      "entryPoint": true,
+      "details": {
+        "method": "POST",
+        "path": "/start-checked"
+      }
+    },
+    {
+      "id": "in.onEvent",
+      "bindKey": "sqs:stress-q04",
+      "transport": "sqs",
+      "handler": "onEvent"
+    }
+  ],
+  "egress": [
+    {
+      "id": "hub.broadcast",
+      "bindKey": "http:POST stress-hub/broadcast",
+      "transport": "http",
+      "mode": "sync",
+      "details": {
+        "method": "POST",
+        "path": "/broadcast"
+      }
+    },
+    {
+      "id": "prepare.01",
+      "bindKey": "http:POST stress-consumer-01/prepare",
+      "transport": "http",
+      "mode": "sync",
+      "details": {
+        "method": "POST",
+        "path": "/prepare"
+      }
+    },
+    {
+      "id": "prepare.02",
+      "bindKey": "http:POST stress-consumer-02/prepare",
+      "transport": "http",
+      "mode": "sync",
+      "details": {
+        "method": "POST",
+        "path": "/prepare"
+      }
+    },
+    {
+      "id": "prepare.03",
+      "bindKey": "http:POST stress-consumer-03/prepare",
+      "transport": "http",
+      "mode": "sync",
+      "details": {
+        "method": "POST",
+        "path": "/prepare"
+      }
+    },
+    {
+      "id": "prepare.05",
+      "bindKey": "http:POST stress-consumer-05/prepare",
+      "transport": "http",
+      "mode": "sync",
+      "details": {
+        "method": "POST",
+        "path": "/prepare"
+      }
+    },
+    {
+      "id": "prepare.06",
+      "bindKey": "http:POST stress-consumer-06/prepare",
+      "transport": "http",
+      "mode": "sync",
+      "details": {
+        "method": "POST",
+        "path": "/prepare"
+      }
+    },
+    {
+      "id": "prepare.07",
+      "bindKey": "http:POST stress-consumer-07/prepare",
+      "transport": "http",
+      "mode": "sync",
+      "details": {
+        "method": "POST",
+        "path": "/prepare"
+      }
+    },
+    {
+      "id": "prepare.08",
+      "bindKey": "http:POST stress-consumer-08/prepare",
+      "transport": "http",
+      "mode": "sync",
+      "details": {
+        "method": "POST",
+        "path": "/prepare"
+      }
+    },
+    {
+      "id": "prepare.09",
+      "bindKey": "http:POST stress-consumer-09/prepare",
+      "transport": "http",
+      "mode": "sync",
+      "details": {
+        "method": "POST",
+        "path": "/prepare"
+      }
+    },
+    {
+      "id": "prepare.10",
+      "bindKey": "http:POST stress-consumer-10/prepare",
+      "transport": "http",
+      "mode": "sync",
+      "details": {
+        "method": "POST",
+        "path": "/prepare"
+      }
+    },
+    {
+      "id": "prepare.11",
+      "bindKey": "http:POST stress-consumer-11/prepare",
+      "transport": "http",
+      "mode": "sync",
+      "details": {
+        "method": "POST",
+        "path": "/prepare"
+      }
+    },
+    {
+      "id": "prepare.12",
+      "bindKey": "http:POST stress-consumer-12/prepare",
+      "transport": "http",
+      "mode": "sync",
+      "details": {
+        "method": "POST",
+        "path": "/prepare"
+      }
+    }
+  ],
+  "resources": []
+}

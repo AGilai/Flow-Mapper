@@ -21,7 +21,12 @@ test('a queue or topic lifeline sits left of what it delivers to, in every sampl
   for (const i of g.model.ingress) {
     const t = trace(g, { service: i.service, ingress: i.id }, { scope: 'full' })!;
     const at = (id: string) => t.participants.findIndex((p) => p.id === id);
-    for (const m of t.messages.filter((x) => x.from.startsWith('ch:') && x.from !== x.to)) assert.ok(at(m.from) < at(m.to), `${i.service}/${i.id}: ${m.from} before ${m.to}`);
+    // A target met earlier on the trace (it is also an upstream caller, or a queue fed by two topics) cannot be on both sides: that arrow may point left (#35).
+    t.messages.forEach((m, k) => {
+      if (!m.from.startsWith('ch:') || m.from === m.to) return;
+      const earlier = t.messages.slice(0, k).some((x) => x.from === m.to || x.to === m.to);
+      assert.ok(at(m.from) < at(m.to) || earlier, `${i.service}/${i.id}: ${m.from} before ${m.to}`);
+    });
   }
 });
 

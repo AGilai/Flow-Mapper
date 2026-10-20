@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "stress-consumer-12",
+    "kind": "service",
+    "team": "stress-demo",
+    "repo": "github.com/acme/stress-consumer-12",
+    "language": "typescript",
+    "description": "Stress demo (#35): consumer of stress-q12"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-19T08:00:00Z",
+  "commit": "5b35c01",
+  "functions": [
+    {
+      "id": "prepare",
+      "name": "prepare",
+      "file": "src/prepare.ts",
+      "line": 3,
+      "steps": []
+    },
+    {
+      "id": "handle",
+      "name": "handle",
+      "file": "src/handle.ts",
+      "line": 3,
+      "steps": []
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.prepare",
+      "bindKey": "http:POST stress-consumer-12/prepare",
+      "transport": "http",
+      "handler": "prepare",
+      "details": {
+        "method": "POST",
+        "path": "/prepare"
+      }
+    },
+    {
+      "id": "in.handle",
+      "bindKey": "sqs:stress-q12",
+      "transport": "sqs",
+      "handler": "handle",
+      "events": [
+        {
+          "type": "StressEvent",
+          "handler": "handle"
+        }
+      ]
+    }
+  ],
+  "egress": [],
+  "resources": []
+}

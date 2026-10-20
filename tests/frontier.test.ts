@@ -27,17 +27,17 @@ const demo40 = [{ service: 'account-lambda-erase-controller', ingress: 'in.publi
 const demo42 = [{ service: 'account-lambda-agent-info', ingress: 'in.unknownEntry' }, { service: 'account-lambda-agent-info', ingress: 'in.invalidSchema' }, { service: 'account-session-cleaner', ingress: 'in.unknownEntry' }, { service: 'account-session-cleaner', ingress: 'in.schemaViolation' }]; // per-caller event types, added with the #42 demo
 const demo41 = { service: 'account-lambda-erase-controller', ingress: 'in.advanceErase' }; // alt frame, added with the #41 demo
 
-test('traces of every sample entry without frontier steps are unchanged (hash retaken on 0.8.5: SNS fan-out fields group/deliveries/delivery added to 2 traces, see sns-fanout.test.ts)', () => {
+test('traces of every sample entry without frontier steps are unchanged (hash retaken on 0.9.2: lifeline order of 3 fan-out traces changed, content identical, see lifeline-order.test.ts; 0.8.5: SNS fan-out fields group/deliveries/delivery added to 2 traces, see sns-fanout.test.ts)', () => {
   const m = sampleModel();
   const g = buildIndex(m);
   const h = createHash('sha256');
   let n = 0;
-  for (const i of m.ingress.filter((x) => ![demo, demo35, demo26, demo36, ...demo40, demo41, ...demo42].some((d) => x.service === d.service && x.id === d.ingress))) for (const scope of ['intra', 'full'] as const) {
+  for (const i of m.ingress.filter((x) => !x.service.startsWith('stress-') && ![demo, demo35, demo26, demo36, ...demo40, demo41, ...demo42].some((d) => x.service === d.service && x.id === d.ingress))) for (const scope of ['intra', 'full'] as const) {
     h.update(JSON.stringify([i.service, i.id, scope, trace(g, { service: i.service, ingress: i.id }, { scope })]));
     n++;
   }
   assert.equal(n, 154);
-  assert.equal(h.digest('hex'), '7efcf6c41e04a04ed73c7f56cae5ca62731284b43bb1d48c6c8b2fe402f82c3d');
+  assert.equal(h.digest('hex'), 'b42386806629f1dd47dad0f9cbb30e5ada7f99424280c3c2fb2a2f0775521847');
 });
 
 test('origin "path" is the same as no origin', () => {

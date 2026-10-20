@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "stress-hub",
+    "kind": "service",
+    "team": "stress-demo",
+    "repo": "github.com/acme/stress-hub",
+    "language": "typescript",
+    "description": "Stress demo (#35): publishes one event to a topic with 12 queues"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-19T08:00:00Z",
+  "commit": "5b35c01",
+  "functions": [
+    {
+      "id": "broadcast",
+      "name": "broadcast",
+      "file": "src/broadcast.ts",
+      "line": 9,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "events.publish"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.broadcast",
+      "bindKey": "http:POST stress-hub/broadcast",
+      "transport": "http",
+      "handler": "broadcast",
+      "details": {
+        "method": "POST",
+        "path": "/broadcast"
+      }
+    }
+  ],
+  "egress": [
+    {
+      "id": "events.publish",
+      "bindKey": "sns:stress-events",
+      "transport": "sns",
+      "mode": "async",
+      "delivery": "multicast",
+      "events": [
+        "StressEvent"
+      ],
+      "source": {
+        "file": "src/broadcast.ts",
+        "line": 14
+      }
+    }
+  ],
+  "resources": []
+}
