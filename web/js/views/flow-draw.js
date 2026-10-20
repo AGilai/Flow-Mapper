@@ -140,13 +140,13 @@ export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, o
   body.addEventListener('contextmenu', (ev) => { const b = barOf(ev.target); if (b) { ev.preventDefault(); onBarMenu?.(b, ev.clientX, ev.clientY); } });
   body.addEventListener('click', (ev) => {
     const bd = badgeOf(ev.target), pill = pillOf(ev.target), b = barOf(ev.target), e = eventOf(ev.target);
-    if (foldOf(ev.target)) onMw?.(); else if (bd) { ev.stopPropagation(); onBadge?.(bd); } else if (pill) onBar?.(pill); else if (b) onBar?.(b, 'select'); else if (e?.msg) onMessage?.(e.msg, ev.target.closest('[data-e]'), e);
+    if (foldOf(ev.target)) onMw?.(bars[Number(foldOf(ev.target).dataset.mwfold)]); else if (bd) { ev.stopPropagation(); onBadge?.(bd); } else if (pill) onBar?.(pill); else if (b) onBar?.(b, 'select'); else if (e?.msg) onMessage?.(e.msg, ev.target.closest('[data-e]'), e);
   });
   body.addEventListener('keydown', (ev) => {
     if (ev.key !== 'Enter' && ev.key !== ' ') return;
     ev.preventDefault();
     const bd = badgeOf(ev.target), pill = pillOf(ev.target), b = barOf(ev.target), e = eventOf(ev.target);
-    if (foldOf(ev.target)) onMw?.(); else if (bd) onBadge?.(bd); else if (pill) onBar?.(pill); else if (b) onBar?.(b); else if (e?.msg) onMessage?.(e.msg, ev.target.closest('[data-e]'), e);
+    if (foldOf(ev.target)) onMw?.(bars[Number(foldOf(ev.target).dataset.mwfold)]); else if (bd) onBadge?.(bd); else if (pill) onBar?.(pill); else if (b) onBar?.(b); else if (e?.msg) onMessage?.(e.msg, ev.target.closest('[data-e]'), e);
   });
   body.__events = events;
   return { el: h('div.seq', h(sticky ? 'div.seq-sticky' : 'div.seq-head-static', head), body), body, events, bars };

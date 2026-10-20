@@ -80,12 +80,12 @@ test('the middleware call is a real edge on the system map, in the service view 
   const sys = (await app.call('GET', '/api/envs/prod/views/system')).body;
   assert.ok(sys.edges.some((e: any) => e.from === 'svc:reports-api' && e.to === 'svc:auth-svc'), JSON.stringify(sys.edges.filter((e: any) => JSON.stringify(e).includes('reports-api'))));
   const v = (await app.call('GET', '/api/envs/prod/views/service/reports-api')).body;
-  assert.deepEqual(v.ingress[0].middleware, ['authenticate', 'rateLimit']);
+  assert.deepEqual(v.ingress.find((i: any) => i.id === 'in.getReport').middleware, ['authenticate', 'rateLimit']);
   assert.equal(v.egress.find((e: any) => e.id === 'auth.verify').targets.length, 1);
   const c = (await app.call('GET', '/api/envs/prod/flows/counts')).body.find((x: any) => x.service === 'reports-api');
   assert.ok(c.services >= 1, 'auth-svc is reached through the middleware');
   const eps = (await app.call('GET', '/api/envs/prod/entry-points')).body;
-  assert.deepEqual(eps.find((e: any) => e.service === 'reports-api').middleware, ['authenticate', 'rateLimit']);
+  assert.deepEqual(eps.find((e: any) => e.service === 'reports-api' && e.id === 'in.getReport').middleware, ['authenticate', 'rateLimit']);
   assert.ok(eps.filter((e: any) => e.service !== 'reports-api').every((e: any) => !('middleware' in e)));
 });
 
@@ -167,4 +167,17 @@ test('drill-down: the middleware chain is listed first, in order, then the handl
   assert.deepEqual(info.functions.map((f: any) => f.fn), ['authenticate', 'readBearer', 'rateLimit', 'getReport']);
   assert.deepEqual(info.functions.map((f: any) => f.middleware), [1, null, 2, null]);
   assert.equal(info.functions[3].isEntry, true);
+});
+
+test('fold state is per bar: a key in the open set unfolds only that bar; the key is stable across redraws', () => {
+  const t = trace(g, { service: 'reports-api', ingress: 'in.exportReport' })!;
+  const opts = { scope: t.scope, participants: t.participants };
+  const folded = buildLane(t.messages, opts);
+  const key = folded.bars[0].mw.key;
+  assert.equal(key, 'reports-api/in.exportReport#1');
+  assert.deepEqual(folded.events.filter((e: any) => e.type === 'mw').map((e: any) => e.seg.label), ['middleware (5)']);
+  assert.deepEqual(buildLane(t.messages, { ...opts, mwOpen: new Set(['other#1']) }).events.filter((e: any) => e.type === 'mw').length, 1);
+  const open = buildLane(t.messages, { ...opts, mwOpen: new Set([key]) });
+  assert.deepEqual(open.events.filter((e: any) => e.type === 'mw').map((e: any) => e.seg.label), ['requestId', 'authenticate', 'rateLimit', 'tenantScope', 'audit']);
+  assert.equal(open.bars[0].mw.key, key);
 });

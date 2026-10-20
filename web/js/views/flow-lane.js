@@ -8,7 +8,7 @@
 //  - a publish ends at the "published events" rail; the async work below it is not in the lane (flow-async.js);
 //  - a call that matches nothing ends at the "unresolved" column, without a bar or a return;
 //  - middleware (m.middlewareChain on the call) is a run of segments on top of the bar: one "mw" row per segment, then the rows of
-//    its calls; the handler's part (and the internal-calls pill) follow. Chains over 3 fold into one segment unless `mwOpen`;
+//    its calls; the handler's part (and the internal-calls pill) follow. Chains over 3 fold into one segment unless its key is in `mwOpen` (a Set of bar keys, or true for all);
 //  - a callee reuses its service's column unless the arrow would cross another open bar, then it gets a new column.
 
 import { scanLane, isPublish } from './flow-scan.js';
@@ -41,6 +41,7 @@ export const storeLabel = (m) => ({ verb: m.label, name: (m.store ?? '').replace
 export function buildLane(msgs, { stores = true, scope = 'full', participants = [], mwOpen = false } = {}) {
   const kind = new Map(participants.map((p) => [p.id, p.kind]));
   const cols = [], byService = new Map(), stack = [], bars = [], events = [];
+  const keys = new Map();
   const mk = (c) => { c.ci = cols.length; cols.push(c); return c; };
   const special = (id, label, sub, k) => cols.find((c) => c.id === id) ?? mk({ id, label, sub, kind: k, ci: Infinity });
   const unresolvedCol = () => special('unresolved', 'unresolved', 'no match / gap', 'unresolved');
@@ -85,7 +86,10 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
     bars.push(bar);
     bar.start = push({ type: 'call', msg: m, from: caller, to: col, bar, label: callLabel(m), fromBar: parent }).row;
     const chain = m.middlewareChain ?? [];
-    if (chain.length) bar.mw = { chain, segs: mwSegments(chain, mwOpen), labels: [], done: false, endIdx: -1 };
+    const kb = `${service}/${m.target?.ingress ?? ''}`, nth = (keys.get(kb) ?? 0) + 1;
+    keys.set(kb, nth);
+    const key = `${kb}#${nth}`; // stable across redraws: service, ingress, nth bar of it
+    if (chain.length) bar.mw = { chain, key, segs: mwSegments(chain, mwOpen === true || (mwOpen instanceof Set && mwOpen.has(key))), labels: [], done: false, endIdx: -1 };
     else push({ type: 'pill', bar });
     stack.push(bar);
     return bar;

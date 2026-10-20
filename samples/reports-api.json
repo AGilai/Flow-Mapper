@@ -8,7 +8,7 @@
     "team": "analytics",
     "repo": "github.com/acme/reports-api",
     "language": "typescript",
-    "description": "Report API. Every route runs authenticate and rateLimit first (Express middleware)"
+    "description": "Report API. Every route runs authenticate and rateLimit first (Express middleware); export runs five"
   },
   "version": 1,
   "harvestedAt": "2026-10-20T08:00:00Z",
@@ -20,8 +20,16 @@
       "file": "src/middleware/auth.ts",
       "line": 8,
       "steps": [
-        { "seq": 1, "type": "call", "target": "readBearer" },
-        { "seq": 2, "type": "egress", "target": "auth.verify" }
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "readBearer"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "auth.verify"
+        }
       ]
     },
     {
@@ -37,7 +45,12 @@
       "file": "src/middleware/rate-limit.ts",
       "line": 5,
       "steps": [
-        { "seq": 1, "type": "resource", "target": "limiter", "operation": "INCR rl:{key}" }
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "limiter",
+          "operation": "INCR rl:{key}"
+        }
       ]
     },
     {
@@ -46,7 +59,54 @@
       "file": "src/routes/reports.ts",
       "line": 21,
       "steps": [
-        { "seq": 1, "type": "resource", "target": "reportsDb", "operation": "SELECT reports" }
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "reportsDb",
+          "operation": "SELECT reports"
+        }
+      ]
+    },
+    {
+      "id": "requestId",
+      "name": "requestId",
+      "file": "src/middleware/request-id.ts",
+      "line": 4,
+      "steps": []
+    },
+    {
+      "id": "tenantScope",
+      "name": "tenantScope",
+      "file": "src/middleware/tenant.ts",
+      "line": 9,
+      "steps": []
+    },
+    {
+      "id": "audit",
+      "name": "audit",
+      "file": "src/middleware/audit.ts",
+      "line": 6,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "auditDb",
+          "operation": "INSERT audit_log"
+        }
+      ]
+    },
+    {
+      "id": "exportReport",
+      "name": "exportReport",
+      "file": "src/routes/export.ts",
+      "line": 14,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "reportsDb",
+          "operation": "SELECT reports"
+        }
       ]
     }
   ],
@@ -56,9 +116,33 @@
       "bindKey": "http:GET reports-api/reports/{id}",
       "transport": "http",
       "handler": "getReport",
-      "middleware": ["authenticate", "rateLimit"],
+      "middleware": [
+        "authenticate",
+        "rateLimit"
+      ],
       "entryPoint": true,
-      "details": { "method": "GET", "path": "/reports/{id}" }
+      "details": {
+        "method": "GET",
+        "path": "/reports/{id}"
+      }
+    },
+    {
+      "id": "in.exportReport",
+      "bindKey": "http:POST reports-api/reports/{id}/export",
+      "transport": "http",
+      "handler": "exportReport",
+      "middleware": [
+        "requestId",
+        "authenticate",
+        "rateLimit",
+        "tenantScope",
+        "audit"
+      ],
+      "entryPoint": true,
+      "details": {
+        "method": "POST",
+        "path": "/reports/{id}/export"
+      }
     }
   ],
   "egress": [
@@ -67,11 +151,31 @@
       "bindKey": "http:POST auth-svc/verify",
       "transport": "http",
       "mode": "sync",
-      "details": { "method": "POST", "path": "/verify", "timeoutMs": 800 }
+      "details": {
+        "method": "POST",
+        "path": "/verify",
+        "timeoutMs": 800
+      }
     }
   ],
   "resources": [
-    { "id": "limiter", "kind": "redis", "name": "rl:{key}", "bindKey": "redis:auth-cache/rl:{key}" },
-    { "id": "reportsDb", "kind": "postgres", "name": "reports", "bindKey": "postgres:reports-db/reports" }
+    {
+      "id": "limiter",
+      "kind": "redis",
+      "name": "rl:{key}",
+      "bindKey": "redis:auth-cache/rl:{key}"
+    },
+    {
+      "id": "reportsDb",
+      "kind": "postgres",
+      "name": "reports",
+      "bindKey": "postgres:reports-db/reports"
+    },
+    {
+      "id": "auditDb",
+      "kind": "postgres",
+      "name": "audit_log",
+      "bindKey": "postgres:reports-db/audit_log"
+    }
   ]
 }
