@@ -65,6 +65,15 @@ test('full trace follows REST, SNS→SQS fan-out and AMQP into other services', 
   assert.ok(t.messages.some((m) => m.mode === 'async' && m.to === 'ch:sns:order-events'));
 });
 
+test('a subscription declared by both the topic owner and the consumer is drawn once (#33)', () => {
+  const g = buildIndex(sampleModel());
+  const t = trace(g, { service: 'api-gateway', ingress: 'in.createOrder' }, { scope: 'full' })!;
+  const hop = t.messages.filter((m) => m.from === 'ch:sns:order-events' && m.to === 'ch:sqs:shipping-order-events');
+  assert.equal(hop.length, 1);
+  const keys = t.messages.map((m) => [m.from, m.to, m.label, m.kind, m.service, m.fn, m.seq, m.depth].join('|'));
+  assert.equal(new Set(keys).size, keys.length, 'no arrow is drawn twice');
+});
+
 test('intra trace stays inside the service', () => {
   const g = buildIndex(sampleModel());
   const t = trace(g, { service: 'orders-svc', ingress: 'in.create' }, { scope: 'intra' })!;

@@ -15,7 +15,7 @@ import { linksFrom, sid } from './graph-index.ts';
 import type { Mode, Ref } from './types.ts';
 import { handlerFor, passes } from './events.ts';
 import { codeLink, sourceLink, type SourceLink } from './endpoint-info.ts';
-import { unresolvedTarget } from './resolve.ts';
+import { refKey, unresolvedTarget } from './resolve.ts';
 import type { Unresolved } from './types.ts';
 import { egressVia, ingressVia, type LinkedHop } from './via.ts';
 
@@ -71,6 +71,8 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
     return part({ id: `svc:${service}`, label: service, kind: 'service', service });
   };
   const chPart = (key: string) => part({ id: `ch:${key}`, label: g.channels.get(key)?.name ?? key, kind: 'channel' });
+  // The same subscription declared twice (by the topic's owner and by the consumer) is one link, one arrow.
+  const distinct = <T extends { to: Ref }>(ls: T[]) => ls.filter((l, i) => ls.findIndex((o) => refKey(o.to) === refKey(l.to)) === i);
   const push = (m: Message) => {
     if (messages.length >= maxMessages) { truncated = true; return false; }
     messages.push(m);
@@ -109,7 +111,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
         const mode = st.mode ?? e.mode ?? 'sync';
         const event = st.event ?? (e.events?.length === 1 ? e.events[0] : undefined);
         const label = (st.operation && !e.bindKey.includes(st.operation) ? `${st.operation} ${e.bindKey}` : e.bindKey) + (event ? ` · ${event}` : '');
-        const links = linksFrom(g, { type: 'egress', service, id: e.id }).filter((l) => passes(g, l, event));
+        const links = distinct(linksFrom(g, { type: 'egress', service, id: e.id }).filter((l) => passes(g, l, event)));
         if (!links.length) {
           const to = part({ id: `missing:${e.bindKey}`, label: e.bindKey, kind: 'missing' });
           push({ ...base, from: me, to, label, mode, kind: 'egress', broken: true, transport: e.transport, egress: e.id });
@@ -127,7 +129,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
       const ch = chPart(to.key);
       if (!push({ ...base, from, to: ch, label, mode, kind: 'egress', depth } as Message)) return;
       if (scope === 'intra' || seenCh.includes(to.key)) return; // intra stops at the service boundary
-      const next = linksFrom(g, to).filter((l) => passes(g, l, base.event));
+      const next = distinct(linksFrom(g, to).filter((l) => passes(g, l, base.event)));
       if (!next.length) return;
       for (const l of next) follow(ch, l.to, to.key + (base.event ? ` · ${base.event}` : ''), 'async', depth, stack, { ...base, transport: l.transport }, [...seenCh, to.key]);
       return;

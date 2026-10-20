@@ -8,6 +8,7 @@ Add a row here with every fix or feature (newest first). A row without a working
 
 | Version | Bug | What to look at | Link |
 |---|---|---|---|
+| 0.7.1 | #33 | One publish arrow to `sns:order-events`, then one fan-out hop to the shipping queue, although the topic owner and the consumer both declare that subscription | `#/services/api-gateway` → Trace a flow from POST /orders (full flow) |
 | 0.7.0 | #26 | Event page as a flow: collapse beyond 8, `*` consumer, no-handler callout, direct send + topic (one consumer node, 2 ingresses), possible producer (dashed), click a service for its panel | `#/events/account.tenant.terminated.priority10` |
 | 0.7.0 | #26 | Only a possible producer | `#/events/account.tenant.suspended` |
 | 0.7.0 | #26 | No producer (consumers still shown, footnote) | `#/events/account.tenant.restored` |
