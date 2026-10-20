@@ -42,6 +42,7 @@ export function messagePanel(m, trace, env) {
       h('dt', 'Mode'), h('dd', m.mode),
       h('dt', 'Depth'), h('dd', String(m.depth)),
       ...(m.delivery ? [h('dt', 'Delivery'), h('dd', `${m.depth}.${m.delivery}`)] : []),
+      ...(m.matched?.length ? [h('dt', 'Delivered as'), h('dd', m.matched.map((t) => eventLink(t)), h('span.xs.muted', ' the publish names no event; these types of it pass the subscription filter'))] : []),
       ...(m.deliveries ? [h('dt', 'Deliveries'), h('dd', `fans out to ${m.deliveries}`)] : []))];
 }
 

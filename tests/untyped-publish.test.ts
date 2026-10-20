@@ -50,3 +50,16 @@ test('flow counts agree with the traces of the untyped publishes', () => {
     assert.equal(counts.find((c) => c.service === svc && c.ingress === ingress)!.total, ids.length);
   }
 });
+
+test('a delivery matched through the egress events / candidates names the event on the arrow and in the message (#40)', () => {
+  const t = trace(buildIndex(sampleModel()), { service: svc, ingress: 'in.publishDeviceEvent' }, { scope: 'full' })!;
+  const billing = t.messages.filter((m) => m.delivery && (m.to === 'svc:billing-eraser' || m.target?.service === 'billing-eraser'));
+  assert.ok(billing.length >= 1);
+  for (const m of billing) {
+    assert.deepEqual(m.matched, ['account.tenant.deleted']);
+    assert.ok(m.label.includes(' · account.tenant.deleted'), m.label);
+  }
+  // a catch-all subscription says nothing about the type: no event on its arrows
+  const lake = t.messages.filter((m) => m.target?.service === 'data-lake-ingest' || m.to === 'svc:data-lake-ingest');
+  assert.ok(lake.length && lake.every((m) => !m.matched));
+});
