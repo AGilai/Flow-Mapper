@@ -8,7 +8,7 @@ import { h } from '../dom.js';
 import { renderLane } from './flow-draw.js';
 import { buildLane } from './flow-lane.js';
 import { renderIndex } from './flow-index.js';
-import { asyncTree, deliveryNumbers } from './flow-async.js';
+import { asyncTree, deliveryNumbers, knownOutside } from './flow-async.js';
 import { barMenu, participantMenu } from './flow-menu.js';
 import { subRequest } from './flow-sub.js';
 
@@ -44,7 +44,7 @@ export function createFlowRender({ trace, tree, key, ancestors = [], sticky = tr
   }
   const makeFlow = async (row, childAncestors) => {
     const t = await sh.traceFor(subRequest(row, opts));
-    return createFlowRender({ trace: t, tree: asyncTree(t.messages, row.label, tree.known), key, ancestors: childAncestors, sticky: false, depth: depth + 1 }, sh);
+    return createFlowRender({ trace: t, tree: asyncTree(t.messages, row.label, knownOutside(tree.known, row.label)), key, ancestors: childAncestors, sticky: false, depth: depth + 1 }, sh);
   };
   function drawIndex() {
     index = tree.groups.length ? renderIndex(tree, { trace, handlers, depth, key, ancestors, makeFlow,

@@ -84,6 +84,11 @@ export function asyncTree(messages, prefix = '', known = new Map()) {
   return { groups, rows, byLabel: new Map(rows.map((r) => [r.label, r])), known: own };
 }
 
+/** What a card for row `label` inherits: the enclosing numbers minus the row itself and its own descendants (the card numbers those). */
+export function knownOutside(known, label) {
+  return new Map([...known].filter(([, l]) => l !== label && !l.startsWith(label + '.')));
+}
+
 /** Counts for the heading: deliveries, distinct consumers, publishes (groups, all levels not counted). */
 export function indexStats(tree) {
   const distinct = tree.rows.filter((r) => !r.seenIn && !r.noHandler);

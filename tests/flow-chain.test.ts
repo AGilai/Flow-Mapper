@@ -11,7 +11,7 @@ import { chainOf, planChains, foldFanout, filterMarker, badgesAt, rangeLabel, ho
 // @ts-ignore
 import { buildLane, crossings } from '../web/js/views/flow-lane.js';
 // @ts-ignore
-import { asyncTree, deliveryNumbers } from '../web/js/views/flow-async.js';
+import { asyncTree, deliveryNumbers, knownOutside } from '../web/js/views/flow-async.js';
 // @ts-ignore
 import { subRequest } from '../web/js/views/flow-sub.js';
 
@@ -293,9 +293,16 @@ test('saga-controller: the shallowest delivery is the original (like the core re
   // the card of row 1.1 is traced on its own but gets the parent's numbers: eraser-b there is "seen in 2" with the tile "↩2"
   const card = tree.rows.find((r: any) => r.label === '1.1');
   const ct = trace(g, subRequest(card), { scope: 'full', maxMessages: 800 })!;
-  const ctree = asyncTree(ct.messages, card.label, tree.known);
+  const ctree = asyncTree(ct.messages, card.label, knownOutside(tree.known, card.label));
   const eraserB = ctree.rows.find((r: any) => r.service === 'saga-eraser-b');
   assert.equal(eraserB.label, '1.1.2'); assert.equal(eraserB.seenIn, '2');
   const cl = buildLane(ct.messages, { participants: ct.participants, numbers: deliveryNumbers(ctree) });
   assert.ok(cl.events.some((e: any) => e.type === 'hop' && e.end?.tiles.some((x: any) => x.text === '↩2')));
+  // the card of row 1 numbers its own rows: its 1.1 is the original, never "seen in" itself
+  const c1 = tree.rows.find((r: any) => r.label === '1');
+  const c1t = trace(g, subRequest(c1), { scope: 'full', maxMessages: 800 })!;
+  const c1tree = asyncTree(c1t.messages, '1', knownOutside(tree.known, '1'));
+  const r11 = c1tree.rows.find((r: any) => r.label === '1.1');
+  assert.equal(r11.seenIn, null); assert.ok(r11.range, 'row 1.1 is expandable in the card');
+  assert.ok(c1tree.rows.every((r: any) => r.seenIn !== r.label));
 });
