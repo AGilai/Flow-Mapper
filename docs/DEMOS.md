@@ -8,6 +8,8 @@ Add a row here with every fix or feature (newest first). A row without a working
 
 | Version | Bug | What to look at | Link |
 |---|---|---|---|
+| 0.6.3 | #32 | A function whose caller the harvester could not find: "caller: callback_passed" in the Gaps column | `#/services/orders-svc` → Functions tab, OrderService.retryCharge |
+| 0.6.3 | #30 | Handler resolution hops on an ingress ("via OrderController.create.bind"); a step's code location on the trace | `#/services/orders-svc` (POST /orders ingress), then Trace a flow from it |
 | 0.6.1 | #28 | A call through a wrapper is one egress with a "via SNSManager.publish" chip; expand it for the 2-hop chain with code links | `#/services/orders-svc` (Egress, sns:order-events) |
 | 0.6.0 | #23 | A 404 response card next to the success response; a DTO's source line (file:line, incomplete) | `#/services/orders-svc?ep=in.get` |
 | 0.5.0 | — | Topic page as a flow: summary, callout, merged disagreeing subscription, delivery grid | `#/channels/sns%3Aorder-events` |
