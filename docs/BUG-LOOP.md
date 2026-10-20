@@ -25,8 +25,9 @@ Each run is a cheap check; only when there is something to do does it start a **
    `setsid nohup data/serve.sh >/dev/null 2>&1 < /dev/null &`, check `GET /api/version`. Then post the
    agent's comment as `flow-mapper` and `PATCH {"status": "fixed", "fixedInVersion": "<version>",
    "resolution": {"type": "code", "ref": "<commit>"}}`.
-6. Relay the outcome to the maintainer in a few lines: what was fixed (version, commit), what was
-   answered or left for them, anything that failed.
+6. Refresh the demo data (`node --disable-warning=ExperimentalWarning scripts/seed.ts`, no `--bugs`) and
+   relay the outcome to the maintainer in a few lines: what was fixed (version, commit), the demo link
+   (`http://localhost:3000/#/...`), what was answered or left for them, anything that failed.
 
 ## Bug agent brief
 
@@ -62,6 +63,8 @@ Fixing:
   migrations. If the change would need a table rebuild (a changed key) or drop or rewrite data,
   stop and comment for the maintainer instead.
 - Add a test that fails before the fix; `npm test` must pass. Touch nothing unrelated.
+- Add a demo: a case in `samples/` (env `prod`) that shows the fix, and a row in `docs/DEMOS.md` with
+  its link (e.g. `#/services/orders-svc?ep=in.get`). Your report gives that link.
 - Bump the patch version in `package.json`. Commit as `Fix #<id>: …` with the line
   `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`.
 - Ship: `git fetch origin && git rebase origin/main`, run `npm test` again, `git push origin HEAD:main`.

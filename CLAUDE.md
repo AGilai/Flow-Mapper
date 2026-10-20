@@ -45,3 +45,5 @@ graph, humans use the web UI, agents use MCP.
   New or reworked pages start as a static mockup in `design/mockups/` that the maintainer approves;
   the implementer builds to it and a designer agent compares screenshots with the mockup before merge.
   `design/AUDIT.md` lists the known readability problems per page.
+- Every fix and feature ships with a demo: a case in `samples/` (env `prod`) and a row with its link in
+  `docs/DEMOS.md`. After deploying, re-seed the samples and give the maintainer the link.
