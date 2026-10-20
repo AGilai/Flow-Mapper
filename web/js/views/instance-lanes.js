@@ -62,7 +62,7 @@ export function clientPane(v, l) {
       h('div', h('h4.ri-panel-h', l.clients.length > 1 ? `Client ${i + 1} of ${l.clients.length}${cr.accessId ? ' · ' + cr.accessId : ''}` : 'How it reaches ' + v.name), kv(raw)),
       cr.mixed.length ? h('div.ri-problem', h('span.tag', '⚠ 2 drivers in one service'),
         h('p', `The service carries ${cr.mixed.map((m) => `${m.package} ${m.majors.map((x) => x + '.x').join(' and ')}`).join(', ')}${cr.lib ? ` (one inside ${cr.lib.package})` : ''}. Matters for the Valkey migration.`)) : null,
-      cr.unresolved.length ? h('p.small.muted', `Not reported: ${cr.unresolved.join(', ')}.`) : null,
+      cr.unresolved.length ? h('p.small.muted', cr.unresolved.map((u) => `${u.replace(/\./g, ' ').replace(/^./, (c) => c.toUpperCase())} not reported`).join('. ') + '.') : null,
       cr.via.length ? h('div', h('h4.ri-panel-h', 'Wrapper chain'), viaChip(cr.via)) : null);
   }) : h('p.small.muted', 'This service has not reported how it reaches the instance (no client on its resource).');
   return [

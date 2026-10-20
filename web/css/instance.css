@@ -49,7 +49,9 @@
 .ri-gh .xs { color: var(--muted); font-size: var(--fs-xs); }
 .ri-group.warn > .ri-gh { background: color-mix(in srgb, var(--warn) 12%, var(--surface)); }
 .ri-group.warn > .ri-gh .ri-name { color: var(--warn); }
-.ri-kgrid, details.ri-k > summary { display: grid; grid-template-columns: 16px minmax(230px, 2.2fr) 44px minmax(120px, 1fr) 70px 92px minmax(150px, 1.3fr); gap: 0 var(--s3); align-items: start; }
+.ri-kgrid, details.ri-k > summary { display: grid; grid-template-columns: 16px minmax(0, 2.2fr) 44px minmax(0, 1fr) 56px 76px minmax(0, 1.3fr); gap: 0 var(--s3); align-items: start; }
+details.ri-k > summary > * { min-width: 0; overflow-wrap: anywhere; }
+#keys { container-type: inline-size; }
 .ri-kgrid.ri-hd { padding: 6px var(--s4); font-size: var(--fs-xs); color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--line); }
 details.ri-k { border-top: 1px solid var(--line); }
 .ri-gh + details.ri-k { border-top: 0; }
@@ -88,7 +90,7 @@ details.ri-k.flash > summary { outline: 2px solid var(--warn); outline-offset: -
 .ri-diff { background: color-mix(in srgb, var(--warn) 22%, transparent); border: 1px solid color-mix(in srgb, var(--warn) 55%, transparent); border-radius: 3px; padding: 0 4px; }
 .ri-more { padding: var(--s3) var(--s4); display: flex; gap: var(--s3); align-items: center; font-size: var(--fs-sm); color: var(--muted); border-top: 1px solid var(--line); }
 
-@media (max-width: 760px) {
+@container (max-width: 860px) {
   .ri-kgrid.ri-hd { display: none; }
   details.ri-k > summary { grid-template-columns: 16px 1fr auto; grid-template-areas: 'ar key db' '. cmds cmds' '. ops ttl' '. rd rd'; gap: 4px var(--s2); }
   details.ri-k > summary > :nth-child(1) { display: none; }
@@ -99,6 +101,10 @@ details.ri-k.flash > summary { outline: 2px solid var(--warn); outline-offset: -
   details.ri-k > summary > :nth-child(5) { grid-area: ops; }
   details.ri-k > summary > :nth-child(6) { grid-area: ttl; text-align: right; }
   details.ri-k > summary > :nth-child(7) { grid-area: rd; }
+  details.ri-k > summary > :nth-child(5)::before { content: 'Ops/h '; color: var(--muted); font-size: var(--fs-xs); }
+  details.ri-k > summary > :nth-child(6)::before { content: 'TTL '; color: var(--muted); font-size: var(--fs-xs); }
+}
+@media (max-width: 760px) {
   .ri-detail { padding-left: var(--s4); }
   .ri-flow, .ri-claim { grid-template-columns: 1fr; }
   .ri-toolbar .input { max-width: none; }

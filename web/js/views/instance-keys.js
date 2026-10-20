@@ -54,7 +54,7 @@ export function keysSection(v) {
   function draw() {
     const d = st.data, s = d.summary;
     const inDb = st.db == null ? s.problemCount : (s.dbs.find((x) => x.db === st.db)?.problems ?? 0);
-    right.replaceChildren(h('button.btn.ghost', { type: 'button', on: { click: () => load(st.db) } }, 'Reload'));
+    right.replaceChildren(h('button.btn', { type: 'button', on: { click: () => load(st.db) } }, 'Reload'));
     hint.textContent = d.source === 'inline' ? 'from the top templates the harvester inlined (details.keys)' : `grouped by the service that writes them${d.version ? ` · push ${d.version}` : ''}`;
     problemsBtn = h('button', { type: 'button', 'aria-pressed': String(st.problems), on: { click: () => { st.problems = !st.problems; problemsBtn.setAttribute('aria-pressed', String(st.problems)); st.shown = CAP; drawList(); } } },
       'Problems', h('small', `${inDb} in ${st.db == null ? 'all dbs' : 'db' + st.db}`));
