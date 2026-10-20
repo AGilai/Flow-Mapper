@@ -5,6 +5,11 @@
 import { scanLane, subflowRanges } from './flow-scan.js';
 import { publishLabel } from './flow-lane.js';
 
+/** "1 flow", "3 flows". */
+export const flowsLabel = (n) => `${n} ${n === 1 ? 'flow' : 'flows'}`;
+/** An identifier cut into pieces that may break after - . _ / : (the DOM puts <wbr> between them). */
+export const idParts = (t) => String(t).split(/(?<=[-._/:])/);
+
 const handlerOf = (m) => m.target?.fn ?? m.label.match(/→\s*(.+)$/)?.[1] ?? 'no handler';
 
 /** "3 calls · 2 stores · publishes sns": what a flow does, from its lane messages. */

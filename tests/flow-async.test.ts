@@ -6,7 +6,7 @@ import { buildIndex } from '../core/graph-index.ts';
 import { trace } from '../core/trace.ts';
 import { sampleModel } from './helpers.ts';
 // @ts-ignore plain JS modules shared with the browser
-import { asyncTree, indexStats, groupOf, summaryOf } from '../web/js/views/flow-async.js';
+import { asyncTree, indexStats, groupOf, summaryOf, flowsLabel, idParts } from '../web/js/views/flow-async.js';
 // @ts-ignore
 import { buildLane } from '../web/js/views/flow-lane.js';
 
@@ -79,4 +79,12 @@ test('summary: calls, distinct stores, what it publishes', () => {
   const m = (kind: string, extra = {}) => ({ kind, depth: 1, from: 'svc:a', to: 'svc:a', label: 'x', ...extra });
   assert.equal(summaryOf([m('call'), m('call'), m('resource', { store: 'pg:a' }), m('resource', { store: 'pg:a' })]), '2 calls · 1 store');
   assert.equal(summaryOf([m('egress', { to: 'ch:amqp:q', transport: 'amqp' })]), '0 calls · publishes amqp');
+});
+
+test('a count of one reads "1 flow"; identifiers split after - . _ /', () => {
+  assert.equal(flowsLabel(1), '1 flow');
+  assert.equal(flowsLabel(0), '0 flows');
+  assert.equal(flowsLabel(8), '8 flows');
+  assert.deepEqual(idParts('account-lambda.erase_controller'), ['account-', 'lambda.', 'erase_', 'controller']);
+  assert.equal(idParts('plain').join(''), 'plain');
 });

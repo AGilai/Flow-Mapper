@@ -69,10 +69,10 @@ export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, o
       return g('broken', arrow(x1, x2, y0, { dashed: true, label: e.label, color: 'var(--t-broken)', cross: true }), hit(x1, x2), s('title', {}, e.msg.label));
     }
     if (e.type === 'publish') {
-      const x1 = barX(owner, 1), x2 = colX.get(e.col) - 2, cx = x2 + 10, w = Math.max(60, e.topic.length * 6.6 + 14), none = !e.flows;
+      const x1 = barX(owner, 1), x2 = colX.get(e.col) - 2, cx = x2 + 10, w = Math.min(Math.max(60, e.topic.length * 6.6 + 14), Math.max(60, width - cx - 8)), none = !e.flows;
       const bw = none ? 92 : 56 + String(e.flows).length * 7;
       return g('publish', arrow(x1, x2, y0, { label: e.label, color: colorOf(e.msg.transport) }), hit(x1, x2),
-        s('g', { class: 'chipg', style: `--mc:${colorOf(e.msg.transport)}` }, s('rect', { class: 'chip', x: cx, y: y0 - 10, width: w, height: 20, rx: 4 }), s('text', { class: 'chipt', x: cx + 7, y: y0 + 4 }, e.topic)),
+        s('g', { class: 'chipg', style: `--mc:${colorOf(e.msg.transport)}` }, s('rect', { class: 'chip', x: cx, y: y0 - 10, width: w, height: 20, rx: 4 }), s('text', { class: 'chipt', x: cx + 7, y: y0 + 4 }, clip(e.topic, Math.floor((w - 14) / 6.6)))),
         s('g', { class: `badge ${none ? 'warn' : 'async'}`, 'data-badge': r, tabindex: none ? null : 0, role: none ? null : 'link' },
           s('rect', { x: cx, y: y0 + 14, width: bw, height: 18, rx: 9 }), s('text', { x: cx + 8, y: y0 + 27 }, none ? 'no consumers' : `↓ ${e.flows} ${e.flows === 1 ? 'flow' : 'flows'}`)), s('title', {}, e.msg.label));
     }
@@ -98,7 +98,7 @@ export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, o
     b.el = r;
     return r;
   });
-  const body = s('svg', { width, height, class: 'seq-body', role: 'img', 'aria-label': `Flow with ${bars.length} calls across ${columns.length} lifelines` },
+  const body = s('svg', { width, height, class: 'seq-body', role: 'group', 'aria-label': `Flow with ${bars.length} calls across ${columns.length} lifelines` },
     drawFrames(frames, lane.altRows, strips, (r) => top[r], (r) => top[r + 1], width, GUTTER),
     columns.map((c) => s('line', { class: c.kind === 'rail' ? 'rail' : 'lifeline', x1: colX.get(c), x2: colX.get(c), y1: 0, y2: height })), rects, drawn);
 

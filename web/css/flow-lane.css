@@ -120,3 +120,19 @@
 .fi-cond { font: 12px var(--mono); color: var(--ink-2); }
 @media (max-width: 860px) { .flow-body { grid-template-columns: minmax(0, 1fr); } .fi { width: auto; max-width: none; border-left: 0; border-top: 1px solid var(--line); max-height: 55vh; } }
 .seq-body { user-select: none; }
+
+/* Index rows: the head wraps instead of squeezing the names the row is about; chips and buttons give way first. */
+.card-h { flex-wrap: wrap; padding-top: 4px; padding-bottom: 4px; row-gap: 4px; }
+.card-h .lane { flex: 1 1 320px; flex-wrap: wrap; white-space: normal; overflow: visible; overflow-wrap: anywhere; }
+.card-h .svc { overflow-wrap: anywhere; min-width: 0; }
+.tc { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.grp-h .tc { max-width: min(100%, 420px); }
+.card-h .tc { max-width: 240px; }
+.card-h .nest-chip { white-space: normal; flex: 0 1 auto; }
+.card-h .sum { margin-left: auto; }
+.fi-title, .fi .key, .fi .fn { word-break: normal; overflow-wrap: break-word; }
+.card-h .key, .grp-h .mono, .card-h .mono { word-break: normal; }
+.fi-head .grow { min-width: 0; }
+
+/* With the drill-down open the entry list steps aside, so the diagram keeps the room it needs next to the column. */
+@media (min-width: 861px) { .flows.fi-open { grid-template-columns: minmax(0, 1fr); } .flows.fi-open > .flows-list { display: none; } }

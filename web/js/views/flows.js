@@ -82,7 +82,7 @@ export async function render({ main, query }) {
   let trace, tree, index, lane;
   const scroller = h('div.seq-scroll');
   const body = h('div.flow-body', scroller);
-  const inside = createInside(body, { env: state.env, onClose: () => select(null), onStep: (m) => markArrow(m) });
+  const inside = createInside(body, { env: state.env, onOpen: () => flowsEl.classList.add('fi-open'), onClose: () => { flowsEl.classList.remove('fi-open'); select(null); }, onStep: (m) => markArrow(m) });
   const info = h('span.small.muted');
   const seg = h('div.seg', { role: 'group', 'aria-label': 'Scope' }, [['intra', 'Inside the service'], ['full', 'Full flow']].map(([id, label]) =>
     h('button', { 'aria-pressed': String(opts.scope === id), on: { click: async () => { opts.scope = id; persist(); await load(); seg.querySelectorAll('button').forEach((b, i) => b.setAttribute('aria-pressed', String(['intra', 'full'][i] === id))); } } }, label)));
@@ -92,7 +92,8 @@ export async function render({ main, query }) {
   const depth = h('select.select', { 'aria-label': 'Depth', on: { change: (e) => { opts.depth = e.target.value; persist(); draw(); } } },
     ['all', '1', '2', '3', '4', '6', '8'].map((d) => h('option', { value: d, selected: d === opts.depth }, d === 'all' ? 'All depths' : `Depth ${d}`)));
 
-  mainPane.prepend(h('div.seq-toolbar', seg, check('stores', 'Data stores'), check('queues', 'Queues and topics', 'Will add queue and topic lifelines inside the async flows (not drawn yet)'), frontierCheck, depth, h('span.spacer'),
+  // TODO: the "Queues and topics" checkbox (opts.queues) returns with part 2, when queue/topic lifelines are drawn inside sub-flows.
+  mainPane.prepend(h('div.seq-toolbar', seg, check('stores', 'Data stores'), frontierCheck, depth, h('span.spacer'),
     h('span.xs.muted', 'Double-click a bar, or right-click it, to look inside'), info), body);
 
   function persist() {

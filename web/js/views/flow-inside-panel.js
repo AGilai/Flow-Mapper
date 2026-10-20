@@ -6,14 +6,16 @@ import { api } from '../api.js';
 import { icon } from '../icons.js';
 import { href } from '../router.js';
 import { chip } from '../format.js';
+import { idParts } from './flow-async.js';
 import { insideBar } from './flow-inside.js';
 import { servicePath } from './inventory-links.js';
 
+const wrapId = (t) => idParts(t).flatMap((x, i) => (i ? [h('wbr'), x] : [x]));
 const codeLoc = (c) => (c?.file ? `${c.file}${c.line ? ':' + c.line : ''}` : null);
 const codeLink = (c) => (c?.url ? h('a.fi-code', { href: c.url, target: '_blank', rel: 'noopener noreferrer', title: c.url }, codeLoc(c) ?? 'code', ' ', icon('external')) : null);
 
-/** createInside(host, { env, onClose, onStep }) -> { open(bar, trace), close, isOpen, el } */
-export function createInside(host, { env, onClose, onStep }) {
+/** createInside(host, { env, onClose, onOpen, onStep }) -> { open(bar, trace), close, isOpen, el } */
+export function createInside(host, { env, onClose, onOpen, onStep }) {
   const el = h('aside.fi', { 'aria-label': 'Inside the service', hidden: true });
   host.append(el);
   let current = null;
@@ -40,8 +42,8 @@ export function createInside(host, { env, onClose, onStep }) {
     const from = trace.participants.find((p) => p.id === entry.from);
     const all = h('a.fi-all', { href: href(servicePath(bar.service)) }, `All functions of ${bar.service} ›`);
     fill(el,
-      h('header.fi-head', h('div.grow', h('h2', `Inside ${bar.service}`),
-        h('div.muted.small', 'Entered by ', chip(entry.transport ?? 'http'), ' ', h('span.key', entry.label.replace(/^\w+:/, '')), from?.kind === 'service' ? ` from ${from.label}` : '')),
+      h('header.fi-head', h('div.grow', h('h2.fi-title', `Inside `, ...wrapId(bar.service)),
+        h('div.muted.small', 'Entered by ', chip(entry.transport ?? 'http'), ' ', h('span.key', ...wrapId(entry.label.replace(/^\w+:/, ''))), from?.kind === 'service' ? ` from ${from.label}` : '')),
       h('button.btn.ghost', { 'aria-label': 'Close', title: 'Esc', on: { click: close } }, icon('close'))),
       h('div.fi-counts', h('span', h('b', info.counts.functions), ` ${info.counts.functions === 1 ? 'function runs' : 'functions run'}`), h('span', h('b', info.counts.internal), ' internal calls'),
         h('span', h('b', info.counts.outgoing), ' outgoing'), h('span', h('b', info.counts.stores), ` ${info.counts.stores === 1 ? 'store' : 'stores'}`), all),
@@ -50,7 +52,7 @@ export function createInside(host, { env, onClose, onStep }) {
           h('div.fi-fn-h', h('b.fn', f.fn), f.isEntry ? h('span.chip-gap', f.ingress ? `entry · ${f.ingress}` : 'entry') : null), codeLink(f.code),
           f.items.length ? h('div.fi-steps', f.items.map(block)) : h('p.muted.xs', 'No steps recorded.'))),
         h('p.muted.xs', 'Execution order. Functions this call does not reach stay on the service page. Click a step to mark its arrow.')));
-    el.hidden = false;
+    el.hidden = false; onOpen?.();
     api.service(env, bar.service).then((v) => { if (current === bar.id && !el.hidden) all.textContent = `All ${v.functions.length} functions of ${bar.service} ›`; }).catch(() => {});
   }
   function close() { if (el.hidden) return; el.hidden = true; current = null; onClose?.(); }

@@ -4,13 +4,15 @@
 
 import { h } from '../dom.js';
 import { href } from '../router.js';
-import { indexStats } from './flow-async.js';
+import { indexStats, flowsLabel, idParts } from './flow-async.js';
 import { buildLane } from './flow-lane.js';
 import { renderLane } from './flow-draw.js';
 
 const chev = (open) => h('button.chev', { 'aria-label': open ? 'Collapse flow' : 'Expand flow', 'aria-expanded': String(open) },
   h('span.chev-i', { class: open ? 'open' : '' }, '›'));
-const tc = (t, label) => h('span.tc', { class: t }, label);
+const tc = (t, label) => h('span.tc', { class: t, title: label }, label);
+/** An identifier that may wrap after - . _ / : instead of being cut. */
+const wrapId = (t) => idParts(t).flatMap((x, i) => (i ? [h('wbr'), x] : [x]));
 const chType = (key) => key.split(':')[0].replace('amqp-queue', 'amqp');
 
 /**
@@ -31,7 +33,7 @@ export function renderIndex(tree, ctx) {
     return [row.noHandler || row.seenIn ? h('span.chev-pad') : chev(open),
       h('span.layer', row.label),
       h('span.lane', tc(chType(groupOfRow(row).topic), groupOfRow(row).topic), h('i.arr', '›'), tc(chType(row.queue), row.queue), h('i.arr', '›'),
-        h('span.svc', h('b', row.service), h('span.mono', ` · ${row.handler}`))),
+        h('span.svc', h('b', wrapId(row.service)), h('span.mono', [' · ', ...wrapId(row.handler)]))),
       nested ? h('span.nest-chip', `+ ${nested} nested ${nested === 1 ? 'flow' : 'flows'} (${row.groups[0]?.rows[0]?.label ?? ''})`) : null,
       row.suspect ? h('span.chip-warn', { title: 'Same consumer reached twice by one publish. Possible harvester or config bug.' }, 'suspect') : null,
       row.noHandler ? h('span.chip-bad', 'no handler') : null];
@@ -55,7 +57,7 @@ export function renderIndex(tree, ctx) {
     const actions = row.ingress && !row.noHandler ? [
       h('button.btn.sm', { title: `${row.service} · ${row.ingress}, its own flow`, on: { click: (e) => { e.stopPropagation(); ctx.open(row, false); } } }, 'Open in tab'),
       h('button.btn.sm.ghost', { title: 'Every call this consumer makes', on: { click: (e) => { e.stopPropagation(); ctx.open(row, true); } } }, 'Full flow ▸')] : [];
-    const paint = () => { head.replaceChildren(...rowHead(row, open).filter(Boolean), h('span.sum', row.summary ? h('b', row.summary.split(' · ')[0]) : '', row.summary.includes(' · ') ? ` · ${row.summary.split(' · ').slice(1).join(' · ')}` : ''), ...actions); head.querySelector('.chev')?.addEventListener('click', (e) => { e.stopPropagation(); setOpen(!open); }); };
+    const paint = () => { const refocus = head.contains(document.activeElement) && document.activeElement.classList.contains('chev'); head.replaceChildren(...rowHead(row, open).filter(Boolean), h('span.sum', row.summary ? h('b', row.summary.split(' · ')[0]) : '', row.summary.includes(' · ') ? ` · ${row.summary.split(' · ').slice(1).join(' · ')}` : ''), ...actions); const c = head.querySelector('.chev'); c?.addEventListener('click', (e) => { e.stopPropagation(); setOpen(!open); }); if (refocus) c?.focus(); };
     function setOpen(v) {
       if (!expandable || v === open) return;
       open = v; card.classList.toggle('open', open); body.hidden = !open;
@@ -79,7 +81,7 @@ export function renderIndex(tree, ctx) {
     const el = h('div.grp', { id: `pub-${g.pub}` },
       h('div.grp-h', tc(g.transport, g.transport), h('span.mono', `${g.topic.replace(/^[^:]+:/, '')} · ${g.event}`),
         g.branch ? h('span.from', `branch ${g.branch.n}${g.branch.condition ? ` · ${g.branch.condition}` : ''}`) : null,
-        h('span.sum', g.rows.length ? (fresh ? `${g.rows.length} ${g.rows.length === 1 ? 'flow' : 'flows'}${seen ? ` · ${fresh} new, ${seen} seen before` : ''}` : `${g.rows.length} flows · all seen before`) : 'no consumers')),
+        h('span.sum', g.rows.length ? (fresh ? `${flowsLabel(g.rows.length)}${seen ? ` · ${fresh} new, ${seen} seen before` : ''}` : `${flowsLabel(g.rows.length)} · all seen before`) : 'no consumers')),
       h('div.grp-rows', g.rows.map((r) => rowEl(r, g, depth))));
     groupEls.set(g.pub, el);
     return el;
