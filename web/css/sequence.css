@@ -46,4 +46,5 @@
 .msg.leaf .label { fill: var(--ink-2); }
 .msg.from-frontier .arrow { opacity: .75; }
 .msg.gap .label { fill: var(--muted); font-style: italic; }
+.msg.possible .label { font-style: italic; }
 .seq-part.k-unresolved rect:first-child { stroke-dasharray: 4 3; fill: var(--surface-2); }

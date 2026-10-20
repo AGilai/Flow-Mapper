@@ -34,6 +34,32 @@
       "file": "erase_controller/status.py",
       "line": 12,
       "steps": []
+    },
+    {
+      "id": "publish_device_event",
+      "name": "publish_device_event",
+      "file": "erase_controller/publish.py",
+      "line": 70,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "eraseController.publishDeviceEvent"
+        }
+      ]
+    },
+    {
+      "id": "publish_unknown_event",
+      "name": "publish_unknown_event",
+      "file": "erase_controller/publish.py",
+      "line": 90,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "eraseController.publishUnknownEvent"
+        }
+      ]
     }
   ],
   "ingress": [
@@ -66,6 +92,28 @@
       "provenance": {
         "producer": "queue-scanner",
         "runId": "r1-2026-10-19"
+      }
+    },
+    {
+      "id": "in.publishDeviceEvent",
+      "bindKey": "http:POST account-lambda-erase-controller/erase/device-event",
+      "transport": "http",
+      "handler": "publish_device_event",
+      "entryPoint": true,
+      "details": {
+        "method": "POST",
+        "path": "/erase/device-event"
+      }
+    },
+    {
+      "id": "in.publishUnknownEvent",
+      "bindKey": "http:POST account-lambda-erase-controller/erase/unknown-event",
+      "transport": "http",
+      "handler": "publish_unknown_event",
+      "entryPoint": true,
+      "details": {
+        "method": "POST",
+        "path": "/erase/unknown-event"
       }
     }
   ],
@@ -160,6 +208,46 @@
           "function": "notify_billing"
         }
       ]
+    },
+    {
+      "id": "eraseController.publishDeviceEvent",
+      "bindKey": "sns:production-event-bus-sns",
+      "transport": "sns",
+      "mode": "async",
+      "delivery": "multicast",
+      "unresolved": [
+        {
+          "what": "event",
+          "reason": "runtime_event_name",
+          "detail": "event_name",
+          "candidates": [
+            "account.tenant.deleted",
+            "agent.device.loggedOut"
+          ]
+        }
+      ],
+      "source": {
+        "file": "erase_controller/publish.py",
+        "line": 80
+      }
+    },
+    {
+      "id": "eraseController.publishUnknownEvent",
+      "bindKey": "sns:production-event-bus-sns",
+      "transport": "sns",
+      "mode": "async",
+      "delivery": "multicast",
+      "unresolved": [
+        {
+          "what": "event",
+          "reason": "runtime_event_name",
+          "detail": "event_name from request body"
+        }
+      ],
+      "source": {
+        "file": "erase_controller/publish.py",
+        "line": 100
+      }
     }
   ],
   "resources": []

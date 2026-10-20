@@ -122,8 +122,8 @@ function rail(msgs, rows, i) {
 function message(m, i, x, y, railLabel) {
   const x1 = x.get(m.from), x2 = x.get(m.to);
   const color = m.broken ? 'var(--t-broken)' : m.gap ? 'var(--muted)' : m.transport ? `var(${T_VAR[m.transport] ?? '--ink-2'})` : 'var(--ink-2)';
-  const dashed = m.broken || m.gap || m.mode === 'async' || m.kind === 'frontier';
-  const g = s('g', { class: `msg${m.broken ? ' broken' : ''}${m.gap ? ' gap' : ''}${m.kind === 'frontier' ? ' frontier' : ''}${m.kind === 'leaf' ? ' leaf' : ''}${m.origin === 'frontier' ? ' from-frontier' : ''}`, 'data-i': i, tabindex: 0, role: 'button', style: `--mc: ${color}` });
+  const dashed = m.broken || m.gap || m.mode === 'async' || m.possible || m.kind === 'frontier';
+  const g = s('g', { class: `msg${m.broken ? ' broken' : ''}${m.gap ? ' gap' : ''}${m.possible ? ' possible' : ''}${m.kind === 'frontier' ? ' frontier' : ''}${m.kind === 'leaf' ? ' leaf' : ''}${m.origin === 'frontier' ? ' from-frontier' : ''}`, 'data-i': i, tabindex: 0, role: 'button', style: `--mc: ${color}` });
   // depth rail in the gutter
   g.append(s('text', { x: 8, y: y + 4, class: 'depth' }, railLabel));
   const tags = [m.loop ? 'loop' : null, m.condition ? `if ${m.condition}` : null, m.cycle ? 'cycle' : null].filter(Boolean).join(', ');

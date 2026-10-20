@@ -8,13 +8,14 @@
 //                kept as `internal` self-messages so the UI can show or hide them.
 // Events: a publish step that names an event type (or an egress with only one) carries that type
 // along; subscriptions that filter it out are not followed, and a consumer runs the handler for
-// that type. A trace can also start from one event type at an ingress.
+// that type. A publish that names no event uses the egress's events and candidates: only matching subscriptions
+// are followed (candidate-only ones are `possible`); with none known it stops at the topic (#40). A trace can also start from one event type at an ingress.
 
 import type { GraphIndex } from './graph-index.ts';
 import { linksFrom, sid } from './graph-index.ts';
 import { isLeaf } from './types.ts';
 import type { Mode, Ref } from './types.ts';
-import { handlerFor, passes } from './events.ts';
+import { handlerFor, passes, passesUntyped, untypedEventSet, type EventSet } from './events.ts';
 import { codeLink, sourceLink, type SourceLink } from './endpoint-info.ts';
 import { refKey, unresolvedTarget } from './resolve.ts';
 import type { StepField, Unresolved } from './types.ts';
@@ -31,6 +32,7 @@ export interface Message {
   depth: number; internal?: boolean; broken?: boolean; cycle?: boolean;
   condition?: string; loop?: boolean; note?: string; fn?: string; service?: string; transport?: string;
   event?: string; unhandled?: boolean;
+  possible?: boolean;                                        // delivered only if the publisher's event is one of its candidates (the step names no event)
   seq?: number;                                              // step number in the calling function
   target?: { service: string; ingress: string; fn?: string }; // ingress reached, and the handler that runs
   store?: string;                                            // data-store key, for resource steps
@@ -153,11 +155,14 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
         const mode = st.mode ?? e.mode ?? 'sync';
         const event = st.event ?? (e.events?.length === 1 ? e.events[0] : undefined);
         const label = (st.operation && !e.bindKey.includes(st.operation) ? `${st.operation} ${e.bindKey}` : e.bindKey) + (event ? ` · ${event}` : '');
-        const all = distinct(linksFrom(g, { type: 'egress', service, id: e.id }).filter((l) => passes(g, l, event)));
+        // No single event: the types the egress may send (its events, then the candidates of its unresolved event) decide which subscriptions are followed (#40).
+        const set = event ? undefined : untypedEventSet(e);
+        const ok = (l: Parameters<typeof passes>[1]) => (set ? passesUntyped(g, l, set) !== false : passes(g, l, event));
+        const all = distinct(linksFrom(g, { type: 'egress', service, id: e.id }).filter(ok));
         // A send to a queue that an ingress consumes matches that ingress by key and also goes through the queue: draw the queue path only.
         const viaChannel = new Set<string>();
         const reach = (r: Ref, seen: string[]) => {
-          for (const l of distinct(linksFrom(g, r).filter((x) => passes(g, x, event)))) {
+          for (const l of distinct(linksFrom(g, r).filter(ok))) {
             if (l.to.type === 'ingress') viaChannel.add(refKey(l.to));
             else if (!seen.includes(l.to.key)) reach(l.to, [...seen, l.to.key]);
           }
@@ -169,26 +174,35 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
           push({ ...base, from: me, to, label, mode, kind: 'egress', broken: true, transport: e.transport, egress: e.id });
           continue;
         }
-        for (const l of links) follow(me, l.to, label, mode, depth, stack, { ...base, transport: e.transport, event, egress: e.id });
+        for (const l of links) follow(me, l.to, label, mode, depth, stack, { ...base, transport: e.transport, event, egress: e.id }, [], set);
       }
     }
   };
 
   // Deliver from `from` to a link target, expanding channels and crossing into other services.
-  const follow = (from: string, to: Ref, label: string, mode: Mode, depth: number, stack: string[], base: Partial<Message>, seenCh: string[] = []) => {
+  const follow = (from: string, to: Ref, label: string, mode: Mode, depth: number, stack: string[], base: Partial<Message>, seenCh: string[] = [], set?: EventSet) => {
     if (truncated) return;
     if (to.type === 'channel') {
       const ch = chPart(to.key);
       if (!push({ ...base, from, to: ch, label, mode, kind: 'egress', depth } as Message)) return;
       if (scope === 'intra' || seenCh.includes(to.key)) return; // intra stops at the service boundary
-      const next = distinct(linksFrom(g, to).filter((l) => passes(g, l, base.event)));
+      const subs = distinct(linksFrom(g, to));
+      const next = set ? subs.filter((l) => passesUntyped(g, l, set) !== false) : subs.filter((l) => passes(g, l, base.event));
+      if (set && !set.known.length && !set.candidates.length && next.length < subs.length) {
+        // Event fully unknown: subscriptions with a filter cannot be told apart, so the publish stops at the topic for them.
+        const gap: Unresolved = { what: 'event', reason: 'event_unknown', detail: 'the publisher could not name the event type' };
+        push({ ...base, from: ch, to: part({ id: 'gap:event_unknown', label: 'unresolved: event_unknown', kind: 'unresolved' }), label: 'event unknown: not delivered', mode: 'async', kind: 'deliver', depth, gap } as Message);
+      }
       if (!next.length) return;
       // A publish that reaches several links is a fan-out: the publish carries a group id, each delivery an ordinal.
       const group = next.length > 1 ? `m${messages.length - 1}` : undefined;
       if (group) Object.assign(messages[messages.length - 1], { group, deliveries: next.length });
       const { deliveries: _n, ...inherited } = base; // a delivery's ordinal rides along to its queue -> consumer message; an inner fan-out replaces it
-      next.forEach((l, k) => follow(ch, l.to, to.key + (base.event ? ` · ${base.event}` : ''), 'async', depth, stack,
-        { ...inherited, transport: l.transport, ...(group ? { group, delivery: k + 1 } : {}) }, [...seenCh, to.key]));
+      next.forEach((l, k) => {
+        const possible = !!inherited.possible || (!!set && passesUntyped(g, l, set) === 'possible');
+        follow(ch, l.to, to.key + (base.event ? ` · ${base.event}` : '') + (possible ? ' · possible' : ''), 'async', depth, stack,
+          { ...inherited, transport: l.transport, ...(possible ? { possible } : {}), ...(group ? { group, delivery: k + 1 } : {}) }, [...seenCh, to.key], set);
+      });
       return;
     }
     if (to.type !== 'ingress') return;

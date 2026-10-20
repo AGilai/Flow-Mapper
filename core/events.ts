@@ -44,6 +44,34 @@ export function passes(g: GraphIndex, l: Link, event: string | undefined): boole
   return !b?.events || b.events === '*' || filterAllows(b.events, event);
 }
 
+/**
+ * The event types an egress step may send when the step does not name one and the egress does not
+ * have exactly one: its own `events` (known) and the candidates of its unresolved event (possible).
+ * Both empty means the event is fully unknown.
+ */
+export interface EventSet { known: string[]; candidates: string[] }
+export function untypedEventSet(e: { events?: string[]; unresolved?: { what: string; candidates?: string[] }[] }): EventSet {
+  const known = e.events ?? [];
+  const candidates = (e.unresolved ?? []).filter((u) => u.what === 'event').flatMap((u) => u.candidates ?? []).filter((t) => !known.includes(t));
+  return { known, candidates };
+}
+
+/**
+ * `passes` for a publish whose event type is not known exactly. A hop that is not a filtered
+ * subscription lets it through ('sure'); a filtered one only when it allows one of the set's types:
+ * 'sure' for a known type, 'possible' when only a candidate matches, false otherwise (also for an
+ * empty set). Traces and flow counts use this; `passes` itself still lets everything through for an
+ * undefined event, which is right for callers that have no event to test (eventReport etc.).
+ */
+export function passesUntyped(g: GraphIndex, l: Link, set: EventSet): false | 'sure' | 'possible' {
+  if (!l.binding) return 'sure';
+  const b = g.bindings.get(sid(l.binding.service, l.binding.id));
+  if (!b?.events || b.events === '*') return 'sure';
+  const ev = b.events;
+  if (set.known.some((t) => filterAllows(ev, t))) return 'sure';
+  return set.candidates.some((t) => filterAllows(ev, t)) ? 'possible' : false;
+}
+
 /** The handler for an event type at a consumer: the most specific matching entry; the ingress handler when it lists none. */
 export function handlerFor(i: Ingress, event: string): string | null {
   if (!i.events?.length) return i.handler;

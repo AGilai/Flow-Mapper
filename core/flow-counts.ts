@@ -12,7 +12,7 @@
 import type { GraphIndex } from './graph-index.ts';
 import { linksFrom, sid } from './graph-index.ts';
 import type { Ref } from './types.ts';
-import { handlerFor, passes } from './events.ts';
+import { handlerFor, passes, passesUntyped, untypedEventSet } from './events.ts';
 import { unresolvedTarget } from './resolve.ts';
 import { entryPoints } from './trace.ts';
 
@@ -47,11 +47,13 @@ function componentSets(g: GraphIndex): Map<string, string[]> {
       if (st.type === 'resource') { node.local.add('r:' + (g.resources.get(sid(f.service, st.target))?.bindKey ?? sid(f.service, st.target))); continue; }
       if (!out) continue;
       const event = st.event ?? (out.events?.length === 1 ? out.events[0] : undefined);
+      const set = event ? undefined : untypedEventSet(out); // same rule as the trace (#40): an untyped publish follows only subscriptions that match its events or candidates
+      const ok = (l: Parameters<typeof passes>[1]) => (set ? passesUntyped(g, l, set) !== false : passes(g, l, event));
       const walk = (r: Ref, seenCh: string[]) => {
         if (r.type === 'channel') {
           node.local.add('c:' + r.key);
           if (seenCh.includes(r.key)) return;
-          for (const l of linksFrom(g, r)) if (passes(g, l, event)) walk(l.to, [...seenCh, r.key]);
+          for (const l of linksFrom(g, r)) if (ok(l)) walk(l.to, [...seenCh, r.key]);
         } else if (r.type === 'ingress') {
           const i = g.ingress.get(sid(r.service, r.id));
           if (!i) return;
@@ -60,7 +62,7 @@ function componentSets(g: GraphIndex): Map<string, string[]> {
           if (handler && g.fns.get(sid(i.service, handler))) node.next.push(sid(i.service, handler));
         }
       };
-      for (const l of linksFrom(g, { type: 'egress', service: f.service, id: out.id })) if (passes(g, l, event)) walk(l.to, []);
+      for (const l of linksFrom(g, { type: 'egress', service: f.service, id: out.id })) if (ok(l)) walk(l.to, []);
     }
     return n;
   };

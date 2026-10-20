@@ -8,6 +8,8 @@ Add a row here with every fix or feature (newest first). A row without a working
 
 | Version | Bug | What to look at | Link |
 |---|---|---|---|
+| 0.8.10 | #40 | A publish with no event type no longer fans out to every subscriber: only subscriptions matching the egress's events or candidates are followed (candidate-only ones dashed, italic, "possible"); unfiltered subscriptions still get it | `#/flows?service=account-lambda-erase-controller&ingress=in.publishDeviceEvent` |
+| 0.8.10 | #40 | Event fully unknown: filtered subscriptions are not reached, one "event unknown: not delivered" message under the topic | `#/flows?service=account-lambda-erase-controller&ingress=in.publishUnknownEvent` |
 | 0.8.9 | #39 | Frontier markers do not count toward maxMessages: the folded "frontier: 8 steps" marker still shows and nothing else is cut (test builds a trace with many folded functions) | `#/flows?service=orders-svc&ingress=in.remove` |
 | 0.8.7 | #35 | Publish and delivery on one row (single queue, and each leg of a fan-out); lifelines run producer > topic > queue > consumer; delivery labels are clipped to their arrow (hover for the full text) | `#/flows?service=account-lambda-erase-controller&ingress=in.notifyBilling` and `#/flows?service=api-gateway&ingress=in.createOrder` |
 | 0.8.7 | #26 | "Show all 11" on the producer fan-in now expands all producers ("Show fewer" collapses) | `#/events/domain.tenant.erase.status.change` |

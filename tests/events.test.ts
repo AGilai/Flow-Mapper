@@ -52,7 +52,7 @@ test('link health reports every event problem', async () => {
   const h = (await app.call('GET', '/api/envs/prod/health')).body;
   assert.deepEqual(h.items.unhandledEvents.map((x: any) => [x.service, x.event]), [['crm-sync', 'account.tenant.terminated.priority10'], ['crm-sync', 'account.tenant.terminated.priority10'], ['shipping-svc', 'OrderCancelled']]); // crm-sync: the account demo domain, once per call site's egress
   assert.deepEqual(h.items.undeliveredEvents.map((x: any) => [x.service, x.event]), [['billing-api', 'account.invoice.voided'], ['users-svc', 'ProfileViewed']]);
-  assert.deepEqual(h.items.neverArrives.map((x: any) => x.event).sort(), ['StockRecount', 'account.tenant.created', 'account.tenant.created', 'account.tenant.deleted', 'account.tenant.restored', 'account.tenant.restored', 'account.tenant.suspended', 'account.tenant.suspended', 'account.tenant.updated']); // plus the account demo domain's lifecycle events nobody harvested publishes
+  assert.deepEqual(h.items.neverArrives.map((x: any) => x.event).sort(), ['StockRecount', 'account.tenant.created', 'account.tenant.created', 'account.tenant.restored', 'account.tenant.restored', 'account.tenant.suspended', 'account.tenant.suspended', 'account.tenant.updated']); // plus the account demo domain's lifecycle events nobody harvested publishes (not account.tenant.deleted: the #40 demo publish lists it as a candidate)
   assert.deepEqual(h.items.declaredNotSeen.map((x: any) => [x.event, x.producer]), [['PaymentCaptured', 'payments-svc']]);
   assert.equal(h.items.subscriptionConflicts.length, 1);
   const c = h.items.subscriptionConflicts[0];
