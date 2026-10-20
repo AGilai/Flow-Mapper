@@ -8,6 +8,12 @@ Add a row here with every fix or feature (newest first). A row without a working
 
 | Version | Bug | What to look at | Link |
 |---|---|---|---|
+| 0.7.0 | #26 | Event page as a flow: collapse beyond 8, `*` consumer, no-handler callout, direct send + topic (one consumer node, 2 ingresses), possible producer (dashed), click a service for its panel | `#/events/account.tenant.terminated.priority10` |
+| 0.7.0 | #26 | Only a possible producer | `#/events/account.tenant.suspended` |
+| 0.7.0 | #26 | No producer (consumers still shown, footnote) | `#/events/account.tenant.restored` |
+| 0.7.0 | #26 | Unresolved target (dashed grey row) | `#/events/account.invoice.voided` |
+| 0.7.0 | #26, #11 | Every subscription filters it out: no consumer drawn; filtered queues stay in the API/MCP | `#/events/ProfileViewed` |
+| 0.7.0 | #11 | `!` exclusion shown as "all except …" on a subscription | `#/channels/sns%3Aproduction-event-bus-sns` |
 | 0.6.3 | #32 | A function whose caller the harvester could not find: "caller: callback_passed" in the Gaps column | `#/services/orders-svc` → Functions tab, OrderService.retryCharge |
 | 0.6.3 | #30 | Handler resolution hops on an ingress ("via OrderController.create.bind"); a step's code location on the trace | `#/services/orders-svc` (POST /orders ingress), then Trace a flow from it |
 | 0.6.1 | #28 | A call through a wrapper is one egress with a "via SNSManager.publish" chip; expand it for the 2-hop chain with code links | `#/services/orders-svc` (Egress, sns:order-events) |
