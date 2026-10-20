@@ -31,8 +31,12 @@ graph, humans use the web UI, agents use MCP.
   `npm run db:install -- --force` there without a backup; refresh samples with
   `node --disable-warning=ExperimentalWarning scripts/seed.ts` (no `--bugs`).
 - Restart the server by stopping the process whose command line is exactly
-  `node --disable-warning=ExperimentalWarning server/main.ts` (`pgrep -f -x`; a loose pattern
-  matches your own shell), then `setsid nohup data/serve.sh &`. Its output goes to `data/server.log`.
+  `node --disable-warning=ExperimentalWarning server/main.ts --live-3000` (`pgrep -f -x`; a loose
+  pattern matches your own shell), then `setsid nohup data/serve.sh &`. Its output goes to
+  `data/server.log`. The `--live-3000` marker (ignored by the server) is what tells the live server
+  apart from scratch servers, which run the same command without it.
+- Scratch servers: stop them only by the pid you got from `$!` when you started them. Never by
+  command line or `pgrep`: that also matches the live server (it took :3000 down on 2026-10-20).
 - Bugs from harvesters are handled by `docs/BUG-LOOP.md`. CI (`.github/workflows/test.yml`) runs
   the tests on every push.
 

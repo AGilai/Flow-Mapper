@@ -21,7 +21,7 @@ Each run is a cheap check; only when there is something to do does it start a **
    one is running; leave the rest for the next run.
 5. When it reports a pushed fix, deploy and close it: `git -C /home/ubuntu/Flow-Mapper pull --ff-only`
    (not a fast-forward: stop and tell the maintainer), stop the process whose command line is exactly
-   `node --disable-warning=ExperimentalWarning server/main.ts` (`pgrep -f -x`), start
+   `node --disable-warning=ExperimentalWarning server/main.ts --live-3000` (`pgrep -f -x`), start
    `setsid nohup data/serve.sh >/dev/null 2>&1 < /dev/null &`, check `GET /api/version`. Then post the
    agent's comment as `flow-mapper` and `PATCH {"status": "fixed", "fixedInVersion": "<version>",
    "resolution": {"type": "code", "ref": "<commit>"}}`.
