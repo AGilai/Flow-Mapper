@@ -46,17 +46,25 @@ export interface StoreView extends StoreSummary {
   details: Record<string, unknown>; uses: StoreUse[]; entryPoints: EntryHit[]; siblings: StoreSummary[];
 }
 
-const usesOf = (g: GraphIndex, r: Resource) => g.model.functions
+export const usesOf = (g: GraphIndex, r: Resource) => g.model.functions
   .filter((f) => f.service === r.service)
   .map((f) => ({ f, steps: f.steps.filter((s) => s.type === 'resource' && s.target === r.id) }))
   .filter((x) => x.steps.length);
 
-const merge = (a: Access, b: Access): Access => (a === b ? a : a === 'unknown' ? b : b === 'unknown' ? a : a === 'read_write' || b === 'read_write' ? 'read_write' : 'write');
+export const mergeAccess = (a: Access, b: Access): Access => (a === b ? a : a === 'unknown' ? b : b === 'unknown' ? a : a === 'read_write' || b === 'read_write' ? 'read_write' : 'write');
+
+/** A Redis resource whose key names the instance and no key pattern (`redis:cache-main`), declared by an infra service or never used by a step:
+ *  it defines the instance (#29), it is not a store, and no service "connects" through it. */
+export function instanceDef(g: GraphIndex, r: Resource): boolean {
+  if (r.kind !== 'redis' || !r.bindKey || r.bindKey.includes('/') || unresolvedTarget(r)) return false;
+  return g.services.get(r.service)?.kind === 'infra' || !usesOf(g, r).length;
+}
 
 /** Every store with who reads and who writes it. */
 export function stores(g: GraphIndex): StoreSummary[] {
   const by = new Map<string, StoreSummary>();
   for (const r of g.model.resources) {
+    if (instanceDef(g, r)) continue;
     const key = storeKey(r);
     const s = by.get(key) ?? { key, name: r.bindKey && !unresolvedTarget(r) ? leafName(key) : r.name, kind: r.kind, group: groupOf(key), services: [], readers: [], writers: [], used: false, keyUnknown: unresolvedTarget(r)?.reason };
     s.instanceUnknown ??= instanceUnknown(r);
@@ -86,7 +94,7 @@ export function storeView(g: GraphIndex, key: string): StoreView | null {
       fn: f.id, name: f.name, source: sourceLink(svc, f),
       operations: steps.map((s) => ({ operation: s.operation ?? 'use', access: accessOf(s), ...(s.fields?.length ? { fields: s.fields } : {}) })),
     }));
-    const access = functions.flatMap((f) => f.operations).reduce<Access>((a, o) => merge(a, o.access), 'unknown');
+    const access = functions.flatMap((f) => f.operations).reduce<Access>((a, o) => mergeAccess(a, o.access), 'unknown');
     return { service: r.service, resource: r.id, access, functions, declaredAt: codeLink(svc, r.source), verified: r.provenance?.verified ?? null };
   });
   return {

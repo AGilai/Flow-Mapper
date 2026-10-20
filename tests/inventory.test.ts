@@ -32,7 +32,9 @@ test('inventory lists every kind of object', async () => {
   assert.equal(of('service').length, 49, 'infra is not a service');
   assert.ok(of('service').some((x) => x.id === 'catalog-svc' && x.connections.startsWith('50 endpoints')));
   assert.ok(of('channel').some((x) => x.id === 'eventbridge:acme-bus' && x.kind === 'eventbridge-bus'));
-  assert.ok(of('store').some((x) => x.id === 'redis:cache-main/order:{id}' && x.group === 'redis:cache-main' && x.problems === 1));
+  assert.ok(of('store').some((x) => x.id === 'redis:cache-main' && x.kind === 'redis' && x.instance === 'cluster' && x.label === 'cache-main'), 'a Redis instance is one row');
+  assert.ok(!of('store').some((x) => x.id.startsWith('redis:cache-main/')), 'its key patterns are not rows of their own');
+  assert.ok(of('store').some((x) => x.id === 'orders-svc:sessionCache'), 'a Redis resource with no key stays a store row');
   assert.ok(of('event').some((x) => x.id === 'OrderCancelled' && x.problems === 1));
 });
 

@@ -7,6 +7,8 @@ import * as store from '../store/snapshots.ts';
 import * as bugs from '../store/bugs.ts';
 import * as dtos from '../store/dtos.ts';
 import * as desc from '../store/descriptions.ts';
+import * as keys from '../store/keys.ts';
+import { dbParam } from '../routes/instances.ts';
 import { endpointInfo } from '../../core/endpoint-info.ts';
 import { eventTypes, eventView } from '../../core/events.ts';
 import { eventFlow } from '../../core/event-flow.ts';
@@ -146,7 +148,7 @@ export const TOOLS: Tool[] = [
   {
     name: 'inventory', description: 'Every object: services, topics/queues/buses, data stores and event types, with connections and problem counts. Filter by type and text.',
     inputSchema: obj({ env, type: { enum: ['service', 'channel', 'store', 'event'] }, query: { type: 'string' } }),
-    run: (c, a) => inventory(c.graph(envOf(a)), dtos.listEventDtos(c.db, envOf(a)).map((d) => d.event)).filter((x) => (!a.type || x.type === a.type) && (!a.query || `${x.id} ${x.kind} ${x.team ?? ''}`.toLowerCase().includes(String(a.query).toLowerCase()))),
+    run: (c, a) => inventory(c.graph(envOf(a)), dtos.listEventDtos(c.db, envOf(a)).map((d) => d.event), keys.allSummaries(c.db, envOf(a))).filter((x) => (!a.type || x.type === a.type) && (!a.query || `${x.id} ${x.kind} ${x.team ?? ''}`.toLowerCase().includes(String(a.query).toLowerCase()))),
   },
   {
     name: 'get_store', description: "A data store by bind key (e.g. mongodb:orders-db/orders, redis:cache-main/order:{id}): readers and writers with the functions and operations (access read | write | read_write; `fields` per operation: role filter|projection|update|sort, path, operator, inDdl), entry points whose flows reach it, other keys in its cluster, `instanceUnknown` {reason, detail} when the DB instance id is not known yet (the key is unaffected), and its schemas by source.",
@@ -160,6 +162,11 @@ export const TOOLS: Tool[] = [
     name: 'list_clients', description: "How services reach data stores (and non-store targets): one row per client site with access mode, the service's own driver, the wrapper lib and the driver bundled in it, and the `via` wrapper chain; rows carry `mixed` when a service has two majors of one driver package. Also `counts`: services per driver and major. Filters (all optional): store (bind key or its cluster), service, driver (package; matches the service's own driver or the lib's), driverMajor (e.g. '4'), lib, accessMode, via (substring of a wrapper function, file or lib). 'Services on ioredis 4.x' = driver=ioredis driverMajor=4.",
     inputSchema: obj({ env, store: { type: 'string' }, service: { type: 'string' }, driver: { type: 'string' }, driverMajor: { type: 'string' }, lib: { type: 'string' }, accessMode: { enum: ['direct_driver', 'shared_lib', 'self_implemented_wrapper', 'third_party_lib'] }, via: { type: 'string' } }),
     run: (c, a) => listClients(c.graph(envOf(a)), { store: a.store, service: a.service, driver: a.driver, driverMajor: a.driverMajor === undefined ? undefined : String(a.driverMajor), lib: a.lib, accessMode: a.accessMode, via: a.via }),
+  },
+  {
+    name: 'get_resource_keys', description: "The key templates of one Redis instance (#29), grouped by the service that writes them: groups 'No harvested writer' and 'Shared: written by N services' first, then one per owner. Each row: keyTemplate, dbIndex, commands (writeCommands are the ones that change the key), opsPerHour, ttl {seconds, values per writer, disagree}, writers and readers (service, access, commands, opsPerHour, ttlSeconds), `problem` {kind no-writer | ttl-disagree, why, follows} and `flows`: the entry points whose flow runs a step that names the key (details.keyTemplate), with the function chain. `summary` counts every db. `resourceId` is the instance key (redis:cache-main), the id of the infra resource that defines it, or the bare name. Optional dbIndex, query (substring) and problems (only problem rows). The keys are the pushed list (PUT /api/envs/:env/resources/:id/keys), else the interim inline details.keys.",
+    inputSchema: obj({ env, resourceId: { type: 'string' }, dbIndex: { type: 'integer', minimum: 0 }, query: { type: 'string' }, problems: { type: 'boolean' } }, ['resourceId']),
+    run: (c, a) => keys.readKeys(c.db, c.graph(envOf(a)), envOf(a), a.resourceId, { db: dbParam(a.dbIndex == null ? null : String(a.dbIndex)), q: a.query, problems: !!a.problems }),
   },
   {
     name: 'get_channel', description: 'A topic, queue, exchange or event bus by key: publishers, subscriptions/rules with event filters, consumers, event types passing through, problems, and `flow`: merged subscription rows (declarations that disagree are named), a grid of event type x destination (handled, filtered, arrives with no handler) and a one-sentence summary with callouts.',

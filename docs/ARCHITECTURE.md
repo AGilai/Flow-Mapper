@@ -44,6 +44,8 @@ UI / agent ── GET /api/envs/:env/... ─► server/routes/queries.ts ─► 
 | `inventory.ts` | every object in one list for the Inventory page |
 | `stores.ts` | data stores: keys and groups, read/write access, store view |
 | `clients.ts` | how services reach stores (`client`): rows, driver majors, mixed-major flag, counts |
+| `keys.ts` | Redis key templates (#29): validation of what a harvester sends, rows per template and db, groups by owner (shared, no harvested writer), TTL disagreement, summary |
+| `instances.ts` | Redis instances: the group of a bind key (`redis:cache-main`), who connects (access, client, databases), key flows from steps with `details.keyTemplate`, the keys view |
 | `reach.ts` | reverse reachability: entry points whose flows run a function |
 | `channels.ts` | topic/queue/bus view: publishers, subscriptions, consumers, events |
 | `hub.ts` | the compact hub views: edge markers, per-queue outcomes, problem-first order and fold, the event page's consumers |
@@ -67,6 +69,7 @@ UI / agent ── GET /api/envs/:env/... ─► server/routes/queries.ts ─► 
 | `store/schemas.ts` | data-store schemas per source |
 | `store/dtos.ts` | request/response DTOs per ingress endpoint (a response per status) and event DTOs, with provenance |
 | `store/descriptions.ts` | flow descriptions: human record (REST) and AI record (MCP `set_description`), outdated flag against the current trace |
+| `store/keys.ts` | key templates pushed per Redis instance (full replace, versioned; migration 004) |
 | `store/bugs.ts` | bug workflow, attachments, log scanning |
 | `graph-cache.ts` | per-environment GraphIndex cache, health history |
 | `routes/*.ts` | REST endpoints by area |
@@ -85,6 +88,7 @@ tables render one page at a time; long lists are capped with "type to narrow"; t
 publishes at a rail and lists the async work in an index of expandable cards (`flow-async.js`, `flow-index.js`);
 flow tabs (0.13.0): `flows.js` owns the open tabs and mirrors them in the URL (`tabs=` stable keys, `tab=`); `flow-tabs-state.js` is the pure part (keys, URL encode/decode, open/close/reopen order, "distinct" selection, keyboard map), `flow-tab-data.js` loads a tab by key (a sub-flow tab is one row of its origin's async tree, no request), `flow-tab-view.js` is one tab's DOM (breadcrumb, diagram, async list; kept alive while hidden, which is the tab memory), `flow-tabs.js` the strip and overflow list, `flow-tabs-anim.js` the 280 ms open animation, `flow-list.js` the entry-point list;
 `flow-mw.js` holds the pure rules for ingress middleware segments (fold over 3, row spans), drawn on top of the bar by `flow-draw.js`; `flow-inside.js` and `flow-inside-panel.js` are the drill-down (middleware chain first). flow descriptions (0.14.0): `flow-desc.js` (store shared by every spot, the Human/AI two-box block, the one-line variant, the Human note editor), `flow-desc-dialog.js` (the Generate dialog, two copyable prompts), `flow-desc-tip.js` (bar hover popover); `flowRoot(key)` in `flow-tabs-state.js` says which flow a tab's descriptions belong to. sub-flows as full flows (0.15.0): `flow-render.js` draws one flow (lane + its own async list) and is used by a tab and by every expanded card; a card traces its consumer lazily from its ingress with the delivered event (`GET /trace?ingress=&event=`, so no API change), shares traces by request key through `createTabData().traceFor`, and `flow-sub.js` holds the pure helpers (caller lifeline, request from a row, cache key). Data-store stubs and deep levels can be hidden.
+Redis instance page (0.16.0): `views/instance.js` (head, verdict), `instance-lanes.js` (who connects, client panel), `instance-keys.js` (the on-request list) and `instance-key-row.js` (one row and its in-place detail); `css/instance.css`. Inventory shows a Redis cluster/instance as one row (`instance` on the item) that opens `#/instances/<key>`.
 
 Design tokens are in `css/tokens.css`. Transport colours (http, sns, sqs, amqp, data store,
 broken) mean the same thing in every view.

@@ -5,7 +5,9 @@ import type { GraphIndex } from './graph-index.ts';
 import { health } from './health.ts';
 import { channelSummaries } from './channels.ts';
 import { eventReport, eventTypes } from './events.ts';
-import { stores } from './stores.ts';
+import { groupOf, stores } from './stores.ts';
+import { instances } from './instances.ts';
+import type { KeySummary } from './keys.ts';
 
 export type InventoryType = 'service' | 'channel' | 'store' | 'event';
 export interface InventoryItem {
@@ -13,12 +15,14 @@ export interface InventoryItem {
   group?: string; team?: string; connections: string; size: number; problems: number;
   /** Event types only: whether the event type has a message DTO. */
   hasDto?: boolean;
+  /** Data stores: this row is a Redis cluster or instance (its page is /instances/<id>), not one key pattern. `kind` stays 'redis'. */
+  instance?: 'cluster' | 'instance';
 }
 
 const n = (x: number, one: string, many = `${one}s`) => `${x} ${x === 1 ? one : many}`;
 
-/** `dtoEvents`: the event types that have a message DTO (sets `hasDto` on event items). */
-export function inventory(g: GraphIndex, dtoEvents: Iterable<string> = []): InventoryItem[] {
+/** `dtoEvents`: the event types that have a message DTO (sets `hasDto` on event items). `keySummaries`: the stored key summary per Redis instance key. */
+export function inventory(g: GraphIndex, dtoEvents: Iterable<string> = [], keySummaries: Map<string, KeySummary> = new Map()): InventoryItem[] {
   const withDto = new Set(dtoEvents);
   const h = health(g);
   const ev = eventReport(g);
@@ -42,11 +46,24 @@ export function inventory(g: GraphIndex, dtoEvents: Iterable<string> = []): Inve
   }
   const multi = new Set(h.items.multipleWriters.map((x) => x.key));
   const unused = new Set(h.items.unusedStores.map((x) => x.key));
-  for (const s of stores(g)) {
+  const inst = instances(g, keySummaries);
+  const instKeys = new Set(inst.map((i) => i.key));
+  const storeProblems = (s: { key: string }) => (multi.has(s.key) ? 1 : 0) + (unused.has(s.key) ? 1 : 0);
+  const all = stores(g);
+  for (const i of inst) {
+    const members = all.filter((s) => s.kind === 'redis' && !s.keyUnknown && groupOf(s.key) === i.key);
+    const parts = [n(i.services.length, 'service'), i.databases ? n(i.databases, 'db') : null, i.templates ? n(i.templates, 'key template') : null].filter(Boolean);
+    out.push({
+      type: 'store', id: i.key, label: i.name, kind: 'redis', instance: i.topology, team: i.team,
+      connections: parts.join(' · '), size: i.services.length, problems: i.templates ? i.problems : members.reduce((x, s) => x + storeProblems(s), 0), // key problems when keys are known; they cover the shared-writer case the store checks flag
+    });
+  }
+  for (const s of all) {
+    if (s.kind === 'redis' && !s.keyUnknown && instKeys.has(groupOf(s.key))) continue;
     out.push({
       type: 'store', id: s.key, label: s.name, kind: s.kind, group: s.group,
       connections: `${n(s.readers.length, 'reader')}, ${n(s.writers.length, 'writer')}`, size: s.services.length,
-      problems: (multi.has(s.key) ? 1 : 0) + (unused.has(s.key) ? 1 : 0),
+      problems: storeProblems(s),
     });
   }
   for (const t of eventTypes(g)) {

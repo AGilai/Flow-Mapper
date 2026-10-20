@@ -24,7 +24,10 @@
           "seq": 1,
           "type": "resource",
           "target": "cache",
-          "operation": "GET user:{id}"
+          "operation": "GET user:{id}",
+          "details": {
+            "keyTemplate": "user:{id}"
+          }
         },
         {
           "seq": 2,
@@ -108,7 +111,10 @@
           "version": "5.3.2",
           "versionSource": "lockfile"
         },
-        "lib": null
+        "lib": null,
+        "databases": [
+          0
+        ]
       }
     },
     {
@@ -143,7 +149,10 @@
             "version": "4.27.6",
             "versionSource": "lockfile"
           }
-        }
+        },
+        "databases": [
+          1
+        ]
       }
     }
   ],

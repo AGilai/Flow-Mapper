@@ -55,7 +55,10 @@
           "seq": 1,
           "type": "resource",
           "target": "cache",
-          "operation": "GET risk:{customer}"
+          "operation": "GET risk:{customer}",
+          "details": {
+            "keyTemplate": "risk:{customer}"
+          }
         },
         {
           "seq": 2,
@@ -195,7 +198,13 @@
             "line": 21,
             "kind": "wrapper"
           }
+        ],
+        "databases": [
+          1
         ]
+      },
+      "details": {
+        "access": "read"
       }
     }
   ]

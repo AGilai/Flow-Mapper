@@ -13,6 +13,8 @@ import { impact, suggestPriority } from '../core/impact.js';
 import { endpointInfo } from '../core/endpoint-info.js';
 import { inventory } from '../core/inventory.js';
 import { listClients, storeWithClients } from '../core/clients.js';
+import { instanceView, keysView, resolveInstance } from '../core/instances.js';
+import { keySummary } from '../core/keys.js';
 import { channelView } from '../core/channels.js';
 import { eventView } from '../core/events.js';
 import { eventFlow } from '../core/event-flow.js';
@@ -56,7 +58,15 @@ export const api = {
   },
   entryPoints: async (env) => entryPoints(g(env)),
   flowCounts: async (env) => flowCounts(g(env)),
-  inventory: async (env) => inventory(g(env), (data.eventDtos?.[env] ?? []).map((d) => d.event)),
+  inventory: async (env) => inventory(g(env), (data.eventDtos?.[env] ?? []).map((d) => d.event), new Map((data.keys?.[env] ?? []).map((k) => [k.instance, keySummary(k.entries)]))),
+  instance: async (env, id) => {
+    const key = resolveInstance(g(env), id), k = (data.keys?.[env] ?? []).find((x) => x.instance === key);
+    return (key && instanceView(g(env), key, k?.entries ?? [], k?.meta ?? null)) ?? fail(`Redis instance '${id}' not found`);
+  },
+  instanceKeys: async (env, id, f = {}) => {
+    const key = resolveInstance(g(env), id), k = (data.keys?.[env] ?? []).find((x) => x.instance === key);
+    return (key && keysView(g(env), key, k?.entries ?? [], k?.meta ?? null, { db: f.db === '' || f.db == null ? undefined : Number(f.db), q: f.q, problems: !!f.problems })) ?? fail(`Redis instance '${id}' not found`);
+  },
   clients: async (env, f = {}) => listClients(g(env), f),
   store: async (env, key) => ({ ...(storeWithClients(g(env), key) ?? fail(`data store '${key}' not found`)), schemas: (data.schemas?.[env] ?? []).filter((s) => s.key === key) }),
   channel: async (env, key) => channelView(g(env), key) ?? fail(`channel '${key}' not found`),

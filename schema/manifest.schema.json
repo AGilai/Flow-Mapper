@@ -108,6 +108,7 @@
       "properties": {
         "accessMode": { "enum": ["direct_driver", "shared_lib", "self_implemented_wrapper", "third_party_lib"] },
         "accessId": { "type": "string", "description": "Stable id of the client site, e.g. orders-svc/src/redis.ts:12." },
+        "databases": { "type": "array", "items": { "type": "integer", "minimum": 0 }, "uniqueItems": true, "description": "Redis: the database indexes this client selects (db0, db1…). Shown on the instance page next to the client." },
         "driver": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/driverRef" }], "description": "The service's own driver." },
         "lib": {
           "description": "The wrapper library and the driver it bundles; null or omitted for direct_driver.",
@@ -211,6 +212,7 @@
             }
           }
         },
+        "details": { "type": "object", "additionalProperties": true, "description": "Free-form step details. On a `resource` step of a Redis instance (#29): `keyTemplate` (the key template the call touches, e.g. session:{tenantId}:{userId}), optional `dbIndex` and `ttlSeconds` (the TTL this call sets). With keyTemplate, the instance page lists the flows that write the key." },
         "origin": { "enum": ["path", "frontier"], "default": "path", "description": "'frontier': part of a call tree that reaches no sink. Traces fold frontier steps into one marker per function and do not count them toward maxMessages unless asked to expand them. Default 'path': as before." },
         "kind": { "enum": ["leaf"], "description": "'leaf': a step that ends the call tree and has no target (db_access, external_pkg…); say what it is in `operation` and `note`. A `call` step with no target but an `operation` or `note` is a leaf too. Not an unresolved gap." }
       }
@@ -297,7 +299,7 @@
         "unresolved": { "$ref": "#/$defs/unresolved" },
         "bindKey": { "$ref": "#/$defs/bindKey", "description": "Shared key so services using the same store are grouped: {kind}:{cluster or db}/{collection, table or key pattern}, e.g. mongodb:orders-db/orders, redis:cache-main/order:{id}. The part before '/' groups keys of one cluster." },
         "client": { "$ref": "#/$defs/client" },
-        "details": { "$ref": "#/$defs/details" },
+        "details": { "$ref": "#/$defs/details", "description": "Free-form. Redis (#29): on a service's resource, `access` (read | write | read_write: what the service does through this connection; else derived from its steps) and the interim `keys` (top N key templates: [{keyTemplate, dbIndex, commands, access, opsPerHour, ttlSeconds}]) and `lazy` {kind: 'keys', ref}; on the infra resource that defines the instance (bindKey redis:<name>, no key pattern): `engineVersion`, `nodes`, `topology` (cluster | standalone), `databases`." },
         "source": { "$ref": "#/$defs/source" },
         "provenance": { "$ref": "#/$defs/provenance" }
       }

@@ -314,7 +314,10 @@
           "seq": 2,
           "type": "resource",
           "target": "cache",
-          "operation": "GET"
+          "operation": "GET",
+          "details": {
+            "keyTemplate": "product:{id}:availability"
+          }
         },
         {
           "seq": 3,
@@ -1552,7 +1555,8 @@
       "name": "product:{id}:availability",
       "bindKey": "redis:cache-main/product:{id}:availability",
       "details": {
-        "ttlSeconds": 60
+        "ttlSeconds": 60,
+        "access": "read"
       }
     },
     {
@@ -1576,7 +1580,11 @@
             "version": "4.27.6",
             "versionSource": "lockfile"
           }
-        }
+        },
+        "databases": [
+          0,
+          1
+        ]
       },
       "unresolved": [
         {

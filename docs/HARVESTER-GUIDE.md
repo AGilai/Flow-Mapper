@@ -284,6 +284,27 @@ the service's resource points at it by `bindKey` and keeps carrying `client`; no
 - The store page lists the clients; Inventory has a driver facet; MCP `list_clients` and
   `GET /api/envs/:env/clients` filter by store, service, driver, major, lib, access mode and via.
 
+## Redis instances and their keys
+
+**Instance.** The infra harvester defines each cluster or server as a resource whose `bindKey` is `redis:<name>` (no key pattern): `{"id": "cache-main", "kind": "redis", "name": "cache-main", "bindKey": "redis:cache-main", "details": {"engineVersion": "7.0.7", "nodes": 2, "topology": "cluster", "databases": 3}, "source": {...}, "provenance": {...}}`. Services point at it with the pattern keys they already send (`redis:cache-main/order:{id}`); the instance page lists them as the services that connect.
+
+**Per service resource:** `client` as above, plus `client.databases: [0, 1]` (db indexes it selects) and, when you know it, `details.access` (`read`, `write` or `read_write`; otherwise it is derived from the steps).
+
+**Per resource step** (cheap, and it makes "which flows write this key" work): `"details": {"keyTemplate": "session:{tenantId}:{userId}", "ttlSeconds": 1800}` on a `type: resource` step (`dbIndex` too if known).
+
+**Keys, per instance, after the manifests** (optional, full replace each time):
+
+```
+PUT /api/envs/prod/resources/redis%3Acache-main/keys
+{ "producer": "redis-key-harvester",
+  "keys": [
+    { "keyTemplate": "order:{id}", "dbIndex": 1, "service": "orders-svc", "access": "read_write",
+      "commands": ["GET", "SET", "DEL"], "opsPerHour": 21000, "ttlSeconds": 3600 },
+    { "keyTemplate": "order:{id}", "dbIndex": 1, "service": "catalog-svc", "commands": ["GET"] } ] }
+```
+
+One entry per service, template and db. `ttlSeconds` is the TTL that service sets; leave it out when unknown. `opsPerHour` is optional: send a measured rate, not a call-site count (say so in `producer`). Do not repeat a shared key under each writer: send one entry per writing service and the page shows it once under "Shared". A bad entry rejects the whole push (400 names the entries). Send `version` (above the last) if you want stale pushes refused. Until you push, the page reads an inline `details.keys` (top N) on the instance's resources; `details.lazy = {"kind": "keys", "ref": "cache-main"}` is kept.
+
 ## Bind keys
 
 Both sides must produce **exactly** the same string. Normalise before you emit: method in capitals,

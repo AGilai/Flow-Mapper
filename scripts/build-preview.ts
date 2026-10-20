@@ -14,6 +14,7 @@ import * as bugs from '../server/store/bugs.ts';
 import * as dtos from '../server/store/dtos.ts';
 import * as schemas from '../server/store/schemas.ts';
 import * as descriptions from '../server/store/descriptions.ts';
+import * as keys from '../server/store/keys.ts';
 import { stores } from '../core/stores.ts';
 import { generateMock } from './mock/generate.ts';
 import { seedBugs } from './mock/bugs.ts';
@@ -32,6 +33,7 @@ for (const env of store.listEnvs(ctx.db)) ctx.changed(env);
 seedBugs(ctx, 'prod');
 for (const f of read(join(samples, 'dtos'))) dtos.loadDtos(ctx.db, f.env, f.dtos);
 for (const f of read(join(samples, 'descriptions'))) descriptions.loadDescriptions(ctx.db, ctx.graph(f.env), f.env, f.descriptions);
+for (const f of read(join(samples, 'keys'))) for (const i of f.instances) keys.putKeys(ctx.db, ctx.graph(f.env), f.env, i.instance, { keys: i.keys, producer: i.producer });
 for (const f of read(join(samples, 'schemas'))) {
   const keys = new Set(stores(ctx.graph(f.env)).map((s) => s.key));
   schemas.loadSchemas(ctx.db, f.env, f.schemas, (k) => keys.has(k));
@@ -43,6 +45,7 @@ const data = {
   dtos: Object.fromEntries(store.listEnvs(ctx.db).map((env) => [env, dtos.listDtos(ctx.db, env)])),
   eventDtos: Object.fromEntries(store.listEnvs(ctx.db).map((env) => [env, dtos.listEventDtos(ctx.db, env)])),
   descriptions: Object.fromEntries(store.listEnvs(ctx.db).map((env) => [env, descriptions.allRows(ctx.db, env)])),
+  keys: Object.fromEntries(store.listEnvs(ctx.db).map((env) => [env, keys.allForPreview(ctx.db, env)])),
   schemas: Object.fromEntries(store.listEnvs(ctx.db).map((env) => [env, schemas.listSchemas(ctx.db, env)])),
   bugs: bugs.listBugs(ctx.db, {}, ctx.appVersion).map((b) => {
     const full = bugs.getBug(ctx.db, b.id, ctx.appVersion);

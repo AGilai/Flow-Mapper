@@ -11,7 +11,7 @@ import { pageHead } from '../components/page.js';
 import { jsonView } from '../components/json-view.js';
 import { stepFields } from '../components/step-fields.js';
 import { box, codeLink, empty, fig, problems } from './detail-parts.js';
-import { serviceLink, storeLink } from './inventory-links.js';
+import { instancePath, serviceLink, storeLink } from './inventory-links.js';
 import { majorOf } from '../../core/clients.js';
 import { clientLine, clientsTable } from '../components/clients-table.js';
 import { titled } from '../components/object-icon.js';
@@ -35,6 +35,7 @@ export async function render({ main, params }) {
   main.append(
     pageHead(titled('store', v.kind, v.name), [`${v.kind} in ${v.group}`, v.clients.length === 1 ? ` · ${clientLine(v.clients[0])}` : ''].join(''),
       h('a.btn', { href: href('/system', { stores: 1, sel: `res:${v.key}` }) }, 'Show on map'),
+      v.kind === 'redis' && !v.keyUnknown && v.group.startsWith('redis:') ? h('a.btn', { href: href(instancePath(v.group)) }, `Open ${v.group.slice(6)}`) : null,
       h('a.btn', { href: href('/inventory', { type: `store:${v.kind}` }) }, `All ${v.kind} stores`)),
     h('div.content', h('div.page-grid',
       h('div.figures', fig(v.services.length, 'Services'), fig(v.readers.length, 'Readers'), fig(v.writers.length, 'Writers', v.writers.length > 1),

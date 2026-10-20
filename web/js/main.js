@@ -13,6 +13,7 @@ route('/system', () => import('./views/system.js'));
 route('/inventory', () => import('./views/inventory.js'));
 route('/services', () => import('./views/inventory.js'));
 route('/stores/:key', () => import('./views/store.js'));
+route('/instances/:key', () => import('./views/instance.js'));
 route('/channels/:key', () => import('./views/channel.js'));
 route('/events/:type', () => import('./views/event.js'));
 route('/services/:name', () => import('./views/service.js'));

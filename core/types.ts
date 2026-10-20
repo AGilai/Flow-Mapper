@@ -55,6 +55,8 @@ export interface Step {
   access?: 'read' | 'write' | 'read_write';
   /** For a resource step: fields the call touches (names only). */
   fields?: StepField[];
+  /** Free-form. On a resource step of a Redis instance: `keyTemplate` (the key it touches, #29), `dbIndex`, `ttlSeconds`. */
+  details?: Details;
   unresolved?: Unresolved[];
   /** Where the call is made (file, line, col). */
   source?: Source;
@@ -87,7 +89,7 @@ export interface DriverRef { package: string; version?: string; versionSource?: 
 export interface LibRef extends DriverRef { kind?: 'in_house' | 'third_party'; driver?: DriverRef | null }
 export type AccessMode = 'direct_driver' | 'shared_lib' | 'self_implemented_wrapper' | 'third_party_lib';
 /** How a service reaches a data store (on a resource) or a non-store target (on an egress). Missing values go in `unresolved` (what 'client'). */
-export interface ClientInfo { accessMode?: AccessMode; accessId?: string; driver?: DriverRef | null; lib?: LibRef | null; via?: ViaHop[] }
+export interface ClientInfo { accessMode?: AccessMode; accessId?: string; /** Redis: the database indexes this client selects. */ databases?: number[]; driver?: DriverRef | null; lib?: LibRef | null; via?: ViaHop[] }
 export interface CallSite { file: string; line?: number; function?: string; via?: ViaHop[] }
 export interface Egress {
   service: string; id: string; bindKey: string; transport: Transport;

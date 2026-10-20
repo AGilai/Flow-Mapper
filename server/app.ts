@@ -15,6 +15,7 @@ import { registerBugs } from './routes/bugs.ts';
 import { registerDtos } from './routes/dtos.ts';
 import { registerDescriptions } from './routes/descriptions.ts';
 import { registerInventory } from './routes/inventory.ts';
+import { registerInstances } from './routes/instances.ts';
 import { registerMcpHttp } from './mcp/http.ts';
 
 export const APP_VERSION: string = JSON.parse(readFileSync(join(import.meta.dirname, '../package.json'), 'utf8')).version;
@@ -40,6 +41,7 @@ export function createApp(opts: AppOptions): { server: Server; ctx: Ctx } {
   registerDtos(router, ctx);
   registerDescriptions(router, ctx);
   registerInventory(router, ctx);
+  registerInstances(router, ctx);
   registerMcpHttp(router, ctx);
 
   const server = createServer(async (req, res) => {

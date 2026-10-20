@@ -30,7 +30,10 @@
           "type": "resource",
           "target": "orderCache",
           "operation": "DEL order:{id}",
-          "note": "invalidates the cached order"
+          "note": "invalidates the cached order",
+          "details": {
+            "keyTemplate": "order:{id}"
+          }
         }
       ]
     },
@@ -141,6 +144,9 @@
             "line": 112,
             "kind": "wrapper"
           }
+        ],
+        "databases": [
+          1
         ]
       }
     }

@@ -9,7 +9,7 @@
     "repo": "github.com/acme/infra",
     "description": "Topics, queues and exchanges declared in IaC"
   },
-  "version": 5,
+  "version": 6,
   "harvestedAt": "2026-10-19T08:00:00Z",
   "commit": "5e03a58",
   "channels": [
@@ -116,6 +116,50 @@
         "producer": "iac-scanner",
         "runId": "l1-2026-10-19",
         "verified": "match"
+      }
+    }
+  ],
+  "resources": [
+    {
+      "id": "cache-main",
+      "kind": "redis",
+      "name": "cache-main",
+      "bindKey": "redis:cache-main",
+      "details": {
+        "engineVersion": "7.0.7",
+        "nodes": 2,
+        "topology": "cluster",
+        "databases": 3
+      },
+      "source": {
+        "file": "infra/cache/cache-main.tf",
+        "line": 12
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-19",
+        "verified": "match"
+      }
+    },
+    {
+      "id": "auth-cache",
+      "kind": "redis",
+      "name": "auth-cache",
+      "bindKey": "redis:auth-cache",
+      "details": {
+        "engineVersion": "6.2.14",
+        "nodes": 1,
+        "topology": "standalone",
+        "databases": 1
+      },
+      "source": {
+        "file": "infra/cache/auth-cache.tf",
+        "line": 3
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-19",
+        "verified": "code-only"
       }
     }
   ]

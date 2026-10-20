@@ -3,7 +3,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 // @ts-ignore plain browser module
-import { filterText, egressGroupLabel } from '../web/js/format.js';
+import { filterText, egressGroupLabel, ttlText, opsText } from '../web/js/format.js';
+
+test('TTL and ops/h read the way people say them', () => {
+  assert.deepEqual([45, 60, 900, 1800, 3600, 86400, 100, 1500].map(ttlText), ['45 s', '60 s', '15 min', '30 min', '1 h', '24 h', '100 s', '25 min']);
+  assert.deepEqual([310, 4200, 220000, null].map(opsText), ['310', '4.2k', '220k', '']);
+});
 
 test('filterText renders exclusions as "all except"', () => {
   assert.equal(filterText('*'), 'all events');

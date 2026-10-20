@@ -19,6 +19,8 @@ const DB = { mongodb: 'MongoDB', redis: 'Redis', dynamodb: 'DynamoDB', postgres:
 const DB_ORDER = Object.keys(DB);
 /** Type filter values: '', service, channel, event, or `store:<kind>` for one database type. */
 const matches = (x, t) => !t || (t.startsWith('store:') ? x.type === 'store' && x.kind === t.slice(6) : x.type === t);
+/** Redis clusters and instances say which; other stores say their database. */
+const kindLabel = (x) => (x.type !== 'store' ? x.kind : x.instance ? `${DB[x.kind] ?? x.kind} ${x.instance}` : DB[x.kind] ?? x.kind);
 const TYPE_LABEL = { service: 'Service', channel: 'Channel', store: 'Data store', event: 'Event type' };
 
 export async function render({ main, query }) {
@@ -35,7 +37,7 @@ export async function render({ main, query }) {
     columns: [
       { key: 'label', label: 'Name', render: (x) => h('div.name-cell', objectIcon(x.type, x.kind, 22), h('div.stack', { style: { gap: 0 } }, h('b', { class: x.type === 'service' ? '' : 'key' }, x.label), x.group && x.group !== x.id ? h('span.xs.muted', x.group) : null)) },
       { key: 'type', label: 'Type', render: (x) => h('span.small', TYPE_LABEL[x.type]) },
-      { key: 'kind', label: 'Kind', render: (x) => h('span.pill', x.type === 'store' ? DB[x.kind] ?? x.kind : x.kind) },
+      { key: 'kind', label: 'Kind', render: (x) => h('span.pill.kind-pill', x.type === 'store' ? objectIcon('store', x.kind, 14) : null, kindLabel(x)) },
       { key: 'team', label: 'Team', render: (x) => h('span.small.muted', x.team ?? '') },
       { key: 'size', label: 'Connections', render: (x) => h('span.small', x.connections) },
       { key: 'hasDto', label: 'Message DTO', sort: (x) => (x.type === 'event' ? (x.hasDto ? 1 : 0) : null),

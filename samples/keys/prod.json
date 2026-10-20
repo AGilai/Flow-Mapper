@@ -1,0 +1,38 @@
+{
+  "env": "prod",
+  "instances": [
+    {
+      "instance": "redis:cache-main",
+      "producer": "redis-key-harvester",
+      "keys": [
+        { "keyTemplate": "user:{id}", "dbIndex": 0, "service": "users-svc", "access": "read_write", "commands": ["GET", "SET", "EXPIRE"], "opsPerHour": 12000, "ttlSeconds": 1200 },
+        { "keyTemplate": "user:{id}", "dbIndex": 0, "service": "orders-svc", "access": "read", "commands": ["GET"], "opsPerHour": 3000 },
+        { "keyTemplate": "risk:{customer}", "dbIndex": 0, "service": "users-svc", "access": "write", "commands": ["SET", "EXPIRE"], "opsPerHour": 900, "ttlSeconds": 600 },
+        { "keyTemplate": "risk:{customer}", "dbIndex": 0, "service": "payments-svc", "access": "read", "commands": ["GET"], "opsPerHour": 7400 },
+        { "keyTemplate": "product:{id}:availability", "dbIndex": 0, "service": "catalog-svc", "access": "read", "commands": ["GET", "TTL"], "opsPerHour": 18000 },
+
+        { "keyTemplate": "order:{id}", "dbIndex": 1, "service": "orders-svc", "access": "read_write", "commands": ["GET", "SET", "DEL"], "opsPerHour": 21000, "ttlSeconds": 3600 },
+        { "keyTemplate": "order:{id}", "dbIndex": 1, "service": "inventory-svc", "access": "write", "commands": ["SET"], "opsPerHour": 2600, "ttlSeconds": 300 },
+        { "keyTemplate": "order:{id}", "dbIndex": 1, "service": "shipping-svc", "access": "write", "commands": ["DEL"], "opsPerHour": 1900 },
+        { "keyTemplate": "order:{id}", "dbIndex": 1, "service": "catalog-svc", "access": "read", "commands": ["GET"], "opsPerHour": 4100 },
+        { "keyTemplate": "order:{id}", "dbIndex": 1, "service": "payments-svc", "access": "read", "commands": ["GET"], "opsPerHour": 3300 },
+        { "keyTemplate": "refs:{id}", "dbIndex": 1, "service": "orders-svc", "access": "read_write", "commands": ["GET", "SET"], "opsPerHour": 1100, "ttlSeconds": 900 },
+        { "keyTemplate": "addons:{id}", "dbIndex": 1, "service": "orders-svc", "access": "write", "commands": ["SET"], "opsPerHour": 800, "ttlSeconds": 600 },
+
+        { "keyTemplate": "session:{token}", "dbIndex": 2, "service": "users-svc", "access": "read_write", "commands": ["SET", "EXPIRE", "DEL", "GET"], "opsPerHour": 38000, "ttlSeconds": 3600 },
+        { "keyTemplate": "session:{token}", "dbIndex": 2, "service": "payments-svc", "access": "read", "commands": ["GET"], "opsPerHour": 9000 },
+        { "keyTemplate": "session:revoked:{jti}", "dbIndex": 2, "service": "users-svc", "access": "write", "commands": ["SET"], "opsPerHour": 190, "ttlSeconds": 86400 },
+        { "keyTemplate": "session:revoked:{jti}", "dbIndex": 2, "service": "catalog-svc", "access": "read", "commands": ["EXISTS"], "opsPerHour": 41000 },
+        { "keyTemplate": "lock:{resource}", "dbIndex": 2, "service": "shipping-svc", "access": "read_write", "commands": ["SET", "DEL", "EXISTS"], "opsPerHour": 300, "ttlSeconds": 30 }
+      ]
+    },
+    {
+      "instance": "redis:auth-cache",
+      "producer": "redis-key-harvester",
+      "keys": [
+        { "keyTemplate": "session:{token}", "dbIndex": 0, "service": "auth-svc", "access": "read", "commands": ["GET"], "opsPerHour": 52000 },
+        { "keyTemplate": "rl:{key}", "dbIndex": 0, "service": "reports-api", "access": "read_write", "commands": ["INCR", "EXPIRE"], "opsPerHour": 14000, "ttlSeconds": 60 }
+      ]
+    }
+  ]
+}

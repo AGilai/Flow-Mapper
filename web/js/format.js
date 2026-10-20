@@ -5,6 +5,16 @@ import { h } from './dom.js';
 export const pct = (x) => (x == null ? '—' : `${Math.round(x * 100)}%`);
 export const num = (x) => (x ?? 0).toLocaleString('en-US');
 
+/** A TTL in seconds the way people say it: 45 s, 15 min, 1 h, 24 h; seconds when it does not divide evenly (1500 s = 25 min, 100 s). */
+export function ttlText(s) {
+  if (s == null) return '';
+  if (s >= 3600 && s % 3600 === 0) return `${s / 3600} h`;
+  if (s >= 120 && s % 60 === 0) return `${s / 60} min`;
+  return `${s} s`;
+}
+/** Operations per hour, short: 310, 4.2k, 220k. */
+export const opsText = (n) => (n == null ? '' : n >= 100000 ? `${Math.round(n / 1000)}k` : n >= 1000 ? `${+(n / 1000).toFixed(1)}k` : String(Math.round(n)));
+
 export function ago(iso) {
   if (!iso) return '';
   const s = (Date.now() - Date.parse(iso)) / 1000;

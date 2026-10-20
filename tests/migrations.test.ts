@@ -41,7 +41,7 @@ test('an old database is upgraded in place: data kept, backup written', () => {
   console.log = log;
 
   const applied = (db.prepare('SELECT name FROM schema_migrations ORDER BY name').all() as { name: string }[]).map((r) => r.name);
-  assert.deepEqual(applied, ['001_init.sql', '002_dto_status_meta.sql', '003_descriptions.sql']);
+  assert.deepEqual(applied, ['001_init.sql', '002_dto_status_meta.sql', '003_descriptions.sql', '004_resource_keys.sql']);
   const rows = db.prepare('SELECT role, status, content, meta FROM endpoint_dtos ORDER BY role').all() as any[];
   assert.deepEqual(rows.map((r) => [r.role, r.status, r.content, r.meta]), [['request', '', '{"a":1}', null], ['response', '', '{"b":2}', null]]);
   assert.deepEqual({ ...(db.prepare('SELECT content, meta FROM event_dtos').get() as any) }, { content: '{"c":3}', meta: null });
@@ -87,7 +87,7 @@ test('a fresh database gets every migration and no backup', () => {
   const db = openDb(path);
   console.log = log;
   const names = (db.prepare('SELECT name FROM schema_migrations ORDER BY name').all() as { name: string }[]).map((r) => r.name);
-  assert.deepEqual(names, ['001_init.sql', '002_dto_status_meta.sql', '003_descriptions.sql']);
+  assert.deepEqual(names, ['001_init.sql', '002_dto_status_meta.sql', '003_descriptions.sql', '004_resource_keys.sql']);
   assert.equal(count(db, "SELECT count(*) AS n FROM pragma_table_info('event_dtos') WHERE name = 'meta'"), 1);
   db.close();
   assert.deepEqual(logs, []);
@@ -117,10 +117,26 @@ test('concurrent openers of an old database all succeed and the backup stays pre
   const results = await Promise.all([run(), run(), run()]);
   for (const r of results) assert.equal(r.code, 0, r.err);
   const db = new DatabaseSync(path);
-  assert.equal(count(db, 'SELECT count(*) AS n FROM schema_migrations'), 3);
+  assert.equal(count(db, 'SELECT count(*) AS n FROM schema_migrations'), 4);
   assert.equal(count(db, 'SELECT count(*) AS n FROM endpoint_dtos'), 2);
   db.close();
   const b = new DatabaseSync(`${path}.pre-002.bak`, { readOnly: true });
   assert.equal(count(b, "SELECT count(*) AS n FROM pragma_table_info('endpoint_dtos') WHERE name = 'status'"), 0);
   b.close();
+});
+
+test('004 adds the Redis key tables to an old database without touching its rows (0.16.0)', () => {
+  const path = join(dir(), 'old.db');
+  oldDb(path);
+  const log = console.log; console.log = () => {};
+  const db = openDb(path);
+  console.log = log;
+  assert.equal(count(db, 'SELECT count(*) AS n FROM resource_keys'), 0);
+  assert.equal(count(db, 'SELECT count(*) AS n FROM resource_keys_meta'), 0);
+  assert.equal(count(db, 'SELECT count(*) AS n FROM bugs'), 1, 'existing rows are kept');
+  db.prepare("INSERT INTO resource_keys VALUES ('prod', 'redis:c', 0, 'k:{id}', 'svc', 'write', '[\"SET\"]', NULL, 60)").run();
+  assert.throws(() => db.prepare("INSERT INTO resource_keys VALUES ('prod', 'redis:c', 0, 'k2', 'svc', 'rw', '[]', NULL, NULL)").run(), 'access is checked');
+  assert.throws(() => db.prepare("INSERT INTO resource_keys VALUES ('prod', 'redis:c', 0, 'k:{id}', 'svc', 'read', '[]', NULL, NULL)").run(), 'one row per env, instance, db, template and service');
+  assert.ok(existsSync(`${path}.pre-002.bak`), 'the backup is taken before the first pending migration');
+  db.close();
 });
