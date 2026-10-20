@@ -81,7 +81,7 @@ export function eventFlowBlock(flow, { type, open }) {
             lanes.put(pn, C.prod, start + i);
           } else {
             lanes.put(h('div.lane-stub.col', h('span', plural(it.more, 'more producer')),
-              h('button.btn.ghost', { type: 'button', on: { click: () => { expanded = true; draw(); } } }, `Show all ${b.groups.length}`)), C.prod, start + i);
+              h('button.btn.ghost', { type: 'button', on: { click: () => { expanded = true; render(); } } }, `Show all ${b.groups.length}`)), C.prod, start + i);
           }
           const c = connector(`merge ${i === 0 ? 'first' : i === items.length - 1 ? 'last' : 'mid'}`, tt, it.g?.drawnPossible);
           if (it.g?.drawnPossible) { c.classList.add('has-tip'); c.append(tipFor({ group: it.g }, type)); }
@@ -143,7 +143,7 @@ export function eventFlowBlock(flow, { type, open }) {
           lanes.put(s.row.queue ? channelNode(s.row.queue, { sub: via }) : h('div.lane-pass', { 'data-t': 'sns' }, h('span', 'no queue')), C.queue, row);
         } else if (s.stub) {
           span(C.queue, C.cons, h('div.lane-stub', h('span', `${plural(s.stub, 'more queue')} from ${s.t.target.topic?.name ?? 'direct sends'}, handled`),
-            h('button.btn.ghost', { type: 'button', on: { click: () => { expanded = true; draw(); } } }, `Show all ${s.t.rows.length} queues`)));
+            h('button.btn.ghost', { type: 'button', on: { click: () => { expanded = true; render(); } } }, `Show all ${s.t.rows.length} queues`)));
         } else if (s.none) {
           const t = s.t?.target;
           span(C.queue, C.cons, h('div.lane-node.empty', t?.topic
