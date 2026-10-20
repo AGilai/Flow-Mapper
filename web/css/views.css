@@ -35,7 +35,7 @@
 .sb-group > summary::-webkit-details-marker { display: none; }
 .sb-group > summary::after { content: '+'; margin-left: auto; color: var(--muted); font-weight: 400; }
 .sb-group[open] > summary::after { content: '−'; }
-.sb-row { display: grid; grid-template-columns: 1fr auto; gap: 2px var(--s2); padding: var(--s2) var(--s3); border-top: 1px solid var(--line); font-size: var(--fs-sm); }
+.sb-row { display: grid; grid-template-columns: minmax(40%, 1fr) minmax(0, auto); gap: 2px var(--s2); padding: var(--s2) var(--s3); border-top: 1px solid var(--line); font-size: var(--fs-sm); }
 .sb-row.bad { background: color-mix(in srgb, var(--bad) 6%, transparent); }
 .sb-row .peers { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: var(--fs-xs); color: var(--muted); }
 .sb-left .sb-row { border-right: 3px solid var(--c, transparent); }
@@ -72,7 +72,11 @@
 .log-view { max-height: 320px; overflow: auto; background: var(--surface-2); border-radius: var(--r-sm); padding: var(--s3); font: 12px/1.55 var(--mono); white-space: pre; }
 
 /* ---- endpoint info ---- */
-.sb-actions { display: inline-flex; align-items: center; gap: var(--s1); }
+.sb-actions { display: inline-flex; align-items: center; gap: var(--s1); min-width: 0; }
+/* #48: a long reason shrinks (ellipsis, full text in the title) instead of squeezing the name */
+.sb-actions .pill { min-width: 0; max-width: 100%; }
+.sb-actions .pill.gap { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 20px; }
+.sb-row > span:first-child { min-width: 0; overflow-wrap: anywhere; }
 .icon-btn { height: 24px; width: 24px; padding: 0; justify-content: center; color: var(--muted); }
 .icon-btn:hover { color: var(--accent); }
 

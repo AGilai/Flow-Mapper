@@ -27,7 +27,12 @@
       "file": "src/socket/middleware/token.ts",
       "line": 11,
       "steps": [
-        { "seq": 1, "type": "resource", "target": "devicesDb", "operation": "findOne devices" }
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "devicesDb",
+          "operation": "findOne devices"
+        }
       ]
     },
     {
@@ -36,8 +41,18 @@
       "file": "src/socket/handlers/connect.ts",
       "line": 18,
       "steps": [
-        { "seq": 1, "type": "resource", "target": "devicesDb", "operation": "updateOne devices (online)" },
-        { "seq": 2, "type": "egress", "target": "tenant.notify", "event": "device.connected" }
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "devicesDb",
+          "operation": "updateOne devices (online)"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "tenant.notify",
+          "event": "device.connected"
+        }
       ]
     },
     {
@@ -46,7 +61,12 @@
       "file": "src/socket/handlers/timeout.ts",
       "line": 9,
       "steps": [
-        { "seq": 1, "type": "resource", "target": "devicesDb", "operation": "updateOne devices (offline)" }
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "devicesDb",
+          "operation": "updateOne devices (offline)"
+        }
       ]
     }
   ],
@@ -56,15 +76,39 @@
       "bindKey": "socket:tls/sdp-controller/device-connect",
       "transport": "socket",
       "handler": "onDeviceConnect",
-      "middleware": ["verifyClientCert", "checkDeviceToken"],
-      "details": { "protocol": "tls", "event": "device-connect", "port": 8443 }
+      "middleware": [
+        "verifyClientCert",
+        "checkDeviceToken"
+      ],
+      "details": {
+        "protocol": "tls",
+        "event": "device-connect",
+        "port": 8443
+      }
     },
     {
       "id": "in.deviceTimeout",
       "bindKey": "socket:tls/sdp-controller/device-timeout",
       "transport": "socket",
       "handler": "onDeviceTimeout",
-      "details": { "protocol": "tls", "event": "device-timeout", "port": 8443 }
+      "details": {
+        "protocol": "tls",
+        "event": "device-timeout",
+        "port": 8443
+      }
+    },
+    {
+      "id": "in.amqp_consumer.rabbitmq.globalEventChannel.queueName",
+      "bindKey": "unresolved:amqp_consumer.rabbitmq.globalEventChannel.queueName",
+      "transport": "amqp",
+      "handler": "onDeviceConnect",
+      "unresolved": [
+        {
+          "what": "target",
+          "reason": "config_key_unresolved:rabbitmq.globalEventChannel.queueName",
+          "detail": "rabbitmq.globalEventChannel.queueName"
+        }
+      ]
     }
   ],
   "egress": [

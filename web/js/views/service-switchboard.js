@@ -52,7 +52,7 @@ export function switchboard(v, name, q, onInfo) {
       return details(label, items.length, items.length <= OPEN_LIMIT || broken || !!q, items.map((e) =>
         h('div.sb-row', { 'data-t': gapOf(e) ? 'gap' : e.dangling ? 'broken' : e.transport },
           h('span', h('span.key', gapOf(e) && e.bindKey.startsWith('unresolved:') ? (gapOf(e).detail || e.id || (e.source ? `${e.source.file}:${e.source.line ?? ''}` : '(no id)')) : e.bindKey), atLink(e.at)),
-          h('span', gapOf(e) ? gapPill(gapOf(e)) : chip(e.transport), e.mode === 'async' ? ' ' : null, e.mode === 'async' ? chip('async', 'async') : null),
+          h('span.sb-actions', gapOf(e) ? gapPill(gapOf(e)) : chip(e.transport), e.mode === 'async' ? ' ' : null, e.mode === 'async' ? chip('async', 'async') : null),
           h('div.peers',
             e.usedBy.length ? h('span', 'from ', e.usedBy.slice(0, 3).map((f) => h('span.key', f + ' '))) : null,
             e.targets.length ? h('span', 'to ', join(uniq(e.targets.map((t) => t.service)).slice(0, 6).map(svcLink))) : null,
