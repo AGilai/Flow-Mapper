@@ -60,6 +60,84 @@
           "target": "eraseController.publishUnknownEvent"
         }
       ]
+    },
+    {
+      "id": "advance_erase",
+      "name": "advance_erase",
+      "file": "erase_controller/advance.py",
+      "line": 30,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "eraseController.advance10",
+          "event": "account.tenant.terminated.priority10",
+          "condition": "nextPriority == 10",
+          "altGroup": "next-priority",
+          "source": {
+            "file": "erase_controller/advance.py",
+            "line": 48
+          }
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "eraseController.advance15",
+          "event": "account.tenant.terminated.priority15",
+          "condition": "nextPriority == 15",
+          "altGroup": "next-priority",
+          "source": {
+            "file": "erase_controller/advance.py",
+            "line": 48
+          }
+        },
+        {
+          "seq": 3,
+          "type": "egress",
+          "target": "eraseController.advance20",
+          "event": "account.tenant.terminated.priority20",
+          "condition": "nextPriority == 20",
+          "altGroup": "next-priority",
+          "source": {
+            "file": "erase_controller/advance.py",
+            "line": 48
+          }
+        },
+        {
+          "seq": 4,
+          "type": "egress",
+          "target": "eraseController.advance30",
+          "event": "account.tenant.terminated.priority30",
+          "condition": "nextPriority == 30",
+          "altGroup": "next-priority",
+          "source": {
+            "file": "erase_controller/advance.py",
+            "line": 48
+          }
+        },
+        {
+          "seq": 5,
+          "type": "call",
+          "target": "record_final_priority",
+          "condition": "nextPriority == 30",
+          "altGroup": "next-priority"
+        }
+      ]
+    },
+    {
+      "id": "record_final_priority",
+      "name": "record_final_priority",
+      "file": "erase_controller/advance.py",
+      "line": 70,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "operation": "audit_log.write",
+          "note": "audit record of the last priority",
+          "kind": "leaf"
+        }
+      ]
     }
   ],
   "ingress": [
@@ -114,6 +192,17 @@
       "details": {
         "method": "POST",
         "path": "/erase/unknown-event"
+      }
+    },
+    {
+      "id": "in.advanceErase",
+      "bindKey": "http:POST account-lambda-erase-controller/erase/advance",
+      "transport": "http",
+      "handler": "advance_erase",
+      "entryPoint": true,
+      "details": {
+        "method": "POST",
+        "path": "/erase/advance"
       }
     }
   ],
@@ -248,6 +337,90 @@
         "file": "erase_controller/publish.py",
         "line": 100
       }
+    },
+    {
+      "id": "eraseController.advance10",
+      "bindKey": "sns:production-event-bus-sns",
+      "transport": "sns",
+      "mode": "async",
+      "delivery": "multicast",
+      "events": [
+        "account.tenant.terminated.priority10"
+      ],
+      "source": {
+        "file": "erase_controller/advance.py",
+        "line": 48
+      },
+      "callSites": [
+        {
+          "file": "erase_controller/advance.py",
+          "line": 48,
+          "function": "advance_erase"
+        }
+      ]
+    },
+    {
+      "id": "eraseController.advance15",
+      "bindKey": "sns:production-event-bus-sns",
+      "transport": "sns",
+      "mode": "async",
+      "delivery": "multicast",
+      "events": [
+        "account.tenant.terminated.priority15"
+      ],
+      "source": {
+        "file": "erase_controller/advance.py",
+        "line": 48
+      },
+      "callSites": [
+        {
+          "file": "erase_controller/advance.py",
+          "line": 48,
+          "function": "advance_erase"
+        }
+      ]
+    },
+    {
+      "id": "eraseController.advance20",
+      "bindKey": "sns:production-event-bus-sns",
+      "transport": "sns",
+      "mode": "async",
+      "delivery": "multicast",
+      "events": [
+        "account.tenant.terminated.priority20"
+      ],
+      "source": {
+        "file": "erase_controller/advance.py",
+        "line": 48
+      },
+      "callSites": [
+        {
+          "file": "erase_controller/advance.py",
+          "line": 48,
+          "function": "advance_erase"
+        }
+      ]
+    },
+    {
+      "id": "eraseController.advance30",
+      "bindKey": "sns:production-event-bus-sns",
+      "transport": "sns",
+      "mode": "async",
+      "delivery": "multicast",
+      "events": [
+        "account.tenant.terminated.priority30"
+      ],
+      "source": {
+        "file": "erase_controller/advance.py",
+        "line": 48
+      },
+      "callSites": [
+        {
+          "file": "erase_controller/advance.py",
+          "line": 48,
+          "function": "advance_erase"
+        }
+      ]
     }
   ],
   "resources": []

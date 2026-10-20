@@ -6,6 +6,8 @@
 // are memoised per strongly connected component (Tarjan), so a function shared by many entries and a
 // call cycle are each handled once. Same rules as the trace: frontier steps, unresolved steps and
 // classified leaves are not followed; a subscription that filters the event out is not followed.
+// Alternatives (#41, steps that exclude each other) need no special case: every component is counted once however many
+// branches reach it.
 // Differences from a trace: it has no depth (25) or message (500) limit, so a flow that a trace
 // truncates counts fully; broken links ("missing") and unresolved gaps are not components in either.
 

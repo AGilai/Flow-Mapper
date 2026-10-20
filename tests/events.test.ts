@@ -50,7 +50,7 @@ test('glob filters and handlers: analytics takes every event through sns:*-event
 
 test('link health reports every event problem', async () => {
   const h = (await app.call('GET', '/api/envs/prod/health')).body;
-  assert.deepEqual(h.items.unhandledEvents.map((x: any) => [x.service, x.event]), [['crm-sync', 'account.tenant.terminated.priority10'], ['crm-sync', 'account.tenant.terminated.priority10'], ['shipping-svc', 'OrderCancelled']]); // crm-sync: the account demo domain, once per call site's egress
+  assert.deepEqual(h.items.unhandledEvents.map((x: any) => [x.service, x.event]), [['crm-sync', 'account.tenant.terminated.priority10'], ['crm-sync', 'account.tenant.terminated.priority15'], ['tenant-notifier', 'account.tenant.terminated.priority15'], ['crm-sync', 'account.tenant.terminated.priority20'], ['tenant-notifier', 'account.tenant.terminated.priority20'], ['crm-sync', 'account.tenant.terminated.priority30'], ['tenant-notifier', 'account.tenant.terminated.priority30'], ['crm-sync', 'account.tenant.terminated.priority10'], ['crm-sync', 'account.tenant.terminated.priority10'], ['shipping-svc', 'OrderCancelled']]); // account demo domain: crm-sync once per call site's egress; the #41 demo adds priority15/20/30 (crm-sync, tenant-notifier) and one more priority10 egress
   assert.deepEqual(h.items.undeliveredEvents.map((x: any) => [x.service, x.event]), [['billing-api', 'account.invoice.voided'], ['users-svc', 'ProfileViewed']]);
   assert.deepEqual(h.items.neverArrives.map((x: any) => x.event).sort(), ['StockRecount', 'account.tenant.created', 'account.tenant.created', 'account.tenant.restored', 'account.tenant.restored', 'account.tenant.suspended', 'account.tenant.suspended', 'account.tenant.updated']); // plus the account demo domain's lifecycle events nobody harvested publishes (not account.tenant.deleted: the #40 demo publish lists it as a candidate)
   assert.deepEqual(h.items.declaredNotSeen.map((x: any) => [x.event, x.producer]), [['PaymentCaptured', 'payments-svc']]);
@@ -58,7 +58,7 @@ test('link health reports every event problem', async () => {
   const c = h.items.subscriptionConflicts[0];
   assert.deepEqual([c.from, c.to], ['sns:order-events', 'sqs:shipping-order-events']);
   assert.deepEqual(c.declarations.map((d: any) => [d.service, d.events]).sort(), [['infra', ['OrderPlaced']], ['shipping-svc', '*']]);
-  assert.equal(h.totals.unhandledEvents, 3);
+  assert.equal(h.totals.unhandledEvents, 10);
 });
 
 test('traces carry the event type and run the handler for it', async () => {

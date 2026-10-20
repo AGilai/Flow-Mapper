@@ -61,7 +61,7 @@ function codeCard(m, trace) {
   const at = (service, fn) => trace.code?.[`${service}:${fn}`] ?? null;
   const rows = [];
   if (m.kind !== 'entry' && m.service && m.fn) {
-    const step = [m.seq ? `step ${m.seq}` : null, m.condition ? `only if ${m.condition}` : null, m.loop ? 'in a loop' : null].filter(Boolean).join(', ');
+    const step = [m.seq ? `step ${m.seq}` : null, m.condition ? `only if ${m.condition}` : null, m.alt ? `alternative ${m.alt.branch} of ${m.alt.of}` : null, m.loop ? 'in a loop' : null].filter(Boolean).join(', ');
     rows.push(codeRow('Called from', m.service, m.fn, at(m.service, m.fn), step || null));
   }
   if (m.calls) rows.push(codeRow('Calls', m.service, m.calls, at(m.service, m.calls)));

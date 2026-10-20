@@ -41,7 +41,7 @@ Environment ─┬─ ServiceSnapshot (service, version, harvestedAt, commit)
 |---|---|---|
 | Service | `name` | team, repo, language, tags, kind (`service` \| `gateway` \| `lambda` \| `infra`) |
 | Function | `service:id` | name, file, line, steps[] |
-| Step | `service:function#seq` | seq, type (`call` \| `egress` \| `resource`), target, mode (`sync` \| `async`), operation, condition, loop |
+| Step | `service:function#seq` | seq, type (`call` \| `egress` \| `resource`), target, mode (`sync` \| `async`), operation, condition, altGroup, loop |
 | Ingress | `service:id` | bindKey, transport, handler, delivery, entryPoint, details |
 | Egress | `service:id` | bindKey, transport, mode, delivery, details |
 | Resource | `service:id` | kind (mongodb, redis, dynamodb, postgres, s3, …), name, bindKey (`{kind}:{cluster}/{collection, table or key pattern}`) |

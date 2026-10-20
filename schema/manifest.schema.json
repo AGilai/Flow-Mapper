@@ -187,6 +187,7 @@
         "mode": { "$ref": "#/$defs/mode", "default": "sync" },
         "operation": { "type": "string", "description": "e.g. findOne, publish, GET" },
         "condition": { "type": "string", "description": "Branch condition, if conditional." },
+        "altGroup": { "type": "string", "description": "Steps of this function with the same altGroup are mutually exclusive alternatives, one branch per condition (drawn as an alt frame). Without it, consecutive steps with the same source file:line that each carry a condition form a group." },
         "loop": { "type": "boolean", "default": false },
         "note": { "type": "string" },
         "event": { "$ref": "#/$defs/eventType", "description": "For an egress step: the event type it publishes." },

@@ -117,6 +117,18 @@ Optional on any step: `condition` (it only happens if…), `loop: true`, `mode: 
 `source` of ingress and egress). The trace's side panel shows it as a code link "Called at".
 Every `target` must exist in the same manifest, or the manifest is rejected, except for the two cases below.
 
+**Alternatives** (`altGroup`): when only one of several steps happens per call (the event type is picked
+inside the function from a static map, a `switch`, an if/else chain), mark them as alternatives. Give the
+steps the same `altGroup` string (any name, unique within the function) and a `condition` each:
+`{"seq": 1, "type": "egress", "target": "publish10", "condition": "nextPriority == 10", "altGroup": "next-priority"}`.
+The flow is drawn as one UML-style alt frame with a section per condition (several steps with the same
+condition share a section; add a `call` step with that condition to hang a downstream call on one branch)
+and a dashed line between sections; the trace marks each message `alt: {group, branch, of}`. Without
+`altGroup`, consecutive steps of a function that share the same `source` file:line and each carry a
+`condition` form a group anyway, so a harvester that already sets `source` and `condition` needs nothing
+more. A group needs two different conditions. Counts and `maxMessages` treat the branches as alternatives,
+not as a sequence. Steps without `altGroup` or a shared `source` are drawn in sequence with an "if …" tag, as before.
+
 **Frontier steps** (`origin`): call trees that reach no sink (a flow that ends in the service) can be
 large. Mark the steps of such a tree `origin: "frontier"`; the steps on the way to a cross-service hop
 or a data store stay unmarked (or `origin: "path"`, the default, which behaves exactly as before).

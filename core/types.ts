@@ -41,6 +41,8 @@ export interface Step {
   mode?: Mode;
   operation?: string;
   condition?: string;
+  /** Steps of this function with the same `altGroup` are mutually exclusive alternatives, one branch per condition. */
+  altGroup?: string;
   loop?: boolean;
   note?: string;
   /** Event type this egress step publishes (one of the egress's `events`). */

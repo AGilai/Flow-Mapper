@@ -19,6 +19,7 @@ import { handlerFor, passes, passesUntyped, untypedEventSet, type EventSet } fro
 import { codeLink, sourceLink, type SourceLink } from './endpoint-info.ts';
 import { refKey, unresolvedTarget } from './resolve.ts';
 import type { StepField, Unresolved } from './types.ts';
+import { altGroups, type Alt } from './alt.ts';
 import { egressVia, ingressVia, type LinkedHop } from './via.ts';
 
 export interface Participant {
@@ -30,7 +31,8 @@ export interface Message {
   from: string; to: string; label: string; mode: Mode;
   kind: 'entry' | 'call' | 'egress' | 'deliver' | 'resource' | 'leaf' | 'frontier';
   depth: number; internal?: boolean; broken?: boolean; cycle?: boolean;
-  condition?: string; loop?: boolean; note?: string; fn?: string; service?: string; transport?: string;
+  condition?: string; loop?: boolean;
+  alt?: Alt;                                                 // the step is one of several alternatives (an alt frame): group, branch (1-based), number of branches; the message keeps its `condition` note?: string; fn?: string; service?: string; transport?: string;
   event?: string; unhandled?: boolean;
   possible?: boolean;                                        // delivered only if the publisher's event is one of its candidates (the step names no event)
   seq?: number;                                              // step number in the calling function
@@ -86,10 +88,19 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
   // The same subscription declared twice (by the topic's owner and by the consumer) is one link, one arrow.
   const distinct = <T extends { to: Ref }>(ls: T[]) => ls.filter((l, i) => ls.findIndex((o) => refKey(o.to) === refKey(l.to)) === i);
   let counted = 0; // messages that count toward maxMessages: everything but the folded frontier markers
+  // Alternatives are not sequential load (#41): inside an alt group each branch keeps its own tally and only
+  // the largest branch counts (toward the enclosing branch, or toward the cap at the top level).
+  interface AltCtx { counts: number[]; max: number; branch: number; parent?: AltCtx }
+  let altCtx: AltCtx | undefined;
+  const wouldCount = (c: AltCtx | undefined): boolean => !c || (c.counts[c.branch] + 1 > c.max && wouldCount(c.parent));
+  const tally = (c: AltCtx | undefined) => {
+    if (!c) { counted++; return; }
+    if (++c.counts[c.branch] > c.max) { c.max = c.counts[c.branch]; tally(c.parent); }
+  };
   const push = (m: Message) => {
     if (m.kind === 'frontier') { messages.push(m); return true; } // markers are free, as documented on TraceOptions.frontier
-    if (counted >= maxMessages) { truncated = true; return false; }
-    counted++;
+    if (counted >= maxMessages && wouldCount(altCtx)) { truncated = true; return false; }
+    tally(altCtx);
     messages.push(m);
     return true;
   };
@@ -116,8 +127,20 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
     if (!f) return;
     const me = fnPart(service, fn);
     let folded = false;
-    for (const st of [...f.steps].sort((a, b) => a.seq - b.seq)) {
+    const ordered = [...f.steps].sort((a, b) => a.seq - b.seq);
+    const alts = altGroups(ordered.filter((st) => showFrontier || st.origin !== 'frontier'), f.id);
+    const outer = altCtx, ctxs = new Map<string, AltCtx>();
+    try {
+    for (const st of ordered) {
       if (truncated) return;
+      const alt = alts.get(st.seq);
+      altCtx = outer;
+      if (alt) {
+        let c = ctxs.get(alt.group);
+        if (!c) ctxs.set(alt.group, (c = { counts: Array(alt.of).fill(0), max: 0, branch: 0, parent: outer }));
+        c.branch = alt.branch - 1;
+        altCtx = c;
+      }
       if (st.origin === 'frontier' && !showFrontier) {
         if (!folded) { // one marker per function, where its first frontier step would be
           folded = true;
@@ -125,7 +148,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
         }
         continue;
       }
-      const base = { depth, condition: st.condition, loop: st.loop, note: st.note, fn: f.id, service, seq: st.seq, ...(st.origin === 'frontier' ? { origin: 'frontier' as const } : {}) };
+      const base = { depth, condition: st.condition, ...(alt ? { alt } : {}), loop: st.loop, note: st.note, fn: f.id, service, seq: st.seq, ...(st.origin === 'frontier' ? { origin: 'frontier' as const } : {}) };
       // A gap the harvester reported: the step's own target, or the egress it goes through, is unresolved.
       const out = st.type === 'egress' && st.target ? g.egress.get(sid(service, st.target)) : undefined;
       const gap = (!st.target ? st.unresolved?.find((u) => u.what === 'target') : undefined) ?? (out ? unresolvedTarget(out) : undefined);
@@ -177,6 +200,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
         for (const l of links) follow(me, l.to, label, mode, depth, stack, { ...base, transport: e.transport, event, egress: e.id }, [], set);
       }
     }
+    } finally { altCtx = outer; }
   };
 
   // Deliver from `from` to a link target, expanding channels and crossing into other services.

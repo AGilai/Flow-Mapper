@@ -7,6 +7,7 @@
 // Right-click (or click) a lifeline header to get its menu: onParticipant(participant, x, y).
 
 import { h, s } from '../dom.js';
+import { altFrames, stripsByRow, drawFrames, STRIP } from './sequence-alt.js';
 
 const COL = 168, HEAD = 56, ROW = 30, PAD = 24, GUTTER = 44;
 const KIND_LABEL = { client: 'caller', function: 'function', service: 'service', channel: 'queue / topic', resource: 'data store', missing: 'no match', unresolved: 'harvester gap' };
@@ -61,8 +62,15 @@ export function renderSequence(trace, { onMessage, onParticipant, expanded = new
   const x = new Map(parts.map((p, i) => [p.id, GUTTER + PAD + i * COL + COL / 2]));
   const width = GUTTER + PAD * 2 + parts.length * COL;
   const { rows, count } = rowsOf(msgs);
-  const height = PAD + count * ROW + PAD;
-  const rowY = (r) => PAD + r * ROW + ROW / 2 + 4;
+  // Alt frames: each section gets a strip for its condition above its first row, so rows below shift down.
+  const frames = altFrames(msgs);
+  const strips = stripsByRow(frames, rows);
+  const nStrips = (r) => strips.get(r)?.length ?? 0;
+  const above = []; // strips in all rows before r
+  for (let r = 0, n = 0; r <= count; r++) { above[r] = n; n += nStrips(r); }
+  const rowTop = (r) => PAD + r * ROW + above[r] * STRIP;
+  const height = PAD + count * ROW + above[count] * STRIP + PAD;
+  const rowY = (r) => rowTop(r) + nStrips(r) * STRIP + ROW / 2 + 4;
   // Activation bar on the topic lifeline: from the publish row to its last delivery.
   const bars = msgs.flatMap((m, i) => {
     if (!m.deliveries) return [];
@@ -87,6 +95,7 @@ export function renderSequence(trace, { onMessage, onParticipant, expanded = new
     s('defs', {},
       s('marker', { id: 'ah', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }, s('path', { d: 'M0 0L10 5L0 10z', fill: 'context-stroke' })),
       s('marker', { id: 'ao', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 8, markerHeight: 8, orient: 'auto-start-reverse' }, s('path', { d: 'M1 1L9 5L1 9', fill: 'none', stroke: 'context-stroke', 'stroke-width': 1.5 }))),
+    drawFrames(frames, rows, strips, rowTop, (r) => rowTop(r) + nStrips(r) * STRIP + ROW, width, GUTTER),
     parts.map((p) => s('line', { class: 'lifeline', x1: x.get(p.id), x2: x.get(p.id), y1: 0, y2: height })),
     bars,
     msgs.map((m, i) => message(m, i, x, rowY(rows[i]), rail(msgs, rows, i))));
@@ -126,7 +135,7 @@ function message(m, i, x, y, railLabel) {
   const g = s('g', { class: `msg${m.broken ? ' broken' : ''}${m.gap ? ' gap' : ''}${m.possible ? ' possible' : ''}${m.kind === 'frontier' ? ' frontier' : ''}${m.kind === 'leaf' ? ' leaf' : ''}${m.origin === 'frontier' ? ' from-frontier' : ''}`, 'data-i': i, tabindex: 0, role: 'button', style: `--mc: ${color}` });
   // depth rail in the gutter
   g.append(s('text', { x: 8, y: y + 4, class: 'depth' }, railLabel));
-  const tags = [m.loop ? 'loop' : null, m.condition ? `if ${m.condition}` : null, m.cycle ? 'cycle' : null].filter(Boolean).join(', ');
+  const tags = [m.loop ? 'loop' : null, m.condition && !m.alt ? `if ${m.condition}` : null, m.cycle ? 'cycle' : null].filter(Boolean).join(', ');
   // A label never runs past its arrow: on a short hop it is clipped (the full text is the tooltip), so neighbours on one row do not overlap.
   const suffix = tags ? `  [${tags}]` : '';
   const room = x1 === x2 ? 34 : Math.max(8, Math.floor((Math.abs(x2 - x1) - 12) / 6.6));

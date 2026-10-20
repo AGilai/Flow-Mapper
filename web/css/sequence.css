@@ -48,3 +48,9 @@
 .msg.gap .label { fill: var(--muted); font-style: italic; }
 .msg.possible .label { font-style: italic; }
 .seq-part.k-unresolved rect:first-child { stroke-dasharray: 4 3; fill: var(--surface-2); }
+
+.alt-box { fill: none; stroke: var(--line-strong); stroke-width: 1.2; }
+.alt-sep { stroke: var(--line-strong); stroke-width: 1.2; stroke-dasharray: 6 4; }
+.alt-tab { fill: var(--surface); stroke: var(--line-strong); stroke-width: 1.2; }
+.alt-kw { font-size: 11px; font-weight: 600; fill: var(--ink); }
+.alt-cond { font-size: 12px; fill: var(--ink-2); font-family: var(--mono); }
