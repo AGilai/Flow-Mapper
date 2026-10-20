@@ -310,3 +310,13 @@ The scope (inside the service / full flow) belongs to a tab and is part of its k
 
 The "Queues and topics" checkbox stays hidden: a sub-flow's diagram starts at its delivery, so there is no queue or topic
 lifeline for it to add inside a tab; the checkbox returns when a diagram that spans publishes (nested async work) exists.
+
+## Flow descriptions (0.14.0)
+
+Two records per key, human and AI, never merged: a person's note must survive any AI run, and an AI text must be
+recognisable as such. Humans write theirs in the UI (REST); AI tools write theirs through MCP `set_description`, so
+Flow-Mapper itself never calls a model (the "Generate…" dialog only hands out prompts). The AI record keeps the model, the
+time and a hash of the trace it was written from; when the flow's trace hashes differently, the box shows "outdated"
+instead of silently going stale. A sub-flow (callee) hash covers only the messages that touch that service.
+A whole-flow description is expected for every flow: when neither record exists the entry tab says "No description yet" with
+both actions. Descriptions hang on `service + ingress`, with no foreign key to the snapshot, so a re-harvest keeps them.

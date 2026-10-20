@@ -16,6 +16,7 @@ import { listClients, storeWithClients } from '../core/clients.js';
 import { channelView } from '../core/channels.js';
 import { eventView } from '../core/events.js';
 import { eventFlow } from '../core/event-flow.js';
+import { flowDescriptions, HASH_TRACE } from '../core/description.js';
 
 const data = globalThis.FLOW_PREVIEW;
 const indexes = new Map();
@@ -63,6 +64,17 @@ export const api = {
   endpoint: async (env, service, ingress) => endpointInfo(g(env), service, ingress,
     (data.dtos?.[env] ?? []).filter((d) => d.service === service && d.ingress === ingress), data.eventDtos?.[env] ?? []) ?? fail('endpoint not found'),
   trace: async (env, q) => trace(g(env), q, { scope: q.scope, maxMessages: q.maxMessages ?? 500, expand: q.expand?.split(',').filter(Boolean), frontier: q.frontier === '1' || q.frontier === true }) ?? fail('start point not found'),
+  descriptions: async (env, service, ingress) => {
+    const t = trace(g(env), { service, ingress }, HASH_TRACE) ?? fail('flow not found');
+    return flowDescriptions(t, service, ingress, (data.descriptions?.[env] ?? []).filter((r) => r.service === service && r.ingress === ingress));
+  },
+  putDescription: async (env, { service, ingress, callee = '', text, editedBy }) => { // the human record, in memory
+    const rows = (data.descriptions ??= {})[env] ??= [];
+    const at = rows.findIndex((r) => r.service === service && r.ingress === ingress && r.callee === callee && r.source === 'human');
+    if (at >= 0) rows.splice(at, 1);
+    if (String(text).trim()) rows.push({ service, ingress, callee, source: 'human', text: String(text).trim(), author: editedBy ?? 'preview', model: null, traceHash: null, updatedAt: now() });
+    return api.descriptions(env, service, ingress);
+  },
   paths: async (env, from, to) => findPaths(g(env), from, to),
   search: async (env, q, limit) => search(g(env), q, limit),
   health: async (env) => health(g(env)),

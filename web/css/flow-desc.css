@@ -1,0 +1,66 @@
+/* Flow descriptions (0.14.0): the Human / AI boxes, the one-line variant, the bar popover and the Generate dialog.
+   Mockup: design/mockups/flow-activation.html (rev 4). */
+
+.ai { display: inline-grid; place-items: center; height: 16px; padding: 0 5px; margin-right: 6px; border-radius: 4px; font: 700 9.5px var(--font); letter-spacing: .04em; background: var(--accent-soft); color: var(--accent); vertical-align: 1px; }
+.ai.off { background: var(--surface-2); color: var(--muted); }
+.who-b { display: inline-grid; place-items: center; height: 16px; padding: 0 5px; margin-right: 6px; border-radius: 4px; font: 700 9.5px var(--font); letter-spacing: .04em; background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); }
+
+.btn.sm { height: 26px; padding: 0 10px; font-size: var(--fs-xs); }
+.desc2 { display: grid; gap: 6px; max-width: 1000px; min-width: 0; }
+.desc-t { font-size: var(--fs-xs); font-weight: 650; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.desc-t .chip-warn { text-transform: none; letter-spacing: 0; }
+.dbox { border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); padding: 8px 12px; min-width: 0; }
+.dbox.human { border-left: 3px solid var(--ok); }
+.dbox.aibox { border-left: 3px solid var(--accent); }
+.dbox.aibox.outdated { border-left-color: var(--warn); }
+.dbox.empty { background: transparent; border-style: dashed; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: var(--fs-sm); color: var(--muted); padding: 6px 12px; }
+.dbox.empty a { font-size: var(--fs-xs); }
+.dbox-h { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: var(--fs-xs); color: var(--muted); }
+.dbox-h a { font-size: var(--fs-xs); }
+.dbox-h .chev { width: 22px; height: 22px; margin-left: -6px; }
+.who { font-size: var(--fs-xs); font-weight: 650; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-2); }
+.dbox.human .who { color: var(--ok); }
+.dbox p { font-size: var(--fs-sm); color: var(--ink); max-width: 90ch; margin-top: 4px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.dbox p.why { color: var(--ink-2); }
+.dbox .desc-f { margin-top: 6px; font-size: var(--fs-xs); color: var(--muted); }
+.dbox.editing { display: grid; gap: 6px; border-style: solid; }
+.dbox.editing .textarea { width: 100%; box-sizing: border-box; font-size: var(--fs-sm); min-height: 84px; resize: vertical; }
+.edit-f { display: flex; align-items: center; gap: 8px; }
+.desc-t + .dbox.empty:last-child { margin-bottom: 0; }
+
+/* the one-line variant: under a sub-flow tab's breadcrumb */
+.descl { display: flex; align-items: baseline; gap: 4px; font-size: var(--fs-sm); color: var(--ink-2); min-width: 0; }
+.descl .dtxt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; max-width: 90ch; }
+.descl a { margin-left: 8px; font-size: var(--fs-xs); white-space: nowrap; flex: none; }
+.descl .chip-warn { margin-left: 6px; flex: none; }
+.descl.empty { color: var(--muted); }
+.descl.editing { display: block; }
+
+/* in the drill-down: a block under the header, squeezing nothing (it is part of the column) */
+.fi-desc { flex: none; border-bottom: 1px solid var(--line); padding: var(--s3) var(--s4); max-height: 42vh; overflow-y: auto; }
+.fi-desc .desc2 { max-width: none; }
+.fi-desc .dbox { border-radius: var(--r-sm); }
+
+/* the popover on a bar: it never takes the pointer */
+.desctip { position: fixed; z-index: 40; width: 280px; background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-md); box-shadow: var(--shadow-panel); padding: 10px 12px; pointer-events: none; }
+.desctip .tip-t { font-weight: 600; font-size: var(--fs-sm); }
+.desctip p { font-size: var(--fs-xs); color: var(--ink-2); margin-top: 2px; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; }
+.desctip p.muted { color: var(--muted); }
+.desctip .tip-f { margin-top: 6px; font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 2px; flex-wrap: wrap; }
+.desctip .chip-warn { margin-left: 4px; }
+
+/* the Generate dialog */
+.scrim { position: fixed; inset: 0; z-index: 60; background: color-mix(in srgb, var(--ink) 38%, transparent); display: grid; place-items: center; padding: 24px; }
+.dlg { width: min(760px, 100%); max-height: calc(100vh - 48px); display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-md); box-shadow: var(--shadow-panel); }
+.dlg header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line); flex: none; }
+.dlg h3 { font-size: var(--fs-md); }
+.dlg-b { padding: 14px 16px; display: grid; gap: 12px; font-size: var(--fs-sm); overflow-y: auto; min-height: 0; }
+.dlg-row { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; font-size: var(--fs-xs); color: var(--muted); }
+.dlg-row b { font-weight: 600; color: var(--ink-2); }
+.dlg-sec { display: grid; gap: 6px; min-width: 0; }
+.dlg-h { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.dlg-h h4 { font-size: var(--fs-sm); font-weight: 650; }
+.dlg-h .select { max-width: 220px; height: 28px; }
+.prompt { margin: 0; padding: 12px 14px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm); font: 12px/1.55 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink); }
+.prompt:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.dlg-f { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-top: 1px solid var(--line); flex: none; }

@@ -15,10 +15,10 @@ const codeLoc = (c) => (c?.file ? `${c.file}${c.line ? ':' + c.line : ''}` : nul
 const codeLink = (c) => (c?.url ? h('a.fi-code', { href: c.url, target: '_blank', rel: 'noopener noreferrer', title: c.url }, codeLoc(c) ?? 'code', ' ', icon('external')) : null);
 
 /** createInside(host, { env, onClose, onOpen, onStep, isActive? }) -> { open(bar, trace), close, isOpen, el } */
-export function createInside(host, { env, onClose, onOpen, onStep, isActive }) {
+export function createInside(host, { env, onClose, onOpen, onStep, isActive, desc }) {
   const el = h('aside.fi', { 'aria-label': 'Inside the service', hidden: true });
   host.append(el);
-  let current = null;
+  let current = null, descBox = null;
 
   const stepRow = (st) => {
     const m = st.m;
@@ -41,10 +41,12 @@ export function createInside(host, { env, onClose, onOpen, onStep, isActive }) {
     const entry = info.entry;
     const from = trace.participants.find((p) => p.id === entry.from);
     const all = h('a.fi-all', { href: href(servicePath(bar.service)) }, `All functions of ${bar.service} ›`);
+    descBox?.dispose(); descBox = desc?.(bar) ?? null; // the bar's description, under the header
     fill(el,
       h('header.fi-head', h('div.grow', h('h2.fi-title', `Inside `, ...wrapId(bar.service)),
         h('div.muted.small', 'Entered by ', chip(entry.transport ?? 'http'), ' ', h('span.key', ...wrapId(entry.label.replace(/^\w+:/, ''))), from?.kind === 'service' ? ` from ${from.label}` : '')),
       h('button.btn.ghost', { 'aria-label': 'Close', title: 'Esc', on: { click: close } }, icon('close'))),
+      descBox ? h('div.fi-desc', descBox.el) : null,
       h('div.fi-counts', h('span', h('b', info.counts.functions), ` ${info.counts.functions === 1 ? 'function runs' : 'functions run'}`), h('span', h('b', info.counts.internal), ' internal calls'),
         h('span', h('b', info.counts.outgoing), ' outgoing'), h('span', h('b', info.counts.stores), ` ${info.counts.stores === 1 ? 'store' : 'stores'}`), all),
       h('div.fi-body', h('h3', info.middleware ? 'Middleware, then the functions this call runs' : 'Functions this call runs'),
@@ -55,8 +57,8 @@ export function createInside(host, { env, onClose, onOpen, onStep, isActive }) {
     el.hidden = false; onOpen?.();
     api.service(env, bar.service).then((v) => { if (current === bar.id && !el.hidden) all.textContent = `All ${v.functions.length} functions of ${bar.service} ›`; }).catch(() => {});
   }
-  function close() { if (el.hidden) return; el.hidden = true; current = null; onClose?.(); }
+  function close() { if (el.hidden) return; el.hidden = true; current = null; descBox?.dispose(); descBox = null; onClose?.(); }
   const onKey = (e) => { if (e.key === 'Escape' && !el.hidden && (!isActive || isActive())) { close(); } };
   addEventListener('keydown', onKey);
-  return { open, close, isOpen: () => !el.hidden, el, dispose: () => removeEventListener('keydown', onKey) };
+  return { open, close, isOpen: () => !el.hidden, el, dispose: () => { descBox?.dispose(); removeEventListener('keydown', onKey); } };
 }

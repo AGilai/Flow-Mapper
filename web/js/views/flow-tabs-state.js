@@ -39,7 +39,14 @@ export function withScope(key, scope) {
   const p = parseKey(key);
   return p?.kind === 'entry' ? entryKey(p.service, p.ingress, p.event, scope) : p?.kind === 'fn' ? fnKey(p.service, p.fn, p.event, scope) : key;
 }
-export const originOf = (key) => { const at = key.indexOf('@'); return at < 0 ? null : key.slice(at + 1); };
+/** The flow a tab's descriptions belong to: { service, ingress } of its entry point (a sub-flow tab: of the flow it came from), null for a function tab. */
+export function flowRoot(key) {
+  const p = parseKey(key);
+  if (!p) return null;
+  if (p.kind === 'sub') return flowRoot(p.origin);
+  return p.ingress ? { service: p.service, ingress: p.ingress } : null;
+}
+export const originOf =(key) => { const at = key.indexOf('@'); return at < 0 ? null : key.slice(at + 1); };
 /** Is `key` opened (directly or through other tabs) from `origin`? */
 export const descends = (key, origin) => { for (let o = originOf(key); o; o = originOf(o)) if (o === origin) return true; return false; };
 

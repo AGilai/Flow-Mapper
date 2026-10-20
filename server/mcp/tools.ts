@@ -6,6 +6,7 @@ import { isList, LISTS } from '../schema.ts';
 import * as store from '../store/snapshots.ts';
 import * as bugs from '../store/bugs.ts';
 import * as dtos from '../store/dtos.ts';
+import * as desc from '../store/descriptions.ts';
 import { endpointInfo } from '../../core/endpoint-info.ts';
 import { eventTypes, eventView } from '../../core/events.ts';
 import { eventFlow } from '../../core/event-flow.ts';
@@ -49,7 +50,8 @@ export const TOOLS: Tool[] = [
     inputSchema: obj({ service: { type: 'string' }, via: { type: 'string', description: 'Only egress via a wrapper matching this substring, e.g. SNSManager' }, env }, ['service']),
     run: (c, a) => {
       const v = serviceView(c.graph(envOf(a)), a.service) ?? (() => { throw new HttpError(404, 'NOT_FOUND', `service '${a.service}' not found`); })();
-      return a.via ? { ...v, egress: v.egress.filter((e) => viaMatches(e, String(a.via))) } : v;
+      const out = a.via ? { ...v, egress: v.egress.filter((e) => viaMatches(e, String(a.via))) } : v;
+      return { ...out, descriptions: desc.listForService(c.db, envOf(a), a.service) };
     },
   },
   {
@@ -61,8 +63,17 @@ export const TOOLS: Tool[] = [
     name: 'trace_flow',
     description: "Follow a flow from an ingress or function (egress messages carry `via`, the wrapper chain; display only): ordered calls, DB access, REST calls and async hops across services. scope 'intra' stays inside the service.",
     inputSchema: obj({ service: { type: 'string' }, ingress: { type: 'string' }, fn: { type: 'string' }, event: { type: 'string', description: 'Start from the handler of this event type at the ingress' }, expand: { type: 'array', items: { type: 'string' }, description: 'Services to show function by function' }, scope: { enum: ['intra', 'full'] }, env, maxMessages: { type: 'integer', description: 'Cap on counted messages. Alternatives (messages with alt) count as their largest branch.' }, frontier: { type: 'boolean', description: "Also show steps the harvester marked origin 'frontier' (call trees that reach no sink). Off by default: one 'frontier: N steps' marker per function, not counted in maxMessages" } }, ['service']),
-    run: (c, a) => trace(c.graph(envOf(a)), a, { scope: a.scope, maxMessages: Math.min(a.maxMessages ?? 300, 2000), expand: a.expand, frontier: a.frontier === true })
-      ?? (() => { throw new HttpError(404, 'NOT_FOUND', 'start point not found (give ingress or fn)'); })(),
+    run: (c, a) => {
+      const t = trace(c.graph(envOf(a)), a, { scope: a.scope, maxMessages: Math.min(a.maxMessages ?? 300, 2000), expand: a.expand, frontier: a.frontier === true })
+        ?? (() => { throw new HttpError(404, 'NOT_FOUND', 'start point not found (give ingress or fn)'); })();
+      return a.ingress ? { ...t, descriptions: desc.describeFlow(c.db, c.graph(envOf(a)), envOf(a), a.service, a.ingress) } : t;
+    },
+  },
+  {
+    name: 'set_description',
+    description: "Save the AI description of a flow (no callee) or of one service in it (callee: the service name, or 'service:handler' for one delivery). Writes the AI record only: a human note on the same flow is never touched. Stores the model and the flow's trace hash, so the UI marks the text outdated when the flow changes. Read the flow first with trace_flow and get_service; use only facts found there.",
+    inputSchema: obj({ service: { type: 'string', description: "The flow's entry service" }, ingress: { type: 'string', description: "The flow's entry ingress id" }, callee: { type: 'string', description: "Omit for the whole flow; a service name (or service:handler) for that service's part" }, text: { type: 'string', description: 'Plain text, at most 4000 characters' }, model: { type: 'string', description: 'Your model name, for example claude-sonnet-5-5' }, env }, ['service', 'ingress', 'text', 'model']),
+    run: (c, a) => desc.putAi(c.db, c.graph(envOf(a)), envOf(a), a),
   },
   {
     name: 'find_paths', description: 'Service-level paths from one service to another, including through queues and topics.',

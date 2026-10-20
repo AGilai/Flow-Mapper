@@ -11,6 +11,7 @@ import { config } from '../server/config.ts';
 import * as store from '../server/store/snapshots.ts';
 import { loadDtos } from '../server/store/dtos.ts';
 import { loadSchemas } from '../server/store/schemas.ts';
+import { loadDescriptions } from '../server/store/descriptions.ts';
 import { stores } from '../core/stores.ts';
 import { generateMock } from './mock/generate.ts';
 import { seedBugs } from './mock/bugs.ts';
@@ -45,6 +46,9 @@ for (const m of manifests) {
 envs.forEach((e) => ctx.changed(e));
 if (mockIdx < 0) {
   for (const f of readDir(join(import.meta.dirname, '../samples/dtos'))) console.log(`loaded ${loadDtos(ctx.db, f.env, f.dtos).loaded} DTOs into ${f.env}`);
+  for (const f of readDir(join(import.meta.dirname, '../samples/descriptions'))) {
+    console.log(`loaded ${loadDescriptions(ctx.db, ctx.graph(f.env), f.env, f.descriptions)} descriptions into ${f.env}`);
+  }
   for (const f of readDir(join(import.meta.dirname, '../samples/schemas'))) {
     const keys = new Set(stores(ctx.graph(f.env)).map((s) => s.key));
     console.log(`loaded ${loadSchemas(ctx.db, f.env, f.schemas, (k) => keys.has(k)).loaded} store schemas into ${f.env}`);

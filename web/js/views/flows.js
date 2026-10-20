@@ -13,6 +13,7 @@ import { createList } from './flow-list.js';
 import { createTabStrip, enterIcon } from './flow-tabs.js';
 import { createTabData } from './flow-tab-data.js';
 import { createTabView } from './flow-tab-view.js';
+import { createDescStore } from './flow-desc.js';
 import { swap } from './flow-tabs-anim.js';
 import * as T from './flow-tabs-state.js';
 
@@ -29,6 +30,7 @@ export async function render({ main, query }) {
     : await api.entryPoints(state.env);
   const counts = new Map((await api.flowCounts(state.env).catch(() => [])).map((c) => [`${c.service}:${c.ingress}`, c]));
   const data = createTabData(state.env, () => opts);
+  const desc = createDescStore(state.env);
 
   const mainPane = h('div.flows-main');
   const rightEl = h('div.flows-right', mainPane); // the message panel is this grid's second column, so it squeezes the diagram
@@ -67,7 +69,7 @@ export async function render({ main, query }) {
     setQuery({ ...T.encodeUrl(S), ...(S.keys.length ? { service: null } : {}), stores: opts.stores ? null : '0', queues: opts.queues ? '1' : null, depth: opts.depth === 'all' ? null : opts.depth, frontier: opts.frontier ? '1' : null });
   }
   const host = {
-    env: state.env, opts, panel, flowsEl, describe: data.describe, isActive: (k) => S.active === k,
+    env: state.env, opts, panel, flowsEl, describe: data.describe, desc, rootOf: (k) => T.flowRoot(k), isActive: (k) => S.active === k,
     openTab: (key, o) => commit(T.openTab(S, key, o)),
     openSub: (row, origin) => commit(T.openTab(S, T.subKey(row, origin))),
     openFull: (row, origin) => commit(T.openTab(S, T.fullKey(row.service, row.ingress, origin))),

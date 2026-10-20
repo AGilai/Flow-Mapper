@@ -163,3 +163,14 @@ test('real trace: every openable row has a key that finds its row again; distinc
   const nested = tree.rows.find((r: any) => r.groups.length);
   if (nested) assert.ok(T.subTree(nested).rows.length >= 1);
 });
+
+test('flowRoot: a tab belongs to the flow it came from; a function tab has none', () => {
+  const e = T.entryKey('api-gateway', 'in.createOrder');
+  assert.deepEqual(T.flowRoot(e), { service: 'api-gateway', ingress: 'in.createOrder' });
+  assert.deepEqual(T.flowRoot(`sqs:q/handler@${e}`), { service: 'api-gateway', ingress: 'in.createOrder' });
+  const full = T.fullKey('shipping-svc', 'in.orderPlaced', e);
+  assert.deepEqual(T.flowRoot(full), { service: 'shipping-svc', ingress: 'in.orderPlaced' });
+  assert.deepEqual(T.flowRoot(`sqs:q2/h2@${full}`), { service: 'shipping-svc', ingress: 'in.orderPlaced' });
+  assert.equal(T.flowRoot(T.fnKey('svc', 'doIt')), null);
+  assert.equal(T.flowRoot('not a key'), null);
+});

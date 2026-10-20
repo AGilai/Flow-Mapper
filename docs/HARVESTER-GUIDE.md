@@ -350,6 +350,12 @@ a type must match one and no `!` entry. Channel kinds:
 declares the same subscription with a different filter, Flow-Mapper shows a conflict; it does not
 choose one.
 
+## Flow descriptions (not part of the manifest)
+
+Harvesters do not write descriptions. What a flow is for is a human note (UI) or an AI text written through MCP
+`set_description` (docs/API.md, "Flow descriptions"); both survive re-harvesting. A harvest that changes a flow's trace marks
+its AI descriptions "outdated" in the UI, which is the cue to generate them again.
+
 ## DTOs and store schemas (after the manifest)
 
 These live outside the manifest, so re-harvesting a service does not erase them. Send all of them

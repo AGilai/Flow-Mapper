@@ -226,15 +226,34 @@ Priority: severity weight (S1 4 … S4 1) plus impact boost (0 if no flow passes
 entities, 1 if any does, 2 if at least a quarter of all flows do). 5+ is P0, 4 P1, 3 P2, else P3.
 Setting `priority` overrides the suggestion; `priority: null` returns to it.
 
+## Flow descriptions (0.14.0)
+
+Every flow has a description of what it is for, and each service in it can have one for its part. Two records per key,
+`source` = `human` | `ai`; neither overwrites the other. Key: `env` + `service` + `ingress` (the whole flow: the entry
+point that starts it) and optionally `callee` (a sub-flow: the service name, or `service:handler` for one delivery).
+Stored in `descriptions` (migration `003_descriptions.sql`, kept when a service is re-harvested).
+
+| Method + path | |
+|---|---|
+| `GET /api/envs/:env/descriptions?service=&ingress=` | `{service, ingress, hash, flow: {human, ai}, callees: {<callee>: {human, ai}}}`. `human` is `{text, editedBy, editedAt}` or null; `ai` is `{text, model, generatedAt, traceHash, outdated}` or null. `hash` is the hash of the flow's current trace; `outdated` is true when an AI record was written from a different trace (the flow changed since). 404 for an unknown ingress |
+| `PUT /api/envs/:env/descriptions` | writes the **human** record: `{service, ingress, callee?, text, editedBy?}`. Empty `text` removes it. Max 4000 characters. Returns the flow's descriptions. There is no REST write for the AI record |
+
+The trace hash (`core/description.ts` `traceHash`) is a 53-bit hash over each message's depth, kind, endpoints, label,
+transport, event, target, store and call (trace options: scope full, 2000 messages). For a callee it covers only the
+messages that touch that service, so changing one branch does not outdate the others. It is stable across reloads.
+`trace_flow` over MCP (with `ingress`) and `get_service` carry the descriptions too (below); `GET /trace` does not,
+read them with the endpoint above.
+
 ## MCP
 
 - HTTP: `POST /mcp` with one JSON-RPC 2.0 message (MCP streamable HTTP, JSON responses).
 - stdio: `npm run mcp` (same database, `FLOW_DB`).
 
 Tools: `search`, `list_services`, `get_service`, `list_entry_points`, `trace_flow`, `find_paths`,
-`link_health`, `changelog`, `ingest_manifest`, `upsert_entity`, `delete_entity`, `get_endpoint_info`,
+`link_health`, `changelog`, `set_description`, `ingest_manifest`, `upsert_entity`, `delete_entity`, `get_endpoint_info`,
 `load_dtos`, `event_types`, `inventory`, `get_store`, `get_channel`, `load_schemas`, `list_bugs`,
 `list_clients` (same filters and result as `GET /clients`; `get_store` also returns `clients`), `get_bug`, `report_bug` (accepts `log` text), `update_bug` (accepts `comment`).
+`set_description(env, service, ingress, callee?, text, model)` (0.14.0) saves the **AI** description of a flow (no `callee`) or of one service in it. It writes the AI record only, never the human one; it stores `model`, the time, and the hash of the flow's trace as it is now. `model` and `text` are required; the entry `ingress` must exist; `callee` must name a service of the env. It returns the flow's descriptions (as `GET /descriptions`). `trace_flow` with an `ingress` returns `descriptions` next to the trace, and `get_service` returns `descriptions`: every record of that service's flows `{ingress, callee, source, text, by, at}`, so an agent sees what is already written before it writes. The UI's "Generate…" dialog hands out two prompts (the whole flow with all its services; one service) that tell an AI tool to call `trace_flow`, `get_service` and then `set_description`.
 `trace_flow` and `GET /trace` messages of steps that are alternatives (steps of one function with the same `altGroup`, else consecutive steps with the same `source` file:line that each carry a `condition`) carry `alt: {group, branch, of}`: `group` is `<function>:<altGroup>` (or `<function>:<file>:<line>@<first seq>`), `branch` the 1-based branch (one per distinct condition, in order of first appearance), `of` the number of branches; the message keeps its `condition`. The messages a branch's step leads to (the topic, queues and consumers of a publish, which carry the same `alt`) and everything below it in the call tree (messages deeper than the group) belong to that branch; every branch is followed. `maxMessages` counts the largest branch of a group, not the sum; `flows/counts` counts each component once, as it always did. The UI draws an alt frame around the group.
 `trace_flow` and `GET /trace` messages of an egress step with `eventFrom` (the step's event type comes from the nearest enclosing call step's `bind` of that name on the traced path) carry `event` as usual plus `eventFrom: {name, boundAt}`; `boundAt` is `<caller function name>:<seq>` and is absent when nothing on the path binds the name (the publish then behaves as one that names no event). `flows/counts` cannot follow binds per path: for such a step it uses every value that call steps bind to the name on a call path reaching the step's function, in the same service (a name bound in another service never counts; #44), plus the egress's events and candidates, so a count can include components a trace through one caller does not draw. Event reports and channel views list those bound values among the egress's events. Manifest: `bind: {name: value}` on `call` steps, `eventFrom: name` on egress steps; contract rule `eventfrom-unbound` (info).
 `trace_flow` and `GET /trace` messages of an SNS fan-out (a publish that reaches several links) carry `group` (id of the publish, `m<index of its message>`), `deliveries` (on the publish: how many follow) and `delivery` (1-based ordinal, on the topic -> queue and queue -> consumer messages of one delivery). A single-queue send has none of them. The UI draws an activation bar on the topic and labels the rail `depth.delivery` (3.1, 3.2, ...); call `depth` is unchanged. Order (0.9.4): the publish is followed by all its deliveries (topic -> queue -> consumer, one after another); only then come the consumers' own messages (calls, stores, publishes, nested deliveries), delivery 1's subtree first, then delivery 2's. Nothing sits between two deliveries, so the bar covers exactly the delivery rows. Before 0.9.4 each consumer's subtree sat between its delivery and the next.

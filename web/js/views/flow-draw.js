@@ -22,7 +22,7 @@ const NAME_CH = 16, SUB_CH = 19, CHIP_PX = 7, LINE_H = 14;
  * handlers: onMessage(msg, g, event), onBar(bar, 'select'?) (double-click, pill: look inside; click: select),
  * onBarMenu(bar, x, y), onParticipant(p, x, y), onBadge(publishEvent). `selected`: bar id drawn highlighted.
  */
-export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, onBadge, onMw, selected = null, sticky = true } = {}) {
+export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, onBadge, onMw, onBarTip, selected = null, sticky = true } = {}) {
   const { columns, events, bars } = lane;
   // Each gap between lifelines grows to fit the longest arrow label that crosses it: a label is never cut.
   const idx = new Map(columns.map((c, i) => [c, i]));
@@ -114,7 +114,7 @@ export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, o
   const rects = bars.map((b) => {
     const y1 = ys[b.start] - 16, y2 = ys[b.end] + 14;
     const r = s('rect', { class: `act${selected === b.id ? ' selected' : ''}`, 'data-bar': b.id, x: barX(b, -1), y: y1, width: BAR, height: Math.max(20, y2 - y1), rx: 3, style: `--mc:${colorOf(b.transport)}`, tabindex: 0, role: 'button',
-      'aria-label': `${b.service}: ${b.msg.label}. Press Enter to look inside` }, s('title', {}, `${b.service}\n${b.msg.label}\nDouble-click to look inside`));
+      'aria-label': `${b.service}: ${b.msg.label}. Press Enter to look inside` }, onBarTip ? null : s('title', {}, `${b.service}\n${b.msg.label}\nDouble-click to look inside`)); // onBarTip draws the popover instead
     b.el = r;
     return r;
   });
@@ -129,7 +129,7 @@ export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, o
     columns.map((c) => s('line', { class: c.kind === 'rail' ? 'rail' : 'lifeline', x1: colX.get(c), x2: colX.get(c), y1: 0, y2: height })), rects, segs, drawn);
 
   const eventOf = (t) => events[Number(t.closest?.('[data-e]')?.dataset.e)];
-  const barOf = (t) => { const r = t.closest?.('[data-bar]'); return r ? bars[Number(r.dataset.bar)] : null; };
+  const barOf = (t) => { const r = t?.closest?.('[data-bar]'); return r ? bars[Number(r.dataset.bar)] : null; };
   const badgeOf = (t) => { const b = t.closest?.('[data-badge]'); return b ? events[Number(b.dataset.badge)] : null; };
   const foldOf = (t) => t.closest?.('[data-mwfold]');
   const fold = (el) => onMw?.(bars[Number(el.dataset.mwfold)], el.classList.contains('mwlab') ? '.mwlab' : '.mwseg'); // the redraw replaces the element: the caller refocuses by this selector
@@ -142,6 +142,13 @@ export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, o
   head.addEventListener('click', pm);
   let foldTimer = 0; // a fold click waits a beat so a double-click (look inside) never flips the fold
   body.addEventListener('dblclick', (ev) => { clearTimeout(foldTimer); const f = foldOf(ev.target), b = barOf(ev.target) ?? (f ? bars[Number(f.dataset.mwfold)] : null); if (b) onBar?.(b); });
+  if (onBarTip) { // the popover on a bar: hover (the caller delays it) and keyboard focus
+    const enter = (ev) => { const b = barOf(ev.target); if (b && barOf(ev.relatedTarget) !== b) onBarTip(b, b.el); };
+    const leave = (ev) => { const b = barOf(ev.target); if (b && barOf(ev.relatedTarget) !== b) onBarTip(null); };
+    body.addEventListener('mouseover', enter); body.addEventListener('mouseout', leave);
+    body.addEventListener('focusin', enter); body.addEventListener('focusout', leave);
+    body.addEventListener('dblclick', () => onBarTip(null)); body.addEventListener('contextmenu', () => onBarTip(null));
+  }
   body.addEventListener('contextmenu', (ev) => { const b = barOf(ev.target); if (b) { ev.preventDefault(); onBarMenu?.(b, ev.clientX, ev.clientY); } });
   body.addEventListener('click', (ev) => {
     const bd = badgeOf(ev.target), pill = pillOf(ev.target), b = barOf(ev.target), e = eventOf(ev.target);

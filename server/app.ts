@@ -13,6 +13,7 @@ import { registerMap } from './routes/map.ts';
 import { registerQueries } from './routes/queries.ts';
 import { registerBugs } from './routes/bugs.ts';
 import { registerDtos } from './routes/dtos.ts';
+import { registerDescriptions } from './routes/descriptions.ts';
 import { registerInventory } from './routes/inventory.ts';
 import { registerMcpHttp } from './mcp/http.ts';
 
@@ -37,6 +38,7 @@ export function createApp(opts: AppOptions): { server: Server; ctx: Ctx } {
   registerQueries(router, ctx);
   registerBugs(router, ctx);
   registerDtos(router, ctx);
+  registerDescriptions(router, ctx);
   registerInventory(router, ctx);
   registerMcpHttp(router, ctx);
 

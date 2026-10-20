@@ -53,6 +53,7 @@ UI / agent ── GET /api/envs/:env/... ─► server/routes/queries.ts ─► 
 | `endpoint-info.ts` | an ingress with its handler, repo link to the handler's code, and DTOs |
 | `impact.ts` | bug impact (flows through linked entities) and suggested priority |
 | `integrity.ts` | references inside one service |
+| `description.ts` | flow descriptions, pure: the trace hash, outdated flag, grouping of stored records, the two "Generate…" prompts |
 | `schema-validate.ts` | small JSON Schema validator for our schema's keywords |
 
 ## server/
@@ -65,6 +66,7 @@ UI / agent ── GET /api/envs/:env/... ─► server/routes/queries.ts ─► 
 | `store/snapshots.ts` | ingest (full/delta), CRUD, changelog |
 | `store/schemas.ts` | data-store schemas per source |
 | `store/dtos.ts` | request/response DTOs per ingress endpoint (a response per status) and event DTOs, with provenance |
+| `store/descriptions.ts` | flow descriptions: human record (REST) and AI record (MCP `set_description`), outdated flag against the current trace |
 | `store/bugs.ts` | bug workflow, attachments, log scanning |
 | `graph-cache.ts` | per-environment GraphIndex cache, health history |
 | `routes/*.ts` | REST endpoints by area |
@@ -82,7 +84,7 @@ tables render one page at a time; long lists are capped with "type to narrow"; t
 (`flow-lane.js`, `flow-scan.js`: pure layout rules; `flow-draw.js`: SVG), folds internal calls into a pill, ends
 publishes at a rail and lists the async work in an index of expandable cards (`flow-async.js`, `flow-index.js`);
 flow tabs (0.13.0): `flows.js` owns the open tabs and mirrors them in the URL (`tabs=` stable keys, `tab=`); `flow-tabs-state.js` is the pure part (keys, URL encode/decode, open/close/reopen order, "distinct" selection, keyboard map), `flow-tab-data.js` loads a tab by key (a sub-flow tab is one row of its origin's async tree, no request), `flow-tab-view.js` is one tab's DOM (breadcrumb, diagram, async list; kept alive while hidden, which is the tab memory), `flow-tabs.js` the strip and overflow list, `flow-tabs-anim.js` the 280 ms open animation, `flow-list.js` the entry-point list;
-`flow-mw.js` holds the pure rules for ingress middleware segments (fold over 3, row spans), drawn on top of the bar by `flow-draw.js`; `flow-inside.js` and `flow-inside-panel.js` are the drill-down (middleware chain first). Data-store stubs and deep levels can be hidden.
+`flow-mw.js` holds the pure rules for ingress middleware segments (fold over 3, row spans), drawn on top of the bar by `flow-draw.js`; `flow-inside.js` and `flow-inside-panel.js` are the drill-down (middleware chain first). flow descriptions (0.14.0): `flow-desc.js` (store shared by every spot, the Human/AI two-box block, the one-line variant, the Human note editor), `flow-desc-dialog.js` (the Generate dialog, two copyable prompts), `flow-desc-tip.js` (bar hover popover); `flowRoot(key)` in `flow-tabs-state.js` says which flow a tab's descriptions belong to. Data-store stubs and deep levels can be hidden.
 
 Design tokens are in `css/tokens.css`. Transport colours (http, sns, sqs, amqp, data store,
 broken) mean the same thing in every view.
@@ -92,6 +94,5 @@ broken) mean the same thing in every view.
 - Keep files under ~250 lines; split by concern when they grow.
 - core/ stays pure (no `node:` imports) so the browser can run it.
 - Use `import type` for type-only imports (required by type stripping).
-- DB changes edit `server/db/migrations/001_init.sql` (no incremental migrations yet); reinstall
-  with `npm run db:install -- --force`. `openDb` refuses a database built from an older schema.
+- DB changes add a new `server/db/migrations/NNN_name.sql` (applied ones are frozen); see CLAUDE.md.
 - Every behaviour change gets a test in `tests/`.

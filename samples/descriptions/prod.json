@@ -1,0 +1,15 @@
+{
+  "env": "prod",
+  "descriptions": [
+    { "service": "api-gateway", "ingress": "in.createOrder", "source": "human", "editedBy": "Asaf",
+      "text": "The main checkout path. Owned by the checkout team. Do not change the OrderPlaced payload without telling analytics and shipping." },
+    { "service": "api-gateway", "ingress": "in.createOrder", "source": "ai", "model": "claude-sonnet-5-5", "generatedAt": "2026-10-19T09:30:00.000Z",
+      "text": "A customer places an order through the public API. The gateway hands it to orders-svc, which checks it, reserves stock and takes payment, then stores the order and announces OrderPlaced. Shipping, inventory and analytics react to that event on their own.\n\nWhy it exists: turn a checkout click into a paid, stock-backed order, and keep slow follow-up work (shipments, emails) out of the customer's wait." },
+    { "service": "api-gateway", "ingress": "in.createOrder", "callee": "orders-svc", "source": "ai", "model": "claude-sonnet-5-5", "generatedAt": "2026-10-19T09:30:00.000Z",
+      "text": "Accepts the order from the gateway, checks it, reserves stock and takes payment, then stores it and publishes OrderPlaced for the rest of the system." },
+    { "service": "api-gateway", "ingress": "in.createOrder", "callee": "shipping-svc", "source": "ai", "model": "claude-sonnet-5-5", "generatedAt": "2026-09-30T14:00:00.000Z", "outdated": true,
+      "text": "Creates the shipment record for a placed order and asks notifications to email the customer. Written before the flow was changed, so it may no longer be right." },
+    { "service": "orders-svc", "ingress": "in.remove", "source": "ai", "model": "claude-sonnet-5-5", "generatedAt": "2026-10-02T08:00:00.000Z", "outdated": true,
+      "text": "Deletes an order by id. Written from an earlier version of the flow; regenerate it to match what the flow does now." }
+  ]
+}
