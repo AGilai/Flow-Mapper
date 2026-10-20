@@ -9,6 +9,10 @@ Decisions made after rev 4 (not drawn in the mockup):
 - Every flow needs a whole-flow description, and each service sub-flow has its own. "Generate…"
   offers two prompts: the whole flow with all its services, and one service only.
 - Panels squeeze the page and never overlay it (docs/UI-GUIDE.md, section 9).
+- Every tab has the same two parts: the flow's own diagram, and under it the list of its async
+  sub-flows. A row in that list is collapsed by default but expands IN PLACE into a card that
+  shows the sub-flow's diagram and its own nested list (card styling: mockup commit c564ad5,
+  frame 1). "Open in tab" stays on each row/card. "↩ seen in N" rows jump to card N.
 
 ## Part 1: diagram (0.11.0)
 - One activation bar per call into a service, spanning the whole call; a service called twice gets
