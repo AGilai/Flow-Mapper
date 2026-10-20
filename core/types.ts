@@ -14,7 +14,7 @@ export interface Source { file?: string; line?: number; col?: number; url?: stri
 export interface Provenance { producer?: string; runId?: string; verified?: 'match' | 'drift' | 'code-only' }
 /** Something the harvester found but could not resolve: the target (call or consumer) or the event type. */
 /** what=caller (on a function): the backward walk stopped here because nothing could be resolved as its caller. */
-export interface Unresolved { what: 'target' | 'event' | 'caller'; reason: string; detail?: string; candidates?: string[] }
+export interface Unresolved { what: 'target' | 'event' | 'caller' | 'client'; reason: string; detail?: string; candidates?: string[] }
 
 export interface Service {
   name: string;
@@ -61,17 +61,26 @@ export interface Ingress {
 }
 /** One wrapper between a call site and the real SDK call (the last hop calls the SDK). Never a node or edge. */
 export interface ViaHop { function: string; file?: string; line?: number; col?: number; kind?: string; repo?: string; commit?: string }
+/** A driver package as the harvester found it. `versionSource` says where the version came from (lockfile, package.json…). */
+export interface DriverRef { package: string; version?: string; versionSource?: string }
+/** The wrapper library a service reaches a store through, and the driver bundled inside it. */
+export interface LibRef extends DriverRef { kind?: 'in_house' | 'third_party'; driver?: DriverRef | null }
+export type AccessMode = 'direct_driver' | 'shared_lib' | 'self_implemented_wrapper' | 'third_party_lib';
+/** How a service reaches a data store (on a resource) or a non-store target (on an egress). Missing values go in `unresolved` (what 'client'). */
+export interface ClientInfo { accessMode?: AccessMode; accessId?: string; driver?: DriverRef | null; lib?: LibRef | null; via?: ViaHop[] }
 export interface CallSite { file: string; line?: number; function?: string; via?: ViaHop[] }
 export interface Egress {
   service: string; id: string; bindKey: string; transport: Transport;
   mode?: Mode; delivery?: Delivery; details?: Details;
   /** Wrapper chain; `details.via` is read too (see core/via.ts). */
   via?: ViaHop[]; callSites?: CallSite[];
+  /** How this call reaches a non-store target (driver, wrapper lib). */
+  client?: ClientInfo;
   /** Event types published through this egress (literal). */
   events?: string[];
   source?: Source; provenance?: Provenance; unresolved?: Unresolved[];
 }
-export interface Resource { service: string; id: string; kind: string; name: string; bindKey?: string; details?: Details; source?: Source; provenance?: Provenance; unresolved?: Unresolved[] }
+export interface Resource { service: string; id: string; kind: string; name: string; bindKey?: string; details?: Details; client?: ClientInfo; source?: Source; provenance?: Provenance; unresolved?: Unresolved[] }
 export interface Channel {
   service: string; bindKey: string; kind: 'sns-topic' | 'sqs-queue' | 'amqp-exchange' | 'amqp-queue' | 'eventbridge-bus' | 'other';
   name?: string; delivery?: Delivery; details?: Details;

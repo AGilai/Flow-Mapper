@@ -44,7 +44,7 @@ export function dataTable({ columns, rows, pageSize = 50, onRow, sortKey, sortDi
         columns.map((c) => h('td', { class: c.num ? 'num' : '' }, c.render ? c.render(r) : String(r[c.key] ?? ''))))) :
       [h('tr', h('td.muted', { colSpan: columns.length }, empty))]));
     fill(pager, 
-      h('span', `${all.length.toLocaleString()} rows`),
+      h('span', `${all.length.toLocaleString()} ${all.length === 1 ? 'row' : 'rows'}`),
       h('span.spacer'),
       pages > 1 ? [
         h('button.btn.ghost', { disabled: page === 0, on: { click: () => { page--; render(); } } }, 'Previous'),

@@ -8,6 +8,10 @@ Add a row here with every fix or feature (newest first). A row without a working
 
 | Version | Bug | What to look at | Link |
 |---|---|---|---|
+| 0.8.0 | #27 | Clients table on a Redis key: 6 services; direct driver (ioredis 5.3.2), shared library `saferxlib` bundling ioredis 4.27.6 next to their own 5.x (coloured 5.x / 4.x pills and a callout naming saferxlib), an own wrapper on ioredis 4.28.5, one with the driver version unresolved, a 2-hop via | `#/stores/redis%3Acache-main%2Forder%3A%7Bid%7D` |
+| 0.8.0 | #27 | Direct driver on MongoDB (mongodb 6.3.0) | `#/stores/mongodb%3Aorders-db%2Forders` |
+| 0.8.0 | #27 | Inventory driver facet: "ioredis 4.x 5 services": the filter lists services and where the 4.x comes from (services on 4.x through their own driver or a lib's) | `#/inventory?type=store%3Aredis&driver=ioredis%404` |
+| 0.8.0 | #27 | Same list as API and MCP | `GET /api/envs/prod/clients?driver=ioredis&driverMajor=4`, MCP `list_clients` |
 | 0.7.1 | #33 | One publish arrow to `sns:order-events`, then one fan-out hop to the shipping queue, although the topic owner and the consumer both declare that subscription | `#/services/api-gateway` → Trace a flow from POST /orders (full flow) |
 | 0.7.0 | #26 | Event page as a flow: collapse beyond 8, `*` consumer, no-handler callout, direct send + topic (one consumer node, 2 ingresses), possible producer (dashed), click a service for its panel | `#/events/account.tenant.terminated.priority10` |
 | 0.7.0 | #26 | Only a possible producer | `#/events/account.tenant.suspended` |

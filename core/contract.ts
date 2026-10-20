@@ -5,7 +5,7 @@
 import type { GraphIndex } from './graph-index.ts';
 import { filterAllows, keyMatches } from './glob.ts';
 import { drift, mixedCommits } from './harvest-quality.ts';
-import type { Source, Unresolved } from './types.ts';
+import type { ClientInfo, Source, Unresolved } from './types.ts';
 
 export type Level = 'error' | 'warn' | 'info';
 export interface Finding {
@@ -19,9 +19,9 @@ export interface ContractReport { errors: number; warnings: number; infos: numbe
 export interface ServiceManifest {
   service: string;
   functions?: { id: string; file?: string; unresolved?: Unresolved[]; steps?: { seq: number; type: string; target?: string; unresolved?: Unresolved[] }[] }[];
-  resources?: { id: string; unresolved?: Unresolved[] }[];
+  resources?: { id: string; client?: ClientInfo; unresolved?: Unresolved[] }[];
   ingress?: { id: string; bindKey?: string; source?: Source; unresolved?: Unresolved[] }[];
-  egress?: { id: string; bindKey?: string; transport: string; events?: string[]; source?: Source; unresolved?: Unresolved[] }[];
+  egress?: { id: string; bindKey?: string; transport: string; events?: string[]; client?: ClientInfo; source?: Source; unresolved?: Unresolved[] }[];
   bindings?: { id: string; from: string; match?: 'exact' | 'glob'; events?: '*' | string[]; source?: Source }[];
 }
 interface Ctx { m: ServiceManifest; g: GraphIndex; add: (f: Omit<Finding, 'service'>) => void }
@@ -126,7 +126,29 @@ const harvestQuality: Rule = ({ m, g, add }) => {
   });
 };
 
-export const RULES: Rule[] = [unresolvedNoDetail, missingSource, bindingNoEvents, bindingEmptyEvents, egressNoEvents, dangling, filterMatchesNothing, harvestQuality];
+const CLIENT_FIELD = /^(accessMode|accessId|driver|lib|via)(\.|$)/;
+/** A client's missing values are named in `unresolved` (what=client, detail = field path); a driver version left out silently is reported. */
+const clientGaps: Rule = ({ m, add }) => {
+  const check = (kind: 'resource' | 'egress', id: string, c: ClientInfo | undefined, list?: Unresolved[]) => {
+    const named = (list ?? []).filter((u) => u.what === 'client').map((u) => u.detail ?? '');
+    for (const d of named) if (!CLIENT_FIELD.test(d)) add({
+      level: 'warn', code: 'client-unresolved-field', kind, id,
+      message: `${kind} '${id}' has an unresolved (client) entry whose detail '${d}' names no client field`,
+      fix: 'Put the field path in detail: accessMode, accessId, driver.version, lib.version, lib.driver.version, via.',
+    });
+    const missing = [['driver.version', c?.driver && !c.driver.version], ['lib.version', c?.lib && !c.lib.version], ['lib.driver.version', c?.lib?.driver && !c.lib.driver.version]]
+      .filter(([f, gone]) => gone && !named.includes(f as string)).map(([f]) => f);
+    if (missing.length) add({
+      level: 'info', code: 'client-version-gap', kind, id,
+      message: `${kind} '${id}' has a client without ${missing.join(', ')} and no unresolved entry saying why`,
+      fix: `Send the version, or unresolved: [{what: "client", reason: "lockfile_not_found", detail: "${missing[0]}"}]. Never invent a version.`,
+    });
+  };
+  for (const r of m.resources ?? []) check('resource', r.id, r.client, r.unresolved);
+  for (const e of m.egress ?? []) check('egress', e.id, e.client, e.unresolved);
+};
+
+export const RULES: Rule[] = [unresolvedNoDetail, clientGaps, missingSource, bindingNoEvents, bindingEmptyEvents, egressNoEvents, dangling, filterMatchesNothing, harvestQuality];
 
 /** `m`: the service's entities as stored; `g`: the env's index after applying them. */
 export function contractReport(m: ServiceManifest, g: GraphIndex): ContractReport {

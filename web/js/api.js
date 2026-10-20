@@ -37,6 +37,7 @@ const remote = {
   entryPoints: (env) => http('GET', `/api/envs/${e(env)}/entry-points`),
   inventory: (env) => http('GET', `/api/envs/${e(env)}/inventory`),
   store: (env, key) => http('GET', `/api/envs/${e(env)}/stores/${e(key)}`),
+  clients: (env, f = {}) => http('GET', `/api/envs/${e(env)}/clients${qs(f)}`),
   channel: (env, key) => http('GET', `/api/envs/${e(env)}/channels/${e(key)}`),
   eventType: (env, type) => http('GET', `/api/envs/${e(env)}/events/${e(type)}`),
   endpoint: (env, service, ingress) => http('GET', `/api/envs/${e(env)}/endpoints/${e(service)}/${e(ingress)}`),

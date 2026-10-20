@@ -108,7 +108,41 @@
       "id": "orderCache",
       "kind": "redis",
       "name": "order:{id}",
-      "bindKey": "redis:cache-main/order:{id}"
+      "bindKey": "redis:cache-main/order:{id}",
+      "client": {
+        "accessId": "shipping-svc/src/lib/cache.ts:40",
+        "accessMode": "shared_lib",
+        "driver": {
+          "package": "ioredis",
+          "version": "5.3.2",
+          "versionSource": "lockfile"
+        },
+        "lib": {
+          "package": "saferxlib",
+          "kind": "in_house",
+          "version": "2.1.0",
+          "versionSource": "lockfile",
+          "driver": {
+            "package": "ioredis",
+            "version": "4.27.6",
+            "versionSource": "lockfile"
+          }
+        },
+        "via": [
+          {
+            "function": "ShipmentCache.get",
+            "file": "src/lib/cache.ts",
+            "line": 40,
+            "kind": "wrapper"
+          },
+          {
+            "function": "saferxlib.RedisClient.get",
+            "file": "node_modules/saferxlib/dist/client.js",
+            "line": 112,
+            "kind": "wrapper"
+          }
+        ]
+      }
     }
   ],
   "channels": [

@@ -6,7 +6,8 @@ import { created } from '../http/router.ts';
 import type { Ctx } from '../context.ts';
 import { notFound } from '../errors.ts';
 import { inventory } from '../../core/inventory.ts';
-import { storeView, stores } from '../../core/stores.ts';
+import { stores } from '../../core/stores.ts';
+import { listClients, storeWithClients } from '../../core/clients.ts';
 import { channelView } from '../../core/channels.ts';
 import { listEventDtos } from '../store/dtos.ts';
 import * as schemas from '../store/schemas.ts';
@@ -18,8 +19,14 @@ export function registerInventory(r: Router, ctx: Ctx) {
   r.get('/api/envs/:env/inventory', (req) => inventory(ctx.graph(req.params.env), listEventDtos(db, req.params.env).map((d) => d.event)));
 
   r.get('/api/envs/:env/stores/*key', (req) => {
-    const v = storeView(ctx.graph(req.params.env), req.params.key) ?? (() => { throw notFound(`data store '${req.params.key}'`); })();
+    const v = storeWithClients(ctx.graph(req.params.env), req.params.key) ?? (() => { throw notFound(`data store '${req.params.key}'`); })();
     return { ...v, schemas: schemas.listSchemas(db, req.params.env, req.params.key) };
+  });
+
+  r.get('/api/envs/:env/clients', (req) => {
+    const q = req.query;
+    const f = Object.fromEntries(['store', 'service', 'driver', 'driverMajor', 'lib', 'accessMode', 'via'].map((k) => [k, q.get(k) ?? undefined]));
+    return listClients(ctx.graph(req.params.env), f);
   });
 
   r.get('/api/envs/:env/channels/*key', (req) =>

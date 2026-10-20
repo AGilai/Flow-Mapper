@@ -91,6 +91,42 @@
         }
       }
     },
+    "driverRef": {
+      "type": "object",
+      "required": ["package"],
+      "additionalProperties": false,
+      "properties": {
+        "package": { "type": "string", "description": "Package name, e.g. ioredis." },
+        "version": { "type": "string", "description": "Resolved version, e.g. 5.3.2. Leave out (and send unresolved what=client) when unknown; never invent one." },
+        "versionSource": { "type": "string", "description": "Where the version came from: lockfile, package.json, …" }
+      }
+    },
+    "client": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "How a service reaches a data store (on a resource) or a non-store target (on an egress): its access mode, its own driver, and the wrapper library with the driver bundled in it. One client per client site; a service that reaches one store in two ways sends two resources.",
+      "properties": {
+        "accessMode": { "enum": ["direct_driver", "shared_lib", "self_implemented_wrapper", "third_party_lib"] },
+        "accessId": { "type": "string", "description": "Stable id of the client site, e.g. orders-svc/src/redis.ts:12." },
+        "driver": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/driverRef" }], "description": "The service's own driver." },
+        "lib": {
+          "description": "The wrapper library and the driver it bundles; null or omitted for direct_driver.",
+          "oneOf": [{ "type": "null" }, {
+            "type": "object",
+            "required": ["package"],
+            "additionalProperties": false,
+            "properties": {
+              "package": { "type": "string" },
+              "kind": { "enum": ["in_house", "third_party"] },
+              "version": { "type": "string" },
+              "versionSource": { "type": "string" },
+              "driver": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/driverRef" }], "description": "The driver nested inside the library (it may differ from the service's own)." }
+            }
+          }]
+        },
+        "via": { "$ref": "#/$defs/via", "description": "Wrapper hops from the caller to the SDK call, same shape as egress `via`." }
+      }
+    },
     "callSite": {
       "type": "object",
       "required": ["file"],
@@ -105,13 +141,13 @@
     },
     "unresolved": {
       "type": "array",
-      "description": "What the harvester found but could not resolve, and why. what=target: the call target or consumed key (bindKey, or a step's target, may then be left out). what=event: the event type (candidates = the possible types). what=caller (on a function): the backward walk stopped here because no caller could be resolved (reason e.g. unknown_receiver, callback_passed; candidates = possible callers, as function ids).",
+      "description": "What the harvester found but could not resolve, and why. what=target: the call target or consumed key (bindKey, or a step's target, may then be left out). what=event: the event type (candidates = the possible types). what=client (on a resource or egress): a field of its `client` the harvester could not resolve; `detail` names the field (e.g. driver.version or lib.driver.version), `reason` says why (e.g. lockfile_not_found). what=caller (on a function): the backward walk stopped here because no caller could be resolved (reason e.g. unknown_receiver, callback_passed; candidates = possible callers, as function ids).",
       "items": {
         "type": "object",
         "required": ["what", "reason"],
         "additionalProperties": false,
         "properties": {
-          "what": { "enum": ["target", "event", "caller"] },
+          "what": { "enum": ["target", "event", "caller", "client"] },
           "reason": { "type": "string", "minLength": 1 },
           "detail": { "type": "string" },
           "candidates": { "type": "array", "items": { "type": "string" }, "description": "Possible bind keys (target) or event types (event)." }
@@ -224,6 +260,7 @@
         "unresolved": { "$ref": "#/$defs/unresolved" },
         "events": { "type": "array", "items": { "$ref": "#/$defs/eventType" }, "description": "Event types published through this egress." },
         "via": { "$ref": "#/$defs/via" },
+        "client": { "$ref": "#/$defs/client" },
         "callSites": { "type": "array", "items": { "$ref": "#/$defs/callSite" }, "description": "Every place that makes this call, each with its own `via`. `details.via` and `details.callSites` are still accepted." }
       }
     },
@@ -238,6 +275,7 @@
         "name": { "type": "string" },
         "unresolved": { "$ref": "#/$defs/unresolved" },
         "bindKey": { "$ref": "#/$defs/bindKey", "description": "Shared key so services using the same store are grouped: {kind}:{cluster or db}/{collection, table or key pattern}, e.g. mongodb:orders-db/orders, redis:cache-main/order:{id}. The part before '/' groups keys of one cluster." },
+        "client": { "$ref": "#/$defs/client" },
         "details": { "$ref": "#/$defs/details" },
         "source": { "$ref": "#/$defs/source" },
         "provenance": { "$ref": "#/$defs/provenance" }

@@ -40,6 +40,8 @@ anything. There are currently no `error`-level codes (422 rejections come from v
 | Code | Level | Means | Fix |
 |---|---|---|---|
 | `unresolved-no-detail` | warn | an `unresolved` entry (on ingress, egress, function, step or resource) with an empty `detail` (or blank `reason`) | say what you could not resolve |
+| `client-version-gap` | info | a `client` with a driver or lib but no version, and no `unresolved` entry saying why | send the version, or `unresolved: [{what: "client", reason, detail: "driver.version"}]` |
+| `client-unresolved-field` | warn | `unresolved` what `client` whose `detail` is not a client field path | name the field: `accessMode`, `accessId`, `driver.version`, `lib.version`, `lib.driver.version`, `via` |
 | `binding-empty-events` | warn | subscription with `events: []`: delivers nothing | send the types it lets through, or omit `events` |
 | `missing-source` | info | ingress/egress without `source.file`, or steps of a function without `file` (one finding per service) | send `source: {file, line}`, and `file` on functions |
 | `binding-no-events` | info | SNS/EventBridge subscription without `events`: everything is delivered | send the filter policy as `events`, or `"*"` |
@@ -173,12 +175,47 @@ Do not invent a key and do not drop the item. Say what you found and why it is u
 - `what: "event"` on an **egress**: the event type is unknown or one of several. Put the possible
   types in `candidates`; they are shown as *possible* producers, never as confirmed, and they
   keep consumers off "nothing sends it". Known types still go in `events`.
+- `what: "client"` on a **resource** or **egress**: a field of its `client` (below) you could not
+  resolve. `detail` is the field path (`driver.version`, `lib.version`, `lib.driver.version`,
+  `accessMode`, `via`), `reason` says why (`lockfile_not_found`). Leave the field out; never put a
+  placeholder version.
 - `reason` is a short stable code (`no_endpoint`, `method_or_path_unresolved`, `var.env unresolved`,
   `dynamic_dispatch`, `attribution_ambiguous`…); link health groups by it. `detail` is what you
   saw in code. `candidates` are bind keys (target) or event types (event); target candidates are
   checked against real endpoints and shown as possible matches.
 
 Unresolved items are never counted as broken links; they have their own section in link health.
+
+## How a service reaches a store: `client`
+
+Optional `client` on a **resource** (the service's connection to a data store; an egress takes it
+for non-store calls). One client per client site: a service that reaches one store in two ways sends
+two resources. When infrastructure later defines the instances (a Redis cluster with its own id),
+the service's resource points at it by `bindKey` and keeps carrying `client`; nothing here changes.
+
+```json
+{ "id": "orderCache", "kind": "redis", "name": "order:{id}", "bindKey": "redis:cache-main/order:{id}",
+  "client": {
+    "accessMode": "shared_lib",
+    "accessId": "shipping-svc/src/lib/cache.ts:40",
+    "driver": { "package": "ioredis", "version": "5.3.2", "versionSource": "lockfile" },
+    "lib": { "package": "saferxlib", "kind": "in_house", "version": "2.1.0", "versionSource": "lockfile",
+             "driver": { "package": "ioredis", "version": "4.27.6", "versionSource": "lockfile" } },
+    "via": [{ "function": "ShipmentCache.get", "file": "src/lib/cache.ts", "line": 40 },
+            { "function": "saferxlib.RedisClient.get", "file": "node_modules/saferxlib/dist/client.js", "line": 112 }] } }
+```
+
+- `accessMode`: `direct_driver` (the service calls the driver), `shared_lib` (an in-house library
+  shared by services), `self_implemented_wrapper` (the service's own wrapper), `third_party_lib`.
+- `driver` is the service's own driver for this store. `lib` is the wrapper and `lib.driver` the
+  driver bundled inside it (it may be another major than the service's own: that is the case the UI
+  flags). `lib` is `null` or left out for `direct_driver`. `versionSource` says where you read the
+  version (`lockfile`, `package.json`).
+- `via` has the same hops as an egress `via`, from the caller to the SDK call.
+- Versions are strings; the server derives the major (`4.27.6` is `4.x`). A version you could not
+  read is left out and sent as `unresolved: [{what: "client", reason: "lockfile_not_found", detail: "driver.version"}]`.
+- The store page lists the clients; Inventory has a driver facet; MCP `list_clients` and
+  `GET /api/envs/:env/clients` filter by store, service, driver, major, lib, access mode and via.
 
 ## Bind keys
 

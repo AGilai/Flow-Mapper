@@ -1554,6 +1554,37 @@
       "details": {
         "ttlSeconds": 60
       }
+    },
+    {
+      "id": "orderCache",
+      "kind": "redis",
+      "name": "order:{id}",
+      "bindKey": "redis:cache-main/order:{id}",
+      "client": {
+        "accessId": "catalog-svc/src/cache.ts:5",
+        "accessMode": "shared_lib",
+        "driver": {
+          "package": "ioredis"
+        },
+        "lib": {
+          "package": "saferxlib",
+          "kind": "in_house",
+          "version": "2.1.0",
+          "versionSource": "lockfile",
+          "driver": {
+            "package": "ioredis",
+            "version": "4.27.6",
+            "versionSource": "lockfile"
+          }
+        }
+      },
+      "unresolved": [
+        {
+          "what": "client",
+          "reason": "lockfile_not_found",
+          "detail": "driver.version"
+        }
+      ]
     }
   ]
 }

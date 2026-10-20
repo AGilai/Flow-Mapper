@@ -11,7 +11,7 @@ import { health } from '../core/health.js';
 import { impact, suggestPriority } from '../core/impact.js';
 import { endpointInfo } from '../core/endpoint-info.js';
 import { inventory } from '../core/inventory.js';
-import { storeView } from '../core/stores.js';
+import { listClients, storeWithClients } from '../core/clients.js';
 import { channelView } from '../core/channels.js';
 import { eventView } from '../core/events.js';
 import { eventFlow } from '../core/event-flow.js';
@@ -54,7 +54,8 @@ export const api = {
   },
   entryPoints: async (env) => entryPoints(g(env)),
   inventory: async (env) => inventory(g(env), (data.eventDtos?.[env] ?? []).map((d) => d.event)),
-  store: async (env, key) => ({ ...(storeView(g(env), key) ?? fail(`data store '${key}' not found`)), schemas: (data.schemas?.[env] ?? []).filter((s) => s.key === key) }),
+  clients: async (env, f = {}) => listClients(g(env), f),
+  store: async (env, key) => ({ ...(storeWithClients(g(env), key) ?? fail(`data store '${key}' not found`)), schemas: (data.schemas?.[env] ?? []).filter((s) => s.key === key) }),
   channel: async (env, key) => channelView(g(env), key) ?? fail(`channel '${key}' not found`),
   eventType: async (env, type) => ({ ...(eventView(g(env), type) ?? fail(`event type '${type}' not found`)), flow: eventFlow(g(env), type), dto: (data.eventDtos?.[env] ?? []).find((d) => d.event === type) ?? null }),
   endpoint: async (env, service, ingress) => endpointInfo(g(env), service, ingress,

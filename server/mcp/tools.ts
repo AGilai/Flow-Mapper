@@ -10,7 +10,8 @@ import { endpointInfo } from '../../core/endpoint-info.ts';
 import { eventTypes, eventView } from '../../core/events.ts';
 import { eventFlow } from '../../core/event-flow.ts';
 import { inventory } from '../../core/inventory.ts';
-import { storeView, stores } from '../../core/stores.ts';
+import { stores } from '../../core/stores.ts';
+import { listClients, storeWithClients } from '../../core/clients.ts';
 import { channelView } from '../../core/channels.ts';
 import * as schemas from '../store/schemas.ts';
 import { search } from '../../core/search.ts';
@@ -136,9 +137,14 @@ export const TOOLS: Tool[] = [
     name: 'get_store', description: "A data store by bind key (e.g. mongodb:orders-db/orders, redis:cache-main/order:{id}): readers and writers with the functions and operations, entry points whose flows reach it, other keys in its cluster, and its schemas by source.",
     inputSchema: obj({ env, key: { type: 'string' } }, ['key']),
     run: (c, a) => {
-      const v = storeView(c.graph(envOf(a)), a.key) ?? (() => { throw new HttpError(404, 'NOT_FOUND', `data store '${a.key}' not found`); })();
+      const v = storeWithClients(c.graph(envOf(a)), a.key) ?? (() => { throw new HttpError(404, 'NOT_FOUND', `data store '${a.key}' not found`); })();
       return { ...v, schemas: schemas.listSchemas(c.db, envOf(a), a.key) };
     },
+  },
+  {
+    name: 'list_clients', description: "How services reach data stores (and non-store targets): one row per client site with access mode, the service's own driver, the wrapper lib and the driver bundled in it, and the `via` wrapper chain; rows carry `mixed` when a service has two majors of one driver package. Also `counts`: services per driver and major. Filters (all optional): store (bind key or its cluster), service, driver (package; matches the service's own driver or the lib's), driverMajor (e.g. '4'), lib, accessMode, via (substring of a wrapper function, file or lib). 'Services on ioredis 4.x' = driver=ioredis driverMajor=4.",
+    inputSchema: obj({ env, store: { type: 'string' }, service: { type: 'string' }, driver: { type: 'string' }, driverMajor: { type: 'string' }, lib: { type: 'string' }, accessMode: { enum: ['direct_driver', 'shared_lib', 'self_implemented_wrapper', 'third_party_lib'] }, via: { type: 'string' } }),
+    run: (c, a) => listClients(c.graph(envOf(a)), { store: a.store, service: a.service, driver: a.driver, driverMajor: a.driverMajor === undefined ? undefined : String(a.driverMajor), lib: a.lib, accessMode: a.accessMode, via: a.via }),
   },
   {
     name: 'get_channel', description: 'A topic, queue, exchange or event bus by key: publishers, subscriptions/rules with event filters, consumers, event types passing through, problems, and `flow`: merged subscription rows (declarations that disagree are named), a grid of event type x destination (handled, filtered, arrives with no handler) and a one-sentence summary with callouts.',

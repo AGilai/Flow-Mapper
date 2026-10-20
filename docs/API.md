@@ -136,7 +136,8 @@ Example: `samples/dtos/prod.json` (loaded by `npm run seed`).
 | Method and path | What |
 |---|---|
 | `GET /api/envs/:env/inventory` | every object `{type: service \| channel \| store \| event, id, label, kind, group, team, connections, size, problems, hasDto}` (`hasDto` is set on event types: whether a message DTO exists) |
-| `GET /api/envs/:env/stores/:key` | a data store: `readers`, `writers`, `uses` (service, functions with code `source` and operations with `access`), `entryPoints` that reach it, `siblings` in its group, `schemas` |
+| `GET /api/envs/:env/stores/:key` | a data store: `readers`, `writers`, `clients` (rows as in `/clients`), `uses` (service, functions with code `source` and operations with `access`), `entryPoints` that reach it, `siblings` in its group, `schemas` |
+| `GET /api/envs/:env/clients` | how services reach data stores (#27): `{rows, counts}`. Query (all optional): `store` (bind key, or a cluster such as `redis:cache-main`), `service`, `driver` (package, or `package@major` as in the Inventory facet; `pkg@` = version not reported; matches the service's own driver or the one inside its lib), `driverMajor`, `lib`, `accessMode`, `via` (substring of a wrapper function, file or lib). `rows[]`: `{store, kind, service, entity: resource \| egress, id, accessMode, accessId, driver, lib, drivers: [{package, version, major, from: own \| lib}], via (linked hops), mixed: [{package, majors}], unresolved: [field]}`. `counts[]`: `{driver, major, label: "ioredis 4.x", services, clients}`, a service with two drivers counts under both |
 | `GET /api/envs/:env/channels/:key` | a topic/queue/exchange/bus: `publishers`, `feeds`, `subscriptions` (with `events` filter (entries starting with `!` exclude a type or glob), `conflict`), `consumers`, `events` passing through, `problems`, `definedBy` and `flow` (below) |
 | `GET /api/envs/:env/events/:type` | an event type: producers, consumers, `deliveries` (route `via`, handler), `problems`, `dto` and `flow` (below) |
 
@@ -232,5 +233,5 @@ Setting `priority` overrides the suggestion; `priority: null` returns to it.
 Tools: `search`, `list_services`, `get_service`, `list_entry_points`, `trace_flow`, `find_paths`,
 `link_health`, `changelog`, `ingest_manifest`, `upsert_entity`, `delete_entity`, `get_endpoint_info`,
 `load_dtos`, `event_types`, `inventory`, `get_store`, `get_channel`, `load_schemas`, `list_bugs`,
-`get_bug`, `report_bug` (accepts `log` text), `update_bug` (accepts `comment`).
+`list_clients` (same filters and result as `GET /clients`; `get_store` also returns `clients`), `get_bug`, `report_bug` (accepts `log` text), `update_bug` (accepts `comment`).
 `get_service` takes an optional `via` (substring of a wrapper function or file) to keep only egress that goes through it; its egress, `trace_flow` messages and `get_endpoint_info` producers carry `via`; ingress carries `via` (handler resolution) and `trace_flow` messages `handlerVia`, plus step code links in `code`; `get_service` functions carry `unresolved`.

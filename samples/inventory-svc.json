@@ -134,6 +134,30 @@
       "kind": "dynamodb",
       "name": "inventory-stock",
       "bindKey": "dynamodb:inventory-stock"
+    },
+    {
+      "id": "orderCache",
+      "kind": "redis",
+      "name": "order:{id}",
+      "bindKey": "redis:cache-main/order:{id}",
+      "client": {
+        "accessMode": "self_implemented_wrapper",
+        "accessId": "inventory-svc/src/stock-cache.ts:14",
+        "driver": {
+          "package": "ioredis",
+          "version": "4.28.5",
+          "versionSource": "lockfile"
+        },
+        "lib": null,
+        "via": [
+          {
+            "function": "StockCache.get",
+            "file": "src/stock-cache.ts",
+            "line": 14,
+            "kind": "wrapper"
+          }
+        ]
+      }
     }
   ],
   "channels": [

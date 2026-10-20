@@ -163,6 +163,40 @@
       "kind": "redis",
       "name": "risk:{customer}",
       "bindKey": "redis:cache-main/risk:{customer}"
+    },
+    {
+      "id": "orderCache",
+      "kind": "redis",
+      "name": "order:{id}",
+      "bindKey": "redis:cache-main/order:{id}",
+      "client": {
+        "accessId": "payments-svc/src/risk/cache.ts:21",
+        "accessMode": "shared_lib",
+        "driver": {
+          "package": "ioredis",
+          "version": "5.2.0",
+          "versionSource": "lockfile"
+        },
+        "lib": {
+          "package": "saferxlib",
+          "kind": "in_house",
+          "version": "2.0.3",
+          "versionSource": "lockfile",
+          "driver": {
+            "package": "ioredis",
+            "version": "4.27.6",
+            "versionSource": "lockfile"
+          }
+        },
+        "via": [
+          {
+            "function": "RiskCache.get",
+            "file": "src/risk/cache.ts",
+            "line": 21,
+            "kind": "wrapper"
+          }
+        ]
+      }
     }
   ]
 }

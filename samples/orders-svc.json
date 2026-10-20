@@ -304,13 +304,33 @@
       "id": "ordersDb",
       "kind": "mongodb",
       "name": "orders-db.orders",
-      "bindKey": "mongodb:orders-db/orders"
+      "bindKey": "mongodb:orders-db/orders",
+      "client": {
+        "accessMode": "direct_driver",
+        "accessId": "orders-svc/src/db.ts:8",
+        "driver": {
+          "package": "mongodb",
+          "version": "6.3.0",
+          "versionSource": "lockfile"
+        },
+        "lib": null
+      }
     },
     {
       "id": "cache",
       "kind": "redis",
       "name": "order:{id}",
-      "bindKey": "redis:cache-main/order:{id}"
+      "bindKey": "redis:cache-main/order:{id}",
+      "client": {
+        "accessMode": "direct_driver",
+        "accessId": "orders-svc/src/redis.ts:12",
+        "driver": {
+          "package": "ioredis",
+          "version": "5.3.2",
+          "versionSource": "lockfile"
+        },
+        "lib": null
+      }
     },
     {
       "id": "sessionCache",
