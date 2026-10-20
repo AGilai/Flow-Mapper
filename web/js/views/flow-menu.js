@@ -42,3 +42,11 @@ function zoomIn(service, trace) {
     onSelect: () => go('/flows', { service, ingress: entry.ingress, fn: entry.ingress ? null : entry.fn, event, scope: 'intra' }),
   };
 }
+
+/** Menu for an async delivery (its dot or arrow): jump to its sub-flow on this page, or open the consumer's own flow. */
+export function flowMenu(f, x, y, scope, jump) {
+  openMenu(x, y, `${f.service} · ${f.ingress}`, [
+    { label: 'Jump to the async flow', icon: 'flow', disabled: !jump, hint: jump ? 'Scroll to where this delivery is handled, lower on this page' : 'Nothing is drawn below it (depth limit)', onSelect: () => jump?.() },
+    { label: 'Open the async flow', icon: 'services', hint: `${f.service} · ${f.ingress}, on its own page`, onSelect: () => go('/flows', { service: f.service, ingress: f.ingress, scope }) },
+  ]);
+}

@@ -8,6 +8,7 @@ Add a row here with every fix or feature (newest first). A row without a working
 
 | Version | Bug | What to look at | Link |
 |---|---|---|---|
+| 0.9.5 | — | Async deliveries end in a coloured dot: click jumps to that consumer's sub-flow lower on the page (shaded band in the dot's colour, half-row gap above it), right-click or shift-click opens its own flow; nested flows nest their bands | `#/flows?service=saga-controller&ingress=in.start` |
 | 0.9.4 | #35 | Under a topic's activation bar only its own deliveries (rows 2.1, 2.2, ...) now sit; what the consumers do hangs under the bar, delivery 1 first | `#/flows?service=api-gateway&ingress=in.createOrder` and `#/flows?service=saga-controller&ingress=in.start` |
 | 0.9.4 | #35 | The saga demo is now three services (`saga-controller`, `saga-eraser-a`, `saga-eraser-b`): a delivery pointing back over its publish has its own row so labels no longer overlap; repeats ("↩ seen at step N") show a dashed chip at the arrow end | `#/flows?service=saga-controller&ingress=in.start` |
 | 0.9.3 | #43 | `saga-eraser-a` publishes the same status event from three places (since 0.9.4 across three services); the controller answers by advancing both erasers again. The saga is expanded under the first delivery; the other two are one muted line "↩ seen at step N" (before: 43 messages, now 21); click it to see the first step | `#/flows?service=saga-controller&ingress=in.start` |

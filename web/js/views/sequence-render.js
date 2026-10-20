@@ -7,9 +7,10 @@
 // Right-click (or click) a lifeline header to get its menu: onParticipant(participant, x, y).
 
 import { h, s } from '../dom.js';
+import { asyncFlowOf, gapRows, gapsAbove, flowSpans } from './sequence-plan.js';
 import { altFrames, stripsByRow, drawFrames, STRIP } from './sequence-alt.js';
 
-const COL = 168, HEAD = 56, ROW = 30, PAD = 24, GUTTER = 44;
+const COL = 168, HEAD = 56, ROW = 30, GAP = ROW / 2, PAD = 24, GUTTER = 44;
 const chipOf = (m) => (m.repeatOf ? `↩ step ${m.repeatOf}` : '');
 const chipW = (m) => (m.repeatOf ? chipOf(m).length * CH + 14 : 0);
 const plainLabel = (m) => (m.repeatOf ? m.label.replace(/\s*↩ seen at step \d+$/, '') : m.label);
@@ -65,7 +66,7 @@ function pointsBack(p, m, x) {
   return Math.sign(x.get(p.to) - x.get(p.from)) !== Math.sign(x.get(m.to) - x.get(m.from));
 }
 
-export function renderSequence(trace, { onMessage, onParticipant, expanded = new Set(), internal = true, stores = true, queues = true, maxDepth = Infinity } = {}) {
+export function renderSequence(trace, { onMessage, onParticipant, onOpenFlow, onFlowMenu, expanded = new Set(), internal = true, stores = true, queues = true, maxDepth = Infinity } = {}) {
   // With queues hidden the fan-out is not drawn: direct arrows, one row each, as before.
   const plain = (m) => { const { group, deliveries, delivery, ...rest } = m; return rest; };
   const msgs = (queues ? trace.messages : bridgeChannels(trace.messages).map(plain)).filter((m) => (internal || m.kind !== 'call') && (stores || m.kind !== 'resource') && m.depth <= maxDepth);
@@ -81,8 +82,10 @@ export function renderSequence(trace, { onMessage, onParticipant, expanded = new
   const nStrips = (r) => strips.get(r)?.length ?? 0;
   const above = []; // strips in all rows before r
   for (let r = 0, n = 0; r <= count; r++) { above[r] = n; n += nStrips(r); }
-  const rowTop = (r) => PAD + r * ROW + above[r] * STRIP;
-  const height = PAD + count * ROW + above[count] * STRIP + PAD;
+  const gapAt = gapsAbove(gapRows(msgs, rows), count); // half-row of space before each async sub-flow
+  const rowTop = (r) => PAD + r * ROW + above[r] * STRIP + gapAt[r] * GAP;
+  const height = PAD + count * ROW + above[count] * STRIP + gapAt[count] * GAP + PAD;
+  const { spans, colorOf, spanOf } = flowSpans(msgs, trace.messages);
   const rowY = (r) => rowTop(r) + nStrips(r) * STRIP + ROW / 2 + 4;
   // Activation bar on the topic lifeline: from the publish row to its last delivery.
   const bars = msgs.flatMap((m, i) => {
@@ -108,10 +111,12 @@ export function renderSequence(trace, { onMessage, onParticipant, expanded = new
     s('defs', {},
       s('marker', { id: 'ah', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }, s('path', { d: 'M0 0L10 5L0 10z', fill: 'context-stroke' })),
       s('marker', { id: 'ao', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 8, markerHeight: 8, orient: 'auto-start-reverse' }, s('path', { d: 'M1 1L9 5L1 9', fill: 'none', stroke: 'context-stroke', 'stroke-width': 1.5 }))),
+    spans.map((sp) => s('rect', { class: `flow-band c${sp.color}`, 'data-band': sp.i, x: GUTTER + 2 + sp.level * 7, y: rowTop(rows[sp.start]) - 1, width: width - GUTTER - 4 - sp.level * 7, height: rowTop(rows[sp.end]) + nStrips(rows[sp.end]) * STRIP + ROW - rowTop(rows[sp.start]) + 1, rx: 4 })),
     drawFrames(frames, rows, strips, rowTop, (r) => rowTop(r) + nStrips(r) * STRIP + ROW, width, GUTTER),
     parts.map((p) => s('line', { class: 'lifeline', x1: x.get(p.id), x2: x.get(p.id), y1: 0, y2: height })),
     bars,
-    msgs.map((m, i) => message(m, i, x, rowY(rows[i]), rail(msgs, rows, i), plan[i])));
+    msgs.map((m, i) => message(m, i, x, rowY(rows[i]), rail(msgs, rows, i), plan[i])),
+    msgs.map((m, i) => (asyncFlowOf(m) ? flowDot(m, i, x, rowY(rows[i]), colorOf.get(i), spanOf.has(i)) : null)));
 
   const partMenu = (ev) => {
     const g = ev.target.closest?.('[data-p]');
@@ -122,11 +127,38 @@ export function renderSequence(trace, { onMessage, onParticipant, expanded = new
   head.addEventListener('contextmenu', partMenu);
   head.addEventListener('click', partMenu);
 
+  const dotOf = (ev) => ev.target.closest?.('[data-dot]');
+  const jump = (sp) => { // scroll the sub-flow into view and flash its band
+    const band = body.querySelector(`[data-band="${sp.i}"]`);
+    if (!band) return;
+    band.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    band.classList.add('flash');
+    setTimeout(() => band.classList.remove('flash'), 1800);
+  };
+  const dotMenu = (i, ev) => { // right-click on a dot or on the delivery arrow
+    if (!asyncFlowOf(msgs[i]) || !onFlowMenu) return false;
+    ev.preventDefault();
+    onFlowMenu(asyncFlowOf(msgs[i]), msgs[i], ev.clientX, ev.clientY, spanOf.has(i) ? () => jump(spanOf.get(i)) : null);
+    return true;
+  };
+  const openDot = (g, ev) => { // click: jump to the sub-flow below; shift/ctrl/cmd-click, or no sub-flow to jump to: open its own flow
+    const i = Number(g.dataset.dot);
+    if (spanOf.has(i) && !(ev.shiftKey || ev.ctrlKey || ev.metaKey)) jump(spanOf.get(i));
+    else onOpenFlow?.(asyncFlowOf(msgs[i]), msgs[i]);
+  };
+  body.addEventListener('contextmenu', (ev) => {
+    const d = dotOf(ev), g = d ?? ev.target.closest?.('[data-i]');
+    if (g) dotMenu(Number(d ? g.dataset.dot : g.dataset.i), ev);
+  });
   body.addEventListener('click', (ev) => {
+    const d = dotOf(ev);
+    if (d) { ev.stopPropagation(); openDot(d, ev); return; }
     const g = ev.target.closest?.('[data-i]');
     if (g) onMessage?.(msgs[Number(g.dataset.i)], g);
   });
   body.addEventListener('keydown', (ev) => {
+    const d = dotOf(ev);
+    if (d) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); openDot(d, ev); } return; }
     const g = ev.target.closest?.('[data-i]');
     if (g && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); onMessage?.(msgs[Number(g.dataset.i)], g); }
   });
@@ -164,6 +196,19 @@ export function labelPlan(msgs, rows, x) {
     const text = clip(p.full, Math.max(4, p.room - p.suffix.length)) + p.suffix;
     return { x: p.start, text, width: text.length * CH };
   });
+}
+
+/** The dot at the arrowhead of a delivery that reaches a consumer ingress: opens that consumer's own flow. */
+function flowDot(m, i, x, y, color, canJump) {
+  const f = asyncFlowOf(m), x2 = x.get(m.to), dir = Math.sign(x2 - x.get(m.from)) || 1;
+  const lines = [`Async flow: ${f.service} · ${f.ingress}`, canJump ? `Click: jump to the async flow ${m.repeatOf ? `(first seen at step ${m.repeatOf})` : 'below'} · Right-click: more` : 'Click: open the async flow · Right-click: more'];
+  const w = Math.max(...lines.map((l) => l.length)) * 6.6 + 16, tx = dir > 0 ? x2 - w + 10 : x2 - 10;
+  return s('g', { class: 'flow-dot', 'data-dot': i, tabindex: 0, role: 'link', 'aria-label': lines.join('. '), style: `--mc: var(--flow-${color ?? 1})` },
+    s('circle', { cx: x2, cy: y, r: 9, class: 'dot-hit' }),
+    s('circle', { cx: x2, cy: y, r: 5, class: 'dot' }),
+    s('g', { class: 'dot-tip', 'aria-hidden': 'true' },
+      s('rect', { x: tx, y: y - 22 - lines.length * 15, width: w, height: lines.length * 15 + 6, rx: 4 }),
+      lines.map((l, k) => s('text', { x: tx + 8, y: y - 21 - (lines.length - 1 - k) * 15 }, l))));
 }
 
 /** Left-rail label: the call depth; a delivery of a fan-out is `depth.delivery`, shown once per row. */

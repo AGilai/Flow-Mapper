@@ -5,11 +5,12 @@ import { h, fill, debounce } from '../dom.js';
 import { api } from '../api.js';
 import { state } from '../state.js';
 import { icon } from '../icons.js';
-import { href, setQuery } from '../router.js';
+import { href, setQuery, go } from '../router.js';
 import { pageHead } from '../components/page.js';
 import { createPanel } from '../components/panel.js';
 import { chip, splitKey } from '../format.js';
 import { renderSequence } from './sequence-render.js';
+import { flowMenu } from './flow-menu.js';
 import { messagePanel } from './flow-panel.js';
 import { participantMenu } from './flow-menu.js';
 import { resizer } from '../components/resizer.js';
@@ -108,12 +109,14 @@ export async function render({ main, query }) {
   function draw() {
     const seq = renderSequence(trace, {
       internal: opts.internal, stores: opts.stores, queues: opts.queues, maxDepth: opts.depth === 'all' ? Infinity : Number(opts.depth), expanded: opts.expand,
+      onOpenFlow: (f) => go('/flows', { service: f.service, ingress: f.ingress, scope: opts.scope }),
+      onFlowMenu: (f, m, x, y, jump) => flowMenu(f, x, y, opts.scope, jump),
       onParticipant: (p, x, y) => participantMenu(p, x, y, {
         trace, scope: opts.scope, expanded: opts.expand,
         setExpanded: async (svc, on) => { on ? opts.expand.add(svc) : opts.expand.delete(svc); if (on) { opts.internal = true; internalBox.checked = true; } persist(); await load(); },
       }),
       onMessage: async (m, g) => { // clicking a frontier marker expands the frontier steps
-        if (m.kind === 'frontier') { opts.frontier = true; frontierCheck.querySelector('input').checked = true; persist(); await load(); return; } mainPane.querySelector('.msg.active')?.classList.remove('active'); g.classList.add('active'); panel.open(...messagePanel(m, trace, state.env)); },
+        if (m.kind === 'frontier') { opts.frontier = true; frontierCheck.querySelector('input').checked = true; persist(); await load(); return; } mainPane.querySelector('.msg.active')?.classList.remove('active'); g.classList.add('active'); panel.open(...messagePanel(m, trace, state.env, opts.scope)); },
     });
     const services = new Set(trace.messages.map((m) => m.service).filter(Boolean));
     info.textContent = `${trace.start.event ? `${trace.start.event}: ` : ''}${seq.shown} of ${seq.total} steps, ${services.size} services${trace.truncated ? ', truncated' : ''}`;

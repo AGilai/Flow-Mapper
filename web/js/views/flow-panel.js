@@ -13,12 +13,14 @@ import { jsonView } from '../components/json-view.js';
 import { dtoSource } from '../components/dto-source.js';
 import { viaChip } from '../components/via-chip.js';
 import { stepFields } from '../components/step-fields.js';
+import { asyncFlowOf } from './sequence-plan.js';
 import { eventLink, serviceLink, storeLink } from './inventory-links.js';
 
 const KIND = { entry: 'Entry', call: 'Function call', egress: 'Call', deliver: 'Delivery from queue', resource: 'Data store access', leaf: 'Leaf step (classified by the harvester)', frontier: 'Frontier steps (folded)' };
 
 /** Returns [head, ...content] for panel.open(). */
-export function messagePanel(m, trace, env) {
+export function messagePanel(m, trace, env, scope = 'full') {
+  const flow = asyncFlowOf(m);
   const p = (id) => trace.participants.find((x) => x.id === id);
   const kind = m.kind === 'egress' && m.mode === 'async' ? 'Publish / async call' : KIND[m.kind];
   const head = h('div.ep-head',
@@ -29,6 +31,7 @@ export function messagePanel(m, trace, env) {
   loadDto(m, env).then((cards) => fill(dto, cards)).catch((err) => fill(dto, h('p.small.muted', err.message)));
 
   return [head,
+    flow ? h('div.ep-pad', h('a.btn', { href: href('/flows', { service: flow.service, ingress: flow.ingress, scope }) }, 'Open the async flow'), h('span.xs.muted', ` ${flow.service} · ${flow.ingress}`)) : null,
     m.gap ? gapCard(m.gap) : null,
     codeCard(m, trace),
     m.gap ? null : dto,
