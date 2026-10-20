@@ -1,0 +1,130 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "dpc-worker",
+    "kind": "service",
+    "team": "dpc",
+    "repo": "github.com/saferx/dpc-worker",
+    "language": "typescript",
+    "description": "Device policy cache worker"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-20T08:00:00Z",
+  "commit": "a1b2c3d",
+  "functions": [
+    {
+      "id": "DeviceEventHandler.handle",
+      "name": "DeviceEventHandler.handle",
+      "file": "src/events/handler.ts",
+      "line": 20,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "refresh"
+        }
+      ]
+    },
+    {
+      "id": "refresh",
+      "name": "refresh",
+      "file": "src/cache.ts",
+      "line": 7,
+      "steps": []
+    },
+    {
+      "id": "DeviceRpc.get",
+      "name": "DeviceRpc.get",
+      "file": "src/rpc/device.ts",
+      "line": 15,
+      "steps": []
+    },
+    {
+      "id": "ZoneRpc.lookup",
+      "name": "ZoneRpc.lookup",
+      "file": "src/rpc/zone.ts",
+      "line": 12,
+      "steps": []
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.deviceEvents",
+      "bindKey": "amqp-queue:domain-events-dpc",
+      "transport": "amqp",
+      "handler": "DeviceEventHandler.handle",
+      "source": {
+        "file": "src/events/index.ts",
+        "line": 6
+      }
+    },
+    {
+      "id": "in.rpcDeviceGet",
+      "bindKey": "amqp-rpc:rpc.dpc.device.get",
+      "transport": "amqp",
+      "handler": "DeviceRpc.get",
+      "details": {
+        "rpc": {
+          "command": "rpc.dpc.device.get",
+          "commandQueue": "rpcv2.dpc",
+          "prefetch": 5,
+          "library": "@saferx/rpcv2 2.4.1"
+        }
+      },
+      "source": {
+        "file": "src/rpc/device.ts",
+        "line": 9
+      }
+    },
+    {
+      "id": "in.rpcZoneLookup",
+      "bindKey": "amqp-rpc:rpc.dpc.zone.lookup",
+      "transport": "amqp",
+      "handler": "ZoneRpc.lookup",
+      "details": {
+        "rpc": {
+          "command": "rpc.dpc.zone.lookup",
+          "commandQueue": "rpcv2.dpc",
+          "prefetch": 5,
+          "library": "@saferx/rpcv2 2.4.1"
+        }
+      },
+      "source": {
+        "file": "src/rpc/zone.ts",
+        "line": 6
+      }
+    }
+  ],
+  "channels": [
+    {
+      "bindKey": "amqp-queue:domain-events-dpc",
+      "kind": "amqp-queue",
+      "name": "domain-events-dpc",
+      "details": {
+        "durable": true
+      }
+    },
+    {
+      "bindKey": "amqp-queue:rpcv2.dpc",
+      "kind": "amqp-queue",
+      "name": "rpcv2.dpc",
+      "details": {
+        "role": "rpc-command",
+        "durable": true
+      }
+    }
+  ],
+  "bindings": [
+    {
+      "id": "bind.device",
+      "from": "amqp:saferx.EventExchange/device.#",
+      "match": "amqp-topic",
+      "to": "amqp-queue:domain-events-dpc",
+      "details": {
+        "bindingKey": "device.#"
+      }
+    }
+  ]
+}

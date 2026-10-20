@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "saferx-infra",
+    "kind": "infra",
+    "team": "platform",
+    "repo": "github.com/saferx/saferx-infra",
+    "language": "typescript",
+    "description": "RabbitMQ topology of the saferx namespace"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-20T08:00:00Z",
+  "commit": "a1b2c3d",
+  "channels": [
+    {
+      "bindKey": "amqp:saferx.EventExchange",
+      "kind": "amqp-exchange",
+      "name": "saferx.EventExchange",
+      "details": {
+        "type": "topic",
+        "vhost": "/",
+        "durable": true
+      },
+      "source": {
+        "file": "terraform/rabbitmq.tf",
+        "line": 12
+      }
+    }
+  ]
+}

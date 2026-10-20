@@ -31,6 +31,7 @@ UI / agent ── GET /api/envs/:env/... ─► server/routes/queries.ts ─► 
 |---|---|
 | `types.ts` | Model, entities, Link, Resolution |
 | `glob.ts` | bind-key glob matching and specificity |
+| `amqp.ts`, `amqp-route.ts` | RabbitMQ (0.18.0): topic matching (`*` one word, `#` zero or more), headers match, routing of a publish by exchange type, the additive `amqp` / `rpc` trace info |
 | `resolve.ts` | turns keys into links; dangling, orphans, unbound, ambiguous |
 | `graph-index.ts` | lookup maps + adjacency over a resolved model; up/downstream walks |
 | `system-graph.ts` | nodes/edges for the system map (with and without channels) |
@@ -90,6 +91,8 @@ publish chains (0.17.0): `flow-chain.js` is the pure part (publish to legs, fan-
 flow tabs (0.13.0): `flows.js` owns the open tabs and mirrors them in the URL (`tabs=` stable keys, `tab=`); `flow-tabs-state.js` is the pure part (keys, URL encode/decode, open/close/reopen order, "distinct" selection, keyboard map), `flow-tab-data.js` loads a tab by key (a sub-flow tab is one row of its origin's async tree, no request), `flow-tab-view.js` is one tab's DOM (breadcrumb, diagram, async list; kept alive while hidden, which is the tab memory), `flow-tabs.js` the strip and overflow list, `flow-tabs-anim.js` the 280 ms open animation, `flow-list.js` the entry-point list;
 `flow-mw.js` holds the pure rules for ingress middleware segments (fold over 3, row spans), drawn on top of the bar by `flow-draw.js`; `flow-inside.js` and `flow-inside-panel.js` are the drill-down (middleware chain first). flow descriptions (0.14.0): `flow-desc.js` (store shared by every spot, the Human/AI two-box block, the one-line variant, the Human note editor), `flow-desc-dialog.js` (the Generate dialog, two copyable prompts), `flow-desc-tip.js` (bar hover popover); `flowRoot(key)` in `flow-tabs-state.js` says which flow a tab's descriptions belong to. sub-flows as full flows (0.15.0): `flow-render.js` draws one flow (lane + its own async list) and is used by a tab and by every expanded card; a card traces its consumer lazily from its ingress with the delivered event (`GET /trace?ingress=&event=`, so no API change), shares traces by request key through `createTabData().traceFor`, and `flow-sub.js` holds the pure helpers (caller lifeline, request from a row, cache key). Data-store stubs and deep levels can be hidden.
 Redis instance page (0.16.0): `views/instance.js` (head, verdict), `instance-lanes.js` (who connects, client panel), `instance-key-card.js` (a service's keys, loaded on request under its lane: writes and reads) and `instance-key-row.js` (one row and its in-place detail); `css/instance.css`. Inventory shows a Redis cluster/instance as one row (`instance` on the item) that opens `#/instances/<key>`.
+
+RabbitMQ (0.18.0): an exchange publish reuses the chain above (`flow-chain.js` exchange marker via `flow-amqp.js`); RPC over AMQP is a sync call in olive (`flow-amqp.js`: chip per caller/server pair, reply labels; `flow-panel-amqp.js`: the panel's AMQP card).
 
 Design tokens are in `css/tokens.css`. Transport colours (http, sns, sqs, amqp, data store,
 broken) mean the same thing in every view.

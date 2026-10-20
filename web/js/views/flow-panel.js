@@ -17,6 +17,8 @@ import { stepFields } from '../components/step-fields.js';
 import { asyncFlowOf, isChannel } from './flow-scan.js';
 import { filterMarker, hopLabel, chType, exchangeOf } from './flow-chain.js';
 import { eventLink, serviceLink, storeLink } from './inventory-links.js';
+import { isRpc, rpcCommand } from './flow-amqp.js';
+import { rpcCard, rpcMissing, routingRows } from './flow-panel-amqp.js';
 
 const KIND = { entry: 'Entry', call: 'Function call', egress: 'Call', deliver: 'Delivery from queue', resource: 'Data store access', leaf: 'Leaf step (classified by the harvester)', frontier: 'Frontier steps (folded)' };
 
@@ -24,10 +26,10 @@ const KIND = { entry: 'Entry', call: 'Function call', egress: 'Call', deliver: '
 export function messagePanel(m, trace, env, scope = 'full', openEntry = null) {
   const flow = asyncFlowOf(m);
   const p = (id) => trace.participants.find((x) => x.id === id);
-  const kind = m.kind === 'egress' && m.mode === 'async' ? 'Publish / async call' : KIND[m.kind];
+  const rpc = isRpc(m), kind = rpc ? (m.kind === 'entry' ? 'Entry (RPC over AMQP)' : 'RPC call over AMQP') : m.kind === 'egress' && m.mode === 'async' ? 'Publish / async call' : KIND[m.kind];
   const head = h('div.ep-head',
-    h('div.ep-title', m.transport && m.transport !== 'res' ? chip(m.transport) : null, h('span.ep-target', kind)),
-    h('div.ep-sub', h('span.key', m.label), m.event ? eventLink(m.event) : null));
+    h('div.ep-title', m.transport && m.transport !== 'res' ? (rpc ? chip('rpc', 'amqp rpc') : chip(m.transport)) : null, h('span.ep-target', kind)),
+    h('div.ep-sub', h('span.key', rpc ? rpcCommand(m) : m.label), m.event ? eventLink(m.event) : null));
 
   const dto = h('div.stack', { style: { gap: 'var(--s3)' } }, h('p.small.muted', 'Loading…'));
   loadDto(m, env).then((cards) => fill(dto, cards)).catch((err) => fill(dto, h('p.small.muted', err.message)));
@@ -36,14 +38,16 @@ export function messagePanel(m, trace, env, scope = 'full', openEntry = null) {
     flow ? h('div.ep-pad', openEntry ? h('button.btn', { type: 'button', on: { click: () => openEntry({ service: flow.service, ingress: flow.ingress, scope }) } }, 'Open the async flow in a tab') : h('a.btn', { href: href('/flows', { service: flow.service, ingress: flow.ingress, scope }) }, 'Open the async flow'), h('span.xs.muted', ` ${flow.service} · ${flow.ingress}`)) : null,
     m.gap ? gapCard(m.gap) : null,
     codeCard(m, trace),
+    rpcCard(m),
     m.gap ? null : dto,
-    m.unhandled ? section('Why it is broken', null, h('p.small', `${m.event} reaches this consumer, but none of its event handlers matches it. It will fail or go to the dead-letter queue.`))
+    m.broken && m.rpc ? rpcMissing(m) : m.unhandled ? section('Why it is broken', null, h('p.small', `${m.event} reaches this consumer, but none of its event handlers matches it. It will fail or go to the dead-letter queue.`))
       : m.broken ? section('Why it is broken', null, h('p.small', 'No ingress, queue or route matches this key. Either the target was renamed, or a harvester produced a different key on one side.')) : null,
     m.origin === 'frontier' ? h('p.small.muted', 'A frontier step: part of a call tree that reaches no sink.') : null,
     m.repeatOf ? h('p.small', `↩ Already expanded at step ${m.repeatOf}: `, h('span.key', trace.messages[m.repeatOf - 1]?.label ?? ''), '. The same delivery (consumer, ingress, event) is drawn once per trace, so nothing is shown below this arrow.') : null,
     m.cycle ? h('p.small.muted', 'This call leads back into a function already on the path, so the trace stops here.') : null,
     h('dl.kv',
       ...routeRows(m),
+      ...routingRows(m),
       h('dt', 'From'), h('dd', m.kind === 'entry' ? callerFor(m).label : p(m.from)?.label ?? m.from),
       h('dt', 'To'), h('dd', { class: m.broken ? 'key' : '' }, p(m.to)?.label ?? m.to),
       h('dt', 'Mode'), h('dd', m.mode),
@@ -58,7 +62,7 @@ export function messagePanel(m, trace, env, scope = 'full', openEntry = null) {
 function routeRows(m) {
   if (m.kind !== 'egress' || !isChannel(m.to)) return [];
   const name = (id) => id.slice(3).replace(/^[^:]+:/, '');
-  const hop = isChannel(m.from), ex = exchangeOf(m), f = filterMarker(m.filter, m.transport);
+  const hop = isChannel(m.from), ex = exchangeOf(m) ?? (m.amqp && !hop ? `amqp:${m.amqp.exchange}` : null), f = filterMarker(m.filter, m.transport, m.amqp);
   return [h('dt', 'Event type'), h('dd', hopLabel(m)),
     h('dt', ex ? 'Exchange' : hop ? 'Topic' : 'Topic or queue'), h('dd', ex ? ex.slice(5) : name(hop ? m.from : m.to)),
     ...(hop || ex ? [h('dt', 'Queue'), h('dd', name(m.to))] : []),

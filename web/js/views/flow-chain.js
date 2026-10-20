@@ -8,6 +8,7 @@
 //  badgesAt       the number tiles at a queue: one per consumer row, or a range
 
 import { isChannel } from './flow-scan.js';
+import { exchangeMarker } from './flow-amqp.js';
 
 export const FOLD_LIMIT = 6;
 const unhandled = (d) => !!(d.unhandled || d.broken || d.gap || !d.target?.ingress);
@@ -21,8 +22,10 @@ export const chName = (key) => String(key).replace(/^[^:]+:/, '');
 export function hopLabel(m) {
   if (m.event) return m.event;
   if (m.matched?.length) return m.matched.join(', ');
-  const rk = m.label.match(/\bamqp:[^/\s]+\/(\S+)/)?.[1];
+  if (m.amqp?.type === 'fanout') return 'fanout'; // RabbitMQ ignores the routing key of a fanout exchange; the message panel has it
+  const rk = m.amqp?.routingKey ?? m.label.match(/\bamqp:[^/\s]+\/(\S+)/)?.[1];
   if (rk) return rk;
+  if (m.transport === 'amqp' && !m.filter && !isChannel(m.from) && String(m.to).startsWith('ch:amqp-queue:')) return chName(m.to.slice(3)); // sendToQueue: the queue
   return m.label.split(' · ')[1]?.replace(/ · possible$/, '') ?? 'publish';
 }
 
@@ -40,7 +43,7 @@ const split = (events) => ({ pos: events.filter((e) => !e.startsWith('!')), neg:
  * The marker on a hop that goes through a subscription: { kind: 'types'|'all-but'|'rule'|'key', label, full } or null (no filter, or one that lets everything through).
  * types: a funnel and "1 type" / "3 types"; all-but: a crossed funnel and "all but 1"; rule (event bus): the rule's name; key (exchange): the routing key.
  */
-export function filterMarker(filter, transport) {
+export function filterMarker(filter, transport, amqp) {
   if (!filter) return null;
   const { events, id, service, from } = filter;
   const who = `${id} (${service})`;
@@ -48,8 +51,7 @@ export function filterMarker(filter, transport) {
   const what = !list ? 'every event type' : !list.pos.length ? `every type except ${list.neg.join(', ')}` : `${list.pos.join(', ')}${list.neg.length ? ` except ${list.neg.join(', ')}` : ' only'}`;
   if (transport === 'eventbridge' || String(from).startsWith('eventbridge:')) return { kind: 'rule', label: 'rule ' + id.replace(/^(rule|sub)\./, ''), full: `Rule ${who} lets through ${what}` };
   if (transport === 'amqp' || String(from).startsWith('amqp:')) {
-    const key = String(from).replace(/^amqp:[^/]*\/?/, '');
-    return key ? { kind: 'key', label: key, full: `Binding ${who}: routing key ${key}` } : null;
+    return exchangeMarker(filter, amqp);
   }
   if (!list) return null;
   if (!list.pos.length) return list.neg.length ? { kind: 'all-but', label: `all but ${list.neg.length}`, full: `Subscription ${who} lets through ${what}` } : null;

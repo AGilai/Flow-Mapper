@@ -336,6 +336,7 @@ host = the target service's `service.name`.
 | SQS queue | `sqs:{queue}` | `sqs:shipping-order-events` |
 | RabbitMQ publish | `amqp:{exchange}/{routingKey}` | `amqp:shipping/shipping.created` |
 | RabbitMQ queue | `amqp-queue:{queue}` | `amqp-queue:notify-shipping` |
+| RabbitMQ RPC command | `amqp-rpc:{command}` | `amqp-rpc:rpc.sxdns.dns.resolve` |
 | EventBridge bus | `eventbridge:{bus}` | `eventbridge:acme-bus` |
 | MongoDB | `mongodb:{cluster or db}/{collection}` | `mongodb:orders-db/orders` |
 | Redis | `redis:{cluster}/{key pattern}` | `redis:cache-main/order:{id}` |
@@ -347,6 +348,47 @@ Ingress keys may be patterns: set `"match": "glob"` (`*` = one path segment, `**
 e.g. a gateway proxy `http:* public/api/users/**`. Egress keys are always literal.
 
 Redis: report each **key pattern** you use (`order:{id}`, `session:{token}`), not just the cluster.
+
+## RabbitMQ (0.18.0)
+
+All fields below are optional; what you leave out is drawn less precisely, never wrongly.
+
+**Exchange** (infra or owning service), `channels[]`. `details.type` is `topic`, `direct`, `fanout` or `headers`; also `vhost`, `durable`, `alternateExchange`:
+
+```json
+{ "bindKey": "amqp:saferx.EventExchange", "kind": "amqp-exchange", "name": "saferx.EventExchange",
+  "details": { "type": "topic", "vhost": "/", "durable": true, "alternateExchange": "saferx.unrouted" } }
+```
+
+**Binding** on a topic exchange: `match: "amqp-topic"` (`*` is exactly one dot-separated word, `#` zero or more, so `audit.#` matches `audit`). Put the key as written in code in `details.bindingKey`. Use `exact` for a direct exchange (key equals routing key); a fanout exchange routes to every binding; on a headers exchange send `details.headers` and `details.xMatch` (`all` | `any`). `exact` / `glob` keep working.
+
+```json
+{ "id": "bind.logout", "from": "amqp:saferx.EventExchange/device.*.logout", "match": "amqp-topic",
+  "to": "amqp-queue:domain-events-swg", "details": { "bindingKey": "device.*.logout" } }
+```
+
+**Publish** egress: key `amqp:{exchange}/{routingKey}`, `transport: amqp`, `mode: async`; `details.exchange` and `details.routingKey` (a placeholder word such as `{deviceId}` counts as one word). Headers exchange: `details.headers` (unknown headers show as "possible").
+
+```json
+{ "id": "deviceLogout.publish", "bindKey": "amqp:saferx.EventExchange/device.{deviceId}.logout", "transport": "amqp", "mode": "async",
+  "details": { "exchange": "saferx.EventExchange", "routingKey": "device.{deviceId}.logout" } }
+```
+
+**RPC over AMQP**: the caller's egress and the server's ingress both use `amqp-rpc:{command}`, `transport: amqp`; the egress is `mode: sync` (sync AMQP is unicast: one server). `details.rpc` carries `command`, `commandQueue`, `replyTo`, `exchange` (`""` is the default exchange), `correlation`, `timeoutMs` (set it only when the call has a timeout handler), `library`; the ingress adds `prefetch`. A command with no harvested server is shown as "no server harvested".
+
+```json
+{ "id": "dns.resolve", "bindKey": "amqp-rpc:rpc.sxdns.dns.resolve", "transport": "amqp", "mode": "sync",
+  "details": { "rpc": { "command": "rpc.sxdns.dns.resolve", "commandQueue": "rpcv2.sxdns", "replyTo": "rpcv2.reply.swg-api.{instanceId}",
+    "exchange": "", "correlation": "properties.correlationId", "timeoutMs": 5000, "library": "@saferx/rpcv2 2.4.1" } } }
+```
+```json
+{ "id": "in.rpcResolve", "bindKey": "amqp-rpc:rpc.sxdns.dns.resolve", "transport": "amqp", "handler": "DnsController.resolve",
+  "details": { "rpc": { "command": "rpc.sxdns.dns.resolve", "commandQueue": "rpcv2.sxdns", "prefetch": 4 } } }
+```
+
+**sendToQueue** (default exchange): an egress straight to the queue, no exchange: `bindKey: "amqp-queue:saferx.activitylog"`, `transport: amqp`, `mode: async`.
+
+**Queue role**: `amqp-queue` channels `details.role` is `rpc-command` or `rpc-reply` for the queues of an RPC library (they have no ingress of their own and are not reported as "queue has no consumer").
 
 ## Event types
 

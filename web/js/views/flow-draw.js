@@ -11,11 +11,12 @@ import { altFrames, stripsByRow, drawFrames, STRIP } from './sequence-alt.js';
 import { mwLabel, isLongChain } from './flow-mw.js';
 import { arrowEnds, columnGaps, centres, labelWidth, wrapId, clampLines } from './flow-cols.js';
 import { chName } from './flow-chain.js';
+import { href } from '../router.js';
 
 const COL = 138, COL_MIN = 132, PAD = 16, GUTTER = 8, BAR = 12, NEST = 8, CH_HEAD = 116; // CH_HEAD: a topic or queue head is narrower than a service head
-const ROWH = { call: 46, return: 36, pill: 32, mw: 34, store: 46, hop: 48, unresolved: 42, frontier: 32 };
-const rowH = (e) => (e.type === 'hop' && e.marker ? 56 : ROWH[e.type]);
-const LINE = { call: 30, return: 22, pill: 16, mw: 17, store: 23, hop: 30, unresolved: 28, frontier: 16 };
+const ROWH = { call: 46, return: 36, pill: 32, mw: 34, store: 46, hop: 48, unresolved: 42, frontier: 32, amqpnote: 26 };
+const rowH = (e) => (e.type === 'hop' && e.marker ? 56 : e.type === 'call' && e.rpc?.chip ? 58 : e.type === 'unresolved' && e.chip ? 56 : ROWH[e.type]); // an RPC's "amqp rpc" chip sits under its arrow
+const LINE = { call: 30, return: 22, pill: 16, mw: 17, store: 23, hop: 30, unresolved: 28, frontier: 16, amqpnote: 14 };
 const T_VAR = { http: '--t-http', rpc: '--t-rpc', grpc: '--t-http', eventbridge: '--t-eb', sns: '--t-sns', sqs: '--t-sqs', amqp: '--t-amqp', cron: '--t-cron', socket: '--t-socket', res: '--t-res' };
 const colorOf = (t) => `var(${T_VAR[t] ?? '--ink-2'})`;
 const SUB_CH = 19, LINE_H = 14, TILE_PX = 6.6;
@@ -38,7 +39,7 @@ export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, o
   const endW = (e) => (e.end ? (e.end.none ? e.end.none.length * 8 + 36 : e.end.tiles.reduce((n, t) => n + tileW(t.text) + 4, 0)) + 14 : 0);
   // A publish is one arrow: the event type sits on its first part (service -> topic), the filter marker on the second (topic -> queue). Branch rows carry the marker only.
   const hopSpans = (e) => {
-    const a = idx.get(e.from), b = idx.get(e.to), v = e.via ? idx.get(e.via) : null, lab = e.trunk ? labelWidth(e.label) + 8 + BAR + 2 * NEST : 0, mk = e.marker ? markW(e.marker) + 16 : 0;
+    const a = idx.get(e.from), b = idx.get(e.to), v = e.via ? idx.get(e.via) : null, lab = e.trunk ? labelWidth(e.sub ? `${e.label} ${e.sub}` : e.label) + 8 + BAR + 2 * NEST : 0, mk = e.marker ? markW(e.marker) + 16 : 0;
     return v == null ? [{ a, b, need: Math.max(lab, mk) }] : [{ a, b: v, need: lab }, { a: v, b, need: mk }];
   };
   const spans = events.flatMap((e) => {
@@ -52,7 +53,7 @@ export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, o
   const layout = (col) => {
     const xs = centres(PAD + GUTTER + col / 2, columnGaps(columns.length, spans, (i) => Math.round((headW(columns[i], col) + headW(columns[i + 1], col)) / 2 + 8)));
     const last = columns[columns.length - 1];
-    const reach = xs[xs.length - 1] + (isCh(last) ? 92 : 200);
+    const reach = Math.max(xs[xs.length - 1] + (isCh(last) ? 92 : 200), ...events.filter((e) => e.type === 'amqpnote').map((e) => xs[idx.get(e.col)] + 10 + labelWidth(e.text) * 0.9));
     return { xs, col, width: Math.ceil(reach + PAD) };
   };
   let L = layout(COL);
@@ -91,7 +92,7 @@ export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, o
     return s('g', { class: 'arr', style: `--mc:${color}` },
       s('line', { class: 'arrow', x1, x2: bare ? x2 : x2 - dir * 2, y1: y0, y2: y0, 'stroke-dasharray': dashed ? '5 4' : null }),
       bare ? null : s('g', { transform: `translate(0 ${y0})` }, arrowHead(x2, dir, open)),
-      label ? s('text', { class: `label${italic ? ' ret' : ''}`, x: (x1 + x2) / 2, y: y0 - 6, 'text-anchor': 'middle' }, label) : null,
+      label ? s('text', { class: `label${italic ? ' ret' : ''}`, x: (x1 + x2) / 2, y: y0 - 6, 'text-anchor': 'middle' }, Array.isArray(label) ? [label[0], s('tspan', { class: 'rk' }, ` ${label[1]}`)] : label) : null,
       cross ? s('path', { d: `M${x2 - 5} ${y0 - 5}l10 10M${x2 + 5} ${y0 - 5}l-10 10`, class: 'x' }) : null);
   };
 
@@ -101,6 +102,11 @@ export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, o
     return s('g', { class: `hopmark ${m.kind}`, style: `--mc:${mc}` }, s('rect', { x, y: y0 + 5, width: w, height: 17, rx: 8.5 }),
       m.kind === 'fold' ? null : s('g', { transform: `translate(${x + 6} ${y0 + 8})`, class: 'fun' }, s('path', { d: FUNNEL }), m.kind === 'all-but' ? s('path', { d: 'M1 11L11 1' }) : null),
       s('text', { x: x + (m.kind === 'fold' ? 10 : 22), y: y0 + 17 }, m.label));
+  };
+  // An RPC over AMQP: "amqp rpc" under the command's arrow on the first call per caller and server pair ("no server harvested" in red when nothing serves it), a glyph on the later ones.
+  const rpcChip = (text, cx, y0, color, bad) => {
+    const w = Math.ceil(text.length * 6.8) + 26, x = cx - w / 2;
+    return s('g', { class: `rpcchip${bad ? ' bad' : ''}`, style: `--mc:${color}` }, s('rect', { x, y: y0 + 6, width: w, height: 17, rx: 8.5 }), bad ? null : s('text', { class: 'gl', x: x + 7, y: y0 + 18 }, '⇄'), s('text', { x: x + (bad ? 9 : 21), y: y0 + 18 }, text));
   };
   // The end of the chain: a stop bar across the lifeline at the arrow tip, then the number of each async flow that starts here (or "no reader" / "no consumers").
   const stop = (end, x2, dir, y0, mc, r) => {
@@ -124,7 +130,8 @@ export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, o
     if (e.type === 'call') {
       const dir = Math.sign(colX.get(e.to) - colX.get(e.from)) || 1;
       const x1 = edge(e.fromBar, e.from, dir), x2 = e.bar ? barX(e.bar, -dir) : colX.get(e.to);
-      return g('', arrow(x1, x2, y0, { label: e.label, color: colorOf(e.msg.transport), dashed: e.msg.mode === 'async' && !e.bar }), hit(x1, x2), s('title', {}, e.msg.label));
+      const mc = colorOf(e.tr ?? e.msg.transport);
+      return g(e.rpc ? 'rpc' : '', arrow(x1, x2, y0, { label: e.label, color: mc, dashed: e.msg.mode === 'async' && !e.bar }), e.rpc?.chip ? rpcChip('amqp rpc', (x1 + x2) / 2, y0, mc) : null, e.rpc?.glyph ? s('text', { class: 'rpcglyph', x: Math.min(x1, x2) + 4, y: y0 - 5, style: `--mc:${mc}` }, '⇄') : null, hit(x1, x2), s('title', {}, e.rpc ? `${e.label} (RPC over AMQP)` : e.msg.label));
     }
     if (e.type === 'return') {
       const dir = Math.sign(colX.get(e.to) - colX.get(e.bar.col)) || 1;
@@ -133,17 +140,21 @@ export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, o
     }
     if (e.type === 'unresolved') {
       const x1 = barX(owner, 1), x2 = colX.get(e.col) - 8;
-      return g('broken', arrow(x1, x2, y0, { dashed: true, label: e.label, color: 'var(--t-broken)', cross: true }), hit(x1, x2), s('title', {}, e.msg.label));
+      return g('broken', arrow(x1, x2, y0, { dashed: true, label: e.label, color: 'var(--t-broken)', cross: true }), e.chip ? rpcChip(e.chip, (x1 + x2) / 2, y0, 'var(--t-broken)', true) : null, hit(x1, x2), s('title', {}, e.msg.label));
     }
     if (e.type === 'hop') { // one arrow through the topic: its colour changes exactly on the topic lifeline; the event type reads like a REST path
-      const x1 = edge(e.fromBar, e.from, 1), x2 = colX.get(e.to), tx = e.via ? colX.get(e.via) : e.fork ? colX.get(e.from) : null, mc = colorOf(e.transport), tc = colorOf(e.trunkTransport);
+      const x1 = edge(e.fromBar, e.from, 1), x2 = colX.get(e.to), tx = e.via ? colX.get(e.via) : e.fork ? colX.get(e.from) : null, mc = colorOf(e.transport), tc = colorOf(e.trunkTransport), hl = e.sub ? [e.label, e.sub] : e.label;
       let kids, left = x1, mid;
-      if (e.via) { kids = [arrow(x1, tx, y0, { label: e.label, color: tc, bare: true }), arrow(tx, x2, y0, { color: mc }), s('circle', { class: 'via', cx: tx, cy: y0, r: 3.2, style: `--mc:${mc}` })]; mid = (tx + x2) / 2; }
+      if (e.via) { kids = [arrow(x1, tx, y0, { label: hl, color: tc, bare: true }), arrow(tx, x2, y0, { color: mc }), s('circle', { class: 'via', cx: tx, cy: y0, r: 3.2, style: `--mc:${mc}` })]; mid = (tx + x2) / 2; }
       else if (e.fork) { // a branch: leaves the topic lifeline downwards from the arrow above it and turns right
         left = tx; mid = (tx + 6 + x2) / 2;
         kids = [s('path', { class: 'fork', d: `M${tx} ${ys[r - 1]}V${y0 - 7}Q${tx} ${y0} ${tx + 7} ${y0}`, style: `--mc:${mc}` }), arrow(tx + 6, x2, y0, { color: mc })];
-      } else { kids = [arrow(x1, x2, y0, { label: e.trunk ? e.label : null, color: mc })]; mid = (x1 + x2) / 2; }
+      } else { kids = [arrow(x1, x2, y0, { label: e.trunk ? hl : null, color: mc })]; mid = (x1 + x2) / 2; }
       return g('hop', ...kids, e.marker ? marker(e.marker, mid, y0, mc) : null, e.end ? stop(e.end, x2, 1, y0, mc, r) : null, hit(left, x2), s('title', {}, [e.msg.label, e.marker?.full].filter(Boolean).join('\n')));
+    }
+    if (e.type === 'amqpnote') { // the bindings that do not route this publish, under the fork; the exchange page lists them
+      const x0 = colX.get(e.col) + 10;
+      return s('g', { class: 'amqpnote' }, s('a', { href: href(`/instances/${encodeURIComponent('amqp:' + e.exchange)}`), 'aria-label': `${e.text}. Open the exchange ${e.exchange}` }, s('text', { x: x0, y: y0 + 4 }, e.text), s('title', {}, `${e.text}\nOpen the exchange ${e.exchange}`)));
     }
     if (e.type === 'store') {
       const x0 = barX(e.bar, 1), w = Math.max(e.verb.length * 7, e.name.length * 6) + 18;

@@ -3,6 +3,7 @@
 //   '**' matches anything, including '/'
 
 import type { Match } from './types.ts';
+import { amqpTopicMatches } from './amqp.ts';
 
 const cache = new Map<string, RegExp>();
 
@@ -21,6 +22,7 @@ export function globToRegExp(pattern: string): RegExp {
 }
 
 export function keyMatches(pattern: string, match: Match | undefined, key: string): boolean {
+  if (match === 'amqp-topic') return amqpTopicMatches(pattern, key);
   return match === 'glob' ? globToRegExp(pattern).test(key) : pattern === key;
 }
 
@@ -53,9 +55,9 @@ export function filterLabel(events: FilterEvents): string {
 
 /** Higher sorts first: exact beats glob; then fewer wildcards; then longer literal prefix. */
 export function specificity(pattern: string, match: Match | undefined): [number, number, number] {
-  if (match !== 'glob') return [1, 0, pattern.length];
-  const wildcards = (pattern.match(/\*+/g) ?? []).length;
-  return [0, -wildcards, pattern.split('*')[0].length];
+  if (match !== 'glob' && match !== 'amqp-topic') return [1, 0, pattern.length];
+  const wildcards = (pattern.match(/[*#]+/g) ?? []).length;
+  return [0, -wildcards, pattern.split(/[*#]/)[0].length];
 }
 
 export function compareSpecificity(a: [number, number, number], b: [number, number, number]): number {

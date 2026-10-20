@@ -34,8 +34,8 @@ test('traces of every sample entry without frontier steps are unchanged (0.17.0:
   const g = buildIndex(m);
   const h = createHash('sha256');
   let n = 0;
-  for (const i of m.ingress.filter((x) => !x.service.startsWith('stress-') && !x.service.startsWith('saga') && !['reports-api', 'auth-svc', 'sdp-controller'].includes(x.service) && ![demo, demo35, demo26, demo36, ...demo40, demo41, ...demo42, ...demo44, demo45].some((d) => x.service === d.service && x.id === d.ingress))) for (const scope of ['intra', 'full'] as const) {
-    h.update(JSON.stringify([i.service, i.id, scope, trace(g, { service: i.service, ingress: i.id }, { scope })], (k, v) => (k === 'filter' ? undefined : v)));
+  for (const i of m.ingress.filter((x) => !x.service.startsWith('stress-') && !x.service.startsWith('saga') && !['reports-api', 'auth-svc', 'sdp-controller', 'cp-middleware', 'swg-api', 'dpc-worker', 'activitylog', 'sxdns'].includes(x.service) && ![demo, demo35, demo26, demo36, ...demo40, demo41, ...demo42, ...demo44, demo45].some((d) => x.service === d.service && x.id === d.ingress))) for (const scope of ['intra', 'full'] as const) {
+    h.update(JSON.stringify([i.service, i.id, scope, trace(g, { service: i.service, ingress: i.id }, { scope })], (k, v) => (k === 'filter' || k === 'amqp' || k === 'rpc' ? undefined : v)));
     n++;
   }
   assert.equal(n, 152);

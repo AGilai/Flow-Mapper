@@ -8,8 +8,9 @@
 //   channel → ingress   (queue consumed by an ingress with a matching key)
 // A binding target is a declared channel if one has that key, otherwise matching ingress.
 
-import type { Binding, Channel, Delivery, Egress, Ingress, Link, Model, Ref, Resolution, Transport, Unresolved } from './types.ts';
+import type { Binding, Channel, Delivery, Egress, Mode, Ingress, Link, Model, Ref, Resolution, Transport, Unresolved } from './types.ts';
 import { compareSpecificity, keyMatches, specificity } from './glob.ts';
+import { routeKey } from './amqp-route.ts';
 
 export const DEFAULT_DELIVERY: Record<string, Delivery> = {
   http: 'unicast', rpc: 'unicast', grpc: 'unicast', sqs: 'unicast', sns: 'multicast', amqp: 'multicast', eventbridge: 'multicast',
@@ -31,8 +32,9 @@ export function withPlaceholderKeys(model: Model): Model {
 /** Request/reply transports: calls are synchronous unless the egress says otherwise. */
 export const SYNC = new Set<Transport>(['http', 'rpc', 'grpc']);
 
-export const deliveryOf = (e: { delivery?: Delivery; transport: Transport }): Delivery =>
-  e.delivery ?? DEFAULT_DELIVERY[e.transport] ?? 'unicast';
+/** A sync call over AMQP (an RPC) goes to one server; a publish goes to every matching binding. */
+export const deliveryOf = (e: { delivery?: Delivery; transport: Transport; mode?: Mode }): Delivery =>
+  e.delivery ?? (e.transport === 'amqp' && e.mode === 'sync' ? 'unicast' : DEFAULT_DELIVERY[e.transport]) ?? 'unicast';
 
 export const refKey = (r: Ref): string =>
   r.type === 'channel' ? `channel|${r.key}` : `${r.type}|${r.service}|${r.id}`;
@@ -68,7 +70,11 @@ export function resolve(model: Model): Resolution {
     return { picked: [ranked[0].c], tied: tied.length > 1 ? tied : [] };
   };
 
-  const bindingsFrom = (key: string) => model.bindings.filter((b) => keyMatches(b.from, b.match, key));
+  // A publish to an AMQP exchange is routed by the exchange's type (core/amqp-route.ts); other keys match bindings by their own `match`.
+  const bindingsFrom = (key: string, e?: Egress) => {
+    const r = e ? routeKey(model.bindings, channels.get(`amqp:${key.slice(5).split('/')[0]}`)?.details, key, e.details) : null;
+    return r ? [...r.matched, ...r.possible] : model.bindings.filter((b) => keyMatches(b.from, b.match, key));
+  };
 
   // Binding target → refs
   const targetsOfBinding = new Map<Binding, Ref[]>();
@@ -79,8 +85,8 @@ export function resolve(model: Model): Resolution {
     if (!refs.length) brokenBindings.push(b);
   }
 
-  const addBindingLinks = (from: Ref, key: string, mode: Link['mode'], transport: Transport) => {
-    const bs = bindingsFrom(key);
+  const addBindingLinks = (from: Ref, key: string, mode: Link['mode'], transport: Transport, e?: Egress) => {
+    const bs = bindingsFrom(key, e);
     for (const b of bs) for (const to of targetsOfBinding.get(b)!) links.push({ from, to, via: 'binding', mode, transport, binding: { service: b.service, id: b.id } });
     return bs.length;
   };
@@ -91,9 +97,9 @@ export function resolve(model: Model): Resolution {
     const mode = e.mode ?? (SYNC.has(e.transport) ? 'sync' : 'async');
     const { picked, tied } = matchIngress(e.bindKey, deliveryOf(e));
     if (tied.length) ambiguous.push({ egress: e, candidates: tied });
-    for (const i of picked) links.push({ from, to: ingressRef(i), via: i.match === 'glob' ? 'pattern' : 'key', mode, transport: e.transport });
+    for (const i of picked) links.push({ from, to: ingressRef(i), via: i.match && i.match !== 'exact' ? 'pattern' : 'key', mode, transport: e.transport });
     if (channels.has(e.bindKey)) links.push({ from, to: { type: 'channel', key: e.bindKey }, via: 'key', mode, transport: e.transport });
-    else addBindingLinks(from, e.bindKey, mode, e.transport);
+    else addBindingLinks(from, e.bindKey, mode, e.transport, e);
   }
 
   for (const [key, c] of channels) {
@@ -102,7 +108,7 @@ export function resolve(model: Model): Resolution {
     addBindingLinks(from, key, 'async', t);
     if (c.kind === 'sqs-queue' || c.kind === 'amqp-queue') {
       for (const i of consumers.filter((i) => keyMatches(i.bindKey, i.match, key)))
-        links.push({ from, to: ingressRef(i), via: i.match === 'glob' ? 'pattern' : 'key', mode: 'async', transport: t });
+        links.push({ from, to: ingressRef(i), via: i.match && i.match !== 'exact' ? 'pattern' : 'key', mode: 'async', transport: t });
     }
   }
 
@@ -138,7 +144,8 @@ export function resolve(model: Model): Resolution {
   for (const [key, c] of channels) {
     if (c.kind === 'sns-topic' && !bindingsFrom(key).length) unbound.push({ channel: c, reason: 'topic has no subscription' });
     if (c.kind === 'eventbridge-bus' && !bindingsFrom(key).length) unbound.push({ channel: c, reason: 'bus has no rule' });
-    if ((c.kind === 'sqs-queue' || c.kind === 'amqp-queue') && !consumers.some((i) => keyMatches(i.bindKey, i.match, key)))
+    // an RPC command or reply queue is read by the RPC library, not by an ingress of its own: its commands are `amqp-rpc:` ingress
+    if ((c.kind === 'sqs-queue' || c.kind === 'amqp-queue') && !String(c.details?.role).startsWith('rpc-') && !consumers.some((i) => keyMatches(i.bindKey, i.match, key)))
       unbound.push({ channel: c, reason: 'queue has no consumer' });
     if (c.kind === 'amqp-exchange' && !model.bindings.some((b) => b.from === key || b.from.startsWith(key + '/')))
       unbound.push({ channel: c, reason: 'exchange has no binding' });

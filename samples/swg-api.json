@@ -1,0 +1,138 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "swg-api",
+    "kind": "service",
+    "team": "swg",
+    "repo": "github.com/saferx/swg-api",
+    "language": "typescript",
+    "description": "Secure web gateway API"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-20T08:00:00Z",
+  "commit": "a1b2c3d",
+  "functions": [
+    {
+      "id": "PolicyService.check",
+      "name": "PolicyService.check",
+      "file": "src/policy/check.ts",
+      "line": 80,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "loadPolicy"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "dns.resolve",
+          "mode": "sync",
+          "operation": "call rpc.sxdns.dns.resolve"
+        }
+      ]
+    },
+    {
+      "id": "loadPolicy",
+      "name": "loadPolicy",
+      "file": "src/policy/load.ts",
+      "line": 10,
+      "steps": []
+    },
+    {
+      "id": "onDeviceLogout",
+      "name": "onDeviceLogout",
+      "file": "src/consumers/deviceLogout.ts",
+      "line": 12,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "loadPolicy"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.policyCheck",
+      "bindKey": "http:POST swg-api/policy/check",
+      "transport": "http",
+      "handler": "PolicyService.check",
+      "entryPoint": true,
+      "details": {
+        "method": "POST",
+        "path": "/policy/check"
+      },
+      "source": {
+        "file": "src/policy/routes.ts",
+        "line": 8
+      }
+    },
+    {
+      "id": "in.onDeviceLogout",
+      "bindKey": "amqp-queue:domain-events-swg",
+      "transport": "amqp",
+      "handler": "onDeviceLogout",
+      "source": {
+        "file": "src/consumers/index.ts",
+        "line": 5
+      }
+    }
+  ],
+  "egress": [
+    {
+      "id": "dns.resolve",
+      "bindKey": "amqp-rpc:rpc.sxdns.dns.resolve",
+      "transport": "amqp",
+      "mode": "sync",
+      "details": {
+        "rpc": {
+          "command": "rpc.sxdns.dns.resolve",
+          "commandQueue": "rpcv2.sxdns",
+          "exchange": "",
+          "correlation": "properties.correlationId",
+          "library": "@saferx/rpcv2 2.4.1",
+          "replyTo": "rpcv2.reply.swg-api.{instanceId}",
+          "timeoutMs": 5000
+        }
+      },
+      "source": {
+        "file": "src/policy/check.ts",
+        "line": 88
+      }
+    }
+  ],
+  "channels": [
+    {
+      "bindKey": "amqp-queue:domain-events-swg",
+      "kind": "amqp-queue",
+      "name": "domain-events-swg",
+      "details": {
+        "durable": true
+      }
+    }
+  ],
+  "bindings": [
+    {
+      "id": "bind.logout",
+      "from": "amqp:saferx.EventExchange/device.*.logout",
+      "match": "amqp-topic",
+      "to": "amqp-queue:domain-events-swg",
+      "details": {
+        "bindingKey": "device.*.logout"
+      }
+    },
+    {
+      "id": "bind.system",
+      "from": "amqp:saferx.EventExchange/system.#",
+      "match": "amqp-topic",
+      "to": "amqp-queue:domain-events-swg",
+      "details": {
+        "bindingKey": "system.#"
+      }
+    }
+  ]
+}

@@ -18,9 +18,9 @@
       "description": "Opaque key produced by the harvester. Literal unless match=glob."
     },
     "match": {
-      "enum": ["exact", "glob"],
+      "enum": ["exact", "glob", "amqp-topic"],
       "default": "exact",
-      "description": "glob: '*' matches any characters except '/', '**' matches anything."
+      "description": "glob: * matches any characters except slash, ** matches anything. amqp-topic (a binding on a RabbitMQ topic exchange, `amqp:<exchange>/<binding key>`): * is exactly one dot-separated word, # is zero or more words."
     },
     "transport": {
       "enum": ["http", "rpc", "grpc", "sns", "sqs", "amqp", "eventbridge", "cron", "socket", "event", "other"]
@@ -245,7 +245,7 @@
         "handler": { "$ref": "#/$defs/id", "description": "Function id that handles this ingress." },
         "middleware": { "type": "array", "items": { "$ref": "#/$defs/id" }, "description": "Optional. Function ids (same manifest, same rule as `handler`) that run before the handler, in order. Traced before the handler: their calls are real messages and edges. `details.middleware` is still accepted (not traced)." },
         "entryPoint": { "type": "boolean", "default": false, "description": "Public API, cron, etc. Excluded from orphan stats." },
-        "details": { "$ref": "#/$defs/details" },
+        "details": { "$ref": "#/$defs/details", "description": "Free-form. RabbitMQ RPC (0.18.0): on an ingress with bind key `amqp-rpc:{command}`, `rpc` {command, commandQueue, replyTo, exchange, correlation, timeoutMs, library, prefetch} (the server's side; what the caller declares is completed with it)." },
         "source": { "$ref": "#/$defs/source" },
         "provenance": { "$ref": "#/$defs/provenance" },
         "unresolved": { "$ref": "#/$defs/unresolved" },
@@ -277,7 +277,7 @@
         "transport": { "$ref": "#/$defs/transport" },
         "mode": { "$ref": "#/$defs/mode" },
         "delivery": { "$ref": "#/$defs/delivery" },
-        "details": { "$ref": "#/$defs/details" },
+        "details": { "$ref": "#/$defs/details", "description": "Free-form. RabbitMQ (0.18.0): on a publish, `exchange`, `routingKey` (placeholders such as {deviceId} count as one word) and, for a headers exchange, `headers`; on an RPC call (bind key `amqp-rpc:{command}`, mode sync), `rpc` {command, commandQueue, replyTo, exchange, correlation, timeoutMs, library}." },
         "source": { "$ref": "#/$defs/source" },
         "provenance": { "$ref": "#/$defs/provenance" },
         "unresolved": { "$ref": "#/$defs/unresolved" },
@@ -314,7 +314,7 @@
         "kind": { "enum": ["sns-topic", "sqs-queue", "amqp-exchange", "amqp-queue", "eventbridge-bus", "other"] },
         "name": { "type": "string" },
         "delivery": { "$ref": "#/$defs/delivery" },
-        "details": { "$ref": "#/$defs/details" },
+        "details": { "$ref": "#/$defs/details", "description": "Free-form. RabbitMQ (0.18.0): on an `amqp-exchange`, `type` (topic | direct | fanout | headers), `vhost`, `durable`, `alternateExchange`; on an `amqp-queue`, `role` (rpc-command | rpc-reply)." },
         "source": { "$ref": "#/$defs/source" },
         "provenance": { "$ref": "#/$defs/provenance" }
       }
@@ -331,7 +331,7 @@
         "to": { "$ref": "#/$defs/bindKey", "description": "Target channel or ingress key (literal)." },
         "filter": { "type": "object", "additionalProperties": true, "description": "e.g. SNS filter policy" },
         "events": { "$ref": "#/$defs/eventFilter" },
-        "details": { "$ref": "#/$defs/details" },
+        "details": { "$ref": "#/$defs/details", "description": "Free-form. RabbitMQ (0.18.0): `bindingKey` (the key as written in code), and on a headers exchange `headers` and `xMatch` (all | any)." },
         "source": { "$ref": "#/$defs/source" },
         "provenance": { "$ref": "#/$defs/provenance" }
       }

@@ -4,7 +4,7 @@
 export type Transport = 'http' | 'rpc' | 'grpc' | 'sns' | 'sqs' | 'amqp' | 'eventbridge' | 'cron' | 'socket' | 'event' | 'other';
 export type Delivery = 'unicast' | 'multicast';
 export type Mode = 'sync' | 'async';
-export type Match = 'exact' | 'glob';
+export type Match = 'exact' | 'glob' | 'amqp-topic';
 export type ServiceKind = 'service' | 'gateway' | 'lambda' | 'infra';
 export type Details = Record<string, unknown>;
 

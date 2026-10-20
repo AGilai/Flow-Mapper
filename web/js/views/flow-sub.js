@@ -17,6 +17,7 @@ export function callerFor(first) {
   const t = first.transport;
   if (!t || SYNC.has(t)) return { id: 'client', label: 'client', sub: 'browser', kind: 'client' };
   const key = String(first.label ?? '').split(' · ')[0];
+  if (t === 'amqp' && key.startsWith('amqp-rpc:')) return { id: 'client', label: 'caller', sub: 'amqp rpc', kind: 'client' };
   if (t === 'cron') return { id: 'src', label: 'schedule', sub: ['cron', stripType(key)].filter(Boolean).join(' · '), kind: 'source' };
   if (t === 'socket') return { id: 'client', label: 'client', sub: `${socketProtocol(first)} socket`, kind: 'client' };
   const q = stripType(key);

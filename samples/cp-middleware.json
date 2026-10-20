@@ -1,0 +1,320 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "cp-middleware",
+    "kind": "service",
+    "team": "control-plane",
+    "repo": "github.com/saferx/cp-middleware",
+    "language": "typescript",
+    "description": "Control-plane middleware: device commands and device events"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-20T08:00:00Z",
+  "commit": "a1b2c3d",
+  "functions": [
+    {
+      "id": "DeviceController.logout",
+      "name": "DeviceController.logout",
+      "file": "src/devices/logout.ts",
+      "line": 14,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "deviceLogout.publish",
+          "mode": "async",
+          "operation": "publish device.{deviceId}.logout",
+          "event": "DeviceLoggedOut"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "firmwareUpdated.publish",
+          "mode": "async",
+          "operation": "publish firmware.{deviceId}.updated",
+          "event": "FirmwareUpdated"
+        }
+      ]
+    },
+    {
+      "id": "DeviceController.sync",
+      "name": "DeviceController.sync",
+      "file": "src/devices/sync.ts",
+      "line": 20,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "dns.resolve",
+          "mode": "sync",
+          "operation": "call rpc.sxdns.dns.resolve"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "dns.reverse",
+          "mode": "sync",
+          "operation": "call rpc.sxdns.dns.reverse"
+        },
+        {
+          "seq": 3,
+          "type": "egress",
+          "target": "device.get",
+          "mode": "sync",
+          "operation": "call rpc.dpc.device.get"
+        },
+        {
+          "seq": 4,
+          "type": "egress",
+          "target": "audit.append",
+          "mode": "sync",
+          "operation": "call rpc.activitylog.log.append"
+        },
+        {
+          "seq": 5,
+          "type": "egress",
+          "target": "geo.locate",
+          "mode": "sync",
+          "operation": "call rpc.geo.locate"
+        },
+        {
+          "seq": 6,
+          "type": "egress",
+          "target": "deviceSynced.publish",
+          "mode": "async",
+          "operation": "publish device.{deviceId}.synced",
+          "event": "DeviceSynced"
+        }
+      ]
+    },
+    {
+      "id": "DeviceController.audit",
+      "name": "DeviceController.audit",
+      "file": "src/devices/audit.ts",
+      "line": 9,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "auditQueue.send",
+          "mode": "async",
+          "operation": "sendToQueue saferx.activitylog"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.deviceLogout",
+      "bindKey": "http:POST cp-middleware/devices/{deviceId}/logout",
+      "transport": "http",
+      "handler": "DeviceController.logout",
+      "entryPoint": true,
+      "details": {
+        "method": "POST",
+        "path": "/devices/{deviceId}/logout"
+      },
+      "source": {
+        "file": "src/devices/routes.ts",
+        "line": 11
+      }
+    },
+    {
+      "id": "in.deviceSync",
+      "bindKey": "http:PUT cp-middleware/devices/{deviceId}/sync",
+      "transport": "http",
+      "handler": "DeviceController.sync",
+      "entryPoint": true,
+      "details": {
+        "method": "PUT",
+        "path": "/devices/{deviceId}/sync"
+      },
+      "source": {
+        "file": "src/devices/routes.ts",
+        "line": 18
+      }
+    },
+    {
+      "id": "in.deviceAudit",
+      "bindKey": "http:POST cp-middleware/devices/{deviceId}/audit",
+      "transport": "http",
+      "handler": "DeviceController.audit",
+      "entryPoint": true,
+      "details": {
+        "method": "POST",
+        "path": "/devices/{deviceId}/audit"
+      },
+      "source": {
+        "file": "src/devices/routes.ts",
+        "line": 25
+      }
+    }
+  ],
+  "egress": [
+    {
+      "id": "deviceLogout.publish",
+      "bindKey": "amqp:saferx.EventExchange/device.{deviceId}.logout",
+      "transport": "amqp",
+      "mode": "async",
+      "delivery": "multicast",
+      "details": {
+        "exchange": "saferx.EventExchange",
+        "routingKey": "device.{deviceId}.logout"
+      },
+      "source": {
+        "file": "src/devices/events.ts",
+        "line": 22
+      }
+    },
+    {
+      "id": "firmwareUpdated.publish",
+      "bindKey": "amqp:saferx.EventExchange/firmware.{deviceId}.updated",
+      "transport": "amqp",
+      "mode": "async",
+      "delivery": "multicast",
+      "details": {
+        "exchange": "saferx.EventExchange",
+        "routingKey": "firmware.{deviceId}.updated"
+      },
+      "source": {
+        "file": "src/devices/events.ts",
+        "line": 31
+      }
+    },
+    {
+      "id": "deviceSynced.publish",
+      "bindKey": "amqp:saferx.EventExchange/device.{deviceId}.synced",
+      "transport": "amqp",
+      "mode": "async",
+      "delivery": "multicast",
+      "details": {
+        "exchange": "saferx.EventExchange",
+        "routingKey": "device.{deviceId}.synced"
+      },
+      "source": {
+        "file": "src/devices/events.ts",
+        "line": 40
+      }
+    },
+    {
+      "id": "dns.resolve",
+      "bindKey": "amqp-rpc:rpc.sxdns.dns.resolve",
+      "transport": "amqp",
+      "mode": "sync",
+      "details": {
+        "rpc": {
+          "command": "rpc.sxdns.dns.resolve",
+          "commandQueue": "rpcv2.sxdns",
+          "exchange": "",
+          "correlation": "properties.correlationId",
+          "library": "@saferx/rpcv2 2.4.1",
+          "replyTo": "rpcv2.reply.cp-middleware.{instanceId}",
+          "timeoutMs": 5000
+        }
+      },
+      "source": {
+        "file": "src/devices/sync.ts",
+        "line": 31
+      }
+    },
+    {
+      "id": "dns.reverse",
+      "bindKey": "amqp-rpc:rpc.sxdns.dns.reverse",
+      "transport": "amqp",
+      "mode": "sync",
+      "details": {
+        "rpc": {
+          "command": "rpc.sxdns.dns.reverse",
+          "commandQueue": "rpcv2.sxdns",
+          "exchange": "",
+          "correlation": "properties.correlationId",
+          "library": "@saferx/rpcv2 2.4.1",
+          "replyTo": "rpcv2.reply.cp-middleware.{instanceId}"
+        }
+      },
+      "source": {
+        "file": "src/devices/sync.ts",
+        "line": 34
+      }
+    },
+    {
+      "id": "device.get",
+      "bindKey": "amqp-rpc:rpc.dpc.device.get",
+      "transport": "amqp",
+      "mode": "sync",
+      "details": {
+        "rpc": {
+          "command": "rpc.dpc.device.get",
+          "commandQueue": "rpcv2.dpc",
+          "exchange": "",
+          "correlation": "properties.correlationId",
+          "library": "@saferx/rpcv2 2.4.1",
+          "replyTo": "rpcv2.reply.cp-middleware.{instanceId}",
+          "timeoutMs": 3000
+        }
+      },
+      "source": {
+        "file": "src/devices/sync.ts",
+        "line": 37
+      }
+    },
+    {
+      "id": "audit.append",
+      "bindKey": "amqp-rpc:rpc.activitylog.log.append",
+      "transport": "amqp",
+      "mode": "sync",
+      "details": {
+        "rpc": {
+          "command": "rpc.activitylog.log.append",
+          "commandQueue": "rpcv2.activitylog",
+          "exchange": "",
+          "correlation": "properties.correlationId",
+          "library": "@saferx/rpcv2 2.4.1",
+          "replyTo": "rpcv2.reply.cp-middleware.{instanceId}"
+        }
+      },
+      "source": {
+        "file": "src/devices/sync.ts",
+        "line": 40
+      }
+    },
+    {
+      "id": "geo.locate",
+      "bindKey": "amqp-rpc:rpc.geo.locate",
+      "transport": "amqp",
+      "mode": "sync",
+      "details": {
+        "rpc": {
+          "command": "rpc.geo.locate",
+          "commandQueue": "rpcv2.geo",
+          "exchange": "",
+          "correlation": "properties.correlationId",
+          "library": "@saferx/rpcv2 2.4.1",
+          "replyTo": "rpcv2.reply.cp-middleware.{instanceId}",
+          "timeoutMs": 2000
+        }
+      },
+      "source": {
+        "file": "src/devices/sync.ts",
+        "line": 43
+      }
+    },
+    {
+      "id": "auditQueue.send",
+      "bindKey": "amqp-queue:saferx.activitylog",
+      "transport": "amqp",
+      "mode": "async",
+      "details": {
+        "exchange": "",
+        "routingKey": "saferx.activitylog",
+        "note": "sendToQueue through the default exchange"
+      },
+      "source": {
+        "file": "src/devices/audit.ts",
+        "line": 14
+      }
+    }
+  ]
+}

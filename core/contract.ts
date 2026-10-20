@@ -23,7 +23,7 @@ export interface ServiceManifest {
   resources?: { id: string; client?: ClientInfo; unresolved?: Unresolved[] }[];
   ingress?: { id: string; bindKey?: string; source?: Source; unresolved?: Unresolved[] }[];
   egress?: { id: string; bindKey?: string; transport: string; events?: string[]; client?: ClientInfo; source?: Source; unresolved?: Unresolved[] }[];
-  bindings?: { id: string; from: string; match?: 'exact' | 'glob'; events?: '*' | string[]; source?: Source }[];
+  bindings?: { id: string; from: string; match?: 'exact' | 'glob' | 'amqp-topic'; events?: '*' | string[]; source?: Source }[];
 }
 interface Ctx { m: ServiceManifest; g: GraphIndex; add: (f: Omit<Finding, 'service'>) => void }
 type Rule = (c: Ctx) => void;

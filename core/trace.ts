@@ -14,13 +14,15 @@
 import type { GraphIndex } from './graph-index.ts';
 import { linksFrom, sid } from './graph-index.ts';
 import { isLeaf } from './types.ts';
-import type { Ingress, Mode, Ref } from './types.ts';
+import type { Ingress, Link, Mode, Ref } from './types.ts';
 import { handlerFor, passes, passesUntyped, untypedEventSet, type EventSet } from './events.ts';
 import { codeLink, sourceLink, type SourceLink } from './endpoint-info.ts';
 import { refKey, unresolvedTarget } from './resolve.ts';
 import type { Step, StepField, Unresolved } from './types.ts';
 import { altGroups, type Alt } from './alt.ts';
 import { egressVia, ingressVia, type LinkedHop } from './via.ts';
+import { bindingKeyOf, splitAmqpKey } from './amqp.ts';
+import { routeInfo, routeKey, rpcOf, withServer, type AmqpRoute, type RpcInfo } from './amqp-route.ts';
 
 export interface Participant {
   id: string; label: string; kind: 'client' | 'function' | 'service' | 'channel' | 'resource' | 'missing' | 'unresolved'; service?: string;
@@ -55,10 +57,12 @@ export interface Message {
   middleware?: { fn: string; index: number };                // the message comes from this middleware function of the ingress (0-based position in `ingress.middleware`) or from a call it made; absent for the handler's own
   middlewareChain?: { fn: string; name: string }[];          // on a message that reaches an ingress (entry / egress / deliver): its middleware, in the order they run before the handler
   delivery?: number;                                         // on the topic -> queue and queue -> consumer messages of one delivery: 1-based ordinal within the group
+  amqp?: AmqpRoute;                                          // an AMQP publish through an exchange (0.18.0), on the publish and the hops after it: exchange, routing key, type, how many bindings route it and the ones that do not
+  rpc?: RpcInfo;                                             // an RPC over AMQP (0.18.0; bind key `amqp-rpc:{command}`, transport amqp, mode sync): the command and the AMQP details both sides declared
   filter?: HopFilter;                                        // on a hop that goes through a subscription, rule or binding (topic -> queue, bus -> target, exchange -> queue): what it declares
 }
 /** The subscription behind a hop: its id, the key it listens on (SNS topic, bus, `exchange/routing-key`) and the event types it lets through (absent: all). */
-export interface HopFilter { id: string; service: string; from: string; events?: '*' | string[] }
+export interface HopFilter { id: string; service: string; from: string; events?: '*' | string[]; /** An AMQP binding: its key as written in code (`details.bindingKey`, else the part of `from` after the exchange). */ bindingKey?: string; match?: string; /** Headers exchange: the binding's headers and x-match. */ headers?: Record<string, unknown>; xMatch?: 'all' | 'any' }
 export interface Trace {
   start: { service: string; ingress?: string; fn: string; event?: string }; scope: 'intra' | 'full';
   participants: Participant[]; messages: Message[]; truncated: boolean;
@@ -102,7 +106,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
   };
   const filterOf = (l: Parameters<typeof passes>[1]): { filter: HopFilter } | {} => {
     const b = l.binding ? g.bindings.get(sid(l.binding.service, l.binding.id)) : undefined;
-    return b ? { filter: { id: b.id, service: b.service, from: b.from, ...(b.events ? { events: b.events } : {}) } } : {};
+    return b ? { filter: { id: b.id, service: b.service, from: b.from, ...(b.events ? { events: b.events } : {}), ...(b.from.startsWith('amqp:') ? { bindingKey: bindingKeyOf(b), ...(b.match ? { match: b.match } : {}), ...(b.details?.headers ? { headers: b.details.headers as Record<string, unknown>, xMatch: b.details.xMatch === 'any' ? 'any' : 'all' } : {}) } : {}) } } : {};
   };
   const chPart = (key: string) => part({ id: `ch:${key}`, label: g.channels.get(key)?.name ?? key, kind: 'channel' });
   // The same subscription declared twice (by the topic's owner and by the consumer) is one link, one arrow.
@@ -208,6 +212,10 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
         const label = (st.operation && !e.bindKey.includes(st.operation) ? `${st.operation} ${e.bindKey}` : e.bindKey) + (event ? ` · ${event}` : '');
         // No single event: the types the egress may send (its events, then the candidates of its unresolved event) decide which subscriptions are followed (#40).
         const set = event ? undefined : untypedEventSet(e);
+        // RPC over AMQP, or a publish to an exchange: what the trace adds about the routing (additive fields).
+        const rpc = rpcOf(e), ex = splitAmqpKey(e.bindKey)?.exchange;
+        const route = !rpc && ex && !g.channels.has(e.bindKey) ? routeKey(g.model.bindings, g.channels.get(`amqp:${ex}`)?.details, e.bindKey, e.details) : null;
+        const extra = rpc ? { rpc } : route ? { amqp: routeInfo(route, g.channels.get(`amqp:${ex}`)?.details) } : {};
         const ok = (l: Parameters<typeof passes>[1]) => (set ? passesUntyped(g, l, set) !== false : passes(g, l, event));
         const all = distinct(linksFrom(g, { type: 'egress', service, id: e.id }).filter(ok));
         // A send to a queue that an ingress consumes matches that ingress by key and also goes through the queue: draw the queue path only.
@@ -220,12 +228,20 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
         };
         for (const l of all) if (l.to.type === 'channel') reach(l.to, [l.to.key]);
         const links = all.filter((l) => l.to.type !== 'ingress' || !viaChannel.has(refKey(l.to)));
-        if (!links.length) {
-          const to = part({ id: `missing:${e.bindKey}`, label: e.bindKey, kind: 'missing' });
-          push({ ...base, from: me, to, label, mode, kind: 'egress', broken: true, transport: e.transport, egress: e.id, ...eventFrom });
+        if (!links.length && route && !route.matched.length && !route.possible.length) { // the exchange routes it nowhere: the arrow ends at the exchange
+          push({ ...base, from: me, to: chPart(`amqp:${route.exchange}`), label, mode, kind: 'egress', transport: e.transport, event, egress: e.id, ...eventFrom, ...extra });
           continue;
         }
-        for (const l of links) follow(me, l.to, label, mode, depth, stack, { ...base, transport: e.transport, event, egress: e.id, ...eventFrom, ...filterOf(l) }, [], set);
+        if (!links.length) {
+          const to = part({ id: `missing:${e.bindKey}`, label: e.bindKey, kind: 'missing' });
+          push({ ...base, from: me, to, label, mode, kind: 'egress', broken: true, transport: e.transport, egress: e.id, ...eventFrom, ...extra });
+          continue;
+        }
+        if (route && links.length > 1 && links.every((l) => l.to.type === 'channel')) { // an exchange that routes to several queues is a fan-out like an SNS topic: publish to the exchange, one hop per binding
+          follow(me, { type: 'channel', key: `amqp:${route.exchange}` }, label, mode, depth, stack, { ...base, transport: e.transport, event, egress: e.id, ...eventFrom, ...extra }, [], set, links);
+          continue;
+        }
+        for (const l of links) follow(me, l.to, label, mode, depth, stack, { ...base, transport: e.transport, event, egress: e.id, ...eventFrom, ...extra, ...filterOf(l) }, [], set);
       }
     }
     } finally { altCtx = outer; }
@@ -248,13 +264,13 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
   // A fan-out's deliveries are drawn first (publish, then topic -> queue -> consumer for each), and only then what each consumer does
   // (its calls, stores, publishes, nested deliveries), in delivery order: nothing hangs between the deliveries, under the topic's activation bar.
   let deferred: (() => void)[] | null = null;
-  const follow = (from: string, to: Ref, label: string, mode: Mode, depth: number, stack: string[], base: Partial<Message>, seenCh: string[] = [], set?: EventSet) => {
+  const follow = (from: string, to: Ref, label: string, mode: Mode, depth: number, stack: string[], base: Partial<Message>, seenCh: string[] = [], set?: EventSet, only?: Link[]) => {
     if (truncated) return;
     if (to.type === 'channel') {
       const ch = chPart(to.key);
       if (!push({ ...base, from, to: ch, label, mode, kind: 'egress', depth } as Message)) return;
       if (scope === 'intra' || seenCh.includes(to.key)) return; // intra stops at the service boundary
-      const subs = distinct(linksFrom(g, to));
+      const subs = distinct(only ?? linksFrom(g, to)); // `only`: the bindings an exchange routed this publish to (they are the egress's own links)
       const next = set ? subs.filter((l) => passesUntyped(g, l, set) !== false) : subs.filter((l) => passes(g, l, base.event));
       if (set && !set.known.length && !set.candidates.length && next.length < subs.length) {
         // Event fully unknown: subscriptions with a filter cannot be told apart, so the publish stops at the topic for them.
@@ -298,7 +314,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
     const seenKey = scope === 'intra' && i.service !== root ? undefined : `${key}|${i.id}|${base.event ?? ''}|${base.matched?.join(',') ?? ''}`;
     const first = seenKey && !stack.includes(key) ? expanded.get(seenKey) : undefined;
     const text = crossing === 'deliver' ? `${label} → ${handler}` : label;
-    if (!push({ ...base, from, to: target, label: first ? `${text} ↩ seen at step ${first}` : text, mode, kind: crossing, depth, target: { service: i.service, ingress: i.id, fn: handler }, ...(first ? { repeatOf: first } : scope === 'intra' && i.service !== root || !chainOf(i).length ? {} : { middlewareChain: chainOf(i) }) } as Message)) return;
+    if (!push({ ...base, from, to: target, label: first ? `${text} ↩ seen at step ${first}` : text, mode, kind: crossing, depth, target: { service: i.service, ingress: i.id, fn: handler }, ...(base.rpc ? { rpc: withServer(base.rpc, i.details) } : {}), ...(first ? { repeatOf: first } : scope === 'intra' && i.service !== root || !chainOf(i).length ? {} : { middlewareChain: chainOf(i) }) } as Message)) return;
     if (scope === 'intra' && i.service !== root) return;
     if (stack.includes(key)) { messages[messages.length - 1].cycle = true; return; }
     if (first) return;

@@ -19,7 +19,9 @@ import type { GraphIndex } from './graph-index.ts';
 import { linksFrom, sid } from './graph-index.ts';
 import type { Ref } from './types.ts';
 import { handlerFor, passes, boundValues, passesUntyped, untypedEventSet } from './events.ts';
-import { unresolvedTarget } from './resolve.ts';
+import { refKey, unresolvedTarget } from './resolve.ts';
+import { splitAmqpKey } from './amqp.ts';
+import { routeKey, rpcOf } from './amqp-route.ts';
 import { entryPoints } from './trace.ts';
 
 export interface FlowCount {
@@ -70,7 +72,14 @@ function componentSets(g: GraphIndex): Map<string, string[]> {
           for (const handler of new Set(handlers)) if (handler && g.fns.get(sid(i.service, handler))) node.next.push(sid(i.service, handler));
         }
       };
-      for (const l of linksFrom(g, { type: 'egress', service: f.service, id: out.id })) if (ok(l)) walk(l.to, []);
+      const routed = linksFrom(g, { type: 'egress', service: f.service, id: out.id }).filter(ok);
+      // A publish to an exchange that fans out to several queues, or routes nowhere, draws the exchange as a lifeline (a single queue is reached directly).
+      const ex = splitAmqpKey(out.bindKey)?.exchange, to = new Set(routed.map((l) => refKey(l.to)));
+      if (ex && !rpcOf(out) && !g.channels.has(out.bindKey)) {
+        const r = routeKey(g.model.bindings, g.channels.get(`amqp:${ex}`)?.details, out.bindKey, out.details);
+        if (r && ((to.size > 1 && routed.every((l) => l.to.type === 'channel')) || (!to.size && !r.matched.length && !r.possible.length))) node.local.add(`c:amqp:${ex}`);
+      }
+      for (const l of routed) walk(l.to, []);
     }
     return n;
   };

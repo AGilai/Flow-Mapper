@@ -1,0 +1,92 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "activitylog",
+    "kind": "service",
+    "team": "audit",
+    "repo": "github.com/saferx/activitylog",
+    "language": "typescript",
+    "description": "Activity log"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-20T08:00:00Z",
+  "commit": "a1b2c3d",
+  "functions": [
+    {
+      "id": "ActivityLog.record",
+      "name": "ActivityLog.record",
+      "file": "src/record.ts",
+      "line": 14,
+      "steps": []
+    },
+    {
+      "id": "LogRpc.append",
+      "name": "LogRpc.append",
+      "file": "src/rpc/append.ts",
+      "line": 11,
+      "steps": []
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.record",
+      "bindKey": "amqp-queue:saferx.activitylog",
+      "transport": "amqp",
+      "handler": "ActivityLog.record",
+      "source": {
+        "file": "src/index.ts",
+        "line": 9
+      }
+    },
+    {
+      "id": "in.rpcAppend",
+      "bindKey": "amqp-rpc:rpc.activitylog.log.append",
+      "transport": "amqp",
+      "handler": "LogRpc.append",
+      "details": {
+        "rpc": {
+          "command": "rpc.activitylog.log.append",
+          "commandQueue": "rpcv2.activitylog",
+          "prefetch": 10,
+          "library": "@saferx/rpcv2 2.4.1"
+        }
+      },
+      "source": {
+        "file": "src/rpc/append.ts",
+        "line": 6
+      }
+    }
+  ],
+  "channels": [
+    {
+      "bindKey": "amqp-queue:saferx.activitylog",
+      "kind": "amqp-queue",
+      "name": "saferx.activitylog",
+      "details": {
+        "durable": true
+      }
+    }
+  ],
+  "bindings": [
+    {
+      "id": "bind.endsWithLogout",
+      "from": "amqp:saferx.EventExchange/#.logout",
+      "match": "amqp-topic",
+      "to": "amqp-queue:saferx.activitylog",
+      "details": {
+        "bindingKey": "#.logout"
+      }
+    },
+    {
+      "id": "bind.audit",
+      "from": "amqp:saferx.EventExchange/audit.#",
+      "match": "amqp-topic",
+      "to": "amqp-queue:saferx.activitylog",
+      "details": {
+        "bindingKey": "audit.#"
+      }
+    }
+  ]
+}

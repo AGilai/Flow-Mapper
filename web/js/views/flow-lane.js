@@ -16,12 +16,13 @@ import { scanLane, isPublish } from './flow-scan.js';
 import { callerFor } from './flow-sub.js';
 import { mwSegments, segmentOf, mwSpans } from './flow-mw.js';
 import { chainOf, planChains, hopLabel, filterMarker, badgesAt, chType, chName, isQueueKey } from './flow-chain.js';
+import { isRpc, isSyncCall, tOf, rpcCommand, pairPlan, trunkKey, nonMatchText } from './flow-amqp.js';
 
-const SYNC_TRANSPORT = new Set(['http', 'rpc', 'grpc']);
 export const svcOf = (id) => (id.startsWith('svc:') ? id.slice(4) : id.startsWith('fn:') ? id.split(':')[1] : null);
 
 /** "http:POST orders-svc/orders" -> "POST /orders"; other transports show their event or label. */
 export function callLabel(m) {
+  if (isRpc(m)) return rpcCommand(m);
   if (m.kind === 'deliver') { const hd = m.target?.fn ?? m.label.match(/→\s*(.+)$/)?.[1] ?? ''; return m.event ? `${m.event} → ${hd}` : hd; }
   if (m.transport === 'http' || m.transport === 'rpc') {
     const t = m.label.replace(/^\w+:/, '');
@@ -53,6 +54,7 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
 
   const first = msgs[0];
   const source = mk(callerFor(first));
+  const plan1 = pairPlan(); // RPC over AMQP: the chip on the first call per caller and server, the reply label
   const root = svcOf(first.to);
 
   const between = (c, a, b) => c.ci > Math.min(a.ci, b.ci) && c.ci < Math.max(a.ci, b.ci);
@@ -79,13 +81,13 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
   };
   const close = (b) => {
     endMw(b);
-    if (b.sync && b.caller) push({ type: 'return', bar: b, to: b.caller, label: 'return' });
+    if (b.sync && b.caller) push({ type: 'return', bar: b, to: b.caller, label: b.rpc ? b.rpc.reply : 'return' });
     b.end = events.length - 1;
   };
-  const open = (m, caller, parent, service, col, sync) => {
-    const bar = { id: bars.length, service, col, level: stack.filter((b) => b.col === col).length, transport: m.transport, sync, msg: m, depth: m.depth, internal: { n: 0, gaps: 0 }, msgs: [m], caller, parent };
+  const open = (m, caller, parent, service, col, sync, rpc = null) => {
+    const bar = { id: bars.length, service, col, level: stack.filter((b) => b.col === col).length, transport: tOf(m), sync, rpc, msg: m, depth: m.depth, internal: { n: 0, gaps: 0 }, msgs: [m], caller, parent };
     bars.push(bar);
-    bar.start = push({ type: 'call', msg: m, from: caller, to: col, bar, label: callLabel(m), fromBar: parent }).row;
+    bar.start = push({ type: 'call', msg: m, from: caller, to: col, bar, label: callLabel(m), fromBar: parent, tr: tOf(m), rpc }).row;
     const chain = m.middlewareChain ?? [];
     const kb = `${service}/${m.target?.ingress ?? ''}`, nth = (keys.get(kb) ?? 0) + 1;
     keys.set(kb, nth);
@@ -115,25 +117,27 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
       const to = plan.colOf(leg.to), prev = to.startsWith('fold:') ? rows.find((r) => r.to === to && r.from === leg.from) : null;
       if (prev) prev.legs.push(leg); else rows.push({ to, from: leg.from, legs: [leg] });
     }
-    const event = hopLabel(chain.legs[0].msg), root = chain.root, through = rows.length > 1 && rows[1].from === root;
+    const m0 = chain.legs[0].msg, event = hopLabel(m0), sub = m0.event ? trunkKey(m0) : null, root = chain.root, through = rows.length > 1 && rows[1].from === root;
     const info = (r) => {
       const l = r.legs[0], delivers = r.legs.flatMap((x) => x.delivers), leaf = !chain.legs.some((x) => x.from != null && r.legs.some((y) => y.to === x.from));
       const items = delivers.flatMap((d) => (numbers.get(d) ? [numbers.get(d)] : []));
       const end = !leaf ? null : delivers.length ? { items, tiles: badgesAt(items), none: null, bad: items.some((i) => i.noHandler) }
-        : { items: [], tiles: [], none: CH_KIND(l.to) === 'queue' ? 'no reader' : 'no consumers' };
-      const marker = r.legs.length > 1 ? { kind: 'fold', label: `${r.legs.length} queues`, full: `${r.legs.length} queues, folded: ${r.legs.map((x) => chName(x.to)).join(', ')}` } : filterMarker(l.filter, l.msg.transport);
+        : { items: [], tiles: [], none: CH_KIND(l.to) === 'queue' ? 'no reader' : l.msg.amqp && !l.msg.amqp.matched ? 'no binding matches' : 'no consumers' };
+      const marker = r.legs.length > 1 ? { kind: 'fold', label: `${r.legs.length} queues`, full: `${r.legs.length} queues, folded: ${r.legs.map((x) => chName(x.to)).join(', ')}` } : filterMarker(l.filter, l.msg.transport, l.msg.amqp);
       return { msg: l.msg, legs: r.legs, end, marker, to: chanCol(r.to), queue: l.to, transport: chType(l.to) };
     };
     rows.forEach((r, k) => {
       if (k === 1 && through) return;
       const b = k === 0 && through ? info(rows[1]) : info(r), trunk = k === 0, fork = !trunk && r.from === root;
-      push({ type: 'hop', ...b, from: trunk ? top.col : chanCol(r.from), fromBar: trunk ? top : null, via: trunk && through ? chanCol(root) : null, label: event, trunk, fork, topic: root,
+      push({ type: 'hop', ...b, from: trunk ? top.col : chanCol(r.from), fromBar: trunk ? top : null, via: trunk && through ? chanCol(root) : null, label: event, sub: trunk ? sub : null, trunk, fork, topic: root,
         trunkTransport: chType(root), queue: isQueueKey(b.queue) ? b.queue : null });
     });
+    const miss = m0.amqp && !isQueueKey(root) ? nonMatchText(m0.amqp) : null; // the bindings that do not route this publish: one muted line under the fork
+    if (miss) push({ type: 'amqpnote', col: chanCol(root), text: miss, exchange: m0.amqp.exchange });
   };
   lane.forEach((idx, n) => {
     const m = msgs[idx];
-    if (n === 0) { open(m, source, null, root, rootCol, SYNC_TRANSPORT.has(m.transport) && m.mode === 'sync'); return; }
+    if (n === 0) { open(m, source, null, root, rootCol, isSyncCall(m), isRpc(m) ? { chip: false, glyph: false, reply: m.rpc?.timeoutMs ? plan1(0, root, m.rpc).reply : 'reply' } : null); return; }
     while (stack.length && stack[stack.length - 1].depth >= m.depth) close(stack.pop());
     const top = stack[stack.length - 1];
     if (!top) return;
@@ -151,9 +155,9 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
     if (m.kind === 'frontier') { push({ type: 'frontier', msg: m, bar: top }); return; }
     if (isPublish(m)) { emitChain(top, chainAt.get(idx)); return; }
     const k = kind.get(m.to), service = svcOf(m.to);
-    if (m.broken || m.gap || !service || k === 'missing' || k === 'unresolved') { push({ type: 'unresolved', msg: m, bar: top, col: unresolvedCol(), label: callLabel(m) }); return; }
+    if (m.broken || m.gap || !service || k === 'missing' || k === 'unresolved') { push({ type: 'unresolved', msg: m, bar: top, col: unresolvedCol(), label: callLabel(m), chip: isRpc(m) ? 'no server harvested' : null }); return; }
     if (scope === 'intra' && service !== root) { push({ type: 'call', msg: m, from: top.col, fromBar: top, to: pickCol(service, top.col), bar: null, label: callLabel(m) }); return; }
-    open(m, top.col, top, service, pickCol(service, top.col), SYNC_TRANSPORT.has(m.transport) && m.mode === 'sync');
+    open(m, top.col, top, service, pickCol(service, top.col), isSyncCall(m), isRpc(m) ? plan1(top.col.ci, service, m.rpc) : null);
   });
   while (stack.length) close(stack.pop());
 

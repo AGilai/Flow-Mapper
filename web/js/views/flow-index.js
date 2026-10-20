@@ -32,8 +32,9 @@ export function renderIndex(tree, ctx) {
     const nested = row.groups.reduce((n, g) => n + g.rows.length, 0);
     return [row.noHandler || row.seenIn || loops(row) ? h('span.chev-pad') : chev(open),
       h('span.layer', row.label, ctx.isOpen?.(row) ? h('i.tabdot', { title: 'Open in a tab', 'aria-label': 'open in a tab' }) : null),
-      h('span.lane', groupOfRow(row).topic !== row.queue ? [tc(chType(groupOfRow(row).topic), groupOfRow(row).topic), h('i.arr', '›')] : null, tc(chType(row.queue), row.queue), h('i.arr', '›'),
-        h('span.svc', h('b', wrapId(row.service)), h('span.mono', [' · ', ...wrapId(row.handler)]))),
+      h('span.lane', groupOfRow(row).topic !== row.queue && !groupOfRow(row).amqp ? [tc(chType(groupOfRow(row).topic), groupOfRow(row).topic), h('i.arr', '›')] : null, tc(chType(row.queue), row.queue), h('i.arr', '›'),
+        h('span.svc', h('b', wrapId(row.service)), h('span.mono', [' · ', ...wrapId(row.handler)])),
+        row.bound ? h('span.bound', { title: `Routed by the binding key ${row.bound}` }, ' bound by ', h('span.mono', row.bound)) : null),
       nested ? h('span.nest-chip', { title: `${nested} nested ${nested === 1 ? 'flow' : 'flows'} (${row.groups[0]?.rows[0]?.label ?? ''} ...)` }, `+${nested} nested`) : null,
       row.suspect ? h('span.chip-warn', { title: 'Same consumer reached twice by one publish. Possible harvester or config bug.' }, 'suspect') : null,
       loops(row) ? h('span.chip-warn', { title: 'This consumer is already running above: its flow comes back here. Not expanded again.' }, '↻ loops back') : null,
@@ -88,9 +89,11 @@ export function renderIndex(tree, ctx) {
   function groupEl(g, depth = 0) {
     const seen = g.rows.filter((r) => r.seenIn).length, fresh = g.rows.length - seen;
     const el = h('div.grp', { id: `${uid}-pub-${g.pub}` },
-      h('div.grp-h', tc(g.transport, g.transport), h('span.mono', `${g.topic.replace(/^[^:]+:/, '')} · ${g.event}`),
+      h('div.grp-h', tc(g.transport, g.transport), h('span.mono', g.amqp ? `${g.amqp.exchange}${g.amqp.routingKey != null && g.amqp.type !== 'fanout' ? ` · routing key ${g.amqp.routingKey}` : ''}` : `${g.topic.replace(/^[^:]+:/, '')} · ${g.event}`),
+        g.amqp && !g.rows.length && !g.amqp.matched ? h('span.chip-warn', { title: 'No binding of the exchange routes this routing key' }, 'no binding matches') : null,
         g.branch ? h('span.from', `branch ${g.branch.n}${g.branch.condition ? ` · ${g.branch.condition}` : ''}`) : null,
-        h('span.sum', g.rows.length ? (fresh ? `${flowsLabel(g.rows.length)}${seen ? ` · ${fresh} new, ${seen} seen before` : ''}` : `${flowsLabel(g.rows.length)} · all seen before`) : 'no consumers')),
+        h('span.sum', g.amqp && !g.amqp.matched ? (g.amqp.alternateExchange ? `no binding matches: goes to the alternate exchange ${g.amqp.alternateExchange}` : 'no binding matches: RabbitMQ drops it (no alternate exchange)')
+          : g.rows.length ? (g.amqp ? `${g.amqp.matched} of ${g.amqp.matched + g.amqp.nonMatching.length} bindings match · ` : '') + (fresh ? `${flowsLabel(g.rows.length)}${seen ? ` · ${fresh} new, ${seen} seen before` : ''}` : `${flowsLabel(g.rows.length)} · all seen before`) : 'no consumers')),
       h('div.grp-rows', g.rows.map((r) => rowEl(r, g, depth))));
     groupEls.set(g.pub, el);
     return el;

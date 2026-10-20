@@ -121,18 +121,20 @@ test('MCP ingest_manifest takes dryRun and returns the report without writing', 
   assert.equal((await app.call('GET', '/api/envs/mcp/services')).body.length, 0);
 });
 
+// firmwareUpdated.publish and geo.locate are the 0.18.0 RabbitMQ demo (a publish no binding matches, an RPC nobody serves)
+const DANGLING = ['disputes.publish', 'firmwareUpdated.publish', 'geo.locate', 'users.getPrefs'];
 test('a batch is applied together: only real dangling egress, dry run or not; one bad manifest rejects all', async () => {
   const app = await startApp();
   try {
   const manifests = sampleManifests();
   const dangling = (r: any) => r.body.results.flatMap((x: any) => x.contract.findings.filter((f: any) => f.code === 'dangling-egress').map((f: any) => f.id)).sort();
   const dry = await app.call('POST', '/api/ingest?dryRun=1', { manifests });
-  assert.deepEqual(dangling(dry), ['disputes.publish', 'users.getPrefs']);
+  assert.deepEqual(dangling(dry), DANGLING);
   assert.equal((app.ctx.db.prepare('SELECT COUNT(*) AS n FROM snapshots').get() as any).n, 0, 'dry run wrote nothing');
   const bad = await app.call('POST', '/api/ingest', { manifests: [...manifests, { ...manifests[0], service: { name: 'z-svc' }, ingress: [{ id: 'x' }] }] });
   assert.equal(bad.status, 422);
   assert.equal((app.ctx.db.prepare('SELECT COUNT(*) AS n FROM snapshots').get() as any).n, 0, 'nothing applied');
   const real = await app.call('POST', '/api/ingest', { manifests });
-  assert.deepEqual(dangling(real), ['disputes.publish', 'users.getPrefs']);
+  assert.deepEqual(dangling(real), DANGLING);
   } finally { await app.close(); }
 });

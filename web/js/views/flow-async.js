@@ -3,7 +3,7 @@
 // draw that flow with the same lane rules, and the flows it starts become nested groups.
 
 import { scanLane, subflowRanges } from './flow-scan.js';
-import { hopLabel } from './flow-chain.js';
+import { hopLabel, exchangeOf } from './flow-chain.js';
 
 /** "1 step", "3 steps". */
 export const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
@@ -46,7 +46,7 @@ export function asyncTree(messages, prefix = '', known = new Map()) {
     let n = 0;
     for (const p of publishes) {
       const pm = messages[p.i];
-      const group = { pub: p.i, topic: pm.to.slice(3), event: hopLabel(pm), transport: pm.transport,
+      const group = { pub: p.i, topic: exchangeOf(pm) ?? pm.to.slice(3), event: hopLabel(pm), transport: pm.transport, amqp: pm.amqp ?? null,
         branch: pm.alt ? { n: pm.alt.branch, of: pm.alt.of, condition: pm.condition ?? null } : null, rows: [] };
       const ranges = subflowRanges(messages, p);
       const inGroup = new Map();
@@ -56,7 +56,8 @@ export function asyncTree(messages, prefix = '', known = new Map()) {
         const key = `${m.target?.service ?? m.to}|${m.target?.ingress ?? ''}|${handlerOf(m)}`;
         const noHandler = !!m.unhandled || !m.target?.ingress || m.broken;
         const r = { label, i: d, queue: m.from.slice(3), service: m.target?.service ?? m.to.replace(/^svc:/, ''), ingress: m.target?.ingress ?? null,
-          handler: handlerOf(m), event: m.event ?? null, noHandler, transport: m.transport, seenIn: null, suspect: false, range: null, msgs: [m], summary: '', groups: [], key, matched: m.matched ?? null };
+          handler: handlerOf(m), event: m.event ?? null, noHandler, transport: m.transport, seenIn: null, suspect: false, range: null, msgs: [m], summary: '', groups: [], key, matched: m.matched ?? null,
+          bound: messages.slice(p.i, d).findLast((x) => x.to === m.from && x.filter?.bindingKey != null)?.filter.bindingKey ?? null }; // bound: the binding key of an exchange that routed it here
         if (inGroup.has(key)) r.suspect = true;
         else inGroup.set(key, label);
         const repeat = m.repeatOf ? byIndex.get(m.repeatOf - 1) : null;

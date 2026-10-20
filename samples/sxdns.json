@@ -1,0 +1,124 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "sxdns",
+    "kind": "service",
+    "team": "network",
+    "repo": "github.com/saferx/sxdns",
+    "language": "typescript",
+    "description": "In-house DNS resolver exposed as RPC commands"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-20T08:00:00Z",
+  "commit": "a1b2c3d",
+  "functions": [
+    {
+      "id": "DnsController.resolve",
+      "name": "DnsController.resolve",
+      "file": "src/rpc/dns.ts",
+      "line": 22,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "normalize"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "zone.lookup",
+          "mode": "sync",
+          "operation": "call rpc.dpc.zone.lookup"
+        }
+      ]
+    },
+    {
+      "id": "DnsController.reverse",
+      "name": "DnsController.reverse",
+      "file": "src/rpc/dns.ts",
+      "line": 48,
+      "steps": []
+    },
+    {
+      "id": "normalize",
+      "name": "normalize",
+      "file": "src/dns/normalize.ts",
+      "line": 5,
+      "steps": []
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.rpcResolve",
+      "bindKey": "amqp-rpc:rpc.sxdns.dns.resolve",
+      "transport": "amqp",
+      "handler": "DnsController.resolve",
+      "details": {
+        "rpc": {
+          "command": "rpc.sxdns.dns.resolve",
+          "commandQueue": "rpcv2.sxdns",
+          "prefetch": 4,
+          "library": "@saferx/rpcv2 2.4.1"
+        }
+      },
+      "source": {
+        "file": "src/rpc/dns.ts",
+        "line": 14
+      }
+    },
+    {
+      "id": "in.rpcReverse",
+      "bindKey": "amqp-rpc:rpc.sxdns.dns.reverse",
+      "transport": "amqp",
+      "handler": "DnsController.reverse",
+      "details": {
+        "rpc": {
+          "command": "rpc.sxdns.dns.reverse",
+          "commandQueue": "rpcv2.sxdns",
+          "prefetch": 4,
+          "library": "@saferx/rpcv2 2.4.1"
+        }
+      },
+      "source": {
+        "file": "src/rpc/dns.ts",
+        "line": 40
+      }
+    }
+  ],
+  "egress": [
+    {
+      "id": "zone.lookup",
+      "bindKey": "amqp-rpc:rpc.dpc.zone.lookup",
+      "transport": "amqp",
+      "mode": "sync",
+      "details": {
+        "rpc": {
+          "command": "rpc.dpc.zone.lookup",
+          "commandQueue": "rpcv2.dpc",
+          "exchange": "",
+          "correlation": "properties.correlationId",
+          "library": "@saferx/rpcv2 2.4.1",
+          "replyTo": "rpcv2.reply.sxdns.{instanceId}",
+          "timeoutMs": 1500
+        }
+      },
+      "source": {
+        "file": "src/rpc/dns.ts",
+        "line": 30
+      }
+    }
+  ],
+  "channels": [
+    {
+      "bindKey": "amqp-queue:rpcv2.sxdns",
+      "kind": "amqp-queue",
+      "name": "rpcv2.sxdns",
+      "details": {
+        "role": "rpc-command",
+        "durable": true
+      }
+    }
+  ]
+}
