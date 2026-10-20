@@ -146,7 +146,17 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
         const mode = st.mode ?? e.mode ?? 'sync';
         const event = st.event ?? (e.events?.length === 1 ? e.events[0] : undefined);
         const label = (st.operation && !e.bindKey.includes(st.operation) ? `${st.operation} ${e.bindKey}` : e.bindKey) + (event ? ` · ${event}` : '');
-        const links = distinct(linksFrom(g, { type: 'egress', service, id: e.id }).filter((l) => passes(g, l, event)));
+        const all = distinct(linksFrom(g, { type: 'egress', service, id: e.id }).filter((l) => passes(g, l, event)));
+        // A send to a queue that an ingress consumes matches that ingress by key and also goes through the queue: draw the queue path only.
+        const viaChannel = new Set<string>();
+        const reach = (r: Ref, seen: string[]) => {
+          for (const l of distinct(linksFrom(g, r).filter((x) => passes(g, x, event)))) {
+            if (l.to.type === 'ingress') viaChannel.add(refKey(l.to));
+            else if (!seen.includes(l.to.key)) reach(l.to, [...seen, l.to.key]);
+          }
+        };
+        for (const l of all) if (l.to.type === 'channel') reach(l.to, [l.to.key]);
+        const links = all.filter((l) => l.to.type !== 'ingress' || !viaChannel.has(refKey(l.to)));
         if (!links.length) {
           const to = part({ id: `missing:${e.bindKey}`, label: e.bindKey, kind: 'missing' });
           push({ ...base, from: me, to, label, mode, kind: 'egress', broken: true, transport: e.transport, egress: e.id });
@@ -215,7 +225,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
     }
     if (e?.source && !(`egress:${m.service}:${e.id}` in code)) code[`egress:${m.service}:${e.id}`] = codeLink(g.services.get(m.service!)!, e.source);
   }
-  return { code, start: { service: root, ingress: ing?.id, fn: fnId, event: start.event }, scope, participants: [...participants.values()], messages, truncated };
+  return { code, start: { service: root, ingress: ing?.id, fn: fnId, event: start.event }, scope, participants: deliveryOrder([...participants.values()], messages), messages, truncated };
 }
 
 /** Entry points to start a trace from: ingress marked entryPoint, else ingress nothing reaches. */
@@ -224,4 +234,24 @@ export function entryPoints(g: GraphIndex) {
   return g.model.ingress
     .filter((i) => i.entryPoint || orphan.has(sid(i.service, i.id)))
     .map((i) => ({ service: i.service, id: i.id, bindKey: i.bindKey, transport: i.transport, handler: i.handler, entryPoint: !!i.entryPoint }));
+}
+
+/**
+ * Lifelines in delivery order: a topic or queue sits left of whatever it delivers to, so a delivery
+ * arrow never points backwards. A channel that is right of its target moves to just before it.
+ */
+function deliveryOrder(parts: Participant[], messages: Message[]): Participant[] {
+  const order = [...parts];
+  for (let pass = 0, moved = true; moved && pass < 10; pass++) { // a topic may have to move again after its queue did
+    moved = false;
+    for (const m of messages) {
+      if (!m.from.startsWith('ch:') || m.from === m.to) continue;
+      const a = order.findIndex((p) => p.id === m.from), b = order.findIndex((p) => p.id === m.to);
+      if (a < 0 || b < 0 || a < b) continue;
+      const [ch] = order.splice(a, 1);
+      order.splice(b, 0, ch);
+      moved = true;
+    }
+  }
+  return order;
 }

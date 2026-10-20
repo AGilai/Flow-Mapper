@@ -25,7 +25,7 @@ export async function render({ main, query }) {
   const start = { service, ingress: query.get('ingress'), fn: query.get('fn'), event: query.get('event') };
   const opts = {
     scope: query.get('scope') ?? (start.fn ? 'intra' : 'full'),
-    internal: query.get('internal') !== '0', stores: query.get('stores') !== '0', depth: query.get('depth') ?? 'all',
+    internal: query.get('internal') !== '0', stores: query.get('stores') !== '0', queues: query.get('queues') !== '0', depth: query.get('depth') ?? 'all',
     expand: new Set((query.get('expand') ?? '').split(',').filter(Boolean)), // services shown function by function
     frontier: query.get('frontier') === '1', // steps the harvester marked as frontier (call trees that reach no sink)
   };
@@ -88,11 +88,11 @@ export async function render({ main, query }) {
   const depth = h('select.select', { 'aria-label': 'Depth', on: { change: (e) => { opts.depth = e.target.value; persist(); draw(); } } },
     ['all', '1', '2', '3', '4', '6', '8'].map((d) => h('option', { value: d, selected: d === opts.depth }, d === 'all' ? 'All depths' : `Depth ${d}`)));
 
-  mainPane.prepend(h('div.seq-toolbar', seg, internalCheck, check('stores', 'Data stores'), frontierCheck, depth, h('span.spacer'),
+  mainPane.prepend(h('div.seq-toolbar', seg, internalCheck, check('stores', 'Data stores'), check('queues', 'Queues and topics'), frontierCheck, depth, h('span.spacer'),
     h('span.xs.muted', 'Right-click a lifeline to see inside it'), info), scroller);
 
   function persist() {
-    setQuery({ scope: opts.scope, internal: opts.internal ? null : '0', stores: opts.stores ? null : '0', depth: opts.depth === 'all' ? null : opts.depth,
+    setQuery({ scope: opts.scope, internal: opts.internal ? null : '0', stores: opts.stores ? null : '0', queues: opts.queues ? null : '0', depth: opts.depth === 'all' ? null : opts.depth,
       expand: [...opts.expand].join(',') || null, frontier: opts.frontier ? '1' : null });
   }
   async function load() {
@@ -107,7 +107,7 @@ export async function render({ main, query }) {
   }
   function draw() {
     const seq = renderSequence(trace, {
-      internal: opts.internal, stores: opts.stores, maxDepth: opts.depth === 'all' ? Infinity : Number(opts.depth), expanded: opts.expand,
+      internal: opts.internal, stores: opts.stores, queues: opts.queues, maxDepth: opts.depth === 'all' ? Infinity : Number(opts.depth), expanded: opts.expand,
       onParticipant: (p, x, y) => participantMenu(p, x, y, {
         trace, scope: opts.scope, expanded: opts.expand,
         setExpanded: async (svc, on) => { on ? opts.expand.add(svc) : opts.expand.delete(svc); if (on) { opts.internal = true; internalBox.checked = true; } persist(); await load(); },

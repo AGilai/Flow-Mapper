@@ -20,18 +20,19 @@ function sampleModel(): Model {
   return model;
 }
 const demo = { service: 'orders-svc', ingress: 'in.remove' };
+const demo35 = { service: 'account-lambda-erase-controller', ingress: 'in.notifyBilling' }; // added with the #35 demo, after the hash was taken
 
-test('traces of every sample entry without frontier steps are unchanged (hash taken on 0.8.1)', () => {
+test('traces of every sample entry without frontier steps are unchanged (hash retaken on 0.8.4: only the lifeline order of 2 traces changed, see queue-twice.test.ts)', () => {
   const m = sampleModel();
   const g = buildIndex(m);
   const h = createHash('sha256');
   let n = 0;
-  for (const i of m.ingress.filter((x) => !(x.service === demo.service && x.id === demo.ingress))) for (const scope of ['intra', 'full'] as const) {
+  for (const i of m.ingress.filter((x) => ![demo, demo35].some((d) => x.service === d.service && x.id === d.ingress))) for (const scope of ['intra', 'full'] as const) {
     h.update(JSON.stringify([i.service, i.id, scope, trace(g, { service: i.service, ingress: i.id }, { scope })]));
     n++;
   }
   assert.equal(n, 154);
-  assert.equal(h.digest('hex'), 'c691cf951b614a318a458b232db7c17be8fc6adbf359b7ce85620baffec11069');
+  assert.equal(h.digest('hex'), '4296fe2d16f3b8d36fda1312b073de8998d3c51cb0a545ba5d9617a0aa57862b');
 });
 
 test('origin "path" is the same as no origin', () => {

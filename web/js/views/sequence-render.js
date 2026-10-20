@@ -12,8 +12,31 @@ const COL = 168, HEAD = 56, ROW = 30, PAD = 24, GUTTER = 44;
 const KIND_LABEL = { client: 'caller', function: 'function', service: 'service', channel: 'queue / topic', resource: 'data store', missing: 'no match', unresolved: 'harvester gap' };
 const T_VAR = { http: '--t-http', rpc: '--t-rpc', grpc: '--t-http', eventbridge: '--t-eb', sns: '--t-sns', sqs: '--t-sqs', amqp: '--t-amqp', cron: '--t-cron', res: '--t-res' };
 
-export function renderSequence(trace, { onMessage, onParticipant, expanded = new Set(), internal = true, stores = true, maxDepth = Infinity } = {}) {
-  const msgs = trace.messages.filter((m) => (internal || m.kind !== 'call') && (stores || m.kind !== 'resource') && m.depth <= maxDepth);
+/**
+ * Queues and topics hidden: a send that passes through them is the one arrow from the sender to the
+ * consumer it reaches. A queue nothing reads stays, so the send is still visible.
+ */
+export function bridgeChannels(messages) {
+  const bridged = new Set();
+  for (let again = true; again;) {
+    again = false;
+    for (const m of messages) {
+      if (!m.from.startsWith('ch:') || bridged.has(m.from) || m.from === m.to) continue;
+      if (!m.to.startsWith('ch:') || bridged.has(m.to)) { bridged.add(m.from); again = true; }
+    }
+  }
+  const origin = new Map();
+  const out = [];
+  for (const m of messages) {
+    if (m.to.startsWith('ch:') && bridged.has(m.to)) { if (!origin.has(m.to)) origin.set(m.to, origin.get(m.from) ?? m.from); continue; }
+    if (m.from.startsWith('ch:') && bridged.has(m.from)) out.push({ ...m, from: origin.get(m.from) ?? m.from, kind: 'egress' });
+    else out.push(m);
+  }
+  return out;
+}
+
+export function renderSequence(trace, { onMessage, onParticipant, expanded = new Set(), internal = true, stores = true, queues = true, maxDepth = Infinity } = {}) {
+  const msgs = (queues ? trace.messages : bridgeChannels(trace.messages)).filter((m) => (internal || m.kind !== 'call') && (stores || m.kind !== 'resource') && m.depth <= maxDepth);
   const used = new Set(msgs.flatMap((m) => [m.from, m.to]));
   const parts = trace.participants.filter((p) => used.has(p.id));
   const x = new Map(parts.map((p, i) => [p.id, GUTTER + PAD + i * COL + COL / 2]));
