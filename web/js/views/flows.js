@@ -158,7 +158,7 @@ export async function render({ main, query }) {
     lane = renderLane(buildLane(msgs, { stores: lo.stores, scope: trace.scope, participants: trace.participants }), handlers);
     index = tree.groups.length ? renderIndex(tree, { trace, lane: lo, handlers, open: openFlow }) : null;
     const services = new Set(trace.messages.map((m) => m.service).filter(Boolean));
-    info.textContent = `${trace.start.event ? `${trace.start.event}: ` : ''}${trace.messages.length} steps, ${services.size} services${trace.truncated ? ', truncated' : ''}`;
+    info.textContent = `${trace.start.event ? `${trace.start.event}: ` : ''}${trace.messages.length} steps, ${services.size} ${services.size === 1 ? 'service' : 'services'}${trace.truncated ? ', truncated' : ''}`;
     fill(scroller, lane.el, index?.el);
     edge();
     requestAnimationFrame(edge);

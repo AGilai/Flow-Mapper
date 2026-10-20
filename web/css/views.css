@@ -83,7 +83,7 @@
   color: var(--m); background: color-mix(in srgb, var(--m) 14%, transparent); --m: var(--t-http); }
 .ep-method[data-m='POST'] { --m: var(--ok); } .ep-method[data-m='PUT'], .ep-method[data-m='PATCH'] { --m: var(--warn); }
 .ep-method[data-m='DELETE'] { --m: var(--bad); }
-.ep-sub { display: flex; align-items: center; gap: var(--s2); font-size: var(--fs-xs); color: var(--muted); }
+.ep-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 2px var(--s2); overflow-wrap: break-word; word-break: normal; font-size: var(--fs-xs); color: var(--muted); }
 .ep-card { border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); overflow: hidden; }
 .ep-card > header { display: flex; align-items: center; gap: var(--s2); padding: var(--s2) var(--s3); border-bottom: 1px solid var(--line); }
 .ep-card > header h3 { font-size: var(--fs-sm); font-weight: 650; margin: 0; }
