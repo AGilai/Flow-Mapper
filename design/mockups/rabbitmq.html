@@ -76,8 +76,9 @@ table.spec { width: 100%; border-collapse: collapse; font-size: var(--fs-xs); }
 .kind.amqp { background: color-mix(in srgb, var(--t-amqp) 14%, var(--surface)); color: var(--t-amqp); }
 .kind.http { background: color-mix(in srgb, var(--t-http) 12%, var(--surface)); color: var(--t-http); }
 .kind.res { background: var(--surface-2); color: var(--ink-2); }
+.kind.rpc { background: color-mix(in srgb, var(--t-rpc) 14%, var(--surface)); color: var(--t-rpc); }
 .kind .ln { width: 12px; height: 2px; background: currentColor; border-radius: 1px; }
-.rpcchip { display: inline-flex; align-items: center; gap: 4px; height: 18px; padding: 0 6px; border-radius: 9px; border: 1px solid var(--t-amqp); color: var(--t-amqp); font: 600 10.5px/1 var(--font); background: var(--surface); white-space: nowrap; }
+.rpcchip { display: inline-flex; align-items: center; gap: 4px; height: 18px; padding: 0 6px; border-radius: 9px; border: 1px solid var(--t-rpc); color: var(--t-rpc); font: 600 10.5px/1 var(--font); background: var(--surface); white-space: nowrap; }
 .rpcchip svg { width: 11px; height: 11px; stroke: currentColor; fill: none; stroke-width: 1.6; }
 .btn { display: inline-flex; align-items: center; height: 30px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); color: var(--accent); background: var(--surface); font-size: var(--fs-sm); white-space: nowrap; }
 .btn.sm { height: 26px; padding: 0 9px; font-size: var(--fs-xs); color: var(--ink); }
@@ -114,11 +115,12 @@ svg text { font-family: var(--mono); }
 .rchip { fill: color-mix(in srgb, var(--t-amqp) 15%, var(--surface)); }
 .ll { stroke: var(--line-strong); stroke-dasharray: 2 4; }
 .s { fill: none; stroke-width: 1.6; }
-.s.http { stroke: var(--t-http); } .s.amqp { stroke: var(--t-amqp); } .s.bad { stroke: var(--t-broken); stroke-dasharray: 5 4; }
+.s.http { stroke: var(--t-http); } .s.rpc { stroke: var(--t-rpc); } .s.amqp { stroke: var(--t-amqp); } .s.bad { stroke: var(--t-broken); stroke-dasharray: 5 4; }
 .s.ret { stroke-dasharray: 5 4; stroke-width: 1.3; }
-.f-http { fill: var(--t-http); } .f-amqp { fill: var(--t-amqp); } .f-bad { fill: var(--t-broken); } .f-warn { fill: var(--warn); }
-.o-http { fill: none; stroke: var(--t-http); stroke-width: 1.3; } .o-amqp { fill: none; stroke: var(--t-amqp); stroke-width: 1.3; }
+.f-http { fill: var(--t-http); } .f-rpc { fill: var(--t-rpc); } .f-amqp { fill: var(--t-amqp); } .f-bad { fill: var(--t-broken); } .f-warn { fill: var(--warn); }
+.o-http { fill: none; stroke: var(--t-http); stroke-width: 1.3; } .o-amqp { fill: none; stroke: var(--t-amqp); stroke-width: 1.3; } .o-rpc { fill: none; stroke: var(--t-rpc); stroke-width: 1.3; }
 .bar-http { fill: color-mix(in srgb, var(--t-http) 20%, var(--surface)); stroke: var(--t-http); stroke-width: 1.2; }
+.bar-rpc { fill: color-mix(in srgb, var(--t-rpc) 22%, var(--surface)); stroke: var(--t-rpc); stroke-width: 1.2; }
 .bar-amqp { fill: color-mix(in srgb, var(--t-amqp) 22%, var(--surface)); stroke: var(--t-amqp); stroke-width: 1.2; }
 .lbl { font: 500 11.5px var(--mono); fill: var(--ink); }
 .lbl.bad { fill: var(--t-broken); }
@@ -130,16 +132,16 @@ svg text { font-family: var(--mono); }
 .pill.warn text { font: 500 11px var(--font); fill: var(--warn); }
 .pill.bad rect { fill: color-mix(in srgb, var(--t-broken) 10%, var(--surface)); stroke: var(--t-broken); }
 .pill.bad text { font: 600 10.5px var(--font); fill: var(--t-broken); }
-.pill.rpc text { font: 600 10.5px var(--font); fill: var(--t-amqp); }
+.pill.rpc rect { stroke: var(--t-rpc); } .pill.rpc path { stroke: var(--t-rpc); } .pill.rpc text { font: 600 10.5px var(--font); fill: var(--t-rpc); }
 .tile rect { fill: var(--surface-2); stroke: var(--line-strong); }
 .tile text { font: 600 11px var(--font); fill: var(--ink-2); }
 .store rect { fill: var(--surface); stroke: var(--line-strong); }
 .store .k { font: 600 11px var(--mono); fill: var(--ink); } .store .c { font: 400 10px var(--font); fill: var(--muted); }
 .note-bg { fill: var(--surface); }
 .note { font: 400 11px var(--font); fill: var(--muted); } .note a, .note .lk { fill: var(--accent); }
-.halo { fill: none; stroke: var(--t-amqp); stroke-opacity: .2; stroke-width: 10; stroke-linecap: round; }
+.halo { fill: none; stroke: var(--t-rpc); stroke-opacity: .2; stroke-width: 10; stroke-linecap: round; }
 .loopb rect { fill: var(--surface-2); stroke: var(--line-strong); } .loopb text { font: 600 10.5px var(--font); fill: var(--ink-2); }
-.glyph { fill: var(--surface); stroke: var(--t-amqp); stroke-width: 1.3; }
+
 
 /* Async list */
 .async { background: var(--surface); border-top: 1px solid var(--line); padding: var(--s3) var(--s4) var(--s4); display: grid; gap: var(--s2); }
@@ -228,6 +230,7 @@ table.t { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
 .inv-top h1 { font-size: var(--fs-lg); }
 .t .typ { color: var(--ink-2); white-space: nowrap; }
 .t .kindc { font: 700 var(--fs-xs) var(--font); padding: 2px 7px; border-radius: 4px; background: var(--surface-2); color: var(--ink-2); white-space: nowrap; }
+.t .kindc.rpc { background: color-mix(in srgb, var(--t-rpc) 14%, var(--surface)); color: var(--t-rpc); }
 .t .kindc.amqp { background: color-mix(in srgb, var(--t-amqp) 12%, var(--surface)); color: var(--t-amqp); }
 .t .prob { text-align: right; color: var(--muted); } .t .prob.bad { color: var(--bad); font-weight: 600; }
 .t .nm { font-family: var(--mono); font-weight: 600; white-space: nowrap; }
@@ -250,6 +253,7 @@ table.t { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
 .ep .s2 a { white-space: nowrap; }
 .ep.http { box-shadow: inset -3px 0 0 var(--t-http); }
 .ep.out { box-shadow: inset 3px 0 0 var(--t-amqp); }
+.ep.rpc { box-shadow: inset -3px 0 0 var(--t-rpc); } .ep.out.rpc { box-shadow: inset 3px 0 0 var(--t-rpc); }
 .center { border: 2px solid var(--ink); border-radius: 12px; background: var(--surface); padding: var(--s4); text-align: center; display: grid; gap: 8px; font-size: var(--fs-sm); color: var(--ink-2); }
 .center b { font-size: var(--fs-md); color: var(--ink); }
 .callers { display: grid; gap: 0; }
@@ -259,18 +263,18 @@ table.t { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
 .caller .mono { color: var(--ink-2); }
 
 @media (max-width: 1100px) { .split { grid-template-columns: 1fr; } .split > .pane { border-left: 0; border-top: 1px solid var(--line); } .svcgrid { grid-template-columns: 1fr; } }
-@media (max-width: 760px) { .stage, .frame-label, .chrome { padding-left: 16px; padding-right: 16px; } .arow { grid-template-columns: 16px 22px 1fr; } .arow .by, .arow .btn { display: none; } .tester input { width: 100%; } }
+@media (max-width: 760px) { .stage, .frame-label, .chrome { padding-left: 16px; padding-right: 16px; } .arow { grid-template-columns: 16px 22px 1fr; } .arow .q, .arow .who { grid-column: 3; justify-self: start; } .arow .by, .arow .btn { display: none; } .tester input { width: 100%; } }
 </style>
 </head>
 <body>
 
 <div class="chrome">
   <h1>RabbitMQ: topic exchanges, bindings and RPC over queues</h1>
-  <p class="lead">Static mockup for the maintainer. Data: what the harvester found in a real Node service (namespace <span class="mono">saferx</span>): a topic exchange <span class="mono">saferx.EventExchange</span> with queues bound by key, and many in-house RPCv2 commands such as <span class="mono">rpc.sxdns.dns.resolve</span>. Five frames: two flow diagrams, the exchange page, the inventory and the RPC server's service page. Tokens, chips, toolbar, tabs and the docked panel are the app's own (0.17.3); the app rail is left out.</p>
+  <p class="lead"><b>Revision 2</b> (the maintainer's answers applied; see "Decided" at the end). Static mockup for the maintainer. Data: what the harvester found in a real Node service (namespace <span class="mono">saferx</span>): a topic exchange <span class="mono">saferx.EventExchange</span> with queues bound by key, and many in-house RPCv2 commands such as <span class="mono">rpc.sxdns.dns.resolve</span>. Five frames: two flow diagrams, the exchange page, the inventory and the RPC server's service page. Tokens, chips, toolbar, tabs and the docked panel are the app's own (0.17.3); the app rail is left out.</p>
   <div class="theme" role="group" aria-label="Theme"><button data-t="system" aria-pressed="true">System</button><button data-t="light" aria-pressed="false">Light</button><button data-t="dark" aria-pressed="false">Dark</button></div>
   <ol class="decisions">
-    <li><b>AMQP colour: keep the token, retune it.</b> <span class="mono">--t-amqp</span> already exists (violet <span class="mono">#8a5cf0</span>), but beside the indigo accent (links, "internal calls" pills, selected tab) and <span class="mono">--flow-5</span> it reads as the same family. Proposal: grape <span class="mono">#8e44d6</span> light, <span class="mono">#c58cff</span> dark: 30° further from the accent, still clear of EventBridge pink and <span class="mono">--flow-6</span>, over 5:1 on white. RabbitMQ's brand orange is out: it is SNS.</li>
-    <li><b>Colour is the wire, shape is the mode.</b> A publish and an RPC call are both AMQP, so both are grape. A publish is a chain service → exchange → queue that ends at the queue. An RPC is a solid request into the server's bar with a dashed reply, like HTTP. The "amqp rpc" chip tells the two apart, so <span class="mono">--t-rpc</span> (olive) stays for RPC frameworks with their own wire.</li>
+    <li><b>AMQP colour: keep the token, retune it</b> (decided, rev 2). <span class="mono">--t-amqp</span> already exists (violet <span class="mono">#8a5cf0</span>), but beside the indigo accent (links, "internal calls" pills, selected tab) and <span class="mono">--flow-5</span> it reads as the same family. Now grape <span class="mono">#8e44d6</span> light, <span class="mono">#c58cff</span> dark: 30° further from the accent, still clear of EventBridge pink and <span class="mono">--flow-6</span>, over 5:1 on white. RabbitMQ's brand orange is out: it is SNS.</li>
+    <li><b>Grape is messages, olive is request and reply</b> (decided, rev 2). Exchange publishes, queue deliveries, exchange and queue chips, the exchange page and inventory rows are grape <span class="mono">--t-amqp</span>. RPC over AMQP is olive <span class="mono">--t-rpc</span> everywhere: the arrow, the reply, the server's bar entered by RPC, the "amqp rpc" chip, the RPC ingress group, RPC inventory rows and panel accents. The chip and the panel still say the wire is AMQP. Frame 2b has both in one flow.</li>
   </ol>
   <div class="swatches">
     <span class="sw"><i style="background:var(--t-amqp-old)"></i>--t-amqp today</span>
@@ -295,6 +299,7 @@ table.t { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
     <li><b>Bindings that don't match are not drawn.</b> As with SNS filters, a branch that the key doesn't route to doesn't exist in this flow. One muted line under the fork gives the count and the keys ("2 bindings don't match: audit.#, system.#") and links to the exchange page, where they are listed.</li>
     <li><b>No match: the arrow ends at the exchange</b> with an amber "no binding matches" pill, the analogue of "no consumers". Its async heading says the message is dropped, or goes to the alternate exchange when one is declared (then the branch continues to that exchange).</li>
     <li><b>More than 4 matches:</b> the 4th branch becomes "+N queues", and the async list holds all N rows, like the SNS fold.</li>
+    <li><b><span class="mono">sendToQueue</span> through the default exchange</b> (decided, rev 2) is drawn straight service → queue lifeline, with no exchange lifeline and no marker, like an SQS send. Last row of the table below.</li>
   </ol>
 </div>
 <div class="stage"><div class="window">
@@ -358,6 +363,7 @@ table.t { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
       <tr><td>topic</td><td><span class="mono">device.{deviceId}.logout</span></td><td><span class="mk"><svg viewBox="0 0 10 10"><path d="M0 1h9l-3.5 4v4l-2-1v-3z"/></svg>device.*.logout</span></td><td>Bindings whose pattern matches the key (<span class="mono">*</span> one word, <span class="mono">#</span> zero or more words). Frame above.</td></tr>
       <tr><td>direct</td><td><span class="mono">device.logout</span></td><td><span class="nomk">none</span></td><td>Bindings whose key equals the routing key. The marker would only repeat the trunk, so it is left out.</td></tr>
       <tr><td>fanout</td><td><span class="muted">event type, or "fanout"</span></td><td><span class="nomk">none</span></td><td>Every bound queue. The routing key is ignored by RabbitMQ, so it moves to the message panel instead of the trunk.</td></tr>
+      <tr><td>default (<span class="mono">sendToQueue</span>)</td><td><span class="muted">event type, or the queue name</span></td><td><span class="nomk">none</span></td><td><svg viewBox="0 0 260 34" width="260" height="34" style="display:block;margin-bottom:4px" aria-label="swg-api sends straight to the queue saferx.activitylog"><rect class="hd" x="1" y="5" width="66" height="24" rx="4"/><rect class="st-svc" x="1" y="5" width="3" height="24"/><text class="tn" x="9" y="21" style="font-size:11px">swg-api</text><line class="s amqp" x1="67" y1="17" x2="139" y2="17"/><polygon class="f-amqp" points="146,17 137,12.5 137,21.5"/><rect class="hd amqp" x="146" y="5" width="112" height="24" rx="4"/><rect class="st-amqp" x="146" y="5" width="3" height="24"/><text class="tn" x="154" y="21" style="font-size:11px">saferx.activitylog</text></svg>One branch, straight to the named queue; no exchange lifeline, as for SQS.</td></tr>
       <tr><td>headers</td><td><span class="muted">event type</span></td><td><span class="mk"><svg viewBox="0 0 10 10"><path d="M0 1h9l-3.5 4v4l-2-1v-3z"/></svg>all: type=logout, tier=edge</span></td><td>Bindings whose header match (<span class="mono">x-match</span> all or any) the published headers satisfy. If the publisher's headers are unknown, branches are dashed and "Possible".</td></tr>
     </tbody>
   </table>
@@ -369,9 +375,9 @@ table.t { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
   <h2>Frame 2. Flow: RPC over queues, drawn as a call</h2>
   <p><span class="mono">#/flows?tabs=swg-api/in.policyCheck</span>, with the first RPC arrow selected and its panel docked on the right (it squeezes the diagram; it never overlays it).</p>
   <ol class="decisions">
-    <li><b>An RPC is a sync call.</b> A solid grape arrow from the caller's bar into the server's bar, labelled with the command, then a dashed grape "reply". The command queue, reply queue and exchange are not lifelines: they are plumbing, and they live in the panel.</li>
-    <li><b>The server gets a normal activation bar</b>, coloured by the transport that entered it (grape), with its own stores, calls and nested RPCs. "Show inside sxdns" works as for HTTP.</li>
-    <li><b>Chip "amqp rpc"</b> under the command (the ⇄ icon means request and reply). It is what separates an RPC from an AMQP publish, which never has a reply and ends at a queue.</li>
+    <li><b>An RPC is a sync call.</b> A solid olive (<span class="mono">--t-rpc</span>) arrow from the caller's bar into the server's bar, labelled with the command, then a dashed olive "reply". The command queue, reply queue and exchange are not lifelines: they are plumbing, and they live in the panel.</li>
+    <li><b>The server gets a normal activation bar</b>, coloured by what entered it: olive for an RPC, with its own stores, calls and nested RPCs. "Show inside sxdns" works as for HTTP.</li>
+    <li><b>Chip "amqp rpc"</b> under the command (the ⇄ icon means request and reply). It says the wire is AMQP; the olive colour says it is a call. A grape AMQP publish never has a reply and ends at a queue (frame 2b shows both side by side).</li>
     <li><b>Panel:</b> command, caller and server with handler and source links, then the AMQP details (exchange, command queue, reply queue, correlation, timeout, library). Hover shows the same as a tooltip, in short.</li>
     <li><b>No harvested server:</b> red dashed arrow to the "unresolved" lifeline, the command in red, the chip "no server harvested", and no reply, as unresolved HTTP today. The panel says which harvester to look for: the one that consumes <span class="mono">rpcv2.policy</span>.</li>
     <li><b>Timeout:</b> when the harvester knows the call has a timeout handler, the reply reads "reply or timeout 5 s"; otherwise just "reply".</li>
@@ -394,19 +400,19 @@ table.t { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
     <rect class="bar-http" x="214" y="96" width="12" height="286" rx="2"/>
     <!-- rpc 1 (selected) -->
     <line class="halo" x1="230" y1="140" x2="418" y2="140"/>
-    <line class="s amqp" x1="226" y1="140" x2="418" y2="140"/><polygon class="f-amqp" points="424,140 415,135.5 415,144.5"/>
+    <line class="s rpc" x1="226" y1="140" x2="418" y2="140"/><polygon class="f-rpc" points="424,140 415,135.5 415,144.5"/>
     <text class="lbl" x="240" y="133">rpc.sxdns.dns.resolve</text>
     <g class="pill rpc"><rect x="240" y="148" width="76" height="17" rx="8.5"/><path d="M248 153h9m-2.5-2.5 2.5 2.5-2.5 2.5M257 160h-9m2.5-2.5-2.5 2.5 2.5 2.5"/><text x="262" y="160.5">amqp rpc</text></g>
-    <rect class="bar-amqp" x="424" y="140" width="12" height="156" rx="2"/>
+    <rect class="bar-rpc" x="424" y="140" width="12" height="156" rx="2"/>
     <line class="s" style="stroke:var(--line-strong)" x1="436" y1="181" x2="446" y2="181"/>
     <g class="store"><rect x="446" y="164" width="150" height="34" rx="5"/><text class="k" x="455" y="178">GET dns:{domain}</text><text class="c" x="455" y="191">cache-main</text></g>
     <!-- rpc 2 nested -->
-    <line class="s amqp" x1="436" y1="230" x2="608" y2="230"/><polygon class="f-amqp" points="614,230 605,225.5 605,234.5"/>
+    <line class="s rpc" x1="436" y1="230" x2="608" y2="230"/><polygon class="f-rpc" points="614,230 605,225.5 605,234.5"/>
     <text class="lbl" x="450" y="223">rpc.cp.tenant.get</text>
     <g class="pill rpc"><rect x="450" y="238" width="76" height="17" rx="8.5"/><path d="M458 243h9m-2.5-2.5 2.5 2.5-2.5 2.5M467 250h-9m2.5-2.5-2.5 2.5 2.5 2.5"/><text x="472" y="250.5">amqp rpc</text></g>
-    <rect class="bar-amqp" x="614" y="230" width="12" height="38" rx="2"/>
-    <line class="s amqp ret" x1="614" y1="268" x2="444" y2="268"/><polyline class="o-amqp" points="445,263.5 436,268 445,272.5"/><text class="ret-t" x="530" y="262">reply</text>
-    <line class="s amqp ret" x1="424" y1="296" x2="234" y2="296"/><polyline class="o-amqp" points="235,291.5 226,296 235,300.5"/><text class="ret-t" x="250" y="290">reply or timeout 5 s</text>
+    <rect class="bar-rpc" x="614" y="230" width="12" height="38" rx="2"/>
+    <line class="s rpc ret" x1="614" y1="268" x2="444" y2="268"/><polyline class="o-rpc" points="445,263.5 436,268 445,272.5"/><text class="ret-t" x="530" y="262">reply</text>
+    <line class="s rpc ret" x1="424" y1="296" x2="234" y2="296"/><polyline class="o-rpc" points="235,291.5 226,296 235,300.5"/><text class="ret-t" x="250" y="290">reply or timeout 5 s</text>
     <!-- unresolved rpc -->
     <line class="s bad" x1="226" y1="336" x2="782" y2="336"/><polygon class="f-bad" points="790,336 781,331.5 781,340.5"/>
     <text class="lbl bad" x="630" y="329">rpc.policy.evaluate</text>
@@ -439,48 +445,52 @@ table.t { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
 
 <div class="frame-label">
   <h2>Frame 2b. Many RPC calls in one flow</h2>
-  <p>cp-middleware's <span class="mono">in.deviceSync</span> makes 7 RPC calls to 3 services. Rules that keep it readable:</p>
+  <p>cp-middleware's <span class="mono">in.deviceSync</span> (entered over HTTP) makes 7 RPC calls to 3 services, then publishes one event. Rules that keep it readable:</p>
   <ol class="decisions">
     <li><b>The command is never shortened.</b> It is the subject of the arrow. It wraps after a dot when it is wider than the hop.</li>
     <li><b>The chip shows once per caller and server pair</b> (the first call); later calls to the same server get only the small ⇄ glyph at the arrow's start.</li>
     <li><b>Only the first reply per pair is labelled.</b> The others are bare dashed returns, unless they have a timeout, which is always written.</li>
     <li><b>A call made in a loop is one arrow with "×3 loop"</b>, taken from the loop frame of the steps; it is not drawn three times.</li>
+    <li><b>Olive and grape in one flow:</b> the RPCs are olive with replies; the last row is a grape publish to <span class="mono">saferx.EventExchange</span> with no reply and no bar (queue lifelines folded in this frame).</li>
     <li><b>Toolbar "RPC replies: Show | Hide"</b> (default Show). Hide turns each request and reply into a single arrow with a return tick on the server's bar, which halves the height of RPC-heavy flows.</li>
   </ol>
 </div>
 <div class="stage"><div class="window">
   <div class="diagram">
-  <svg viewBox="0 0 960 376" width="960" height="376" role="img" aria-label="cp-middleware calls five RPC commands on sxdns, activitylog and swg-api">
+  <svg viewBox="0 0 1160 420" width="1160" height="420" role="img" aria-label="cp-middleware calls five RPC commands on sxdns, activitylog and swg-api">
     <rect class="hd" x="40" y="8" width="140" height="48" rx="6"/><rect class="st-svc" x="40" y="8" width="3" height="48"/><text class="tn" x="52" y="29">cp-middleware</text><text class="ts" x="52" y="46">service</text>
     <rect class="hd" x="330" y="8" width="120" height="48" rx="6"/><rect class="st-svc" x="330" y="8" width="3" height="48"/><text class="tn" x="342" y="29">sxdns</text><text class="ts" x="342" y="46">service</text>
     <rect class="hd" x="560" y="8" width="130" height="48" rx="6"/><rect class="st-svc" x="560" y="8" width="3" height="48"/><text class="tn" x="572" y="29">activitylog</text><text class="ts" x="572" y="46">service</text>
     <rect class="hd" x="790" y="8" width="120" height="48" rx="6"/><rect class="st-svc" x="790" y="8" width="3" height="48"/><text class="tn" x="802" y="29">swg-api</text><text class="ts" x="802" y="46">service</text>
-    <line class="ll" x1="110" y1="56" x2="110" y2="374"/><line class="ll" x1="390" y1="56" x2="390" y2="374"/><line class="ll" x1="625" y1="56" x2="625" y2="374"/><line class="ll" x1="850" y1="56" x2="850" y2="374"/>
-    <rect class="bar-amqp" x="104" y="70" width="12" height="298" rx="2"/>
-    <line class="s amqp" x1="116" y1="96" x2="378" y2="96"/><polygon class="f-amqp" points="384,96 375,91.5 375,100.5"/><text class="lbl" x="130" y="89">rpc.sxdns.dns.resolve</text>
+    <line class="ll" x1="110" y1="56" x2="110" y2="416"/><line class="ll" x1="390" y1="56" x2="390" y2="416"/><line class="ll" x1="625" y1="56" x2="625" y2="416"/><line class="ll" x1="850" y1="56" x2="850" y2="416"/>
+    <rect class="hd amqp" x="950" y="8" width="172" height="48" rx="6"/><rect class="st-amqp" x="950" y="8" width="3" height="48"/><text class="tn" x="962" y="29">saferx.EventExchange</text><rect class="rchip" x="962" y="36" width="36" height="14" rx="3"/><text class="tchip" x="968" y="47">amqp</text><text class="ts" x="1004" y="47">topic exchange</text>
+    <line class="ll" x1="1036" y1="56" x2="1036" y2="416"/>
+    <rect class="bar-http" x="104" y="70" width="12" height="336" rx="2"/>
+    <line class="s amqp" x1="116" y1="392" x2="1036" y2="392"/><circle class="f-amqp" cx="1036" cy="392" r="3.5"/><text class="lbl" x="130" y="385">audit.device.synced</text><text class="note" x="1044" y="388">→ domain-events</text><text class="note" x="1044" y="401">via audit.#</text>
+    <line class="s rpc" x1="116" y1="96" x2="378" y2="96"/><polygon class="f-rpc" points="384,96 375,91.5 375,100.5"/><text class="lbl" x="130" y="89">rpc.sxdns.dns.resolve</text>
     <g class="pill rpc"><rect x="286" y="74" width="76" height="17" rx="8.5"/><path d="M294 79h9m-2.5-2.5 2.5 2.5-2.5 2.5M303 86h-9m2.5-2.5-2.5 2.5 2.5 2.5"/><text x="308" y="86.5">amqp rpc</text></g>
-    <rect class="bar-amqp" x="384" y="96" width="12" height="26" rx="2"/>
-    <line class="s amqp ret" x1="384" y1="122" x2="124" y2="122"/><polyline class="o-amqp" points="125,117.5 116,122 125,126.5"/>
+    <rect class="bar-rpc" x="384" y="96" width="12" height="26" rx="2"/>
+    <line class="s rpc ret" x1="384" y1="122" x2="124" y2="122"/><polyline class="o-rpc" points="125,117.5 116,122 125,126.5"/>
     <text class="ret-t" x="339" y="116">reply</text>
-    <path d="M120 150h8m-2-2 2 2-2 2M128 155h-8m2-2-2 2 2 2" style="fill:none;stroke:var(--t-amqp);stroke-width:1.2"/>
-    <line class="s amqp" x1="132" y1="156" x2="378" y2="156"/><polygon class="f-amqp" points="384,156 375,151.5 375,160.5"/><text class="lbl" x="140" y="149">rpc.sxdns.zone.get</text>
-    <rect class="bar-amqp" x="384" y="156" width="12" height="26" rx="2"/>
-    <line class="s amqp ret" x1="384" y1="182" x2="124" y2="182"/><polyline class="o-amqp" points="125,177.5 116,182 125,186.5"/>
-    <line class="s amqp" x1="116" y1="216" x2="613" y2="216"/><polygon class="f-amqp" points="619,216 610,211.5 610,220.5"/><text class="lbl" x="130" y="209">rpc.activitylog.write</text>
+    <path d="M120 150h8m-2-2 2 2-2 2M128 155h-8m2-2-2 2 2 2" style="fill:none;stroke:var(--t-rpc);stroke-width:1.2"/>
+    <line class="s rpc" x1="132" y1="156" x2="378" y2="156"/><polygon class="f-rpc" points="384,156 375,151.5 375,160.5"/><text class="lbl" x="140" y="149">rpc.sxdns.zone.get</text>
+    <rect class="bar-rpc" x="384" y="156" width="12" height="26" rx="2"/>
+    <line class="s rpc ret" x1="384" y1="182" x2="124" y2="182"/><polyline class="o-rpc" points="125,177.5 116,182 125,186.5"/>
+    <line class="s rpc" x1="116" y1="216" x2="613" y2="216"/><polygon class="f-rpc" points="619,216 610,211.5 610,220.5"/><text class="lbl" x="130" y="209">rpc.activitylog.write</text>
     <g class="loopb"><rect x="286" y="195" width="58" height="16" rx="4"/><text x="293" y="207">×3 loop</text></g>
     <g class="pill rpc"><rect x="352" y="194" width="76" height="17" rx="8.5"/><path d="M360 199h9m-2.5-2.5 2.5 2.5-2.5 2.5M369 206h-9m2.5-2.5-2.5 2.5 2.5 2.5"/><text x="374" y="206.5">amqp rpc</text></g>
-    <rect class="bar-amqp" x="619" y="216" width="12" height="26" rx="2"/>
-    <line class="s amqp ret" x1="619" y1="242" x2="124" y2="242"/><polyline class="o-amqp" points="125,237.5 116,242 125,246.5"/>
+    <rect class="bar-rpc" x="619" y="216" width="12" height="26" rx="2"/>
+    <line class="s rpc ret" x1="619" y1="242" x2="124" y2="242"/><polyline class="o-rpc" points="125,237.5 116,242 125,246.5"/>
     <text class="ret-t" x="574" y="236">reply</text>
-    <line class="s amqp" x1="116" y1="276" x2="838" y2="276"/><polygon class="f-amqp" points="844,276 835,271.5 835,280.5"/><text class="lbl" x="130" y="269">rpc.swg.policy.push</text>
+    <line class="s rpc" x1="116" y1="276" x2="838" y2="276"/><polygon class="f-rpc" points="844,276 835,271.5 835,280.5"/><text class="lbl" x="130" y="269">rpc.swg.policy.push</text>
     <g class="pill rpc"><rect x="272" y="254" width="76" height="17" rx="8.5"/><path d="M280 259h9m-2.5-2.5 2.5 2.5-2.5 2.5M289 266h-9m2.5-2.5-2.5 2.5 2.5 2.5"/><text x="294" y="266.5">amqp rpc</text></g>
-    <rect class="bar-amqp" x="844" y="276" width="12" height="26" rx="2"/>
-    <line class="s amqp ret" x1="844" y1="302" x2="124" y2="302"/><polyline class="o-amqp" points="125,297.5 116,302 125,306.5"/>
+    <rect class="bar-rpc" x="844" y="276" width="12" height="26" rx="2"/>
+    <line class="s rpc ret" x1="844" y1="302" x2="124" y2="302"/><polyline class="o-rpc" points="125,297.5 116,302 125,306.5"/>
     <text class="ret-t" x="693" y="296">reply or timeout 30 s</text>
-    <path d="M120 330h8m-2-2 2 2-2 2M128 335h-8m2-2-2 2 2 2" style="fill:none;stroke:var(--t-amqp);stroke-width:1.2"/>
-    <line class="s amqp" x1="132" y1="336" x2="378" y2="336"/><polygon class="f-amqp" points="384,336 375,331.5 375,340.5"/><text class="lbl" x="140" y="329">rpc.sxdns.cache.flush</text>
-    <rect class="bar-amqp" x="384" y="336" width="12" height="26" rx="2"/>
-    <line class="s amqp ret" x1="384" y1="362" x2="124" y2="362"/><polyline class="o-amqp" points="125,357.5 116,362 125,366.5"/>
+    <path d="M120 330h8m-2-2 2 2-2 2M128 335h-8m2-2-2 2 2 2" style="fill:none;stroke:var(--t-rpc);stroke-width:1.2"/>
+    <line class="s rpc" x1="132" y1="336" x2="378" y2="336"/><polygon class="f-rpc" points="384,336 375,331.5 375,340.5"/><text class="lbl" x="140" y="329">rpc.sxdns.cache.flush</text>
+    <rect class="bar-rpc" x="384" y="336" width="12" height="26" rx="2"/>
+    <line class="s rpc ret" x1="384" y1="362" x2="124" y2="362"/><polyline class="o-rpc" points="125,357.5 116,362 125,366.5"/>
   </svg>
   </div>
 </div></div>
@@ -555,6 +565,7 @@ table.t { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
     <li><b>Exchanges and queues are ordinary rows</b> with the grape kind chip; an exchange's chip carries its type. Connections reads in the kind's own words ("3 publishers, 5 bindings"; "bound by audit.#, 1 consumer").</li>
     <li><b>RPC queues are hidden by default.</b> Command queues (<span class="mono">rpcv2.sxdns</span>) and reply queues are plumbing; the thing an engineer looks for is the command, which is listed as an entry point of its server (frame 5) and gets its own type "RPC command" in the All tab.</li>
     <li><b>One fold row says what is hidden</b> and why, with "Show RPC queues". Shown, they are muted rows whose Connections names the commands they carry. Reply queues are never listed one by one (one per caller process); they appear as one row per caller.</li>
+    <li><b>RPC rows are olive</b> (decided, rev 2): RPC commands in their tab and the RPC queues when shown carry the olive chip; exchanges and queues stay grape.</li>
     <li><b>The kind filter gets "AMQP"</b> next to the data-store chips, so exchanges, queues and RPC commands can be filtered together.</li>
   </ol>
 </div>
@@ -580,8 +591,8 @@ table.t { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
   <p class="sm muted" style="margin:-8px 0 0">With "Show RPC queues" on, the fold row opens into muted rows:</p>
   <section class="section"><div class="scroll"><table class="t">
     <tbody>
-      <tr class="plumb"><td class="nm" style="color:var(--ink-2)"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="10" rx="2"/><path d="M8 7v10M13 7v10"/></svg>rpcv2.sxdns</td><td class="typ">Channel</td><td><span class="kindc amqp">rpc command queue</span></td><td>dns</td><td>carries 4 commands of sxdns: <span class="mono">rpc.sxdns.dns.resolve</span>, <span class="mono">rpc.sxdns.zone.get</span>, +2 more</td><td class="prob">0</td></tr>
-      <tr class="plumb"><td class="nm" style="color:var(--ink-2)"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="10" rx="2"/><path d="M8 7v10M13 7v10"/></svg>rpcv2.reply.swg-api.*</td><td class="typ">Channel</td><td><span class="kindc amqp">rpc reply queues</span></td><td>gateway</td><td>replies to swg-api's 3 commands, one exclusive queue per process</td><td class="prob">0</td></tr>
+      <tr class="plumb"><td class="nm" style="color:var(--ink-2)"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="10" rx="2"/><path d="M8 7v10M13 7v10"/></svg>rpcv2.sxdns</td><td class="typ">Channel</td><td><span class="kindc rpc">rpc command queue</span></td><td>dns</td><td>carries 4 commands of sxdns: <span class="mono">rpc.sxdns.dns.resolve</span>, <span class="mono">rpc.sxdns.zone.get</span>, +2 more</td><td class="prob">0</td></tr>
+      <tr class="plumb"><td class="nm" style="color:var(--ink-2)"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="10" rx="2"/><path d="M8 7v10M13 7v10"/></svg>rpcv2.reply.swg-api.*</td><td class="typ">Channel</td><td><span class="kindc rpc">rpc reply queues</span></td><td>gateway</td><td>replies to swg-api's 3 commands, one exclusive queue per process</td><td class="prob">0</td></tr>
     </tbody>
   </table></div></section>
   </div>
@@ -592,7 +603,7 @@ table.t { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
   <h2>Frame 5. Service page: an RPC server's commands as entry points</h2>
   <p><span class="mono">#/services/sxdns</span>, Connections tab, with the endpoint <span class="mono">rpc.sxdns.dns.resolve</span> selected (its panel is docked).</p>
   <ol class="decisions">
-    <li><b>Commands are ingress, like HTTP routes:</b> a group "amqp rpc" with one row per command: the command in mono, its handler, and "from" the harvested callers. The group header names the command queue once.</li>
+    <li><b>Commands are ingress, like HTTP routes:</b> an olive group "amqp rpc" with one row per command: the command in mono, its handler, and "from" the harvested callers. The group header names the command queue once.</li>
     <li><b>A command with no harvested caller</b> says so in muted text ("no harvested caller"). It is not a problem: callers may be outside the harvest, and the server works without them.</li>
     <li><b>Egress mirrors it:</b> sxdns's own RPC calls are an "amqp rpc" egress group, and its publishes sit in an "amqp" group with the routing key and the exchange.</li>
     <li><b>Endpoint panel:</b> callers, each with its function, source link and timeout (callers often differ), the server's handler and the AMQP plumbing. "Trace a flow from here" opens the Flows tab on this command.</li>
@@ -611,11 +622,11 @@ table.t { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
           <div>
             <div class="colh">Ingress <small>6</small></div>
             <div class="grp">
-              <div class="gh"><span class="kind amqp"><span class="ln"></span>amqp rpc</span><span class="n">4</span><span>command queue <span class="mono">rpcv2.sxdns</span></span></div>
-              <div class="ep sel"><span class="k">rpc.sxdns.dns.resolve</span><span class="s2">handler <code>DnsController.resolve</code> from <a href="#">swg-api</a>, <a href="#">cp-middleware</a></span></div>
-              <div class="ep"><span class="k">rpc.sxdns.zone.get</span><span class="s2">handler <code>ZoneController.get</code> from <a href="#">cp-middleware</a></span></div>
-              <div class="ep"><span class="k">rpc.sxdns.cache.flush</span><span class="s2">handler <code>CacheController.flush</code> from <a href="#">cp-middleware</a></span></div>
-              <div class="ep"><span class="k">rpc.sxdns.dns.override</span><span class="s2">handler <code>DnsController.override</code> <span class="muted">no harvested caller</span></span></div>
+              <div class="gh"><span class="kind rpc"><span class="ln"></span>amqp rpc</span><span class="n">4</span><span>command queue <span class="mono">rpcv2.sxdns</span></span></div>
+              <div class="ep rpc sel"><span class="k">rpc.sxdns.dns.resolve</span><span class="s2">handler <code>DnsController.resolve</code> from <a href="#">swg-api</a>, <a href="#">cp-middleware</a></span></div>
+              <div class="ep rpc"><span class="k">rpc.sxdns.zone.get</span><span class="s2">handler <code>ZoneController.get</code> from <a href="#">cp-middleware</a></span></div>
+              <div class="ep rpc"><span class="k">rpc.sxdns.cache.flush</span><span class="s2">handler <code>CacheController.flush</code> from <a href="#">cp-middleware</a></span></div>
+              <div class="ep rpc"><span class="k">rpc.sxdns.dns.override</span><span class="s2">handler <code>DnsController.override</code> <span class="muted">no harvested caller</span></span></div>
             </div>
             <div class="grp">
               <div class="gh"><span class="kind amqp"><span class="ln"></span>amqp</span><span class="n">1</span></div>
@@ -630,8 +641,8 @@ table.t { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
           <div>
             <div class="colh">Egress <small>3</small></div>
             <div class="grp">
-              <div class="gh"><span class="kind amqp"><span class="ln"></span>amqp rpc</span><span class="n">1</span></div>
-              <div class="ep out"><span class="k">rpc.cp.tenant.get</span><span class="s2">→ <a href="#">cp-middleware</a> <code>TenantController.get</code></span></div>
+              <div class="gh"><span class="kind rpc"><span class="ln"></span>amqp rpc</span><span class="n">1</span></div>
+              <div class="ep out rpc"><span class="k">rpc.cp.tenant.get</span><span class="s2">→ <a href="#">cp-middleware</a> <code>TenantController.get</code></span></div>
             </div>
             <div class="grp">
               <div class="gh"><span class="kind amqp"><span class="ln"></span>amqp</span><span class="n">1</span></div>
@@ -677,19 +688,19 @@ table.t { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
       <tr><td>details.bindingKey</td><td>binding</td><td>the raw key for the marker, as written in code (<span class="mono">#</span> not <span class="mono">**</span>)</td><td>new, optional</td></tr>
       <tr><td>details.headers, xMatch</td><td>binding (headers exchange) and publish egress</td><td>headers marker and matching</td><td>new, optional</td></tr>
       <tr><td>details.exchange, routingKey</td><td>amqp publish egress</td><td>trunk label; placeholders like <span class="mono">{deviceId}</span> count as one word when matching</td><td>used by samples, document it</td></tr>
-      <tr><td>amqp-rpc:{command}</td><td>bind key (egress and ingress)</td><td>joins caller and server by command; the client knows the command, not always the server's service name</td><td>new key form</td></tr>
+      <tr><td>amqp-rpc:{command}</td><td>bind key (egress and ingress), decided</td><td>joins caller and server by command; the client knows the command, not always the server's service name</td><td>new key form</td></tr>
       <tr><td>transport amqp + mode sync</td><td>RPC egress / ingress</td><td>draws a call with a reply; unicast by default for sync amqp</td><td>exists; default delivery rule changes</td></tr>
       <tr><td>details.rpc</td><td>RPC egress and ingress</td><td><span class="mono">{command, commandQueue, replyTo, exchange, correlation, timeoutMs, library}</span>; ingress adds <span class="mono">prefetch</span></td><td>new, optional</td></tr>
       <tr><td>details.role</td><td>amqp-queue channel</td><td><span class="mono">rpc-command</span> | <span class="mono">rpc-reply</span>: the inventory fold</td><td>new, optional</td></tr>
     </tbody>
   </table></section>
-  <section><h3>Open questions for the maintainer</h3><ol>
-    <li><b>Retune <span class="mono">--t-amqp</span></b> to grape (#8e44d6 / #c58cff), or keep today's violet and accept that it sits near the accent?</li>
-    <li><b>RPC colour:</b> grape (the wire is AMQP), as drawn, or olive <span class="mono">--t-rpc</span> (it behaves like an RPC)?</li>
-    <li><b>RPC key:</b> <span class="mono">amqp-rpc:{command}</span>, or reuse <span class="mono">rpc:{service}/{command}</span> when the command prefix names the service (<span class="mono">rpc.sxdns.*</span>)?</li>
-    <li><b>Non-matching bindings</b> in a flow: one muted line with the count and keys (drawn), or nothing at all?</li>
-    <li><b><span class="mono">sendToQueue</span></b> through the default exchange (not RPC): draw service → queue with no exchange lifeline?</li>
-    <li><b>Route:</b> the exchange page at <span class="mono">#/instances/amqp:…</span> (asked for) while queues stay at <span class="mono">#/channels/…</span>; or move both under one route?</li>
+  <section><h3>Decided (rev 2)</h3><ol>
+    <li><b>AMQP colour:</b> <span class="mono">--t-amqp</span> is retuned to grape (#8e44d6 light, #c58cff dark) for exchange publishes, queue deliveries, exchange and queue chips, the exchange page and inventory.</li>
+    <li><b>RPC colour:</b> olive <span class="mono">--t-rpc</span> for RPC over AMQP: arrow, reply, the server's bar, the chip, the RPC ingress group, RPC inventory rows and panel accents. Grape means messages on an exchange, olive means request and reply.</li>
+    <li><b>RPC key:</b> <span class="mono">amqp-rpc:{command}</span>.</li>
+    <li><b>Non-matching bindings</b> in a flow: kept as one muted line with the count and the keys.</li>
+    <li><b><span class="mono">sendToQueue</span></b> through the default exchange: drawn straight service → queue, no exchange lifeline, like SQS (frame 1 table).</li>
+    <li><b>Route:</b> the exchange page is <span class="mono">#/instances/amqp%3A{name}</span>.</li>
   </ol></section>
 </div>
 
