@@ -66,10 +66,11 @@ export function orderQueues<T extends { problem: boolean; queue: { name: string 
   return [...qs].sort((a, b) => +b.problem - +a.problem || a.queue.name.localeCompare(b.queue.name));
 }
 
-/** The first `limit` of an ordered list; problems are never folded away. */
+/** The first `limit` of an ordered list; problems are never folded away. A single queue is never folded (the stub would be as tall as the row). */
 export function foldList<T extends { problem: boolean }>(ordered: T[], limit = 12): { shown: T[]; hidden: T[] } {
   const shown = ordered.filter((q, i) => i < limit || q.problem);
   const hidden = ordered.filter((q) => !shown.includes(q));
+  if (hidden.length < 2) return { shown: ordered, hidden: [] };
   return { shown, hidden };
 }
 

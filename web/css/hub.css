@@ -5,7 +5,7 @@
 .hub-tools { margin-left: auto; display: inline-flex; align-items: center; gap: var(--s2); }
 .hub-tools .search { position: relative; }
 .hub-tools .search .input { width: 240px; height: 30px; }
-.hub-tools .btn { height: 30px; }
+.hub-tools .btn { height: 30px; white-space: nowrap; }
 
 /* The hub node: name, kind, counts */
 .hub-node { padding: 12px; border-left-width: 3px; }
@@ -28,9 +28,9 @@
 .hub-q.selected, .hub-c.selected, .hub-pub.selected { outline: 2px solid var(--accent); outline-offset: 1px; }
 .hub-q.bad, .hub-c.bad { background: color-mix(in srgb, var(--bad) 6%, var(--surface)); border-color: color-mix(in srgb, var(--bad) 35%, transparent); }
 .hub-q.warn { background: color-mix(in srgb, var(--warn) 6%, var(--surface)); border-color: color-mix(in srgb, var(--warn) 35%, transparent); }
-.hub-q-head { display: flex; align-items: center; gap: var(--s2); min-width: 0; }
-.hub-q-name { flex: 1; min-width: 0; }
-.hub-q-name a.key { font-family: var(--mono); font-size: var(--fs-sm); font-weight: 600; overflow-wrap: anywhere; }
+.hub-q-head { display: flex; flex-wrap: wrap; align-items: center; gap: 2px var(--s2); min-width: 0; }
+.hub-q-name { flex: 1 1 150px; min-width: 0; }
+.hub-q-name a.key { font-family: var(--mono); font-size: var(--fs-sm); font-weight: 600; overflow-wrap: break-word; }
 .hub-chev { border: 0; background: none; width: 18px; height: 22px; padding: 0; cursor: pointer; color: var(--muted); font-size: 16px; line-height: 1; flex: none; }
 .hub-chev:hover { color: var(--ink); }
 
@@ -55,7 +55,10 @@
 /* Edges: the whole cell is clickable; the marker sits on the line */
 .hub-edge { cursor: pointer; }
 .hub-edge:hover .tail { height: 3px; }
-.hub-edge.selected { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: var(--r-sm); }
+.hub-edge.selected .tail { height: 4px; }
+.hub-edge.selected .hub-mark { outline: 2px solid var(--accent); outline-offset: 1px; }
+.hub-edge:focus-visible, .hub-q:focus-visible, .hub-c:focus-visible, .hub-pub:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.hub-edge:focus-visible { border-radius: var(--r-sm); }
 .hub-mark { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px; border: 1px solid var(--line-strong); border-radius: 11px; background: var(--surface); color: var(--ink-2);
   font-size: var(--fs-xs); font-weight: 600; white-space: nowrap; cursor: pointer; position: relative; z-index: 1; }
 .hub-mark svg { display: block; }
@@ -64,7 +67,7 @@
 .lane-filter .hub-mark + .tail { margin-left: 0; }
 
 /* Info pane */
-.mono-title { font-family: var(--mono); font-size: var(--fs-md); overflow-wrap: anywhere; }
+.panel-head h3.mono-title { display: block; font-family: var(--mono); font-size: var(--fs-md); overflow-wrap: anywhere; }
 .reach { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
 .reach th, .reach td { padding: 6px 8px; border-top: 1px solid var(--line); text-align: left; }
 .reach thead th { border-top: 0; font-size: var(--fs-xs); color: var(--muted); font-weight: 600; }

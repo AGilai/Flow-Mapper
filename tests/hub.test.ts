@@ -30,7 +30,8 @@ test('order puts problem queues first then by name; the fold keeps problems and 
   assert.equal(f.shown.length, 12);
   assert.equal(f.shown[0].queue.name, 'q18');
   assert.equal(f.hidden.length, 8);
-  assert.equal(foldList(o.slice(0, 13), 12).hidden.length, 1);
+  assert.equal(foldList(o.slice(0, 13), 12).hidden.length, 0, '13 queues show all 13');
+  assert.equal(foldList(o.slice(0, 14), 12).hidden.length, 2);
   assert.equal(foldList(o.slice(0, 12), 12).hidden.length, 0);
   const allBad = foldList(many.map((q) => ({ ...q, problem: true })), 12);
   assert.equal(allBad.hidden.length, 0);

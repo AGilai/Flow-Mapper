@@ -8,7 +8,8 @@ import { flowLanes, connector, filterCell, transportOf } from '../components/flo
 import { eventChips } from '../components/event-chips.js';
 import { channelLink, serviceLink } from './inventory-links.js';
 import { foldList, matchesQuery, orderQueues, queueSummaries } from '../../core/hub.js';
-import { badge, hubNode, markerChip, plural, stub, tools } from './hub-parts.js';
+import { wbr } from '../components/flow-nodes.js';
+import { badge, hubNode, markerChip, plural, pressable, stub, tools } from './hub-parts.js';
 
 const LIMIT = 12;
 const KIND = { 'sns-topic': 'SNS topic', 'eventbridge-bus': 'Event bus', 'amqp-exchange': 'Exchange' };
@@ -35,7 +36,7 @@ export function topicCompact(v, { openEdge }) {
   const total = flow.grid.rows.filter((r) => !r.possible).length;
   const rowOf = new Map(flow.rows.map((r) => [r.id, r]));
   const open = new Set();
-  let query = '', unfolded = false, allPubs = false, selected = null;
+  let query = '', unfolded = false, allPubs = false, selected = null; // selected: { kind: 'q' | 'e', id: row id }
   // One node per service, however many egresses it publishes through.
   const byService = new Map();
   for (const p of v.publishers) {
@@ -50,7 +51,7 @@ export function topicCompact(v, { openEdge }) {
     const matched = query ? all.filter((q) => matchesQuery(query, q.queue.name, ...q.consumers.map((c) => c.service))) : all;
     const { shown, hidden } = query || unfolded ? { shown: matched, hidden: [] } : foldList(matched, LIMIT);
     const n = Math.max(shown.length + (hidden.length ? 1 : 0), 1);
-    const cols = [['Producers', 'minmax(120px, 0.8fr)'], ['', '24px'], [KIND[v.kind] ?? 'Channel', 'minmax(140px, 0.55fr)'], ['', '24px'], ['', '96px'], [`Queues ${all.length}`, 'minmax(220px, 1.7fr)']];
+    const cols = [['Producers', 'minmax(120px, 0.8fr)'], ['', '24px'], [KIND[v.kind] ?? 'Channel', 'minmax(140px, 0.55fr)'], ['', '24px'], ['', '96px'], [`Queues ${all.length}`, 'minmax(250px, 1.7fr)']];
     const lanes = flowLanes(cols.map(([head, width]) => ({ head, width })), {
       hint: 'Scroll to see the queues',
       legend: [{ t, text: 'SNS publish and fan-out' }, ...(all.some((q) => q.disagree) ? [{ t, dash: true, text: 'Uncertain: declarations disagree' }] : [])],
@@ -70,7 +71,9 @@ export function topicCompact(v, { openEdge }) {
       lanes.put(connector(n === 1 ? 'arrow' : `fan ${i === 0 ? 'first' : i === n - 1 && !hidden.length ? 'last' : 'mid'}`, t, q.disagree), 3, i);
       const edge = filterCell(markerChip(q.marker, () => {}), { t, dash: q.disagree, tip: true });
       edge.classList.add('hub-edge');
-      edge.addEventListener('click', () => pick(q, edge));
+      edge.dataset.row = row.id;
+      edge.addEventListener('click', () => pick(q, 'e'));
+      pressable(edge, () => pick(q, 'e'));
       lanes.put(edge, 4, i);
       lanes.put(queueNode(q, row), 5, i);
     });
@@ -84,11 +87,16 @@ export function topicCompact(v, { openEdge }) {
     return lanes.el;
   };
 
-  const pick = (q, el) => {
-    selected?.classList.remove('selected');
-    selected = el;
-    el.classList.add('selected');
-    openEdge(rowOf.get(q.rowId), el);
+  const mark = () => {
+    if (!selected) return;
+    const el = selected.kind === 'e' ? box.querySelector(`.hub-edge[data-row="${CSS.escape(selected.id)}"]`) : box.querySelector(`#${CSS.escape(selected.id)}`);
+    el?.classList.add('selected');
+  };
+  const pick = (q, kind) => {
+    box.querySelector('.selected')?.classList.remove('selected');
+    selected = { kind, id: q.rowId };
+    mark();
+    openEdge(rowOf.get(q.rowId));
   };
 
   function queueNode(q, row) {
@@ -96,15 +104,17 @@ export function topicCompact(v, { openEdge }) {
     const isOpen = open.has(q.rowId);
     const el = h('div.lane-node.chan.hub-q', { id: row.id, 'data-t': 'sqs', class: q.noHandler.length ? 'bad' : q.disagree ? 'warn' : '' },
       h('div.hub-q-head',
-        h('button.hub-chev', { type: 'button', 'aria-expanded': String(isOpen), 'aria-label': `${isOpen ? 'Collapse' : 'Expand'} ${q.queue.name}`, on: { click: (e) => { e.stopPropagation(); open.has(q.rowId) ? open.delete(q.rowId) : open.add(q.rowId); render(); } } }, isOpen ? '⌄' : '›'),
-        h('div.hub-q-name', channelLink(q.queue.key, q.queue.name), h('div.who', c ? (q.consumers.length > 1 ? `${c.service} and ${q.consumers.length - 1} more` : c.service) : 'no harvested reader')),
+        h('button.hub-chev', { type: 'button', 'aria-expanded': String(isOpen), 'aria-label': `${isOpen ? 'Collapse' : 'Expand'} ${q.queue.name}`, on: { click: (e) => { e.stopPropagation(); open.has(q.rowId) ? open.delete(q.rowId) : open.add(q.rowId); render(() => box.querySelector(`#${CSS.escape(q.rowId)} .hub-chev`)); } } }, isOpen ? '⌄' : '›'),
+        h('div.hub-q-name', channelLink(q.queue.key, wbr(q.queue.name)), h('div.who', c ? (q.consumers.length > 1 ? `${c.service} and ${q.consumers.length - 1} more` : c.service) : 'no harvested reader')),
         badge({ noHandler: q.noHandler.length, ok: !!c })),
       isOpen ? detail(q, total) : null);
-    el.addEventListener('click', (e) => { if (!e.target.closest('a,button')) pick(q, el); });
+    el.addEventListener('click', (e) => { if (!e.target.closest('a,button')) pick(q, 'q'); });
+    pressable(el, () => pick(q, 'q'));
     return el;
   }
 
-  const render = () => box.replaceChildren(draw());
+  /** `focus` returns the element to focus once the tree is rebuilt (the tree is replaced, so focus would drop to the body). */
+  const render = (focus) => { box.replaceChildren(draw()); mark(); focus?.()?.focus(); };
   render();
   const reveal = (id) => { const q = all.find((x) => x.rowId === id); if (q && !unfolded && !query) { unfolded = true; render(); } };
   const toolbar = tools({
@@ -112,5 +122,5 @@ export function topicCompact(v, { openEdge }) {
     onQuery: (q) => { query = q; render(); },
     onExpand: (on) => { all.forEach((q) => (on ? open.add(q.rowId) : open.delete(q.rowId))); render(); },
   });
-  return Object.assign(box, { reveal, toolbar: toolbar.el });
+  return Object.assign(box, { deselect: () => { selected = null; box.querySelector('.selected')?.classList.remove('selected'); }, reveal, toolbar: toolbar.el });
 }

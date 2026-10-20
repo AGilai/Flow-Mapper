@@ -7,7 +7,7 @@ import { flowLanes, connector, filterCell, transportOf } from '../components/flo
 import { channelNode, publisherNode, wbr } from '../components/flow-nodes.js';
 import { serviceLink } from './inventory-links.js';
 import { consumerOutcomes, foldList, markerOf } from '../../core/hub.js';
-import { badge, hubNode, markerChip, plural, stub } from './hub-parts.js';
+import { badge, hubNode, markerChip, plural, pressable, stub } from './hub-parts.js';
 
 const LIMIT = 12;
 const disagrees = (r) => !!r.filter && !r.filter.agree;
@@ -40,7 +40,8 @@ export function queueCompact(v, { openEdge, openConsumer }) {
       lanes.put(row.from ? channelNode(row.from) : publisherNode(row.direct), 0, i);
       const edge = filterCell(markerChip(markerOf(row.filter), () => {}), { t, dash, tip: false });
       edge.classList.add('hub-edge');
-      edge.addEventListener('click', () => pick(edge, () => openEdge(row, edge)));
+      edge.addEventListener('click', () => pick(edge, () => openEdge(row)));
+      pressable(edge, () => edge.click());
       lanes.put(edge, 1, i);
       lanes.put(connector(`merge ${n === 1 || i === 0 ? 'first' : i === n - 1 ? 'last' : 'mid'}`, t, dash), 2, i);
     });

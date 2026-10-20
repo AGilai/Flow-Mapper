@@ -22,7 +22,7 @@ export function markerChip(m, onClick) {
   if (!m) return null;
   const glyph = m.kind === 'types' ? FUNNEL : m.kind === 'all-but' ? CROSSED : '<i class="dot"></i>';
   const title = { types: `The filter lets ${m.label} through`, 'all-but': `The filter lets everything through except ${m.n}`, disagree: 'The declarations of this subscription disagree on the filter' }[m.kind];
-  return h('button.hub-mark', { type: 'button', class: m.kind, title, on: { click: onClick } }, h('span', { html: glyph }), m.label);
+  return h('button.hub-mark', { type: 'button', tabindex: '-1', class: m.kind, title, on: { click: onClick } }, h('span', { html: glyph }), m.label);
 }
 
 /** The state of a queue or consumer: a green check, or a red mark with the count of event types that arrive with no handler. */
@@ -51,6 +51,14 @@ export function tools({ placeholder, onQuery, onExpand }) {
   let on = false;
   const btn = onExpand ? h('button.btn', { type: 'button', on: { click: () => { on = !on; btn.textContent = on ? 'Collapse all' : 'Expand all'; onExpand(on); } } }, 'Expand all') : null;
   return { el: h('span.hub-tools', h('span.search', icon('search'), input), btn), input };
+}
+
+/** Makes a div keyboard-operable: role=button, tabindex, Enter or Space on the element itself. */
+export function pressable(el, fn) {
+  el.setAttribute('role', 'button');
+  el.setAttribute('tabindex', '0');
+  el.addEventListener('keydown', (e) => { if (e.target === el && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); fn(); } });
+  return el;
 }
 
 /** A stub row: "N more ..., all handled" with a button that shows them. */

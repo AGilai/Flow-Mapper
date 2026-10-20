@@ -50,7 +50,7 @@ export async function render({ main, params, query }) {
 
   if (compact) {
     const host = h('div.panel-host');
-    const panel = createPanel(host, { onClose: () => host.querySelector('.selected')?.classList.remove('selected') });
+    const panel = createPanel(host, { onClose: () => { hub.deselect?.(); host.querySelector('.selected')?.classList.remove('selected'); } });
     const hub = isQueue
       ? queueCompact(v, { openEdge: (row) => panel.open(...edgePane(v, row)), openConsumer: (o) => panel.open(...consumerPane(v, o)) })
       : topicCompact(v, { openEdge: (row) => panel.open(...edgePane(v, row)) });
