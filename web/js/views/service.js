@@ -80,6 +80,7 @@ function functionsTab(v, name) {
       { key: 'name', label: 'Function', render: (f) => h('a', { href: href('/flows', { service: name, fn: f.id, scope: 'intra' }) }, f.name) },
       { key: 'file', label: 'Location', render: (f) => h('span.key.muted', f.file ? `${f.file}${f.line ? ':' + f.line : ''}` : '') },
       { key: 'steps', label: 'Steps', num: true },
+      { key: 'unresolved', label: 'Gaps', nosort: true, render: (f) => (f.unresolved ?? []).map((u) => h('span.pill.gap', { title: [u.detail, u.candidates?.length ? `candidates: ${u.candidates.join(', ')}` : null].filter(Boolean).join('\n') }, `${u.what}: ${u.reason}`)) },
       { key: 'entry', label: 'Handles', nosort: true, render: (f) => (usedBy.get(f.id) ?? []).slice(0, 3).map((i) => h('div.key', i.bindKey)) },
     ],
   }).el);

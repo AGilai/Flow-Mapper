@@ -73,6 +73,6 @@ export function serviceView(g: GraphIndex, name: string) {
     resources,
     channels: mine(g.model.channels),
     bindings: mine(g.model.bindings),
-    functions: fns.map((f) => ({ id: f.id, name: f.name, file: f.file, line: f.line, steps: f.steps.length })),
+    functions: fns.map((f) => ({ id: f.id, name: f.name, file: f.file, line: f.line, steps: f.steps.length, unresolved: f.unresolved ?? [] })),
   };
 }

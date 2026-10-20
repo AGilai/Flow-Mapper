@@ -18,7 +18,7 @@ export interface ContractReport { errors: number; warnings: number; infos: numbe
 /** One service's entities as stored (before placeholder bind keys are filled in). */
 export interface ServiceManifest {
   service: string;
-  functions?: { id: string; file?: string; steps?: { seq: number; type: string; target?: string; unresolved?: Unresolved[] }[] }[];
+  functions?: { id: string; file?: string; unresolved?: Unresolved[]; steps?: { seq: number; type: string; target?: string; unresolved?: Unresolved[] }[] }[];
   resources?: { id: string; unresolved?: Unresolved[] }[];
   ingress?: { id: string; bindKey?: string; source?: Source; unresolved?: Unresolved[] }[];
   egress?: { id: string; bindKey?: string; transport: string; events?: string[]; source?: Source; unresolved?: Unresolved[] }[];
@@ -32,7 +32,7 @@ const sample = (ids: string[]) => ids.slice(0, 3).join(', ') + (ids.length > 3 ?
 const FANOUT = new Set(['sns-topic', 'eventbridge-bus']);
 
 const unresolvedNoDetail: Rule = ({ m, add }) => {
-  const check = (kind: 'ingress' | 'egress' | 'step' | 'resource', id: string, list?: Unresolved[]) => {
+  const check = (kind: 'ingress' | 'egress' | 'step' | 'resource' | 'function', id: string, list?: Unresolved[]) => {
     for (const u of list ?? []) if (blank(u.reason) || blank(u.detail)) add({
       level: 'warn', code: 'unresolved-no-detail', kind, id,
       message: `${kind} '${id}' has an unresolved (${u.what}) entry with an empty ${blank(u.reason) ? 'reason' : 'detail'}`,
@@ -42,6 +42,7 @@ const unresolvedNoDetail: Rule = ({ m, add }) => {
   for (const i of m.ingress ?? []) check('ingress', i.id, i.unresolved);
   for (const e of m.egress ?? []) check('egress', e.id, e.unresolved);
   for (const r of m.resources ?? []) check('resource', r.id, r.unresolved);
+  for (const f of m.functions ?? []) check('function', f.id, f.unresolved);
   for (const f of m.functions ?? []) for (const s of f.steps ?? []) check('step', `${f.id}#${s.seq}`, s.unresolved);
 };
 

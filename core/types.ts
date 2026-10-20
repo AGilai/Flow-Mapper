@@ -13,7 +13,8 @@ export interface Source { file?: string; line?: number; col?: number; url?: stri
 /** Which harvester run produced an item, and whether it was checked against the live system. */
 export interface Provenance { producer?: string; runId?: string; verified?: 'match' | 'drift' | 'code-only' }
 /** Something the harvester found but could not resolve: the target (call or consumer) or the event type. */
-export interface Unresolved { what: 'target' | 'event'; reason: string; detail?: string; candidates?: string[] }
+/** what=caller (on a function): the backward walk stopped here because nothing could be resolved as its caller. */
+export interface Unresolved { what: 'target' | 'event' | 'caller'; reason: string; detail?: string; candidates?: string[] }
 
 export interface Service {
   name: string;
@@ -47,7 +48,7 @@ export interface Step {
   source?: Source;
 }
 
-export interface Fn { service: string; id: string; name: string; file?: string; line?: number; commit?: string; steps: Step[] }
+export interface Fn { service: string; id: string; name: string; file?: string; line?: number; commit?: string; steps: Step[]; unresolved?: Unresolved[] }
 /** An event type a consumer handles. `type` may be a glob (`Order*`, `*`); `producers` are declared, not derived. */
 export interface IngressEvent { type: string; handler: string; producers?: string[] }
 export interface Ingress {

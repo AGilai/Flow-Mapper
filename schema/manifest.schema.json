@@ -105,13 +105,13 @@
     },
     "unresolved": {
       "type": "array",
-      "description": "What the harvester found but could not resolve, and why. what=target: the call target or consumed key (bindKey, or a step's target, may then be left out). what=event: the event type (candidates = the possible types).",
+      "description": "What the harvester found but could not resolve, and why. what=target: the call target or consumed key (bindKey, or a step's target, may then be left out). what=event: the event type (candidates = the possible types). what=caller (on a function): the backward walk stopped here because no caller could be resolved (reason e.g. unknown_receiver, callback_passed; candidates = possible callers, as function ids).",
       "items": {
         "type": "object",
         "required": ["what", "reason"],
         "additionalProperties": false,
         "properties": {
-          "what": { "enum": ["target", "event"] },
+          "what": { "enum": ["target", "event", "caller"] },
           "reason": { "type": "string", "minLength": 1 },
           "detail": { "type": "string" },
           "candidates": { "type": "array", "items": { "type": "string" }, "description": "Possible bind keys (target) or event types (event)." }
@@ -170,6 +170,7 @@
         "file": { "type": "string" },
         "line": { "type": "integer", "minimum": 1 },
         "commit": { "type": "string", "description": "Only when this function was scanned at a different commit than the manifest's." },
+        "unresolved": { "$ref": "#/$defs/unresolved" },
         "steps": { "type": "array", "items": { "$ref": "#/$defs/step" }, "default": [] }
       }
     },

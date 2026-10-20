@@ -123,6 +123,23 @@
           "condition": "cache miss"
         }
       ]
+    },
+    {
+      "id": "OrderService.retryCharge",
+      "name": "OrderService.retryCharge",
+      "file": "src/services/order.ts",
+      "line": 120,
+      "steps": [],
+      "unresolved": [
+        {
+          "what": "caller",
+          "reason": "callback_passed",
+          "detail": "retryCharge is passed to scheduler.every(...) as a callback",
+          "candidates": [
+            "OrderService.place"
+          ]
+        }
+      ]
     }
   ],
   "ingress": [

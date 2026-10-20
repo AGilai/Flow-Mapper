@@ -39,7 +39,7 @@ anything. There are currently no `error`-level codes (422 rejections come from v
 
 | Code | Level | Means | Fix |
 |---|---|---|---|
-| `unresolved-no-detail` | warn | an `unresolved` entry (on ingress, egress, step or resource) with an empty `detail` (or blank `reason`) | say what you could not resolve |
+| `unresolved-no-detail` | warn | an `unresolved` entry (on ingress, egress, function, step or resource) with an empty `detail` (or blank `reason`) | say what you could not resolve |
 | `binding-empty-events` | warn | subscription with `events: []`: delivers nothing | send the types it lets through, or omit `events` |
 | `missing-source` | info | ingress/egress without `source.file`, or steps of a function without `file` (one finding per service) | send `source: {file, line}`, and `file` on functions |
 | `binding-no-events` | info | SNS/EventBridge subscription without `events`: everything is delivered | send the filter policy as `events`, or `"*"` |
@@ -165,6 +165,11 @@ Do not invent a key and do not drop the item. Say what you found and why it is u
 - `what: "target"` on a **resource**: its store key is unknown. `bindKey` may be left out; the
   resource is listed under Unresolved in link health and is never grouped with other stores, and not reported as an unused store (the harvester
   may simply not have sent its steps yet).
+- `what: "caller"` on a **function**: the backward walk (from a sink towards its entry point)
+  stopped here because no caller could be resolved (`reason` e.g. `unknown_receiver`,
+  `callback_passed`, `no_caller_found:middleware`; `candidates` are possible caller function ids).
+  It is listed under Unresolved in link health, shown on the function in the service view and
+  returned by MCP `get_service`. It does not break any link.
 - `what: "event"` on an **egress**: the event type is unknown or one of several. Put the possible
   types in `candidates`; they are shown as *possible* producers, never as confirmed, and they
   keep consumers off "nothing sends it". Known types still go in `events`.
