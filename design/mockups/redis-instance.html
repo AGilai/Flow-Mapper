@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Redis Instance Page</title>
+<!-- Static design mockup for bug #29: Redis instance page with an on-request key list grouped by owner.
+     No JS (key rows expand with <details>). Tokens copied from channel-sns.html / hub-views.html.
+     Fields marked with a dagger are ASSUMED: not in schema/manifest.schema.json today.
+     Frame 1: instance page, keys not loaded, client panel docked.  Frame 2: keys loaded (db0), one key expanded to its writing flows.
+     Frame 3: problem states (db2): a key nobody harvested writes, a key with two writers that disagree. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
+<style>
+:root {
+  --paper: #f5f6fa; --surface: #ffffff; --surface-2: #eef0f6; --line: #e1e4ee; --line-strong: #c9cedd;
+  --ink: #1b2233; --ink-2: #4a5268; --muted: #7a8197; --accent: #4a4fd6; --accent-soft: #e8e9fb;
+  --ok: #1f9d55; --warn: #c27c00; --bad: #d63a3a;
+  --shadow-panel: 0 12px 32px -12px rgba(27, 34, 51, 0.18);
+  --font: 'Schibsted Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --r-sm: 6px; --r-md: 10px;
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px;
+  --fs-xs: 11.5px; --fs-sm: 13px; --fs-md: 14.5px; --fs-lg: 18px;
+  --rail: 200px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --paper: #12151d; --surface: #1a1e29; --surface-2: #222736; --line: #2c3243; --line-strong: #3a4256;
+    --ink: #e7e9f0; --ink-2: #b5bacb; --muted: #8a90a6; --accent: #8f93ff; --accent-soft: #272b4a;
+    --shadow-panel: 0 12px 32px -12px rgba(0, 0, 0, 0.6);
+    color-scheme: dark;
+  }
+}
+:root[data-theme='dark'] {
+  --paper: #12151d; --surface: #1a1e29; --surface-2: #222736; --line: #2c3243; --line-strong: #3a4256;
+  --ink: #e7e9f0; --ink-2: #b5bacb; --muted: #8a90a6; --accent: #8f93ff; --accent-soft: #272b4a;
+  --shadow-panel: 0 12px 32px -12px rgba(0, 0, 0, 0.6);
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--paper); color: var(--ink); font: 400 var(--fs-md)/1.5 var(--font); -webkit-font-smoothing: antialiased; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.01em; }
+p { margin: 0; }
+ul, ol { margin: 0; padding-left: 20px; }
+.mono, code { font-family: var(--mono); font-size: 0.92em; }
+.muted { color: var(--muted); }
+.xs { font-size: var(--fs-xs); }
+.nw { white-space: nowrap; }
+.asm { color: var(--warn); font-weight: 700; font-size: 0.9em; cursor: help; }
+
+/* Mockup chrome (not part of the design) */
+.notes { max-width: 1240px; padding: var(--s5); display: grid; gap: var(--s4); grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
+.notes section { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--s4); font-size: var(--fs-sm); }
+.notes h2 { font-size: var(--fs-md); margin-bottom: var(--s2); }
+.notes li { margin: 4px 0; color: var(--ink-2); }
+.notes li b { color: var(--ink); font-weight: 600; }
+.notes .wide { grid-column: 1 / -1; overflow-x: auto; }
+.notes > section { min-width: 0; }
+.spec td:first-child { white-space: normal; overflow-wrap: anywhere; }
+.frame-label { padding: 28px 24px 10px; font-size: var(--fs-sm); color: var(--ink-2); border-top: 2px dashed var(--line-strong); background: var(--paper); max-width: 1240px; }
+.frame-label b { color: var(--ink); }
+table.spec { width: 100%; border-collapse: collapse; font-size: var(--fs-xs); }
+.spec th, .spec td { text-align: left; padding: 5px 8px; border-top: 1px solid var(--line); vertical-align: top; }
+.spec th { color: var(--muted); font-weight: 600; border-top: 0; }
+.spec td:first-child { font-family: var(--mono); white-space: nowrap; }
+
+/* App shell */
+.app { display: grid; grid-template-columns: var(--rail) 1fr; border-top: 1px solid var(--line); }
+.app.norail { grid-template-columns: 1fr; }
+.rail { background: var(--surface); border-right: 1px solid var(--line); padding: var(--s5) var(--s3); display: flex; flex-direction: column; gap: 2px; }
+.brand { font-weight: 700; color: var(--accent); font-size: 17px; padding: 0 var(--s2) var(--s5); }
+.nav { padding: 8px 12px; border-radius: var(--r-sm); color: var(--ink-2); }
+.nav.on { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
+.main { min-width: 0; }
+.head { background: var(--surface); border-bottom: 1px solid var(--line); padding: var(--s4) var(--s5); display: flex; gap: var(--s3); align-items: flex-start; flex-wrap: wrap; }
+.head .grow { flex: 1; min-width: 240px; }
+.title { display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; }
+.title h1 { font-size: var(--fs-lg); }
+.kind { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 4px; font-size: var(--fs-xs); font-weight: 700; background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--line-strong); }
+.meta { margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: var(--fs-sm); color: var(--muted); }
+.meta b { color: var(--ink-2); font-weight: 500; }
+.btn { display: inline-flex; align-items: center; height: 32px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); color: var(--accent); background: var(--surface); font-size: var(--fs-sm); white-space: nowrap; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); font-weight: 600; }
+
+/* Body: content + docked panel (the panel squeezes the page, never overlays) */
+.body { display: grid; grid-template-columns: minmax(0, 1fr); }
+.body.with-panel { grid-template-columns: minmax(0, 1fr) 330px; }
+.content { padding: var(--s5); display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s5); max-width: 1240px; align-content: start; }
+.pane { background: var(--surface); border-left: 1px solid var(--line); box-shadow: var(--shadow-panel); min-width: 0; }
+.panel-head { display: flex; gap: var(--s2); padding: var(--s4); border-bottom: 1px solid var(--line); }
+.panel-head .grow { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.panel-head h3 { font: 600 var(--fs-sm)/1.4 var(--mono); overflow-wrap: anywhere; }
+.panel-body { padding: var(--s4); display: grid; gap: var(--s4); align-content: start; font-size: var(--fs-sm); }
+.panel-body h4 { margin: 0 0 4px; font-size: var(--fs-xs); color: var(--muted); font-weight: 600; }
+.kv { display: grid; grid-template-columns: 92px 1fr; gap: 3px 8px; font-size: var(--fs-xs); }
+.kv dt { color: var(--muted); } .kv dd { margin: 0; overflow-wrap: anywhere; }
+.close { color: var(--muted); font-size: 18px; line-height: 1; }
+
+.verdict { display: grid; gap: var(--s2); }
+.verdict p.lead { color: var(--ink-2); }
+.verdict p.lead b { color: var(--ink); font-weight: 600; }
+.issue-link { display: flex; align-items: flex-start; gap: var(--s2); font-size: var(--fs-sm); padding: 8px 12px; border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--warn) 10%, var(--surface)); border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent); }
+.issue-link .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); flex: none; margin-top: 6px; }
+.issue-link a { margin-left: auto; white-space: nowrap; padding-left: var(--s3); }
+
+.section { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); }
+.section > header { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px var(--s3); padding: var(--s3) var(--s4); border-bottom: 1px solid var(--line); }
+.section > header h2 { font-size: var(--fs-md); }
+.section > header .hint { font-size: var(--fs-sm); color: var(--muted); }
+.section > header .right { margin-left: auto; }
+
+/* ---------- Who connects: service -> client -> instance ---------- */
+.lanes { overflow-x: auto; padding: var(--s3) var(--s4) var(--s3); }
+.grid { display: grid; min-width: 760px; grid-template-columns: minmax(190px, 1fr) 62px minmax(260px, 1.6fr) 36px minmax(150px, 0.7fr); row-gap: var(--s2); }
+.colhead { font-size: var(--fs-xs); color: var(--muted); font-weight: 600; padding-bottom: 2px; }
+.node { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 6px 10px; align-self: center; min-width: 0; }
+.node.svc { border-left: 3px solid var(--ink-2); }
+.node.svc.sel { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 45%, transparent); border-left-color: var(--accent); }
+.node.inst { border-left: 3px solid var(--ink); align-self: center; background: color-mix(in srgb, var(--ink) 4%, var(--surface)); }
+.name { font-weight: 600; white-space: nowrap; }
+.name a { color: var(--ink); }
+.sub { font-family: var(--mono); font-size: var(--fs-xs); color: var(--muted); overflow-wrap: anywhere; }
+.acc { align-self: center; justify-self: start; display: flex; align-items: center; gap: 4px; color: var(--ink-2); }
+.acc .line { flex: 1; height: 2px; background: currentColor; min-width: 8px; }
+.rw { display: inline-flex; align-items: center; height: 20px; padding: 0 6px; border-radius: 4px; font-size: var(--fs-xs); font-weight: 700; font-family: var(--mono); border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink-2); }
+.rw.w { background: var(--surface-2); color: var(--ink); }
+.client { align-self: center; font-size: var(--fs-xs); color: var(--ink-2); min-width: 0; }
+.client .mono { color: var(--ink); }
+.client .via { color: var(--muted); }
+.fan { position: relative; color: var(--ink-2); }
+.fan::before { content: ''; position: absolute; left: 0; width: 2px; background: currentColor; }
+.fan::after { content: ''; position: absolute; left: 0; right: 7px; top: calc(50% - 1px); height: 2px; background: currentColor; }
+.fan.first::before { top: 50%; bottom: calc(-1 * var(--s2)); }
+.fan.mid::before { top: calc(-1 * var(--s2)); bottom: calc(-1 * var(--s2)); }
+.fan.last::before { top: calc(-1 * var(--s2)); bottom: 50%; }
+.fan i { position: absolute; right: 0; top: calc(50% - 5px); border: 5px solid transparent; border-left: 7px solid currentColor; border-right: 0; }
+.legend { display: flex; gap: 16px; font-size: var(--fs-xs); color: var(--muted); padding: 0 var(--s4) var(--s3); flex-wrap: wrap; }
+
+/* ---------- Keys ---------- */
+.lazy { padding: var(--s4); display: flex; align-items: center; gap: var(--s4); flex-wrap: wrap; }
+.lazy p { flex: 1; min-width: 240px; color: var(--ink-2); font-size: var(--fs-sm); }
+.toolbar { display: flex; gap: var(--s3); align-items: center; flex-wrap: wrap; padding: var(--s3) var(--s4); border-bottom: 1px solid var(--line); }
+.seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: var(--r-sm); overflow: hidden; }
+.seg span { padding: 5px 11px; font-size: var(--fs-sm); color: var(--ink-2); border-left: 1px solid var(--line-strong); white-space: nowrap; }
+.seg span:first-child { border-left: 0; }
+.seg span.on { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.seg span small { color: var(--muted); margin-left: 4px; font-size: var(--fs-xs); font-weight: 400; }
+.search { flex: 1; min-width: 180px; max-width: 320px; height: 32px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); padding: 0 10px; display: flex; align-items: center; color: var(--muted); font-size: var(--fs-sm); background: var(--surface); }
+.group { border-top: 1px solid var(--line); }
+.toolbar + .group { border-top: 0; }
+.group > .gh { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px var(--s3); padding: 10px var(--s4) 6px; background: var(--surface-2); }
+.group > .gh .name { font-size: var(--fs-sm); }
+.group > .gh .xs { color: var(--muted); }
+.group.warn > .gh { background: color-mix(in srgb, var(--warn) 12%, var(--surface)); }
+.group.warn > .gh .name { color: var(--warn); }
+.kgrid, details.k > summary { display: grid; grid-template-columns: 16px minmax(230px, 2.2fr) 44px minmax(120px, 1fr) 70px 92px minmax(150px, 1.3fr); gap: 0 var(--s3); align-items: start; }
+.kgrid.hd { padding: 6px var(--s4); font-size: var(--fs-xs); color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--line); }
+details.k { border-top: 1px solid var(--line); }
+.group > .gh + details.k { border-top: 0; }
+details.k > summary { padding: 9px var(--s4); cursor: pointer; list-style: none; font-size: var(--fs-sm); }
+details.k > summary::-webkit-details-marker { display: none; }
+details.k > summary > span:first-child { display: none; }
+details.k > summary::before { content: '▸'; color: var(--muted); font-size: 12px; line-height: 20px; }
+details.k[open] > summary::before { content: '▾'; }
+details.k[open] > summary { background: color-mix(in srgb, var(--accent) 5%, var(--surface)); }
+.key { font-family: var(--mono); font-weight: 500; overflow-wrap: anywhere; }
+.cmds { display: flex; flex-wrap: wrap; gap: 3px; }
+.cmd { font-family: var(--mono); font-size: 10.5px; padding: 1px 5px; border-radius: 3px; background: var(--surface-2); color: var(--ink-2); }
+.cmd.w { color: var(--ink); font-weight: 500; border: 1px solid var(--line-strong); background: var(--surface); }
+.db { font-family: var(--mono); font-size: var(--fs-xs); color: var(--ink-2); }
+.num { font-variant-numeric: tabular-nums; }
+.readers { font-size: var(--fs-xs); color: var(--ink-2); display: flex; flex-wrap: wrap; gap: 2px 8px; }
+.chip { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 4px; font-size: var(--fs-xs); font-weight: 600; }
+.chip.warn { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
+.chip.shared { background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--line-strong); }
+.detail { padding: var(--s3) var(--s4) var(--s4) calc(var(--s4) + 28px); display: grid; gap: var(--s3); border-top: 1px dashed var(--line); background: color-mix(in srgb, var(--accent) 3%, var(--surface)); }
+.detail h4 { margin: 0 0 6px; font-size: var(--fs-xs); font-weight: 600; color: var(--muted); }
+.flow { display: grid; grid-template-columns: minmax(210px, 0.9fr) minmax(0, 2fr); gap: 4px var(--s3); padding: 7px 0; border-top: 1px solid var(--line); align-items: center; font-size: var(--fs-sm); }
+.flow:first-of-type { border-top: 0; }
+.chain { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-family: var(--mono); font-size: var(--fs-xs); }
+.chain .step { padding: 2px 6px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); color: var(--ink-2); }
+.chain .step.end { border-color: var(--line-strong); color: var(--ink); font-weight: 500; }
+.chain .ar { color: var(--muted); font-family: var(--font); }
+.flow .entry a { font-family: var(--mono); font-size: var(--fs-xs); overflow-wrap: anywhere; }
+.flow .entry .xs { display: block; }
+.also { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: var(--fs-xs); color: var(--ink-2); }
+
+/* Problem blocks: why and what follows (house style .disagree) */
+.problem { border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent); border-radius: var(--r-sm); background: color-mix(in srgb, var(--warn) 7%, var(--surface)); padding: 8px 10px; display: grid; gap: 5px; font-size: var(--fs-sm); }
+.problem .tag { font-size: var(--fs-xs); font-weight: 700; color: var(--warn); }
+.problem p { color: var(--ink-2); }
+.problem p b { color: var(--ink); font-weight: 600; }
+.claim { display: grid; grid-template-columns: minmax(150px, 0.8fr) minmax(0, 2fr); gap: 2px 10px; align-items: center; font-size: var(--fs-xs); }
+.claim .src { font-weight: 600; color: var(--ink-2); font-size: var(--fs-sm); }
+.diff { background: color-mix(in srgb, var(--warn) 22%, transparent); border: 1px solid color-mix(in srgb, var(--warn) 55%, transparent); border-radius: 3px; padding: 0 4px; }
+.foot { font-size: var(--fs-xs); color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.flash { outline: 2px solid var(--warn); outline-offset: -2px; }
+
+@media (max-width: 860px) {
+  .body.with-panel { grid-template-columns: minmax(0, 1fr); }
+  .pane { border-left: 0; border-top: 1px solid var(--line); }
+}
+@media (max-width: 760px) {
+  .app { grid-template-columns: 1fr; }
+  .rail { display: none; }
+  .head { padding: var(--s3) var(--s4); }
+  .content { padding: var(--s4); }
+  .notes { padding: var(--s4); }
+  .frame-label { padding: 20px var(--s4) 8px; }
+  .kgrid.hd { display: none; }
+  details.k > summary { grid-template-columns: 16px 1fr auto; grid-template-areas: 'ar key db' '. cmds cmds' '. ops ttl' '. rd rd'; gap: 4px var(--s2); }
+  details.k > summary > :nth-child(1) { display: none; }
+  details.k > summary::before { grid-area: ar; }
+  details.k > summary > :nth-child(2) { grid-area: key; }
+  details.k > summary > :nth-child(3) { grid-area: db; }
+  details.k > summary > :nth-child(4) { grid-area: cmds; }
+  details.k > summary > :nth-child(5) { grid-area: ops; }
+  details.k > summary > :nth-child(6) { grid-area: ttl; text-align: right; }
+  details.k > summary > :nth-child(7) { grid-area: rd; }
+  .detail { padding-left: var(--s4); }
+  .flow, .claim { grid-template-columns: 1fr; }
+  .toolbar .search { max-width: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="notes">
+  <section>
+    <h2>Decisions</h2>
+    <ol>
+      <li><b>Order on the page follows the maintainer's direction:</b> instance (identity, verdict) → who connects → keys. Keys are the last, lazy section.</li>
+      <li><b>Who connects is lanes</b> (service → client → instance), one row per service, with its access (R, W or R/W) on the connector. The #27 <code>client</code> sits in the middle column; a click on a row docks the full client in a panel that squeezes the page.</li>
+      <li><b>Keys load on request.</b> The Keys section shows one sentence and a "Load keys" button. Counts and problems that are known without the list (from an instance summary<span class="asm">†</span>) already appear in the verdict, and the callouts link to "Load keys and show the row".</li>
+      <li><b>Grouped by owner.</b> The owner is the service that writes the template. A template written by several services is one row in a "Shared" group, never repeated under each writer. A template nobody harvested writes sits in "No harvested writer". Problem groups come first, then owners alphabetically.</li>
+      <li><b>Filter:</b> segmented db index control (All, db0, db1, db2, with counts), a search over the template text, and a "Problems" toggle. The db filter applies on the server, so an instance with thousands of templates loads one db at a time.</li>
+      <li><b>Row = one template.</b> Template, db, command kinds (writes in bold), ops per hour<span class="asm">†</span>, TTL<span class="asm">†</span>, and readers that are not the owner, named in full.</li>
+      <li><b>Key → flows is an in-place expand</b> (<code>&lt;details&gt;</code>), not a panel. It lists the entry points that write the key and the steps to the Redis call. Each entry links to <code>#/flows?service=X&amp;ingress=Y</code>. These flows are derived from steps that already target the instance, if the step carries its key template<span class="asm">†</span>.</li>
+      <li><b>Redis has no transport colour.</b> Connectors and chips are neutral ink; <code>--warn</code> is used only for the two problem states.</li>
+    </ol>
+  </section>
+  <section>
+    <h2>Open questions</h2>
+    <ol>
+      <li><b>What does the harvester emit per instance?</b> Still unanswered by the reporter (#29 comment 95). Needed: key templates per service, read/write per template, TTL, db index.</li>
+      <li>Does a step (<code>type: resource</code>) carry the <b>key template</b>? Without it, "flows that write this key" cannot be drawn.</li>
+      <li>How is the instance identified: <code>redis:cache-main</code> from the bindKey, or the ElastiCache id? <span class="asm">†</span> Can db index be known per key, or only per client?</li>
+      <li>Are op counts static (call sites) or measured (live)? A static count is "call sites", not ops per hour.</li>
+      <li>Who owns a key written by two services: show both (decided), but should the page rank one as "primary"?</li>
+      <li>How are non-code writers (Lua, other clusters, redis-cli jobs) declared, so "no harvested writer" can say "written outside code"?</li>
+      <li>Do we keep key templates for pub/sub channels and streams? <span class="asm">†</span></li>
+    </ol>
+  </section>
+  <section class="wide">
+    <h2>What the harvester would emit <span class="asm">†</span> (all assumed; the schema today has resource id, kind, bindKey, <code>client</code>, free-form <code>details</code>)</h2>
+    <table class="spec">
+      <tr><th>Field</th><th>Where</th><th>Used for</th></tr>
+      <tr><td>details.lazy = {kind: 'keys', ref}</td><td>instance resource (#29)</td><td>shows the "Load keys" button</td></tr>
+      <tr><td>details.access: read | write | read_write</td><td>service → instance edge (#27)</td><td>R / W / R/W on the connector</td></tr>
+      <tr><td>keys[]: key_template, db_index, command_kinds[], op_count, ttl †, service, access †</td><td>PUT …/resources/&lt;id&gt;/keys (#29)</td><td>grouping, filters, columns</td></tr>
+      <tr><td>step.details.keyTemplate †</td><td>resource steps (existing step type)</td><td>key → writing flows, no new flow data</td></tr>
+      <tr><td>instance summary: key_count, dbs, shared †, unwritten †</td><td>instance details</td><td>verdict before the list is loaded</td></tr>
+    </table>
+    <p class="xs muted" style="margin-top:8px">Sample data below is invented in the style of the repo samples. <span class="asm">†</span> marks an assumed field.</p>
+  </section>
+</div>
+
+<!-- ============================ FRAME 1 ============================ -->
+<div class="frame-label"><b>1. Instance page, collapsed.</b> Identity, verdict, who connects (7 services), and a Keys section that has not been loaded. The row <span class="mono">account-lambda-profile</span> is selected and its client is docked on the right; the page narrows to make room.</div>
+<div class="app">
+  <nav class="rail">
+    <div class="brand">Flow-Mapper</div>
+    <a class="nav">System map</a><a class="nav on">Inventory</a><a class="nav">Flows</a><a class="nav">Link health</a><a class="nav">Bugs</a>
+  </nav>
+  <div class="main">
+    <header class="head">
+      <div class="grow">
+        <div class="title"><h1>cache-main</h1><span class="kind">Redis instance</span></div>
+        <div class="meta">
+          <span class="mono">redis:cache-main</span>
+          <span>Defined by <b>infra</b> in <a href="#">cache-main.tf:12</a></span>
+          <span>Redis 7.0.7 <span class="asm">†</span> · 2 nodes <span class="asm">†</span></span>
+          <span>Live AWS <b style="color:var(--ok)">matches code</b></span>
+        </div>
+      </div>
+      <a class="btn" href="#">Show on map</a>
+      <a class="btn" href="#">All Redis instances</a>
+    </header>
+
+    <div class="body with-panel">
+    <div class="content">
+      <div class="verdict">
+        <p class="lead"><b>7 services</b> connect to cache-main: 6 read and write, 1 only reads. It holds <b>12 key templates</b> in 3 databases, written by 5 services.</p>
+        <div class="issue-link"><span class="dot"></span>
+          <span><span class="mono">cart:{cartId}</span> is written by 2 services (<b>account-lambda-cart</b>, <b>checkout-svc</b>) that disagree on its TTL.</span>
+          <a href="#">Load keys and show the row</a></div>
+        <div class="issue-link"><span class="dot"></span>
+          <span><span class="mono">rl:{ip}:{route}</span> is read by <b>edge-gateway</b> but written by no harvested service.</span>
+          <a href="#">Load keys and show the row</a></div>
+      </div>
+
+      <section class="section">
+        <header><h2>Who connects <span class="muted" style="font-weight:400">7</span></h2><span class="hint">service → client → instance. Click a row for its client.</span></header>
+        <div class="lanes">
+          <div class="grid">
+            <div class="colhead">Service</div><div class="colhead">Access</div><div class="colhead">Client · databases <span class="asm">†</span></div><div></div><div class="colhead">Instance</div>
+
+            <div class="node svc"><div class="name"><a href="#">account-lambda-login</a></div><div class="sub">auth lambda</div></div>
+            <div class="acc"><span class="rw w">R/W</span><span class="line"></span></div>
+            <div class="client"><span class="mono">ioredis 5.3.2</span> <span class="via">· direct driver · db0</span></div>
+            <div class="fan first" style="grid-column:4"><i></i></div>
+            <div class="node inst" style="grid-row:2 / span 7;grid-column:5"><div class="name">cache-main</div><div class="sub">3 dbs · 12 key templates</div></div>
+
+            <div class="node svc"><div class="name"><a href="#">account-lambda-session</a></div><div class="sub">session lambda</div></div>
+            <div class="acc"><span class="rw w">R/W</span><span class="line"></span></div>
+            <div class="client"><span class="mono">ioredis 5.3.2</span> <span class="via">· direct driver · db0</span></div>
+            <div class="fan mid" style="grid-column:4"><i></i></div>
+
+            <div class="node svc sel"><div class="name"><a href="#">account-lambda-profile</a></div><div class="sub">profile lambda</div></div>
+            <div class="acc"><span class="rw w">R/W</span><span class="line"></span></div>
+            <div class="client"><span class="mono">ioredis 4.27.6</span> <span class="via">· via saferxlib 2.1.0 · db0, db1</span></div>
+            <div class="fan mid" style="grid-column:4"><i></i></div>
+
+            <div class="node svc"><div class="name"><a href="#">account-lambda-cart</a></div><div class="sub">cart lambda</div></div>
+            <div class="acc"><span class="rw w">R/W</span><span class="line"></span></div>
+            <div class="client"><span class="mono">ioredis 5.3.2</span> <span class="via">· direct driver · db2</span></div>
+            <div class="fan mid" style="grid-column:4"><i></i></div>
+
+            <div class="node svc"><div class="name"><a href="#">catalog-svc</a></div><div class="sub">catalog API</div></div>
+            <div class="acc"><span class="rw w">R/W</span><span class="line"></span></div>
+            <div class="client"><span class="mono">ioredis 4.27.6</span> <span class="via">· via saferxlib 2.1.0 · db1</span></div>
+            <div class="fan mid" style="grid-column:4"><i></i></div>
+
+            <div class="node svc"><div class="name"><a href="#">checkout-svc</a></div><div class="sub">checkout API</div></div>
+            <div class="acc"><span class="rw w">R/W</span><span class="line"></span></div>
+            <div class="client"><span class="mono">ioredis 5.4.1</span> <span class="via">· direct driver · db2</span></div>
+            <div class="fan mid" style="grid-column:4"><i></i></div>
+
+            <div class="node svc"><div class="name"><a href="#">edge-gateway</a></div><div class="sub">api gateway</div></div>
+            <div class="acc"><span class="rw">R</span><span class="line"></span></div>
+            <div class="client"><span class="mono">node-redis 4.6.13</span> <span class="via">· third-party lib · db0, db2</span></div>
+            <div class="fan last" style="grid-column:4"><i></i></div>
+          </div>
+        </div>
+        <div class="legend"><span>R reads, W writes, R/W both</span><span>Access, client and database per service come from the #27 client and the access on the edge</span><span><span class="asm">†</span> assumed field</span></div>
+      </section>
+
+      <section class="section">
+        <header><h2>Keys</h2><span class="hint">12 key templates · db0 5, db1 4, db2 3 <span class="asm">†</span> · loaded on request</span></header>
+        <div class="lazy">
+          <p>Key templates are not loaded with the page: an instance can hold thousands. Load them all, or one database at a time, grouped by the service that writes them.</p>
+          <a class="btn primary" href="#">Load keys</a>
+          <a class="btn" href="#">Load db0 only</a>
+        </div>
+      </section>
+      <div class="foot"><span>Harvested by 7 harvesters</span><span>Latest push 3 h ago</span></div>
+    </div>
+
+    <aside class="pane">
+      <div class="panel-head">
+        <div class="grow"><span class="xs muted">Client of</span><h3>account-lambda-profile</h3></div>
+        <span class="close">×</span>
+      </div>
+      <div class="panel-body">
+        <div><h4>How it reaches cache-main</h4>
+          <dl class="kv" style="margin:0">
+            <dt>Access mode</dt><dd>shared_lib</dd>
+            <dt>Library</dt><dd class="mono">saferxlib 2.1.0 (in-house)</dd>
+            <dt>Library driver</dt><dd class="mono">ioredis 4.27.6</dd>
+            <dt>Own driver</dt><dd class="mono">ioredis 5.3.2</dd>
+            <dt>Databases</dt><dd class="mono">db0, db1 <span class="asm">†</span></dd>
+          </dl>
+        </div>
+        <div class="problem"><span class="tag">⚠ 2 drivers in one service</span>
+          <p>The service carries ioredis 4.x inside saferxlib next to its own 5.x. Matters for the Valkey migration.</p></div>
+        <div><h4>Wrapper chain</h4>
+          <div class="chain" style="flex-direction:column;align-items:flex-start"><span class="step">profile/src/redis.ts:12</span><span class="step">saferxlib/index.js:88 createClient</span></div></div>
+        <div><h4>Reads and writes here</h4>
+          <p>reads <span class="mono">session:{tenantId}:{userId}</span>, writes <span class="mono">profile:{userId}</span></p></div>
+        <a class="btn" href="#">Open the service</a>
+      </div>
+    </aside>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ FRAME 2 ============================ -->
+<div class="frame-label"><b>2. Keys loaded, grouped by owner.</b> Page scrolled to the Keys section, filtered to db0. <span class="mono">session:{tenantId}:{userId}</span> is expanded: the entry points that write it, with the steps to the Redis call, then the services that read it without owning it.</div>
+<div class="app norail"><div class="main"><div class="body"><div class="content">
+  <section class="section">
+    <header><h2>Keys <span class="muted" style="font-weight:400">5 in db0</span></h2><span class="hint">grouped by the service that writes them</span>
+      <span class="right"><a href="#" class="xs">Reload</a></span></header>
+    <div class="toolbar">
+      <div class="seg"><span>All<small>12</small></span><span class="on">db0<small>5</small></span><span>db1<small>4</small></span><span>db2<small>3</small></span></div>
+      <div class="search">Search key templates</div>
+      <div class="seg"><span>Problems<small>0 in db0</small></span></div>
+    </div>
+    <div class="kgrid hd"><span></span><span>Key template</span><span>DB</span><span>Commands</span><span>Ops/h <span class="asm">†</span></span><span>TTL <span class="asm">†</span></span><span>Also read by</span></div>
+
+    <div class="group">
+      <div class="gh"><span class="name"><a href="#">account-lambda-login</a></span><span class="xs">writes 4 templates · 6.1k ops/h</span></div>
+      <details class="k"><summary><span></span><span class="key">login:attempts:{email}</span><span class="db">db0</span><span class="cmds"><span class="cmd w">INCR</span><span class="cmd w">EXPIRE</span><span class="cmd">GET</span></span><span class="num">4.2k</span><span class="num nw">900 s</span><span class="readers muted">only the owner</span></summary></details>
+      <details class="k"><summary><span></span><span class="key">login:lock:{email}</span><span class="db">db0</span><span class="cmds"><span class="cmd w">SET</span><span class="cmd">EXISTS</span></span><span class="num">310</span><span class="num nw">15 min</span><span class="readers muted">only the owner</span></summary></details>
+      <details class="k"><summary><span></span><span class="key">oauth:state:{state}</span><span class="db">db0</span><span class="cmds"><span class="cmd w">SET</span><span class="cmd w">GETDEL</span></span><span class="num">1.4k</span><span class="num nw">600 s</span><span class="readers muted">only the owner</span></summary></details>
+      <details class="k"><summary><span></span><span class="key">session:revoked:{jti}</span><span class="db">db0</span><span class="cmds"><span class="cmd w">SET</span><span class="cmd">EXISTS</span></span><span class="num">190</span><span class="num nw">24 h</span><span class="readers"><a href="#">account-lambda-session</a><a href="#">edge-gateway</a></span></summary></details>
+    </div>
+
+    <div class="group">
+      <div class="gh"><span class="name"><a href="#">account-lambda-session</a></span><span class="xs">writes 1 template · 38k ops/h</span></div>
+      <details class="k" open><summary><span></span><span class="key">session:{tenantId}:{userId}</span><span class="db">db0</span><span class="cmds"><span class="cmd w">SET</span><span class="cmd w">EXPIRE</span><span class="cmd w">DEL</span><span class="cmd">GET</span></span><span class="num">38k</span><span class="num nw">1800 s</span><span class="readers"><a href="#">account-lambda-login</a><a href="#">account-lambda-profile</a><a href="#">edge-gateway</a></span></summary>
+        <div class="detail">
+          <div><h4>Written by 3 flows</h4>
+            <div class="flow"><div class="entry"><a href="#/flows?service=account-lambda-session&ingress=in.createSession">POST /sessions</a><span class="xs muted">account-lambda-session · in.createSession</span></div>
+              <div class="chain"><span class="step">createSession</span><span class="ar">→</span><span class="step">SessionStore.put</span><span class="ar">→</span><span class="step end">SET + EX 1800</span></div></div>
+            <div class="flow"><div class="entry"><a href="#/flows?service=account-lambda-session&ingress=in.refreshToken">POST /sessions/refresh</a><span class="xs muted">account-lambda-session · in.refreshToken</span></div>
+              <div class="chain"><span class="step">refreshToken</span><span class="ar">→</span><span class="step">SessionStore.touch</span><span class="ar">→</span><span class="step end">EXPIRE 1800</span></div></div>
+            <div class="flow"><div class="entry"><a href="#/flows?service=account-lambda-session&ingress=in.onLogout">sqs: logout-events</a><span class="xs muted">account-lambda-session · in.onLogout</span></div>
+              <div class="chain"><span class="step">onLogout</span><span class="ar">→</span><span class="step">SessionStore.drop</span><span class="ar">→</span><span class="step end">DEL</span></div></div>
+          </div>
+          <div><h4>Read by 3 other services, not owners</h4>
+            <div class="also"><span><a href="#">account-lambda-login</a> · GET · 9k ops/h</span><span><a href="#">account-lambda-profile</a> · GET · 6k</span><span><a href="#">edge-gateway</a> · GET · 41k</span></div></div>
+        </div>
+      </details>
+    </div>
+    <div class="legend" style="padding-top:var(--s3)"><span>Bold commands write; the rest read</span><span>An owner is the service that writes the template</span><span><span class="asm">†</span> assumed field</span></div>
+  </section>
+</div></div></div></div>
+
+<!-- ============================ FRAME 3 ============================ -->
+<div class="frame-label"><b>3. Problem states.</b> Filtered to db2. Problem groups come first. A template read but written by nobody harvested, and a template with two writers that disagree: each says why and what follows, in the row. Both are expanded; the page callouts from frame 1 link to these rows.</div>
+<div class="app norail"><div class="main"><div class="body"><div class="content">
+  <section class="section">
+    <header><h2>Keys <span class="muted" style="font-weight:400">3 in db2</span></h2><span class="hint">2 need attention</span></header>
+    <div class="toolbar">
+      <div class="seg"><span>All<small>12</small></span><span>db0<small>5</small></span><span>db1<small>4</small></span><span class="on">db2<small>3</small></span></div>
+      <div class="search">Search key templates</div>
+      <div class="seg"><span>Problems<small>2 in db2</small></span></div>
+    </div>
+    <div class="kgrid hd"><span></span><span>Key template</span><span>DB</span><span>Commands</span><span>Ops/h <span class="asm">†</span></span><span>TTL <span class="asm">†</span></span><span>Also read by</span></div>
+
+    <div class="group warn">
+      <div class="gh"><span class="name">No harvested writer</span><span class="xs">1 template</span></div>
+      <details class="k" id="k-rl" open><summary><span></span><span class="key">rl:{ip}:{route}</span><span class="db">db2</span><span class="cmds"><span class="cmd">GET</span><span class="cmd">TTL</span></span><span class="num">220k</span><span class="muted">unknown</span><span class="readers"><a href="#">edge-gateway</a></span></summary>
+        <div class="detail">
+          <div class="problem"><span class="tag">⚠ Read, but nobody harvested writes it</span>
+            <p><b>edge-gateway</b> reads <span class="mono">rl:{ip}:{route}</span> 220k times an hour. No harvested service writes it, so its TTL and write flows are unknown. The writer may be a script (Lua, redis-cli job) or a service whose harvester is missing.</p>
+            <p><b>What follows:</b> changes to this key's format can only be checked against its reader. <a href="#">Add the harvester of the writing service</a> or declare an outside writer.</p></div>
+          <div><h4>Read by 1 service</h4><div class="also"><span><a href="#">edge-gateway</a> · GET, TTL · rate limit check in <a href="#/flows?service=edge-gateway&ingress=in.proxy">in.proxy</a></span></div></div>
+        </div>
+      </details>
+    </div>
+
+    <div class="group warn">
+      <div class="gh"><span class="name">Shared: written by 2 services</span><span class="xs">1 template</span></div>
+      <details class="k" id="k-cart" open><summary><span></span><span class="key">cart:{cartId}</span><span class="db">db2</span><span class="cmds"><span class="cmd w">SET</span><span class="cmd w">EXPIRE</span><span class="cmd">GET</span></span><span class="num">40k</span><span><span class="chip warn">2 TTLs</span></span><span class="readers"><a href="#">catalog-svc</a></span></summary>
+        <div class="detail">
+          <div class="problem"><span class="tag">⚠ 2 writers disagree on the TTL</span>
+            <div class="claim"><span class="src"><a href="#">account-lambda-cart</a></span><span>SET + <span class="diff">EX 86400 (24 h)</span> · 31k ops/h · <a href="#/flows?service=account-lambda-cart&ingress=in.putCart">in.putCart</a></span></div>
+            <div class="claim"><span class="src"><a href="#">checkout-svc</a></span><span>SET + <span class="diff">EX 900 (15 min)</span> · 9k ops/h · <a href="#/flows?service=checkout-svc&ingress=in.startCheckout">in.startCheckout</a></span></div>
+            <p><b>What follows:</b> if both are right, whoever writes last sets the lifetime: a cart touched by checkout expires in 15 min until the cart service writes it again.</p></div>
+          <div><h4>Written by 2 flows</h4>
+            <div class="flow"><div class="entry"><a href="#/flows?service=account-lambda-cart&ingress=in.putCart">PUT /carts/{cartId}</a><span class="xs muted">account-lambda-cart · in.putCart</span></div>
+              <div class="chain"><span class="step">putCart</span><span class="ar">→</span><span class="step">CartRepo.save</span><span class="ar">→</span><span class="step end">SET + EX 86400</span></div></div>
+            <div class="flow"><div class="entry"><a href="#/flows?service=checkout-svc&ingress=in.startCheckout">POST /checkout</a><span class="xs muted">checkout-svc · in.startCheckout</span></div>
+              <div class="chain"><span class="step">startCheckout</span><span class="ar">→</span><span class="step">holdCart</span><span class="ar">→</span><span class="step end">SET + EX 900</span></div></div>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <div class="group">
+      <div class="gh"><span class="name"><a href="#">account-lambda-cart</a></span><span class="xs">owns 1 template · 1.2k ops/h</span></div>
+      <details class="k"><summary><span></span><span class="key">cart:lock:{cartId}</span><span class="db">db2</span><span class="cmds"><span class="cmd w">SET</span><span class="cmd w">DEL</span></span><span class="num">1.2k</span><span class="num nw">30 s</span><span class="readers muted">only the owner</span></summary></details>
+    </div>
+    <div class="legend" style="padding-top:var(--s3)"><span>A shared key is one row, listed once, not under each writer</span><span>Healthy groups are not marked</span></div>
+  </section>
+</div></div></div></div>
+</body>
+</html>
