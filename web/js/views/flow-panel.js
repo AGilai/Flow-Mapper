@@ -39,7 +39,9 @@ export function messagePanel(m, trace, env) {
       h('dt', 'From'), h('dd', p(m.from)?.label ?? m.from),
       h('dt', 'To'), h('dd', { class: m.broken ? 'key' : '' }, p(m.to)?.label ?? m.to),
       h('dt', 'Mode'), h('dd', m.mode),
-      h('dt', 'Depth'), h('dd', String(m.depth)))];
+      h('dt', 'Depth'), h('dd', String(m.depth)),
+      ...(m.delivery ? [h('dt', 'Delivery'), h('dd', `${m.depth}.${m.delivery}`)] : []),
+      ...(m.deliveries ? [h('dt', 'Deliveries'), h('dd', `fans out to ${m.deliveries}`)] : []))];
 }
 
 // ---- a call the harvester could not resolve ----

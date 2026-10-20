@@ -35,13 +35,38 @@ export function bridgeChannels(messages) {
   return out;
 }
 
+/**
+ * Row of each message. One row per message, except that the two halves of an SNS delivery
+ * (topic -> queue, queue -> consumer) share one, so a queue sits level with the consumer that pulls from it.
+ */
+export function rowsOf(msgs) {
+  const rows = [];
+  let n = -1;
+  msgs.forEach((m, i) => {
+    const p = msgs[i - 1];
+    const sameDelivery = p && m.delivery && p.group === m.group && p.delivery === m.delivery && p.to === m.from && m.from.startsWith('ch:');
+    rows.push(sameDelivery ? n : ++n);
+  });
+  return { rows, count: n + 1 };
+}
+
 export function renderSequence(trace, { onMessage, onParticipant, expanded = new Set(), internal = true, stores = true, queues = true, maxDepth = Infinity } = {}) {
-  const msgs = (queues ? trace.messages : bridgeChannels(trace.messages)).filter((m) => (internal || m.kind !== 'call') && (stores || m.kind !== 'resource') && m.depth <= maxDepth);
+  // With queues hidden the fan-out is not drawn: direct arrows, one row each, as before.
+  const plain = (m) => { const { group, deliveries, delivery, ...rest } = m; return rest; };
+  const msgs = (queues ? trace.messages : bridgeChannels(trace.messages).map(plain)).filter((m) => (internal || m.kind !== 'call') && (stores || m.kind !== 'resource') && m.depth <= maxDepth);
   const used = new Set(msgs.flatMap((m) => [m.from, m.to]));
   const parts = trace.participants.filter((p) => used.has(p.id));
   const x = new Map(parts.map((p, i) => [p.id, GUTTER + PAD + i * COL + COL / 2]));
   const width = GUTTER + PAD * 2 + parts.length * COL;
-  const height = PAD + msgs.length * ROW + PAD;
+  const { rows, count } = rowsOf(msgs);
+  const height = PAD + count * ROW + PAD;
+  const rowY = (r) => PAD + r * ROW + ROW / 2 + 4;
+  // Activation bar on the topic lifeline: from the publish row to its last delivery.
+  const bars = msgs.flatMap((m, i) => {
+    if (!m.deliveries) return [];
+    const last = rows.reduce((a, r, j) => (msgs[j].group === m.group && msgs[j].delivery ? Math.max(a, r) : a), rows[i]);
+    return [s('rect', { class: 'activation', x: x.get(m.to) - 5, y: rowY(rows[i]) - 10, width: 10, height: rowY(last) - rowY(rows[i]) + 20, rx: 2 }, s('title', {}, `${m.deliveries} deliveries`))];
+  });
 
   const head = s('svg', { width, height: HEAD, class: 'seq-head', role: 'presentation' },
     parts.map((p, i) => {
@@ -61,7 +86,8 @@ export function renderSequence(trace, { onMessage, onParticipant, expanded = new
       s('marker', { id: 'ah', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }, s('path', { d: 'M0 0L10 5L0 10z', fill: 'context-stroke' })),
       s('marker', { id: 'ao', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 8, markerHeight: 8, orient: 'auto-start-reverse' }, s('path', { d: 'M1 1L9 5L1 9', fill: 'none', stroke: 'context-stroke', 'stroke-width': 1.5 }))),
     parts.map((p) => s('line', { class: 'lifeline', x1: x.get(p.id), x2: x.get(p.id), y1: 0, y2: height })),
-    msgs.map((m, i) => message(m, i, x)));
+    bars,
+    msgs.map((m, i) => message(m, i, x, rowY(rows[i]), rail(msgs, rows, i))));
 
   const partMenu = (ev) => {
     const g = ev.target.closest?.('[data-p]');
@@ -84,14 +110,20 @@ export function renderSequence(trace, { onMessage, onParticipant, expanded = new
   return { el: h('div.seq', h('div.seq-sticky', head), body), shown: msgs.length, total: trace.messages.length };
 }
 
-function message(m, i, x) {
-  const y = PAD + i * ROW + ROW / 2 + 4;
+/** Left-rail label: the call depth; a delivery of a fan-out is `depth.delivery`, shown once per row. */
+function rail(msgs, rows, i) {
+  const m = msgs[i];
+  if (!m.delivery) return String(m.depth);
+  return rows[i - 1] === rows[i] ? '' : `${m.depth}.${m.delivery}`;
+}
+
+function message(m, i, x, y, railLabel) {
   const x1 = x.get(m.from), x2 = x.get(m.to);
   const color = m.broken ? 'var(--t-broken)' : m.gap ? 'var(--muted)' : m.transport ? `var(${T_VAR[m.transport] ?? '--ink-2'})` : 'var(--ink-2)';
   const dashed = m.broken || m.gap || m.mode === 'async' || m.kind === 'frontier';
   const g = s('g', { class: `msg${m.broken ? ' broken' : ''}${m.gap ? ' gap' : ''}${m.kind === 'frontier' ? ' frontier' : ''}${m.kind === 'leaf' ? ' leaf' : ''}${m.origin === 'frontier' ? ' from-frontier' : ''}`, 'data-i': i, tabindex: 0, role: 'button', style: `--mc: ${color}` });
   // depth rail in the gutter
-  g.append(s('text', { x: 8, y: y + 4, class: 'depth' }, String(m.depth)));
+  g.append(s('text', { x: 8, y: y + 4, class: 'depth' }, railLabel));
   const tags = [m.loop ? 'loop' : null, m.condition ? `if ${m.condition}` : null, m.cycle ? 'cycle' : null].filter(Boolean).join(', ');
   const label = clip(m.kind === 'frontier' ? `${m.label}  (click to show)` : m.label, Math.max(34, Math.floor(Math.abs(x2 - x1) / 7.2) || 34)) + (tags ? `  [${tags}]` : '');
   if (x1 === x2) {

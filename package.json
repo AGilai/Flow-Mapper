@@ -1,6 +1,6 @@
 {
   "name": "flow-mapper",
-  "version": "0.8.4",
+  "version": "0.8.5",
   "private": true,
   "description": "Service-to-service flow mapping: visualizer for humans, MCP for agents",
   "type": "module",

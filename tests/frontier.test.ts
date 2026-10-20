@@ -23,7 +23,7 @@ const demo = { service: 'orders-svc', ingress: 'in.remove' };
 const demo35 = { service: 'account-lambda-erase-controller', ingress: 'in.notifyBilling' }; // added with the #35 demo, after the hash was taken
 const demo26 = { service: 'account-lambda-erase-controller', ingress: 'in.eraseStatus' }; // added with the #26 demo
 
-test('traces of every sample entry without frontier steps are unchanged (hash retaken on 0.8.4: only the lifeline order of 2 traces changed, see queue-twice.test.ts)', () => {
+test('traces of every sample entry without frontier steps are unchanged (hash retaken on 0.8.5: SNS fan-out fields group/deliveries/delivery added to 2 traces, see sns-fanout.test.ts)', () => {
   const m = sampleModel();
   const g = buildIndex(m);
   const h = createHash('sha256');
@@ -33,7 +33,7 @@ test('traces of every sample entry without frontier steps are unchanged (hash re
     n++;
   }
   assert.equal(n, 154);
-  assert.equal(h.digest('hex'), '4296fe2d16f3b8d36fda1312b073de8998d3c51cb0a545ba5d9617a0aa57862b');
+  assert.equal(h.digest('hex'), '7efcf6c41e04a04ed73c7f56cae5ca62731284b43bb1d48c6c8b2fe402f82c3d');
 });
 
 test('origin "path" is the same as no origin', () => {

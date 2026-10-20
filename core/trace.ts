@@ -41,6 +41,9 @@ export interface Message {
   origin?: 'frontier';                                       // a step the harvester marked as frontier (shown because the trace was asked to expand them)
   frontierSteps?: number;                                    // on a kind 'frontier' marker: frontier steps folded into it (this function's and those of the frontier calls below it)
   gap?: Unresolved;                                          // the harvester could not resolve this call; why
+  group?: string;                                            // SNS fan-out: id of the publish (`m<index of the publish message>`), on the publish and on each of its deliveries
+  deliveries?: number;                                       // on the publish message of a fan-out: how many deliveries follow it
+  delivery?: number;                                         // on the topic -> queue and queue -> consumer messages of one delivery: 1-based ordinal within the group
 }
 export interface Trace {
   start: { service: string; ingress?: string; fn: string; event?: string }; scope: 'intra' | 'full';
@@ -176,7 +179,12 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
       if (scope === 'intra' || seenCh.includes(to.key)) return; // intra stops at the service boundary
       const next = distinct(linksFrom(g, to).filter((l) => passes(g, l, base.event)));
       if (!next.length) return;
-      for (const l of next) follow(ch, l.to, to.key + (base.event ? ` · ${base.event}` : ''), 'async', depth, stack, { ...base, transport: l.transport }, [...seenCh, to.key]);
+      // A publish that reaches several links is a fan-out: the publish carries a group id, each delivery an ordinal.
+      const group = next.length > 1 ? `m${messages.length - 1}` : undefined;
+      if (group) Object.assign(messages[messages.length - 1], { group, deliveries: next.length });
+      const { deliveries: _n, ...inherited } = base; // a delivery's ordinal rides along to its queue -> consumer message; an inner fan-out replaces it
+      next.forEach((l, k) => follow(ch, l.to, to.key + (base.event ? ` · ${base.event}` : ''), 'async', depth, stack,
+        { ...inherited, transport: l.transport, ...(group ? { group, delivery: k + 1 } : {}) }, [...seenCh, to.key]));
       return;
     }
     if (to.type !== 'ingress') return;

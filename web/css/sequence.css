@@ -27,6 +27,7 @@
 .seq-part .name { font-size: 12.5px; font-weight: 600; fill: var(--ink); }
 .seq-part .sub { font-size: 11px; fill: var(--muted); }
 .lifeline { stroke: var(--line-strong); stroke-dasharray: 2 4; }
+.activation { fill: color-mix(in srgb, var(--t-sns) 28%, var(--surface, transparent)); stroke: var(--t-sns); stroke-width: 1; }
 .msg { cursor: pointer; outline: none; }
 .msg .arrow { stroke: var(--mc); stroke-width: 1.6; fill: none; }
 .msg .label { font-size: 12px; fill: var(--ink); font-family: var(--mono); }
