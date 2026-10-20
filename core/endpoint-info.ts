@@ -6,6 +6,8 @@ import type { GraphIndex } from './graph-index.ts';
 import type { Fn, Ingress, Service, Source } from './types.ts';
 import { ingressEvents, type EventRow } from './events.ts';
 import { egressVia, ingressVia, type LinkedHop } from './via.ts';
+import { rpcPanel, type RpcPanel } from './rpc-endpoint.ts';
+import { rpcServed } from './amqp-route.ts';
 
 export type DtoRole = 'request' | 'response';
 export const DTO_ROLES: DtoRole[] = ['request', 'response'];
@@ -28,6 +30,8 @@ export interface EndpointInfo {
   definedAt: SourceLink | null;
   /** Hops that resolved the ingress to its handler (kind registration | bind), as for egress `via`. */
   handlerVia: LinkedHop[];
+  /** An RPC command over AMQP (0.19.0): its callers with timeouts, and the command queue. Null for any other endpoint. */
+  rpc: RpcPanel | null;
 }
 
 const BODY_METHODS = ['POST', 'PUT', 'PATCH'];
@@ -56,6 +60,7 @@ export function dtoLink(meta: DtoMeta | null | undefined, svc?: Service): Source
 /** Which DTOs make sense for an endpoint: queues and topics carry one message, a GET has no body, a cron has none. */
 export function dtoSlots(i: Ingress): { slots: { role: DtoRole; label: string }[]; note: string | null } {
   if (i.events?.length) return { slots: [], note: null }; // messages are described per event type
+  if (rpcServed(i)) return { slots: [{ role: 'request', label: 'Request' }, { role: 'response', label: 'Response' }], note: null }; // an RPC command (0.19.0)
   switch (i.transport) {
     case 'sqs': case 'sns': case 'amqp': case 'eventbridge': return { slots: [{ role: 'request', label: 'Message' }], note: null };
     case 'event': return { slots: [{ role: 'request', label: 'Event' }], note: null };
@@ -111,6 +116,7 @@ export function endpointInfo(g: GraphIndex, service: string, ingressId: string, 
     service, ingress, method: httpMethod(ingress), handler, source: sourceLink(svc, handler), harvestedAt: svc.harvestedAt, note,
     definedAt: codeLink(svc, ingress.source),
     handlerVia: ingressVia(svc, ingress),
+    rpc: rpcPanel(g, ingress),
     events: ingressEvents(g, ingress).map((r) => ({
       ...r,
       producers: r.producers.map((p) => withVia(g, p)),

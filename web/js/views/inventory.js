@@ -9,35 +9,43 @@ import { icon } from '../icons.js';
 import { go, setQuery } from '../router.js';
 import { pageHead } from '../components/page.js';
 import { dataTable } from '../components/table.js';
-import { detailPath, serviceLink, storePath } from './inventory-links.js';
+import { openTarget, serviceLink, storePath } from './inventory-links.js';
 import { objectIcon } from '../components/object-icon.js';
 import { driverCounts, driversOn } from '../../core/clients.js';
 import { MODE, breakable } from '../components/clients-table.js';
 
 const TYPES = [['', 'All'], ['service', 'Services'], ['channel', 'Topics and queues'], ['event', 'Event types']];
+const RPC = ['rpc', 'RPC commands']; // listed only when the env has RPC commands (0.19.0)
+const isAmqp = (x) => x.type === 'rpc' || /^(amqp|rpc)-/.test(x.kind);
 const DB = { mongodb: 'MongoDB', redis: 'Redis', dynamodb: 'DynamoDB', postgres: 'Postgres', mysql: 'MySQL', s3: 'S3', elasticsearch: 'Elasticsearch', 'external-http': 'External HTTP' };
 const DB_ORDER = Object.keys(DB);
 /** Type filter values: '', service, channel, event, or `store:<kind>` for one database type. */
-const matches = (x, t) => !t || (t.startsWith('store:') ? x.type === 'store' && x.kind === t.slice(6) : x.type === t);
+const matches = (x, t) => !t || (t.startsWith('store:') ? x.type === 'store' && x.kind === t.slice(6) : t === 'amqp' ? isAmqp(x) : x.type === t);
 /** Redis clusters and instances say which; other stores say their database. */
-const kindLabel = (x) => (x.type !== 'store' ? x.kind : x.instance ? `${DB[x.kind] ?? x.kind} ${x.instance}` : DB[x.kind] ?? x.kind);
-const TYPE_LABEL = { service: 'Service', channel: 'Channel', store: 'Data store', event: 'Event type' };
+const KIND = { 'rpc-command-queue': 'rpc command queue', 'rpc-reply-queue': 'rpc reply queue', 'rpc-reply-queues': 'rpc reply queues', 'amqp-rpc': 'rpc command' };
+const kindLabel = (x) => (x.exchangeType ? `${x.kind} · ${x.exchangeType}` : KIND[x.kind] ? KIND[x.kind] : x.type !== 'store' ? x.kind : x.instance ? `${DB[x.kind] ?? x.kind} ${x.instance}` : DB[x.kind] ?? x.kind);
+const TYPE_LABEL = { service: 'Service', channel: 'Channel', store: 'Data store', event: 'Event type', rpc: 'RPC command' };
 
 export async function render({ main, query }) {
-  const [items, clients] = await Promise.all([api.inventory(state.env), api.clients(state.env)]);
-  const f = { type: query.get('type') ?? '', kind: query.get('kind') ?? '', team: query.get('team') ?? '', q: query.get('q') ?? '', problems: query.get('problems') === '1', dto: query.get('dto') ?? '', driver: query.get('driver') ?? '' }; // driver: `<package>@<major>`, `<package>@` when the version is unknown
+  const [all, clients] = await Promise.all([api.inventory(state.env), api.clients(state.env)]);
+  const f = { rpcq: query.get('rpcq') === '1', type: query.get('type') ?? '', kind: query.get('kind') ?? '', team: query.get('team') ?? '', q: query.get('q') ?? '', problems: query.get('problems') === '1', dto: query.get('dto') ?? '', driver: query.get('driver') ?? '' }; // driver: `<package>@<major>`, `<package>@` when the version is unknown
   if (f.type === 'store') f.type = ''; // older links
+  const hasRpc = all.some((x) => x.type === 'rpc'), hasAmqp = all.some(isAmqp);
+  let items = all; // RPC queues are plumbing: hidden unless "Show RPC queues" is on
+  const pick1 = () => { items = f.rpcq ? all : all.filter((x) => !x.plumbing); };
+  pick1();
   const count = (t) => items.filter((x) => matches(x, t)).length;
   const dbKinds = [...new Set(items.filter((x) => x.type === 'store').map((x) => x.kind))]
     .sort((a, b) => (DB_ORDER.indexOf(a) + 1 || 99) - (DB_ORDER.indexOf(b) + 1 || 99) || a.localeCompare(b));
-  const types = [...TYPES, ...dbKinds.map((k) => [`store:${k}`, DB[k] ?? k])];
+  const typeList = hasRpc ? [...TYPES, RPC] : TYPES;
+  const types = [...dbKinds.map((k) => [`store:${k}`, DB[k] ?? k])];
 
   const table = dataTable({
-    rows: [], pageSize: 50, sortKey: 'label', onRow: (x) => go(detailPath(x)),
+    rows: [], pageSize: 50, sortKey: 'label', onRow: (x) => go(...openTarget(x)), rowClass: (x) => (x.plumbing ? 'plumb' : ''),
     columns: [
-      { key: 'label', label: 'Name', render: (x) => h('div.name-cell', objectIcon(x.type, x.kind, 22), h('div.stack', { style: { gap: 0 } }, h('b', { class: x.type === 'service' ? '' : 'key' }, x.label), x.group && x.group !== x.id ? h('span.xs.muted', x.group) : null)) },
-      { key: 'type', label: 'Type', render: (x) => h('span.small', TYPE_LABEL[x.type]) },
-      { key: 'kind', label: 'Kind', render: (x) => h('span.pill.kind-pill', x.type === 'store' ? objectIcon('store', x.kind, 14) : null, kindLabel(x)) },
+      { key: 'label', label: 'Name', render: (x) => h('div.name-cell', objectIcon(x.type, x.kind, 22), h('div.stack', { style: { gap: 0 } }, h('b', { class: x.type === 'service' ? '' : x.type === 'rpc' || x.plumbing ? 'key nowrap' : 'key' }, x.label), x.group && x.group !== x.id ? h('span.xs.muted', x.group) : null)) },
+      { key: 'type', label: 'Type', render: (x) => h('span.small.nowrap', TYPE_LABEL[x.type]) },
+      { key: 'kind', label: 'Kind', render: (x) => h('span.pill.kind-pill', { class: isAmqp(x) ? (x.type === 'rpc' || /^rpc-/.test(x.kind) ? 'rpc' : 'amqp') : '' }, x.type === 'store' ? objectIcon('store', x.kind, 14) : null, kindLabel(x)) },
       { key: 'team', label: 'Team', render: (x) => h('span.small.muted', x.team ?? '') },
       { key: 'size', label: 'Connections', render: (x) => h('span.small', x.connections) },
       { key: 'hasDto', label: 'Message DTO', sort: (x) => (x.type === 'event' ? (x.hasDto ? 1 : 0) : null),
@@ -64,9 +72,21 @@ export async function render({ main, query }) {
     buttons.push([t, b]);
     return b;
   };
+  const recount = () => buttons.forEach(([t, b]) => { b.lastChild.textContent = ` ${count(t)}`; });
+  /** The fold row for RPC plumbing: what is hidden, and the switch (the commands are listed as entry points of their servers). */
+  const fold = h('label.check.rpc-fold');
+  const drawFold = () => {
+    const mine = all.filter((x) => x.plumbing && matches(x, f.type));
+    fold.hidden = !mine.length;
+    const cmd = mine.filter((x) => x.kind === 'rpc-command-queue').length, rep = mine.filter((x) => x.kind !== 'rpc-command-queue').length;
+    const parts = [cmd ? `${cmd} command ${cmd === 1 ? 'queue' : 'queues'}` : null, rep ? `${rep} reply-queue ${rep === 1 ? 'row' : 'rows'}` : null].filter(Boolean).join(' and ');
+    fold.replaceChildren(h('input', { type: 'checkbox', checked: f.rpcq, on: { change: (e) => { f.rpcq = e.target.checked; pick1(); recount(); fillKinds(); apply(); } } }), h('b', 'Show RPC queues'),
+      h('span.muted', f.rpcq ? ` ${parts} shown, muted. The RPC commands they carry are listed as entry points of their servers.` : ` ${mine.length} hidden: ${parts}. The RPC commands they carry are listed as entry points of their servers.`));
+  };
   const seg = h('div.row', { style: { gap: 'var(--s2)', flexWrap: 'wrap' } },
-    h('div.seg', { role: 'group', 'aria-label': 'Type' }, TYPES.map(button)),
-    dbKinds.length ? [h('span.small.muted', 'Data stores'), h('div.seg', { role: 'group', 'aria-label': 'Database' }, types.slice(TYPES.length).map(button))] : null);
+    h('div.seg', { role: 'group', 'aria-label': 'Type' }, typeList.map(button)),
+    dbKinds.length ? [h('span.small.muted', 'Data stores'), h('div.seg', { role: 'group', 'aria-label': 'Database' }, types.map(button))] : null,
+    hasAmqp ? [h('span.small.muted', 'Brokers'), h('div.seg', { role: 'group', 'aria-label': 'Broker' }, [['amqp', 'AMQP']].map(button))] : null);
   const shown = h('span.small.muted');
   /** One row per client site on the chosen driver: the service, its store, and where the driver comes from (its own, or inside a lib). */
   const svcTable = dataTable({
@@ -98,7 +118,8 @@ export async function render({ main, query }) {
   function apply() {
     const n = f.q.trim().toLowerCase();
     const kind = f.type.startsWith('store:') ? f.type.slice(6) : null;
-    setQuery({ type: f.type || null, kind: f.kind || null, team: f.team || null, q: f.q || null, problems: f.problems ? 1 : null, dto: f.type === 'event' && f.dto ? f.dto : null, driver: f.driver || null });
+    drawFold();
+    setQuery({ rpcq: f.rpcq ? 1 : null, type: f.type || null, kind: f.kind || null, team: f.team || null, q: f.q || null, problems: f.problems ? 1 : null, dto: f.type === 'event' && f.dto ? f.dto : null, driver: f.driver || null });
     table.el.hidden = !!f.driver;
     svcTable.el.hidden = !f.driver;
     if (f.driver) { // a driver filter lists services (who is on it and why), from the same rows the facet counts
@@ -116,7 +137,7 @@ export async function render({ main, query }) {
   }
 
   main.append(
-    pageHead('Inventory', `${items.length} objects in ${state.env}`,
+    pageHead('Inventory', `${all.filter((x) => !x.plumbing).length} objects in ${state.env}`,
       h('div.search', icon('search'), h('input.input', { type: 'search', placeholder: 'Filter by name, kind, team', value: f.q, 'aria-label': 'Filter inventory',
         on: { input: debounce((e) => { f.q = e.target.value; apply(); }) } })),
       kindSel, dtoSel,
@@ -125,7 +146,7 @@ export async function render({ main, query }) {
     h('div.filter-bar', seg, facet,
       h('label.check', h('input', { type: 'checkbox', checked: f.problems, on: { change: (e) => { f.problems = e.target.checked; apply(); } } }), 'Only with problems'),
       h('span.spacer'), shown),
-    h('div.content', h('div.box', table.el, svcTable.el)));
+    h('div.content', fold, h('div.box', table.el, svcTable.el)));
   dtoSel.hidden = f.type !== 'event';
   fillKinds();
   fillFacet();

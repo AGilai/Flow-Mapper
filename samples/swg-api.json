@@ -109,6 +109,36 @@
         "file": "src/policy/check.ts",
         "line": 88
       }
+    },
+    {
+      "id": "policyChanged.publish",
+      "bindKey": "amqp:saferx.EventExchange/audit.policy.changed",
+      "transport": "amqp",
+      "mode": "async",
+      "delivery": "multicast",
+      "details": {
+        "exchange": "saferx.EventExchange",
+        "routingKey": "audit.policy.changed"
+      },
+      "source": {
+        "file": "src/policy/events.ts",
+        "line": 21
+      }
+    },
+    {
+      "id": "deviceBlocked.publish",
+      "bindKey": "amqp:saferx.EventExchange/device.{deviceId}.blocked",
+      "transport": "amqp",
+      "mode": "async",
+      "delivery": "multicast",
+      "details": {
+        "exchange": "saferx.EventExchange",
+        "routingKey": "device.{deviceId}.blocked"
+      },
+      "source": {
+        "file": "src/policy/events.ts",
+        "line": 34
+      }
     }
   ],
   "channels": [

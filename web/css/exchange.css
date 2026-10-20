@@ -1,0 +1,52 @@
+/* RabbitMQ exchange page (0.19.0). Ported from design/mockups/rabbitmq.html frame 3; classes are prefixed ex-.
+   Grape (--t-amqp) is a message on an exchange; page head, verdict, callouts and section chrome are the shared ones. */
+.ex-kind { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 4px; font-size: var(--fs-xs); font-weight: 700; background: color-mix(in srgb, var(--t-amqp) 14%, var(--surface)); color: var(--t-amqp); }
+.ex-meta { display: grid; gap: 2px; }
+.ex-key { font-family: var(--mono); font-size: 12.5px; }
+.ex-scroll { overflow-x: auto; }
+.ex-t { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+.ex-t th { text-align: left; font-size: var(--fs-xs); color: var(--muted); font-weight: 600; padding: 8px 14px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.ex-t td { padding: 9px 14px; border-top: 1px solid var(--line); vertical-align: top; }
+.ex-t tbody tr:first-child td { border-top: 0; }
+.ex-t td.ex-key { white-space: nowrap; }
+.ex-svc { font-weight: 600; white-space: nowrap; }
+.ex-arrow { color: var(--t-amqp); font-weight: 700; padding-left: 0; padding-right: 0; width: 18px; }
+.ex-t td.ex-warn { background: color-mix(in srgb, var(--warn) 9%, var(--surface)); color: var(--warn); }
+.ex-t td.ex-warn b { font-weight: 600; }
+.ex-mlist code { display: inline-block; margin: 0 6px 2px 0; color: var(--ink-2); white-space: nowrap; font-size: 12.5px; }
+.ex-t tr.hit td { background: color-mix(in srgb, var(--t-amqp) 7%, var(--surface)); }
+.ex-t tr.hit td:first-child { box-shadow: inset 3px 0 0 var(--t-amqp); }
+.ex-t tr.miss td { opacity: 0.5; }
+.ex-t tr.flash td { background: var(--accent-soft); }
+.ex-tester { display: flex; align-items: center; gap: var(--s2); margin-left: auto; flex-wrap: wrap; }
+.ex-tester label { font-size: var(--fs-xs); color: var(--muted); font-weight: 600; }
+.ex-tester input { font: 500 12.5px var(--mono); height: 30px; width: 230px; max-width: 100%; padding: 0 10px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); }
+.ex-tester input:focus { outline: 2px solid var(--focus); outline-offset: 1px; }
+.ex-tester output { font-size: var(--fs-xs); color: var(--t-amqp); font-weight: 600; min-width: 140px; }
+.ex-foot { padding: 8px 14px; font-size: var(--fs-xs); color: var(--muted); border-top: 1px solid var(--line); }
+@media (max-width: 760px) { .ex-tester { margin-left: 0; width: 100%; } .ex-tester input { width: 100%; } }
+.ex-page h2 small { margin-left: 8px; font-weight: 400; }
+.ex-t a.ex-key { white-space: nowrap; }
+
+/* Inventory rows of RabbitMQ (0.19.0): the kind chip carries the colour of what it is (grape: messages, olive: RPC); RPC plumbing is muted. */
+.kind-pill.amqp { background: color-mix(in srgb, var(--t-amqp) 12%, var(--surface)); color: var(--t-amqp); }
+.kind-pill.rpc { background: color-mix(in srgb, var(--t-rpc) 14%, var(--surface)); color: var(--t-rpc); }
+.grid tr.plumb td { color: var(--muted); background: var(--surface-2); }
+.rpc-fold { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; padding: 8px 14px; margin-bottom: var(--s3); border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface-2); font-size: var(--fs-sm); color: var(--ink-2); }
+.rpc-fold[hidden] { display: none; }
+.rpc-fold input { align-self: center; }
+
+/* Service page (0.19.0): the "amqp rpc" group header names its command queue once. */
+.sb-group > summary .sb-note { font-weight: 400; }
+
+/* Endpoint panel of an RPC command: callers (service, timeout, function, source) and the server's queue. */
+.rpc-callers { display: grid; }
+.rpc-caller { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; padding: 8px var(--s3); font-size: var(--fs-sm); border-top: 1px solid var(--line); }
+.rpc-caller:first-child { border-top: 0; }
+.rpc-caller .b { font-weight: 600; }
+.rpc-caller .key { font-size: var(--fs-xs); }
+.rpc-kv { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 0; padding: 10px var(--s3); font-size: var(--fs-sm); }
+.rpc-kv dt { color: var(--muted); }
+.rpc-kv dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.rpc-kv dd small { display: block; color: var(--muted); font-size: var(--fs-xs); }
+.kind-pill { white-space: nowrap; }

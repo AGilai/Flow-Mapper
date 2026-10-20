@@ -10,16 +10,18 @@ import { jsonView } from '../components/json-view.js';
 import { dtoSource } from '../components/dto-source.js';
 import { eventPath } from './inventory-links.js';
 import { viaChip } from '../components/via-chip.js';
+import { rpcCards } from './endpoint-rpc.js';
 
 /** Returns [head, ...content] for panel.open(). */
 export function endpointPanel(info, env) {
   const { service, ingress: i, method, handler: fn, source } = info;
-  const target = i.details?.path ?? splitKey(i.bindKey).rest.replace(/^[A-Z]+\s+/, '');
+  const rpc = info.rpc;
+  const target = rpc ? rpc.command : i.details?.path ?? splitKey(i.bindKey).rest.replace(/^[A-Z]+\s+/, '');
   const head = h('div.ep-head',
-    h('div.ep-title', method ? h('span.ep-method', { 'data-m': method }, method) : chip(i.transport), h('span.ep-target', target)),
+    h('div.ep-title', method ? h('span.ep-method', { 'data-m': method }, method) : rpc ? chip('rpc', 'amqp rpc') : chip(i.transport), h('span.ep-target', target)),
     h('div.ep-sub', h('span', service), method ? chip(i.transport) : null, i.entryPoint ? h('span.pill', 'entry point') : null));
 
-  return [head, codeCard(fn, i, source, info.definedAt, info.handlerVia), ...info.slots.map((s) => dtoCard(s, env, service, i.id)),
+  return [head, rpc ? rpcCards(rpc, service) : null, codeCard(fn, i, source, info.definedAt, info.handlerVia), ...info.slots.map((s) => dtoCard(s, env, service, i.id)),
     info.events.length ? eventsSection(info, env) : null,
     info.note ? h('p.ep-note', info.note) : null,
     h('a.btn.primary.ep-trace', { href: href('/flows', { service, ingress: i.id }) }, icon('flow'), 'Trace from here')];

@@ -79,5 +79,13 @@ export function rpcOf(e: { bindKey: string; transport: string; details?: Details
   return pick({ command, declaredBy: 'caller' }, d);
 }
 
+/** The RPC command an ingress serves (`amqp-rpc:{command}` key or `details.rpc`); null for anything else. */
+export function rpcServed(i: { bindKey: string; transport: string; details?: Details }): Omit<RpcInfo, 'declaredBy'> | null {
+  const d = rpcDetails(i.details);
+  if (i.transport !== 'amqp' || !(i.bindKey.startsWith('amqp-rpc:') || d)) return null;
+  const { declaredBy: _x, ...rest } = pick({ command: typeof d?.command === 'string' ? d.command : i.bindKey.replace(/^amqp-rpc:/, ''), declaredBy: 'caller' }, d);
+  return rest;
+}
+
 /** The caller's RPC details completed by the server's (the caller's own values win; `prefetch` comes from the server). */
 export const withServer = (rpc: RpcInfo, server: Details | undefined): RpcInfo => pick({ ...rpc, declaredBy: 'both' }, rpcDetails(server), true);

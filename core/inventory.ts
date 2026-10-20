@@ -8,8 +8,9 @@ import { eventReport, eventTypes } from './events.ts';
 import { groupOf, stores } from './stores.ts';
 import { instances } from './instances.ts';
 import type { KeySummary } from './keys.ts';
+import { amqpRows, type AmqpRow } from './amqp-inventory.ts';
 
-export type InventoryType = 'service' | 'channel' | 'store' | 'event';
+export type InventoryType = 'service' | 'channel' | 'store' | 'event' | 'rpc';
 export interface InventoryItem {
   type: InventoryType; id: string; label: string; kind: string;
   group?: string; team?: string; connections: string; size: number; problems: number;
@@ -17,6 +18,8 @@ export interface InventoryItem {
   hasDto?: boolean;
   /** Data stores: this row is a Redis cluster or instance (its page is /instances/<id>), not one key pattern. `kind` stays 'redis'. */
   instance?: 'cluster' | 'instance';
+  /** RabbitMQ (0.19.0): the exchange type; RPC plumbing the page folds; where an RPC command or a reply-queue row opens. */
+  exchangeType?: string; plumbing?: boolean; open?: AmqpRow['open'];
 }
 
 const n = (x: number, one: string, many = `${one}s`) => `${x} ${x === 1 ? one : many}`;
@@ -37,13 +40,16 @@ export function inventory(g: GraphIndex, dtoEvents: Iterable<string> = [], keySu
       problems: s.dangling + s.orphans + s.unbound + s.ambiguous + s.eventIssues,
     });
   }
-  for (const c of channelSummaries(g)) {
+  const chans = channelSummaries(g);
+  for (const c of chans) {
+    if (c.kind === 'amqp-exchange' || c.kind === 'amqp-queue') continue; // listed by amqpRows below, in RabbitMQ's own words
     out.push({
       type: 'channel', id: c.key, label: c.name, kind: c.kind, group: c.key,
       connections: `${n(c.publishers, 'publisher')}, ${n(c.subscriptions, 'subscription')}, ${n(c.consumers, 'consumer')}`,
       size: c.publishers + c.consumers + c.subscriptions, problems: c.problems,
     });
   }
+  out.push(...amqpRows(g, new Map(chans.map((c) => [c.key, c.problems]))));
   const multi = new Set(h.items.multipleWriters.map((x) => x.key));
   const unused = new Set(h.items.unusedStores.map((x) => x.key));
   const inst = instances(g, keySummaries);

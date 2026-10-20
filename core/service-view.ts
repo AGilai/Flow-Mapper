@@ -7,6 +7,8 @@ import type { Ref } from './types.ts';
 import { codeLink } from './endpoint-info.ts';
 import { eventReport } from './events.ts';
 import { egressVia, ingressVia } from './via.ts';
+import { rpcOf, rpcServed, routeKey } from './amqp-route.ts';
+import { bindingKeyOf, splitAmqpKey } from './amqp.ts';
 
 const viaText = (via: Ref[]) => via.map((v) => (v.type === 'channel' ? v.key : '')).filter(Boolean);
 
@@ -29,12 +31,15 @@ export function serviceView(g: GraphIndex, name: string) {
       const state = mineD.some((d) => !d.possible) ? 'yes' : mineD.length || blind ? 'maybe' : e.events?.length || gaps.length ? 'no' : 'yes';
       return { state, caller: { service: e.service, egress: e.id, bindKey: e.bindKey, transport: e.transport, via: viaText(u.via) } };
     });
+    const rpc = rpcServed(i);
+    const callers = all.filter((c) => c.state === 'yes').map((c) => c.caller);
     return {
       ...i,
+      ...(rpc ? { rpc, noCaller: !callers.length } : {}), // an RPC command (0.19.0): a command nobody harvested calls is not a problem
       at: codeLink(s, i.source),
       via: ingressVia(s, i), // how the handler was resolved (registration / bind hops), with code links
-      orphan: orphans.has(sid(i.service, i.id)),
-      callers: all.filter((c) => c.state === 'yes').map((c) => c.caller),
+      orphan: orphans.has(sid(i.service, i.id)) && !rpc,
+      callers,
       maybeCallers: all.filter((c) => c.state === 'maybe').map((c) => c.caller),
     };
   });
@@ -48,8 +53,12 @@ export function serviceView(g: GraphIndex, name: string) {
       const state = mineD.some((x) => !x.possible) ? 'yes' : mineD.length || blind ? 'maybe' : e.events?.length || gaps.length ? 'no' : 'yes';
       return { state, target: { service: d.ingress.service, ingress: d.ingress.id, bindKey: d.ingress.bindKey, handler: d.ingress.handler, via: viaText(d.via) } };
     });
+    const rpc = rpcOf(e), ex = !rpc && e.transport === 'amqp' ? splitAmqpKey(e.bindKey) : null;
+    const route = ex?.exchange ? routeKey(g.model.bindings, g.channels.get(`amqp:${ex.exchange}`)?.details, e.bindKey, e.details) : null; // a publish to an exchange: what it reaches
     return {
       ...e,
+      ...(rpc ? { rpc } : {}),
+      ...(route ? { amqp: { exchange: route.exchange, routingKey: route.routingKey ?? '', bindings: [...route.matched, ...route.possible].map((b) => bindingKeyOf(b)) } } : {}),
       ...egressVia(s, e), // normalised `via` and `callSites` (from fields or details), with code links
       at: codeLink(s, e.source),
       dangling: dangling.has(sid(e.service, e.id)),

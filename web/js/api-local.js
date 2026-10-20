@@ -14,6 +14,7 @@ import { endpointInfo } from '../core/endpoint-info.js';
 import { inventory } from '../core/inventory.js';
 import { listClients, storeWithClients } from '../core/clients.js';
 import { instanceView, keysView, resolveInstance } from '../core/instances.js';
+import { exchangeView, resolveExchange } from '../core/amqp-exchange.js';
 import { keySummary } from '../core/keys.js';
 import { channelView } from '../core/channels.js';
 import { eventView } from '../core/events.js';
@@ -61,6 +62,7 @@ export const api = {
   inventory: async (env) => inventory(g(env), (data.eventDtos?.[env] ?? []).map((d) => d.event), new Map((data.keys?.[env] ?? []).map((k) => [k.instance, keySummary(k.entries)]))),
   instance: async (env, id) => {
     const key = resolveInstance(g(env), id), k = (data.keys?.[env] ?? []).find((x) => x.instance === key);
+    if (!key && resolveExchange(g(env), id) != null) return exchangeView(g(env), id);
     return (key && instanceView(g(env), key, k?.entries ?? [], k?.meta ?? null)) ?? fail(`Redis instance '${id}' not found`);
   },
   instanceKeys: async (env, id, f = {}) => {

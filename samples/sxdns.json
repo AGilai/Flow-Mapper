@@ -108,6 +108,21 @@
         "file": "src/rpc/dns.ts",
         "line": 30
       }
+    },
+    {
+      "id": "dnsOverride.publish",
+      "bindKey": "amqp:saferx.EventExchange/audit.dns.override",
+      "transport": "amqp",
+      "mode": "async",
+      "delivery": "multicast",
+      "details": {
+        "exchange": "saferx.EventExchange",
+        "routingKey": "audit.dns.override"
+      },
+      "source": {
+        "file": "src/rpc/dns.ts",
+        "line": 58
+      }
     }
   ],
   "channels": [

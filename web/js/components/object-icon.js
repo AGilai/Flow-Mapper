@@ -10,10 +10,11 @@ const FILES = {
   'service:gateway': 'aws-api-gateway', 'service:lambda': 'aws-lambda',
   'channel:sns-topic': 'aws-sns', 'channel:sqs-queue': 'aws-sqs', 'channel:eventbridge-bus': 'aws-eventbridge',
   'channel:amqp-exchange': 'rabbitmq', 'channel:amqp-queue': 'rabbitmq',
+  'channel:rpc-command-queue': 'rabbitmq', 'channel:rpc-reply-queue': 'rabbitmq', 'channel:rpc-reply-queues': 'rabbitmq',
   'store:dynamodb': 'aws-dynamodb', 'store:s3': 'aws-s3', 'store:redis': 'redis', 'store:mongodb': 'mongodb', 'store:postgres': 'postgres',
   event: 'aws-event',
 };
-const FALLBACK = { service: 'services', channel: 'flow', store: 'database', event: 'flow' };
+const FALLBACK = { service: 'services', channel: 'flow', store: 'database', event: 'flow', rpc: 'rpc' };
 
 export const iconFile = (type, kind) => FILES[`${type}:${kind}`] ?? FILES[type] ?? null;
 

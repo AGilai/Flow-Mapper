@@ -50,7 +50,9 @@ function lead(v) {
   ];
 }
 
-export async function render({ main, params }) {
+export async function render(ctx) {
+  if (ctx.params.key.startsWith('amqp:')) return (await import('./exchange.js')).render(ctx); // a RabbitMQ exchange (0.19.0)
+  const { main, params } = ctx;
   const v = await api.instance(state.env, params.key);
   const host = h('div.panel-host');
   let lane;

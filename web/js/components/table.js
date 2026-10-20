@@ -4,7 +4,7 @@
 
 import { h, clear, fill } from '../dom.js';
 
-export function dataTable({ columns, rows, pageSize = 50, onRow, sortKey, sortDir = 'asc', empty = 'Nothing to show.' }) {
+export function dataTable({ columns, rows, pageSize = 50, onRow, rowClass, sortKey, sortDir = 'asc', empty = 'Nothing to show.' }) {
   let page = 0;
   let sort = sortKey ?? null;
   let dir = sortDir;
@@ -39,7 +39,7 @@ export function dataTable({ columns, rows, pageSize = 50, onRow, sortKey, sortDi
     page = Math.min(page, pages - 1);
     const slice = all.slice(page * pageSize, page * pageSize + pageSize);
     fill(tbody, ...(slice.length ? slice.map((r) =>
-      h('tr', { class: onRow ? 'clickable' : '', tabindex: onRow ? 0 : null,
+      h('tr', { class: [onRow ? 'clickable' : '', rowClass?.(r) ?? ''].join(' ').trim(), tabindex: onRow ? 0 : null,
         on: onRow ? { click: () => onRow(r), keydown: (e) => { if (e.key === 'Enter') onRow(r); } } : {} },
         columns.map((c) => h('td', { class: c.num ? 'num' : '' }, c.render ? c.render(r) : String(r[c.key] ?? ''))))) :
       [h('tr', h('td.muted', { colSpan: columns.length }, empty))]));
