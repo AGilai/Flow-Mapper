@@ -22,7 +22,7 @@ export function registerInstances(r: Router, ctx: Ctx) {
   r.get('/api/envs/:env/instances/:id', (req) => keys.readInstance(db, ctx.graph(req.params.env), req.params.env, req.params.id));
 
   r.get('/api/envs/:env/resources/:id/keys', (req) => keys.readKeys(db, ctx.graph(req.params.env), req.params.env, req.params.id,
-    { db: dbParam(req.query.get('db')), q: req.query.get('q') ?? undefined, problems: ['1', 'true'].includes(req.query.get('problems') ?? '') }));
+    { db: dbParam(req.query.get('db')), service: req.query.get('service') || undefined, q: req.query.get('q') ?? undefined, problems: ['1', 'true'].includes(req.query.get('problems') ?? '') }));
 
   r.put('/api/envs/:env/resources/:id/keys', async (req) => keys.putKeys(db, ctx.graph(req.params.env), req.params.env, req.params.id, await req.json()));
 }

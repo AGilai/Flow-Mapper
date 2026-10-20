@@ -67,7 +67,7 @@ export interface KeyRow {
   writers: KeyUse[]; readers: KeyUse[]; problem: KeyProblem | null; flows: KeyFlow[];
 }
 export interface KeyGroup { kind: 'unwritten' | 'shared' | 'owner'; owner?: string; label: string; opsPerHour: number | null; templates: number; rows: KeyRow[] }
-export interface KeyFilter { db?: number; q?: string; problems?: boolean }
+export interface KeyFilter { db?: number; q?: string; problems?: boolean; service?: string }
 export interface DbCount { db: number; templates: number; problems: number }
 export interface ProblemRef { kind: KeyProblem['kind']; keyTemplate: string; dbIndex: number; services: string[]; ttls: { service: string; ttlSeconds: number }[] }
 export interface KeySummary { templates: number; services: number; writers: number; shared: number; unwritten: number; ttlDisagreements: number; dbs: DbCount[]; problems: ProblemRef[]; problemCount: number }
@@ -132,7 +132,7 @@ export function keySummary(entries: KeyEntry[], rows = keyRows(entries)): KeySum
 
 export function filterRows(rows: KeyRow[], f: KeyFilter = {}): KeyRow[] {
   const q = f.q?.trim().toLowerCase();
-  return rows.filter((r) => (f.db == null || r.dbIndex === f.db) && (!f.problems || r.problem) && (!q || r.keyTemplate.toLowerCase().includes(q)));
+  return rows.filter((r) => (f.db == null || r.dbIndex === f.db) && (!f.problems || r.problem) && (!q || r.keyTemplate.toLowerCase().includes(q)) && (!f.service || r.writers.some((u) => u.service === f.service) || r.readers.some((u) => u.service === f.service)));
 }
 
 /** Groups: "No harvested writer" and "Shared" first, then one group per owner (the single writer), by name. A shared row is listed once. */
@@ -150,3 +150,13 @@ export function groupRows(rows: KeyRow[]): KeyGroup[] {
   for (const [o, rs] of [...owners].sort((a, b) => a[0].localeCompare(b[0]))) out.push(mk('owner', o, rs, o));
   return out;
 }
+
+/** One service's keys: the templates it writes, the ones it only reads (each names its owner in `writers`), and the rows with a problem among both. */
+export function serviceKeys(rows: KeyRow[], service: string): { writes: KeyRow[]; reads: KeyRow[]; problems: KeyRow[] } {
+  const writes = rows.filter((r) => r.writers.some((u) => u.service === service));
+  const reads = rows.filter((r) => !r.writers.some((u) => u.service === service) && r.readers.some((u) => u.service === service));
+  return { writes, reads, problems: [...writes, ...reads].filter((r) => r.problem) };
+}
+
+/** Whose card a problem opens: the first writer of a shared key (TTL disagreement), the first reader of a key nobody writes. */
+export const problemService = (r: KeyRow): string | null => !r.problem ? null : (r.problem.kind === 'no-writer' ? r.readers[0]?.service : r.writers[0]?.service) ?? null;

@@ -11,7 +11,7 @@ import { codeLink, type SourceLink } from './endpoint-info.ts';
 import { entryPointsReaching } from './reach.ts';
 import { accessOf, groupOf, instanceDef, storeKey, usesOf, type Access } from './stores.ts';
 import { unresolvedTarget } from './resolve.ts';
-import { filterRows, groupRows, keyRows, keySummary, normaliseKeys, type KeyEntry, type KeyFilter, type KeyFlow, type KeyGroup, type KeySummary } from './keys.ts';
+import { filterRows, groupRows, keyRows, keySummary, normaliseKeys, problemService, type KeyEntry, type KeyFilter, type KeyFlow, type KeyGroup, type KeySummary } from './keys.ts';
 import type { Fn, Resource } from './types.ts';
 
 export type KeySource = 'pushed' | 'inline' | 'none';
@@ -68,8 +68,11 @@ export interface Lane {
   service: string; kind?: string; team?: string; description?: string;
   access: Access; accessFrom: 'declared' | 'steps' | 'keys' | 'unknown';
   clients: ClientRow[]; databases: number[]; resources: string[];
+  /** Key templates this service uses (writes or reads) in the instance's key list. */
+  keyCount: number;
 }
-export interface Callout { kind: 'no-writer' | 'ttl-disagree'; text: string; row: { keyTemplate: string; dbIndex: number } }
+/** `service`: whose card the callout opens (see problemService). */
+export interface Callout { kind: 'no-writer' | 'ttl-disagree'; text: string; service: string | null; row: { keyTemplate: string; dbIndex: number } }
 export interface InstanceSummary { key: string; name: string; kind: 'redis'; topology: 'cluster' | 'instance'; team?: string; services: string[]; databases: number; templates: number; problems: number }
 export interface InstanceView extends InstanceSummary {
   definition: { service: string; id: string; source: SourceLink | null; verified: string | null; runId?: string; producer?: string } | null;
@@ -121,7 +124,8 @@ function lanes(g: GraphIndex, x: Group, entries: KeyEntry[]): Lane[] {
     const cs = clients.filter((c) => c.service === service);
     const dbs = new Set<number>([...rs.flatMap((r) => r.client?.databases ?? []), ...entries.filter((e) => e.service === service).map((e) => e.dbIndex)]);
     const a = accessOfService(g, rs, entries, service);
-    return { service, kind: svc?.kind, team: svc?.team, description: svc?.description, access: a.access, accessFrom: a.from, clients: cs, databases: [...dbs].sort((p, q) => p - q), resources: rs.map((r) => r.id) };
+    return { service, kind: svc?.kind, team: svc?.team, description: svc?.description, access: a.access, accessFrom: a.from, clients: cs, databases: [...dbs].sort((p, q) => p - q), resources: rs.map((r) => r.id),
+      keyCount: new Set(entries.filter((e) => e.service === service).map((e) => `${e.dbIndex}\u0000${e.keyTemplate}`)).size };
   });
 }
 
@@ -153,7 +157,7 @@ export function instanceView(g: GraphIndex, id: string, pushed: KeyEntry[] = [],
   const lazy = (det([...x.defs, ...x.members], 'lazy') as any) ?? null;
   const rows = summary ? keyRows(k.entries) : [];
   const callouts: Callout[] = rows.filter((r) => r.problem).slice(0, 6).map((r) => ({
-    kind: r.problem!.kind, row: { keyTemplate: r.keyTemplate, dbIndex: r.dbIndex },
+    kind: r.problem!.kind, service: problemService(r), row: { keyTemplate: r.keyTemplate, dbIndex: r.dbIndex },
     text: r.problem!.kind === 'ttl-disagree'
       ? `${r.keyTemplate} is written by ${r.writers.length} services (${r.writers.map((w) => w.service).join(', ')}) that disagree on its TTL.`
       : `${r.keyTemplate} is read by ${r.readers.map((w) => w.service).join(', ')} but written by no harvested service.`,

@@ -1,5 +1,6 @@
 // Redis instance page (#29): identity, the verdict with callouts that open key rows, who connects (service ->
-// access -> client and databases, a click docks the client), and the keys, loaded on request and grouped by owner.
+// access -> client and databases, a click docks the client; Show keys expands the row into that service's keys,
+// loaded on request: what it writes and what it only reads).
 // See design/mockups/redis-instance.html.
 
 import { h } from '../dom.js';
@@ -13,7 +14,7 @@ import { objectIcon, titled } from '../components/object-icon.js';
 import { VERIFIED } from '../components/declaration.js';
 import { codeLink } from './detail-parts.js';
 import { clientPane, lanes } from './instance-lanes.js';
-import { keysSection } from './instance-keys.js';
+import { keyCard } from './instance-key-card.js';
 
 const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 const list = (xs) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} and ${xs.at(-1)}` : xs[0] ?? '');
@@ -21,8 +22,8 @@ const list = (xs) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} and ${xs.at
 /** The one line under the title: what is known about the instance itself (version and nodes only when harvested). */
 function summaryLine(v) {
   const s = v.keys.summary;
-  return [v.engineVersion ? `Redis ${v.engineVersion}` : null, v.nodes ? plural(v.nodes, 'node') : null, v.databases ? plural(v.databases, 'db') : null,
-    s ? plural(s.templates, 'key template') : null].filter(Boolean).join(' · ');
+  return [v.engineVersion ? `Redis ${v.engineVersion}` : null, v.nodes ? plural(v.nodes, 'node') : null, !s && v.databases ? plural(v.databases, 'db') : null,
+    s ? `${plural(s.templates, 'key template')} in ${plural(s.dbs.length, 'db')} (${s.dbs.map((d) => `db${d.db} ${d.templates}`).join(', ')})` : null].filter(Boolean).join(' · ');
 }
 
 function meta(v) {
@@ -53,12 +54,11 @@ export async function render({ main, params }) {
   const host = h('div.panel-host');
   let lane;
   const panel = createPanel(host, { onClose: () => lane?.clear() });
-  const keys = keysSection(v);
-  lane = lanes(v, { onPick: (l) => panel.open(...clientPane(v, l)) });
+  lane = lanes(v, { onPick: (l) => panel.open(...clientPane(v, l)), makeCard: (l) => keyCard(v, l.service, { onOpen: (svc, row) => lane.open(svc, row) }) });
 
   const callouts = v.callouts.map((c) => h('div.callout',
     h('span.dot'), h('span.grow', h('b.ri-mono', c.row.keyTemplate), c.text.slice(c.row.keyTemplate.length)),
-    h('a', { href: '#', on: { click: (e) => { e.preventDefault(); keys.show(c.row); } } }, 'Load keys and show the row')));
+    c.service ? h('a', { href: '#', on: { click: (e) => { e.preventDefault(); lane.open(c.service, c.row); } } }, `Show in ${c.service}`) : null));
   const more = (v.keys.summary?.problemCount ?? 0) - v.callouts.length;
 
   const kind = v.topology === 'cluster' ? 'Redis cluster' : 'Redis instance';
@@ -68,10 +68,9 @@ export async function render({ main, params }) {
   host.prepend(h('div.content', h('div.ri-page',
     h('div.verdict', h('p.lead', lead(v)), v.callouts.length ? h('div.callouts', callouts, more > 0 ? h('p.small.muted', `and ${plural(more, 'more problem')} in the list.`) : null) : null),
     h('section.flow-section',
-      h('header', h('h2', 'Who connects ', h('span.muted', { style: { fontWeight: 400 } }, String(v.lanes.length))), h('span.hint', 'service → access → client. Click a row for its client.')),
+      h('header', h('h2', 'Who connects ', h('span.muted', { style: { fontWeight: 400 } }, String(v.lanes.length))), h('span.hint', 'service → access → client. Click a row for its client; Show keys opens that service\'s key templates.')),
       v.lanes.length ? lane.el : h('p.lane-note', 'No harvested service has a resource on this instance.'),
       h('div.ri-legend', h('span', 'R reads, W writes, R/W both'), h('span', 'Access, client and databases per service come from the client on its resource and the access it declares or its steps show'))),
-    keys.el,
     h('div.ri-foot', h('span', `Used by ${plural(v.services.length, 'service')}`),
       v.keys.pushedAt ? h('span', `Keys pushed ${ago(v.keys.pushedAt)}${v.keys.producer ? ' by ' + v.keys.producer : ''}`) : null,
       v.keys.source === 'inline' ? h('span', 'Keys are the top templates a harvester inlined') : null,

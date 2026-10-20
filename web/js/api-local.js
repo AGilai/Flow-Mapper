@@ -65,7 +65,7 @@ export const api = {
   },
   instanceKeys: async (env, id, f = {}) => {
     const key = resolveInstance(g(env), id), k = (data.keys?.[env] ?? []).find((x) => x.instance === key);
-    return (key && keysView(g(env), key, k?.entries ?? [], k?.meta ?? null, { db: f.db === '' || f.db == null ? undefined : Number(f.db), q: f.q, problems: !!f.problems })) ?? fail(`Redis instance '${id}' not found`);
+    return (key && keysView(g(env), key, k?.entries ?? [], k?.meta ?? null, { db: f.db === '' || f.db == null ? undefined : Number(f.db), q: f.q, problems: !!f.problems, service: f.service || undefined })) ?? fail(`Redis instance '${id}' not found`);
   },
   clients: async (env, f = {}) => listClients(g(env), f),
   store: async (env, key) => ({ ...(storeWithClients(g(env), key) ?? fail(`data store '${key}' not found`)), schemas: (data.schemas?.[env] ?? []).filter((s) => s.key === key) }),

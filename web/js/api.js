@@ -39,7 +39,7 @@ const remote = {
   inventory: (env) => http('GET', `/api/envs/${e(env)}/inventory`),
   store: (env, key) => http('GET', `/api/envs/${e(env)}/stores/${e(key)}`),
   instance: (env, id) => http('GET', `/api/envs/${e(env)}/instances/${e(id)}`),
-  instanceKeys: (env, id, f = {}) => http('GET', `/api/envs/${e(env)}/resources/${e(id)}/keys${qs({ db: f.db, q: f.q, problems: f.problems ? 1 : null })}`),
+  instanceKeys: (env, id, f = {}) => http('GET', `/api/envs/${e(env)}/resources/${e(id)}/keys${qs({ db: f.db, q: f.q, problems: f.problems ? 1 : null, service: f.service })}`),
   clients: (env, f = {}) => http('GET', `/api/envs/${e(env)}/clients${qs(f)}`),
   channel: (env, key) => http('GET', `/api/envs/${e(env)}/channels/${e(key)}`),
   eventType: (env, type) => http('GET', `/api/envs/${e(env)}/events/${e(type)}`),

@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { sampleManifests, startApp, SAMPLES } from './helpers.ts';
-import { accessFromCommands, groupRows, keyRows, keySummary, normaliseKeys, type KeyEntry } from '../core/keys.ts';
+import { accessFromCommands, groupRows, keyRows, keySummary, normaliseKeys, problemService, serviceKeys, type KeyEntry } from '../core/keys.ts';
 
 let app: Awaited<ReturnType<typeof startApp>>;
 const enc = encodeURIComponent;
@@ -188,4 +188,39 @@ test('the interim inline details.keys is read when nothing was pushed, and a pus
   assert.deepEqual([v.keys.source, v.keys.lazy], ['inline', { kind: 'keys', ref: 'auth-cache' }]);
   await app.call('PUT', `/api/envs/prod/resources/${enc('redis:auth-cache')}/keys`, { keys: keysOf('redis:auth-cache') });
   assert.deepEqual([(await get(`/resources/${enc('redis:auth-cache')}/keys`)).source, (await get(`/resources/${enc('redis:auth-cache')}/keys`)).shown], ['pushed', 2]);
+});
+
+test('0.17.0 per-service keys: writes, reads (owner named), problems, and the service a callout opens', () => {
+  const rows = keyRows([
+    e('a', 'own:1', 'write', { ttlSeconds: 10 }), e('b', 'own:1', 'read'),
+    e('a', 'sh:1', 'write', { ttlSeconds: 10 }), e('b', 'sh:1', 'read_write', { ttlSeconds: 20 }), e('c', 'sh:1', 'read'),
+    e('c', 'none:1', 'read'), e('d', 'none:1', 'read'),
+  ]);
+  const a = serviceKeys(rows, 'a'), b = serviceKeys(rows, 'b'), c = serviceKeys(rows, 'c');
+  assert.deepEqual([a.writes, a.reads, a.problems].map((x) => x.map((r) => r.keyTemplate)), [['own:1', 'sh:1'], [], ['sh:1']]);
+  assert.deepEqual([b.writes, b.reads].map((x) => x.map((r) => r.keyTemplate)), [['sh:1'], ['own:1']], 'a service that writes a key does not also read it');
+  assert.deepEqual(b.reads[0].writers.map((w) => w.service), ['a'], 'a read row names its owner');
+  assert.deepEqual([c.writes.length, c.reads.map((r) => r.keyTemplate), c.problems.map((r) => r.keyTemplate)], [0, ['none:1', 'sh:1'], ['none:1', 'sh:1']]);
+  assert.deepEqual(serviceKeys(rows, 'nobody'), { writes: [], reads: [], problems: [] });
+  const by = Object.fromEntries(rows.map((r) => [r.keyTemplate, r]));
+  assert.deepEqual([problemService(by['sh:1']), problemService(by['none:1']), problemService(by['own:1'])], ['a', 'c', null], 'shared: first writer; no writer: the first reader');
+});
+
+test('GET keys?service= narrows to what the service writes or reads; the summary still counts everything; callouts say where to open', async () => {
+  await app.call('PUT', `/api/envs/prod/resources/${enc(CM)}/keys`, { keys: keysOf(CM) });
+  const all = await get(`/resources/${enc(CM)}/keys`);
+  const mine = await get(`/resources/${enc(CM)}/keys?service=catalog-svc`);
+  const rows = mine.groups.flatMap((g: any) => g.rows);
+  assert.ok(rows.length > 0 && rows.length < all.shown);
+  assert.ok(rows.every((r: any) => [...r.writers, ...r.readers].some((u: any) => u.service === 'catalog-svc')));
+  assert.deepEqual(mine.summary, all.summary);
+  assert.ok(rows.some((r: any) => r.keyTemplate === 'product:{id}:availability' && r.problem?.kind === 'no-writer'), "the no-writer key is in its reader's card");
+  assert.equal((await get(`/resources/${enc(CM)}/keys?service=nobody`)).shown, 0);
+  const v = await get(`/instances/${enc(CM)}`);
+  const co = (k: string) => v.callouts.find((c: any) => c.row.keyTemplate === k);
+  assert.equal(co('product:{id}:availability').service, 'catalog-svc');
+  assert.equal(co('order:{id}').service, 'inventory-svc', 'a shared key opens its first writer');
+  assert.ok(v.lanes.every((l: any) => l.keyCount > 0), 'every lane of the sample has keys');
+  const rpc = await app.call('POST', '/mcp', { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'get_resource_keys', arguments: { env: 'prod', resourceId: CM, service: 'catalog-svc' } } });
+  assert.equal(JSON.parse(rpc.body.result.content[0].text).shown, rows.length);
 });
