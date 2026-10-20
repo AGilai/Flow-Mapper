@@ -111,7 +111,7 @@ test('fold: a chain of up to 3 is one segment each; longer is one "middleware (N
   assert.equal(mwSegments(chain(5), true)[0].collapse, true);
   assert.deepEqual(mwSegments([]), []);
   assert.ok(isLongChain(chain(4)) && !isLongChain(chain(3)));
-  assert.equal(mwLabel(folded[0], 2), 'middleware (5) · 2 internal ▸');
+  assert.equal(mwLabel(folded[0], 2), 'middleware (5) · 2 internal');
 });
 
 test('spans: each segment runs from its label row to the row before the next; the last ends at the handler part', () => {

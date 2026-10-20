@@ -132,7 +132,7 @@ export async function render({ main, query }) {
   const openFlow = (row, full) => go('/flows', { service: row.service, ingress: row.ingress, scope: full ? 'full' : opts.scope });
   const lookInside = (bar) => { select(bar); inside.open(bar, trace); };
   const handlers = {
-    onMw: (bar) => { const k = bar?.mw?.key; if (k) { if (!mwOpen.delete(k)) mwOpen.add(k); draw(); } }, // fold or unfold one bar's long middleware chain
+    onMw: (bar, sel) => { const k = bar?.mw?.key; if (!k) return; if (!mwOpen.delete(k)) mwOpen.add(k); draw(); mainPane.querySelector(`${sel ?? '.mwlab'}[data-mwfold="${bar.id}"]`)?.focus(); }, // fold or unfold one bar's long middleware chain
     onBar: (bar, mode) => { if (mode === 'select') select(bar); else lookInside(bar); },
     onBarMenu: (bar, x, y) => barMenu(bar, x, y, { trace, inside: () => lookInside(bar), toIndex: index ? () => index.el.scrollIntoView({ behavior: 'smooth' }) : null }),
     onParticipant: (p, x, y) => participantMenu(p, x, y, { trace, scope: opts.scope }),

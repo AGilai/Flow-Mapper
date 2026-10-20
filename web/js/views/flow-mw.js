@@ -28,5 +28,5 @@ export function mwSpans(labelRows, endRow) {
   return labelRows.map((from, i) => ({ from, to: i + 1 < labelRows.length ? labelRows[i + 1] - 1 : Math.max(from, endRow) }));
 }
 
-/** Text of a segment's label: its name, with the internal calls folded into it. */
-export const mwLabel = (seg, internal = 0) => `${seg.collapse ? '▾ ' : ''}${seg.label}${internal ? ` · ${internal} internal` : ''}${seg.folded ? ' ▸' : ''}`;
+/** Text of a segment's label: its name, with the internal calls folded into it (the chevron of a fold is drawn, not typed). */
+export const mwLabel = (seg, internal = 0) => `${seg.label}${internal ? ` · ${internal} internal` : ''}`;
