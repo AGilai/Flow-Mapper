@@ -149,9 +149,12 @@
    full text), then the secondary text. Below 860px the row may wrap. */
 .card-h { flex-wrap: nowrap; }
 .card-h .lane { flex: 0 1 auto; min-width: 0; flex-wrap: nowrap; white-space: nowrap; overflow: visible; }
-.card-h .lane > .tc { flex: 0 1 auto; min-width: 34px; max-width: 220px; display: block; line-height: 20px; overflow: hidden; text-overflow: ellipsis; }
+.card-h .lane > .tc { flex: 0 4 auto; min-width: 0; max-width: 220px; display: block; line-height: 20px; overflow: hidden; text-overflow: ellipsis; }
 .card-h .lane .arr, .card-h .layer, .card-h .chev, .card-h .chev-pad { flex: none; }
-.card-h .svc { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card-h .svc { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-flex; align-items: baseline; gap: 4px; }
+/* The service is what the row is about: never cut it. The topic/queue chips give way first, then the handler. */
+.card-h .svc > b { flex: none; }
+.card-h .svc > .mono { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .card-h .nest-chip { flex: none; white-space: nowrap; }
 .card-h .sum { margin-left: auto; flex: none; white-space: nowrap; }
 .card-h .btn, .card-h .chip-warn, .card-h .chip-bad { flex: none; }
