@@ -42,6 +42,7 @@ export function renderIndex(tree, ctx) {
   const parents = new Map();
   const groupOfRow = (row) => parents.get(row);
 
+  const hoverable = (el, row) => { el.addEventListener('mouseenter', () => ctx.hover?.(row.label, true)); el.addEventListener('mouseleave', () => ctx.hover?.(row.label, false)); };
   function rowEl(row, group, depth) {
     parents.set(row, group);
     if (row.seenIn) {
@@ -49,6 +50,7 @@ export function renderIndex(tree, ctx) {
         h('span.lane', h('span.svc', h('b', row.service), h('span.mono', ` · ${row.handler}`))),
         h('span.sum', `↩ seen in ${row.seenIn}`), h('button.btn.sm.ghost', { on: { click: () => reveal(row.seenIn) } }, `Jump to ${row.seenIn}`));
       rowNodes.set(row.label, el);
+      hoverable(el, row);
       return el;
     }
     const expandable = !row.noHandler && row.ingress && !loops(row);
@@ -78,6 +80,7 @@ export function renderIndex(tree, ctx) {
     if (expandable) head.addEventListener('click', (e) => { if (!e.target.closest('button,a')) setOpen(!open); });
     paint();
     card.append(head, body);
+    hoverable(head, row);
     entry.setOpen = setOpen; entry.paint = paint; entry.el = card;
     return card;
   }

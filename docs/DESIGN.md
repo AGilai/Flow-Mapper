@@ -308,8 +308,9 @@ delivery opened from the tab `origin`), `full:service/ingress[@origin]`. The URL
 costs no request and survives its origin being closed (the origin is resolved by key, and the breadcrumb reopens it).
 The scope (inside the service / full flow) belongs to a tab and is part of its key.
 
-The "Queues and topics" checkbox stays hidden: a sub-flow's diagram starts at its delivery, so there is no queue or topic
-lifeline for it to add inside a tab; the checkbox returns when a diagram that spans publishes (nested async work) exists.
+The "Queues and topics" checkbox is gone (0.17.0): every diagram draws its own publishes as a chain that stops at the queue
+(service, topic, queues), with the topic and queue lifelines to the right of the services. The consumer's work is the async
+sub-flow under the diagram; the number on the tile at the queue is the number of its row there.
 
 ## Flow descriptions (0.14.0)
 

@@ -54,7 +54,10 @@ export interface Message {
   middleware?: { fn: string; index: number };                // the message comes from this middleware function of the ingress (0-based position in `ingress.middleware`) or from a call it made; absent for the handler's own
   middlewareChain?: { fn: string; name: string }[];          // on a message that reaches an ingress (entry / egress / deliver): its middleware, in the order they run before the handler
   delivery?: number;                                         // on the topic -> queue and queue -> consumer messages of one delivery: 1-based ordinal within the group
+  filter?: HopFilter;                                        // on a hop that goes through a subscription, rule or binding (topic -> queue, bus -> target, exchange -> queue): what it declares
 }
+/** The subscription behind a hop: its id, the key it listens on (SNS topic, bus, `exchange/routing-key`) and the event types it lets through (absent: all). */
+export interface HopFilter { id: string; service: string; from: string; events?: '*' | string[] }
 export interface Trace {
   start: { service: string; ingress?: string; fn: string; event?: string }; scope: 'intra' | 'full';
   participants: Participant[]; messages: Message[]; truncated: boolean;
@@ -95,6 +98,10 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
     const b = l.binding ? g.bindings.get(sid(l.binding.service, l.binding.id)) : undefined;
     if (!b?.events || b.events === '*') return [];
     return [...set.known, ...set.candidates].filter((t) => passes(g, l, t));
+  };
+  const filterOf = (l: Parameters<typeof passes>[1]): { filter: HopFilter } | {} => {
+    const b = l.binding ? g.bindings.get(sid(l.binding.service, l.binding.id)) : undefined;
+    return b ? { filter: { id: b.id, service: b.service, from: b.from, ...(b.events ? { events: b.events } : {}) } } : {};
   };
   const chPart = (key: string) => part({ id: `ch:${key}`, label: g.channels.get(key)?.name ?? key, kind: 'channel' });
   // The same subscription declared twice (by the topic's owner and by the consumer) is one link, one arrow.
@@ -217,7 +224,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
           push({ ...base, from: me, to, label, mode, kind: 'egress', broken: true, transport: e.transport, egress: e.id, ...eventFrom });
           continue;
         }
-        for (const l of links) follow(me, l.to, label, mode, depth, stack, { ...base, transport: e.transport, event, egress: e.id, ...eventFrom }, [], set);
+        for (const l of links) follow(me, l.to, label, mode, depth, stack, { ...base, transport: e.transport, event, egress: e.id, ...eventFrom, ...filterOf(l) }, [], set);
       }
     }
     } finally { altCtx = outer; }
@@ -257,7 +264,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
       // A publish that reaches several links is a fan-out: the publish carries a group id, each delivery an ordinal.
       const group = next.length > 1 ? `m${messages.length - 1}` : undefined;
       if (group) Object.assign(messages[messages.length - 1], { group, deliveries: next.length });
-      const { deliveries: _n, ...inherited } = base; // a delivery's ordinal rides along to its queue -> consumer message; an inner fan-out replaces it
+      const { deliveries: _n, filter: _f, ...inherited } = base; // a delivery's ordinal rides along to its queue -> consumer message; an inner fan-out replaces it
       const outerDeferred = deferred, later: (() => void)[] = outerDeferred ?? [];
       if (group) deferred = later;
       next.forEach((l, k) => {
@@ -266,7 +273,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
         const own = set && l.binding ? matchedTypes(l, set) : [];
         const matched = own.length ? own : inherited.matched;
         follow(ch, l.to, to.key + (base.event ? ` · ${base.event}` : matched?.length ? ` · ${matched.join(', ')}` : '') + (possible ? ' · possible' : ''), 'async', depth, stack,
-          { ...inherited, transport: l.transport, ...(matched?.length ? { matched } : {}), ...(possible ? { possible } : {}), ...(group ? { group, delivery: k + 1 } : {}) }, [...seenCh, to.key], set);
+          { ...inherited, transport: l.transport, ...filterOf(l), ...(matched?.length ? { matched } : {}), ...(possible ? { possible } : {}), ...(group ? { group, delivery: k + 1 } : {}) }, [...seenCh, to.key], set);
       });
       if (group) { deferred = outerDeferred; if (!outerDeferred) for (const run of later) run(); }
       return;

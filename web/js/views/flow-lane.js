@@ -5,8 +5,9 @@
 //  - a call into a service (entry, or a sync/async egress to a service) opens a bar; the bar closes when the trace
 //    returns to a message at its depth or above; a second call is a second bar;
 //  - calls inside a service ("call" steps) are not drawn: they are counted on the bar (the pill);
-//  - a publish ends at the "published events" rail; the async work below it is not in the lane (flow-async.js);
-//  - a call that matches nothing ends at the "unresolved" column, without a bar or a return; that column and the rail come after the last lifeline, rail first;
+//  - a publish is a chain of arrows: service -> topic / bus / exchange -> each subscribed queue (flow-chain.js). It stops at the queue: an end
+//    marker with the number of each async flow that starts there (the row of the async index); the consumer's work is not in the lane (flow-async.js);
+//  - a call that matches nothing ends at the "unresolved" column, without a bar or a return; that column comes after the last lifeline, after the topic and queue lifelines (narrow, grouped per topic);
 //  - middleware (m.middlewareChain on the call) is a run of segments on top of the bar: one "mw" row per segment, then the rows of
 //    its calls; the handler's part (and the internal-calls pill) follow. Chains over 3 fold into one segment unless its key is in `mwOpen` (a Set of bar keys, or true for all);
 //  - a callee reuses its service's column unless the arrow would cross another open bar, then it gets a new column.
@@ -14,6 +15,7 @@
 import { scanLane, isPublish } from './flow-scan.js';
 import { callerFor } from './flow-sub.js';
 import { mwSegments, segmentOf, mwSpans } from './flow-mw.js';
+import { chainOf, planChains, hopLabel, filterMarker, badgesAt, chType, chName, isQueueKey } from './flow-chain.js';
 
 const SYNC_TRANSPORT = new Set(['http', 'rpc', 'grpc']);
 export const svcOf = (id) => (id.startsWith('svc:') ? id.slice(4) : id.startsWith('fn:') ? id.split(':')[1] : null);
@@ -28,25 +30,25 @@ export function callLabel(m) {
   }
   return m.event ?? m.label.replace(/^.*→\s*/, '').replace(/^\w+:/, '');
 }
-/** Event name on a publish arrow. */
-export const publishLabel = (m) => m.event ?? m.label.split(' · ')[1] ?? 'publish';
+const CH_KIND = (key) => (isQueueKey(key) ? 'queue' : 'topic');
 /** Verb and store name of a data-store stub: "UpdateItem" over "inventory-stock". */
 export const storeLabel = (m) => ({ verb: m.label, name: (m.store ?? '').replace(/^[^:]+:/, '').replace('/', '.') });
 
 /**
  * buildLane(msgs, { stores, scope, participants })
  * -> { columns: [{ id, label, sub, kind }], events, bars, altMsgs, altRows }
- * Event types: call (opens a bar, or an arrow to a plain lifeline), return, store, publish, unresolved, pill, frontier.
+ * Event types: call (opens a bar, or an arrow to a plain lifeline), return, store, hop (one arrow of a publish chain), unresolved, pill, frontier.
+ * hop: { msg, from, to, fromBar (the first hop only), label (the event type), transport, marker (filter), legs, end: { tiles, items, none } | null }.
+ * options: numbers (Map delivery message -> { label, shows, seen, noHandler }, from deliveryNumbers(tree): the number tiles at the queues), fanOpen (Set of topics whose queues are all drawn).
  * Every event has `row` (its index). Bars: { id, service, col, level, transport, sync, msg, depth, internal: {n, gaps}, msgs, start, end }.
  */
-export function buildLane(msgs, { stores = true, scope = 'full', participants = [], mwOpen = false } = {}) {
+export function buildLane(msgs, { stores = true, scope = 'full', participants = [], mwOpen = false, numbers = new Map(), fanOpen = false } = {}) {
   const kind = new Map(participants.map((p) => [p.id, p.kind]));
   const cols = [], byService = new Map(), stack = [], bars = [], events = [];
   const keys = new Map();
   const mk = (c) => { c.ci = cols.length; cols.push(c); return c; };
   const special = (id, label, sub, k) => cols.find((c) => c.id === id) ?? mk({ id, label, sub, kind: k, ci: Infinity });
   const unresolvedCol = () => special('unresolved', 'unresolved', 'no match / gap', 'unresolved');
-  const railCol = () => special('rail', 'published events', 'topics, queues', 'rail');
   if (!msgs.length) return { columns: [], events, bars, altMsgs: [], altRows: [] };
 
   const first = msgs[0];
@@ -97,7 +99,30 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
   const rootCol = mk({ id: `svc:${root}`, label: root, sub: 'service', kind: 'service', service: root });
   byService.set(root, rootCol);
   const { lane, publishes } = scanLane(msgs);
-  const pubAt = new Map(publishes.map((p) => [p.i, p]));
+  const chains = publishes.map((p) => chainOf(msgs, p)), chainAt = new Map(publishes.map((p, k) => [p.i, chains[k]]));
+  const plan = planChains(chains, { fanOpen });
+  const chanCol = (key) => {
+    const ord = plan.order.findIndex((o) => o.key === key), o = plan.order[ord];
+    return cols.find((c) => c.id === `ch:${key}`) ?? mk(o?.role === 'fold'
+      ? { id: `ch:${key}`, label: `+${o.queues.length} queues`, sub: chType(o.queues[0]), kind: 'channel', transport: chType(o.queues[0]), ord, fan: plan.folds.get(o.topic), folded: o.queues }
+      : { id: `ch:${key}`, label: chName(key), sub: chType(key), kind: 'channel', transport: chType(key), ord, fan: plan.folds.get(key)?.open ? plan.folds.get(key) : null });
+  };
+  // One publish: an arrow per leg (queues that fold into "+N queues" share one), each end with the tiles of the flows that start there.
+  const emitChain = (top, chain) => {
+    const rows = [];
+    for (const leg of chain.legs) {
+      const to = plan.colOf(leg.to), prev = to.startsWith('fold:') ? rows.find((r) => r.to === to && r.from === leg.from) : null;
+      if (prev) prev.legs.push(leg); else rows.push({ to, from: leg.from, legs: [leg] });
+    }
+    for (const r of rows) {
+      const l = r.legs[0], delivers = r.legs.flatMap((x) => x.delivers), leaf = !chain.legs.some((x) => x.from != null && r.legs.some((y) => y.to === x.from));
+      const items = delivers.flatMap((d) => (numbers.get(d) ? [numbers.get(d)] : []));
+      const end = !leaf ? null : delivers.length ? { items, tiles: badgesAt(items), none: null, bad: items.some((i) => i.noHandler) }
+        : { items: [], tiles: [], none: CH_KIND(r.legs[0].to) === 'queue' ? 'no reader' : 'no consumers' };
+      const marker = r.legs.length > 1 ? { kind: 'fold', label: `${r.legs.length} queues`, full: `${r.legs.length} queues, folded: ${r.legs.map((x) => chName(x.to)).join(', ')}` } : filterMarker(l.filter, l.msg.transport);
+      push({ type: 'hop', msg: l.msg, from: l.first ? top.col : chanCol(r.from), fromBar: l.first ? top : null, to: chanCol(r.to), label: hopLabel(l.msg), transport: l.msg.transport, marker, legs: r.legs, topic: l.first ? l.to : l.from, queue: l.first ? null : l.to, end });
+    }
+  };
   lane.forEach((idx, n) => {
     const m = msgs[idx];
     if (n === 0) { open(m, source, null, root, rootCol, SYNC_TRANSPORT.has(m.transport) && m.mode === 'sync'); return; }
@@ -116,7 +141,7 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
     if (m.kind === 'leaf') return;
     if (m.kind === 'resource') { if (stores) push({ type: 'store', msg: m, bar: top, ...storeLabel(m) }); return; }
     if (m.kind === 'frontier') { push({ type: 'frontier', msg: m, bar: top }); return; }
-    if (isPublish(m)) { push({ type: 'publish', msg: m, bar: top, col: railCol(), topic: m.to.slice(3), label: publishLabel(m), flows: pubAt.get(idx)?.delivers.length ?? 0 }); return; }
+    if (isPublish(m)) { emitChain(top, chainAt.get(idx)); return; }
     const k = kind.get(m.to), service = svcOf(m.to);
     if (m.broken || m.gap || !service || k === 'missing' || k === 'unresolved') { push({ type: 'unresolved', msg: m, bar: top, col: unresolvedCol(), label: callLabel(m) }); return; }
     if (scope === 'intra' && service !== root) { push({ type: 'call', msg: m, from: top.col, fromBar: top, to: pickCol(service, top.col), bar: null, label: callLabel(m) }); return; }
@@ -137,14 +162,14 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
     let e = b.mw.endIdx; while (e > 0 && remap.get(events[e]) < 0) e--;
     b.mw.spans = mwSpans(b.mw.labels.map((ev) => ev.row), remap.get(events[e]));
   }
-  const rank = (c) => (c.kind === 'rail' ? 1 : c.kind === 'unresolved' ? 2 : 0); // the rail sits right after the last lifeline that is used (it must show without scrolling); the unresolved column follows it
+  const rank = (c) => (c.kind === 'channel' ? 1 : c.kind === 'unresolved' ? 2 : 0); // topics and queues sit right after the last service lifeline, grouped per topic; the unresolved column follows
   const columns = cols.filter((c) => events.some((e) => e.from === c || e.to === c || e.col === c) || c === source || c === rootCol)
-    .sort((a, b) => rank(a) - rank(b) || a.ci - b.ci);
+    .sort((a, b) => rank(a) - rank(b) || (a.kind === 'channel' ? a.ord - b.ord : a.ci - b.ci));
   const altEvents = kept.filter((e) => e.msg);
   return { columns, events: kept, bars, altMsgs: altEvents.map((e) => e.msg), altRows: altEvents.map((e) => e.row) };
 }
 
-/** Arrows that pass over a bar they do not belong to: [{ event, bar }]. Calls and returns only (the rail and unresolved lie at the far right). */
+/** Arrows that pass over a bar they do not belong to: [{ event, bar }]. Calls, returns and the first hop of a publish (topics and queues have no bars). */
 export function crossings(lane) {
   const order = new Map(lane.columns.map((c, i) => [c, i]));
   const out = [];

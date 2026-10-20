@@ -1,77 +1,118 @@
 // Draws a lane (flow-lane.js) as SVG: a sticky header of lifeline cards and a body with activation bars, arrows,
-// stubs, the "published events" rail and alt frames. No layout rules live here beyond row heights.
+// stubs, the topic and queue lifelines of publish chains and alt frames. No layout rules live here beyond row heights.
 //
-//   solid arrow, filled head   = call            dashed, open head = return
+//   solid arrow, filled head   = call or routing hop     dashed, open head = return
 //   red dashed with a cross    = call that matches nothing
-//   bar colour / arrow colour  = transport that entered the service
+//   bar colour / arrow colour  = transport that entered the service / the hop's transport
+//   stop bar + number tiles    = a publish chain ends at a queue: the tiles are the async flows that start there (rows of the list below)
 
 import { h, s } from '../dom.js';
 import { altFrames, stripsByRow, drawFrames, STRIP } from './sequence-alt.js';
 import { mwLabel, isLongChain } from './flow-mw.js';
 import { arrowEnds, columnGaps, centres, labelWidth, wrapId } from './flow-cols.js';
+import { chName } from './flow-chain.js';
 
-const COL = 138, COL_MIN = 96, PAD = 16, GUTTER = 8, BAR = 12, NEST = 8;
-const ROWH = { call: 46, return: 36, pill: 32, mw: 34, store: 46, publish: 66, unresolved: 42, frontier: 32 };
-const LINE = { call: 30, return: 22, pill: 16, mw: 17, store: 23, publish: 30, unresolved: 28, frontier: 16 };
+const COL = 138, COL_MIN = 96, PAD = 16, GUTTER = 8, BAR = 12, NEST = 8, CH_HEAD = 110; // CH_HEAD: a topic or queue head is narrower than a service head
+const ROWH = { call: 46, return: 36, pill: 32, mw: 34, store: 46, hop: 48, unresolved: 42, frontier: 32 };
+const rowH = (e) => (e.type === 'hop' && e.marker ? 56 : ROWH[e.type]);
+const LINE = { call: 30, return: 22, pill: 16, mw: 17, store: 23, hop: 30, unresolved: 28, frontier: 16 };
 const T_VAR = { http: '--t-http', rpc: '--t-rpc', grpc: '--t-http', eventbridge: '--t-eb', sns: '--t-sns', sqs: '--t-sqs', amqp: '--t-amqp', cron: '--t-cron', res: '--t-res' };
 const colorOf = (t) => `var(${T_VAR[t] ?? '--ink-2'})`;
-const SUB_CH = 19, CHIP_PX = 7, LINE_H = 14;
+const SUB_CH = 19, LINE_H = 14, TILE_PX = 6.6;
+const tileW = (t) => Math.max(22, Math.ceil(String(t).length * TILE_PX) + 12);
+const markW = (m) => Math.ceil(m.label.length * 6.4) + 30;
+const FUNNEL = 'M1.5 2h9L7 6.3V10l-2-1V6.3z';
 
 /**
  * renderLane(lane, handlers) -> { el, body, events, bars }
  * handlers: onMessage(msg, g, event), onBar(bar, 'select'?) (double-click, pill: look inside; click: select),
- * onBarMenu(bar, x, y), onParticipant(p, x, y), onBadge(publishEvent). `selected`: bar id drawn highlighted.
+ * onBarMenu(bar, x, y), onParticipant(p, x, y), onNum(jump) (a number tile at a queue), onNumHover(own labels, on), onFan(topic) (fold or unfold a big fan-out).
+ * `selected`: bar id drawn highlighted. Returns { el, body, events, bars, mark(label, on) } (mark: highlight the tiles of a list row).
  */
-export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, onBadge, onMw, onBarTip, selected = null, sticky = true, fit = 0 } = {}) {
+export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, onNum, onNumHover, onFan, onMw, onBarTip, selected = null, sticky = true, fit = 0 } = {}) {
   const { columns, events, bars } = lane;
   // Each gap between lifelines grows to fit the longest arrow label that crosses it: a label is never cut.
   const idx = new Map(columns.map((c, i) => [c, i]));
-  const chipW = (e) => e.topic.length * CHIP_PX + 18;
-  // A publish arrow is short: its event name sits over the topic chip, both centred on the rail, so the rail needs only half of the wider one on each side.
-  const pubW = (e) => Math.max(60, chipW(e), labelWidth(e.label));
-  const chipMax = Math.max(60, ...events.filter((e) => e.type === 'publish').map(pubW));
-  const spans = events.flatMap((e) => { const ends = arrowEnds(e); return ends ? [{ a: idx.get(ends[0]), b: idx.get(ends[1]), need: e.type === 'publish' ? pubW(e) / 2 + BAR + 2 * NEST + 24 : labelWidth(e.label) + 8 + BAR + 2 * NEST }] : []; });
-  const rIdx = columns.findIndex((c) => c.kind === 'rail');
-  if (rIdx >= 0 && rIdx < columns.length - 1) spans.push({ a: rIdx, b: rIdx + 1, need: chipMax / 2 + 40 }); // the unresolved column must clear the topic chips (they sit on the rail)
-  // `fit`: the room the diagram has. The plain gap shrinks (to COL_MIN) until the rail and its chips show without scrolling.
+  const isCh = (c) => c.kind === 'channel', headW = (c, col) => (isCh(c) ? CH_HEAD : col - 8);
+  // The room right of a queue for its number tiles (or "no reader"): the next lifeline in that direction must clear it.
+  const endW = (e) => (e.end ? (e.end.none ? e.end.none.length * 7 + 32 : e.end.tiles.reduce((n, t) => n + tileW(t.text) + 4, 0)) + 14 : 0);
+  // A label between two topic or queue lifelines may run past the arrow's tip (over the next lifelines, with its halo) instead of widening every gap.
+  const over = (e) => e.type === 'hop' && isCh(e.from);
+  const overruns = (e, len) => over(e) && labelWidth(e.label) + 14 > len;
+  const spans = events.flatMap((e) => {
+    const ends = arrowEnds(e);
+    if (!ends) return [];
+    const a = idx.get(ends[0]), b = idx.get(ends[1]), out = [{ a, b, need: Math.max(over(e) ? 0 : labelWidth(e.label) + 8 + BAR + 2 * NEST, e.marker ? markW(e.marker) + 16 : 0) }];
+    if (e.end) { const n = b + (Math.sign(b - a) || 1); if (n >= 0 && n < columns.length) out.push({ a: b, b: n, need: endW(e) + 14 }); }
+    return out;
+  });
+  // `fit`: the room the diagram has. The plain gap shrinks (to COL_MIN) until everything shows without scrolling; topic and queue gaps stay.
   const layout = (col) => {
-    const xs = centres(PAD + GUTTER + col / 2, columnGaps(columns.length, spans, col));
-    const railX = rIdx >= 0 ? xs[rIdx] : null;
-    const chipRight = railX == null ? 0 : railX + chipMax / 2;
-    const reach = railX == null ? xs[xs.length - 1] + col / 2 + 200 - col / 2 : Math.max(xs[xs.length - 1] + col / 2, chipRight);
-    return { xs, col, width: Math.ceil(reach + PAD), railEnd: railX == null ? 0 : chipRight + PAD };
+    const xs = centres(PAD + GUTTER + col / 2, columnGaps(columns.length, spans, (i) => Math.round((headW(columns[i], col) + headW(columns[i + 1], col)) / 2 + 8)));
+    const last = columns[columns.length - 1];
+    let reach = xs[xs.length - 1] + (isCh(last) ? 92 : col / 2 + 200 - col / 2);
+    for (const e of events) if (over(e)) { const x = xs[idx.get(e.from)], len = Math.abs(xs[idx.get(e.to)] - x); if (overruns(e, len) && xs[idx.get(e.to)] > x) reach = Math.max(reach, x + 6 + labelWidth(e.label)); }
+    return { xs, col, width: Math.ceil(reach + PAD) };
   };
   let L = layout(COL);
-  for (let col = COL - 6; fit && L.railEnd > fit && col >= COL_MIN; col -= 6) L = layout(col);
-  const { xs, col: COLW, width } = L, HEAD_BOX = COLW - 8, nameCh = Math.max(9, Math.floor((HEAD_BOX - 18) / 6.9));
+  for (let col = COL - 6; fit && L.width > fit && col >= COL_MIN; col -= 6) L = layout(col);
+  const { xs, col: COLW, width } = L, HEAD_BOX = COLW - 8, nameCh = (c) => Math.max(9, Math.floor((headW(c, COLW) - 18) / 6.9));
   const colX = new Map(columns.map((c, i) => [c, xs[i]]));
   // a queue head drops its transport prefix and the 'queue delivery' line (the title keeps both): two lines at most
-  const heads = columns.map((c) => (c.sub === 'queue delivery' ? { name: wrapId(c.label.replace(/^[^:]+:/, ''), nameCh), sub: [] } : { name: wrapId(c.label, nameCh), sub: wrapId(c.sub ?? '', SUB_CH) }));
+  const heads = columns.map((c) => (c.sub === 'queue delivery' ? { name: wrapId(c.label.replace(/^[^:]+:/, ''), nameCh(c)), sub: [] } : { name: wrapId(c.label, nameCh(c)), sub: isCh(c) ? [c.sub] : wrapId(c.sub ?? '', SUB_CH) }));
   const boxH = 12 + Math.max(...heads.map((x) => x.name.length * LINE_H + x.sub.length * 13)) + 6, HEAD = boxH + 16;
   const frames = altFrames(lane.altMsgs), strips = stripsByRow(frames, lane.altRows);
   const nStrips = (r) => strips.get(r)?.length ?? 0;
   const top = [], ys = [];
   let y = PAD;
-  events.forEach((e, r) => { top[r] = y; ys[r] = y + nStrips(r) * STRIP + LINE[e.type]; y += nStrips(r) * STRIP + ROWH[e.type]; });
+  events.forEach((e, r) => { top[r] = y; ys[r] = y + nStrips(r) * STRIP + LINE[e.type]; y += nStrips(r) * STRIP + rowH(e); });
   top[events.length] = y;
   const height = y + PAD;
   const barX = (bar, dir) => colX.get(bar.col) + bar.level * NEST + dir * BAR / 2;
   const edge = (bar, col, dir) => (bar ? barX(bar, dir) : colX.get(col));
 
+  const headBox = (c) => headW(c, COLW);
   const head = s('svg', { width, height: HEAD, class: 'seq-head', role: 'presentation' }, columns.map((c, i) =>
-    s('g', { class: `seq-part k-${c.kind}`, 'data-p': i, transform: `translate(${colX.get(c) - HEAD_BOX / 2},8)` },
-      s('rect', { width: HEAD_BOX, height: boxH, rx: 8 }), c.kind === 'rail' ? null : s('rect', { class: 'stripe', width: 4, height: boxH, rx: 2 }),
+    s('g', { class: `seq-part k-${c.kind}${c.fan ? ' fan' : ''}`, 'data-p': i, style: isCh(c) ? `--mc:${colorOf(c.transport)}` : null, transform: `translate(${colX.get(c) - headBox(c) / 2},8)`, tabindex: c.fan ? 0 : null, role: c.fan ? 'button' : null },
+      s('rect', { width: headBox(c), height: boxH, rx: 8 }), s('rect', { class: 'stripe', width: 4, height: boxH, rx: 2 }),
       heads[i].name.map((t, k) => s('text', { x: 12, y: 18 + k * LINE_H, class: 'name' }, t)),
-      heads[i].sub.map((t, k) => s('text', { x: 12, y: 18 + heads[i].name.length * LINE_H + 1 + k * 13, class: 'sub' }, t)), s('title', {}, c.label))));
+      isCh(c) ? headChip(c, heads[i].name.length * LINE_H + 5) : heads[i].sub.map((t, k) => s('text', { x: 12, y: 18 + heads[i].name.length * LINE_H + 1 + k * 13, class: 'sub' }, t)),
+      s('title', {}, c.folded ? `${c.folded.length} more queues: ${c.folded.map(chName).join(', ')}. Click to show them all.` : c.fan?.open ? `${c.label}. Click to fold the healthy queues again.` : c.label))));
+  function headChip(c, y) { // the transport of a topic or queue, as a chip; a big fan-out adds its fold control
+    const w = c.sub.length * 6.4 + 12;
+    return [s('rect', { class: 'tchip', x: 12, y: y + 4, width: w, height: 16, rx: 4 }), s('text', { class: 'tchipt', x: 18, y: y + 16 }, c.sub),
+      c.fan ? s('text', { class: 'fanbtn', x: 12 + w + 6, y: y + 16 }, c.folded ? 'show ▸' : 'fold ▴') : null];
+  }
 
   const arrowHead = (x, dir, open) => s('path', { d: open ? `M${x - dir * 7} -4L${x} 0L${x - dir * 7} 4` : `M${x - dir * 8} -4L${x} 0L${x - dir * 8} 4z`, class: open ? 'head open' : 'head' });
-  const arrow = (x1, x2, y0, { dashed, open, label, italic, color, cross } = {}) => {
+  const arrow = (x1, x2, y0, { dashed, open, label, italic, color, cross, over } = {}) => {
     const dir = Math.sign(x2 - x1) || 1;
     return s('g', { class: 'arr', style: `--mc:${color}` },
       s('line', { class: 'arrow', x1, x2: x2 - dir * 2, y1: y0, y2: y0, 'stroke-dasharray': dashed ? '5 4' : null }),
       s('g', { transform: `translate(0 ${y0})` }, arrowHead(x2, dir, open)),
-      label ? s('text', { class: `label${italic ? ' ret' : ''}`, x: (x1 + x2) / 2, y: y0 - 6, 'text-anchor': 'middle' }, label) : null,
+      label ? s('text', { class: `label${italic ? ' ret' : ''}`, x: over ? x1 + dir * 6 : (x1 + x2) / 2, y: y0 - 6, 'text-anchor': over ? (dir > 0 ? 'start' : 'end') : 'middle' }, label) : null,
       cross ? s('path', { d: `M${x2 - 5} ${y0 - 5}l10 10M${x2 + 5} ${y0 - 5}l-10 10`, class: 'x' }) : null);
+  };
+
+  // A filter on a hop: a funnel (types, rule, key), a crossed funnel (all but N) or a stack of queues (folded), centred under the arrow.
+  const marker = (m, cx, y0, mc) => {
+    const w = markW(m), x = cx - w / 2;
+    return s('g', { class: `hopmark ${m.kind}`, style: `--mc:${mc}` }, s('rect', { x, y: y0 + 5, width: w, height: 17, rx: 8.5 }),
+      m.kind === 'fold' ? null : s('g', { transform: `translate(${x + 6} ${y0 + 8})`, class: 'fun' }, s('path', { d: FUNNEL }), m.kind === 'all-but' ? s('path', { d: 'M1 11L11 1' }) : null),
+      s('text', { x: x + (m.kind === 'fold' ? 10 : 22), y: y0 + 17 }, m.label));
+  };
+  // The end of the chain: a stop bar across the lifeline at the arrow tip, then the number of each async flow that starts here (or "no reader" / "no consumers").
+  const stop = (end, x2, dir, y0, mc, r) => {
+    let x = x2 + dir * 9;
+    const kids = [s('path', { class: 'stopbar', d: `M${x2} ${y0 - 6}V${y0 + 8}`, style: `stroke:${mc}` })];
+    if (end.none) { const w = end.none.length * 7 + 18, bx = dir > 0 ? x : x - w; kids.push(s('g', { class: 'badge warn' }, s('rect', { x: bx, y: y0 + 2, width: w, height: 18, rx: 9 }), s('text', { x: bx + 9, y: y0 + 15 }, end.none))); }
+    for (const t of end.tiles) {
+      const w = tileW(t.text), bx = dir > 0 ? x : x - w;
+      kids.push(s('g', { class: `numtile${t.seen ? ' seen' : ''}${end.bad ? ' bad' : ''}`, 'data-num': t.jump, 'data-own': t.own.join(' '), tabindex: 0, role: 'link', 'aria-label': t.title },
+        s('rect', { x: bx, y: y0 + 2, width: w, height: 18, rx: 4 }), s('text', { x: bx + w / 2, y: y0 + 15, 'text-anchor': 'middle' }, t.text), s('title', {}, t.title)));
+      x += dir * (w + 4);
+    }
+    return s('g', { class: 'chain-end' }, ...kids);
   };
 
   const drawn = events.map((e, r) => {
@@ -93,13 +134,10 @@ export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, o
       const x1 = barX(owner, 1), x2 = colX.get(e.col) - 8;
       return g('broken', arrow(x1, x2, y0, { dashed: true, label: e.label, color: 'var(--t-broken)', cross: true }), hit(x1, x2), s('title', {}, e.msg.label));
     }
-    if (e.type === 'publish') {
-      const w = Math.max(60, chipW(e)), cx = colX.get(e.col) - w / 2, x1 = barX(owner, 1), x2 = cx - 2, none = !e.flows;
-      const bw = none ? 92 : 56 + String(e.flows).length * 7, bx = colX.get(e.col) - bw / 2;
-      return g('publish', arrow(x1, x2, y0, { color: colorOf(e.msg.transport) }), s('text', { class: 'label', x: colX.get(e.col), y: y0 - 16, 'text-anchor': 'middle' }, e.label), hit(Math.min(x1, colX.get(e.col) - pubW(e) / 2), colX.get(e.col) + pubW(e) / 2),
-        s('g', { class: 'chipg', style: `--mc:${colorOf(e.msg.transport)}` }, s('rect', { class: 'chip', x: cx, y: y0 - 10, width: w, height: 20, rx: 4 }), s('text', { class: 'chipt', x: cx + 7, y: y0 + 4 }, e.topic)),
-        s('g', { class: `badge ${none ? 'warn' : 'async'}`, 'data-badge': r, tabindex: none ? null : 0, role: none ? null : 'link' },
-          s('rect', { x: bx, y: y0 + 14, width: bw, height: 18, rx: 9 }), s('text', { x: bx + 8, y: y0 + 27 }, none ? 'no consumers' : `↓ ${e.flows} ${e.flows === 1 ? 'flow' : 'flows'}`)), s('title', {}, e.msg.label));
+    if (e.type === 'hop') { // one arrow of a publish chain, in its transport's colour; the event type reads like a REST path
+      const dir = Math.sign(colX.get(e.to) - colX.get(e.from)) || 1;
+      const x1 = edge(e.fromBar, e.from, dir), x2 = colX.get(e.to), mid = (x1 + x2) / 2, mc = colorOf(e.transport);
+      return g('hop', arrow(x1, x2, y0, { label: e.label, color: mc, over: overruns(e, Math.abs(x2 - x1)) }), e.marker ? marker(e.marker, mid, y0, mc) : null, e.end ? stop(e.end, x2, dir, y0, mc, r) : null, hit(x1, x2), s('title', {}, [e.msg.label, e.marker?.full].filter(Boolean).join('\n')));
     }
     if (e.type === 'store') {
       const x0 = barX(e.bar, 1), w = Math.max(e.verb.length * 7, e.name.length * 6) + 18;
@@ -138,18 +176,20 @@ export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, o
   const body = s('svg', { width, height, class: 'seq-body', role: 'group', 'aria-label': `Flow with ${bars.length} calls across ${columns.length} lifelines` },
     s('defs', {}, s('pattern', { id: 'mwh', width: 6, height: 6, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' }, s('rect', { width: 6, height: 6, fill: 'var(--mw-bg)' }), s('rect', { width: 2.4, height: 6, fill: 'var(--mw)' }))),
     drawFrames(frames, lane.altRows, strips, (r) => top[r], (r) => top[r + 1], width, GUTTER),
-    columns.map((c) => s('line', { class: c.kind === 'rail' ? 'rail' : 'lifeline', x1: colX.get(c), x2: colX.get(c), y1: 0, y2: height })), rects, segs, drawn);
+    columns.map((c) => s('line', { class: isCh(c) ? 'lifeline ch' : 'lifeline', style: isCh(c) ? `--mc:${colorOf(c.transport)}` : null, x1: colX.get(c), x2: colX.get(c), y1: 0, y2: height })), rects, segs, drawn);
 
   const eventOf = (t) => events[Number(t.closest?.('[data-e]')?.dataset.e)];
   const barOf = (t) => { const r = t?.closest?.('[data-bar]'); return r ? bars[Number(r.dataset.bar)] : null; };
-  const badgeOf = (t) => { const b = t.closest?.('[data-badge]'); return b ? events[Number(b.dataset.badge)] : null; };
+  const numOf = (t) => t?.closest?.('[data-num]');
   const foldOf = (t) => t.closest?.('[data-mwfold]');
   const fold = (el) => onMw?.(bars[Number(el.dataset.mwfold)], el.classList.contains('mwlab') ? '.mwlab' : '.mwseg'); // the redraw replaces the element: the caller refocuses by this selector
   const pillOf = (t) => { const b = t.closest?.('[data-pill]'); return b ? bars[Number(b.dataset.pill)] : null; };
   const pm = (ev) => {
     const g = ev.target.closest?.('[data-p]'), c = g && columns[Number(g.dataset.p)];
     if (c?.service && onParticipant) { ev.preventDefault(); onParticipant({ id: `svc:${c.service}`, kind: 'service', service: c.service, label: c.label }, ev.clientX, ev.clientY); }
+    else if (c?.fan && onFan && ev.type === 'click') onFan(c.fan.topic);
   };
+  head.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { const g = ev.target.closest?.('[data-p]'), c = g && columns[Number(g.dataset.p)]; if (c?.fan) { ev.preventDefault(); onFan?.(c.fan.topic); } } });
   head.addEventListener('contextmenu', pm);
   head.addEventListener('click', pm);
   let foldTimer = 0; // a fold click waits a beat so a double-click (look inside) never flips the fold
@@ -163,15 +203,22 @@ export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, o
   }
   body.addEventListener('contextmenu', (ev) => { const b = barOf(ev.target); if (b) { ev.preventDefault(); onBarMenu?.(b, ev.clientX, ev.clientY); } });
   body.addEventListener('click', (ev) => {
-    const bd = badgeOf(ev.target), pill = pillOf(ev.target), b = barOf(ev.target), e = eventOf(ev.target);
-    if (foldOf(ev.target)) { if (ev.detail <= 1) { const f = foldOf(ev.target); clearTimeout(foldTimer); foldTimer = setTimeout(() => fold(f), 200); } } else if (bd) { ev.stopPropagation(); onBadge?.(bd); } else if (pill) onBar?.(pill); else if (b) onBar?.(b, 'select'); else if (e?.msg) onMessage?.(e.msg, ev.target.closest('[data-e]'), e);
+    const bd = numOf(ev.target), pill = pillOf(ev.target), b = barOf(ev.target), e = eventOf(ev.target);
+    if (foldOf(ev.target)) { if (ev.detail <= 1) { const f = foldOf(ev.target); clearTimeout(foldTimer); foldTimer = setTimeout(() => fold(f), 200); } } else if (bd) { ev.stopPropagation(); onNum?.(bd.dataset.num); } else if (pill) onBar?.(pill); else if (b) onBar?.(b, 'select'); else if (e?.msg) onMessage?.(e.msg, ev.target.closest('[data-e]'), e);
   });
   body.addEventListener('keydown', (ev) => {
     if (ev.key !== 'Enter' && ev.key !== ' ') return;
     ev.preventDefault();
-    const bd = badgeOf(ev.target), pill = pillOf(ev.target), b = barOf(ev.target), e = eventOf(ev.target);
-    if (foldOf(ev.target)) fold(foldOf(ev.target)); else if (bd) onBadge?.(bd); else if (pill) onBar?.(pill); else if (b) onBar?.(b); else if (e?.msg) onMessage?.(e.msg, ev.target.closest('[data-e]'), e);
+    const bd = numOf(ev.target), pill = pillOf(ev.target), b = barOf(ev.target), e = eventOf(ev.target);
+    if (foldOf(ev.target)) fold(foldOf(ev.target)); else if (bd) onNum?.(bd.dataset.num); else if (pill) onBar?.(pill); else if (b) onBar?.(b); else if (e?.msg) onMessage?.(e.msg, ev.target.closest('[data-e]'), e);
   });
+  // a tile and its list row light up together
+  const own = (el) => (el.dataset.own ?? '').split(' ').filter(Boolean);
+  body.addEventListener('mouseover', (ev) => { const t = numOf(ev.target); if (t && numOf(ev.relatedTarget) !== t) onNumHover?.(own(t), true); });
+  body.addEventListener('mouseout', (ev) => { const t = numOf(ev.target); if (t && numOf(ev.relatedTarget) !== t) onNumHover?.(own(t), false); });
+  body.addEventListener('focusin', (ev) => { const t = numOf(ev.target); if (t) onNumHover?.(own(t), true); });
+  body.addEventListener('focusout', (ev) => { const t = numOf(ev.target); if (t) onNumHover?.(own(t), false); });
+  const mark = (label, on) => body.querySelectorAll('.numtile').forEach((t) => { if (own(t).includes(label)) t.classList.toggle('hl', on); });
   body.__events = events;
-  return { el: h('div.seq', h(sticky ? 'div.seq-sticky' : 'div.seq-head-static', head), body), body, events, bars };
+  return { el: h('div.seq', h(sticky ? 'div.seq-sticky' : 'div.seq-head-static', head), body), body, events, bars, mark };
 }

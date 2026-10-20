@@ -19,7 +19,7 @@ import * as T from './flow-tabs-state.js';
 
 export async function render({ main, query }) {
   const service = query.get('service');
-  const opts = { stores: query.get('stores') !== '0', queues: query.get('queues') === '1', depth: query.get('depth') ?? 'all',
+  const opts = { stores: query.get('stores') !== '0', depth: query.get('depth') ?? 'all',
     frontier: query.get('frontier') === '1' }; // steps the harvester marked as frontier (call trees that reach no sink)
   let S = T.decodeUrl(query);
   const views = new Map(), slots = new Map(), stale = new Set();
@@ -53,8 +53,6 @@ export async function render({ main, query }) {
     h('input', { type: 'checkbox', checked: opts.frontier, on: { change: (e) => { opts.frontier = e.target.checked; persist(); reloadAll(); } } }), 'Frontier steps');
   const depth = h('select.select', { 'aria-label': 'Depth', on: { change: (e) => { opts.depth = e.target.value; persist(); views.forEach((v, k) => (k === S.active ? v.draw() : stale.add(k))); } } },
     ['all', '1', '2', '3', '4', '6', '8'].map((d) => h('option', { value: d, selected: d === opts.depth }, d === 'all' ? 'All depths' : `Depth ${d}`)));
-  // The "Queues and topics" checkbox (opts.queues) stays hidden: a sub-flow's diagram starts at its delivery, so there is
-  // no queue or topic lifeline for it to add inside a tab. See docs/DESIGN.md, flow tabs.
   const toolbar = h('div.seq-toolbar', seg, check('stores', 'Data stores'), frontierCheck, depth, h('span.spacer'),
     h('span.xs.muted', 'Double-click a bar, or right-click it, to look inside'), info);
 
@@ -66,7 +64,7 @@ export async function render({ main, query }) {
   mainPane.append(toolbar, strip.el, empty);
 
   function persist() {
-    setQuery({ ...T.encodeUrl(S), ...(S.keys.length ? { service: null } : {}), stores: opts.stores ? null : '0', queues: opts.queues ? '1' : null, depth: opts.depth === 'all' ? null : opts.depth, frontier: opts.frontier ? '1' : null });
+    setQuery({ ...T.encodeUrl(S), ...(S.keys.length ? { service: null } : {}), stores: opts.stores ? null : '0', queues: null, depth: opts.depth === 'all' ? null : opts.depth, frontier: opts.frontier ? '1' : null });
   }
   const host = {
     env: state.env, opts, panel, flowsEl, traceFor: data.traceFor, describe: data.describe, desc, rootOf: (k) => T.flowRoot(k), isActive: (k) => S.active === k,

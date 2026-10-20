@@ -84,15 +84,28 @@ test('internal calls are folded into a pill per bar, with unresolved ones counte
   assert.ok(sh.bars.every((b: any) => b.internal.gaps <= b.internal.n));
 });
 
-test('publishes end at the rail with their consumer count; async work is not drawn in the lane', () => {
+test('publishes are chains: service -> topic -> queues; nothing of the consumers is drawn in the lane (0.17.0, replaces the rail)', () => {
   const t = create();
   const lane = laneOf(t);
-  const pubs = lane.events.filter((e: any) => e.type === 'publish');
-  assert.deepEqual(pubs.map((e: any) => [e.topic, e.flows]), [['sns:payment-disputes', 0], ['sns:payment-events', 1], ['sns:order-events', 3]]);
-  assert.equal(lane.columns.findIndex((c: any) => c.kind === 'rail'), lane.columns.filter((c: any) => c.kind !== 'unresolved').length - 1, 'the rail sits right after the last lifeline used');
-  assert.ok(!lane.columns.some((c: any) => c.id.startsWith('ch:')), 'no queue or topic lifelines');
+  const hops = lane.events.filter((e: any) => e.type === 'hop');
+  const pubs = hops.filter((e: any) => e.fromBar);
+  assert.deepEqual(pubs.map((e: any) => e.topic), ['sns:payment-disputes', 'sns:payment-events', 'sns:order-events']);
+  assert.ok(!lane.columns.some((c: any) => c.kind === 'rail'), 'no rail');
   assert.ok(!lane.events.some((e: any) => e.msg?.kind === 'deliver'));
   assert.ok(!lane.columns.some((c: any) => ['shipping-svc', 'analytics-svc', 'notifications-svc'].includes(c.label)), 'consumers only appear in the async index');
+  // topics and queues are lifelines right of the services, grouped per topic; the queue two publishes reach is one lifeline
+  const kinds = lane.columns.map((c: any) => c.kind);
+  assert.equal(kinds.indexOf('channel'), kinds.filter((k: string) => k !== 'channel' && k !== 'unresolved').length, 'channels follow the last service');
+  const ids = lane.columns.filter((c: any) => c.kind === 'channel').map((c: any) => c.id);
+  assert.equal(new Set(ids).size, ids.length);
+  assert.ok(ids.includes('ch:sqs:analytics-all-events'));
+  // every hop carries the event type like a REST arrow carries its path; a topic nobody subscribes to says so; the queue end carries the tiles
+  assert.ok(hops.every((e: any) => e.label && e.label !== 'publish'));
+  assert.equal(hops.find((e: any) => e.topic === 'sns:payment-disputes').end.none, 'no consumers');
+  const order = hops.filter((e: any) => e.topic === 'sns:order-events' && !e.fromBar);
+  assert.equal(order.length, 3);
+  assert.ok(order.every((e: any) => e.end.items.length === 0 && e.end.tiles.length === 0), 'without a list there are no numbers, but the end is still marked');
+  assert.ok(order.every((e: any) => e.end.none === null && e.end.tiles.length === 0));
 });
 
 test('unresolved calls: red arrow to the unresolved column, no bar, no return', () => {
@@ -149,7 +162,7 @@ test('a frontier marker is a stub on the bar, and a delivery starts an async flo
   assert.equal(flow.columns[0].kind, 'source');
   assert.equal(flow.bars[0].service, 'shipping-svc');
   assert.equal(flow.bars[0].sync, false);
-  assert.ok(flow.events.some((e: any) => e.type === 'publish'), 'the consumer publishes onward');
+  assert.ok(flow.events.some((e: any) => e.type === 'hop'), 'the consumer publishes onward');
 });
 
 test('labels: http calls show verb and path; deliveries show event and handler', () => {

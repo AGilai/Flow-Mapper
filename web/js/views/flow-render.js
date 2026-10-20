@@ -1,5 +1,5 @@
 // One flow drawn in full: its lane (lifelines, bars, middleware, pill, calls with returns, unresolved column, stubs,
-// alt frames, the published-events rail) and under it its own async list. A tab uses it for its flow; an expanded card
+// alt frames, publish chains that stop at their queues) and under it its own async list. A tab uses it for its flow; an expanded card
 // uses it for the flow its consumer starts (traced from the consumer's ingress with the delivered event), so a sub-flow
 // is the same picture as an entry-point flow. Everything a tab owns (drill-down, message panel, tooltip, selection) is
 // shared through `sh`.
@@ -8,7 +8,7 @@ import { h } from '../dom.js';
 import { renderLane } from './flow-draw.js';
 import { buildLane } from './flow-lane.js';
 import { renderIndex } from './flow-index.js';
-import { asyncTree } from './flow-async.js';
+import { asyncTree, deliveryNumbers } from './flow-async.js';
 import { barMenu, participantMenu } from './flow-menu.js';
 import { subRequest } from './flow-sub.js';
 
@@ -18,7 +18,7 @@ import { subRequest } from './flow-sub.js';
  * sh: { host, opts, tip, select(bar), lookInside(bar, trace), openMessage(m, g, trace), flash(el), traceFor(request) }
  */
 export function createFlowRender({ trace, tree, key, ancestors = [], sticky = true, depth = 0 }, sh) {
-  const { host, opts } = sh, mwOpen = new Set();
+  const { host, opts } = sh, mwOpen = new Set(), fanOpen = new Set(); // fanOpen: topics whose queues are all drawn
   const laneBox = h('div.flow-lane'), idxBox = h('div.flow-idx');
   let lane = null, index = null;
   const maxDepth = () => (opts.depth === 'all' ? Infinity : Number(opts.depth));
@@ -30,18 +30,16 @@ export function createFlowRender({ trace, tree, key, ancestors = [], sticky = tr
     onBar: (bar, mode) => { if (mode === 'select') sh.select(bar); else { sh.select(bar); sh.lookInside(bar, trace); } },
     onBarMenu: (bar, x, y) => barMenu(bar, x, y, { trace, openEntry: host.openEntry, inside: () => { sh.select(bar); sh.lookInside(bar, trace); }, toIndex: index ? () => index.el.scrollIntoView({ behavior: 'smooth' }) : null }),
     onParticipant: (p, x, y) => participantMenu(p, x, y, { trace, openEntry: host.openEntry }),
-    onBadge: (ev) => { // one flow: open its tab; several: scroll to their group in the list below
-      const at = trace.messages.indexOf(ev.msg), g = index?.groupEl(at);
-      const only = ev.flows === 1 ? tree.rows.find((r) => r.i > at && g?.contains(index.rowNode(r.label))) : null;
-      if (only?.ingress && !only.noHandler) host.openSub(only, key); else sh.flash(g);
-    },
+    onNum: (label) => { if (index) index.reveal(label); }, // a number tile at a queue: open that row of the list below (a card opens in place)
+    onNumHover: (labels, on) => labels.forEach((l) => index?.rowNode(l)?.classList.toggle('hl', on)),
+    onFan: (topic) => { if (!fanOpen.delete(topic)) fanOpen.add(topic); drawLane(); },
     onMessage: (m, g) => { if (m.kind === 'frontier') host.setFrontier(); else sh.openMessage(m, g, trace); },
   };
 
   function drawLane() {
     const lo = laneOpts();
     const msgs = trace.messages.filter((m) => m.depth <= lo.maxDepth);
-    lane = renderLane(buildLane(msgs, { mwOpen, stores: lo.stores, scope: 'full', participants: trace.participants }), { ...handlers, sticky, fit: Math.max(0, (sh.fit?.() ?? 0) - (depth ? 40 + depth * 28 : 0)) });
+    lane = renderLane(buildLane(msgs, { mwOpen, fanOpen, numbers: deliveryNumbers(tree), stores: lo.stores, scope: 'full', participants: trace.participants }), { ...handlers, sticky, fit: Math.max(0, (sh.fit?.() ?? 0) - (depth ? 40 + depth * 28 : 0)) });
     laneBox.replaceChildren(lane.el);
   }
   const makeFlow = async (row, childAncestors) => {
@@ -51,7 +49,8 @@ export function createFlowRender({ trace, tree, key, ancestors = [], sticky = tr
   function drawIndex() {
     index = tree.groups.length ? renderIndex(tree, { trace, handlers, depth, key, ancestors, makeFlow,
       open: (row, full) => (full ? host.openFull(row, key) : host.openSub(row, key)),
-      openAll: (rows) => host.openMany(rows, key), isOpen: (row) => host.isOpen(row, key), jump: (label) => host.jumpToLabel(label) }) : null;
+      openAll: (rows) => host.openMany(rows, key), isOpen: (row) => host.isOpen(row, key), jump: (label) => host.jumpToLabel(label),
+      hover: (labels, on) => lane?.mark(labels, on) }) : null;
     idxBox.replaceChildren(...(index ? [index.el] : []));
   }
   drawLane(); drawIndex();

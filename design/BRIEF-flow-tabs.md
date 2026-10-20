@@ -25,6 +25,7 @@ Decisions made after rev 4 (not drawn in the mockup):
 - Publishes end at the "published events" rail on the right: topic chip and "↓ N flows" badge
   (amber "no consumers"). The diagram stops there; async work is not drawn in the lane.
   Topics and queues get no bar. "Queues and topics" adds queue/topic lifelines inside sub-flows.
+  (Replaced in 0.17.0: a publish is a chain service -> topic -> queues that stops at the queue, with number tiles; no rail, no checkbox. See docs/DEMOS.md.)
 - No arrow crosses an unrelated bar.
 - Under the diagram: the async index (one 40px row per consumer flow, grouped by publish / alt
   branch; repeats as "↩ seen in N" rows; "suspect" chip when one publish reaches the same

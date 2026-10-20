@@ -3,7 +3,7 @@
 // draw that flow with the same lane rules, and the flows it starts become nested groups.
 
 import { scanLane, subflowRanges } from './flow-scan.js';
-import { publishLabel } from './flow-lane.js';
+import { hopLabel } from './flow-chain.js';
 
 /** "1 step", "3 steps". */
 export const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
@@ -44,7 +44,7 @@ export function asyncTree(messages, prefix = '') {
     let n = 0;
     for (const p of publishes) {
       const pm = messages[p.i];
-      const group = { pub: p.i, topic: pm.to.slice(3), event: publishLabel(pm), transport: pm.transport,
+      const group = { pub: p.i, topic: pm.to.slice(3), event: hopLabel(pm), transport: pm.transport,
         branch: pm.alt ? { n: pm.alt.branch, of: pm.alt.of, condition: pm.condition ?? null } : null, rows: [] };
       const ranges = subflowRanges(messages, p);
       const inGroup = new Map();
@@ -88,4 +88,12 @@ export function indexStats(tree) {
 export function groupOf(tree, pubIndex) {
   const find = (groups) => { for (const g of groups) { if (g.pub === pubIndex) return g; for (const r of g.rows) { const f = find(r.groups); if (f) return f; } } return null; };
   return find(tree.groups);
+}
+
+/**
+ * The numbers the diagram shows at the queues: Map(delivery message -> { label, shows, seen, noHandler }). `label` is the row's own number in the list
+ * (1, 3.1, ...); `shows` is what the tile reads: the row a repeated delivery ("seen in N") points at. One source for the list and the diagram.
+ */
+export function deliveryNumbers(tree) {
+  return new Map(tree.rows.map((r) => [r.msgs[0], { label: r.label, shows: /^\d+(\.\d+)*$/.test(r.seenIn ?? '') ? r.seenIn : r.label, seen: !!r.seenIn, noHandler: r.noHandler }]));
 }

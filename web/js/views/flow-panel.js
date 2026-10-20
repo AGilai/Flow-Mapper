@@ -14,7 +14,8 @@ import { jsonView } from '../components/json-view.js';
 import { dtoSource } from '../components/dto-source.js';
 import { viaChip } from '../components/via-chip.js';
 import { stepFields } from '../components/step-fields.js';
-import { asyncFlowOf } from './flow-scan.js';
+import { asyncFlowOf, isChannel } from './flow-scan.js';
+import { filterMarker, hopLabel, chType, exchangeOf } from './flow-chain.js';
 import { eventLink, serviceLink, storeLink } from './inventory-links.js';
 
 const KIND = { entry: 'Entry', call: 'Function call', egress: 'Call', deliver: 'Delivery from queue', resource: 'Data store access', leaf: 'Leaf step (classified by the harvester)', frontier: 'Frontier steps (folded)' };
@@ -42,6 +43,7 @@ export function messagePanel(m, trace, env, scope = 'full', openEntry = null) {
     m.repeatOf ? h('p.small', `↩ Already expanded at step ${m.repeatOf}: `, h('span.key', trace.messages[m.repeatOf - 1]?.label ?? ''), '. The same delivery (consumer, ingress, event) is drawn once per trace, so nothing is shown below this arrow.') : null,
     m.cycle ? h('p.small.muted', 'This call leads back into a function already on the path, so the trace stops here.') : null,
     h('dl.kv',
+      ...routeRows(m),
       h('dt', 'From'), h('dd', m.kind === 'entry' ? callerFor(m).label : p(m.from)?.label ?? m.from),
       h('dt', 'To'), h('dd', { class: m.broken ? 'key' : '' }, p(m.to)?.label ?? m.to),
       h('dt', 'Mode'), h('dd', m.mode),
@@ -50,6 +52,17 @@ export function messagePanel(m, trace, env, scope = 'full', openEntry = null) {
       ...(m.delivery ? [h('dt', 'Delivery'), h('dd', `${m.depth}.${m.delivery}`)] : []),
       ...(m.matched?.length ? [h('dt', 'Delivered as'), h('dd', m.matched.map((t) => eventLink(t)), h('span.xs.muted', ' the publish names no event; these types of it pass the subscription filter'))] : []),
       ...(m.deliveries ? [h('dt', 'Deliveries'), h('dd', `fans out to ${m.deliveries}`)] : []))];
+}
+
+/** A publish or a topic -> queue hop (a routing arrow of the diagram): its event type, the topic or bus, the queue and the filter that applies. */
+function routeRows(m) {
+  if (m.kind !== 'egress' || !isChannel(m.to)) return [];
+  const name = (id) => id.slice(3).replace(/^[^:]+:/, '');
+  const hop = isChannel(m.from), ex = exchangeOf(m), f = filterMarker(m.filter, m.transport);
+  return [h('dt', 'Event type'), h('dd', hopLabel(m)),
+    h('dt', ex ? 'Exchange' : hop ? 'Topic' : 'Topic or queue'), h('dd', ex ? ex.slice(5) : name(hop ? m.from : m.to)),
+    ...(hop || ex ? [h('dt', 'Queue'), h('dd', name(m.to))] : []),
+    h('dt', 'Filter'), h('dd', f ? f.full : hop || ex ? `none: every ${chType(m.to)} message passes` : 'none')];
 }
 
 // ---- a call the harvester could not resolve ----

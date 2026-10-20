@@ -8,9 +8,9 @@ export const labelWidth = (t) => Math.ceil(String(t).length * LABEL_PX);
 /** The two columns an event's arrow joins, or null when it draws no labelled arrow. */
 export function arrowEnds(e) {
   if (!e.label) return null;
-  if (e.type === 'call') return [e.from, e.to];
+  if (e.type === 'call' || e.type === 'hop') return [e.from, e.to];
   if (e.type === 'return') return [e.bar.col, e.to];
-  if (e.type === 'unresolved' || e.type === 'publish') return [(e.fromBar ?? e.bar).col, e.col];
+  if (e.type === 'unresolved') return [(e.fromBar ?? e.bar).col, e.col];
   return null;
 }
 
@@ -18,9 +18,10 @@ export function arrowEnds(e) {
  * columnGaps(n, spans, base) -> number[n-1]: the distance between each pair of neighbouring lifelines.
  * spans: [{ a, b, need }] (column indexes, a != b): the arrow from a to b needs `need` px between the two lifelines.
  * Short spans are met first; a deficit is shared evenly by the gaps the span crosses.
+ * base: the plain gap, or a function (gap index) -> px (topic and queue lifelines are closer together than services).
  */
 export function columnGaps(n, spans, base) {
-  const gaps = Array(Math.max(0, n - 1)).fill(base);
+  const gaps = Array.from({ length: Math.max(0, n - 1) }, (_, i) => (typeof base === 'function' ? base(i) : base));
   const list = spans.map((s) => ({ a: Math.min(s.a, s.b), b: Math.max(s.a, s.b), need: s.need })).filter((s) => s.b > s.a).sort((x, y) => (x.b - x.a) - (y.b - y.a));
   for (const { a, b, need } of list) {
     let have = 0;
