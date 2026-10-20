@@ -17,7 +17,7 @@ import { handlerFor, passes } from './events.ts';
 import { codeLink, sourceLink, type SourceLink } from './endpoint-info.ts';
 import { unresolvedTarget } from './resolve.ts';
 import type { Unresolved } from './types.ts';
-import { egressVia, type LinkedHop } from './via.ts';
+import { egressVia, ingressVia, type LinkedHop } from './via.ts';
 
 export interface Participant {
   id: string; label: string; kind: 'client' | 'function' | 'service' | 'channel' | 'resource' | 'missing' | 'unresolved'; service?: string;
@@ -36,12 +36,13 @@ export interface Message {
   calls?: string;                                            // function called, for call steps (same service)
   egress?: string;                                           // egress id, for calls out (its call site is in `code`)
   via?: LinkedHop[];                                         // wrappers the call goes through (last one calls the SDK); display only
+  handlerVia?: LinkedHop[];                                  // how the ingress resolved to its handler (registration / bind hops); display only
   gap?: Unresolved;                                          // the harvester could not resolve this call; why
 }
 export interface Trace {
   start: { service: string; ingress?: string; fn: string; event?: string }; scope: 'intra' | 'full';
   participants: Participant[]; messages: Message[]; truncated: boolean;
-  /** Code location of every function on the trace, by `${service}:${fn}`, and of call sites, by `egress:${service}:${id}`. */
+  /** Code location of every function on the trace, by `${service}:${fn}`, of call sites, by `egress:${service}:${id}`, and of steps that carry a `source`, by `step:${service}:${fn}#${seq}`. */
   code: Record<string, SourceLink | null>;
 }
 
@@ -165,6 +166,10 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
       const k = svc && fn ? sid(svc, fn) : null;
       if (k && !(k in code)) code[k] = g.services.has(svc!) ? sourceLink(g.services.get(svc!)!, g.fns.get(k) ?? null) : null;
     }
+    const stepSrc = m.service && m.fn && m.seq ? g.fns.get(sid(m.service, m.fn))?.steps.find((s) => s.seq === m.seq)?.source : undefined;
+    if (stepSrc && g.services.has(m.service!)) code[`step:${m.service}:${m.fn}#${m.seq}`] = codeLink(g.services.get(m.service!)!, stepSrc);
+    const ti = m.target ? g.ingress.get(sid(m.target.service, m.target.ingress)) : undefined;
+    if (ti && m.target?.fn && g.services.has(ti.service)) { const hv = ingressVia(g.services.get(ti.service)!, ti); if (hv.length) m.handlerVia = hv; }
     const e = m.egress && m.service ? g.egress.get(sid(m.service, m.egress)) : undefined;
     if (e && m.kind === 'egress' && !String(m.from).startsWith('ch:')) { // the call itself, not a hop between channels
       const v = egressVia(g.services.get(m.service!)!, e);

@@ -6,7 +6,7 @@ import { downstreamIngress, sid, upstreamEgress } from './graph-index.ts';
 import type { Ref } from './types.ts';
 import { codeLink } from './endpoint-info.ts';
 import { eventReport } from './events.ts';
-import { egressVia } from './via.ts';
+import { egressVia, ingressVia } from './via.ts';
 
 const viaText = (via: Ref[]) => via.map((v) => (v.type === 'channel' ? v.key : '')).filter(Boolean);
 
@@ -32,6 +32,7 @@ export function serviceView(g: GraphIndex, name: string) {
     return {
       ...i,
       at: codeLink(s, i.source),
+      via: ingressVia(s, i), // how the handler was resolved (registration / bind hops), with code links
       orphan: orphans.has(sid(i.service, i.id)),
       callers: all.filter((c) => c.state === 'yes').map((c) => c.caller),
       maybeCallers: all.filter((c) => c.state === 'maybe').map((c) => c.caller),

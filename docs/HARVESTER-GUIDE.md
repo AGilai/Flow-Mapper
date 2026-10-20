@@ -101,12 +101,21 @@ repo root, `line` is where the function starts.
 | `egress` | an egress `id` | `operation`; `event` when it publishes an event type |
 | `resource` | a resource `id` | `operation` (`find`, `insertOne`, `GET order:{id}`, `PutItem`…); `access: "read"`/`"write"` when the operation name does not say |
 
-Optional on any step: `condition` (it only happens if…), `loop: true`, `mode: "async"`, `note`.
+Optional on any step: `condition` (it only happens if…), `loop: true`, `mode: "async"`, `note`, and
+`source: {"file", "line", "col"}`, the exact place in code that makes this call (same shape as the
+`source` of ingress and egress). The trace's side panel shows it as a code link "Called at".
 Every `target` must exist in the same manifest, or the manifest is rejected.
 
 **Ingress**: every way into the service: HTTP routes, RPC methods, queue consumers, crons.
 `handler` is the function that runs. Mark public routes and crons `entryPoint: true` (nothing
 inside the system calls them). Put `method` and `path` in `details` for HTTP.
+
+When the handler is not a direct reference (a consumer registered with a context object, or
+`x.m.bind(x)`), describe how it was resolved with `via` on the ingress: the same hop shape as the
+egress `via` above (`{ "function", "file", "line", "kind" }`), with `kind` `"registration"` or
+`"bind"`, ordered from the registration to the handler. The UI shows the same "via" chip on the
+ingress row, the endpoint panel and the start of the trace. Hops are display data only. Sending it
+as `details.handlerVia` still works.
 
 **Egress**: every way out: HTTP and RPC clients, publishes to topics, queues and buses. Set
 `mode: "async"` for fire-and-forget.

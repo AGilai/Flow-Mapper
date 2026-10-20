@@ -2,7 +2,7 @@
 // Harvesters may send `via` / `callSites` as fields or inside free-form `details`; both are read here.
 // Pure; used by the server and the static preview. Hops never become producers, nodes or edges.
 
-import type { CallSite, Egress, Service, ViaHop } from './types.ts';
+import type { CallSite, Egress, Ingress, Service, ViaHop } from './types.ts';
 import { codeLink, type SourceLink } from './endpoint-info.ts';
 
 export interface LinkedHop extends ViaHop { link: SourceLink | null }
@@ -28,6 +28,10 @@ export function normaliseVia(raw: unknown): ViaHop[] {
 }
 
 export const egressViaHops = (e: Pick<Egress, 'via' | 'details'>): ViaHop[] => normaliseVia(e.via ?? (e.details as any)?.via);
+
+/** Hops that resolved an ingress to its handler (kind 'registration' | 'bind'); same shape as egress `via`. */
+export const ingressViaHops = (i: Pick<Ingress, 'via' | 'details'>): ViaHop[] => normaliseVia(i.via ?? (i.details as any)?.handlerVia);
+export const ingressVia = (svc: Service, i: Ingress): LinkedHop[] => linkHops(svc, ingressViaHops(i));
 
 export function egressCallSites(e: Pick<Egress, 'callSites' | 'details'>): CallSite[] {
   const raw = e.callSites ?? (e.details as any)?.callSites;

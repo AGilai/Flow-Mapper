@@ -19,13 +19,13 @@ export function endpointPanel(info, env) {
     h('div.ep-title', method ? h('span.ep-method', { 'data-m': method }, method) : chip(i.transport), h('span.ep-target', target)),
     h('div.ep-sub', h('span', service), method ? chip(i.transport) : null, i.entryPoint ? h('span.pill', 'entry point') : null));
 
-  return [head, codeCard(fn, i, source, info.definedAt), ...info.slots.map((s) => dtoCard(s, env, service, i.id)),
+  return [head, codeCard(fn, i, source, info.definedAt, info.handlerVia), ...info.slots.map((s) => dtoCard(s, env, service, i.id)),
     info.events.length ? eventsSection(info, env) : null,
     info.note ? h('p.ep-note', info.note) : null,
     h('a.btn.primary.ep-trace', { href: href('/flows', { service, ingress: i.id }) }, icon('flow'), 'Trace from here')];
 }
 
-function codeCard(fn, i, source, definedAt) {
+function codeCard(fn, i, source, definedAt, handlerVia) {
   const loc = fn?.file ? `${fn.file}${fn.line ? ':' + fn.line : ''}` : null;
   const ref = source && (source.ref === 'HEAD' ? 'default branch' : source.ref);
   const body = source?.url
@@ -38,6 +38,7 @@ function codeCard(fn, i, source, definedAt) {
   const gap = i.unresolved?.find((u) => u.what === 'target');
   return card('Code', h('span.ep-meta', verified ? h('span.pill', { class: `verified-${verified}`, title: `checked against the live system: ${verified}` }, verified) : null, ref ? [icon('commit'), ref] : null),
     body, route,
+    handlerVia?.length ? h('div.ep-pad.stack', { style: { gap: 'var(--s1)' } }, h('span.ep-label', 'Handler resolved through'), viaChip(handlerVia)) : null,
     gap ? h('p.ep-note.ep-pad', `Unresolved by the harvester: ${gap.reason}${gap.detail ? ` (${gap.detail})` : ''}.`) : null,
     source ? null : h('p.ep-note', 'No repository recorded for this service.'));
 }

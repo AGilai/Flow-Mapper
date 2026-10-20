@@ -61,9 +61,9 @@ Add `?source=ui` to mark edits made from a UI in the changelog.
 | Path | Returns |
 |---|---|
 | `GET /api/envs/:env/views/system` | nodes, edges (with channels), collapsedEdges (service to service). Each edge lists its `endpoints`; those carry `egress` / `ingress` ids (within the edge's from / to service) and, through a subscription, its event `filter` |
-| `GET /api/envs/:env/views/service/:service` | ingress with callers, egress with targets, resources, functions. Each egress has `via` (wrapper hops, caller to SDK call, each with a code `link`) and `callSites[]` (`file`, `line`, `function`, `link`, `via`), read from the egress fields or `details.via` / `details.callSites`. A wrapper is display data: never a producer, node or edge |
+| `GET /api/envs/:env/views/service/:service` | ingress with callers, egress with targets, resources, functions. Each egress has `via` (wrapper hops, caller to SDK call, each with a code `link`) and `callSites[]` (`file`, `line`, `function`, `link`, `via`), read from the egress fields or `details.via` / `details.callSites`. A wrapper is display data: never a producer, node or edge. Each ingress has `via` (the hops that resolved its handler, kind `registration` / `bind`; from `via` or `details.handlerVia`) |
 | `GET /api/envs/:env/entry-points` | where flows start |
-| `GET /api/envs/:env/trace?service=&ingress=\|fn=&scope=intra\|full&maxDepth=&maxMessages=` | participants and ordered messages; an egress message carries `via` (the wrapper hops of that call, for the call site when the egress lists one for the calling function) |
+| `GET /api/envs/:env/trace?service=&ingress=\|fn=&scope=intra\|full&maxDepth=&maxMessages=` | participants and ordered messages; an egress message carries `via` (the wrapper hops of that call, for the call site when the egress lists one for the calling function); a message that reaches an ingress carries `handlerVia` (its handler-resolution hops). `code` also maps `step:<service>:<fn>#<seq>` to the link of a step's `source` |
 | `GET /api/envs/:env/paths?from=&to=&limit=` | service-level paths, including through queues |
 | `GET /api/envs/:env/search?q=&limit=` | services, functions, endpoints, channels, resources |
 | `GET /api/envs/:env/health` | link-health totals, per-service numbers, broken items (including the event checks: `unhandledEvents`, `undeliveredEvents`, `neverArrives`, `declaredNotSeen`, `subscriptionConflicts`; the store checks `multipleWriters`, `unusedStores`; and what harvesters report: `unresolved` (on ingress, egress, steps and resources; with reason, candidates and their possible matches), `mixedCommits`, `drift`) |
@@ -210,4 +210,4 @@ Tools: `search`, `list_services`, `get_service`, `list_entry_points`, `trace_flo
 `link_health`, `changelog`, `ingest_manifest`, `upsert_entity`, `delete_entity`, `get_endpoint_info`,
 `load_dtos`, `event_types`, `inventory`, `get_store`, `get_channel`, `load_schemas`, `list_bugs`,
 `get_bug`, `report_bug` (accepts `log` text), `update_bug` (accepts `comment`).
-`get_service` takes an optional `via` (substring of a wrapper function or file) to keep only egress that goes through it; its egress, `trace_flow` messages and `get_endpoint_info` producers carry `via`.
+`get_service` takes an optional `via` (substring of a wrapper function or file) to keep only egress that goes through it; its egress, `trace_flow` messages and `get_endpoint_info` producers carry `via`; ingress carries `via` (handler resolution) and `trace_flow` messages `handlerVia`, plus step code links in `code`.

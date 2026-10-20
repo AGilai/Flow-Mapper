@@ -57,6 +57,7 @@
       "properties": {
         "file": { "type": "string" },
         "line": { "type": "integer", "minimum": 1 },
+        "col": { "type": "integer", "minimum": 1 },
         "url": { "type": "string" },
         "repo": { "type": "string" },
         "commit": { "type": "string" }
@@ -154,6 +155,7 @@
         "note": { "type": "string" },
         "event": { "$ref": "#/$defs/eventType", "description": "For an egress step: the event type it publishes." },
         "unresolved": { "$ref": "#/$defs/unresolved" },
+        "source": { "$ref": "#/$defs/source", "description": "Where the call is made: file, line, col. Shown as a code link on the trace message." },
         "access": { "enum": ["read", "write"], "description": "For a resource step: read or write. Default: from the operation name (find, GET, SELECT, GetItem… are reads)." }
       }
     },
@@ -187,6 +189,7 @@
         "source": { "$ref": "#/$defs/source" },
         "provenance": { "$ref": "#/$defs/provenance" },
         "unresolved": { "$ref": "#/$defs/unresolved" },
+        "via": { "$ref": "#/$defs/via", "description": "How the handler was resolved, for registrations that are not a direct reference: hops from the registration to the handler, each kind 'registration' or 'bind'. `details.handlerVia` is still accepted." },
         "events": {
           "type": "array",
           "description": "Event types this consumer handles, each with its own handler. The most specific match wins.",

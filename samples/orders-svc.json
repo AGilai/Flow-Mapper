@@ -66,7 +66,12 @@
           "seq": 2,
           "type": "egress",
           "target": "payments.charge",
-          "operation": "POST"
+          "operation": "POST",
+          "source": {
+            "file": "src/services/order.ts",
+            "line": 92,
+            "col": 14
+          }
         },
         {
           "seq": 3,
@@ -137,7 +142,21 @@
       "provenance": {
         "producer": "rest-scanner",
         "runId": "r4-2026-10-19"
-      }
+      },
+      "via": [
+        {
+          "function": "registerRoutes",
+          "file": "src/routes/orders.ts",
+          "line": 3,
+          "kind": "registration"
+        },
+        {
+          "function": "OrderController.create.bind",
+          "file": "src/routes/orders.ts",
+          "line": 8,
+          "kind": "bind"
+        }
+      ]
     },
     {
       "id": "in.get",

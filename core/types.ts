@@ -9,7 +9,7 @@ export type ServiceKind = 'service' | 'gateway' | 'lambda' | 'infra';
 export type Details = Record<string, unknown>;
 
 /** Where an item is defined: code or IaC file and line. `commit`/`repo` override the service's for this item's link. */
-export interface Source { file?: string; line?: number; url?: string; repo?: string; commit?: string }
+export interface Source { file?: string; line?: number; col?: number; url?: string; repo?: string; commit?: string }
 /** Which harvester run produced an item, and whether it was checked against the live system. */
 export interface Provenance { producer?: string; runId?: string; verified?: 'match' | 'drift' | 'code-only' }
 /** Something the harvester found but could not resolve: the target (call or consumer) or the event type. */
@@ -43,6 +43,8 @@ export interface Step {
   /** For a resource step: read or write, when the operation name does not make it clear. */
   access?: 'read' | 'write';
   unresolved?: Unresolved[];
+  /** Where the call is made (file, line, col). */
+  source?: Source;
 }
 
 export interface Fn { service: string; id: string; name: string; file?: string; line?: number; commit?: string; steps: Step[] }
@@ -52,6 +54,8 @@ export interface Ingress {
   service: string; id: string; bindKey: string; match?: Match; transport: Transport;
   handler: string; entryPoint?: boolean; details?: Details;
   events?: IngressEvent[];
+  /** How the handler was resolved (registration, bind): hops from the registration to the handler. `details.handlerVia` is read too (core/via.ts). */
+  via?: ViaHop[];
   source?: Source; provenance?: Provenance; unresolved?: Unresolved[];
 }
 /** One wrapper between a call site and the real SDK call (the last hop calls the SDK). Never a node or edge. */

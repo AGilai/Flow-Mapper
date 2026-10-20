@@ -5,7 +5,7 @@
 import type { GraphIndex } from './graph-index.ts';
 import type { Fn, Ingress, Service, Source } from './types.ts';
 import { ingressEvents, type EventRow } from './events.ts';
-import { egressVia, type LinkedHop } from './via.ts';
+import { egressVia, ingressVia, type LinkedHop } from './via.ts';
 
 export type DtoRole = 'request' | 'response';
 export const DTO_ROLES: DtoRole[] = ['request', 'response'];
@@ -26,6 +26,8 @@ export interface EndpointInfo {
   harvestedAt: string; slots: DtoSlot[]; note: string | null; events: EventInfo[];
   /** Where the route / consumer itself is declared, when the harvester reports it. */
   definedAt: SourceLink | null;
+  /** Hops that resolved the ingress to its handler (kind registration | bind), as for egress `via`. */
+  handlerVia: LinkedHop[];
 }
 
 const BODY_METHODS = ['POST', 'PUT', 'PATCH'];
@@ -107,6 +109,7 @@ export function endpointInfo(g: GraphIndex, service: string, ingressId: string, 
   return {
     service, ingress, method: httpMethod(ingress), handler, source: sourceLink(svc, handler), harvestedAt: svc.harvestedAt, note,
     definedAt: codeLink(svc, ingress.source),
+    handlerVia: ingressVia(svc, ingress),
     events: ingressEvents(g, ingress).map((r) => ({
       ...r,
       producers: r.producers.map((p) => withVia(g, p)),
