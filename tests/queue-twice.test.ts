@@ -24,7 +24,7 @@ test('a queue or topic lifeline sits left of what it delivers to, in every sampl
     // A target met earlier on the trace (it is also an upstream caller, or a queue fed by two topics) cannot be on both sides: that arrow may point left (#35).
     t.messages.forEach((m, k) => {
       if (!m.from.startsWith('ch:') || m.from === m.to) return;
-      const earlier = t.messages.slice(0, k).some((x) => x.from === m.to || x.to === m.to);
+      const earlier = t.messages.slice(0, k).some((x) => x.from === m.to || x.to === m.to) || (m.to.startsWith('svc:') && t.messages.some((x) => x.cycle && x.to === m.to)); // or a consumer the saga loops back into
       assert.ok(at(m.from) < at(m.to) || earlier, `${i.service}/${i.id}: ${m.from} before ${m.to}`);
     });
   }

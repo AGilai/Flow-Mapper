@@ -65,13 +65,13 @@ test('a consumer reached through several queues sits after the first of them; a 
 
 test('labels on one row never overlap and stay inside their own arrow (#35)', async () => {
   const { labelPlan, rowsOf, colX } = await import('../web/js/views/sequence-render.js');
-  const cases = [run('in.start'), run('in.startChecked'),
+  const cases = [run('in.start'), run('in.startChecked'), trace(g, { service: 'saga-controller', ingress: 'in.start' }, { scope: 'full' })!,
     trace(g, { service: 'api-gateway', ingress: 'in.createOrder' }, { scope: 'full' })!,
     trace(g, { service: 'account-lambda-erase-controller', ingress: 'in.advanceErase' }, { scope: 'full' })!,
     trace(g, { service: 'account-lambda-erase-controller', ingress: 'in.publishDeviceEvent' }, { scope: 'full' })!];
   for (const t of cases) {
     const x = new Map(t.participants.map((p, i) => [p.id, colX(i)]));
-    const { rows } = rowsOf(t.messages);
+    const { rows } = rowsOf(t.messages, x);
     const plan = labelPlan(t.messages, rows, x);
     const boxes = plan.map((p, i) => ({ i, row: rows[i], x0: p.x, x1: p.x + p.width }));
     for (const b of boxes) {

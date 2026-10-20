@@ -1,0 +1,137 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "saga-eraser-a",
+    "kind": "lambda",
+    "team": "account-platform",
+    "repo": "github.com/acme/saga-eraser-a",
+    "language": "python",
+    "description": "Demo (#43): erases on an advance and reports its status from three places"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-20T08:00:00Z",
+  "commit": "4e1c9a0",
+  "functions": [
+    {
+      "id": "erase_a",
+      "name": "erase_a",
+      "file": "saga/eraser_a.py",
+      "line": 8,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "status.skipped",
+          "event": "domain.saga.status.change",
+          "source": {
+            "file": "saga/eraser_a.py",
+            "line": 141
+          }
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "status.inProgress",
+          "event": "domain.saga.status.change",
+          "source": {
+            "file": "saga/eraser_a.py",
+            "line": 152
+          }
+        },
+        {
+          "seq": 3,
+          "type": "egress",
+          "target": "status.done",
+          "event": "domain.saga.status.change",
+          "source": {
+            "file": "saga/eraser_a.py",
+            "line": 222
+          }
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.eraseA",
+      "bindKey": "sqs:saga-erase-a-q",
+      "transport": "sqs",
+      "handler": "erase_a",
+      "source": {
+        "file": "saga/consumers.py",
+        "line": 14
+      },
+      "provenance": {
+        "producer": "saga-demo",
+        "runId": "r1-2026-10-20"
+      }
+    }
+  ],
+  "egress": [
+    {
+      "id": "status.skipped",
+      "bindKey": "sns:saga-status-sns",
+      "transport": "sns",
+      "mode": "async",
+      "events": [
+        "domain.saga.status.change"
+      ],
+      "source": {
+        "file": "saga/eraser_a.py",
+        "line": 141
+      },
+      "callSites": [
+        {
+          "file": "saga/eraser_a.py",
+          "line": 141,
+          "function": "x"
+        }
+      ]
+    },
+    {
+      "id": "status.inProgress",
+      "bindKey": "sns:saga-status-sns",
+      "transport": "sns",
+      "mode": "async",
+      "events": [
+        "domain.saga.status.change"
+      ],
+      "source": {
+        "file": "saga/eraser_a.py",
+        "line": 152
+      },
+      "callSites": [
+        {
+          "file": "saga/eraser_a.py",
+          "line": 152,
+          "function": "x"
+        }
+      ]
+    },
+    {
+      "id": "status.done",
+      "bindKey": "sns:saga-status-sns",
+      "transport": "sns",
+      "mode": "async",
+      "events": [
+        "domain.saga.status.change"
+      ],
+      "source": {
+        "file": "saga/eraser_a.py",
+        "line": 222
+      },
+      "callSites": [
+        {
+          "file": "saga/eraser_a.py",
+          "line": 222,
+          "function": "x"
+        }
+      ]
+    }
+  ],
+  "resources": [],
+  "channels": [],
+  "bindings": []
+}

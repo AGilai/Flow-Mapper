@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "saga-eraser-b",
+    "kind": "lambda",
+    "team": "account-platform",
+    "repo": "github.com/acme/saga-eraser-b",
+    "language": "python",
+    "description": "Demo (#43): erases on an advance and reports its status once"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-20T08:00:00Z",
+  "commit": "4e1c9a0",
+  "functions": [
+    {
+      "id": "erase_b",
+      "name": "erase_b",
+      "file": "saga/eraser_b.py",
+      "line": 8,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "status.done",
+          "event": "domain.saga.status.change",
+          "source": {
+            "file": "saga/eraser_b.py",
+            "line": 30
+          }
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.eraseB",
+      "bindKey": "sqs:saga-erase-b-q",
+      "transport": "sqs",
+      "handler": "erase_b",
+      "source": {
+        "file": "saga/consumers.py",
+        "line": 14
+      },
+      "provenance": {
+        "producer": "saga-demo",
+        "runId": "r1-2026-10-20"
+      }
+    }
+  ],
+  "egress": [
+    {
+      "id": "status.done",
+      "bindKey": "sns:saga-status-sns",
+      "transport": "sns",
+      "mode": "async",
+      "events": [
+        "domain.saga.status.change"
+      ],
+      "source": {
+        "file": "saga/eraser_b.py",
+        "line": 30
+      },
+      "callSites": [
+        {
+          "file": "saga/eraser_b.py",
+          "line": 30,
+          "function": "x"
+        }
+      ]
+    }
+  ],
+  "resources": [],
+  "channels": [],
+  "bindings": []
+}

@@ -10,6 +10,9 @@ import { h, s } from '../dom.js';
 import { altFrames, stripsByRow, drawFrames, STRIP } from './sequence-alt.js';
 
 const COL = 168, HEAD = 56, ROW = 30, PAD = 24, GUTTER = 44;
+const chipOf = (m) => (m.repeatOf ? `↩ step ${m.repeatOf}` : '');
+const chipW = (m) => (m.repeatOf ? chipOf(m).length * CH + 14 : 0);
+const plainLabel = (m) => (m.repeatOf ? m.label.replace(/\s*↩ seen at step \d+$/, '') : m.label);
 const CH = 7.4; // width of one label character: 12px monospace is 7.2px, plus a little room
 export const colX = (i) => GUTTER + PAD + i * COL + COL / 2;
 const KIND_LABEL = { client: 'caller', function: 'function', service: 'service', channel: 'queue / topic', resource: 'data store', missing: 'no match', unresolved: 'harvester gap' };
@@ -41,18 +44,25 @@ export function bridgeChannels(messages) {
 /**
  * Row of each message. One row per message, except that the hops of one delivery share a row:
  * publish -> queue -> consumer for a single queue, topic -> queue -> consumer for each leg of a fan-out.
- * The queue sits level with the consumer that pulls from it.
+ * The queue sits level with the consumer that pulls from it. A delivery that points back over its publish (consumer
+ * left of the queue where the publish came from the left, or the reverse) would overlap it, so it gets its own row (#35).
+ * `x` (participant id -> column x) is optional; without it only a delivery back to the publisher counts as pointing back.
  */
-export function rowsOf(msgs) {
+export function rowsOf(msgs, x) {
   const rows = [];
   let n = -1;
   msgs.forEach((m, i) => {
     const p = msgs[i - 1];
     // A hop out of a channel continues the hop into it, unless that hop is a fan-out publish (its deliveries get their own rows).
-    const sameDelivery = p && p.to === m.from && p.from !== p.to && m.from.startsWith('ch:') && !p.deliveries;
+    const sameDelivery = p && p.to === m.from && p.from !== p.to && m.from.startsWith('ch:') && !p.deliveries && !pointsBack(p, m, x);
     rows.push(sameDelivery ? n : ++n);
   });
   return { rows, count: n + 1 };
+}
+
+function pointsBack(p, m, x) {
+  if (!x) return m.to === p.from;
+  return Math.sign(x.get(p.to) - x.get(p.from)) !== Math.sign(x.get(m.to) - x.get(m.from));
 }
 
 export function renderSequence(trace, { onMessage, onParticipant, expanded = new Set(), internal = true, stores = true, queues = true, maxDepth = Infinity } = {}) {
@@ -63,7 +73,7 @@ export function renderSequence(trace, { onMessage, onParticipant, expanded = new
   const parts = trace.participants.filter((p) => used.has(p.id));
   const x = new Map(parts.map((p, i) => [p.id, colX(i)]));
   const width = GUTTER + PAD * 2 + parts.length * COL;
-  const { rows, count } = rowsOf(msgs);
+  const { rows, count } = rowsOf(msgs, x);
   const plan = labelPlan(msgs, rows, x);
   // Alt frames: each section gets a strip for its condition above its first row, so rows below shift down.
   const frames = altFrames(msgs);
@@ -136,9 +146,9 @@ export function labelPlan(msgs, rows, x) {
     const x1 = x.get(m.from), x2 = x.get(m.to);
     const tags = [m.loop ? 'loop' : null, m.condition && !m.alt ? `if ${m.condition}` : null, m.cycle ? 'cycle' : null].filter(Boolean).join(', ');
     const suffix = tags ? `  [${tags}]` : '';
-    const full = (m.kind === 'frontier' ? `${m.label}  (click to show)` : m.label);
-    const start = x1 === x2 ? x1 + 34 : Math.min(x1, x2) + 6;
-    const room = x1 === x2 ? 34 : Math.max(4, Math.floor((Math.abs(x2 - x1) - 12) / CH));
+    const full = (m.kind === 'frontier' ? `${m.label}  (click to show)` : plainLabel(m));
+    const start = x1 === x2 ? x1 + 34 : Math.min(x1, x2) + 6 + (m.repeatOf && x2 < x1 ? chipW(m) + 10 : 0); // a leftward repeat has its chip at the left end
+    const room = x1 === x2 ? 34 : Math.max(4, Math.floor((Math.abs(x2 - x1) - 12 - chipW(m)) / CH));
     return { start, full, suffix, room };
   });
   const byRow = new Map();
@@ -179,6 +189,10 @@ function message(m, i, x, y, railLabel, plan) {
     const dir = Math.sign(x2 - x1);
     g.append(s('line', { x1, x2: x2 - dir * 2, y1: y, y2: y, class: 'arrow', 'marker-end': dashed ? 'url(#ao)' : 'url(#ah)', 'stroke-dasharray': dashed ? '5 4' : null }));
     g.append(s('text', { x: labelX, y: y - 6, class: 'label' }, label));
+    if (m.repeatOf) { // a muted arrow ending in a chip, so a repeat cannot be mistaken for a [cycle] row
+      const w = chipW(m), cx = x2 - dir * (w / 2 + 10);
+      g.append(s('rect', { x: cx - w / 2, y: y - 9, width: w, height: 18, rx: 9, class: 'chip' }), s('text', { x: cx, y: y + 4, class: 'chip-text', 'text-anchor': 'middle' }, chipOf(m)));
+    }
     if (m.broken) g.append(s('path', { d: `M${x2 - 5} ${y - 5}l10 10M${x2 + 5} ${y - 5}l-10 10`, class: 'x' }));
   }
   g.append(s('rect', { x: Math.min(x1, x2) - 4, y: y - 16, width: Math.max(40, Math.abs(x2 - x1) + 40), height: ROW - 2, class: 'hit' }));

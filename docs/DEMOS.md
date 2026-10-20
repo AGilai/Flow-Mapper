@@ -8,7 +8,8 @@ Add a row here with every fix or feature (newest first). A row without a working
 
 | Version | Bug | What to look at | Link |
 |---|---|---|---|
-| 0.9.3 | #43 | `start_erase` publishes the same status event from three places; the controller answers by asking both erasers again. The saga is expanded under the first delivery; the other two are one muted line "↩ seen at step N" (before: 43 messages, now 21); click it to see the first step | `#/flows?service=erase-saga-demo&ingress=in.start` |
+| 0.9.4 | #35 | The saga demo is now three services (`saga-controller`, `saga-eraser-a`, `saga-eraser-b`): a delivery pointing back over its publish has its own row so labels no longer overlap; repeats ("↩ seen at step N") show a dashed chip at the arrow end | `#/flows?service=saga-controller&ingress=in.start` |
+| 0.9.3 | #43 | `saga-eraser-a` publishes the same status event from three places (since 0.9.4 across three services); the controller answers by advancing both erasers again. The saga is expanded under the first delivery; the other two are one muted line "↩ seen at step N" (before: 43 messages, now 21); click it to see the first step | `#/flows?service=saga-controller&ingress=in.start` |
 | 0.9.2 | #35 | Fan-out of 12 queues, consumers called first by the gateway: the lifelines read topic, queue, consumer, queue, consumer; only the gateway's own queue points left | `#/flows?service=stress-gateway&ingress=in.startChecked` |
 | 0.9.2 | #35 | Same topic, consumers seen nowhere else; labels on the publish/delivery rows are clipped to their arrows | `#/flows?service=stress-gateway&ingress=in.start` |
 | 0.9.2 | #40 | A delivery through a filtered subscription names the matched event ("· account.tenant.deleted"); the side panel says "Delivered as" | `#/flows?service=account-lambda-erase-controller&ingress=in.publishDeviceEvent` |

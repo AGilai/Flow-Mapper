@@ -6,7 +6,7 @@ import { buildIndex } from '../core/graph-index.ts';
 import { trace } from '../core/trace.ts';
 import { sampleModel } from './helpers.ts';
 
-const run = (opts: object = {}) => trace(buildIndex(sampleModel()), { service: 'erase-saga-demo', ingress: 'in.start' }, { scope: 'full', ...opts })!;
+const run = (opts: object = {}) => trace(buildIndex(sampleModel()), { service: 'saga-controller', ingress: 'in.start' }, { scope: 'full', ...opts })!;
 const toStatus = (t: any) => t.messages.filter((m: any) => m.kind === 'deliver' && m.target?.fn === 'on_status' && !m.cycle);
 
 test('three sibling publishes of one event: the controller saga is expanded under the first only', () => {
@@ -17,7 +17,7 @@ test('three sibling publishes of one event: the controller saga is expanded unde
   assert.equal(d[0].repeatOf, undefined);
   assert.deepEqual(d.slice(1).map((m: any) => m.repeatOf), [first, first]);
   assert.match(d[1].label, new RegExp(`↩ seen at step ${first}$`));
-  assert.equal(t.messages.filter((m: any) => m.egress === 'advance.publish' && !m.from.startsWith('ch:') && m.fn === 'on_status').length, 1, 'the controller publishes once');
+  assert.equal(t.messages.filter((m: any) => m.egress === 'advance.again' && !m.from.startsWith('ch:') && m.fn === 'on_status').length, 1, 'the controller publishes once');
   for (const m of d.slice(1)) {
     const next = t.messages[t.messages.indexOf(m) + 1];
     assert.ok(!next || next.depth <= m.depth, 'nothing is expanded below a repeat');
