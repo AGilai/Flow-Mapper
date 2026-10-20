@@ -24,6 +24,7 @@ const demo35 = { service: 'account-lambda-erase-controller', ingress: 'in.notify
 const demo26 = { service: 'account-lambda-erase-controller', ingress: 'in.eraseStatus' }; // added with the #26 demo
 const demo36 = { service: 'orders-svc', ingress: 'in.touch' }; // read_write and fields added with the #36/#37 demo
 const demo40 = [{ service: 'account-lambda-erase-controller', ingress: 'in.publishDeviceEvent' }, { service: 'account-lambda-erase-controller', ingress: 'in.publishUnknownEvent' }]; // untyped publishes, added with the #40 demo
+const demo42 = [{ service: 'account-lambda-agent-info', ingress: 'in.unknownEntry' }, { service: 'account-lambda-agent-info', ingress: 'in.invalidSchema' }, { service: 'account-session-cleaner', ingress: 'in.unknownEntry' }, { service: 'account-session-cleaner', ingress: 'in.schemaViolation' }]; // per-caller event types, added with the #42 demo
 const demo41 = { service: 'account-lambda-erase-controller', ingress: 'in.advanceErase' }; // alt frame, added with the #41 demo
 
 test('traces of every sample entry without frontier steps are unchanged (hash retaken on 0.8.5: SNS fan-out fields group/deliveries/delivery added to 2 traces, see sns-fanout.test.ts)', () => {
@@ -31,7 +32,7 @@ test('traces of every sample entry without frontier steps are unchanged (hash re
   const g = buildIndex(m);
   const h = createHash('sha256');
   let n = 0;
-  for (const i of m.ingress.filter((x) => ![demo, demo35, demo26, demo36, ...demo40, demo41].some((d) => x.service === d.service && x.id === d.ingress))) for (const scope of ['intra', 'full'] as const) {
+  for (const i of m.ingress.filter((x) => ![demo, demo35, demo26, demo36, ...demo40, demo41, ...demo42].some((d) => x.service === d.service && x.id === d.ingress))) for (const scope of ['intra', 'full'] as const) {
     h.update(JSON.stringify([i.service, i.id, scope, trace(g, { service: i.service, ingress: i.id }, { scope })]));
     n++;
   }

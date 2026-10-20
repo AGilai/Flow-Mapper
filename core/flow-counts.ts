@@ -8,13 +8,17 @@
 // classified leaves are not followed; a subscription that filters the event out is not followed.
 // Alternatives (#41, steps that exclude each other) need no special case: every component is counted once however many
 // branches reach it.
+// Binds (#42): memoising per function means a call step's `bind` cannot be followed per path. An egress step
+// with `eventFrom` therefore sends the union of every value any call step in the graph binds to that name, plus
+// the egress's own events and candidates. A count can be a superset of the trace through one caller (never a
+// subset, except where the trace is truncated); tests/eventfrom.test.ts says exactly where they differ.
 // Differences from a trace: it has no depth (25) or message (500) limit, so a flow that a trace
 // truncates counts fully; broken links ("missing") and unresolved gaps are not components in either.
 
 import type { GraphIndex } from './graph-index.ts';
 import { linksFrom, sid } from './graph-index.ts';
 import type { Ref } from './types.ts';
-import { handlerFor, passes, passesUntyped, untypedEventSet } from './events.ts';
+import { handlerFor, passes, boundValues, passesUntyped, untypedEventSet } from './events.ts';
 import { unresolvedTarget } from './resolve.ts';
 import { entryPoints } from './trace.ts';
 
@@ -32,6 +36,7 @@ function componentSets(g: GraphIndex): Map<string, string[]> {
   const hit = cache.get(g);
   if (hit) return hit;
   const nodes = new Map<string, Node>();
+  const bound = boundValues(g); // bind name -> every value a call step binds to it
   const nodeOf = (k: string): Node => {
     let n = nodes.get(k);
     if (n) return n;
@@ -48,8 +53,10 @@ function componentSets(g: GraphIndex): Map<string, string[]> {
       if (st.type === 'call') { if (g.fns.get(sid(f.service, st.target))) node.next.push(sid(f.service, st.target)); continue; }
       if (st.type === 'resource') { node.local.add('r:' + (g.resources.get(sid(f.service, st.target))?.bindKey ?? sid(f.service, st.target))); continue; }
       if (!out) continue;
-      const event = st.event ?? (out.events?.length === 1 ? out.events[0] : undefined);
-      const set = event ? undefined : untypedEventSet(out); // same rule as the trace (#40): an untyped publish follows only subscriptions that match its events or candidates
+      const event = st.eventFrom ? undefined : st.event ?? (out.events?.length === 1 ? out.events[0] : undefined);
+      const own = untypedEventSet(out);
+      const set = st.eventFrom ? { known: [...new Set([...own.known, ...(bound.get(st.eventFrom) ?? [])])], candidates: own.candidates }
+        : event ? undefined : own; // same rule as the trace (#40): an untyped publish follows only subscriptions that match its events or candidates
       const ok = (l: Parameters<typeof passes>[1]) => (set ? passesUntyped(g, l, set) !== false : passes(g, l, event));
       const walk = (r: Ref, seenCh: string[]) => {
         if (r.type === 'channel') {
@@ -60,8 +67,8 @@ function componentSets(g: GraphIndex): Map<string, string[]> {
           const i = g.ingress.get(sid(r.service, r.id));
           if (!i) return;
           node.local.add('s:' + i.service);
-          const handler = event ? handlerFor(i, event) : i.handler;
-          if (handler && g.fns.get(sid(i.service, handler))) node.next.push(sid(i.service, handler));
+          const handlers = st.eventFrom && i.events?.length ? [...set!.known, ...set!.candidates].map((t) => handlerFor(i, t)) : [event ? handlerFor(i, event) : i.handler];
+          for (const handler of new Set(handlers)) if (handler && g.fns.get(sid(i.service, handler))) node.next.push(sid(i.service, handler));
         }
       };
       for (const l of linksFrom(g, { type: 'egress', service: f.service, id: out.id })) if (ok(l)) walk(l.to, []);

@@ -5,7 +5,7 @@
 
 import type { GraphIndex } from './graph-index.ts';
 import { downstreamIngress, linksFrom, linksInto, sid } from './graph-index.ts';
-import { handlerFor, passes } from './events.ts';
+import { egressEvents, handlerFor, passes } from './events.ts';
 import { refKey } from './resolve.ts';
 import { filterAllows, filterLabel, keyMatches, type FilterEvents as Events } from './glob.ts';
 import { codeLink, type SourceLink } from './endpoint-info.ts';
@@ -96,7 +96,7 @@ function evSets(g: GraphIndex, key: string, seen: Set<string>): EvSets {
   for (const l of linksInto(g, { type: 'channel', key })) {
     if (l.from.type === 'egress') {
       const e = g.egress.get(sid(l.from.service, l.from.id))!;
-      for (const t of e.events ?? []) add(out.confirmed, t, [e.service]);
+      for (const t of egressEvents(g, e)) add(out.confirmed, t, [e.service]);
       for (const t of candidatesOf(e)) add(out.possible, t, [e.service]);
     } else if (l.from.type === 'channel') {
       const up = evSets(g, l.from.key, path);
@@ -146,7 +146,7 @@ function reach(c: Ctx, key: string, event: string): Set<string> {
 function publishersInto(g: GraphIndex, key: string): Publisher[] {
   return linksInto(g, { type: 'channel', key }).filter((l) => l.from.type === 'egress').map((l) => {
     const e = g.egress.get(sid((l.from as any).service, (l.from as any).id))!;
-    return { service: e.service, egress: e.id, events: e.events ?? [], possible: candidatesOf(e) };
+    return { service: e.service, egress: e.id, events: egressEvents(g, e), possible: candidatesOf(e) };
   });
 }
 

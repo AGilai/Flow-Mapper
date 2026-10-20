@@ -5,7 +5,7 @@
 
 import type { GraphIndex } from './graph-index.ts';
 import { linksFrom, linksInto, sid } from './graph-index.ts';
-import { handlerFor, passes } from './events.ts';
+import { egressEvents, handlerFor, passes } from './events.ts';
 import { refKey } from './resolve.ts';
 import { keyMatches } from './glob.ts';
 import { codeLink, sourceLink, type SourceLink } from './endpoint-info.ts';
@@ -117,7 +117,7 @@ export function eventFlow(g: GraphIndex, type: string): EventFlow {
   const unresolved: UnresolvedSend[] = [];
 
   for (const e of g.model.egress) {
-    const sure = !!e.events?.includes(type);
+    const sure = egressEvents(g, e).includes(type);
     const cands = candidatesOf(e);
     if (!sure && !cands.includes(type)) continue;
     const ref: Ref = { type: 'egress', service: e.service, id: e.id };
@@ -129,7 +129,7 @@ export function eventFlow(g: GraphIndex, type: string): EventFlow {
     const grp = groups.get(e.service) ?? { producer: e.service, possible: true, callSites: [], targets: [] };
     groups.set(e.service, grp);
     const via = svc ? egressVia(svc, e) : { via: [], callSites: [] };
-    grp.callSites.push({ egress: e.id, bindKey: e.bindKey, at: svc ? codeLink(svc, e.source) : null, possible: !sure, to: first, candidates: sure ? [] : [...(e.events ?? []), ...cands], fn: via.callSites[0]?.function ?? null, via });
+    grp.callSites.push({ egress: e.id, bindKey: e.bindKey, at: svc ? codeLink(svc, e.source) : null, possible: !sure, to: first, candidates: sure ? [] : [...egressEvents(g, e), ...cands], fn: via.callSites[0]?.function ?? null, via });
     if (sure) grp.possible = false;
     if (!hits.length) {
       const u = e.unresolved?.find((x) => x.what === 'target');

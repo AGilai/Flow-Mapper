@@ -3,6 +3,7 @@
 // Add a check by writing a `Rule` and listing it in RULES; give it a new code and a one-sentence fix.
 
 import type { GraphIndex } from './graph-index.ts';
+import { boundValues } from './events.ts';
 import { filterAllows, keyMatches } from './glob.ts';
 import { drift, mixedCommits } from './harvest-quality.ts';
 import type { ClientInfo, Source, Unresolved } from './types.ts';
@@ -100,6 +101,17 @@ const egressNoEvents: Rule = ({ m, g, add }) => {
   }
 };
 
+/** An egress step that takes its event from a caller's bind (#42) when no call step in the service binds that name: the trace treats it as untyped. */
+const eventFromUnbound: Rule = ({ m, g, add }) => {
+  const fns = g.model.functions.filter((f) => f.service === m.service);
+  const bound = new Set(boundValues(g).keys());
+  for (const f of fns) for (const s of f.steps) if (s.eventFrom && !bound.has(s.eventFrom)) add({
+    level: 'info', code: 'eventfrom-unbound', kind: 'step', id: `${f.id}#${s.seq}`,
+    message: `step ${f.id}#${s.seq} takes its event from '${s.eventFrom}' but no call step binds '${s.eventFrom}', so it is traced as a publish with no event type`,
+    fix: `Add bind: {"${s.eventFrom}": "<event type>"} to the call steps that reach this function, or drop eventFrom and send event / unresolved what "event".`,
+  });
+};
+
 const dangling: Rule = ({ m, g, add }) => {
   for (const e of g.resolution.dangling) if (e.service === m.service) add({
     level: 'warn', code: 'dangling-egress', kind: 'egress', id: e.id,
@@ -157,7 +169,7 @@ const clientGaps: Rule = ({ m, add }) => {
   for (const e of m.egress ?? []) check('egress', e.id, e.client, e.unresolved);
 };
 
-export const RULES: Rule[] = [unresolvedNoDetail, clientGaps, missingSource, fieldNotInDdl, bindingNoEvents, bindingEmptyEvents, egressNoEvents, dangling, filterMatchesNothing, harvestQuality];
+export const RULES: Rule[] = [unresolvedNoDetail, clientGaps, missingSource, fieldNotInDdl, bindingNoEvents, bindingEmptyEvents, egressNoEvents, eventFromUnbound, dangling, filterMatchesNothing, harvestQuality];
 
 /** `m`: the service's entities as stored; `g`: the env's index after applying them. */
 export function contractReport(m: ServiceManifest, g: GraphIndex): ContractReport {

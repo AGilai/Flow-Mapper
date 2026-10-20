@@ -191,6 +191,8 @@
         "loop": { "type": "boolean", "default": false },
         "note": { "type": "string" },
         "event": { "$ref": "#/$defs/eventType", "description": "For an egress step: the event type it publishes." },
+        "bind": { "type": "object", "additionalProperties": { "type": "string" }, "description": "For a call step: values handed to the callee, by name, e.g. {\"event\": \"entry.does.not.exist\"}. Visible to the callee and everything it calls on this path; the nearest bind of a name wins." },
+        "eventFrom": { "type": "string", "description": "For an egress step: take the event type from the nearest enclosing call step's bind of this name on the traced path (a publish whose event type is a parameter of the function). Unbound on a path: treated as a publish that names no event." },
         "unresolved": { "$ref": "#/$defs/unresolved" },
         "source": { "$ref": "#/$defs/source", "description": "Where the call is made: file, line, col. Shown as a code link on the trace message." },
         "access": { "enum": ["read", "write", "read_write"], "description": "For a resource step: read, write or read_write (e.g. findOneAndUpdate; shown as R/W, counts as reader and writer). Default: from the operation name (find, GET, SELECT, GetItem… are reads)." },

@@ -9,7 +9,7 @@
 // Events: a publish step that names an event type (or an egress with only one) carries that type
 // along; subscriptions that filter it out are not followed, and a consumer runs the handler for
 // that type. A publish that names no event uses the egress's events and candidates: only matching subscriptions
-// are followed (candidate-only ones are `possible`); with none known it stops at the topic (#40). A trace can also start from one event type at an ingress.
+// are followed (candidate-only ones are `possible`); with none known it stops at the topic (#40). A step with `eventFrom` takes its event from the nearest enclosing call step's `bind` on the path (#42); unbound it is such an untyped publish. A trace can also start from one event type at an ingress.
 
 import type { GraphIndex } from './graph-index.ts';
 import { linksFrom, sid } from './graph-index.ts';
@@ -34,6 +34,7 @@ export interface Message {
   condition?: string; loop?: boolean;
   alt?: Alt;                                                 // the step is one of several alternatives (an alt frame): group, branch (1-based), number of branches; the message keeps its `condition` note?: string; fn?: string; service?: string; transport?: string;
   event?: string; unhandled?: boolean;
+  eventFrom?: { name: string; boundAt?: string };            // the event came from a caller's bind (#42): the name, and where it was bound (`<caller fn>:<seq>`); no boundAt: nothing on this path binds it
   possible?: boolean;                                        // delivered only if the publisher's event is one of its candidates (the step names no event)
   seq?: number;                                              // step number in the calling function
   target?: { service: string; ingress: string; fn?: string }; // ingress reached, and the handler that runs
@@ -122,7 +123,9 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
     return walk(sid(service, fn));
   };
 
-  const visitFn = (service: string, fn: string, depth: number, stack: string[]) => {
+  // Values bound by call steps (#42) on the way down: the nearest bind of a name wins. A message to another service starts with none.
+  type Binds = ReadonlyMap<string, { value: string; boundAt: string }>;
+  const visitFn = (service: string, fn: string, depth: number, stack: string[], binds: Binds = new Map()) => {
     const f = g.fns.get(sid(service, fn));
     if (!f) return;
     const me = fnPart(service, fn);
@@ -167,7 +170,8 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
         const cycle = stack.includes(key);
         const target = g.fns.get(key);
         if (!push({ ...base, from: me, to: fnPart(service, st.target), label: target?.name ?? st.target, mode: st.mode ?? 'sync', kind: 'call', internal: true, cycle, calls: st.target })) return;
-        if (!cycle && depth < maxDepth) visitFn(service, st.target, depth + 1, [...stack, key]);
+        const down: Binds = st.bind ? new Map([...binds, ...Object.entries(st.bind).map(([k, value]): [string, { value: string; boundAt: string }] => [k, { value, boundAt: `${f.name}:${st.seq}` }])]) : binds;
+        if (!cycle && depth < maxDepth) visitFn(service, st.target, depth + 1, [...stack, key], down);
       } else if (st.type === 'resource') {
         const r = g.resources.get(sid(service, st.target));
         const to = part({ id: `res:${r?.bindKey ?? sid(service, st.target)}`, label: r?.name ?? st.target, kind: 'resource' });
@@ -176,7 +180,10 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
         const e = g.egress.get(sid(service, st.target));
         if (!e) continue;
         const mode = st.mode ?? e.mode ?? 'sync';
-        const event = st.event ?? (e.events?.length === 1 ? e.events[0] : undefined);
+        // eventFrom: the nearest bind decides; none bound on this path is a publish that names no event (the #40 rule below).
+        const from = st.eventFrom ? binds.get(st.eventFrom) : undefined;
+        const event = st.eventFrom ? from?.value : st.event ?? (e.events?.length === 1 ? e.events[0] : undefined);
+        const eventFrom = st.eventFrom ? { eventFrom: { name: st.eventFrom, ...(from ? { boundAt: from.boundAt } : {}) } } : {};
         const label = (st.operation && !e.bindKey.includes(st.operation) ? `${st.operation} ${e.bindKey}` : e.bindKey) + (event ? ` · ${event}` : '');
         // No single event: the types the egress may send (its events, then the candidates of its unresolved event) decide which subscriptions are followed (#40).
         const set = event ? undefined : untypedEventSet(e);
@@ -194,10 +201,10 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
         const links = all.filter((l) => l.to.type !== 'ingress' || !viaChannel.has(refKey(l.to)));
         if (!links.length) {
           const to = part({ id: `missing:${e.bindKey}`, label: e.bindKey, kind: 'missing' });
-          push({ ...base, from: me, to, label, mode, kind: 'egress', broken: true, transport: e.transport, egress: e.id });
+          push({ ...base, from: me, to, label, mode, kind: 'egress', broken: true, transport: e.transport, egress: e.id, ...eventFrom });
           continue;
         }
-        for (const l of links) follow(me, l.to, label, mode, depth, stack, { ...base, transport: e.transport, event, egress: e.id }, [], set);
+        for (const l of links) follow(me, l.to, label, mode, depth, stack, { ...base, transport: e.transport, event, egress: e.id, ...eventFrom }, [], set);
       }
     }
     } finally { altCtx = outer; }

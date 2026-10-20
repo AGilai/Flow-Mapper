@@ -8,6 +8,8 @@ Add a row here with every fix or feature (newest first). A row without a working
 
 | Version | Bug | What to look at | Link |
 |---|---|---|---|
+| 0.9.1 | #42 | Shared `requestForcedDisconnection(eventName)` called from two entry points with different `bind`s: this one delivers only to the `entry.does.not.exist` queue; the side panel says "Event from caller AgentInfoHandler.onUnknownEntry:1: bind event=entry.does.not.exist" | `#/flows?service=account-lambda-agent-info&ingress=in.unknownEntry` |
+| 0.9.1 | #42 | The other entry point, same shared publish: only the `schema.validation.violation` queue | `#/flows?service=account-lambda-agent-info&ingress=in.invalidSchema` |
 | 0.9.0 | #41 | Four steps that exclude each other (event priority10/15/20/30, one condition each) drawn as one alt frame: "alt" tab, the condition in brackets at the top of each section, dashed lines between sections, each branch's subscribers inside it, a call in the last branch | `#/flows?service=account-lambda-erase-controller&ingress=in.advanceErase` |
 | 0.8.10 | #40 | A publish with no event type no longer fans out to every subscriber: only subscriptions matching the egress's events or candidates are followed (candidate-only ones dashed, italic, "possible"); unfiltered subscriptions still get it | `#/flows?service=account-lambda-erase-controller&ingress=in.publishDeviceEvent` |
 | 0.8.10 | #40 | Event fully unknown: filtered subscriptions are not reached, one "event unknown: not delivered" message under the topic | `#/flows?service=account-lambda-erase-controller&ingress=in.publishUnknownEvent` |

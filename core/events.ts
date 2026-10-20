@@ -56,6 +56,24 @@ export function untypedEventSet(e: { events?: string[]; unresolved?: { what: str
   return { known, candidates };
 }
 
+/** Every value a call step binds to each name, in the whole graph (#42). */
+const boundCache = new WeakMap<GraphIndex, Map<string, Set<string>>>();
+export function boundValues(g: GraphIndex): Map<string, Set<string>> {
+  let m = boundCache.get(g);
+  if (!m) {
+    boundCache.set(g, (m = new Map()));
+    for (const f of g.model.functions) for (const st of f.steps) for (const [k, v] of Object.entries(st.bind ?? {})) m.set(k, (m.get(k) ?? new Set()).add(v));
+  }
+  return m;
+}
+/** The event types an egress sends: its own `events` plus what callers bind for its `eventFrom` steps (#42). */
+export const egressEvents = (g: GraphIndex, e: { service: string; id: string; events?: string[] }): string[] => [...new Set([...(e.events ?? []), ...eventFromTypes(g, e)])];
+/** Event types an egress gets from `eventFrom` steps: the union of the values bound to those names by any caller. Conservative: not per path. */
+export function eventFromTypes(g: GraphIndex, e: { service: string; id: string }): string[] {
+  const names = new Set(g.model.functions.filter((f) => f.service === e.service).flatMap((f) => f.steps.filter((st) => st.type === 'egress' && st.target === e.id && st.eventFrom).map((st) => st.eventFrom!)));
+  return [...new Set([...names].flatMap((n) => [...(boundValues(g).get(n) ?? [])]))];
+}
+
 /**
  * `passes` for a publish whose event type is not known exactly. A hop that is not a filtered
  * subscription lets it through ('sure'); a filtered one only when it allows one of the set's types:
@@ -92,8 +110,9 @@ export function eventReport(g: GraphIndex): EventReport {
 
   for (const e of g.model.egress) {
     const candidates = (e.unresolved ?? []).filter((u) => u.what === 'event').flatMap((u) => u.candidates ?? []);
-    const types: [string, boolean][] = [...(e.events ?? []).map((t): [string, boolean] => [t, false]),
-      ...candidates.filter((t) => !e.events?.includes(t)).map((t): [string, boolean] => [t, true])];
+    const own = egressEvents(g, e);
+    const types: [string, boolean][] = [...own.map((t): [string, boolean] => [t, false]),
+      ...candidates.filter((t) => !own.includes(t)).map((t): [string, boolean] => [t, true])];
     for (const [event, possible] of types) {
       const seen = new Set<string>();
       let n = 0;
@@ -199,7 +218,8 @@ export function eventTypes(g: GraphIndex) {
   const types = new Map<string, { type: string; producers: { service: string; egress: string }[]; consumers: { service: string; ingress: string; handler: string | null }[] }>();
   const t = (type: string) => { if (!types.has(type)) types.set(type, { type, producers: [], consumers: [] }); return types.get(type)!; };
   for (const e of g.model.egress) {
-    for (const ev of e.events ?? []) t(ev).producers.push({ service: e.service, egress: e.id });
+    const own = egressEvents(g, e);
+    for (const ev of own) t(ev).producers.push({ service: e.service, egress: e.id });
     for (const u of e.unresolved ?? []) if (u.what === 'event') {
       for (const ev of u.candidates ?? []) if (!e.events?.includes(ev)) t(ev).producers.push({ service: e.service, egress: e.id, possible: true } as any);
     }

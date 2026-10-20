@@ -75,6 +75,9 @@ function codeCard(m, trace) {
   if (m.store) rows.push(h('div.ep-pad.stack', { style: { gap: '2px' } }, h('span.ep-label', 'Data store'), storeLink(m.store)));
   if (m.fields?.length) rows.push(h('div.ep-pad.stack', { style: { gap: '2px' } }, h('span.ep-label', 'Fields'), stepFields(m.fields)));
   if (m.note) rows.push(h('p.ep-note.ep-pad', m.note));
+  if (m.eventFrom) rows.push(h('p.ep-note.ep-pad', m.eventFrom.boundAt
+    ? `Event from caller ${m.eventFrom.boundAt}: bind ${m.eventFrom.name}=${m.event}`
+    : `Event type is the caller's "${m.eventFrom.name}", but no caller on this path binds it, so the publish is treated as naming no event.`));
   return rows.length ? h('section.ep-card', h('header', h('h3', 'Code')), rows) : null;
 }
 

@@ -47,6 +47,7 @@ anything. There are currently no `error`-level codes (422 rejections come from v
 | `missing-source` | info | ingress/egress without `source.file`, or steps of a function without `file` (one finding per service) | send `source: {file, line}`, and `file` on functions |
 | `binding-no-events` | info | SNS/EventBridge subscription without `events`: everything is delivered | send the filter policy as `events`, or `"*"` |
 | `egress-no-events` | warn | publish to a topic/bus without `events` (or event `unresolved`): subscriber filters cannot be applied | send `events`, or `unresolved` what `event` with `candidates` |
+| `eventfrom-unbound` | info | an egress step with `eventFrom` whose name no call step binds | add `bind` to the calls that reach it, or drop `eventFrom` |
 | `dangling-egress` | warn | `bindKey` matches no ingress or channel in the env | fix the key to match the callee; ignore if the callee is not harvested yet |
 | `filter-matches-nothing` | warn | subscription `events` match none of the types published to its source | fix the filter or the publisher's `events` |
 | `mixed-commit` | info | items scanned at a commit other than the manifest's | scan at one commit, or set `source.commit` |
@@ -128,6 +129,24 @@ and a dashed line between sections; the trace marks each message `alt: {group, b
 `condition` form a group anyway, so a harvester that already sets `source` and `condition` needs nothing
 more. A group needs two different conditions. Counts and `maxMessages` treat the branches as alternatives,
 not as a sequence. Steps without `altGroup` or a shared `source` are drawn in sequence with an "if …" tag, as before.
+
+**Per-caller event types** (`bind`, `eventFrom`): when a publish sits in a shared function and its event type is
+a parameter, each caller passes its own constant, and one `event` on the step would be wrong for all but one
+of them. Put the value on the call and read it at the publish:
+`AgentInfoHandler.ts:150` calls `requestForcedDisconnection(AgentDisconnectEventType.ENTRY_DOES_NOT_EXIST)` and `:78` calls it with
+`SCHEMA_VALIDATION_VIOLATION`; the publish at `:483` sends `eventName`. Manifest:
+`{"seq": 1, "type": "call", "target": "requestForcedDisconnection", "bind": {"event": "entry.does.not.exist"}}` in the
+first caller, `... "bind": {"event": "schema.validation.violation"}` in the second, and in the shared function
+`{"seq": 1, "type": "egress", "target": "agentInfo.publishDisconnect", "eventFrom": "event"}`. The name (`event`) is
+yours; values are event type strings. A trace takes the event of the nearest enclosing `bind` of that name on the
+path it walked (an inner call's bind wins; binds are not passed across a publish into another service), shows it on the
+message with where it came from (`eventFrom: {name, boundAt: "<caller fn>:<seq>"}`), and delivers only to
+subscriptions that let it through. A path that binds nothing is treated as a publish that names no event: the egress's
+`events` and `unresolved` candidates decide, or the trace stops at the topic. Do not use `condition` alternatives for
+this: the trace would follow both. Keep sending `unresolved: [{"what": "event", ...}]` on the egress if you want it
+reported; Flow-Mapper does not drop it. Flow counts cannot follow a bind per path: for an `eventFrom` step they use every value
+any call step binds to that name, so a count can include more than the trace through one caller. The contract report says
+`eventfrom-unbound` (info) when no call step binds the name.
 
 **Frontier steps** (`origin`): call trees that reach no sink (a flow that ends in the service) can be
 large. Mark the steps of such a tree `origin: "frontier"`; the steps on the way to a cross-service hop

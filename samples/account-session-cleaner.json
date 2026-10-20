@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "account-session-cleaner",
+    "kind": "service",
+    "team": "account-platform",
+    "repo": "github.com/acme/account-session-cleaner",
+    "language": "typescript",
+    "description": "Closes the sessions of an agent that was force-disconnected"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-20T08:00:00Z",
+  "commit": "7b2d4e1",
+  "functions": [
+    {
+      "id": "closeStaleSessions",
+      "name": "closeStaleSessions",
+      "file": "src/sessions.ts",
+      "line": 12,
+      "steps": []
+    },
+    {
+      "id": "reportInvalidPayload",
+      "name": "reportInvalidPayload",
+      "file": "src/sessions.ts",
+      "line": 40,
+      "steps": []
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.unknownEntry",
+      "bindKey": "sqs:disconnect-unknown-entry",
+      "transport": "sqs",
+      "handler": "closeStaleSessions",
+      "events": [
+        {
+          "type": "entry.does.not.exist",
+          "handler": "closeStaleSessions"
+        }
+      ],
+      "source": {
+        "file": "src/consumers/in.unknownEntry.ts",
+        "line": 5
+      },
+      "provenance": {
+        "producer": "queue-scanner",
+        "runId": "r1-2026-10-20"
+      }
+    },
+    {
+      "id": "in.schemaViolation",
+      "bindKey": "sqs:disconnect-schema-violation",
+      "transport": "sqs",
+      "handler": "reportInvalidPayload",
+      "events": [
+        {
+          "type": "schema.validation.violation",
+          "handler": "reportInvalidPayload"
+        }
+      ],
+      "source": {
+        "file": "src/consumers/in.schemaViolation.ts",
+        "line": 5
+      },
+      "provenance": {
+        "producer": "queue-scanner",
+        "runId": "r1-2026-10-20"
+      }
+    }
+  ],
+  "egress": [],
+  "resources": []
+}

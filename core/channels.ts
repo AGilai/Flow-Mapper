@@ -3,7 +3,7 @@
 
 import type { GraphIndex } from './graph-index.ts';
 import { linksFrom, linksInto, sid } from './graph-index.ts';
-import { eventReport } from './events.ts';
+import { egressEvents, eventReport } from './events.ts';
 import { keyMatches } from './glob.ts';
 import { codeLink } from './endpoint-info.ts';
 import { candidatesOf, channelFlow } from './channel-flow.ts';
@@ -25,7 +25,7 @@ export function channelView(g: GraphIndex, key: string) {
     declaredBy: [...new Set(g.model.channels.filter((x) => x.bindKey === key).map((x) => x.service))],
     publishers: into.filter((l) => l.from.type === 'egress').map((l) => {
       const e = g.egress.get(sid((l.from as any).service, (l.from as any).id))!;
-      return { service: e.service, egress: e.id, events: e.events ?? [], possible: candidatesOf(e), at: codeLink(g.services.get(e.service)!, e.source) };
+      return { service: e.service, egress: e.id, events: egressEvents(g, e), possible: candidatesOf(e), at: codeLink(g.services.get(e.service)!, e.source) };
     }),
     feeds: into.filter((l) => l.from.type === 'channel').map((l) => (l.from as any).key as string),
     subscriptions: g.model.bindings.filter((b) => keyMatches(b.from, b.match, key)).map((b) => ({

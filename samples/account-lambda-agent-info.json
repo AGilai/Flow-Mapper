@@ -1,0 +1,201 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "account-lambda-agent-info",
+    "kind": "lambda",
+    "team": "account-platform",
+    "repo": "github.com/acme/account-lambda-agent-info",
+    "language": "typescript",
+    "description": "Answers agent info requests and forces a disconnection when the request is invalid"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-20T08:00:00Z",
+  "commit": "7b2d4e1",
+  "functions": [
+    {
+      "id": "onUnknownEntry",
+      "name": "AgentInfoHandler.onUnknownEntry",
+      "file": "src/AgentInfoHandler.ts",
+      "line": 140,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "requestForcedDisconnection",
+          "bind": {
+            "event": "entry.does.not.exist"
+          },
+          "source": {
+            "file": "src/AgentInfoHandler.ts",
+            "line": 150
+          }
+        }
+      ]
+    },
+    {
+      "id": "onInvalidSchema",
+      "name": "AgentInfoHandler.onInvalidSchema",
+      "file": "src/AgentInfoHandler.ts",
+      "line": 70,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "requestForcedDisconnection",
+          "bind": {
+            "event": "schema.validation.violation"
+          },
+          "source": {
+            "file": "src/AgentInfoHandler.ts",
+            "line": 78
+          }
+        }
+      ]
+    },
+    {
+      "id": "requestForcedDisconnection",
+      "name": "requestForcedDisconnection",
+      "file": "src/AgentInfoHandler.ts",
+      "line": 467,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "agentInfo.publishDisconnect",
+          "eventFrom": "event",
+          "source": {
+            "file": "src/AgentInfoHandler.ts",
+            "line": 483
+          }
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.unknownEntry",
+      "bindKey": "http:POST account-lambda-agent-info/agent/info/unknown-entry",
+      "transport": "http",
+      "handler": "onUnknownEntry",
+      "entryPoint": true,
+      "details": {
+        "method": "POST",
+        "path": "/agent/info/unknown-entry"
+      }
+    },
+    {
+      "id": "in.invalidSchema",
+      "bindKey": "http:POST account-lambda-agent-info/agent/info/invalid",
+      "transport": "http",
+      "handler": "onInvalidSchema",
+      "entryPoint": true,
+      "details": {
+        "method": "POST",
+        "path": "/agent/info/invalid"
+      }
+    }
+  ],
+  "egress": [
+    {
+      "id": "agentInfo.publishDisconnect",
+      "bindKey": "sns:agent-disconnect-sns",
+      "transport": "sns",
+      "mode": "async",
+      "delivery": "multicast",
+      "unresolved": [
+        {
+          "what": "event",
+          "reason": "event_caller_differs_by_path",
+          "detail": "eventName is a parameter of requestForcedDisconnection; each caller binds it"
+        }
+      ],
+      "source": {
+        "file": "src/AgentInfoHandler.ts",
+        "line": 483
+      }
+    }
+  ],
+  "resources": [],
+  "channels": [
+    {
+      "bindKey": "sns:agent-disconnect-sns",
+      "kind": "sns-topic",
+      "name": "agent-disconnect-sns",
+      "source": {
+        "file": "infra/agent/topics.tf",
+        "line": 4
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-20",
+        "verified": "match"
+      }
+    },
+    {
+      "bindKey": "sqs:disconnect-unknown-entry",
+      "kind": "sqs-queue",
+      "name": "disconnect-unknown-entry",
+      "source": {
+        "file": "infra/agent/queues.tf",
+        "line": 6
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-20",
+        "verified": "match"
+      }
+    },
+    {
+      "bindKey": "sqs:disconnect-schema-violation",
+      "kind": "sqs-queue",
+      "name": "disconnect-schema-violation",
+      "source": {
+        "file": "infra/agent/queues.tf",
+        "line": 18
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-20",
+        "verified": "match"
+      }
+    }
+  ],
+  "bindings": [
+    {
+      "id": "sub.disconnect-unknown-entry",
+      "from": "sns:agent-disconnect-sns",
+      "to": "sqs:disconnect-unknown-entry",
+      "events": [
+        "entry.does.not.exist"
+      ],
+      "source": {
+        "file": "infra/agent/subscriptions.tf",
+        "line": 9
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-20",
+        "verified": "match"
+      }
+    },
+    {
+      "id": "sub.disconnect-schema-violation",
+      "from": "sns:agent-disconnect-sns",
+      "to": "sqs:disconnect-schema-violation",
+      "events": [
+        "schema.validation.violation"
+      ],
+      "source": {
+        "file": "infra/agent/subscriptions.tf",
+        "line": 21
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-20",
+        "verified": "match"
+      }
+    }
+  ]
+}

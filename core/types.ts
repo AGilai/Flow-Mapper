@@ -47,6 +47,10 @@ export interface Step {
   note?: string;
   /** Event type this egress step publishes (one of the egress's `events`). */
   event?: string;
+  /** On a `call` step: values bound for the callee (and everything below it on this path), by name. An egress step with `eventFrom` reads one. */
+  bind?: Record<string, string>;
+  /** On an egress step: the event type is the nearest enclosing `bind` of this name on the traced call path (#42). */
+  eventFrom?: string;
   /** For a resource step: read or write, when the operation name does not make it clear. */
   access?: 'read' | 'write' | 'read_write';
   /** For a resource step: fields the call touches (names only). */
