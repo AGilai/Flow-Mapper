@@ -116,7 +116,7 @@ table.spec { width: 100%; border-collapse: collapse; font-size: var(--fs-xs); }
 
 /* ---------- Who connects: service -> client -> instance ---------- */
 .lanes { overflow-x: auto; padding: var(--s3) var(--s4) var(--s3); }
-.grid { display: grid; min-width: 760px; grid-template-columns: minmax(190px, 1fr) 62px minmax(260px, 1.6fr) 36px minmax(150px, 0.7fr); row-gap: var(--s2); }
+.grid { display: grid; min-width: 560px; grid-template-columns: minmax(200px, 1fr) 70px minmax(280px, 1.8fr); row-gap: var(--s2); }
 .colhead { font-size: var(--fs-xs); color: var(--muted); font-weight: 600; padding-bottom: 2px; }
 .node { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 6px 10px; align-self: center; min-width: 0; }
 .node.svc { border-left: 3px solid var(--ink-2); }
@@ -226,6 +226,31 @@ details.k[open] > summary { background: color-mix(in srgb, var(--accent) 5%, var
   .flow, .claim { grid-template-columns: 1fr; }
   .toolbar .search { max-width: none; }
 }
+
+/* Inventory (copies web/ inventory: toolbar, tabs, sub-chips, table) */
+.inv-head { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; padding: var(--s4) var(--s5); }
+.inv-head .grow { flex: 1; min-width: 160px; }
+.inv-head h1 { font-size: var(--fs-lg); }
+.fake { height: 32px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); padding: 0 10px; display: inline-flex; align-items: center; color: var(--ink-2); background: var(--surface); font-size: var(--fs-sm); min-width: 110px; }
+.fake.s { color: var(--muted); min-width: 220px; }
+.tabs { display: flex; flex-wrap: wrap; gap: var(--s3); align-items: center; padding: 0 var(--s5) var(--s2); }
+.tabs .seg span.on { font-weight: 600; }
+.subs { padding: 0 var(--s5) var(--s2); }
+.invtools { padding: var(--s2) var(--s5) var(--s3); display: flex; justify-content: space-between; font-size: var(--fs-sm); color: var(--ink-2); border-bottom: 1px solid var(--line); flex-wrap: wrap; gap: 4px; }
+.tbl-wrap { padding: var(--s4) var(--s5) var(--s5); overflow-x: auto; }
+table.inv { width: 100%; min-width: 760px; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); font-size: var(--fs-sm); }
+.inv th { text-align: left; font-size: var(--fs-xs); color: var(--muted); font-weight: 600; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+.inv td { padding: 9px 12px; border-top: 1px solid var(--line); vertical-align: middle; }
+.inv tr:first-child td { border-top: 0; }
+.inv td.n { font-family: var(--mono); font-weight: 600; white-space: nowrap; }
+.inv td.n a { color: var(--ink); }
+.inv tr.hover td { background: var(--accent-soft); }
+.inv td.r { text-align: right; color: var(--muted); }
+.inv td.r.bad { color: var(--bad); }
+.kchip { display: inline-block; font-size: var(--fs-xs); font-weight: 700; padding: 1px 7px; border-radius: 4px; background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--line); white-space: nowrap; }
+.ico { display: inline-block; width: 14px; height: 14px; border-radius: 3px; background: var(--ink-2); margin-right: 8px; vertical-align: -2px; opacity: .55; }
+.ico.redis { background: var(--bad); opacity: 1; }
+@media (max-width: 760px) { .inv-head, .tabs, .subs, .invtools { padding-left: var(--s4); padding-right: var(--s4); } .tbl-wrap { padding: var(--s3) var(--s4); } }
 </style>
 </head>
 <body>
@@ -234,13 +259,14 @@ details.k[open] > summary { background: color-mix(in srgb, var(--accent) 5%, var
   <section>
     <h2>Decisions</h2>
     <ol>
+      <li><b>Redis is in the Inventory like every other data store</b> (frame 1): same toolbar, tabs, sub-chips and table. Only the row content is new: a kind chip (Redis cluster, Redis instance) and "7 services · 3 dbs · 12 key templates". The row opens the instance page.</li>
       <li><b>Order on the page follows the maintainer's direction:</b> instance (identity, verdict) → who connects → keys. Keys are the last, lazy section.</li>
-      <li><b>Who connects is lanes</b> (service → client → instance), one row per service, with its access (R, W or R/W) on the connector. The #27 <code>client</code> sits in the middle column; a click on a row docks the full client in a panel that squeezes the page.</li>
+      <li><b>Who connects is lanes</b> (service → access → client), one row per service. There is no instance node or fan: the page is the instance, and its summary (version, nodes, dbs, key templates) is in the head meta line. The #27 <code>client</code> sits in the last column; a click on a row docks the full client in a panel that squeezes the page.</li>
       <li><b>Keys load on request.</b> The Keys section shows one sentence and a "Load keys" button. Counts and problems that are known without the list (from an instance summary<span class="asm">†</span>) already appear in the verdict, and the callouts link to "Load keys and show the row".</li>
       <li><b>Grouped by owner.</b> The owner is the service that writes the template. A template written by several services is one row in a "Shared" group, never repeated under each writer. A template nobody harvested writes sits in "No harvested writer". Problem groups come first, then owners alphabetically.</li>
       <li><b>Filter:</b> segmented db index control (All, db0, db1, db2, with counts), a search over the template text, and a "Problems" toggle. The db filter applies on the server, so an instance with thousands of templates loads one db at a time.</li>
       <li><b>Row = one template.</b> Template, db, command kinds (writes in bold), ops per hour<span class="asm">†</span>, TTL<span class="asm">†</span>, and readers that are not the owner, named in full.</li>
-      <li><b>Key → flows is an in-place expand</b> (<code>&lt;details&gt;</code>), not a panel. It lists the entry points that write the key and the steps to the Redis call. Each entry links to <code>#/flows?service=X&amp;ingress=Y</code>. These flows are derived from steps that already target the instance, if the step carries its key template<span class="asm">†</span>.</li>
+      <li><b>Key → flows is an in-place expand</b> (<code>&lt;details&gt;</code>), not a panel. It lists the entry points that write the key and the steps to the Redis call. Each entry links to the normal Flows tab (<code>#/flows?service=X&amp;ingress=Y</code>); the inline chain is only a preview. These flows are derived from steps that already target the instance, if the step carries its key template<span class="asm">†</span>.</li>
       <li><b>Redis has no transport colour.</b> Connectors and chips are neutral ink; <code>--warn</code> is used only for the two problem states.</li>
     </ol>
   </section>
@@ -271,7 +297,27 @@ details.k[open] > summary { background: color-mix(in srgb, var(--accent) 5%, var
 </div>
 
 <!-- ============================ FRAME 1 ============================ -->
-<div class="frame-label"><b>1. Instance page, collapsed.</b> Identity, verdict, who connects (7 services), and a Keys section that has not been loaded. The row <span class="mono">account-lambda-profile</span> is selected and its client is docked on the right; the page narrows to make room.</div>
+<div class="frame-label"><b>1. Inventory.</b> Same page as today: search, kind and team selects, tabs, sub-chips, table with the same columns. Redis resources are rows among the other data stores; the row has a kind chip (<span class="mono">Redis cluster</span> or <span class="mono">Redis instance</span>) and a short connections line. The first row is hovered; a click opens frame 2. The <span class="mono">Redis</span> sub-chip filters to Redis only.</div>
+<div class="app">
+  <nav class="rail"><div class="brand">Flow-Mapper</div><a class="nav">System map</a><a class="nav on">Inventory</a><a class="nav">Flows</a><a class="nav">Link health</a><a class="nav">Bugs</a></nav>
+  <div class="main" style="background:var(--paper)">
+    <div class="inv-head"><div class="grow"><h1>Inventory</h1><div class="xs muted">171 objects in prod</div></div><span class="fake s">Filter by name, kind, team</span><span class="fake">All kinds</span><span class="fake">All teams</span></div>
+    <div class="tabs"><div class="seg"><span>All<small>171</small></span><span>Services<small>49</small></span><span>Topics and queues<small>59</small></span><span>Event types<small>36</small></span><span class="on">Data stores<small>27</small></span></div></div>
+    <div class="subs"><div class="seg"><span>MongoDB<small>8</small></span><span>Redis<small>11</small></span><span>DynamoDB<small>2</small></span><span>Postgres<small>3</small></span><span>S3<small>2</small></span><span>External HTTP<small>1</small></span></div></div>
+    <div class="invtools"><span>Only with problems</span><span class="muted">27 shown (sample rows)</span></div>
+    <div class="tbl-wrap"><table class="inv"><thead><tr><th>Name</th><th>Type</th><th>Kind</th><th>Team</th><th>Connections</th><th style="text-align:right">Problems</th></tr></thead><tbody>
+<tr class="hover"><td class="n"><span class="ico redis"></span><a href="#">cache-main</a></td><td>Data store</td><td><span class="kchip">Redis cluster</span></td><td>platform</td><td>7 services · 3 dbs · 12 key templates</td><td class="r bad">2</td></tr>
+<tr><td class="n"><span class="ico "></span><a href="#">mongodb:orders-db</a></td><td>Data store</td><td><span class="kchip">MongoDB</span></td><td>orders</td><td>3 services · 4 collections</td><td class="r">0</td></tr>
+<tr><td class="n"><span class="ico "></span><a href="#">orders-pg</a></td><td>Data store</td><td><span class="kchip">Postgres</span></td><td>orders</td><td>2 services · 6 tables</td><td class="r">0</td></tr>
+<tr><td class="n"><span class="ico redis"></span><a href="#">sessions-dev</a></td><td>Data store</td><td><span class="kchip">Redis instance</span></td><td>account</td><td>1 service · 1 db · 4 key templates</td><td class="r">0</td></tr>
+<tr><td class="n"><span class="ico "></span><a href="#">catalog-media</a></td><td>Data store</td><td><span class="kchip">S3</span></td><td>catalog</td><td>2 services · 1 bucket</td><td class="r">0</td></tr>
+<tr><td class="n"><span class="ico redis"></span><a href="#">ratelimit-edge</a></td><td>Data store</td><td><span class="kchip">Redis instance</span></td><td>edge</td><td>1 service · 1 db</td><td class="r bad">1</td></tr>
+<tr><td class="n"><span class="ico "></span><a href="#">events-archive</a></td><td>Data store</td><td><span class="kchip">DynamoDB</span></td><td>platform</td><td>2 services · 1 table</td><td class="r">0</td></tr>
+</tbody></table></div>
+  </div>
+</div>
+
+<div class="frame-label"><b>2. Instance page, collapsed.</b> Identity (with the instance summary in the meta line), verdict, who connects (7 services, one row each, no instance node), and a Keys section that has not been loaded. The row <span class="mono">account-lambda-profile</span> is selected and its client is docked on the right; the page narrows to make room.</div>
 <div class="app">
   <nav class="rail">
     <div class="brand">Flow-Mapper</div>
@@ -280,11 +326,11 @@ details.k[open] > summary { background: color-mix(in srgb, var(--accent) 5%, var
   <div class="main">
     <header class="head">
       <div class="grow">
-        <div class="title"><h1>cache-main</h1><span class="kind">Redis instance</span></div>
+        <div class="title"><h1>cache-main</h1><span class="kind">Redis cluster</span></div>
         <div class="meta">
           <span class="mono">redis:cache-main</span>
           <span>Defined by <b>infra</b> in <a href="#">cache-main.tf:12</a></span>
-          <span>Redis 7.0.7 <span class="asm">†</span> · 2 nodes <span class="asm">†</span></span>
+          <span>Redis 7.0.7 <span class="asm">†</span> · 2 nodes <span class="asm">†</span> · 3 dbs · 12 key templates <span class="asm">†</span></span>
           <span>Live AWS <b style="color:var(--ok)">matches code</b></span>
         </div>
       </div>
@@ -305,46 +351,38 @@ details.k[open] > summary { background: color-mix(in srgb, var(--accent) 5%, var
       </div>
 
       <section class="section">
-        <header><h2>Who connects <span class="muted" style="font-weight:400">7</span></h2><span class="hint">service → client → instance. Click a row for its client.</span></header>
+        <header><h2>Who connects <span class="muted" style="font-weight:400">7</span></h2><span class="hint">service → access → client. Click a row for its client.</span></header>
         <div class="lanes">
           <div class="grid">
-            <div class="colhead">Service</div><div class="colhead">Access</div><div class="colhead">Client · databases <span class="asm">†</span></div><div></div><div class="colhead">Instance</div>
+            <div class="colhead">Service</div><div class="colhead">Access</div><div class="colhead">Client · databases <span class="asm">†</span></div>
 
             <div class="node svc"><div class="name"><a href="#">account-lambda-login</a></div><div class="sub">auth lambda</div></div>
             <div class="acc"><span class="rw w">R/W</span><span class="line"></span></div>
             <div class="client"><span class="mono">ioredis 5.3.2</span> <span class="via">· direct driver · db0</span></div>
-            <div class="fan first" style="grid-column:4"><i></i></div>
-            <div class="node inst" style="grid-row:2 / span 7;grid-column:5"><div class="name">cache-main</div><div class="sub">3 dbs · 12 key templates</div></div>
 
             <div class="node svc"><div class="name"><a href="#">account-lambda-session</a></div><div class="sub">session lambda</div></div>
             <div class="acc"><span class="rw w">R/W</span><span class="line"></span></div>
             <div class="client"><span class="mono">ioredis 5.3.2</span> <span class="via">· direct driver · db0</span></div>
-            <div class="fan mid" style="grid-column:4"><i></i></div>
 
             <div class="node svc sel"><div class="name"><a href="#">account-lambda-profile</a></div><div class="sub">profile lambda</div></div>
             <div class="acc"><span class="rw w">R/W</span><span class="line"></span></div>
             <div class="client"><span class="mono">ioredis 4.27.6</span> <span class="via">· via saferxlib 2.1.0 · db0, db1</span></div>
-            <div class="fan mid" style="grid-column:4"><i></i></div>
 
             <div class="node svc"><div class="name"><a href="#">account-lambda-cart</a></div><div class="sub">cart lambda</div></div>
             <div class="acc"><span class="rw w">R/W</span><span class="line"></span></div>
             <div class="client"><span class="mono">ioredis 5.3.2</span> <span class="via">· direct driver · db2</span></div>
-            <div class="fan mid" style="grid-column:4"><i></i></div>
 
             <div class="node svc"><div class="name"><a href="#">catalog-svc</a></div><div class="sub">catalog API</div></div>
             <div class="acc"><span class="rw w">R/W</span><span class="line"></span></div>
             <div class="client"><span class="mono">ioredis 4.27.6</span> <span class="via">· via saferxlib 2.1.0 · db1</span></div>
-            <div class="fan mid" style="grid-column:4"><i></i></div>
 
             <div class="node svc"><div class="name"><a href="#">checkout-svc</a></div><div class="sub">checkout API</div></div>
             <div class="acc"><span class="rw w">R/W</span><span class="line"></span></div>
             <div class="client"><span class="mono">ioredis 5.4.1</span> <span class="via">· direct driver · db2</span></div>
-            <div class="fan mid" style="grid-column:4"><i></i></div>
 
             <div class="node svc"><div class="name"><a href="#">edge-gateway</a></div><div class="sub">api gateway</div></div>
             <div class="acc"><span class="rw">R</span><span class="line"></span></div>
             <div class="client"><span class="mono">node-redis 4.6.13</span> <span class="via">· third-party lib · db0, db2</span></div>
-            <div class="fan last" style="grid-column:4"><i></i></div>
           </div>
         </div>
         <div class="legend"><span>R reads, W writes, R/W both</span><span>Access, client and database per service come from the #27 client and the access on the edge</span><span><span class="asm">†</span> assumed field</span></div>
@@ -390,7 +428,7 @@ details.k[open] > summary { background: color-mix(in srgb, var(--accent) 5%, var
 </div>
 
 <!-- ============================ FRAME 2 ============================ -->
-<div class="frame-label"><b>2. Keys loaded, grouped by owner.</b> Page scrolled to the Keys section, filtered to db0. <span class="mono">session:{tenantId}:{userId}</span> is expanded: the entry points that write it, with the steps to the Redis call, then the services that read it without owning it.</div>
+<div class="frame-label"><b>3. Keys loaded, grouped by owner.</b> Page scrolled to the Keys section, filtered to db0. <span class="mono">session:{tenantId}:{userId}</span> is expanded: the entry points that write it, with the steps to the Redis call, then the services that read it without owning it.</div>
 <div class="app norail"><div class="main"><div class="body"><div class="content">
   <section class="section">
     <header><h2>Keys <span class="muted" style="font-weight:400">5 in db0</span></h2><span class="hint">grouped by the service that writes them</span>
@@ -432,7 +470,7 @@ details.k[open] > summary { background: color-mix(in srgb, var(--accent) 5%, var
 </div></div></div></div>
 
 <!-- ============================ FRAME 3 ============================ -->
-<div class="frame-label"><b>3. Problem states.</b> Filtered to db2. Problem groups come first. A template read but written by nobody harvested, and a template with two writers that disagree: each says why and what follows, in the row. Both are expanded; the page callouts from frame 1 link to these rows.</div>
+<div class="frame-label"><b>4. Problem states.</b> Filtered to db2. Problem groups come first. A template read but written by nobody harvested, and a template with two writers that disagree: each says why and what follows, in the row. Both are expanded; the page callouts from frame 1 link to these rows.</div>
 <div class="app norail"><div class="main"><div class="body"><div class="content">
   <section class="section">
     <header><h2>Keys <span class="muted" style="font-weight:400">3 in db2</span></h2><span class="hint">2 need attention</span></header>
