@@ -34,7 +34,7 @@ export function renderIndex(tree, ctx) {
       h('span.layer', row.label, ctx.isOpen?.(row) ? h('i.tabdot', { title: 'Open in a tab', 'aria-label': 'open in a tab' }) : null),
       h('span.lane', groupOfRow(row).topic !== row.queue ? [tc(chType(groupOfRow(row).topic), groupOfRow(row).topic), h('i.arr', '›')] : null, tc(chType(row.queue), row.queue), h('i.arr', '›'),
         h('span.svc', h('b', wrapId(row.service)), h('span.mono', [' · ', ...wrapId(row.handler)]))),
-      nested ? h('span.nest-chip', `+ ${nested} nested ${nested === 1 ? 'flow' : 'flows'} (${row.groups[0]?.rows[0]?.label ?? ''})`) : null,
+      nested ? h('span.nest-chip', { title: `${nested} nested ${nested === 1 ? 'flow' : 'flows'} (${row.groups[0]?.rows[0]?.label ?? ''} ...)` }, `+${nested} nested`) : null,
       row.suspect ? h('span.chip-warn', { title: 'Same consumer reached twice by one publish. Possible harvester or config bug.' }, 'suspect') : null,
       loops(row) ? h('span.chip-warn', { title: 'This consumer is already running above: its flow comes back here. Not expanded again.' }, '↻ loops back') : null,
       row.noHandler ? h('span.chip-bad', 'no handler') : null];
@@ -61,7 +61,7 @@ export function renderIndex(tree, ctx) {
     const actions = row.ingress && !row.noHandler ? [
       h('button.btn.sm', { title: `${row.service} · ${row.ingress}, in its own tab`, on: { click: (e) => { e.stopPropagation(); ctx.open(row, false); } } }, 'Open in tab'),
       h('button.btn.sm.ghost', { title: 'Start a full flow from here: every call this consumer makes, in a new tab', on: { click: (e) => { e.stopPropagation(); ctx.open(row, true); } } }, 'Full flow ▸')] : [];
-    const paint = () => { const refocus = head.contains(document.activeElement) && document.activeElement.classList.contains('chev'); head.replaceChildren(...rowHead(row, open).filter(Boolean), h('span.sum', row.summary ? h('b', row.summary.split(' · ')[0]) : '', row.summary.includes(' · ') ? ` · ${row.summary.split(' · ').slice(1).join(' · ')}` : ''), ...actions); const c = head.querySelector('.chev'); c?.addEventListener('click', (e) => { e.stopPropagation(); setOpen(!open); }); if (refocus) c?.focus(); };
+    const paint = () => { const refocus = head.contains(document.activeElement) && document.activeElement.classList.contains('chev'); const sp = row.summary.split(' · ').filter((x) => !x.startsWith('publishes')); head.replaceChildren(...rowHead(row, open).filter(Boolean), h('span.sum', { title: row.summary }, sp[0] ? h('b', sp[0]) : '', sp.length > 1 ? ` · ${sp.slice(1).join(' · ')}` : ''), ...actions); const c = head.querySelector('.chev'); c?.addEventListener('click', (e) => { e.stopPropagation(); setOpen(!open); }); if (refocus) c?.focus(); };
     function setOpen(v, budget) { // resolves when the flow is drawn (a card traces its consumer the first time it opens)
       if (!expandable) return Promise.resolve();
       if (v !== open) { open = v; card.classList.toggle('open', open); body.hidden = !open; paint(); }
@@ -120,7 +120,8 @@ export function renderIndex(tree, ctx) {
   const distinct = distinctRows(stats.openable);
   const openAll = () => ctx.openAll(distinct);
 
-  const header = h('div.cards-h', h('h2', 'Async flows'),
+  const sub = (ctx.depth ?? 0) > 0, tools = !sub || stats.deliveries > 2; // a nested list is a small line; its buttons only when it has many rows
+  const header = sub ? h('div.cards-h.small', h('h3', `Async flows · ${stats.deliveries}`), h('span.grow'), tools ? h('span.cards-btns', h('button.btn.sm', { on: { click: () => all(true) } }, 'Expand all'), h('button.btn.sm', { on: { click: () => all(false) } }, 'Collapse all')) : null) : h('div.cards-h', h('h2', 'Async flows'),
     h('span.hint', `${stats.deliveries} ${stats.deliveries === 1 ? 'delivery' : 'deliveries'} · ${plural(stats.distinct, 'distinct consumer')} · ${stats.publishes} ${stats.publishes === 1 ? 'publish' : 'publishes'}. Expand a row to see its flow here.`),
     h('span.grow'), h('span.cards-btns', distinct.length > 1 ? h('button.btn.sm', { title: 'One tab per distinct consumer', on: { click: openAll } }, `Open all distinct (${distinct.length})`) : null,
       h('button.btn.sm', { on: { click: () => all(true) } }, 'Expand all'), h('button.btn.sm', { on: { click: () => all(false) } }, 'Collapse all')));

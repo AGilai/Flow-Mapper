@@ -49,7 +49,7 @@ export function createFlowRender({ trace, tree, key, ancestors = [], sticky = tr
     return createFlowRender({ trace: t, tree: asyncTree(t.messages, row.label), key, ancestors: childAncestors, sticky: false, depth: depth + 1 }, sh);
   };
   function drawIndex() {
-    index = tree.groups.length ? renderIndex(tree, { trace, handlers, key, ancestors, makeFlow,
+    index = tree.groups.length ? renderIndex(tree, { trace, handlers, depth, key, ancestors, makeFlow,
       open: (row, full) => (full ? host.openFull(row, key) : host.openSub(row, key)),
       openAll: (rows) => host.openMany(rows, key), isOpen: (row) => host.isOpen(row, key), jump: (label) => host.jumpToLabel(label) }) : null;
     idxBox.replaceChildren(...(index ? [index.el] : []));

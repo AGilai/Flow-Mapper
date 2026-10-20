@@ -3,6 +3,7 @@
 // endpoint's request/response body or queue message, or the data store's schema. The DTO part loads
 // on demand.
 
+import { callerFor } from './flow-sub.js';
 import { h, fill } from '../dom.js';
 import { api } from '../api.js';
 import { icon } from '../icons.js';
@@ -41,7 +42,7 @@ export function messagePanel(m, trace, env, scope = 'full', openEntry = null) {
     m.repeatOf ? h('p.small', `↩ Already expanded at step ${m.repeatOf}: `, h('span.key', trace.messages[m.repeatOf - 1]?.label ?? ''), '. The same delivery (consumer, ingress, event) is drawn once per trace, so nothing is shown below this arrow.') : null,
     m.cycle ? h('p.small.muted', 'This call leads back into a function already on the path, so the trace stops here.') : null,
     h('dl.kv',
-      h('dt', 'From'), h('dd', p(m.from)?.label ?? m.from),
+      h('dt', 'From'), h('dd', m.kind === 'entry' ? callerFor(m).label : p(m.from)?.label ?? m.from),
       h('dt', 'To'), h('dd', { class: m.broken ? 'key' : '' }, p(m.to)?.label ?? m.to),
       h('dt', 'Mode'), h('dd', m.mode),
       h('dt', 'Step'), h('dd', String(trace.messages.indexOf(m) + 1)),

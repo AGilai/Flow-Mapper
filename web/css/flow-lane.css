@@ -151,9 +151,9 @@
 .card-h .lane { flex: 0 1 auto; min-width: 0; flex-wrap: nowrap; white-space: nowrap; overflow: visible; }
 .card-h .lane > .tc { flex: 0 1 auto; min-width: 34px; max-width: 220px; display: block; line-height: 20px; overflow: hidden; text-overflow: ellipsis; }
 .card-h .lane .arr, .card-h .layer, .card-h .chev, .card-h .chev-pad { flex: none; }
-.card-h .svc { flex: none; white-space: nowrap; }
-.card-h .nest-chip { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.card-h .sum { margin-left: auto; flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.card-h .svc { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card-h .nest-chip { flex: none; white-space: nowrap; }
+.card-h .sum { margin-left: auto; flex: none; white-space: nowrap; }
 .card-h .btn, .card-h .chip-warn, .card-h .chip-bad { flex: none; }
 .tc { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .grp-h .tc { max-width: min(100%, 420px); }
@@ -177,3 +177,11 @@
 .card-nest:empty, .card-nest:has(.flow-idx:empty) { display: none; }
 .card-loading { padding: var(--s3) var(--s4); color: var(--muted); font-size: var(--fs-sm); }
 .flow-idx:empty { display: none; }
+
+.cards-h.small { gap: var(--s2); }
+.cards-h.small h3 { font-size: var(--fs-sm); color: var(--ink-2); font-weight: 600; }
+.msg.publish > text.label { paint-order: stroke; stroke: var(--halo, var(--paper)); stroke-width: 5px; stroke-linejoin: round; }
+.card-h .svc, .card-h .svc * { white-space: nowrap; overflow-wrap: normal; word-break: keep-all; }
+/* <wbr> still breaks a line under nowrap: off in a single-line header, on again where the row may wrap */
+.card-h .svc wbr { display: none; }
+@media (max-width: 860px) { .card-h .svc, .card-h .svc * { white-space: normal; overflow-wrap: anywhere; } .card-h .svc wbr { display: initial; } }

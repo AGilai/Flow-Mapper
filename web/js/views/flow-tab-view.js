@@ -39,7 +39,7 @@ export function createTabView(data, host) {
   const edge = () => { wrap.classList.toggle('scrolls', scroller.scrollWidth > scroller.clientWidth + 2); wrap.classList.toggle('at-end', scroller.scrollLeft + scroller.clientWidth >= scroller.scrollWidth - 4); };
   scroller.addEventListener('scroll', () => { edge(); tip?.hide(); }, { passive: true });
   let sized = false; // the first time the tab has a width (it is drawn before it is attached, or while hidden), lay the lanes out to fit it
-  const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(() => { edge(); if (!sized && scroller.clientWidth > 0 && render) { sized = true; render.relane(); edge(); } }) : null;
+  const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(() => { edge(); if (!sized && scroller.clientWidth > 0 && render) { sized = true; render.relane(); render.laneBox.style.visibility = ''; edge(); } }) : null;
   ro?.observe(scroller);
   const select = (bar) => { body.querySelectorAll('.act.selected').forEach((e) => e.classList.remove('selected')); bar?.el?.classList.add('selected'); };
   const inside = createInside(body, { env: host.env, isActive: () => host.isActive(key),
@@ -81,6 +81,7 @@ export function createTabView(data, host) {
   function draw() { // options changed (stores, depth): redraw the lane and the lanes of the open cards; their expansion stays
     if (render) { render.relane(); fill(scroller, head(), render.laneBox, render.idxBox); } else {
       render = createFlowRender({ trace, tree, key, ancestors: data.start ? [flowId(data.start)] : [] }, shared);
+      if (!scroller.clientWidth) render.laneBox.style.visibility = 'hidden'; // drawn before it has a width: show it once laid out to fit
       fill(scroller, head(), render.laneBox, render.idxBox);
     }
     edge(); requestAnimationFrame(edge);
