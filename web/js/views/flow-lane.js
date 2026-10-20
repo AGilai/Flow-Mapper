@@ -7,9 +7,12 @@
 //  - calls inside a service ("call" steps) are not drawn: they are counted on the bar (the pill);
 //  - a publish ends at the "published events" rail; the async work below it is not in the lane (flow-async.js);
 //  - a call that matches nothing ends at the "unresolved" column, without a bar or a return;
+//  - middleware (m.middlewareChain on the call) is a run of segments on top of the bar: one "mw" row per segment, then the rows of
+//    its calls; the handler's part (and the internal-calls pill) follow. Chains over 3 fold into one segment unless `mwOpen`;
 //  - a callee reuses its service's column unless the arrow would cross another open bar, then it gets a new column.
 
 import { scanLane, isPublish } from './flow-scan.js';
+import { mwSegments, segmentOf, mwSpans } from './flow-mw.js';
 
 const SYNC_TRANSPORT = new Set(['http', 'rpc', 'grpc']);
 export const svcOf = (id) => (id.startsWith('svc:') ? id.slice(4) : id.startsWith('fn:') ? id.split(':')[1] : null);
@@ -35,7 +38,7 @@ export const storeLabel = (m) => ({ verb: m.label, name: (m.store ?? '').replace
  * Event types: call (opens a bar, or an arrow to a plain lifeline), return, store, publish, unresolved, pill, frontier.
  * Every event has `row` (its index). Bars: { id, service, col, level, transport, sync, msg, depth, internal: {n, gaps}, msgs, start, end }.
  */
-export function buildLane(msgs, { stores = true, scope = 'full', participants = [] } = {}) {
+export function buildLane(msgs, { stores = true, scope = 'full', participants = [], mwOpen = false } = {}) {
   const kind = new Map(participants.map((p) => [p.id, p.kind]));
   const cols = [], byService = new Map(), stack = [], bars = [], events = [];
   const mk = (c) => { c.ci = cols.length; cols.push(c); return c; };
@@ -59,7 +62,21 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
     return c;
   };
   const push = (e) => { e.row = events.length; events.push(e); return e; };
+  // Middleware rows are emitted lazily, so each segment's row sits just before its own calls; the pill waits for the handler's part.
+  const emitMw = (bar, pos) => {
+    const mw = bar.mw;
+    while (mw.labels.length <= pos) mw.labels.push(push({ type: 'mw', bar, seg: mw.segs[mw.labels.length], internal: 0, gaps: 0 }));
+    return mw.labels[pos];
+  };
+  const endMw = (bar) => {
+    const mw = bar.mw;
+    if (!mw || mw.done) return;
+    emitMw(bar, mw.segs.length - 1);
+    mw.done = true; mw.endIdx = events.length - 1;
+    push({ type: 'pill', bar });
+  };
   const close = (b) => {
+    endMw(b);
     if (b.sync && b.caller) push({ type: 'return', bar: b, to: b.caller, label: 'return' });
     b.end = events.length - 1;
   };
@@ -67,7 +84,9 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
     const bar = { id: bars.length, service, col, level: stack.filter((b) => b.col === col).length, transport: m.transport, sync, msg: m, depth: m.depth, internal: { n: 0, gaps: 0 }, msgs: [m], caller, parent };
     bars.push(bar);
     bar.start = push({ type: 'call', msg: m, from: caller, to: col, bar, label: callLabel(m), fromBar: parent }).row;
-    push({ type: 'pill', bar });
+    const chain = m.middlewareChain ?? [];
+    if (chain.length) bar.mw = { chain, segs: mwSegments(chain, mwOpen), labels: [], done: false, endIdx: -1 };
+    else push({ type: 'pill', bar });
     stack.push(bar);
     return bar;
   };
@@ -83,6 +102,13 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
     const top = stack[stack.length - 1];
     if (!top) return;
     top.msgs.push(m);
+    if (top.mw && !top.mw.done) {
+      if (!m.middleware) endMw(top);
+      else {
+        const seg = emitMw(top, Math.max(0, segmentOf(top.mw.segs, m.middleware.index)));
+        if (m.kind === 'call') { seg.internal++; if (m.gap || m.broken) seg.gaps++; return; }
+      }
+    }
     if (m.kind === 'call') { top.internal.n++; if (m.gap || m.broken) top.internal.gaps++; return; }
     if (m.kind === 'leaf') return;
     if (m.kind === 'resource') { if (stores) push({ type: 'store', msg: m, bar: top, ...storeLabel(m) }); return; }
@@ -102,6 +128,11 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
   for (const b of bars) { b.start = remap.get(events[b.start]) ?? b.start; }
   for (const b of bars) { // end: last kept event at or before the old end
     let e = b.end; while (e > 0 && remap.get(events[e]) < 0) e--; b.end = remap.get(events[e]);
+  }
+  for (const b of bars) { // segments: from their label row to the row before the next one; the last ends where the handler's part starts
+    if (!b.mw) continue;
+    let e = b.mw.endIdx; while (e > 0 && remap.get(events[e]) < 0) e--;
+    b.mw.spans = mwSpans(b.mw.labels.map((ev) => ev.row), remap.get(events[e]));
   }
   const rank = (c) => (c.kind === 'unresolved' ? 1 : c.kind === 'rail' ? 2 : 0);
   const columns = cols.filter((c) => events.some((e) => e.from === c || e.to === c || e.col === c) || c === source || c === rootCol)

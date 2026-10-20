@@ -20,7 +20,7 @@ function reverse(g: GraphIndex): Reverse {
     if (s.type === 'egress') add(r.usesEgress, sid(f.service, s.target), f.id);
   }
   for (const i of g.model.ingress) {
-    for (const h of new Set([i.handler, ...(i.events ?? []).map((e) => e.handler)])) add(r.handled, sid(i.service, h), i);
+    for (const h of new Set([i.handler, ...(i.middleware ?? []), ...(i.events ?? []).map((e) => e.handler)])) add(r.handled, sid(i.service, h), i);
   }
   cache.set(g, r);
   return r;

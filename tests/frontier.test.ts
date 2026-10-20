@@ -28,12 +28,12 @@ const demo42 = [{ service: 'account-lambda-agent-info', ingress: 'in.unknownEntr
 const demo44 = [{ service: 'account-lambda-device-events', ingress: 'in.logout' }, { service: 'account-lambda-device-events', ingress: 'in.loggedOut' }]; // eventFrom in a second service, added with the #44 demo
 const demo41 = { service: 'account-lambda-erase-controller', ingress: 'in.advanceErase' }; // alt frame, added with the #41 demo
 
-test('traces of every sample entry without frontier steps are unchanged (hash retaken on 0.9.4: fan-out consumers are expanded after the last delivery (orders-svc/in.create changed, order only); the saga demo (saga-* services) is excluded; 0.9.3: three traces of the saga demo added, every earlier trace identical; 0.9.2: lifeline order of 3 fan-out traces changed, content identical, see lifeline-order.test.ts; 0.8.5: SNS fan-out fields group/deliveries/delivery added to 2 traces, see sns-fanout.test.ts)', () => {
+test('traces of every sample entry without frontier steps are unchanged (hash retaken on 0.9.4: fan-out consumers are expanded after the last delivery (orders-svc/in.create changed, order only); the saga demo (saga-* services) and the 0.12.0 middleware demo (reports-api, auth-svc) are excluded; 0.9.3: three traces of the saga demo added, every earlier trace identical; 0.9.2: lifeline order of 3 fan-out traces changed, content identical, see lifeline-order.test.ts; 0.8.5: SNS fan-out fields group/deliveries/delivery added to 2 traces, see sns-fanout.test.ts)', () => {
   const m = sampleModel();
   const g = buildIndex(m);
   const h = createHash('sha256');
   let n = 0;
-  for (const i of m.ingress.filter((x) => !x.service.startsWith('stress-') && !x.service.startsWith('saga') && ![demo, demo35, demo26, demo36, ...demo40, demo41, ...demo42, ...demo44].some((d) => x.service === d.service && x.id === d.ingress))) for (const scope of ['intra', 'full'] as const) {
+  for (const i of m.ingress.filter((x) => !x.service.startsWith('stress-') && !x.service.startsWith('saga') && !['reports-api', 'auth-svc'].includes(x.service) && ![demo, demo35, demo26, demo36, ...demo40, demo41, ...demo42, ...demo44].some((d) => x.service === d.service && x.id === d.ingress))) for (const scope of ['intra', 'full'] as const) {
     h.update(JSON.stringify([i.service, i.id, scope, trace(g, { service: i.service, ingress: i.id }, { scope })]));
     n++;
   }

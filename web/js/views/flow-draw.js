@@ -7,11 +7,12 @@
 
 import { h, s } from '../dom.js';
 import { altFrames, stripsByRow, drawFrames, STRIP } from './sequence-alt.js';
+import { mwLabel, isLongChain } from './flow-mw.js';
 import { arrowEnds, columnGaps, centres, labelWidth, wrapId } from './flow-cols.js';
 
 const COL = 138, HEAD_BOX = COL - 8, PAD = 24, GUTTER = 8, BAR = 12, NEST = 8;
-const ROWH = { call: 46, return: 36, pill: 32, store: 46, publish: 66, unresolved: 42, frontier: 32 };
-const LINE = { call: 30, return: 22, pill: 16, store: 23, publish: 30, unresolved: 28, frontier: 16 };
+const ROWH = { call: 46, return: 36, pill: 32, mw: 34, store: 46, publish: 66, unresolved: 42, frontier: 32 };
+const LINE = { call: 30, return: 22, pill: 16, mw: 17, store: 23, publish: 30, unresolved: 28, frontier: 16 };
 const T_VAR = { http: '--t-http', rpc: '--t-rpc', grpc: '--t-http', eventbridge: '--t-eb', sns: '--t-sns', sqs: '--t-sqs', amqp: '--t-amqp', cron: '--t-cron', res: '--t-res' };
 const colorOf = (t) => `var(${T_VAR[t] ?? '--ink-2'})`;
 const NAME_CH = 16, SUB_CH = 19, CHIP_PX = 7, LINE_H = 14;
@@ -21,7 +22,7 @@ const NAME_CH = 16, SUB_CH = 19, CHIP_PX = 7, LINE_H = 14;
  * handlers: onMessage(msg, g, event), onBar(bar, 'select'?) (double-click, pill: look inside; click: select),
  * onBarMenu(bar, x, y), onParticipant(p, x, y), onBadge(publishEvent). `selected`: bar id drawn highlighted.
  */
-export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, onBadge, selected = null, sticky = true } = {}) {
+export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, onBadge, onMw, selected = null, sticky = true } = {}) {
   const { columns, events, bars } = lane;
   // Each gap between lifelines grows to fit the longest arrow label that crosses it: a label is never cut.
   const idx = new Map(columns.map((c, i) => [c, i]));
@@ -96,6 +97,12 @@ export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, o
       const x0 = barX(e.bar, 1);
       return g('frontier', s('path', { class: 'stub', d: `M${x0} ${y0} h10` }), s('text', { class: 'label', x: x0 + 16, y: y0 + 4 }, `${e.msg.label}  (click to show)`));
     }
+    if (e.type === 'mw') {
+      const x0 = barX(e.bar, 1), text = mwLabel(e.seg, e.internal), fold = isLongChain(e.bar.mw.chain);
+      return s('g', { class: `note mwlab${e.gaps ? ' warn' : ''}`, 'data-pill': fold ? null : e.bar.id, 'data-mwfold': fold ? e.bar.id : null, tabindex: 0, role: 'button' }, s('path', { class: 'tick', d: `M${x0} ${y0} h12` }),
+        s('rect', { x: x0 + 12, y: y0 - 11, width: text.length * 6.4 + 16, height: 22, rx: 11 }), s('text', { x: x0 + 20, y: y0 + 4 }, text),
+        s('title', {}, fold ? 'Middleware that runs before the handler. Click to fold or unfold the chain.' : 'Middleware that runs before the handler. Click to look inside.'));
+    }
     const n = e.bar.internal.n, gaps = e.bar.internal.gaps, x0 = barX(e.bar, 1);
     const text = `${n} internal ${n === 1 ? 'call' : 'calls'}${gaps ? ` · ${gaps} unresolved` : ''} ▸`;
     return s('g', { class: `note${gaps ? ' warn' : ''}`, 'data-pill': e.bar.id, tabindex: 0, role: 'button' }, s('path', { class: 'tick', d: `M${x0} ${y0} h12` }),
@@ -109,13 +116,19 @@ export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, o
     b.el = r;
     return r;
   });
+  const segs = bars.flatMap((b) => (b.mw?.spans ?? []).map((sp, k) => { // middleware segments: on top of the bar, from the bar's top down
+    const y1 = k === 0 ? ys[b.start] - 16 : ys[sp.from] - 16, y2 = k + 1 < b.mw.spans.length ? ys[b.mw.spans[k + 1].from] - 16 : ys[sp.to] + 14, seg = b.mw.segs[k], fold = isLongChain(b.mw.chain);
+    return s('rect', { class: `mwseg${selected === b.id ? ' selected' : ''}`, 'data-bar': b.id, 'data-mwfold': fold ? b.id : null, x: barX(b, -1), y: y1, width: BAR, height: Math.max(16, y2 - y1), rx: 3, tabindex: 0, role: 'button',
+      'aria-label': `Middleware ${seg.label} in ${b.service}` }, s('title', {}, `middleware: ${seg.label}\n${b.service}`));
+  }));
   const body = s('svg', { width, height, class: 'seq-body', role: 'group', 'aria-label': `Flow with ${bars.length} calls across ${columns.length} lifelines` },
     drawFrames(frames, lane.altRows, strips, (r) => top[r], (r) => top[r + 1], width, GUTTER),
-    columns.map((c) => s('line', { class: c.kind === 'rail' ? 'rail' : 'lifeline', x1: colX.get(c), x2: colX.get(c), y1: 0, y2: height })), rects, drawn);
+    columns.map((c) => s('line', { class: c.kind === 'rail' ? 'rail' : 'lifeline', x1: colX.get(c), x2: colX.get(c), y1: 0, y2: height })), rects, segs, drawn);
 
   const eventOf = (t) => events[Number(t.closest?.('[data-e]')?.dataset.e)];
   const barOf = (t) => { const r = t.closest?.('[data-bar]'); return r ? bars[Number(r.dataset.bar)] : null; };
   const badgeOf = (t) => { const b = t.closest?.('[data-badge]'); return b ? events[Number(b.dataset.badge)] : null; };
+  const foldOf = (t) => t.closest?.('[data-mwfold]');
   const pillOf = (t) => { const b = t.closest?.('[data-pill]'); return b ? bars[Number(b.dataset.pill)] : null; };
   const pm = (ev) => {
     const g = ev.target.closest?.('[data-p]'), c = g && columns[Number(g.dataset.p)];
@@ -127,13 +140,13 @@ export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, o
   body.addEventListener('contextmenu', (ev) => { const b = barOf(ev.target); if (b) { ev.preventDefault(); onBarMenu?.(b, ev.clientX, ev.clientY); } });
   body.addEventListener('click', (ev) => {
     const bd = badgeOf(ev.target), pill = pillOf(ev.target), b = barOf(ev.target), e = eventOf(ev.target);
-    if (bd) { ev.stopPropagation(); onBadge?.(bd); } else if (pill) onBar?.(pill); else if (b) onBar?.(b, 'select'); else if (e?.msg) onMessage?.(e.msg, ev.target.closest('[data-e]'), e);
+    if (foldOf(ev.target)) onMw?.(); else if (bd) { ev.stopPropagation(); onBadge?.(bd); } else if (pill) onBar?.(pill); else if (b) onBar?.(b, 'select'); else if (e?.msg) onMessage?.(e.msg, ev.target.closest('[data-e]'), e);
   });
   body.addEventListener('keydown', (ev) => {
     if (ev.key !== 'Enter' && ev.key !== ' ') return;
     ev.preventDefault();
     const bd = badgeOf(ev.target), pill = pillOf(ev.target), b = barOf(ev.target), e = eventOf(ev.target);
-    if (bd) onBadge?.(bd); else if (pill) onBar?.(pill); else if (b) onBar?.(b); else if (e?.msg) onMessage?.(e.msg, ev.target.closest('[data-e]'), e);
+    if (foldOf(ev.target)) onMw?.(); else if (bd) onBadge?.(bd); else if (pill) onBar?.(pill); else if (b) onBar?.(b); else if (e?.msg) onMessage?.(e.msg, ev.target.closest('[data-e]'), e);
   });
   body.__events = events;
   return { el: h('div.seq', h(sticky ? 'div.seq-sticky' : 'div.seq-head-static', head), body), body, events, bars };

@@ -79,7 +79,7 @@ export async function render({ main, query }) {
     return { dispose: panel.dispose };
   }
 
-  let trace, tree, index, lane;
+  let trace, tree, index, lane, mwOpen = false;
   const scroller = h('div.seq-scroll');
   const hint = h('span.seq-hint', 'More to the right. Scroll sideways ›');
   const wrap = h('div.seq-wrap', scroller, hint);
@@ -128,10 +128,11 @@ export async function render({ main, query }) {
     el?.classList.add('active');
     el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
   }
-  const laneOpts = () => ({ stores: opts.stores, scope: opts.scope, maxDepth: opts.depth === 'all' ? Infinity : Number(opts.depth) });
+  const laneOpts = () => ({ mwOpen, stores: opts.stores, scope: opts.scope, maxDepth: opts.depth === 'all' ? Infinity : Number(opts.depth) });
   const openFlow = (row, full) => go('/flows', { service: row.service, ingress: row.ingress, scope: full ? 'full' : opts.scope });
   const lookInside = (bar) => { select(bar); inside.open(bar, trace); };
   const handlers = {
+    onMw: () => { mwOpen = !mwOpen; draw(); }, // fold or unfold a long middleware chain
     onBar: (bar, mode) => { if (mode === 'select') select(bar); else lookInside(bar); },
     onBarMenu: (bar, x, y) => barMenu(bar, x, y, { trace, inside: () => lookInside(bar), toIndex: index ? () => index.el.scrollIntoView({ behavior: 'smooth' }) : null }),
     onParticipant: (p, x, y) => participantMenu(p, x, y, { trace, scope: opts.scope }),
@@ -155,7 +156,7 @@ export async function render({ main, query }) {
   function draw() {
     const lo = laneOpts();
     const msgs = trace.messages.filter((m) => m.depth <= lo.maxDepth);
-    lane = renderLane(buildLane(msgs, { stores: lo.stores, scope: trace.scope, participants: trace.participants }), handlers);
+    lane = renderLane(buildLane(msgs, { mwOpen: lo.mwOpen, stores: lo.stores, scope: trace.scope, participants: trace.participants }), handlers);
     index = tree.groups.length ? renderIndex(tree, { trace, lane: lo, handlers, open: openFlow }) : null;
     const services = new Set(trace.messages.map((m) => m.service).filter(Boolean));
     info.textContent = `${trace.start.event ? `${trace.start.event}: ` : ''}${trace.messages.length} steps, ${services.size} ${services.size === 1 ? 'service' : 'services'}${trace.truncated ? ', truncated' : ''}`;

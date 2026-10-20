@@ -30,6 +30,7 @@ export function integrityErrors(e: ServiceEntities): string[] {
   for (const i of e.ingress ?? []) {
     if (!fns.has(i.handler)) errs.push(`ingress '${i.id}': handler '${i.handler}' is not a function of this service`);
     if (!i.bindKey && !explained(i)) errs.push(`ingress '${i.id}': bindKey is required unless unresolved (what: target) says why`);
+    for (const mw of i.middleware ?? []) if (!fns.has(mw)) errs.push(`ingress '${i.id}': middleware '${mw}' is not a function of this service`);
     for (const ev of i.events ?? []) if (!fns.has(ev.handler)) errs.push(`ingress '${i.id}' event '${ev.type}': handler '${ev.handler}' is not a function of this service`);
   }
   for (const x of e.egress ?? []) if (!x.bindKey && !explained(x)) errs.push(`egress '${x.id}': bindKey is required unless unresolved (what: target) says why`);

@@ -25,7 +25,7 @@ export function renderIndex(tree, ctx) {
   const stats = indexStats(tree);
   const laneFor = (row) => {
     const msgs = row.msgs.filter((m, i) => i === 0 || m.depth <= ctx.lane.maxDepth);
-    return renderLane(buildLane(msgs, { stores: ctx.lane.stores, scope: 'full', participants: ctx.trace.participants }), { ...ctx.handlers, sticky: false });
+    return renderLane(buildLane(msgs, { mwOpen: ctx.lane.mwOpen, stores: ctx.lane.stores, scope: 'full', participants: ctx.trace.participants }), { ...ctx.handlers, sticky: false });
   };
 
   const rowHead = (row, open) => {

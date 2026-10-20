@@ -28,7 +28,7 @@ export function altBlocks(steps) {
 }
 
 /**
- * insideBar(bar, trace) -> { service, entry, functions: [{ fn, depth, isEntry, ingress, code, items }], counts }
+ * insideBar(bar, trace) -> { service, entry, functions: [{ fn, depth, middleware (1-based position in the chain, or null), isEntry, ingress, code, items }], middleware (chain length), counts }
  * `items` are steps { m, type, code } or alt blocks { alt, branches: [{ branch, condition, steps }] }.
  */
 export function insideBar(bar, trace) {
@@ -37,6 +37,12 @@ export function insideBar(bar, trace) {
   const order = [];
   const byFn = new Map();
   const touch = (fn) => { if (!byFn.has(fn)) { const f = { fn, steps: [], parent: null }; byFn.set(fn, f); order.push(f); } return byFn.get(fn); };
+  // The middleware chain comes first, in order (with the functions it calls), then the handler and its chain.
+  const chain = bar.msg.middlewareChain ?? [];
+  chain.forEach((c, i) => {
+    touch(c.fn);
+    for (const m of owned) if (m.middleware?.index === i && m.kind === 'call' && m.calls) { const f = touch(m.calls); if (!f.parent && m.calls !== m.fn) f.parent = m.fn; }
+  });
   if (handler) touch(handler);
   for (const m of owned) {
     const fn = m.fn ?? handler;
@@ -46,9 +52,10 @@ export function insideBar(bar, trace) {
     if (m.kind === 'call' && m.calls && m.calls !== fn) { const c = touch(m.calls); if (!c.parent) c.parent = fn; }
   }
   const depthOf = (f) => { let d = 0; for (let p = f.parent, n = 0; p && n < 50; n++) { d++; p = byFn.get(p)?.parent; } return d; };
-  const functions = order.map((f) => ({ fn: f.fn, depth: depthOf(f), isEntry: f.fn === handler, ingress: f.fn === handler ? bar.msg.target?.ingress ?? null : null,
+  const mwIndex = (fn) => chain.findIndex((c) => c.fn === fn);
+  const functions = order.map((f) => ({ fn: f.fn, depth: depthOf(f), middleware: mwIndex(f.fn) >= 0 ? mwIndex(f.fn) + 1 : null, isEntry: f.fn === handler, ingress: f.fn === handler ? bar.msg.target?.ingress ?? null : null,
     code: trace.code?.[`${bar.service}:${f.fn}`] ?? null, items: altBlocks(f.steps) }));
   const t = (x) => owned.filter((m) => stepType(m) === x).length;
   return { service: bar.service, entry: bar.msg, functions,
-    counts: { functions: functions.length, internal: t('call'), outgoing: t('out') + t('publish') + t('unresolved'), stores: t('store') } };
+    middleware: chain.length, counts: { functions: functions.length, internal: t('call'), outgoing: t('out') + t('publish') + t('unresolved'), stores: t('store') } };
 }

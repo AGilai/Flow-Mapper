@@ -241,6 +241,7 @@
         "match": { "$ref": "#/$defs/match" },
         "transport": { "$ref": "#/$defs/transport" },
         "handler": { "$ref": "#/$defs/id", "description": "Function id that handles this ingress." },
+        "middleware": { "type": "array", "items": { "$ref": "#/$defs/id" }, "description": "Optional. Function ids (same manifest, same rule as `handler`) that run before the handler, in order. Traced before the handler: their calls are real messages and edges. `details.middleware` is still accepted (not traced)." },
         "entryPoint": { "type": "boolean", "default": false, "description": "Public API, cron, etc. Excluded from orphan stats." },
         "details": { "$ref": "#/$defs/details" },
         "source": { "$ref": "#/$defs/source" },

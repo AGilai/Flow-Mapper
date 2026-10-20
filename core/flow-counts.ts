@@ -101,8 +101,10 @@ function componentSets(g: GraphIndex): Map<string, string[]> {
     for (const x of members) sets.set(x, set);
   };
   for (const i of entryPoints(g)) {
-    const k = sid(i.service, i.handler);
-    if (g.fns.get(k) && !index.has(k)) visit(k);
+    for (const fn of [...(i.middleware ?? []), i.handler]) {
+      const k = sid(i.service, fn);
+      if (g.fns.get(k) && !index.has(k)) visit(k);
+    }
   }
   const result = new Map<string, string[]>();
   for (const [k, s] of sets) result.set(k, [...s]);
@@ -117,7 +119,8 @@ export function flowCounts(g: GraphIndex): FlowCount[] {
   const sets = componentSets(g);
   const res = entryPoints(g).map((e) => {
     const c: FlowCount = { service: e.service, ingress: e.id, total: 0, services: 0, topics: 0, queues: 0, buses: 0, stores: 0, otherChannels: 0 };
-    for (const id of sets.get(sid(e.service, e.handler)) ?? []) {
+    const reached = new Set([e.handler, ...(e.middleware ?? [])].flatMap((fn) => sets.get(sid(e.service, fn)) ?? []));
+    for (const id of reached) {
       if (id[0] === 's') c.services++;
       else if (id[0] === 'r') c.stores++;
       else {

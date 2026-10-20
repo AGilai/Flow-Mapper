@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "auth-svc",
+    "kind": "service",
+    "team": "identity",
+    "repo": "github.com/acme/auth-svc",
+    "language": "typescript",
+    "description": "Token verification for the APIs"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-20T08:00:00Z",
+  "commit": "91c07aa",
+  "functions": [
+    {
+      "id": "verifyToken",
+      "name": "verifyToken",
+      "file": "src/verify.ts",
+      "line": 12,
+      "steps": [
+        { "seq": 1, "type": "resource", "target": "sessions", "operation": "GET session:{token}" }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.verify",
+      "bindKey": "http:POST auth-svc/verify",
+      "transport": "http",
+      "handler": "verifyToken",
+      "details": { "method": "POST", "path": "/verify" }
+    }
+  ],
+  "egress": [],
+  "resources": [
+    { "id": "sessions", "kind": "redis", "name": "session:{token}", "bindKey": "redis:auth-cache/session:{token}" }
+  ]
+}

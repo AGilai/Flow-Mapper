@@ -81,7 +81,7 @@ team, quiet edges that brighten on focus, and labels placed by importance withou
 tables render one page at a time; long lists are capped with "type to narrow"; the flows page draws one activation bar per call
 (`flow-lane.js`, `flow-scan.js`: pure layout rules; `flow-draw.js`: SVG), folds internal calls into a pill, ends
 publishes at a rail and lists the async work in an index of expandable cards (`flow-async.js`, `flow-index.js`);
-`flow-inside.js` and `flow-inside-panel.js` are the drill-down. Data-store stubs and deep levels can be hidden.
+`flow-mw.js` holds the pure rules for ingress middleware segments (fold over 3, row spans), drawn on top of the bar by `flow-draw.js`; `flow-inside.js` and `flow-inside-panel.js` are the drill-down (middleware chain first). Data-store stubs and deep levels can be hidden.
 
 Design tokens are in `css/tokens.css`. Transport colours (http, sns, sqs, amqp, data store,
 broken) mean the same thing in every view.

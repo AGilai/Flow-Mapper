@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "reports-api",
+    "kind": "service",
+    "team": "analytics",
+    "repo": "github.com/acme/reports-api",
+    "language": "typescript",
+    "description": "Report API. Every route runs authenticate and rateLimit first (Express middleware)"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-20T08:00:00Z",
+  "commit": "b7e41d0",
+  "functions": [
+    {
+      "id": "authenticate",
+      "name": "authenticate",
+      "file": "src/middleware/auth.ts",
+      "line": 8,
+      "steps": [
+        { "seq": 1, "type": "call", "target": "readBearer" },
+        { "seq": 2, "type": "egress", "target": "auth.verify" }
+      ]
+    },
+    {
+      "id": "readBearer",
+      "name": "readBearer",
+      "file": "src/middleware/auth.ts",
+      "line": 30,
+      "steps": []
+    },
+    {
+      "id": "rateLimit",
+      "name": "rateLimit",
+      "file": "src/middleware/rate-limit.ts",
+      "line": 5,
+      "steps": [
+        { "seq": 1, "type": "resource", "target": "limiter", "operation": "INCR rl:{key}" }
+      ]
+    },
+    {
+      "id": "getReport",
+      "name": "getReport",
+      "file": "src/routes/reports.ts",
+      "line": 21,
+      "steps": [
+        { "seq": 1, "type": "resource", "target": "reportsDb", "operation": "SELECT reports" }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.getReport",
+      "bindKey": "http:GET reports-api/reports/{id}",
+      "transport": "http",
+      "handler": "getReport",
+      "middleware": ["authenticate", "rateLimit"],
+      "entryPoint": true,
+      "details": { "method": "GET", "path": "/reports/{id}" }
+    }
+  ],
+  "egress": [
+    {
+      "id": "auth.verify",
+      "bindKey": "http:POST auth-svc/verify",
+      "transport": "http",
+      "mode": "sync",
+      "details": { "method": "POST", "path": "/verify", "timeoutMs": 800 }
+    }
+  ],
+  "resources": [
+    { "id": "limiter", "kind": "redis", "name": "rl:{key}", "bindKey": "redis:auth-cache/rl:{key}" },
+    { "id": "reportsDb", "kind": "postgres", "name": "reports", "bindKey": "postgres:reports-db/reports" }
+  ]
+}

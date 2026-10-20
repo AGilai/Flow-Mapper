@@ -51,6 +51,8 @@ export interface Message {
   deliveries?: number;                                       // on the publish message of a fan-out: how many deliveries follow it
   matched?: string[];                                        // on deliveries of an untyped publish: the event types (its events / candidates) that the subscription's filter let through
   repeatOf?: number;                                         // a delivery already expanded earlier in this trace (#43): the 1-based step (message number) of the first one. Nothing is expanded below it; it does not count toward maxMessages
+  middleware?: { fn: string; index: number };                // the message comes from this middleware function of the ingress (0-based position in `ingress.middleware`) or from a call it made; absent for the handler's own
+  middlewareChain?: { fn: string; name: string }[];          // on a message that reaches an ingress (entry / egress / deliver): its middleware, in the order they run before the handler
   delivery?: number;                                         // on the topic -> queue and queue -> consumer messages of one delivery: 1-based ordinal within the group
 }
 export interface Trace {
@@ -107,7 +109,9 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
     if (!c) { counted++; return; }
     if (++c.counts[c.branch] > c.max) { c.max = c.counts[c.branch]; tally(c.parent); }
   };
+  let mwCtx: { fn: string; index: number } | null = null; // set while an ingress's middleware runs: its messages are marked
   const push = (m: Message) => {
+    if (mwCtx && !m.middleware) m = { ...m, middleware: mwCtx };
     if (m.kind === 'frontier' || m.repeatOf) { messages.push(m); return true; } // markers are free, as documented on TraceOptions.frontier (and #43 for repeats)
     if (counted >= maxMessages && wouldCount(altCtx)) { truncated = true; return false; }
     tally(altCtx);
@@ -219,6 +223,19 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
     } finally { altCtx = outer; }
   };
 
+  // An ingress's middleware (in order) runs before its handler, each as an ordinary function visit; their messages carry `middleware`.
+  const chainOf = (i: { service: string; middleware?: string[] }) => (i.middleware ?? []).filter((m) => g.fns.get(sid(i.service, m))).map((m) => ({ fn: m, name: g.fns.get(sid(i.service, m))!.name }));
+  const runIngress = (i: { service: string; middleware?: string[] }, handler: string, depth: number, stack: string[]) => {
+    const saved = mwCtx;
+    chainOf(i).forEach((m, index) => {
+      if (truncated || stack.includes(sid(i.service, m.fn))) return;
+      mwCtx = { fn: m.fn, index };
+      try { visitFn(i.service, m.fn, depth, [...stack, sid(i.service, m.fn)]); } finally { mwCtx = saved; }
+    });
+    mwCtx = null; // what the handler does (and every other service it reaches) is not middleware
+    try { visitFn(i.service, handler, depth, stack); } finally { mwCtx = saved; }
+  };
+
   // Deliver from `from` to a link target, expanding channels and crossing into other services.
   // A fan-out's deliveries are drawn first (publish, then topic -> queue -> consumer for each), and only then what each consumer does
   // (its calls, stores, publishes, nested deliveries), in delivery order: nothing hangs between the deliveries, under the topic's activation bar.
@@ -273,20 +290,20 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
     const seenKey = scope === 'intra' && i.service !== root ? undefined : `${key}|${i.id}|${base.event ?? ''}|${base.matched?.join(',') ?? ''}`;
     const first = seenKey && !stack.includes(key) ? expanded.get(seenKey) : undefined;
     const text = crossing === 'deliver' ? `${label} → ${handler}` : label;
-    if (!push({ ...base, from, to: target, label: first ? `${text} ↩ seen at step ${first}` : text, mode, kind: crossing, depth, target: { service: i.service, ingress: i.id, fn: handler }, ...(first ? { repeatOf: first } : {}) } as Message)) return;
+    if (!push({ ...base, from, to: target, label: first ? `${text} ↩ seen at step ${first}` : text, mode, kind: crossing, depth, target: { service: i.service, ingress: i.id, fn: handler }, ...(first ? { repeatOf: first } : scope === 'intra' && i.service !== root || !chainOf(i).length ? {} : { middlewareChain: chainOf(i) }) } as Message)) return;
     if (scope === 'intra' && i.service !== root) return;
     if (stack.includes(key)) { messages[messages.length - 1].cycle = true; return; }
     if (first) return;
     if (seenKey) expanded.set(seenKey, messages.length);
     if (depth < maxDepth) {
-      const go = () => visitFn(i.service, handler, depth + 1, [...stack, key]);
+      const go = () => runIngress(i, handler, depth + 1, [...stack, key]);
       if (deferred) deferred.push(go); else go();
     }
   };
 
   const client = part({ id: 'client', label: ing?.entryPoint ? 'client' : 'caller', kind: 'client' });
-  push({ from: client, to: fnPart(root, fnId), label: (ing?.bindKey ?? fnId) + (start.event ? ` · ${start.event}` : ''), event: start.event, mode: 'sync', kind: 'entry', depth: 0, service: root, fn: fnId, transport: ing?.transport, target: ing ? { service: root, ingress: ing.id, fn: fnId } : undefined });
-  visitFn(root, fnId, 1, [sid(root, fnId)]);
+  push({ from: client, to: fnPart(root, fnId), label: (ing?.bindKey ?? fnId) + (start.event ? ` · ${start.event}` : ''), event: start.event, mode: 'sync', kind: 'entry', depth: 0, service: root, fn: fnId, transport: ing?.transport, target: ing ? { service: root, ingress: ing.id, fn: fnId } : undefined, ...(ing && chainOf(ing).length ? { middlewareChain: chainOf(ing) } : {}) });
+  if (ing) runIngress(ing, fnId, 1, [sid(root, fnId)]); else visitFn(root, fnId, 1, [sid(root, fnId)]);
 
   for (const p of participants.values()) {
     if (p.kind === 'service') p.internalCalls = messages.filter((m) => m.kind === 'call' && m.service === p.service).length;
@@ -317,7 +334,7 @@ export function entryPoints(g: GraphIndex) {
   const orphan = new Set(g.resolution.orphans.map((i) => sid(i.service, i.id)));
   return g.model.ingress
     .filter((i) => i.entryPoint || orphan.has(sid(i.service, i.id)))
-    .map((i) => ({ service: i.service, id: i.id, bindKey: i.bindKey, transport: i.transport, handler: i.handler, entryPoint: !!i.entryPoint }));
+    .map((i) => ({ service: i.service, id: i.id, bindKey: i.bindKey, transport: i.transport, handler: i.handler, ...(i.middleware?.length ? { middleware: i.middleware } : {}), entryPoint: !!i.entryPoint }));
 }
 
 /**

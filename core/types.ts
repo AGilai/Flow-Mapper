@@ -72,6 +72,8 @@ export interface IngressEvent { type: string; handler: string; producers?: strin
 export interface Ingress {
   service: string; id: string; bindKey: string; match?: Match; transport: Transport;
   handler: string; entryPoint?: boolean; details?: Details;
+  /** Middleware functions that run before the handler, in order (ids of functions of the same service). Traced as ordinary function visits. */
+  middleware?: string[];
   events?: IngressEvent[];
   /** How the handler was resolved (registration, bind): hops from the registration to the handler. `details.handlerVia` is read too (core/via.ts). */
   via?: ViaHop[];

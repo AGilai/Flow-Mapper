@@ -47,9 +47,9 @@ export function createInside(host, { env, onClose, onOpen, onStep }) {
       h('button.btn.ghost', { 'aria-label': 'Close', title: 'Esc', on: { click: close } }, icon('close'))),
       h('div.fi-counts', h('span', h('b', info.counts.functions), ` ${info.counts.functions === 1 ? 'function runs' : 'functions run'}`), h('span', h('b', info.counts.internal), ' internal calls'),
         h('span', h('b', info.counts.outgoing), ' outgoing'), h('span', h('b', info.counts.stores), ` ${info.counts.stores === 1 ? 'store' : 'stores'}`), all),
-      h('div.fi-body', h('h3', 'Functions this call runs'),
+      h('div.fi-body', h('h3', info.middleware ? 'Middleware, then the functions this call runs' : 'Functions this call runs'),
         info.functions.map((f) => h('section.fi-fn', { style: { marginLeft: `${Math.min(f.depth, 4) * 14}px` } },
-          h('div.fi-fn-h', h('b.fn', f.fn), f.isEntry ? h('span.chip-gap', f.ingress ? `entry · ${f.ingress}` : 'entry') : null), codeLink(f.code),
+          h('div.fi-fn-h', h('b.fn', f.fn), f.middleware ? h('span.chip-mw', `middleware ${f.middleware} of ${info.middleware}`) : null, f.isEntry ? h('span.chip-gap', f.ingress ? `entry · ${f.ingress}` : 'entry') : null), codeLink(f.code),
           f.items.length ? h('div.fi-steps', f.items.map(block)) : h('p.muted.xs', 'No steps recorded.'))),
         h('p.muted.xs', 'Execution order. Functions this call does not reach stay on the service page. Click a step to mark its arrow.')));
     el.hidden = false; onOpen?.();

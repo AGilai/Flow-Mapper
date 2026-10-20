@@ -177,6 +177,15 @@ egress `via` above (`{ "function", "file", "line", "kind" }`), with `kind` `"reg
 ingress row, the endpoint panel and the start of the trace. Hops are display data only. Sending it
 as `details.handlerVia` still works.
 
+**Middleware (0.12.0).** A route runs middleware before its handler (Express/Fastify `use`, auth, rate
+limit), and middleware can make calls of its own (an auth RPC). List them on the ingress, in the order
+they run: `"middleware": ["authenticate", "rateLimit"]`. The ids are functions of the same manifest
+(same rule as `handler`; an unknown id is rejected with 422 like a bad handler). Those functions carry
+their own steps as usual. Flow-Mapper traces them before the handler, as ordinary function visits: their
+calls are real messages, system-map edges and link-health entries, and the Flows page draws them as a
+segment on top of the service's bar. Optional: an ingress without it traces exactly as before.
+`details.middleware` is still accepted, but it is display data and is not traced.
+
 **Egress**: every way out: HTTP and RPC clients, publishes to topics, queues and buses. Set
 `mode: "async"` for fire-and-forget.
 
