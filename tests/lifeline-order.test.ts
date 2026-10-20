@@ -63,27 +63,6 @@ test('a consumer reached through several queues sits after the first of them; a 
   assert.deepEqual(ids(t), ['client', 'svc:p', 'ch:sns:t', 'ch:sqs:q1', 'svc:c', 'ch:sqs:q2']);
 });
 
-test('labels on one row never overlap and stay inside their own arrow (#35)', async () => {
-  const { labelPlan, rowsOf, colX } = await import('../web/js/views/sequence-render.js');
-  const cases = [run('in.start'), run('in.startChecked'), trace(g, { service: 'saga-controller', ingress: 'in.start' }, { scope: 'full' })!,
-    trace(g, { service: 'api-gateway', ingress: 'in.createOrder' }, { scope: 'full' })!,
-    trace(g, { service: 'account-lambda-erase-controller', ingress: 'in.advanceErase' }, { scope: 'full' })!,
-    trace(g, { service: 'account-lambda-erase-controller', ingress: 'in.publishDeviceEvent' }, { scope: 'full' })!];
-  for (const t of cases) {
-    const x = new Map(t.participants.map((p, i) => [p.id, colX(i)]));
-    const { rows } = rowsOf(t.messages, x);
-    const plan = labelPlan(t.messages, rows, x);
-    const boxes = plan.map((p, i) => ({ i, row: rows[i], x0: p.x, x1: p.x + p.width }));
-    for (const b of boxes) {
-      const m = t.messages[b.i], a = x.get(m.from)!, z = x.get(m.to)!;
-      if (a !== z) assert.ok(b.x1 <= Math.max(a, z) - 4 && b.x0 >= Math.min(a, z), `${m.label} inside its arrow`);
-    }
-    for (const a of boxes) for (const b of boxes) {
-      if (a.i < b.i && a.row === b.row) assert.ok(a.x1 <= b.x0 || b.x1 <= a.x0, `${t.start.ingress}: "${plan[a.i].text}" overlaps "${plan[b.i].text}"`);
-    }
-  }
-});
-
 test('the fan-out demo has 12 queues on one topic, none of the consumers on the trace elsewhere but the caller', () => {
   const t = run('in.start');
   assert.ok(t.messages.find((m) => m.deliveries)!.deliveries! >= 12);

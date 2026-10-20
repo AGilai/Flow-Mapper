@@ -8,6 +8,13 @@ Add a row here with every fix or feature (newest first). A row without a working
 
 | Version | Bug | What to look at | Link |
 |---|---|---|---|
+| 0.11.0 | — | Flows lane: one activation bar per call (colour = entering transport), internal calls folded into an "N internal calls" pill, dashed return arrows, stores as stubs, publishes end at the "published events" rail with a "↓ N flows" badge (amber "no consumers"), red arrow to "unresolved" | `#/flows?service=api-gateway&ingress=in.createOrder` |
+| 0.11.0 | — | Async index under the diagram: one row per consumer flow, chevron expands it in place into its own diagram, nested flows (3.1) expand too; "↩ seen in N" rows jump to row N; Expand all / Collapse all | `#/flows?service=saga-controller&ingress=in.start` |
+| 0.11.0 | — | Alt frames over publishes, index grouped by branch with its condition, "no handler" rows | `#/flows?service=account-lambda-erase-controller&ingress=in.advanceErase` |
+| 0.11.0 | — | Drill-down: double-click a bar (or right-click, "Show inside X") opens a 380px column that squeezes the diagram; Esc closes | `#/flows?service=api-gateway&ingress=in.createOrder` (double-click the orders-svc bar) |
+| 0.11.0 | — | "Inside the service": root bar, callees as plain "not followed" lifelines | `#/flows?service=api-gateway&ingress=in.createOrder&scope=intra` |
+| 0.11.0 | #34 | Frontier marker as a stub on the bar (click it, or tick "Frontier steps") | `#/flows?service=orders-svc&ingress=in.remove` |
+| 0.11.0 | — | Cycles and repeats as "seen" rows; many consumers of one publish | `#/flows?service=saga2-eraser-entry&ingress=in.erase`, `#/flows?service=stress-gateway&ingress=in.startChecked` |
 | 0.10.0 | — | Compact topic page: producers, topic, queues; problem queues first (red "arrive, no handler"), the rest by name; queue rows expand in place; click an edge or a queue for the info pane (squeezes the page) | `#/channels/sns%3Aproduction-event-bus-sns` |
 | 0.10.0 | — | Disagreeing declarations: amber "disagree" chip on a dashed edge; the pane shows both declarations with code links and what reaches the consumer under each | `#/channels/sns%3Aorder-events` |
 | 0.10.0 | — | Topic with 13 queues: 12 shown, then "1 more queue, all handled · Show all 13"; "Find a queue or service" and "Expand all"; the topic stays in view while scrolling | `#/channels/sns%3Astress-events` |

@@ -1,0 +1,106 @@
+// The async index under a diagram. One 40px row per consumer flow, grouped by the publish that starts it (and by
+// alt branch). A chevron expands a row in place into a card: that flow drawn with the same lane rules, followed by
+// the flows it starts (nested, indented, expandable too). "seen" rows never expand; they scroll to the row they repeat.
+
+import { h } from '../dom.js';
+import { href } from '../router.js';
+import { indexStats } from './flow-async.js';
+import { buildLane } from './flow-lane.js';
+import { renderLane } from './flow-draw.js';
+
+const chev = (open) => h('button.chev', { 'aria-label': open ? 'Collapse flow' : 'Expand flow', 'aria-expanded': String(open) },
+  h('span.chev-i', { class: open ? 'open' : '' }, '›'));
+const tc = (t, label) => h('span.tc', { class: t }, label);
+const chType = (key) => key.split(':')[0].replace('amqp-queue', 'amqp');
+
+/**
+ * renderIndex(tree, ctx) -> { el, expandAll, collapseAll, reveal(label), groupEl(pubIndex) }
+ * ctx: { trace, lane: { stores, scope, maxDepth }, handlers (for renderLane), open(row, full) }
+ */
+export function renderIndex(tree, ctx) {
+  const cards = new Map(); // label -> { setOpen, el, parent }
+  const groupEls = new Map();
+  const stats = indexStats(tree);
+  const laneFor = (row) => {
+    const msgs = row.msgs.filter((m, i) => i === 0 || m.depth <= ctx.lane.maxDepth);
+    return renderLane(buildLane(msgs, { stores: ctx.lane.stores, scope: 'full', participants: ctx.trace.participants }), { ...ctx.handlers, sticky: false });
+  };
+
+  const rowHead = (row, open) => {
+    const nested = row.groups.reduce((n, g) => n + g.rows.length, 0);
+    return [row.noHandler || row.seenIn ? h('span.chev-pad') : chev(open),
+      h('span.layer', row.label),
+      h('span.lane', tc(chType(groupOfRow(row).topic), groupOfRow(row).topic), h('i.arr', '›'), tc(chType(row.queue), row.queue), h('i.arr', '›'),
+        h('span.svc', h('b', row.service), h('span.mono', ` · ${row.handler}`))),
+      nested ? h('span.nest-chip', `+ ${nested} nested ${nested === 1 ? 'flow' : 'flows'} (${row.groups[0]?.rows[0]?.label ?? ''})`) : null,
+      row.suspect ? h('span.chip-warn', { title: 'Same consumer reached twice by one publish. Possible harvester or config bug.' }, 'suspect') : null,
+      row.noHandler ? h('span.chip-bad', 'no handler') : null];
+  };
+  const parents = new Map();
+  const groupOfRow = (row) => parents.get(row);
+
+  function rowEl(row, group, depth) {
+    parents.set(row, group);
+    if (row.seenIn) {
+      const el = h('div.crow.seen', { id: `row-${row.label}` }, h('span.seenic', '↩'), h('span.layer', row.label),
+        h('span.lane', h('span.svc', h('b', row.service), h('span.mono', ` · ${row.handler}`))),
+        h('span.sum', `↩ seen in ${row.seenIn}`), h('button.btn.sm.ghost', { on: { click: () => reveal(row.seenIn) } }, `Jump to ${row.seenIn}`));
+      return el;
+    }
+    const expandable = !row.noHandler && row.msgs.length >= 1 && row.ingress;
+    const card = h('section.card', { id: `row-${row.label}`, class: depth ? 'nested' : '' });
+    const head = h('header.card-h', { class: expandable ? 'click' : '' });
+    const body = h('div.card-b', { hidden: true });
+    let open = false, built = false;
+    const actions = row.ingress && !row.noHandler ? [
+      h('button.btn.sm', { title: `${row.service} · ${row.ingress}, its own flow`, on: { click: (e) => { e.stopPropagation(); ctx.open(row, false); } } }, 'Open in tab'),
+      h('button.btn.sm.ghost', { title: 'Every call this consumer makes', on: { click: (e) => { e.stopPropagation(); ctx.open(row, true); } } }, 'Full flow ▸')] : [];
+    const paint = () => { head.replaceChildren(...rowHead(row, open).filter(Boolean), h('span.sum', row.summary ? h('b', row.summary.split(' · ')[0]) : '', row.summary.includes(' · ') ? ` · ${row.summary.split(' · ').slice(1).join(' · ')}` : ''), ...actions); head.querySelector('.chev')?.addEventListener('click', (e) => { e.stopPropagation(); setOpen(!open); }); };
+    function setOpen(v) {
+      if (!expandable || v === open) return;
+      open = v; card.classList.toggle('open', open); body.hidden = !open;
+      if (open && !built) {
+        built = true;
+        const lane = laneFor(row);
+        body.append(h('div.card-lane', lane.el));
+        if (row.groups.length) body.append(h('div.card-nest', row.groups.map((g) => groupEl(g, depth + 1))));
+      }
+      paint();
+    }
+    if (expandable) head.addEventListener('click', (e) => { if (!e.target.closest('button,a')) setOpen(!open); });
+    paint();
+    card.append(head, body);
+    cards.set(row.label, { setOpen, el: card, parent: row.label.includes('.') ? row.label.replace(/\.\d+$/, '') : null });
+    return card;
+  }
+
+  function groupEl(g, depth = 0) {
+    const seen = g.rows.filter((r) => r.seenIn).length, fresh = g.rows.length - seen;
+    const el = h('div.grp', { id: `pub-${g.pub}` },
+      h('div.grp-h', tc(g.transport, g.transport), h('span.mono', `${g.topic.replace(/^[^:]+:/, '')} · ${g.event}`),
+        g.branch ? h('span.from', `branch ${g.branch.n}${g.branch.condition ? ` · ${g.branch.condition}` : ''}`) : null,
+        h('span.sum', g.rows.length ? (fresh ? `${g.rows.length} ${g.rows.length === 1 ? 'flow' : 'flows'}${seen ? ` · ${fresh} new, ${seen} seen before` : ''}` : `${g.rows.length} flows · all seen before`) : 'no consumers')),
+      h('div.grp-rows', g.rows.map((r) => rowEl(r, g, depth))));
+    groupEls.set(g.pub, el);
+    return el;
+  }
+
+  function reveal(label) {
+    const parts = String(label).split('.');
+    for (let k = 1; k < parts.length; k++) cards.get(parts.slice(0, k).join('.'))?.setOpen(true); // ancestors first: opening builds the nested rows
+    const c = cards.get(label);
+    if (!c) return;
+    c.setOpen(true);
+    c.el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    c.el.classList.add('flash'); setTimeout(() => c.el.classList.remove('flash'), 1600);
+  }
+  const all = (v) => { const walk = (rows) => rows.forEach((r) => { cards.get(r.label)?.setOpen(v); r.groups.forEach((g) => walk(g.rows)); }); tree.groups.forEach((g) => walk(g.rows)); };
+  const openAll = () => stats.openable.forEach((r) => open(href('/flows', { service: r.service, ingress: r.ingress, scope: ctx.lane.scope }), '_blank'));
+
+  const header = h('div.cards-h', h('h2', 'Async flows'),
+    h('span.hint', `${stats.deliveries} ${stats.deliveries === 1 ? 'delivery' : 'deliveries'} · ${stats.distinct} distinct consumers · ${stats.publishes} ${stats.publishes === 1 ? 'publish' : 'publishes'}. Expand a row to see its flow here.`),
+    h('span.grow'), h('button.btn.sm', { on: { click: () => all(true) } }, 'Expand all'), h('button.btn.sm', { on: { click: () => all(false) } }, 'Collapse all'),
+    stats.openable.length ? h('button.btn.sm', { title: 'One browser tab per distinct consumer', on: { click: openAll } }, `Open all distinct (${stats.openable.length})`) : null);
+  const el = h('div.cards', header, tree.groups.map((g) => groupEl(g)));
+  return { el, expandAll: () => all(true), collapseAll: () => all(false), reveal, groupEl: (i) => groupEls.get(i) };
+}

@@ -30,16 +30,6 @@ test('a queue or topic lifeline sits left of what it delivers to, in every sampl
   }
 });
 
-test('with queues hidden the send is one arrow from the sender to the consumer (#35)', async () => {
-  const { bridgeChannels } = await import('../web/js/views/sequence-render.js');
-  const g = buildIndex(sampleModel());
-  const t = trace(g, { service: 'account-lambda-erase-controller', ingress: 'in.notifyBilling' }, { scope: 'full' })!;
-  const hops = bridgeChannels(t.messages).filter((m: any) => m.kind === 'egress').map((m: any) => `${m.from} > ${m.to}`);
-  assert.deepEqual(hops, ['svc:account-lambda-erase-controller > svc:billing-eraser']);
-  const o = trace(g, { service: 'api-gateway', ingress: 'in.createOrder' }, { scope: 'full' })!;
-  assert.ok(!bridgeChannels(o.messages).some((m: any) => m.to === 'ch:sns:order-events'), 'the topic is bridged');
-});
-
 test('one send to a queue a service consumes: service > queue > consumer, no direct arrow (#35)', () => {
   const g = buildIndex(sampleModel());
   const t = trace(g, { service: 'account-lambda-erase-controller', ingress: 'in.notifyBilling' }, { scope: 'full' })!;

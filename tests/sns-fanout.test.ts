@@ -34,23 +34,6 @@ test('a send to a single queue is not a fan-out: no group, no delivery', () => {
   assert.ok(full({ service: 'account-lambda-erase-controller', ingress: 'in.notifyBilling' }).messages.every((m) => !m.group && !m.delivery));
 });
 
-test('rows: every hop of one delivery shares a row; a fan-out publish keeps its own (#35)', async () => {
-  const { rowsOf } = await import('../web/js/views/sequence-render.js');
-  const t = full();
-  const { rows, count } = rowsOf(t.messages);
-  assert.equal(count, t.messages.length - 6); // 3 fan-out legs, the payment-events chain (2), the amqp send to a queue (1)
-  for (const n of [1, 2, 3]) {
-    const a = t.messages.findIndex((m) => m.delivery === n);
-    assert.equal(rows[a], rows[a + 1]);
-  }
-  const pub = t.messages.findIndex((m) => m.deliveries);
-  assert.notEqual(rows[pub], rows[pub + 1]);
-  // a single-queue send: publish and delivery on one row
-  const s = full({ service: 'account-lambda-erase-controller', ingress: 'in.notifyBilling' }).messages;
-  const r = rowsOf(s).rows;
-  assert.equal(r[1], r[2]);
-});
-
 test('lifelines run producer > topic > queue > consumer even when the consumer was met first (#35)', async () => {
   const t = full();
   const at = (id: string) => t.participants.findIndex((p) => p.id === id);
@@ -99,29 +82,3 @@ test('a topic sits right of its producer even when the consumer service comes fi
   assert.ok(ids.indexOf('ch:sns:t') < ids.indexOf('ch:sqs:q'), ids.join(' '));
 });
 
-test('under a topic activation bar sit only its own deliveries; no other arrow crosses the bar (#35)', async () => {
-  const { rowsOf, colX } = await import('../web/js/views/sequence-render.js');
-  const g = buildIndex(sampleModel());
-  let bars = 0;
-  for (const i of g.model.ingress) {
-    const t = trace(g, { service: i.service, ingress: i.id }, { scope: 'full' })!;
-    const x = new Map(t.participants.map((p, k) => [p.id, colX(k)]));
-    const { rows } = rowsOf(t.messages, x);
-    t.messages.forEach((pub, p) => {
-      if (!pub.deliveries) return;
-      bars++;
-      const last = t.messages.reduce((a, m, k) => (m.group === pub.group && m.delivery ? k : a), p);
-      for (let k = p + 1; k <= last; k++) {
-        const m = t.messages[k];
-        assert.ok(m.group === pub.group && m.delivery, `${i.service}/${i.id}: step ${k + 1} (${m.label}) sits inside the bar of step ${p + 1}`);
-      }
-      const bar = x.get(pub.to)!;
-      for (const [k, m] of t.messages.entries()) {
-        if (rows[k] < rows[p] || rows[k] > rows[last] || (k >= p && k <= last)) continue;
-        const [a, b] = [x.get(m.from)!, x.get(m.to)!].sort((u, v) => u - v);
-        assert.ok(!(a < bar && bar < b), `${i.service}/${i.id}: step ${k + 1} crosses the bar of step ${p + 1}`);
-      }
-    });
-  }
-  assert.ok(bars >= 5);
-});

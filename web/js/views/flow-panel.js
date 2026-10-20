@@ -13,7 +13,7 @@ import { jsonView } from '../components/json-view.js';
 import { dtoSource } from '../components/dto-source.js';
 import { viaChip } from '../components/via-chip.js';
 import { stepFields } from '../components/step-fields.js';
-import { asyncFlowOf } from './sequence-plan.js';
+import { asyncFlowOf } from './flow-scan.js';
 import { eventLink, serviceLink, storeLink } from './inventory-links.js';
 
 const KIND = { entry: 'Entry', call: 'Function call', egress: 'Call', deliver: 'Delivery from queue', resource: 'Data store access', leaf: 'Leaf step (classified by the harvester)', frontier: 'Frontier steps (folded)' };

@@ -27,7 +27,6 @@
 .seq-part .name { font-size: 12.5px; font-weight: 600; fill: var(--ink); }
 .seq-part .sub { font-size: 11px; fill: var(--muted); }
 .lifeline { stroke: var(--line-strong); stroke-dasharray: 2 4; }
-.activation { fill: color-mix(in srgb, var(--t-sns) 28%, var(--surface, transparent)); stroke: var(--t-sns); stroke-width: 1; }
 .msg { cursor: pointer; outline: none; }
 .msg .arrow { stroke: var(--mc); stroke-width: 1.6; fill: none; }
 .msg .label { font-size: 12px; fill: var(--ink); font-family: var(--mono); }
@@ -58,27 +57,5 @@
 .alt-cond { font-size: 12px; fill: var(--ink-2); font-family: var(--mono); }
 .msg.repeat .chip { fill: var(--surface); stroke: var(--muted); stroke-dasharray: 3 2; }
 .msg.repeat .chip-text { fill: var(--muted); font-size: 11px; font-style: normal; }
-
-/* Async-flow dot: at the arrowhead of a delivery, opens the consumer's own flow. */
-.flow-dot { cursor: pointer; outline: none; }
-.flow-dot .dot { fill: var(--mc); stroke: var(--surface); stroke-width: 1.5; }
-.flow-dot .dot-hit { fill: transparent; }
-.flow-dot:hover .dot, .flow-dot:focus-visible .dot { stroke: var(--focus); stroke-width: 2.5; }
-.flow-dot .dot-tip { display: none; pointer-events: none; }
-.flow-dot .dot-tip rect { fill: var(--ink); }
-.flow-dot .dot-tip text { fill: var(--surface); font-size: 11.5px; }
-.flow-dot:hover .dot-tip, .flow-dot:focus-visible .dot-tip { display: block; }
-
-/* Sub-flow bands: a light wash in the hue of the flow's dot, behind lifelines and arrows. */
-.flow-band { fill: color-mix(in srgb, var(--fc) 10%, transparent); stroke: color-mix(in srgb, var(--fc) 28%, transparent); stroke-width: 1; scroll-margin-top: 70px; pointer-events: none; transition: fill .3s; }
-.flow-band.flash { fill: color-mix(in srgb, var(--fc) 30%, transparent); stroke: var(--fc); stroke-width: 2; }
-.flow-band.c1 { --fc: var(--flow-1); }
-.flow-band.c2 { --fc: var(--flow-2); }
-.flow-band.c3 { --fc: var(--flow-3); }
-.flow-band.c4 { --fc: var(--flow-4); }
-.flow-band.c5 { --fc: var(--flow-5); }
-.flow-band.c6 { --fc: var(--flow-6); }
-.flow-band.c7 { --fc: var(--flow-7); }
-.flow-band.c8 { --fc: var(--flow-8); }
 .flows-row { display: flex; min-width: 0; min-height: 0; position: relative; }
 .flows-row > .flows-main { flex: 1; min-width: 0; }

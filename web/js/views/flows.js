@@ -9,10 +9,13 @@ import { href, setQuery, go } from '../router.js';
 import { pageHead } from '../components/page.js';
 import { createPanel } from '../components/panel.js';
 import { chip, splitKey } from '../format.js';
-import { renderSequence } from './sequence-render.js';
-import { flowMenu } from './flow-menu.js';
+import { renderLane } from './flow-draw.js';
+import { buildLane } from './flow-lane.js';
+import { asyncTree } from './flow-async.js';
+import { renderIndex } from './flow-index.js';
+import { createInside } from './flow-inside-panel.js';
 import { messagePanel } from './flow-panel.js';
-import { participantMenu } from './flow-menu.js';
+import { participantMenu, barMenu } from './flow-menu.js';
 import { resizer } from '../components/resizer.js';
 import { describeCount } from '../../core/flow-counts.js';
 
@@ -26,8 +29,7 @@ export async function render({ main, query }) {
   const start = { service, ingress: query.get('ingress'), fn: query.get('fn'), event: query.get('event') };
   const opts = {
     scope: query.get('scope') ?? (start.fn ? 'intra' : 'full'),
-    internal: query.get('internal') !== '0', stores: query.get('stores') !== '0', queues: query.get('queues') !== '0', depth: query.get('depth') ?? 'all',
-    expand: new Set((query.get('expand') ?? '').split(',').filter(Boolean)), // services shown function by function
+    stores: query.get('stores') !== '0', queues: query.get('queues') === '1', depth: query.get('depth') ?? 'all',
     frontier: query.get('frontier') === '1', // steps the harvester marked as frontier (call trees that reach no sink)
   };
 
@@ -77,52 +79,79 @@ export async function render({ main, query }) {
     return { dispose: panel.dispose };
   }
 
-  let trace;
+  let trace, tree, index, lane;
   const scroller = h('div.seq-scroll');
+  const body = h('div.flow-body', scroller);
+  const inside = createInside(body, { env: state.env, onClose: () => select(null), onStep: (m) => markArrow(m) });
   const info = h('span.small.muted');
   const seg = h('div.seg', { role: 'group', 'aria-label': 'Scope' }, [['intra', 'Inside the service'], ['full', 'Full flow']].map(([id, label]) =>
     h('button', { 'aria-pressed': String(opts.scope === id), on: { click: async () => { opts.scope = id; persist(); await load(); seg.querySelectorAll('button').forEach((b, i) => b.setAttribute('aria-pressed', String(['intra', 'full'][i] === id))); } } }, label)));
-  const check = (key, label) => h('label.check', h('input', { type: 'checkbox', checked: opts[key], on: { change: (e) => { opts[key] = e.target.checked; persist(); draw(); } } }), label);
+  const check = (key, label, title) => h('label.check', { title }, h('input', { type: 'checkbox', checked: opts[key], on: { change: (e) => { opts[key] = e.target.checked; persist(); draw(); } } }), label);
   const frontierCheck = h('label.check', { title: 'Call trees the harvester marked as reaching no sink. Folded into one marker per function by default.' },
     h('input', { type: 'checkbox', checked: opts.frontier, on: { change: async (e) => { opts.frontier = e.target.checked; persist(); await load(); } } }), 'Frontier steps');
-  const internalCheck = check('internal', 'Internal calls');
-  const internalBox = internalCheck.querySelector('input');
   const depth = h('select.select', { 'aria-label': 'Depth', on: { change: (e) => { opts.depth = e.target.value; persist(); draw(); } } },
     ['all', '1', '2', '3', '4', '6', '8'].map((d) => h('option', { value: d, selected: d === opts.depth }, d === 'all' ? 'All depths' : `Depth ${d}`)));
 
-  mainPane.prepend(h('div.seq-toolbar', seg, internalCheck, check('stores', 'Data stores'), check('queues', 'Queues and topics'), frontierCheck, depth, h('span.spacer'),
-    h('span.xs.muted', 'Right-click a lifeline to see inside it'), info), scroller);
+  mainPane.prepend(h('div.seq-toolbar', seg, check('stores', 'Data stores'), check('queues', 'Queues and topics', 'Will add queue and topic lifelines inside the async flows (not drawn yet)'), frontierCheck, depth, h('span.spacer'),
+    h('span.xs.muted', 'Double-click a bar, or right-click it, to look inside'), info), body);
 
   function persist() {
-    setQuery({ scope: opts.scope, internal: opts.internal ? null : '0', stores: opts.stores ? null : '0', queues: opts.queues ? null : '0', depth: opts.depth === 'all' ? null : opts.depth,
-      expand: [...opts.expand].join(',') || null, frontier: opts.frontier ? '1' : null });
+    setQuery({ scope: opts.scope, stores: opts.stores ? null : '0', queues: opts.queues ? '1' : null, depth: opts.depth === 'all' ? null : opts.depth, frontier: opts.frontier ? '1' : null });
   }
   async function load() {
     fill(scroller, h('div.loading', 'Tracing…'));
     try {
-      trace = await api.trace(state.env, { service: start.service, ingress: start.ingress, fn: start.fn, event: start.event, scope: opts.scope, maxMessages: 800, expand: [...opts.expand].join(',') || null, frontier: opts.frontier ? '1' : null });
+      trace = await api.trace(state.env, { service: start.service, ingress: start.ingress, fn: start.fn, event: start.event, scope: opts.scope, maxMessages: 800, frontier: opts.frontier ? '1' : null });
     } catch (err) {
       fill(scroller, h('div.content', h('div.error-box', err.message)));
       return;
     }
+    tree = asyncTree(trace.messages);
+    inside.close();
     draw();
   }
+  function select(bar) {
+    document.querySelectorAll('.act.selected').forEach((e) => e.classList.remove('selected'));
+    bar?.el?.classList.add('selected');
+  }
+  function markArrow(m) { // a step in the drill-down marks its arrow
+    mainPane.querySelectorAll('.msg.active').forEach((e) => e.classList.remove('active'));
+    const g = [...mainPane.querySelectorAll('.seq-body')].map((b) => ({ b, k: b.__events?.findIndex((e) => e.msg === m) })).find((x) => x.k >= 0);
+    const el = g?.b.querySelector(`[data-e="${g.k}"]`);
+    el?.classList.add('active');
+    el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
+  const laneOpts = () => ({ stores: opts.stores, scope: opts.scope, maxDepth: opts.depth === 'all' ? Infinity : Number(opts.depth) });
+  const openFlow = (row, full) => go('/flows', { service: row.service, ingress: row.ingress, scope: full ? 'full' : opts.scope });
+  const lookInside = (bar) => { select(bar); inside.open(bar, trace); };
+  const handlers = {
+    onBar: (bar, mode) => { if (mode === 'select') select(bar); else lookInside(bar); },
+    onBarMenu: (bar, x, y) => barMenu(bar, x, y, { trace, inside: () => lookInside(bar), toIndex: index ? () => index.el.scrollIntoView({ behavior: 'smooth' }) : null }),
+    onParticipant: (p, x, y) => participantMenu(p, x, y, { trace, scope: opts.scope }),
+    onBadge: (ev) => { // one flow: open it; several: scroll to their group in the index below
+      const at = trace.messages.indexOf(ev.msg), g = index?.groupEl(at);
+      const only = ev.flows === 1 ? tree.rows.find((r) => r.i > at && g?.contains(document.getElementById(`row-${r.label}`))) : null;
+      if (only?.ingress && !only.noHandler) { openFlow(only, false); return; }
+      g?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      g?.classList.add('flash');
+      setTimeout(() => g?.classList.remove('flash'), 1600);
+    },
+    onMessage: async (m, g) => { // clicking a frontier marker expands the frontier steps
+      if (m.kind === 'frontier') { opts.frontier = true; frontierCheck.querySelector('input').checked = true; persist(); await load(); return; }
+      mainPane.querySelectorAll('.msg.active').forEach((e) => e.classList.remove('active'));
+      g.classList.add('active');
+      panel.open(...messagePanel(m, trace, state.env, opts.scope));
+    },
+  };
   function draw() {
-    const seq = renderSequence(trace, {
-      internal: opts.internal, stores: opts.stores, queues: opts.queues, maxDepth: opts.depth === 'all' ? Infinity : Number(opts.depth), expanded: opts.expand,
-      onOpenFlow: (f) => go('/flows', { service: f.service, ingress: f.ingress, scope: opts.scope }),
-      onFlowMenu: (f, m, x, y, jump) => flowMenu(f, x, y, opts.scope, jump),
-      onParticipant: (p, x, y) => participantMenu(p, x, y, {
-        trace, scope: opts.scope, expanded: opts.expand,
-        setExpanded: async (svc, on) => { on ? opts.expand.add(svc) : opts.expand.delete(svc); if (on) { opts.internal = true; internalBox.checked = true; } persist(); await load(); },
-      }),
-      onMessage: async (m, g) => { // clicking a frontier marker expands the frontier steps
-        if (m.kind === 'frontier') { opts.frontier = true; frontierCheck.querySelector('input').checked = true; persist(); await load(); return; } mainPane.querySelector('.msg.active')?.classList.remove('active'); g.classList.add('active'); panel.open(...messagePanel(m, trace, state.env, opts.scope)); },
-    });
+    const lo = laneOpts();
+    const msgs = trace.messages.filter((m) => m.depth <= lo.maxDepth);
+    lane = renderLane(buildLane(msgs, { stores: lo.stores, scope: trace.scope, participants: trace.participants }), handlers);
+    index = tree.groups.length ? renderIndex(tree, { trace, lane: lo, handlers, open: openFlow }) : null;
     const services = new Set(trace.messages.map((m) => m.service).filter(Boolean));
-    info.textContent = `${trace.start.event ? `${trace.start.event}: ` : ''}${seq.shown} of ${seq.total} steps, ${services.size} services${trace.truncated ? ', truncated' : ''}`;
-    fill(scroller, seq.el);
+    info.textContent = `${trace.start.event ? `${trace.start.event}: ` : ''}${trace.messages.length} steps, ${services.size} services${trace.truncated ? ', truncated' : ''}`;
+    fill(scroller, lane.el, index?.el);
   }
   await load();
-  return { dispose: panel.dispose };
+  return { dispose: () => { panel.dispose(); inside.dispose(); } };
 }
