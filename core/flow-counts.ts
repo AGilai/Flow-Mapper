@@ -36,7 +36,6 @@ function componentSets(g: GraphIndex): Map<string, string[]> {
   const hit = cache.get(g);
   if (hit) return hit;
   const nodes = new Map<string, Node>();
-  const bound = boundValues(g); // bind name -> every value a call step binds to it
   const nodeOf = (k: string): Node => {
     let n = nodes.get(k);
     if (n) return n;
@@ -55,7 +54,7 @@ function componentSets(g: GraphIndex): Map<string, string[]> {
       if (!out) continue;
       const event = st.eventFrom ? undefined : st.event ?? (out.events?.length === 1 ? out.events[0] : undefined);
       const own = untypedEventSet(out);
-      const set = st.eventFrom ? { known: [...new Set([...own.known, ...(bound.get(st.eventFrom) ?? [])])], candidates: own.candidates }
+      const set = st.eventFrom ? { known: [...new Set([...own.known, ...boundValues(g, f.service, f.id, st.eventFrom)])], candidates: own.candidates }
         : event ? undefined : own; // same rule as the trace (#40): an untyped publish follows only subscriptions that match its events or candidates
       const ok = (l: Parameters<typeof passes>[1]) => (set ? passesUntyped(g, l, set) !== false : passes(g, l, event));
       const walk = (r: Ref, seenCh: string[]) => {

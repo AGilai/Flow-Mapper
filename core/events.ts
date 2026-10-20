@@ -56,22 +56,41 @@ export function untypedEventSet(e: { events?: string[]; unresolved?: { what: str
   return { known, candidates };
 }
 
-/** Every value a call step binds to each name, in the whole graph (#42). */
-const boundCache = new WeakMap<GraphIndex, Map<string, Set<string>>>();
-export function boundValues(g: GraphIndex): Map<string, Set<string>> {
+/**
+ * Every value a call step binds to `name` on a call path that reaches function `fn` (#42, scoped by #44):
+ * call steps of the same service whose target is `fn` or reaches `fn` through call steps. Binds do not cross a
+ * publish or another service, so the same name in another service never leaks in.
+ */
+const boundCache = new WeakMap<GraphIndex, Map<string, Map<string, Set<string>>>>();
+export function boundValues(g: GraphIndex, service: string, fn: string, name: string): Set<string> {
   let m = boundCache.get(g);
-  if (!m) {
-    boundCache.set(g, (m = new Map()));
-    for (const f of g.model.functions) for (const st of f.steps) for (const [k, v] of Object.entries(st.bind ?? {})) m.set(k, (m.get(k) ?? new Set()).add(v));
+  if (!m) boundCache.set(g, (m = new Map()));
+  const key = `${service}\u0000${fn}`;
+  let byName = m.get(key);
+  if (!byName) {
+    byName = new Map();
+    const fns = g.model.functions.filter((f) => f.service === service);
+    const reach = new Set([fn]); // fn and every function with a call step into the set
+    for (let grew = true; grew;) {
+      grew = false;
+      for (const f of fns) if (!reach.has(f.id) && f.steps.some((st) => st.type === 'call' && st.target && reach.has(st.target))) { reach.add(f.id); grew = true; }
+    }
+    for (const f of fns) for (const st of f.steps) if (st.type === 'call' && st.target && reach.has(st.target)) {
+      for (const [k, v] of Object.entries(st.bind ?? {})) byName.set(k, (byName.get(k) ?? new Set()).add(v));
+    }
+    m.set(key, byName);
   }
-  return m;
+  return byName.get(name) ?? new Set();
 }
 /** The event types an egress sends: its own `events` plus what callers bind for its `eventFrom` steps (#42). */
 export const egressEvents = (g: GraphIndex, e: { service: string; id: string; events?: string[] }): string[] => [...new Set([...(e.events ?? []), ...eventFromTypes(g, e)])];
-/** Event types an egress gets from `eventFrom` steps: the union of the values bound to those names by any caller. Conservative: not per path. */
+/** Event types an egress gets from `eventFrom` steps: the union of the values bound to those names by callers that reach the step's function, in its service. Conservative: not per path. */
 export function eventFromTypes(g: GraphIndex, e: { service: string; id: string }): string[] {
-  const names = new Set(g.model.functions.filter((f) => f.service === e.service).flatMap((f) => f.steps.filter((st) => st.type === 'egress' && st.target === e.id && st.eventFrom).map((st) => st.eventFrom!)));
-  return [...new Set([...names].flatMap((n) => [...(boundValues(g).get(n) ?? [])]))];
+  const out = new Set<string>();
+  for (const f of g.model.functions) if (f.service === e.service) for (const st of f.steps) {
+    if (st.type === 'egress' && st.target === e.id && st.eventFrom) for (const v of boundValues(g, f.service, f.id, st.eventFrom)) out.add(v);
+  }
+  return [...out];
 }
 
 /**

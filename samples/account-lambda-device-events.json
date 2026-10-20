@@ -1,0 +1,82 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "account-lambda-device-events",
+    "kind": "lambda",
+    "team": "account-platform",
+    "repo": "github.com/acme/account-lambda-device-events",
+    "language": "typescript",
+    "description": "Publishes device events; its shared publish also takes eventFrom \"event\", like account-lambda-agent-info (#44 demo: the two must not mix)"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-20T08:00:00Z",
+  "commit": "9c1e3a7",
+  "functions": [
+    {
+      "id": "onLogout",
+      "name": "DeviceService.onLogout",
+      "file": "src/device.service.ts",
+      "line": 690,
+      "steps": [
+        {"seq": 1, "type": "call", "target": "publishDeviceEvent", "bind": {"event": "agent.device.loggedOut"}, "source": {"file": "src/device.service.ts", "line": 702}}
+      ]
+    },
+    {
+      "id": "onLoggedOut",
+      "name": "DeviceService.onLoggedOut",
+      "file": "src/device.service.ts",
+      "line": 720,
+      "steps": []
+    },
+    {
+      "id": "publishDeviceEvent",
+      "name": "publishDeviceEvent",
+      "file": "src/device.service.ts",
+      "line": 535,
+      "steps": [
+        {"seq": 1, "type": "egress", "target": "deviceEvents.publish", "eventFrom": "event", "source": {"file": "src/device.service.ts", "line": 541}}
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.loggedOut",
+      "bindKey": "sqs:device-logged-out",
+      "transport": "sqs",
+      "handler": "onLoggedOut",
+      "entryPoint": false,
+      "events": [{"type": "agent.device.loggedOut", "handler": "onLoggedOut"}]
+    },
+    {
+      "id": "in.logout",
+      "bindKey": "http:POST account-lambda-device-events/device/logout",
+      "transport": "http",
+      "handler": "onLogout",
+      "entryPoint": true,
+      "details": {"method": "POST", "path": "/device/logout"}
+    }
+  ],
+  "egress": [
+    {
+      "id": "deviceEvents.publish",
+      "bindKey": "sns:device-events-sns",
+      "transport": "sns",
+      "mode": "async",
+      "delivery": "multicast",
+      "unresolved": [
+        {"what": "event", "reason": "event_caller_differs_by_path", "detail": "event is a parameter of publishDeviceEvent; each caller binds it"}
+      ],
+      "source": {"file": "src/device.service.ts", "line": 541}
+    }
+  ],
+  "resources": [],
+  "channels": [
+    {"bindKey": "sns:device-events-sns", "kind": "sns-topic", "name": "device-events-sns"},
+    {"bindKey": "sqs:device-logged-out", "kind": "sqs-queue", "name": "device-logged-out"}
+  ],
+  "bindings": [
+    {"id": "sub.device-logged-out", "from": "sns:device-events-sns", "to": "sqs:device-logged-out", "events": ["agent.device.loggedOut"]}
+  ]
+}

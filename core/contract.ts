@@ -104,8 +104,7 @@ const egressNoEvents: Rule = ({ m, g, add }) => {
 /** An egress step that takes its event from a caller's bind (#42) when no call step in the service binds that name: the trace treats it as untyped. */
 const eventFromUnbound: Rule = ({ m, g, add }) => {
   const fns = g.model.functions.filter((f) => f.service === m.service);
-  const bound = new Set(boundValues(g).keys());
-  for (const f of fns) for (const s of f.steps) if (s.eventFrom && !bound.has(s.eventFrom)) add({
+  for (const f of fns) for (const s of f.steps) if (s.eventFrom && !boundValues(g, f.service, f.id, s.eventFrom).size) add({
     level: 'info', code: 'eventfrom-unbound', kind: 'step', id: `${f.id}#${s.seq}`,
     message: `step ${f.id}#${s.seq} takes its event from '${s.eventFrom}' but no call step binds '${s.eventFrom}', so it is traced as a publish with no event type`,
     fix: `Add bind: {"${s.eventFrom}": "<event type>"} to the call steps that reach this function, or drop eventFrom and send event / unresolved what "event".`,

@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { buildIndex } from '../core/graph-index.ts';
 import { trace } from '../core/trace.ts';
 import { flowCounts } from '../core/flow-counts.ts';
-import { eventReport } from '../core/events.ts';
+import { eventReport, egressEvents } from '../core/events.ts';
 import { contractReport } from '../core/contract.ts';
 
 const A = 'a.event', B = 'b.event';
@@ -109,4 +109,44 @@ test('the event report counts bound events as published, and the contract flags 
   const lone = build({ fns: [{ id: 'onA', steps: [] }, { id: 'onB', steps: [] }, { id: 'publish', steps: [{ seq: 1, type: 'egress', target: 'out', eventFrom: 'event' }] }] });
   const f = contractReport({ service: 's', functions: lone.model.functions.filter((x) => x.service === 's') as any }, lone).findings.filter((x) => x.code === 'eventfrom-unbound');
   assert.deepEqual(f.map((x) => [x.level, x.id]), [['info', 'publish#1']]);
+});
+
+test('#44: a name bound in one service does not give another service\'s eventFrom egress those types (health, event pages, counts)', () => {
+  const sdp = (id: string, ev: string) => ({ service: 's', id, name: id, steps: [call(1, 'publish', { event: ev })] });
+  const g = buildIndex({
+    env: 't', services: ['s', 'c', 'other'].map((name) => ({ name, kind: 'service', version: 1, harvestedAt: '2026-01-01' })) as any,
+    functions: [sdp('onA', A), sdp('onB', B),
+      { service: 's', id: 'publish', name: 'publish', steps: [{ seq: 1, type: 'egress', target: 'out', eventFrom: 'event' }] },
+      { service: 'other', id: 'oh', name: 'oh', steps: [call(1, 'send', { event: 'o.event' })] },
+      { service: 'other', id: 'send', name: 'send', steps: [{ seq: 1, type: 'egress', target: 'out', eventFrom: 'event' }] },
+      { service: 'c', id: 'ha', name: 'ha', steps: [] }] as any,
+    ingress: [{ service: 'c', id: 'a', bindKey: 'sqs:qa', transport: 'sqs', handler: 'ha', events: [{ type: A, handler: 'ha' }] },
+      { service: 'c', id: 'o', bindKey: 'sqs:qo', transport: 'sqs', handler: 'ha', events: [{ type: 'x.other', handler: 'ha' }] },
+      { service: 's', id: 'in.a', bindKey: 'http:GET s/a', transport: 'http', handler: 'onA', entryPoint: true }] as any,
+    egress: [{ service: 's', id: 'out', bindKey: 'sns:T', transport: 'sns', mode: 'async', source: src },
+      { service: 'other', id: 'out', bindKey: 'sns:T2', transport: 'sns', mode: 'async', source: src }] as any,
+    resources: [],
+    channels: ['sns:T', 'sns:T2', 'sqs:qa', 'sqs:qo'].map((bindKey) => ({ service: 's', bindKey, kind: bindKey.startsWith('sns') ? 'sns-topic' : 'sqs-queue', name: bindKey.slice(4) })) as any,
+    bindings: [{ service: 's', id: 'sa', from: 'sns:T', to: 'sqs:qa', events: [A] }, { service: 's', id: 'so', from: 'sns:T2', to: 'sqs:qo', events: ['x.other'] }] as any,
+  });
+  const undelivered = eventReport(g).undelivered.map((u) => `${u.service}:${u.event}`).sort();
+  assert.deepEqual(undelivered, ['other:o.event', 's:b.event'], 'each egress is tested with its own service\'s binds only');
+});
+
+test('#44: only callers that reach the eventFrom function count, not a call elsewhere in the same service', () => {
+  const g = build({ fns: [
+    { id: 'onA', steps: [call(1, 'publish', { event: A })] },
+    { id: 'onB', steps: [call(1, 'unrelated', { event: B })] }, { id: 'unrelated', steps: [] },
+    { id: 'publish', steps: [{ seq: 1, type: 'egress', target: 'out', eventFrom: 'event' }] },
+  ] });
+  assert.deepEqual(eventReport(g).deliveries.map((d) => d.event), [A]);
+});
+
+test('#44 demo (samples): agent-info and device-events both use eventFrom "event"; neither egress is tested with the other\'s types', async () => {
+  const { sampleModel } = await import('./helpers.ts');
+  const g = buildIndex(sampleModel());
+  const types = (svc: string) => g.model.egress.filter((e) => e.service === svc).flatMap((e) => egressEvents(g, e)).sort();
+  assert.deepEqual(types('account-lambda-device-events'), ['agent.device.loggedOut']);
+  assert.deepEqual(types('account-lambda-agent-info'), ['entry.does.not.exist', 'schema.validation.violation']);
+  assert.deepEqual(eventReport(g).undelivered.filter((u) => u.service.startsWith('account-lambda-')), []);
 });
