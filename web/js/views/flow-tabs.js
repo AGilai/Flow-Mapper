@@ -4,6 +4,7 @@
 import { h, fill } from '../dom.js';
 
 const ENTER = 'M2 8h8 M7 5l3 3-3 3 M12 3v10', FULL = 'M8 2v9 M4 8l4 4 4-4 M3 14h10', X = 'M4 4l8 8 M12 4l-8 8';
+export const enterIcon = () => svg(ENTER);
 const svg = (d) => h('svg', { viewBox: '0 0 16 16', html: `<path d="${d}"/>`, 'aria-hidden': 'true' });
 
 /**
@@ -20,7 +21,7 @@ export function createTabStrip(cb) {
   let pop = null, drawPop = null;
 
   const withColor = (el, c) => { el.style.setProperty('--tc', c); return el; };
-  const label = (d) => [h('b', d.title), d.sub ? [' ', h('i', `· ${d.sub}`)] : null];
+  const label = (d) => [h('b', d.title), d.sub ? h('i', { title: d.sub }, `· ${d.sub}`) : null];
   const tabFor = (key) => {
     const d = cb.describe(key), on = key === state.active;
     const t = h('div.tab', { role: 'tab', tabIndex: on ? 0 : -1, 'aria-selected': String(on), title: d.tip, class: `${on ? 'on' : ''} ${d.kind}`, 'data-key': key,

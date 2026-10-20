@@ -5,13 +5,12 @@
 import { h, fill } from '../dom.js';
 import { api } from '../api.js';
 import { state } from '../state.js';
-import { icon } from '../icons.js';
 import { setQuery, go } from '../router.js';
 import { pageHead } from '../components/page.js';
 import { createPanel } from '../components/panel.js';
 import { resizer } from '../components/resizer.js';
 import { createList } from './flow-list.js';
-import { createTabStrip } from './flow-tabs.js';
+import { createTabStrip, enterIcon } from './flow-tabs.js';
 import { createTabData } from './flow-tab-data.js';
 import { createTabView } from './flow-tab-view.js';
 import { swap } from './flow-tabs-anim.js';
@@ -60,12 +59,12 @@ export async function render({ main, query }) {
   // ---- tabs ----
   const strip = createTabStrip({ describe: data.describe, onActivate: (k) => commit(T.activate(S, k)), onClose: (k) => commit(T.closeTab(S, k)),
     onCloseOthers: (k) => commit(T.closeOthers(S, k)), onCloseAll: () => commit(T.closeAll(S)) });
-  const empty = h('div.emptyst', h('div.emptyst-i', icon('flow')), h('h3', 'Pick an entry point'),
+  const empty = h('div.emptyst', h('div.emptyst-i', enterIcon()), h('h3', 'Pick an entry point'),
     h('p.muted', 'Choose one in the list on the left. Every entry point you pick opens in its own tab, next to the others.'));
   mainPane.append(toolbar, strip.el, empty);
 
   function persist() {
-    setQuery({ ...T.encodeUrl(S), stores: opts.stores ? null : '0', queues: opts.queues ? '1' : null, depth: opts.depth === 'all' ? null : opts.depth, frontier: opts.frontier ? '1' : null });
+    setQuery({ ...T.encodeUrl(S), ...(S.keys.length ? { service: null } : {}), stores: opts.stores ? null : '0', queues: opts.queues ? '1' : null, depth: opts.depth === 'all' ? null : opts.depth, frontier: opts.frontier ? '1' : null });
   }
   const host = {
     env: state.env, opts, panel, flowsEl, describe: data.describe, isActive: (k) => S.active === k,
@@ -104,9 +103,9 @@ export async function render({ main, query }) {
   function paintChrome() {
     const act = S.active, p = act ? T.parseKey(act) : null, scoped = p && (p.kind === 'entry' || p.kind === 'fn');
     seg.querySelectorAll('button').forEach((b) => {
-      b.setAttribute('aria-pressed', String(!!p && (p.kind === 'full' ? 'full' : p.kind === 'sub' ? null : p.scope) === b.dataset.scope));
+      b.setAttribute('aria-pressed', String(!!p && (p.kind === 'full' || p.kind === 'sub' ? 'full' : p.scope) === b.dataset.scope));
       b.disabled = !scoped;
-      b.title = scoped ? '' : p ? 'The scope applies to entry-point tabs. This tab is a sub-flow.' : '';
+      b.title = scoped ? '' : p ? 'Fixed for sub-flows' : '';
     });
     info.textContent = views.get(act)?.info() ?? '';
     list.mark(S);

@@ -10,9 +10,10 @@
 .tab:hover { background: var(--surface); }
 .tab:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
 .tab svg { width: 14px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; }
-.tab .tl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-.tab .tl b { font-weight: 600; color: var(--ink); }
-.tab .tl i { font-style: normal; color: var(--muted); font-size: var(--fs-xs); }
+.tab .tl { display: flex; align-items: baseline; gap: 4px; min-width: 0; white-space: nowrap; }
+.tab .tl b { font-weight: 600; color: var(--ink); flex: 0 0 auto; white-space: nowrap; }
+.tab .tl i { font-style: normal; color: var(--muted); font-size: var(--fs-xs); min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.tab.entry, .tab.fn, .tab.full { max-width: 320px; }
 .tn { font: 700 10.5px var(--mono); padding: 1px 5px; border-radius: 4px; background: var(--surface-2); color: var(--ink-2); flex: none; }
 .tab.on .tn { background: var(--surface-2); }
 .tab.full .tn, .tab.full svg { color: var(--accent); }
@@ -37,7 +38,9 @@
 .tabpop .tabrow-b:hover { background: color-mix(in srgb, var(--accent) 7%, transparent); }
 .tabpop .tabrow-b svg, .tabpop .x svg { width: 13px; height: 13px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; }
 .tabpop .tabrow-b .tn { min-width: 40px; text-align: center; }
-.tabpop .tl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.tabpop .tl { display: flex; align-items: baseline; gap: 4px; white-space: nowrap; min-width: 0; }
+.tabpop .tl b { flex: 0 0 auto; }
+.tabpop .tl i { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .tabpop .tl i { font-style: normal; color: var(--muted); font-size: var(--fs-xs); }
 .tabpop .x { width: 24px; height: 24px; border: 0; background: none; color: var(--muted); border-radius: 5px; cursor: pointer; display: grid; place-items: center; }
 .tabpop .x:hover { background: var(--surface-2); color: var(--ink); }
@@ -63,4 +66,17 @@
 .emptyst h3 { font-size: var(--fs-lg); }
 .emptyst p { max-width: 46ch; }
 .seg button:disabled { opacity: .55; cursor: default; }
-@media (max-width: 860px) { .tab { min-width: 110px; } .tabpop { right: 4px; } }
+/* the async list heading: buttons stay on the heading row; row meta text shrinks before any key */
+.cards-btns { display: inline-flex; gap: var(--s2); flex: none; }
+.cards-h .hint { flex: 1 1 240px; min-width: 0; }
+.card-h .sum { flex-shrink: 100; }
+.tpad .tp-lane { gap: 6px 8px; }
+.tpad { padding-top: var(--s3); gap: 6px; }
+@media (max-width: 860px) { .tab { min-width: 110px; } .tabpop { right: 4px; } .flows { grid-template-rows: auto 1fr; } .flows-list { max-height: 40vh; } .flows-scroll { overflow-y: auto; } }
+/* a sub-flow's chips row holds the summary and the full-flow button on one line; the summary gives way first */
+.tpad .tp-lane { flex-wrap: nowrap; min-width: 0; }
+.tpad .tp-lane > * { flex: none; }
+.tpad .tp-lane > .tc { flex: 0 1 auto; min-width: 40px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tpad .tp-lane > .svc { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tpad .tp-lane > .muted { flex: 0 100 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tpad .tp-lane > .grow { flex: 1 0 0; }

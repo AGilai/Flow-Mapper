@@ -9,6 +9,7 @@ import { renderIndex } from './flow-index.js';
 import { createInside } from './flow-inside-panel.js';
 import { messagePanel } from './flow-panel.js';
 import { participantMenu, barMenu } from './flow-menu.js';
+import { plural } from './flow-async.js';
 
 const tc = (t, label) => h('span.tc', { class: t, title: label }, label);
 const kindOf = (key) => String(key).split(':')[0].replace('amqp-queue', 'amqp');
@@ -70,12 +71,11 @@ export function createTabView(data, host) {
       h('a', { href: '#', title: 'Go to the tab this flow was opened from', on: { click: (e) => { e.preventDefault(); host.openTab(data.originKey); } } }, o.tn ? `${o.tn} · ${o.title}` : `${o.title} · ${o.sub}`),
       h('i.arr', '›'),
       sub && data.group ? [h('span.mono', `publish ${data.group.topic} · step ${data.group.pub + 1}`), h('i.arr', '›')] : null,
-      h('b', sub ? `${data.label} · ${data.service} · ${data.name}` : `Full flow · ${data.service} · ${data.name}`),
-      h('span.grow'),
-      sub ? h('button.btn.sm', { title: `Every call ${data.service} makes from here`, on: { click: () => host.openFull(data.row, key) } }, 'Start a full flow from here') : null);
+      h('b', sub ? `${data.label} · ${data.service} · ${data.name}` : `Full flow · ${data.service} · ${data.name}`));
     const r = data.row;
     const laneRow = sub ? h('div.tp-lane', data.group?.topic && data.group.topic !== r.queue ? [tc(kindOf(data.group.topic), data.group.topic), h('i.arr', '›')] : null, tc(kindOf(r.queue), r.queue), h('i.arr', '›'),
-      h('span.svc', h('b', r.service), h('span.mono', ` · ${r.handler}`)), h('span.muted.small', r.summary)) : null;
+      h('span.svc', h('b', r.service), h('span.mono', ` · ${r.handler}`)), h('span.muted.small', r.summary), h('span.grow'),
+      h('button.btn.sm', { title: `Every call ${data.service} makes from here`, on: { click: () => host.openFull(data.row, key) } }, 'Start a full flow from here')) : null;
     return h('div.tpad', crumbs, laneRow);
   }
 
@@ -95,7 +95,7 @@ export function createTabView(data, host) {
     restore: () => { scroller.scrollTop = saved; edge(); requestAnimationFrame(edge); },
     refreshDots: () => index?.refresh(),
     clearMessage: () => body.querySelectorAll('.msg.active').forEach((e) => e.classList.remove('active')),
-    info: () => { const services = new Set(trace.messages.map((m) => m.service).filter(Boolean)); const n = data.msgs?.length ?? trace.messages.length; return `${trace.start.event && !data.msgs ? `${trace.start.event}: ` : ''}${n} steps${data.msgs ? '' : `, ${services.size} ${services.size === 1 ? 'service' : 'services'}${trace.truncated ? ', truncated' : ''}`}`; },
+    info: () => { const services = new Set(trace.messages.map((m) => m.service).filter(Boolean)); const n = data.msgs?.length ?? trace.messages.length; return `${trace.start.event && !data.msgs ? `${trace.start.event}: ` : ''}${plural(n, 'step')}${data.msgs ? '' : `, ${plural(services.size, 'service')}${trace.truncated ? ', truncated' : ''}`}`; },
     closeInside: () => inside.close(),
   };
 }

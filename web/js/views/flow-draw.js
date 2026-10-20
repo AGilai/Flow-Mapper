@@ -33,7 +33,8 @@ export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, o
   const railX = columns.some((c) => c.kind === 'rail') ? colX.get(columns.find((c) => c.kind === 'rail')) : null;
   const chipRight = railX == null ? 0 : railX + 12 + Math.max(60, ...events.filter((e) => e.type === 'publish').map(chipW));
   const width = Math.ceil(Math.max(xs[xs.length - 1] + COL / 2 + (railX == null ? 200 - COL / 2 : 0) + PAD, chipRight + PAD));
-  const heads = columns.map((c) => ({ name: wrapId(c.label, NAME_CH), sub: wrapId(c.sub ?? '', SUB_CH) }));
+  // a queue head drops its transport prefix and the 'queue delivery' line (the title keeps both): two lines at most
+  const heads = columns.map((c) => (c.sub === 'queue delivery' ? { name: wrapId(c.label.replace(/^[^:]+:/, ''), NAME_CH), sub: [] } : { name: wrapId(c.label, NAME_CH), sub: wrapId(c.sub ?? '', SUB_CH) }));
   const boxH = 12 + Math.max(...heads.map((x) => x.name.length * LINE_H + x.sub.length * 13)) + 6, HEAD = boxH + 16;
   const frames = altFrames(lane.altMsgs), strips = stripsByRow(frames, lane.altRows);
   const nStrips = (r) => strips.get(r)?.length ?? 0;

@@ -5,8 +5,10 @@
 import { scanLane, subflowRanges } from './flow-scan.js';
 import { publishLabel } from './flow-lane.js';
 
+/** "1 step", "3 steps". */
+export const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 /** "1 flow", "3 flows". */
-export const flowsLabel = (n) => `${n} ${n === 1 ? 'flow' : 'flows'}`;
+export const flowsLabel = (n) => plural(n, 'flow');
 /** An identifier cut into pieces that may break after - . _ / : (the DOM puts <wbr> between them). */
 export const idParts = (t) => String(t).split(/(?<=[-._/:])/);
 

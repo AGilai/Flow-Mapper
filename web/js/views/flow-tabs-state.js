@@ -5,7 +5,7 @@
 //        sub    `queue/handler@origin`               full  `full:service/ingress` (+ `@origin`)
 // `origin` is the key of the tab the flow was opened from; it may itself contain `@` (the first `@` splits).
 
-const esc = (s) => String(s).replace(/[%,@~/!]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
+const esc = (s) => String(s).replace(/[%,@~/!\s]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0')}`);
 const unesc = (s) => decodeURIComponent(s);
 const CLOSED_CAP = 20;
 

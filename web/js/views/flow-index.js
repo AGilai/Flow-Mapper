@@ -3,7 +3,7 @@
 // the flows it starts (nested, indented, expandable too). "seen" rows never expand; they scroll to the row they repeat.
 
 import { h } from '../dom.js';
-import { indexStats, flowsLabel, idParts } from './flow-async.js';
+import { indexStats, flowsLabel, idParts, plural } from './flow-async.js';
 import { distinctRows } from './flow-tabs-state.js';
 import { buildLane } from './flow-lane.js';
 import { renderLane } from './flow-draw.js';
@@ -35,7 +35,7 @@ export function renderIndex(tree, ctx) {
     const nested = row.groups.reduce((n, g) => n + g.rows.length, 0);
     return [row.noHandler || row.seenIn ? h('span.chev-pad') : chev(open),
       h('span.layer', row.label, ctx.isOpen?.(row) ? h('i.tabdot', { title: 'Open in a tab', 'aria-label': 'open in a tab' }) : null),
-      h('span.lane', tc(chType(groupOfRow(row).topic), groupOfRow(row).topic), h('i.arr', '›'), tc(chType(row.queue), row.queue), h('i.arr', '›'),
+      h('span.lane', groupOfRow(row).topic !== row.queue ? [tc(chType(groupOfRow(row).topic), groupOfRow(row).topic), h('i.arr', '›')] : null, tc(chType(row.queue), row.queue), h('i.arr', '›'),
         h('span.svc', h('b', wrapId(row.service)), h('span.mono', [' · ', ...wrapId(row.handler)]))),
       nested ? h('span.nest-chip', `+ ${nested} nested ${nested === 1 ? 'flow' : 'flows'} (${row.groups[0]?.rows[0]?.label ?? ''})`) : null,
       row.suspect ? h('span.chip-warn', { title: 'Same consumer reached twice by one publish. Possible harvester or config bug.' }, 'suspect') : null,
@@ -106,9 +106,9 @@ export function renderIndex(tree, ctx) {
   const openAll = () => ctx.openAll(distinct);
 
   const header = h('div.cards-h', h('h2', 'Async flows'),
-    h('span.hint', `${stats.deliveries} ${stats.deliveries === 1 ? 'delivery' : 'deliveries'} · ${stats.distinct} distinct consumers · ${stats.publishes} ${stats.publishes === 1 ? 'publish' : 'publishes'}. Expand a row to see its flow here.`),
-    h('span.grow'), h('button.btn.sm', { on: { click: () => all(true) } }, 'Expand all'), h('button.btn.sm', { on: { click: () => all(false) } }, 'Collapse all'),
-    distinct.length ? h('button.btn.sm', { title: 'One tab per distinct consumer', on: { click: openAll } }, `Open all distinct (${distinct.length})`) : null);
+    h('span.hint', `${stats.deliveries} ${stats.deliveries === 1 ? 'delivery' : 'deliveries'} · ${plural(stats.distinct, 'distinct consumer')} · ${stats.publishes} ${stats.publishes === 1 ? 'publish' : 'publishes'}. Expand a row to see its flow here.`),
+    h('span.grow'), h('span.cards-btns', distinct.length > 1 ? h('button.btn.sm', { title: 'One tab per distinct consumer', on: { click: openAll } }, `Open all distinct (${distinct.length})`) : null,
+      h('button.btn.sm', { on: { click: () => all(true) } }, 'Expand all'), h('button.btn.sm', { on: { click: () => all(false) } }, 'Collapse all')));
   const el = h('div.cards', header, tree.groups.map((g) => groupEl(g)));
   return { el, expandAll: () => all(true), collapseAll: () => all(false), reveal, groupEl: (i) => groupEls.get(i), rowNode: (label) => rowNodes.get(label) ?? null, refresh: () => cards.forEach((c) => c.paint()) };
 }

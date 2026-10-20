@@ -19,6 +19,9 @@ test('keys round-trip, with the characters that need escaping', () => {
   const odd = T.entryKey('svc', 'in,a@b~c/d', 'ev@1');
   assert.deepEqual([T.parseKey(odd).ingress, T.parseKey(odd).event], ['in,a@b~c/d', 'ev@1']);
   assert.ok(!odd.includes(',') && !odd.includes('@'));
+  const sp = T.entryKey('my svc', 'in a\tb');
+  assert.ok(!/\s/.test(sp));
+  assert.deepEqual([T.parseKey(sp).service, T.parseKey(sp).ingress], ['my svc', 'in a\tb'], 'whitespace round-trips');
   assert.equal(T.parseKey(T.fnKey('s', 'doIt')).kind, 'fn');
   assert.equal(T.entryKey('s', 'in.x', null, 'full'), 's/in.x', 'the default scope is not in the key');
   assert.equal(T.parseKey(T.entryKey('s', 'in.x', 'E', 'intra')).scope, 'intra');
