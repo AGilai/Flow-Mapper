@@ -68,6 +68,8 @@ export interface Lane {
   service: string; kind?: string; team?: string; description?: string;
   access: Access; accessFrom: 'declared' | 'steps' | 'keys' | 'unknown';
   clients: ClientRow[]; databases: number[]; resources: string[];
+  /** Why the databases are unknown (`unresolved` what=detail, detail `client.databases`, on one of its resources). */
+  databasesUnknown?: string;
   /** Key templates this service uses (writes or reads) in the instance's key list. */
   keyCount: number;
 }
@@ -81,6 +83,8 @@ export interface InstanceView extends InstanceSummary {
   stores: { key: string; name: string; services: string[]; readers: string[]; writers: string[] }[];
   keys: { source: KeySource; version: number | null; pushedAt: string | null; producer: string | null; summary: KeySummary | null; lazy: { kind: string; ref?: string } | null };
   callouts: Callout[];
+  /** Instance fields the infra harvester could not read (`unresolved` what=detail, detail `details.<field>`), each with its reason. */
+  unknown: { field: string; reason: string }[];
 }
 
 const asNum = (x: unknown) => (typeof x === 'number' && Number.isFinite(x) ? x : undefined);
@@ -98,6 +102,8 @@ const teamOf = (g: GraphIndex, x: Group) => {
   return [...n].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0];
 };
 const serviceNames = (x: Group) => [...new Set(x.members.map((r) => r.service))].sort();
+/** Entries of `unresolved` what=detail on these resources whose detail path starts with `prefix`; `field` is the path after a trailing-dot prefix. */
+const unknownOf = (rs: Resource[], prefix: string) => rs.flatMap((r) => (r.unresolved ?? []).filter((u) => u.what === 'detail' && u.detail?.trim().startsWith(prefix)).map((u) => ({ field: u.detail!.trim().slice(prefix.endsWith('.') ? prefix.length : 0), reason: u.reason })));
 const nameOf = (key: string) => key.slice(key.indexOf(':') + 1);
 
 /** Read and write together are read_write (stores.ts mergeAccess keeps one pill per use and calls that 'write'). */
@@ -124,7 +130,7 @@ function lanes(g: GraphIndex, x: Group, entries: KeyEntry[]): Lane[] {
     const cs = clients.filter((c) => c.service === service);
     const dbs = new Set<number>([...rs.flatMap((r) => r.client?.databases ?? []), ...entries.filter((e) => e.service === service).map((e) => e.dbIndex)]);
     const a = accessOfService(g, rs, entries, service);
-    return { service, kind: svc?.kind, team: svc?.team, description: svc?.description, access: a.access, accessFrom: a.from, clients: cs, databases: [...dbs].sort((p, q) => p - q), resources: rs.map((r) => r.id),
+    return { service, kind: svc?.kind, team: svc?.team, description: svc?.description, access: a.access, accessFrom: a.from, clients: cs, databases: [...dbs].sort((p, q) => p - q), resources: rs.map((r) => r.id), databasesUnknown: unknownOf(rs, 'client.databases')[0]?.reason,
       keyCount: new Set(entries.filter((e) => e.service === service).map((e) => `${e.dbIndex}\u0000${e.keyTemplate}`)).size };
   });
 }
@@ -175,6 +181,7 @@ export function instanceView(g: GraphIndex, id: string, pushed: KeyEntry[] = [],
     }),
     keys: { source: k.source, version: meta?.version ?? null, pushedAt: meta?.pushedAt ?? null, producer: meta?.producer ?? null, summary, lazy: lazy && typeof lazy === 'object' ? lazy : null },
     callouts,
+    unknown: unknownOf(x.defs, 'details.'),
   };
 }
 

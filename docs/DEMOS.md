@@ -8,6 +8,7 @@ Add a row here with every fix or feature (newest first). A row without a working
 
 | Version | Bug | What to look at | Link |
 |---|---|---|---|
+| 0.17.3 | #45 | `unresolved` what=detail: "databases: unknown (databases_not_in_cfg)" in the instance header, "databases unknown (db_from_runtime_config)" on shipping-svc's lane, and "Not reported: keyTemplate: unknown (...)" in the panel of orders-svc in.get step 4 (click the SET message) | `#/instances/redis%3Acache-main` and `#/flows?tabs=orders-svc/in.get` |
 | 0.17.1 | — | One arrow per delivery: a publish is one line from the service through the topic to the queue, orange (topic) up to the topic lifeline, green (queue) after it, one arrowhead and the stop marker at the queue; the event type once on the first part, the filter marker on the second. Fan-out: one trunk that forks at the topic, a branch per queue (erase controller: 6 branches + "3 queues") | `#/flows?tabs=account-lambda-erase-controller/in.advanceErase` |
 | 0.17.1 | — | Same pattern for a createOrder fork (OrderPlaced to 3 queues), "no consumers" (arrow ends at the topic), AMQP (service, exchange, queue; routing key marker) | `#/flows?tabs=api-gateway/in.createOrder` |
 | 0.17.1 | — | Numbering fix: the shallowest delivery is the original. saga-eraser-b is row 2 (tile "2", expandable); inside 1.1 it is 1.1.2 "seen in 2" (tile "↩2") | `#/flows?tabs=saga-controller/in.start` |

@@ -145,10 +145,11 @@
             "kind": "wrapper"
           }
         ],
-        "databases": [
-          1
-        ]
-      }
+        "databases": []
+      },
+      "unresolved": [
+        { "what": "detail", "detail": "client.databases", "reason": "db_from_runtime_config" }
+      ]
     }
   ],
   "channels": [

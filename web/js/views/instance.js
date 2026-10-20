@@ -22,8 +22,9 @@ const list = (xs) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} and ${xs.at
 /** The one line under the title: what is known about the instance itself (version and nodes only when harvested). */
 function summaryLine(v) {
   const s = v.keys.summary;
+  const unknown = v.unknown.map((u) => `${u.field}: unknown (${u.reason})`);
   return [v.engineVersion ? `Redis ${v.engineVersion}` : null, v.nodes ? plural(v.nodes, 'node') : null, !s && v.databases ? plural(v.databases, 'db') : null,
-    s ? `${plural(s.templates, 'key template')} in ${plural(s.dbs.length, 'db')} (${s.dbs.map((d) => `db${d.db} ${d.templates}`).join(', ')})` : null].filter(Boolean).join(' · ');
+    s ? `${plural(s.templates, 'key template')} in ${plural(s.dbs.length, 'db')} (${s.dbs.map((d) => `db${d.db} ${d.templates}`).join(', ')})` : null, ...unknown].filter(Boolean).join(' · ');
 }
 
 function meta(v) {

@@ -18,7 +18,7 @@ import type { Mode, Ref } from './types.ts';
 import { handlerFor, passes, passesUntyped, untypedEventSet, type EventSet } from './events.ts';
 import { codeLink, sourceLink, type SourceLink } from './endpoint-info.ts';
 import { refKey, unresolvedTarget } from './resolve.ts';
-import type { StepField, Unresolved } from './types.ts';
+import type { Step, StepField, Unresolved } from './types.ts';
 import { altGroups, type Alt } from './alt.ts';
 import { egressVia, ingressVia, type LinkedHop } from './via.ts';
 
@@ -46,6 +46,7 @@ export interface Message {
   handlerVia?: LinkedHop[];                                  // how the ingress resolved to its handler (registration / bind hops); display only
   origin?: 'frontier';                                       // a step the harvester marked as frontier (shown because the trace was asked to expand them)
   frontierSteps?: number;                                    // on a kind 'frontier' marker: frontier steps folded into it (this function's and those of the frontier calls below it)
+  unknown?: { field: string; reason: string }[];            // on a resource step: details the harvester could not read (`unresolved` what=detail: keyTemplate, dbIndex, ttlSeconds) and why
   gap?: Unresolved;                                          // the harvester could not resolve this call; why
   group?: string;                                            // SNS fan-out: id of the publish (`m<index of the publish message>`), on the publish and on each of its deliveries
   deliveries?: number;                                       // on the publish message of a fan-out: how many deliveries follow it
@@ -195,7 +196,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
       } else if (st.type === 'resource') {
         const r = g.resources.get(sid(service, st.target));
         const to = part({ id: `res:${r?.bindKey ?? sid(service, st.target)}`, label: r?.name ?? st.target, kind: 'resource' });
-        push({ ...base, from: me, to, label: st.operation ?? 'use', mode: st.mode ?? 'sync', kind: 'resource', transport: 'res', store: r?.bindKey ?? sid(service, st.target), ...(st.fields?.length ? { fields: st.fields } : {}) });
+        push({ ...base, from: me, to, label: st.operation ?? 'use', mode: st.mode ?? 'sync', kind: 'resource', transport: 'res', store: r?.bindKey ?? sid(service, st.target), ...(st.fields?.length ? { fields: st.fields } : {}), ...unknownOn(st) });
       } else {
         const e = g.egress.get(sid(service, st.target));
         if (!e) continue;
@@ -392,6 +393,12 @@ export function deliveryOrder(parts: Participant[], messages: Message[], fanOut 
  * right of the topic called it. Then its delivery arrow may point left. One only called from the left (the producer
  * checks on every consumer first) moves with its queue. A consumer reached through several queues goes after the first.
  */
+/** A resource step's `unresolved` what=detail entries (details.keyTemplate, details.dbIndex, details.ttlSeconds) as `unknown` on its message. */
+const unknownOn = (st: Step) => {
+  const u = (st.unresolved ?? []).filter((x) => x.what === 'detail' && x.detail?.trim()).map((x) => ({ field: x.detail!.trim().replace(/^details\./, ''), reason: x.reason }));
+  return u.length ? { unknown: u } : {};
+};
+
 function fanOutOrder(order: Participant[], messages: Message[]): Participant[] {
   const placed = new Set<string>();
   for (const [pi, pub] of messages.entries()) {

@@ -246,6 +246,12 @@ Do not invent a key and do not drop the item. Say what you found and why it is u
   resolve. `detail` is the field path (`driver.version`, `lib.version`, `lib.driver.version`,
   `accessMode`, `via`), `reason` says why (`lockfile_not_found`). Leave the field out; never put a
   placeholder version.
+- `what: "detail"` on a **resource** or a **resource step**: a value that exists but you could not
+  read (#45). `detail` is the field path, `reason` says why. Paths: `details.databases` (instance
+  resource), `client.databases` (service resource), `details.keyTemplate`, `details.dbIndex`,
+  `details.ttlSeconds` (resource step). Leave the field out. The UI shows `databases: unknown
+  (databases_not_in_cfg)`, so "unknown" reads differently from "none"; it is listed under
+  "Unresolved by harvesters" in Link health and never counts as a broken link.
 - `reason` is a short stable code (`no_endpoint`, `method_or_path_unresolved`, `var.env unresolved`,
   `dynamic_dispatch`, `attribution_ambiguous`…); link health groups by it. `detail` is what you
   saw in code. `candidates` are bind keys (target) or event types (event); target candidates are
@@ -291,6 +297,8 @@ the service's resource points at it by `bindKey` and keeps carrying `client`; no
 **Per service resource:** `client` as above, plus `client.databases: [0, 1]` (db indexes it selects) and, when you know it, `details.access` (`read`, `write` or `read_write`; otherwise it is derived from the steps).
 
 **Per resource step** (cheap, and it makes "which flows write this key" work): `"details": {"keyTemplate": "session:{tenantId}:{userId}", "ttlSeconds": 1800}` on a `type: resource` step (`dbIndex` too if known).
+
+**Unknown values (#45).** When you know a field exists but cannot read it, leave it out and say why, e.g. on the instance resource `"unresolved": [{"what": "detail", "detail": "details.databases", "reason": "databases_not_in_cfg"}]`; on a service resource `{"what": "detail", "detail": "client.databases", "reason": "db_from_runtime_config"}`; on a resource step `{"what": "detail", "detail": "details.keyTemplate", "reason": "key_unresolved:computed"}` (same for `details.dbIndex`, `details.ttlSeconds`). An empty `detail` or `reason` gets the `unresolved-no-detail` warning.
 
 **Keys, per instance, after the manifests** (optional, full replace each time):
 

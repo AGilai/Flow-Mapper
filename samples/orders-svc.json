@@ -147,6 +147,17 @@
           "operation": "SET order:{id}",
           "condition": "cache miss",
           "details": { "keyTemplate": "order:{id}", "ttlSeconds": 3600 }
+        },
+        {
+          "seq": 4,
+          "type": "resource",
+          "target": "cache",
+          "operation": "SET",
+          "condition": "after a refund",
+          "unresolved": [
+            { "what": "detail", "detail": "details.keyTemplate", "reason": "key_unresolved:call_result:keyFn" },
+            { "what": "detail", "detail": "details.ttlSeconds", "reason": "ttlSeconds:computed" }
+          ]
         }
       ]
     },

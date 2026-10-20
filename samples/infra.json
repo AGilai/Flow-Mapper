@@ -128,9 +128,11 @@
       "details": {
         "engineVersion": "7.0.7",
         "nodes": 2,
-        "topology": "cluster",
-        "databases": 3
+        "topology": "cluster"
       },
+      "unresolved": [
+        { "what": "detail", "detail": "details.databases", "reason": "databases_not_in_cfg" }
+      ],
       "source": {
         "file": "infra/cache/cache-main.tf",
         "line": 12

@@ -94,6 +94,7 @@ function codeCard(m, trace) {
   if (m.handlerVia?.length) rows.push(h('div.ep-pad.stack', { style: { gap: 'var(--s1)' } }, h('span.ep-label', 'Handler resolved through'), viaChip(m.handlerVia)));
   if (m.store) rows.push(h('div.ep-pad.stack', { style: { gap: '2px' } }, h('span.ep-label', 'Data store'), storeLink(m.store)));
   if (m.fields?.length) rows.push(h('div.ep-pad.stack', { style: { gap: '2px' } }, h('span.ep-label', 'Fields'), stepFields(m.fields)));
+  if (m.unknown?.length) rows.push(h('div.ep-pad.stack', { style: { gap: '2px' } }, h('span.ep-label', 'Not reported'), h('span.small.muted', m.unknown.map((u) => `${u.field}: unknown (${u.reason})`).join(' · '))));
   if (m.note) rows.push(h('p.ep-note.ep-pad', m.note));
   if (m.eventFrom) rows.push(h('p.ep-note.ep-pad', m.eventFrom.boundAt
     ? `Event from caller ${m.eventFrom.boundAt}: bind ${m.eventFrom.name}=${m.event}`

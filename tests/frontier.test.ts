@@ -26,19 +26,20 @@ const demo36 = { service: 'orders-svc', ingress: 'in.touch' }; // read_write and
 const demo40 = [{ service: 'account-lambda-erase-controller', ingress: 'in.publishDeviceEvent' }, { service: 'account-lambda-erase-controller', ingress: 'in.publishUnknownEvent' }]; // untyped publishes, added with the #40 demo
 const demo42 = [{ service: 'account-lambda-agent-info', ingress: 'in.unknownEntry' }, { service: 'account-lambda-agent-info', ingress: 'in.invalidSchema' }, { service: 'account-session-cleaner', ingress: 'in.unknownEntry' }, { service: 'account-session-cleaner', ingress: 'in.schemaViolation' }]; // per-caller event types, added with the #42 demo
 const demo44 = [{ service: 'account-lambda-device-events', ingress: 'in.logout' }, { service: 'account-lambda-device-events', ingress: 'in.loggedOut' }]; // eventFrom in a second service, added with the #44 demo
+const demo45 = { service: 'orders-svc', ingress: 'in.get' }; // a step with unresolved what=detail fields (#45 demo; the trace gains `unknown`)
 const demo41 = { service: 'account-lambda-erase-controller', ingress: 'in.advanceErase' }; // alt frame, added with the #41 demo
 
-test('traces of every sample entry without frontier steps are unchanged (0.17.0: the additive `filter` on hops through a subscription is left out of the hash, see flow-chain.test.ts; hash retaken on 0.9.4: fan-out consumers are expanded after the last delivery (orders-svc/in.create changed, order only); the saga demo (saga-* services) and the 0.12.0 middleware demo (reports-api, auth-svc) are excluded; 0.9.3: three traces of the saga demo added, every earlier trace identical; 0.9.2: lifeline order of 3 fan-out traces changed, content identical, see lifeline-order.test.ts; 0.8.5: SNS fan-out fields group/deliveries/delivery added to 2 traces, see sns-fanout.test.ts)', () => {
+test('traces of every sample entry without frontier steps are unchanged (0.17.0: the additive `filter` on hops through a subscription is left out of the hash, see flow-chain.test.ts; hash retaken on 0.9.4: fan-out consumers are expanded after the last delivery (orders-svc/in.create changed, order only); orders-svc/in.get left out on 0.17.3 (#45 demo step); the saga demo (saga-* services) and the 0.12.0 middleware demo (reports-api, auth-svc) are excluded; 0.9.3: three traces of the saga demo added, every earlier trace identical; 0.9.2: lifeline order of 3 fan-out traces changed, content identical, see lifeline-order.test.ts; 0.8.5: SNS fan-out fields group/deliveries/delivery added to 2 traces, see sns-fanout.test.ts)', () => {
   const m = sampleModel();
   const g = buildIndex(m);
   const h = createHash('sha256');
   let n = 0;
-  for (const i of m.ingress.filter((x) => !x.service.startsWith('stress-') && !x.service.startsWith('saga') && !['reports-api', 'auth-svc'].includes(x.service) && ![demo, demo35, demo26, demo36, ...demo40, demo41, ...demo42, ...demo44].some((d) => x.service === d.service && x.id === d.ingress))) for (const scope of ['intra', 'full'] as const) {
+  for (const i of m.ingress.filter((x) => !x.service.startsWith('stress-') && !x.service.startsWith('saga') && !['reports-api', 'auth-svc'].includes(x.service) && ![demo, demo35, demo26, demo36, ...demo40, demo41, ...demo42, ...demo44, demo45].some((d) => x.service === d.service && x.id === d.ingress))) for (const scope of ['intra', 'full'] as const) {
     h.update(JSON.stringify([i.service, i.id, scope, trace(g, { service: i.service, ingress: i.id }, { scope })], (k, v) => (k === 'filter' ? undefined : v)));
     n++;
   }
-  assert.equal(n, 154);
-  assert.equal(h.digest('hex'), '8bbb4086d0721a8985252bf211a978ad4c4b7dfe4d1ff04323208df57b35fa0f');
+  assert.equal(n, 152);
+  assert.equal(h.digest('hex'), 'df81622b7c3592bf30e996391cf5a5485fd12b155bd46399d35d7882062f66ec');
 });
 
 test('origin "path" is the same as no origin', () => {

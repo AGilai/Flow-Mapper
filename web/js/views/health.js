@@ -97,7 +97,7 @@ function itemsTable(kind, rows) {
     multipleWriters: [{ key: 'key', label: 'Data store', render: (x) => storeLink(x.key) }, { key: 'kind', label: 'Kind' }, { key: 'service', label: 'Writer', render: (x) => svc(x.service) }, { key: 'writers', label: 'All writers', nosort: true, render: (x) => h('span.small', x.writers.join(', ')) }],
     unusedStores: [{ key: 'key', label: 'Data store', render: (x) => storeLink(x.key) }, { key: 'kind', label: 'Kind' }, { key: 'service', label: 'Declared by', render: (x) => svc(x.service) }],
     unresolved: [{ key: 'reason', label: 'Reason', render: (x) => h('span.pill.gap', x.reason) }, { key: 'service', label: 'Service', render: (x) => svc(x.service) },
-      { key: 'id', label: 'Where', render: (x) => h('div.stack', { style: { gap: 0 } }, h('span.key', x.id), h('span.xs.muted', `${x.kind}, ${x.what === 'event' ? 'event type' : x.what === 'caller' ? 'caller' : 'target'}`)) },
+      { key: 'id', label: 'Where', render: (x) => h('div.stack', { style: { gap: 0 } }, h('span.key', x.id), h('span.xs.muted', `${x.kind}, ${x.what === 'event' ? 'event type' : x.what === 'caller' ? 'caller' : x.what === 'detail' ? 'field' : 'target'}`)) },
       { key: 'detail', label: 'Detail', render: (x) => h('span.small.key', x.detail ?? '') },
       { key: 'candidates', label: 'Candidates', nosort: true, render: (x) => x.candidates.map((c) => h('div.key.small', c, x.possible.some((p) => p.candidate === c) ? h('span.xs.muted', ` → ${x.possible.filter((p) => p.candidate === c).map((p) => p.service).join(', ')}`) : null)) }],
     mixedCommits: [{ key: 'service', label: 'Service', render: (x) => svc(x.service) }, { key: 'commit', label: 'Manifest commit', render: (x) => h('span.key', x.commit ?? '') },
