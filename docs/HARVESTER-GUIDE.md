@@ -177,6 +177,14 @@ egress `via` above (`{ "function", "file", "line", "kind" }`), with `kind` `"reg
 ingress row, the endpoint panel and the start of the trace. Hops are display data only. Sending it
 as `details.handlerVia` still works.
 
+**Socket events (0.17.4).** A client that keeps a TLS, TCP or WebSocket connection open and sends events
+over it (device connect, channel open, ...) is not HTTP and not a queue. Send one ingress per event with
+`"transport": "socket"`, a `bindKey` you choose (`socket:tls/sdp-controller/device-connect`; nothing in
+the system produces to it, so it is never matched) and `details: {"protocol": "tls" | "tcp" | "ws", "event": "<name>", "port": 8443}`
+(all optional; `protocol` defaults to tcp). Alternatively one ingress with `events` per event type. A socket ingress is an entry point by
+default (no `entryPoint: true` needed; `entryPoint: false` turns it off) and `middleware` works as for HTTP.
+In a trace the caller is outside the system: "client · tls socket". The system map and Flows show it in its own colour.
+
 **Middleware (0.12.0).** A route runs middleware before its handler (Express/Fastify `use`, auth, rate
 limit), and middleware can make calls of its own (an auth RPC). List them on the ingress, in the order
 they run: `"middleware": ["authenticate", "rateLimit"]`. The ids are functions of the same manifest

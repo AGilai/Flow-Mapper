@@ -1,0 +1,86 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "sdp-controller",
+    "kind": "service",
+    "team": "network-edge",
+    "repo": "github.com/acme/sdp-controller",
+    "language": "typescript",
+    "description": "Demo (#46): the controller that device clients keep a TLS socket open to. Each client event is an ingress with transport socket; device-connect runs a middleware chain"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-20T08:00:00Z",
+  "commit": "6d2f0b8",
+  "functions": [
+    {
+      "id": "verifyClientCert",
+      "name": "verifyClientCert",
+      "file": "src/socket/middleware/cert.ts",
+      "line": 6,
+      "steps": []
+    },
+    {
+      "id": "checkDeviceToken",
+      "name": "checkDeviceToken",
+      "file": "src/socket/middleware/token.ts",
+      "line": 11,
+      "steps": [
+        { "seq": 1, "type": "resource", "target": "devicesDb", "operation": "findOne devices" }
+      ]
+    },
+    {
+      "id": "onDeviceConnect",
+      "name": "onDeviceConnect",
+      "file": "src/socket/handlers/connect.ts",
+      "line": 18,
+      "steps": [
+        { "seq": 1, "type": "resource", "target": "devicesDb", "operation": "updateOne devices (online)" },
+        { "seq": 2, "type": "egress", "target": "tenant.notify", "event": "device.connected" }
+      ]
+    },
+    {
+      "id": "onDeviceTimeout",
+      "name": "onDeviceTimeout",
+      "file": "src/socket/handlers/timeout.ts",
+      "line": 9,
+      "steps": [
+        { "seq": 1, "type": "resource", "target": "devicesDb", "operation": "updateOne devices (offline)" }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.deviceConnect",
+      "bindKey": "socket:tls/sdp-controller/device-connect",
+      "transport": "socket",
+      "handler": "onDeviceConnect",
+      "middleware": ["verifyClientCert", "checkDeviceToken"],
+      "details": { "protocol": "tls", "event": "device-connect", "port": 8443 }
+    },
+    {
+      "id": "in.deviceTimeout",
+      "bindKey": "socket:tls/sdp-controller/device-timeout",
+      "transport": "socket",
+      "handler": "onDeviceTimeout",
+      "details": { "protocol": "tls", "event": "device-timeout", "port": 8443 }
+    }
+  ],
+  "egress": [
+    {
+      "id": "tenant.notify",
+      "bindKey": "sqs:tenant-notifications",
+      "transport": "sqs",
+      "mode": "async"
+    }
+  ],
+  "resources": [
+    {
+      "id": "devicesDb",
+      "kind": "mongodb",
+      "name": "sdp.devices",
+      "bindKey": "mongodb:sdp-db/devices"
+    }
+  ]
+}

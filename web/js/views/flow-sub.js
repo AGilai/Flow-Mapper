@@ -4,10 +4,12 @@
 const SYNC = new Set(['http', 'rpc', 'grpc']);
 const stripType = (k) => String(k).replace(/^[a-z-]+:/, '');
 
+const socketProtocol = (m) => m.protocol ?? 'tcp';
+
 /**
  * The first lifeline of a flow, from its first message: { id, label, sub, kind }.
  * http / rpc / grpc: "client · browser". A queue (sqs, amqp, sns, eventbridge, event, other): the queue name, with its
- * transport as the sub line. cron: "schedule". A delivery (a slice that starts at the queue hop): the queue it came from.
+ * transport as the sub line. socket: "client · tls socket" (tcp, ws). cron: "schedule". A delivery (a slice that starts at the queue hop): the queue it came from.
  */
 export function callerFor(first) {
   if (!first) return { id: 'client', label: 'client', sub: 'browser', kind: 'client' };
@@ -16,6 +18,7 @@ export function callerFor(first) {
   if (!t || SYNC.has(t)) return { id: 'client', label: 'client', sub: 'browser', kind: 'client' };
   const key = String(first.label ?? '').split(' · ')[0];
   if (t === 'cron') return { id: 'src', label: 'schedule', sub: ['cron', stripType(key)].filter(Boolean).join(' · '), kind: 'source' };
+  if (t === 'socket') return { id: 'client', label: 'client', sub: `${socketProtocol(first)} socket`, kind: 'client' };
   const q = stripType(key);
   return { id: 'src', label: q || t, sub: `${t === 'amqp-queue' ? 'amqp' : t} queue`, kind: 'source' };
 }

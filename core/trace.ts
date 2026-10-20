@@ -14,7 +14,7 @@
 import type { GraphIndex } from './graph-index.ts';
 import { linksFrom, sid } from './graph-index.ts';
 import { isLeaf } from './types.ts';
-import type { Mode, Ref } from './types.ts';
+import type { Ingress, Mode, Ref } from './types.ts';
 import { handlerFor, passes, passesUntyped, untypedEventSet, type EventSet } from './events.ts';
 import { codeLink, sourceLink, type SourceLink } from './endpoint-info.ts';
 import { refKey, unresolvedTarget } from './resolve.ts';
@@ -32,7 +32,7 @@ export interface Message {
   kind: 'entry' | 'call' | 'egress' | 'deliver' | 'resource' | 'leaf' | 'frontier';
   depth: number; internal?: boolean; broken?: boolean; cycle?: boolean;
   condition?: string; loop?: boolean;
-  alt?: Alt;                                                 // the step is one of several alternatives (an alt frame): group, branch (1-based), number of branches; the message keeps its `condition` note?: string; fn?: string; service?: string; transport?: string;
+  alt?: Alt;                                                 // the step is one of several alternatives (an alt frame): group, branch (1-based), number of branches; the message keeps its `condition` note?: string; fn?: string; service?: string; transport?: string; protocol?: 'tls' | 'tcp' | 'ws';
   event?: string; unhandled?: boolean;
   eventFrom?: { name: string; boundAt?: string };            // the event came from a caller's bind (#42): the name, and where it was bound (`<caller fn>:<seq>`); no boundAt: nothing on this path binds it
   possible?: boolean;                                        // delivered only if the publisher's event is one of its candidates (the step names no event)
@@ -310,7 +310,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
   };
 
   const client = part({ id: 'client', label: ing?.entryPoint ? 'client' : 'caller', kind: 'client' });
-  push({ from: client, to: fnPart(root, fnId), label: (ing?.bindKey ?? fnId) + (start.event ? ` · ${start.event}` : ''), event: start.event, mode: 'sync', kind: 'entry', depth: 0, service: root, fn: fnId, transport: ing?.transport, target: ing ? { service: root, ingress: ing.id, fn: fnId } : undefined, ...(ing && chainOf(ing).length ? { middlewareChain: chainOf(ing) } : {}) });
+  push({ from: client, to: fnPart(root, fnId), label: (ing?.bindKey ?? fnId) + (start.event ? ` · ${start.event}` : ''), event: start.event, mode: 'sync', kind: 'entry', depth: 0, service: root, fn: fnId, transport: ing?.transport, ...(ing?.transport === 'socket' ? { protocol: socketProtocol(ing) } : {}), target: ing ? { service: root, ingress: ing.id, fn: fnId } : undefined, ...(ing && chainOf(ing).length ? { middlewareChain: chainOf(ing) } : {}) });
   if (ing) runIngress(ing, fnId, 1, [sid(root, fnId)]); else visitFn(root, fnId, 1, [sid(root, fnId)]);
 
   for (const p of participants.values()) {
@@ -336,6 +336,9 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
   }
   return { code, start: { service: root, ingress: ing?.id, fn: fnId, event: start.event }, scope, participants: deliveryOrder([...participants.values()], messages), messages, truncated };
 }
+
+/** The wire protocol of a socket ingress (`details.protocol`: tls, tcp or ws); tcp when the harvester gave none. */
+const socketProtocol = (i: Ingress): 'tls' | 'tcp' | 'ws' => (['tls', 'tcp', 'ws'].includes(String(i.details?.protocol)) ? i.details!.protocol as 'tls' : 'tcp');
 
 /** Entry points to start a trace from: ingress marked entryPoint, else ingress nothing reaches. */
 export function entryPoints(g: GraphIndex) {

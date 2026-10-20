@@ -40,6 +40,7 @@
 .chip[data-t='sqs'] { --c: var(--t-sqs); }
 .chip[data-t='amqp'] { --c: var(--t-amqp); }
 .chip[data-t='cron'] { --c: var(--t-cron); }
+.chip[data-t='socket'] { --c: var(--t-socket); }
 .chip[data-t='broken'] { --c: var(--t-broken); color: var(--t-broken); }
 .chip[data-t='async']::before { background: repeating-linear-gradient(90deg, var(--ink-2) 0 3px, transparent 3px 5px); }
 

@@ -9,7 +9,7 @@
 .meta .verified-drift { color: var(--warn); }
 
 /* Transport colour for connectors and node borders */
-[data-t='http'] { --c: var(--t-http); } [data-t='rpc'] { --c: var(--t-rpc); } [data-t='eventbridge'] { --c: var(--t-eb); }
+[data-t='http'] { --c: var(--t-http); } [data-t='rpc'] { --c: var(--t-rpc); } [data-t='eventbridge'] { --c: var(--t-eb); } [data-t='socket'] { --c: var(--t-socket); }
 [data-t='sns'] { --c: var(--t-sns); } [data-t='sqs'] { --c: var(--t-sqs); } [data-t='amqp'] { --c: var(--t-amqp); }
 [data-t='async'] { --c: var(--t-res); }
 

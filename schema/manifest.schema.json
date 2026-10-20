@@ -23,7 +23,7 @@
       "description": "glob: '*' matches any characters except '/', '**' matches anything."
     },
     "transport": {
-      "enum": ["http", "rpc", "grpc", "sns", "sqs", "amqp", "eventbridge", "cron", "event", "other"]
+      "enum": ["http", "rpc", "grpc", "sns", "sqs", "amqp", "eventbridge", "cron", "socket", "event", "other"]
     },
     "delivery": {
       "enum": ["unicast", "multicast"],

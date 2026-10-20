@@ -16,7 +16,7 @@ import { withinHops } from '../../core/subgraph.js';
 import { nodePanel } from './system-panel.js';
 import { edgePanel } from './edge-panel.js';
 
-const TRANSPORTS = ['http', 'rpc', 'grpc', 'sns', 'sqs', 'amqp', 'eventbridge'];
+const TRANSPORTS = ['http', 'rpc', 'grpc', 'sns', 'sqs', 'amqp', 'eventbridge', 'socket'];
 
 export async function render({ main, query }) {
   const data = await api.system(state.env);
@@ -165,5 +165,6 @@ function legend() {
     item('<svg width="14" height="14"><rect x="3" y="3" width="8" height="8" fill="none" stroke="var(--t-res)" stroke-width="1.6"/></svg>', 'Data store'),
     item('<svg width="22" height="6"><path d="M1 3h20" stroke="var(--ink-2)" stroke-width="1.6"/></svg>', 'Sync call (waits for the reply)'),
     item('<svg width="22" height="6"><path d="M1 3h20" stroke="var(--ink-2)" stroke-width="1.6" stroke-dasharray="4 3"/></svg>', 'Async (queue, topic, event)'),
+    item('<svg width="22" height="6"><path d="M1 3h20" stroke="var(--t-socket)" stroke-width="3" stroke-linecap="round"/></svg>', 'Client socket entry (tls / tcp / ws)'),
     item('<svg width="22" height="6"><path d="M1 3h20" stroke="var(--t-broken)" stroke-width="1.6" stroke-dasharray="4 3"/></svg>', 'Broken (no target matches)'));
 }

@@ -18,11 +18,14 @@ export const DEFAULT_DELIVERY: Record<string, Delivery> = {
 /** The harvester could not resolve this item's target (call target or consumed key); it takes no part in matching. */
 export const unresolvedTarget = (x: { unresolved?: Unresolved[] }) => x.unresolved?.find((u) => u.what === 'target');
 
+/** A socket ingress has no producer inside the system, so it is an entry point unless the harvester says `entryPoint: false`. */
+const socketEntry = (i: Ingress): Ingress => (i.transport === 'socket' && i.entryPoint === undefined ? { ...i, entryPoint: true } : i);
+
 /** Unresolved items may come without a bind key; give them a readable placeholder that matches nothing. */
 export function withPlaceholderKeys(model: Model): Model {
   const fill = <T extends { bindKey?: string; unresolved?: Unresolved[] }>(x: T): T =>
     (x.bindKey ? x : { ...x, bindKey: `unresolved:${unresolvedTarget(x)?.reason ?? 'unknown'}` });
-  return { ...model, ingress: model.ingress.map(fill), egress: model.egress.map(fill) };
+  return { ...model, ingress: model.ingress.map(fill).map(socketEntry), egress: model.egress.map(fill) };
 }
 
 /** Request/reply transports: calls are synchronous unless the egress says otherwise. */

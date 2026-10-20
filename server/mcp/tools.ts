@@ -57,7 +57,7 @@ export const TOOLS: Tool[] = [
     },
   },
   {
-    name: 'list_entry_points', description: 'Ingress points where flows start (public APIs, crons, and anything nothing else calls).',
+    name: 'list_entry_points', description: 'Ingress points where flows start (public APIs, crons, client socket events, and anything nothing else calls).',
     inputSchema: obj({ env }),
     run: (c, a) => entryPoints(c.graph(envOf(a))),
   },

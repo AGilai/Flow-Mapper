@@ -59,6 +59,7 @@ export function dtoSlots(i: Ingress): { slots: { role: DtoRole; label: string }[
   switch (i.transport) {
     case 'sqs': case 'sns': case 'amqp': case 'eventbridge': return { slots: [{ role: 'request', label: 'Message' }], note: null };
     case 'event': return { slots: [{ role: 'request', label: 'Event' }], note: null };
+    case 'socket': return { slots: [{ role: 'request', label: 'Event payload' }], note: null };
     case 'cron': return { slots: [], note: 'Runs on a schedule, so there is no payload.' };
     case 'rpc': return { slots: [{ role: 'request', label: 'Request' }, { role: 'response', label: 'Response' }], note: null };
     case 'grpc': return { slots: [{ role: 'request', label: 'Request message' }, { role: 'response', label: 'Response message' }], note: null };

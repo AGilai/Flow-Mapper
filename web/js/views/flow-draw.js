@@ -16,7 +16,7 @@ const COL = 138, COL_MIN = 132, PAD = 16, GUTTER = 8, BAR = 12, NEST = 8, CH_HEA
 const ROWH = { call: 46, return: 36, pill: 32, mw: 34, store: 46, hop: 48, unresolved: 42, frontier: 32 };
 const rowH = (e) => (e.type === 'hop' && e.marker ? 56 : ROWH[e.type]);
 const LINE = { call: 30, return: 22, pill: 16, mw: 17, store: 23, hop: 30, unresolved: 28, frontier: 16 };
-const T_VAR = { http: '--t-http', rpc: '--t-rpc', grpc: '--t-http', eventbridge: '--t-eb', sns: '--t-sns', sqs: '--t-sqs', amqp: '--t-amqp', cron: '--t-cron', res: '--t-res' };
+const T_VAR = { http: '--t-http', rpc: '--t-rpc', grpc: '--t-http', eventbridge: '--t-eb', sns: '--t-sns', sqs: '--t-sqs', amqp: '--t-amqp', cron: '--t-cron', socket: '--t-socket', res: '--t-res' };
 const colorOf = (t) => `var(${T_VAR[t] ?? '--ink-2'})`;
 const SUB_CH = 19, LINE_H = 14, TILE_PX = 6.6;
 const tileW = (t) => Math.max(22, Math.ceil(String(t).length * TILE_PX) + 12);
