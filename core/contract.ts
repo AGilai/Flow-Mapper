@@ -18,7 +18,7 @@ export interface ContractReport { errors: number; warnings: number; infos: numbe
 /** One service's entities as stored (before placeholder bind keys are filled in). */
 export interface ServiceManifest {
   service: string;
-  functions?: { id: string; file?: string; unresolved?: Unresolved[]; steps?: { seq: number; type: string; target?: string; unresolved?: Unresolved[] }[] }[];
+  functions?: { id: string; file?: string; unresolved?: Unresolved[]; steps?: { seq: number; type: string; target?: string; unresolved?: Unresolved[]; fields?: { path: string; inDdl?: boolean }[] }[] }[];
   resources?: { id: string; client?: ClientInfo; unresolved?: Unresolved[] }[];
   ingress?: { id: string; bindKey?: string; source?: Source; unresolved?: Unresolved[] }[];
   egress?: { id: string; bindKey?: string; transport: string; events?: string[]; client?: ClientInfo; source?: Source; unresolved?: Unresolved[] }[];
@@ -57,6 +57,15 @@ const missingSource: Rule = ({ m, add }) => {
     level: 'info', code: 'missing-source', kind: 'service', id: m.service,
     message: `${ids.length} ingress, egress or step item(s) have no source.file (${sample(ids)})`,
     fix: 'Send source: {file, line} on every ingress and egress, and file on every function, so the UI can link to the code.',
+  });
+};
+
+const fieldNotInDdl: Rule = ({ m, add }) => {
+  const ids = (m.functions ?? []).flatMap((f) => (f.steps ?? []).flatMap((s) => (s.fields ?? []).filter((x) => x.inDdl === false).map((x) => `${f.id}#${s.seq} ${x.path}`)));
+  if (ids.length) add({
+    level: 'info', code: 'field-not-in-ddl', kind: 'service', id: m.service,
+    message: `${ids.length} field(s) used in store steps are marked inDdl: false, so the code uses them but the schema lacks them (${sample(ids)})`,
+    fix: 'Add the field to the collection or table schema (or its DTO), or drop it from the code; ignore if the schema is not harvested yet.',
   });
 };
 
@@ -148,7 +157,7 @@ const clientGaps: Rule = ({ m, add }) => {
   for (const e of m.egress ?? []) check('egress', e.id, e.client, e.unresolved);
 };
 
-export const RULES: Rule[] = [unresolvedNoDetail, clientGaps, missingSource, bindingNoEvents, bindingEmptyEvents, egressNoEvents, dangling, filterMatchesNothing, harvestQuality];
+export const RULES: Rule[] = [unresolvedNoDetail, clientGaps, missingSource, fieldNotInDdl, bindingNoEvents, bindingEmptyEvents, egressNoEvents, dangling, filterMatchesNothing, harvestQuality];
 
 /** `m`: the service's entities as stored; `g`: the env's index after applying them. */
 export function contractReport(m: ServiceManifest, g: GraphIndex): ContractReport {

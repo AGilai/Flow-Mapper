@@ -7,9 +7,9 @@ import type { GraphIndex } from './graph-index.ts';
 import { codeLink, sourceLink, type SourceLink } from './endpoint-info.ts';
 import { entryPointsReaching, type EntryHit } from './reach.ts';
 import { unresolvedTarget } from './resolve.ts';
-import type { Resource, Step } from './types.ts';
+import type { Resource, Step, StepField } from './types.ts';
 
-export type Access = 'read' | 'write' | 'unknown';
+export type Access = 'read' | 'write' | 'read_write' | 'unknown';
 
 const READ = /^(get|mget|hget|hgetall|hmget|exists|ttl|pttl|keys|scan|smembers|sismember|lrange|zrange|zscore|find|findone|count|countdocuments|aggregate|distinct|query|select|read|list|head|headobject|getobject|getitem|batchgetitem|describe)\b/i;
 
@@ -29,7 +29,7 @@ const leafName = (key: string) => (key.includes('/') ? key.slice(key.indexOf('/'
 
 export interface StoreUse {
   service: string; resource: string; access: Access; declaredAt: SourceLink | null; verified: string | null;
-  functions: { fn: string; name: string; source: SourceLink | null; operations: { operation: string; access: Access }[] }[];
+  functions: { fn: string; name: string; source: SourceLink | null; operations: { operation: string; access: Access; fields?: StepField[] }[] }[];
 }
 export interface StoreSummary { key: string; name: string; kind: string; group: string; services: string[]; readers: string[]; writers: string[]; used: boolean;
   /** Why the harvester could not give this store a key (its `unresolved` reason). */ keyUnknown?: string }
@@ -42,7 +42,7 @@ const usesOf = (g: GraphIndex, r: Resource) => g.model.functions
   .map((f) => ({ f, steps: f.steps.filter((s) => s.type === 'resource' && s.target === r.id) }))
   .filter((x) => x.steps.length);
 
-const merge = (a: Access, b: Access): Access => (a === b ? a : a === 'unknown' ? b : b === 'unknown' ? a : 'write');
+const merge = (a: Access, b: Access): Access => (a === b ? a : a === 'unknown' ? b : b === 'unknown' ? a : a === 'read_write' || b === 'read_write' ? 'read_write' : 'write');
 
 /** Every store with who reads and who writes it. */
 export function stores(g: GraphIndex): StoreSummary[] {
@@ -56,8 +56,9 @@ export function stores(g: GraphIndex): StoreSummary[] {
       s.used = true;
       for (const st of steps) {
         const a = accessOf(st);
-        const list = a === 'read' ? s.readers : a === 'write' ? s.writers : null;
-        if (list && !list.includes(r.service)) list.push(r.service);
+        for (const [on, list] of [[a === 'read' || a === 'read_write', s.readers], [a === 'write' || a === 'read_write', s.writers]] as const) {
+          if (on && !list.includes(r.service)) list.push(r.service);
+        }
       }
     }
   }
@@ -73,7 +74,7 @@ export function storeView(g: GraphIndex, key: string): StoreView | null {
     const svc = g.services.get(r.service)!;
     const functions = usesOf(g, r).map(({ f, steps }) => ({
       fn: f.id, name: f.name, source: sourceLink(svc, f),
-      operations: steps.map((s) => ({ operation: s.operation ?? 'use', access: accessOf(s) })),
+      operations: steps.map((s) => ({ operation: s.operation ?? 'use', access: accessOf(s), ...(s.fields?.length ? { fields: s.fields } : {}) })),
     }));
     const access = functions.flatMap((f) => f.operations).reduce<Access>((a, o) => merge(a, o.access), 'unknown');
     return { service: r.service, resource: r.id, access, functions, declaredAt: codeLink(svc, r.source), verified: r.provenance?.verified ?? null };

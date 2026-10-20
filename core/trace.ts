@@ -17,7 +17,7 @@ import type { Mode, Ref } from './types.ts';
 import { handlerFor, passes } from './events.ts';
 import { codeLink, sourceLink, type SourceLink } from './endpoint-info.ts';
 import { refKey, unresolvedTarget } from './resolve.ts';
-import type { Unresolved } from './types.ts';
+import type { StepField, Unresolved } from './types.ts';
 import { egressVia, ingressVia, type LinkedHop } from './via.ts';
 
 export interface Participant {
@@ -34,6 +34,7 @@ export interface Message {
   seq?: number;                                              // step number in the calling function
   target?: { service: string; ingress: string; fn?: string }; // ingress reached, and the handler that runs
   store?: string;                                            // data-store key, for resource steps
+  fields?: StepField[];                                      // fields a resource step touches (role, path, operator, inDdl)
   calls?: string;                                            // function called, for call steps (same service)
   egress?: string;                                           // egress id, for calls out (its call site is in `code`)
   via?: LinkedHop[];                                         // wrappers the call goes through (last one calls the SDK); display only
@@ -142,7 +143,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
       } else if (st.type === 'resource') {
         const r = g.resources.get(sid(service, st.target));
         const to = part({ id: `res:${r?.bindKey ?? sid(service, st.target)}`, label: r?.name ?? st.target, kind: 'resource' });
-        push({ ...base, from: me, to, label: st.operation ?? 'use', mode: st.mode ?? 'sync', kind: 'resource', transport: 'res', store: r?.bindKey ?? sid(service, st.target) });
+        push({ ...base, from: me, to, label: st.operation ?? 'use', mode: st.mode ?? 'sync', kind: 'resource', transport: 'res', store: r?.bindKey ?? sid(service, st.target), ...(st.fields?.length ? { fields: st.fields } : {}) });
       } else {
         const e = g.egress.get(sid(service, st.target));
         if (!e) continue;

@@ -47,6 +47,23 @@ test('a store shows readers, writers, functions and the entry points that reach 
   assert.equal((await app.call('GET', `/api/envs/prod/stores/${enc('mongodb:nope/x')}`)).status, 404);
 });
 
+test('read_write counts as reader and writer; fields are kept on the operation, in the trace and flagged in the contract report (#36, #37)', async () => {
+  assert.equal(accessOf({ seq: 1, type: 'resource', target: 'x', operation: 'findOneAndUpdate', access: 'read_write' }), 'read_write');
+  const v = await store('mongodb:orders-db/orders');
+  const op = v.uses[0].functions.flatMap((f: any) => f.operations).find((o: any) => o.access === 'read_write');
+  assert.equal(op.operation, 'findOneAndUpdate');
+  assert.deepEqual(op.fields.filter((f: any) => f.inDdl === false).map((f: any) => f.path), ['viewCount']);
+  assert.equal(v.uses[0].access, 'read_write');
+  const base = sampleManifests().find((m: any) => m.service.name === 'orders-svc');
+  const r = (await app.call('POST', '/api/ingest?dryRun=1', { ...base, version: base.version + 1 })).body.results[0];
+  assert.ok(r.contract.findings.some((f: any) => f.code === 'field-not-in-ddl' && f.message.includes('viewCount')));
+  const bad = structuredClone(base);
+  bad.functions.find((f: any) => f.id === 'OrderController.touch').steps[0].fields = [{ role: 'bogus', path: 'x' }];
+  assert.equal((await app.call('POST', '/api/ingest?dryRun=1', bad)).status, 422);
+  const trace = (await app.call('GET', '/api/envs/prod/trace?service=orders-svc&ingress=in.touch')).body;
+  assert.ok(trace.messages.some((m: any) => m.fields?.some((f: any) => f.path === 'viewCount')));
+});
+
 test('link health flags stores with several writers and unused stores', async () => {
   const h = (await app.call('GET', '/api/envs/prod/health')).body;
   assert.deepEqual([...new Set(h.items.multipleWriters.map((x: any) => x.key))], ['redis:cache-main/order:{id}']);

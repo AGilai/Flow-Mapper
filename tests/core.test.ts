@@ -37,7 +37,7 @@ test('resolution over the samples finds the planted problems', () => {
   const g = buildIndex(sampleModel());
   const h = health(g);
   assert.deepEqual(h.items.dangling.map((d) => `${d.service}:${d.id}`).sort(), ['orders-svc:users.getPrefs', 'payments-svc:disputes.publish']);
-  assert.deepEqual(h.items.orphans.map((d) => `${d.service}:${d.id}`).sort(), ['payments-svc:in.legacyRefund', 'users-svc:in.getUser']);
+  assert.deepEqual(h.items.orphans.map((d) => `${d.service}:${d.id}`).sort(), ['orders-svc:in.touch', 'payments-svc:in.legacyRefund', 'users-svc:in.getUser']);
   assert.deepEqual(h.items.unbound.map((u) => u.bindKey).sort(), ['sns:payment-disputes', 'sqs:orders-dlq']);
   assert.equal(h.totals.ambiguous, 0);
 });

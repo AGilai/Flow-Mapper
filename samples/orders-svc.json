@@ -97,6 +97,30 @@
       ]
     },
     {
+      "id": "OrderController.touch",
+      "name": "OrderController.touch",
+      "file": "src/controllers/order.ts",
+      "line": 88,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "ordersDb",
+          "operation": "findOneAndUpdate",
+          "access": "read_write",
+          "note": "Counts the view and returns the order",
+          "fields": [
+            { "role": "filter", "path": "_id", "operator": "$eq", "inDdl": true, "ddlRef": "Order._id" },
+            { "role": "filter", "path": "status", "operator": "$in", "inDdl": true, "ddlRef": "Order.status" },
+            { "role": "projection", "path": "items", "inDdl": true },
+            { "role": "update", "path": "viewCount", "operator": "$inc", "inDdl": false, "flag": "added by the code, no column in the schema" },
+            { "role": "update", "path": "lastViewedAt", "operator": "$set", "inDdl": true },
+            { "role": "sort", "path": "createdAt", "operator": "desc", "inDdl": true }
+          ]
+        }
+      ]
+    },
+    {
       "id": "OrderController.get",
       "name": "OrderController.get",
       "file": "src/controllers/order.ts",
@@ -277,6 +301,16 @@
       "details": {
         "method": "GET",
         "path": "/orders/{id}"
+      }
+    },
+    {
+      "id": "in.touch",
+      "bindKey": "http:POST orders-svc/orders/{id}/touch",
+      "transport": "http",
+      "handler": "OrderController.touch",
+      "details": {
+        "method": "POST",
+        "path": "/orders/{id}/touch"
       }
     },
     {

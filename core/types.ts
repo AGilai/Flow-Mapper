@@ -46,7 +46,9 @@ export interface Step {
   /** Event type this egress step publishes (one of the egress's `events`). */
   event?: string;
   /** For a resource step: read or write, when the operation name does not make it clear. */
-  access?: 'read' | 'write';
+  access?: 'read' | 'write' | 'read_write';
+  /** For a resource step: fields the call touches (names only). */
+  fields?: StepField[];
   unresolved?: Unresolved[];
   /** Where the call is made (file, line, col). */
   source?: Source;
@@ -55,6 +57,8 @@ export interface Step {
 /** A step with no target that the harvester classified: `kind: 'leaf'`, or a call with an operation or note. */
 export const isLeaf = (st: Pick<Step, 'type' | 'target' | 'kind' | 'operation' | 'note'>) =>
   !st.target && (st.kind === 'leaf' || (st.type === 'call' && !!(st.operation || st.note)));
+
+export interface StepField { role: 'filter' | 'projection' | 'update' | 'sort'; path: string; operator?: string; inDdl?: boolean; ddlRef?: string; flag?: string }
 
 export interface Fn { service: string; id: string; name: string; file?: string; line?: number; commit?: string; steps: Step[]; unresolved?: Unresolved[] }
 /** An event type a consumer handles. `type` may be a glob (`Order*`, `*`); `producers` are declared, not derived. */

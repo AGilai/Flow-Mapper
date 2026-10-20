@@ -9,6 +9,7 @@ import { href } from '../router.js';
 import { ago } from '../format.js';
 import { pageHead } from '../components/page.js';
 import { jsonView } from '../components/json-view.js';
+import { stepFields } from '../components/step-fields.js';
 import { box, codeLink, empty, fig, problems } from './detail-parts.js';
 import { serviceLink, storeLink } from './inventory-links.js';
 import { majorOf } from '../../core/clients.js';
@@ -56,13 +57,16 @@ export async function render({ main, params }) {
             : empty('None.')))))));
 }
 
+const ACCESS = { read: 'read', write: 'write', read_write: 'read and write (R/W)' };
+
 function use(u, compact) {
   const accesses = [...new Set(u.functions.flatMap((f) => f.operations.map((o) => o.access)))].filter((a) => a !== 'unknown');
   return h('div.use',
-    h('div.use-head', h('b', serviceLink(u.service)), accesses.map((a) => h('span.pill', { class: a }, a)), compact ? null : h('span.xs.muted', `as ${u.resource}`),
+    h('div.use-head', h('b', serviceLink(u.service)), accesses.map((a) => h('span.pill', { class: a, title: ACCESS[a] }, a === 'read_write' ? 'R/W' : a)), compact ? null : h('span.xs.muted', `as ${u.resource}`),
       u.verified ? h('span.pill', { class: `verified-${u.verified}` }, u.verified) : null, u.declaredAt?.url ? codeLink('declared here', u.declaredAt) : null),
     u.functions.map((f) => h('div.use-fn', codeLink(f.name, f.source),
-      f.operations.map((o) => h('span.pill', { class: o.access, title: o.access }, o.operation)))));
+      f.operations.map((o) => h('span.pill', { class: o.access, title: ACCESS[o.access] ?? o.access }, o.operation)),
+      f.operations.map((o) => stepFields(o.fields)))));
 }
 
 const upto = (names) => (names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names[0]);

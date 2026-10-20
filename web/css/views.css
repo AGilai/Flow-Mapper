@@ -151,3 +151,10 @@
 .ep-producer.except { border-style: dotted; }
 .dto-source { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1) var(--s2); padding: var(--s2) var(--s3) 0; font-size: var(--fs-xs); color: var(--muted); }
 .dto-source a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+
+/* ---- fields a data-store step touches ---- */
+.pill.read_write { background: color-mix(in srgb, var(--t-http) 14%, var(--t-sns) 16%); color: var(--ink); }
+.step-fields { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s3); width: 100%; font-size: var(--fs-sm); }
+.step-field-group { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.pill.field { background: var(--surface-2); color: var(--ink-2); font-family: var(--mono, monospace); }
+.pill.field.not-in-ddl { border: 1px dashed var(--warn); color: var(--ink); background: color-mix(in srgb, var(--warn) 12%, transparent); }

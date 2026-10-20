@@ -42,6 +42,7 @@ anything. There are currently no `error`-level codes (422 rejections come from v
 | `unresolved-no-detail` | warn | an `unresolved` entry (on ingress, egress, function, step or resource) with an empty `detail` (or blank `reason`) | say what you could not resolve |
 | `client-version-gap` | info | a `client` with a driver or lib but no version, and no `unresolved` entry saying why | send the version, or `unresolved: [{what: "client", reason, detail: "driver.version"}]` |
 | `client-unresolved-field` | warn | `unresolved` what `client` whose `detail` is not a client field path | name the field: `accessMode`, `accessId`, `driver.version`, `lib.version`, `lib.driver.version`, `via` |
+| `field-not-in-ddl` | info | store steps whose `fields` carry `inDdl: false` (one finding per service) | add the field to the schema or the DTO, or remove it from the code |
 | `binding-empty-events` | warn | subscription with `events: []`: delivers nothing | send the types it lets through, or omit `events` |
 | `missing-source` | info | ingress/egress without `source.file`, or steps of a function without `file` (one finding per service) | send `source: {file, line}`, and `file` on functions |
 | `binding-no-events` | info | SNS/EventBridge subscription without `events`: everything is delivered | send the filter policy as `events`, or `"*"` |
@@ -101,7 +102,15 @@ repo root, `line` is where the function starts.
 |---|---|---|
 | `call` | another function `id` in this service | |
 | `egress` | an egress `id` | `operation`; `event` when it publishes an event type |
-| `resource` | a resource `id` | `operation` (`find`, `insertOne`, `GET order:{id}`, `PutItem`…); `access: "read"`/`"write"` when the operation name does not say |
+| `resource` | a resource `id` | `operation` (`find`, `insertOne`, `GET order:{id}`, `PutItem`…); `access: "read"`/`"write"`/`"read_write"` when the operation name does not say (`read_write` for `findOneAndUpdate` and the like; shown as R/W, the service counts as reader and writer); `fields` (below) |
+
+**Fields of a resource step** (optional): `fields: [{"role", "path", "operator"?, "inDdl"?, "ddlRef"?, "flag"?}]`
+lists the fields the call touches, names only, never values. `role` is `filter`, `projection`, `update`
+or `sort`; `operator` is e.g. `$in`, `$set`, `asc`; `inDdl: false` marks a field the code uses that is not in the
+collection's schema (the store page flags it, and the contract report counts it as `field-not-in-ddl`);
+`ddlRef` links the schema field (e.g. `Order.status`); `flag` is a free-text remark. The store page lists the
+fields per function and operation, the trace's side panel shows them on the step, and MCP `get_store` and
+`GET /api/envs/:env/stores/:key` return them under each operation.
 
 Optional on any step: `condition` (it only happens if…), `loop: true`, `mode: "async"`, `note`, and
 `source: {"file", "line", "col"}`, the exact place in code that makes this call (same shape as the

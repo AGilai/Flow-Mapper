@@ -134,7 +134,7 @@ export const TOOLS: Tool[] = [
     run: (c, a) => inventory(c.graph(envOf(a)), dtos.listEventDtos(c.db, envOf(a)).map((d) => d.event)).filter((x) => (!a.type || x.type === a.type) && (!a.query || `${x.id} ${x.kind} ${x.team ?? ''}`.toLowerCase().includes(String(a.query).toLowerCase()))),
   },
   {
-    name: 'get_store', description: "A data store by bind key (e.g. mongodb:orders-db/orders, redis:cache-main/order:{id}): readers and writers with the functions and operations, entry points whose flows reach it, other keys in its cluster, and its schemas by source.",
+    name: 'get_store', description: "A data store by bind key (e.g. mongodb:orders-db/orders, redis:cache-main/order:{id}): readers and writers with the functions and operations (access read | write | read_write; `fields` per operation: role filter|projection|update|sort, path, operator, inDdl), entry points whose flows reach it, other keys in its cluster, and its schemas by source.",
     inputSchema: obj({ env, key: { type: 'string' } }, ['key']),
     run: (c, a) => {
       const v = storeWithClients(c.graph(envOf(a)), a.key) ?? (() => { throw new HttpError(404, 'NOT_FOUND', `data store '${a.key}' not found`); })();

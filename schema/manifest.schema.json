@@ -192,7 +192,22 @@
         "event": { "$ref": "#/$defs/eventType", "description": "For an egress step: the event type it publishes." },
         "unresolved": { "$ref": "#/$defs/unresolved" },
         "source": { "$ref": "#/$defs/source", "description": "Where the call is made: file, line, col. Shown as a code link on the trace message." },
-        "access": { "enum": ["read", "write"], "description": "For a resource step: read or write. Default: from the operation name (find, GET, SELECT, GetItem… are reads)." },
+        "access": { "enum": ["read", "write", "read_write"], "description": "For a resource step: read, write or read_write (e.g. findOneAndUpdate; shown as R/W, counts as reader and writer). Default: from the operation name (find, GET, SELECT, GetItem… are reads)." },
+        "fields": {
+          "type": "array",
+          "description": "For a resource step: the fields of the stored object this call touches, names only, never values.",
+          "items": {
+            "type": "object", "required": ["role", "path"], "additionalProperties": false,
+            "properties": {
+              "role": { "enum": ["filter", "projection", "update", "sort"] },
+              "path": { "type": "string", "description": "Field path, e.g. status or address.city." },
+              "operator": { "type": "string", "description": "e.g. $eq, $in, $set, $inc, asc." },
+              "inDdl": { "type": "boolean", "description": "false: the code uses a field that is not in the collection's schema (flagged in the UI and the contract report)." },
+              "ddlRef": { "type": "string", "description": "Link to the schema/DTO field, e.g. Order.status." },
+              "flag": { "type": "string", "description": "Free-text remark about the field." }
+            }
+          }
+        },
         "origin": { "enum": ["path", "frontier"], "default": "path", "description": "'frontier': part of a call tree that reaches no sink. Traces fold frontier steps into one marker per function and do not count them toward maxMessages unless asked to expand them. Default 'path': as before." },
         "kind": { "enum": ["leaf"], "description": "'leaf': a step that ends the call tree and has no target (db_access, external_pkg…); say what it is in `operation` and `note`. A `call` step with no target but an `operation` or `note` is a leaf too. Not an unresolved gap." }
       }
