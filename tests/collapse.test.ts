@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 // @ts-ignore plain JS module shared with the browser
-import { KEYS, readCollapsed, writeCollapsed, toggleLabel, stripLabel, envShort } from '../web/js/collapse.js';
+import { KEYS, isNarrow, readCollapsed, writeCollapsed, toggleLabel, stripLabel, envShort } from '../web/js/collapse.js';
 
 const mem = () => { const m = new Map<string, string>(); return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), m }; };
 
@@ -34,4 +34,16 @@ test('labels: the control says what a click does; the strip names the service; t
   assert.equal(envShort('prod'), 'prod');
   assert.equal(envShort('scale-test'), 'scale');
   assert.equal(envShort(''), '·');
+});
+
+test('0.19.1: with no saved choice a narrow viewport starts collapsed; a saved choice always wins', () => {
+  const s = mem();
+  assert.equal(isNarrow(760), true);
+  assert.equal(isNarrow(860), false);
+  assert.equal(readCollapsed(KEYS.list, s, isNarrow(760)), true);
+  assert.equal(readCollapsed(KEYS.list, s, isNarrow(1200)), false);
+  writeCollapsed(KEYS.list, false, s);
+  assert.equal(readCollapsed(KEYS.list, s, true), false, 'a saved expanded state beats the narrow default');
+  writeCollapsed(KEYS.list, true, s);
+  assert.equal(readCollapsed(KEYS.list, s, false), true);
 });

@@ -62,7 +62,8 @@ export function health(g: GraphIndex): HealthReport {
     multipleWriters: stores(g).filter((s) => s.writers.length > 1)
       .flatMap((s) => s.writers.map((w) => ({ service: w, key: s.key, kind: s.kind, writers: s.writers }))),
     unusedStores: stores(g).filter((s) => !s.used && !s.keyUnknown).flatMap((s) => s.services.map((svc) => ({ service: svc, key: s.key, kind: s.kind }))),
-    unresolved: unresolvedItems(g),
+    // what=detail entries (#45, an unknown field of a resource or step) stay in the API data and on the Redis page; they are not link problems
+    unresolved: unresolvedItems(g).filter((u) => u.what !== 'detail'),
     mixedCommits: mixedCommits(g),
     drift: drift(g),
     dangling: r.dangling.map((e) => ({ service: e.service, id: e.id, bindKey: e.bindKey, transport: e.transport })),

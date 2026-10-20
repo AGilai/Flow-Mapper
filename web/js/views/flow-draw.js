@@ -26,7 +26,7 @@ const FUNNEL = 'M1.5 2h9L7 6.3V10l-2-1V6.3z';
 
 /**
  * renderLane(lane, handlers) -> { el, body, events, bars }
- * handlers: onMessage(msg, g, event), onBar(bar, 'select'?) (double-click, pill: look inside; click: select),
+ * handlers: onMessage(msg, g, event, trunk), onBar(bar, 'select'?) (double-click, pill: look inside; click: select),
  * onBarMenu(bar, x, y), onParticipant(p, x, y), onNum(jump) (a number tile at a queue), onNumHover(own labels, on), onFan(topic) (fold or unfold a big fan-out).
  * `selected`: bar id drawn highlighted. Returns { el, body, events, bars, mark(label, on) } (mark: highlight the tiles of a list row).
  */
@@ -126,6 +126,8 @@ export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, o
     const y0 = ys[r];
     const g = (cls, ...kids) => s('g', { class: `msg ${cls}`, 'data-e': r, tabindex: e.msg ? 0 : null, role: e.msg ? 'button' : null }, ...kids);
     const hit = (x1, x2) => s('rect', { class: 'hit', x: Math.min(x1, x2) - 4, y: y0 - 22, width: Math.abs(x2 - x1) + 8, height: 30 });
+    // the shared trunk of a fan-out (service to topic): opens the publish, not the first delivery (0.19.1)
+    const trunkHit = (x1, x2, y, ev) => s('rect', { class: 'hit trunk', x: Math.min(x1, x2) - 4, y: y - 22, width: Math.abs(x2 - x1) + 4, height: 30, tabindex: 0, role: 'button', 'aria-label': `Publish ${ev.label}, fans out to ${ev.publish.deliveries.length} queues` });
     const owner = e.fromBar ?? e.bar;
     if (e.type === 'call') {
       const dir = Math.sign(colX.get(e.to) - colX.get(e.from)) || 1;
@@ -150,7 +152,7 @@ export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, o
         left = tx; mid = (tx + 6 + x2) / 2;
         kids = [s('path', { class: 'fork', d: `M${tx} ${ys[r - 1]}V${y0 - 7}Q${tx} ${y0} ${tx + 7} ${y0}`, style: `--mc:${mc}` }), arrow(tx + 6, x2, y0, { color: mc })];
       } else { kids = [arrow(x1, x2, y0, { label: e.trunk ? hl : null, color: mc })]; mid = (x1 + x2) / 2; }
-      return g('hop', ...kids, e.marker ? marker(e.marker, mid, y0, mc) : null, e.end ? stop(e.end, x2, 1, y0, mc, r) : null, hit(left, x2), s('title', {}, [e.msg.label, e.marker?.full].filter(Boolean).join('\n')));
+      return g('hop', ...kids, e.marker ? marker(e.marker, mid, y0, mc) : null, e.end ? stop(e.end, x2, 1, y0, mc, r) : null, ...(e.publish ? [trunkHit(x1, tx, y0, e), hit(tx, x2)] : [hit(left, x2)]), s('title', {}, [e.msg.label, e.marker?.full].filter(Boolean).join('\n')));
     }
     if (e.type === 'amqpnote') { // the bindings that do not route this publish, under the fork; the exchange page lists them
       const x0 = colX.get(e.col) + 10;
@@ -222,13 +224,13 @@ export function renderLane(lane, { onMessage, onBar, onBarMenu, onParticipant, o
   body.addEventListener('contextmenu', (ev) => { const b = barOf(ev.target); if (b) { ev.preventDefault(); onBarMenu?.(b, ev.clientX, ev.clientY); } });
   body.addEventListener('click', (ev) => {
     const bd = numOf(ev.target), pill = pillOf(ev.target), b = barOf(ev.target), e = eventOf(ev.target);
-    if (foldOf(ev.target)) { if (ev.detail <= 1) { const f = foldOf(ev.target); clearTimeout(foldTimer); foldTimer = setTimeout(() => fold(f), 200); } } else if (bd) { ev.stopPropagation(); onNum?.(bd.dataset.num); } else if (pill) onBar?.(pill); else if (b) onBar?.(b, 'select'); else if (e?.msg) onMessage?.(e.msg, ev.target.closest('[data-e]'), e);
+    if (foldOf(ev.target)) { if (ev.detail <= 1) { const f = foldOf(ev.target); clearTimeout(foldTimer); foldTimer = setTimeout(() => fold(f), 200); } } else if (bd) { ev.stopPropagation(); onNum?.(bd.dataset.num); } else if (pill) onBar?.(pill); else if (b) onBar?.(b, 'select'); else if (e?.msg) onMessage?.(e.msg, ev.target.closest('[data-e]'), e, !!(e.publish && ev.target.classList?.contains('trunk')));
   });
   body.addEventListener('keydown', (ev) => {
     if (ev.key !== 'Enter' && ev.key !== ' ') return;
     ev.preventDefault();
     const bd = numOf(ev.target), pill = pillOf(ev.target), b = barOf(ev.target), e = eventOf(ev.target);
-    if (foldOf(ev.target)) fold(foldOf(ev.target)); else if (bd) onNum?.(bd.dataset.num); else if (pill) onBar?.(pill); else if (b) onBar?.(b); else if (e?.msg) onMessage?.(e.msg, ev.target.closest('[data-e]'), e);
+    if (foldOf(ev.target)) fold(foldOf(ev.target)); else if (bd) onNum?.(bd.dataset.num); else if (pill) onBar?.(pill); else if (b) onBar?.(b); else if (e?.msg) onMessage?.(e.msg, ev.target.closest('[data-e]'), e, !!(e.publish && ev.target.classList?.contains('trunk')));
   });
   // a tile and its list row light up together
   const own = (el) => (el.dataset.own ?? '').split(' ').filter(Boolean);

@@ -44,6 +44,9 @@ export const statusPill = (s) => h('span.pill', { class: { fixed: 'ok', verified
 export const priorityPill = (p) => h('span.pill', { class: p, title: `Priority ${p}` }, p);
 
 /** Split "http:GET orders-svc/orders/{id}" → {transport:'http', rest:'GET orders-svc/orders/{id}'} */
+/** A key or command as children that may wrap after punctuation (dots, slashes, dashes) and never mid-word. */
+export const breakable = (t) => String(t).split(/(?<=[.\-_/:{}])/).flatMap((x, i) => (i ? [h('wbr'), x] : [x]));
+
 export function splitKey(key) {
   const i = key.indexOf(':');
   return i > 0 ? { transport: key.slice(0, i), rest: key.slice(i + 1) } : { transport: '', rest: key };

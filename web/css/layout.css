@@ -65,8 +65,7 @@
   .rail-c .rail { padding: var(--s2); flex-direction: row; }
   .rail-c .brand-row { flex-direction: row; padding: 0; }
   .rail-c .nav-link, .rail-c .rail-foot, .rail-c .env-chip { display: none; }
-  .collapse-btn svg, .rail-c .collapse-btn svg { transform: rotate(-90deg); }
-  .rail-c .collapse-btn svg { transform: rotate(90deg); }
+  /* the rail is a strip with its links to the right of the brand: the chevron keeps the desktop rule (points back when open, forward when collapsed) */
   .brand-name, .nav-badge { display: none; }
   .nav-link span { display: none; }
   .rail-foot { margin: 0 0 0 auto; border: 0; padding: 0; grid-auto-flow: column; }

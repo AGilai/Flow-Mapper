@@ -8,6 +8,10 @@ Add a row here with every fix or feature (newest first). A row without a working
 
 | Version | Bug | What to look at | Link |
 |---|---|---|---|
+| 0.19.1 | #46 | The socket demo's device-connect publish goes to `analytics-all-events`, whose consumer handles every type: no red "no handler" any more | `#/flows?service=sdp-controller&ingress=in.deviceConnect` |
+| 0.19.1 | | Click the shared trunk of a fan-out (service to topic or exchange): a neutral publish panel with event type, topic, routing key and every delivery; click a delivery to open it. Clicks after the fork still open their delivery | `#/flows?service=orders-svc&ingress=in.create`, `#/flows?service=cp-middleware&ingress=in.deviceLogout` |
+| 0.19.1 | | Egress commands and keys wrap only at dots, never mid-word (open the endpoint panel to narrow the column) | `#/services/sxdns?ep=in.rpcResolve` |
+| 0.19.1 | | At under 860px with no saved choice the Flows entry list starts collapsed, and the rail chevron points the right way. Link health no longer lists RPC commands as "never called", nor `what: detail` unresolved entries (they stay on the Redis page and step panel) | `#/flows` (narrow window), `#/health`, `#/instances/redis%3Acache-main` |
 | 0.17.5 | #48 | A long unresolved reason no longer squeezes the entry name in the Ingress/Egress rows: the chip truncates (full reason on hover), the name wraps at its own width. sdp-controller has an amqp ingress with a 60-char reason | `#/services/sdp-controller?env=prod` |
 | 0.19.0 | RabbitMQ | Exchange page (the "Exchange page" link of the flow lands here): 3 services, 6 routing keys, 5 bindings; an amber callout for `firmware.{deviceId}.updated` (matches no binding, dropped) and one for `system.#` (no harvested publisher); type `device.ab12.logout` in "Test a routing key" to see 3 of 5 bindings light up | `#/instances/amqp%3Asaferx.EventExchange` |
 | 0.19.0 | RabbitMQ | Inventory, Brokers > AMQP: exchanges and queues with the RabbitMQ icon ("3 publishers, 5 bindings", "bound by device.#, 1 consumer"), RPC commands in olive; RPC command and reply queues folded behind "Show RPC queues" | `#/inventory?type=amqp` |

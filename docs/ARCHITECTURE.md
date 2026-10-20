@@ -95,6 +95,8 @@ Redis instance page (0.16.0): `views/instance.js` (head, verdict), `instance-lan
 
 RabbitMQ pages (0.19.0): `views/exchange.js` is the exchange page, reached through `views/instance.js` for `#/instances/amqp%3A<name>` (css in `exchange.css`); the Inventory folds RPC plumbing (`inventory.js`, `rpc-fold`); the service switchboard shows RPC commands and calls as olive "amqp rpc" groups and publishes as grape "amqp" groups; `endpoint-rpc.js` adds the callers and the command queue to the endpoint panel.
 
+Fan-out trunk (0.19.1): `flow-lane.js` puts `publish` (topic, event, routing key, deliveries) on the trunk hop of a publish with 2+ deliveries; `flow-draw.js` draws a separate `hit trunk` rect for service to topic, and a click there opens `flow-panel-publish.js` (each delivery opens its own arrow).
+
 RabbitMQ (0.18.0): an exchange publish reuses the chain above (`flow-chain.js` exchange marker via `flow-amqp.js`); RPC over AMQP is a sync call in olive (`flow-amqp.js`: chip per caller/server pair, reply labels; `flow-panel-amqp.js`: the panel's AMQP card).
 
 Design tokens are in `css/tokens.css`. Transport colours (http, sns, sqs, amqp, data store,

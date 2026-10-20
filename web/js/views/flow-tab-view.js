@@ -6,6 +6,7 @@ import { h, fill } from '../dom.js';
 import { createFlowRender } from './flow-render.js';
 import { createInside } from './flow-inside-panel.js';
 import { messagePanel } from './flow-panel.js';
+import { publishPanel } from './flow-panel-publish.js';
 import { plural } from './flow-async.js';
 import { descBlock, descLine } from './flow-desc.js';
 import { createTip } from './flow-desc-tip.js';
@@ -65,6 +66,16 @@ export function createTabView(data, host) {
       host.flowsEl.classList.add('mp-open');
       host.panel.open(...messagePanel(m, tr, host.env, 'full', host.openEntry));
     } };
+
+  function openPublish(pub, g, tr) { // the shared trunk of a fan-out: the publish, then its deliveries (each opens its own arrow)
+    body.querySelectorAll('.msg.active').forEach((e) => e.classList.remove('active'));
+    g.classList.add('active');
+    inside.close();
+    host.flowsEl.classList.add('mp-open');
+    const events = g.closest('svg')?.__events ?? [];
+    host.panel.open(...publishPanel(pub, (d) => { const k = events.indexOf(d.hop), el = k >= 0 ? g.closest('svg').querySelector(`[data-e="${k}"]`) : g; shared.openMessage(d.msg, el ?? g, tr); }));
+  }
+  shared.openPublish = openPublish;
 
   function head() { // breadcrumb and lane summary: sub-flow and full-flow tabs only
     if (!data.originKey) return flowBox ? h('div.tpad', flowBox.el) : null;

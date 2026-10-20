@@ -32,8 +32,16 @@ const blank = (s: string | undefined) => s !== undefined && !s.trim();
 const sample = (ids: string[]) => ids.slice(0, 3).join(', ') + (ids.length > 3 ? `, +${ids.length - 3} more` : '');
 const FANOUT = new Set(['sns-topic', 'eventbridge-bus']);
 
+/** Field paths a `what: "detail"` entry may name (#45). Another path is kept but warned about. */
+export const DETAIL_PATHS = ['details.databases', 'client.databases', 'details.keyTemplate', 'details.dbIndex', 'details.ttlSeconds'];
+
 const unresolvedNoDetail: Rule = ({ m, add }) => {
   const check = (kind: 'ingress' | 'egress' | 'step' | 'resource' | 'function', id: string, list?: Unresolved[]) => {
+    for (const u of list ?? []) if (u.what === 'detail' && !blank(u.detail) && u.detail !== undefined && !DETAIL_PATHS.includes(u.detail)) add({
+      level: 'warn', code: 'unresolved-detail-unknown-path', kind, id,
+      message: `${kind} '${id}' has an unresolved (detail) entry naming '${u.detail}', which is not a field Flow-Mapper reads`,
+      fix: `Use one of: ${DETAIL_PATHS.join(', ')}. The entry is kept, but nothing shows it by that path.`,
+    });
     for (const u of list ?? []) if (blank(u.reason) || blank(u.detail)) add({
       level: 'warn', code: 'unresolved-no-detail', kind, id,
       message: `${kind} '${id}' has an unresolved (${u.what}) entry with an empty ${blank(u.reason) ? 'reason' : 'detail'}`,

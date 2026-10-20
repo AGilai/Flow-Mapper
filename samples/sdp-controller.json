@@ -114,7 +114,7 @@
   "egress": [
     {
       "id": "tenant.notify",
-      "bindKey": "sqs:tenant-notifications",
+      "bindKey": "sqs:analytics-all-events",
       "transport": "sqs",
       "mode": "async"
     }

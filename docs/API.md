@@ -14,7 +14,7 @@ All endpoints are JSON unless noted. Errors look like
 Responses: `201 {results: [{env, service, fromVersion, toVersion, changes, changelogId, contract}]}`;
 a dry run returns `200 {dryRun: true, results: [...]}` with the same result shape (nothing written).
 
-A batch (`{"manifests": [...]}`) is one transaction: if any manifest is invalid or stale, the whole batch is rejected and nothing is written (a dry run likewise writes nothing). `contract` reports what the manifest leaves out or cannot link, judged against the env as it would be
+A batch (`{"manifests": [...]}`) is one transaction: if any manifest is invalid or stale, the whole batch is rejected and nothing is written (a dry run likewise writes nothing). `contract` (warning `unresolved-detail-unknown-path` when an `unresolved` what=`detail` names a path other than `details.databases`, `client.databases`, `details.keyTemplate`, `details.dbIndex`, `details.ttlSeconds`; the entry is kept, never rejected) reports what the manifest leaves out or cannot link, judged against the env as it would be
 after the whole batch. It never rejects:
 
 ```json
@@ -67,7 +67,7 @@ Add `?source=ui` to mark edits made from a UI in the changelog.
 | `GET /api/envs/:env/trace?service=&ingress=\|fn=&scope=intra\|full&maxDepth=&maxMessages=&frontier=1` | participants and ordered messages; an egress message carries `via` (the wrapper hops of that call, for the call site when the egress lists one for the calling function); a message that reaches an ingress carries `handlerVia` (its handler-resolution hops). `code` also maps `step:<service>:<fn>#<seq>` to the link of a step's `source`. Messages of steps that are mutually exclusive alternatives carry `alt: {group, branch, of}` (see below) |
 | `GET /api/envs/:env/paths?from=&to=&limit=` | service-level paths, including through queues |
 | `GET /api/envs/:env/search?q=&limit=` | services, functions, endpoints, channels, resources |
-| `GET /api/envs/:env/health` | link-health totals, per-service numbers, broken items (including the event checks: `unhandledEvents`, `undeliveredEvents`, `neverArrives`, `declaredNotSeen`, `subscriptionConflicts`; the store checks `multipleWriters`, `unusedStores`; and what harvesters report: `unresolved` (on ingress, egress, functions (`what: caller`), steps and resources (`what: instance`: DB instance id unknown, the store key is kept; `what: detail`: a field named in `detail` could not be read, also on resource steps, #45, never a broken link); with reason, candidates and their possible matches), `mixedCommits`, `drift`) |
+| `GET /api/envs/:env/health` | link-health totals, per-service numbers, broken items (including the event checks: `unhandledEvents`, `undeliveredEvents`, `neverArrives`, `declaredNotSeen`, `subscriptionConflicts`; the store checks `multipleWriters`, `unusedStores`; and what harvesters report: `unresolved` (on ingress, egress, functions (`what: caller`), steps and resources (`what: instance`: DB instance id unknown, the store key is kept; `what: detail`: a field named in `detail` could not be read, also on resource steps, #45; kept in the data, the instance page and the step panel, but left out of health, its lists and counts since 0.19.1); with reason, candidates and their possible matches), `mixedCommits`, `drift`) |
 | `GET /api/envs/:env/health/history?service=` | health per service version |
 | `GET /api/envs/:env/changelog?service=&limit=&before=` | changes, newest first |
 | `GET /api/envs/:env/model` | the raw model (for clients running `core/` themselves) |

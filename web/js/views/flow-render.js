@@ -33,7 +33,7 @@ export function createFlowRender({ trace, tree, key, ancestors = [], sticky = tr
     onNum: (label) => { if (index) index.reveal(label); }, // a number tile at a queue: open that row of the list below (a card opens in place)
     onNumHover: (labels, on) => labels.forEach((l) => index?.rowNode(l)?.classList.toggle('hl', on)),
     onFan: (topic) => { if (!fanOpen.delete(topic)) fanOpen.add(topic); drawLane(); },
-    onMessage: (m, g) => { if (m.kind === 'frontier') host.setFrontier(); else sh.openMessage(m, g, trace); },
+    onMessage: (m, g, e, trunk) => { if (m.kind === 'frontier') host.setFrontier(); else if (trunk && e?.publish) sh.openPublish(e.publish, g, trace); else sh.openMessage(m, g, trace); },
   };
 
   function drawLane() {

@@ -10,7 +10,7 @@
 
 import type { Binding, Channel, Delivery, Egress, Mode, Ingress, Link, Model, Ref, Resolution, Transport, Unresolved } from './types.ts';
 import { compareSpecificity, keyMatches, specificity } from './glob.ts';
-import { routeKey } from './amqp-route.ts';
+import { routeKey, rpcServed } from './amqp-route.ts';
 
 export const DEFAULT_DELIVERY: Record<string, Delivery> = {
   http: 'unicast', rpc: 'unicast', grpc: 'unicast', sqs: 'unicast', sns: 'multicast', amqp: 'multicast', eventbridge: 'multicast',
@@ -141,7 +141,7 @@ export function resolve(model: Model): Resolution {
   for (const [key] of channels) reachesIngress({ type: 'channel', key });
   for (const b of model.bindings) for (const r of targetsOfBinding.get(b)!) if (r.type === 'ingress') reached.add(refKey(r));
 
-  const orphans = consumers.filter((i) => !i.entryPoint && !reached.has(refKey(ingressRef(i))));
+  const orphans = consumers.filter((i) => !i.entryPoint && !rpcServed(i) && !reached.has(refKey(ingressRef(i))));
 
   const unbound: Resolution['unbound'] = [];
   for (const [key, c] of channels) {

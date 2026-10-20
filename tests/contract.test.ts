@@ -31,6 +31,15 @@ test('an unresolved entry needs a detail', () => {
   assert.ok(fs.every((f) => f.level === 'warn'));
 });
 
+test('an unknown detail path is warned about, a known one is not', () => {
+  const m: ServiceManifest = { service: 'a', resources: [{ id: 'r', kind: 'redis', name: 'r', source: src, unresolved: [
+    { what: 'detail', reason: 'x', detail: 'details.keyTemplate' }, { what: 'detail', reason: 'x', detail: 'details.ttl' }] } as any] };
+  const fs = has(codes(m, {}), 'unresolved-detail-unknown-path');
+  assert.equal(fs.length, 1);
+  assert.equal(fs[0].level, 'warn');
+  assert.match(fs[0].message, /details\.ttl/);
+});
+
 test('missing source is one finding per service with a count and examples', () => {
   const m: ServiceManifest = { service: 'a', ingress: [1, 2, 3, 4, 5].map((n) => ({ id: `i${n}`, bindKey: `k${n}` })), functions: [{ id: 'f', steps: [{ seq: 1, type: 'call', target: 'g' }] }] };
   const fs = has(codes(m, {}), 'missing-source');

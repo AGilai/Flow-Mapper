@@ -37,6 +37,16 @@
 .msg.broken .label { fill: var(--t-broken); }
 .msg:hover .hit, .msg:focus-visible .hit, .msg.active .hit { fill: color-mix(in srgb, var(--accent) 9%, transparent); }
 .msg:focus-visible .hit { stroke: var(--focus); }
+.msg .hit.trunk:focus-visible { stroke: var(--focus); }
+/* a fan-out row has two targets (trunk, branch): only the one under the pointer lights up */
+.msg:has(.hit.trunk):hover .hit { fill: transparent; }
+.msg:has(.hit.trunk) .hit:hover { fill: color-mix(in srgb, var(--accent) 9%, transparent); }
+/* The publish panel of a fan-out trunk (0.19.1): one clickable row per delivery. */
+.pub-list { display: grid; }
+.pub-row { width: 100%; text-align: left; border: 0; border-top: 1px solid var(--line); background: transparent; font: inherit; cursor: pointer; }
+.pub-row:first-child { border-top: 0; }
+.pub-row:hover, .pub-row:focus-visible { background: var(--accent-soft); }
+.pub-go { flex: none; color: var(--accent); font-size: 18px; }
 @media (max-width: 860px) {
   .flows, .flows.list-c { grid-template-columns: 1fr; grid-template-rows: 220px 1fr; }
   .flows.list-c { grid-template-rows: 38px 1fr; }

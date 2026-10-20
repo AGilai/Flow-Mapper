@@ -6,7 +6,7 @@ import { href } from '../router.js';
 import { chip, splitKey } from '../format.js';
 import { describeCount } from '../../core/flow-counts.js';
 import { entryKey } from './flow-tabs-state.js';
-import { KEYS, SLIDE_MS, readCollapsed, writeCollapsed, toggleLabel, stripLabel } from '../collapse.js';
+import { KEYS, SLIDE_MS, isNarrow, readCollapsed, writeCollapsed, toggleLabel, stripLabel } from '../collapse.js';
 
 const LIST_CAP = 300;
 
@@ -17,7 +17,7 @@ const countBadge = (c) => c ? h('span.count', { title: describeCount(c) }, ` (${
 export function createList({ points, counts, service, onPick, onAll, onCollapse }) {
   const body = h('div.flows-scroll');
   const filter = h('input.input', { type: 'search', placeholder: service ? 'Filter ingress' : 'Filter entry points', 'aria-label': 'Filter starting points' });
-  let marks = { keys: [], active: null }, collapsed = readCollapsed(KEYS.list);
+  let marks = { keys: [], active: null }, collapsed = readCollapsed(KEYS.list, undefined, isNarrow()); // narrow viewport: starts collapsed unless a choice was saved
   const word = h('span.fl-word'), strip = h('div.fl-strip', { 'aria-hidden': 'true' }, word);
   const btn = h('button.collapse-btn.fl-toggle', { type: 'button', on: { click: () => set(!collapsed) } }, icon('chev'));
   const paint = () => {

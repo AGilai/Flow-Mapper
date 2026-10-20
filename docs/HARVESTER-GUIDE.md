@@ -40,6 +40,7 @@ anything. There are currently no `error`-level codes (422 rejections come from v
 | Code | Level | Means | Fix |
 |---|---|---|---|
 | `unresolved-no-detail` | warn | an `unresolved` entry (on ingress, egress, function, step or resource) with an empty `detail` (or blank `reason`) | say what you could not resolve |
+| `unresolved-detail-unknown-path` | warn | `unresolved` what `detail` whose `detail` is not one of `details.databases`, `client.databases`, `details.keyTemplate`, `details.dbIndex`, `details.ttlSeconds` | use one of those paths (the entry is kept, never rejected) |
 | `client-version-gap` | info | a `client` with a driver or lib but no version, and no `unresolved` entry saying why | send the version, or `unresolved: [{what: "client", reason, detail: "driver.version"}]` |
 | `client-unresolved-field` | warn | `unresolved` what `client` whose `detail` is not a client field path | name the field: `accessMode`, `accessId`, `driver.version`, `lib.version`, `lib.driver.version`, `via` |
 | `field-not-in-ddl` | info | store steps whose `fields` carry `inDdl: false` (one finding per service) | add the field to the schema or the DTO, or remove it from the code |
@@ -306,7 +307,7 @@ the service's resource points at it by `bindKey` and keeps carrying `client`; no
 
 **Per resource step** (cheap, and it makes "which flows write this key" work): `"details": {"keyTemplate": "session:{tenantId}:{userId}", "ttlSeconds": 1800}` on a `type: resource` step (`dbIndex` too if known).
 
-**Unknown values (#45).** When you know a field exists but cannot read it, leave it out and say why, e.g. on the instance resource `"unresolved": [{"what": "detail", "detail": "details.databases", "reason": "databases_not_in_cfg"}]`; on a service resource `{"what": "detail", "detail": "client.databases", "reason": "db_from_runtime_config"}`; on a resource step `{"what": "detail", "detail": "details.keyTemplate", "reason": "key_unresolved:computed"}` (same for `details.dbIndex`, `details.ttlSeconds`). An empty `detail` or `reason` gets the `unresolved-no-detail` warning.
+**Unknown values (#45).** When you know a field exists but cannot read it, leave it out and say why, e.g. on the instance resource `"unresolved": [{"what": "detail", "detail": "details.databases", "reason": "databases_not_in_cfg"}]`; on a service resource `{"what": "detail", "detail": "client.databases", "reason": "db_from_runtime_config"}`; on a resource step `{"what": "detail", "detail": "details.keyTemplate", "reason": "key_unresolved:computed"}` (same for `details.dbIndex`, `details.ttlSeconds`). An empty `detail` or `reason` gets the `unresolved-no-detail` warning; another path gets `unresolved-detail-unknown-path`. These entries show on the Redis instance page and in the step panel, not in Link health.
 
 **Keys, per instance, after the manifests** (optional, full replace each time):
 

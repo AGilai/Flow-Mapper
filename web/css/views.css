@@ -76,7 +76,8 @@
 /* #48: a long reason shrinks (ellipsis, full text in the title) instead of squeezing the name */
 .sb-actions .pill { min-width: 0; max-width: 100%; }
 .sb-actions .pill.gap { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 20px; }
-.sb-row > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.sb-row > span:first-child { min-width: 0; overflow-wrap: break-word; }
+.sb-row > span:first-child .key { word-break: normal; overflow-wrap: break-word; } /* commands and keys wrap at their dots (<wbr>), not mid-word */
 .icon-btn { height: 24px; width: 24px; padding: 0; justify-content: center; color: var(--muted); }
 .icon-btn:hover { color: var(--accent); }
 

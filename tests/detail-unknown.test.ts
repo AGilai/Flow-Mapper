@@ -7,6 +7,7 @@ import assert from 'node:assert/strict';
 import { sampleManifests, sampleModel, startApp } from './helpers.ts';
 import { buildIndex } from '../core/graph-index.ts';
 import { instanceView } from '../core/instances.ts';
+import { unresolvedItems } from '../core/harvest-quality.ts';
 import { trace } from '../core/trace.ts';
 
 let app: Awaited<ReturnType<typeof startApp>>;
@@ -41,11 +42,14 @@ test('a resource step carries its unknown details on the trace message', () => {
   assert.equal(msgs.find((x) => x.seq === 1)?.unknown, undefined);
 });
 
-test('unknown fields are reported as unresolved, not as broken links', async () => {
+test('unknown fields stay in the data but are not in link health (0.19.1)', async () => {
   const h = (await app.call('GET', '/api/envs/prod/health')).body;
-  const items = h.items.unresolved.filter((x: any) => x.what === 'detail');
+  assert.equal(h.items.unresolved.filter((x: any) => x.what === 'detail').length, 0);
+  const g = buildIndex(sampleModel());
+  const items = unresolvedItems(g).filter((x) => x.what === 'detail');
   assert.ok(items.length >= 4);
-  assert.ok(items.every((x: any) => x.detail && x.reason));
+  assert.ok(items.every((x) => x.detail && x.reason));
+  assert.equal(h.totals.unresolved, h.items.unresolved.length);
   const broken = JSON.stringify([h.items.dangling, h.items.orphans, h.items.unbound, h.items.ambiguous]);
   assert.ok(!broken.includes('OrderController.get') && !broken.includes('db_from_runtime_config'));
 });

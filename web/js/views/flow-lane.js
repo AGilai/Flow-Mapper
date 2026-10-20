@@ -126,12 +126,18 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
       const marker = r.legs.length > 1 ? { kind: 'fold', label: `${r.legs.length} queues`, full: `${r.legs.length} queues, folded: ${r.legs.map((x) => chName(x.to)).join(', ')}` } : filterMarker(l.filter, l.msg.transport, l.msg.amqp);
       return { msg: l.msg, legs: r.legs, end, marker, to: chanCol(r.to), queue: l.to, transport: chType(l.to) };
     };
+    const hops = [];
     rows.forEach((r, k) => {
       if (k === 1 && through) return;
       const b = k === 0 && through ? info(rows[1]) : info(r), trunk = k === 0, fork = !trunk && r.from === root;
-      push({ type: 'hop', ...b, from: trunk ? top.col : chanCol(r.from), fromBar: trunk ? top : null, via: trunk && through ? chanCol(root) : null, label: event, sub: trunk ? sub : null, trunk, fork, topic: root,
-        trunkTransport: chType(root), queue: isQueueKey(b.queue) ? b.queue : null });
+      hops.push(push({ type: 'hop', ...b, from: trunk ? top.col : chanCol(r.from), fromBar: trunk ? top : null, via: trunk && through ? chanCol(root) : null, label: event, sub: trunk ? sub : null, trunk, fork, topic: root,
+        trunkTransport: chType(root), queue: isQueueKey(b.queue) ? b.queue : null }));
     });
+    // A fan-out (0.19.1): a click on the shared trunk (service to topic) opens the publish itself, with every delivery listed; a click after the fork opens that delivery.
+    const fanned = rows.slice(1).reduce((n, r) => n + r.legs.length, 0) > 1;
+    if (through && fanned) hops[0].publish = { topic: root, event: m0.event ?? null, label: event, routingKey: m0.amqp?.routingKey ?? null, exchange: m0.amqp?.exchange ?? null, msg: m0,
+      deliveries: rows.slice(1).flatMap((r, k) => r.legs.map((l) => ({ queue: l.to, msg: l.msg, hop: hops[k], filter: filterMarker(l.filter, l.msg.transport, l.msg.amqp)?.full ?? null,
+        consumers: l.delivers.filter((d) => d.target?.service).map((d) => ({ service: d.target.service, ingress: d.target.ingress, fn: d.target.fn })) }))) };
     const miss = m0.amqp && !isQueueKey(root) ? nonMatchText(m0.amqp) : null; // the bindings that do not route this publish: one muted line under the fork
     if (miss) push({ type: 'amqpnote', col: chanCol(root), text: miss, exchange: m0.amqp.exchange });
   };

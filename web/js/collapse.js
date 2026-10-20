@@ -6,10 +6,14 @@ export const SLIDE_MS = 180;
 
 const store = () => { try { return globalThis.localStorage ?? null; } catch { return null; } };
 
-/** true when the panel was left collapsed. `storage` is injectable for tests. */
-export function readCollapsed(key, storage = store()) {
-  try { return storage?.getItem(`fm:${key}`) === '1'; } catch { return false; }
+/** true when the panel was left collapsed; a saved choice ('1' / '0') always wins, else `fallback`. `storage` is injectable for tests. */
+export function readCollapsed(key, storage = store(), fallback = false) {
+  try { const v = storage?.getItem(`fm:${key}`); return v === '1' ? true : v === '0' ? false : !!fallback; } catch { return !!fallback; }
 }
+
+/** The width under which the layout is a stacked one (layout.css); a panel with no saved choice starts collapsed there. */
+export const NARROW_PX = 860;
+export const isNarrow = (w = globalThis.innerWidth) => typeof w === 'number' && w > 0 && w < NARROW_PX;
 
 /** Remember the state; returns it. A storage that cannot be written is ignored. */
 export function writeCollapsed(key, collapsed, storage = store()) {
