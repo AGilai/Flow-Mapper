@@ -35,6 +35,7 @@ const remote = {
   system: (env) => http('GET', `/api/envs/${e(env)}/views/system`),
   service: (env, name) => http('GET', `/api/envs/${e(env)}/views/service/${e(name)}`),
   entryPoints: (env) => http('GET', `/api/envs/${e(env)}/entry-points`),
+  flowCounts: (env) => http('GET', `/api/envs/${e(env)}/flows/counts`),
   inventory: (env) => http('GET', `/api/envs/${e(env)}/inventory`),
   store: (env, key) => http('GET', `/api/envs/${e(env)}/stores/${e(key)}`),
   clients: (env, f = {}) => http('GET', `/api/envs/${e(env)}/clients${qs(f)}`),

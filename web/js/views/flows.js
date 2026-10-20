@@ -12,8 +12,13 @@ import { chip, splitKey } from '../format.js';
 import { renderSequence } from './sequence-render.js';
 import { messagePanel } from './flow-panel.js';
 import { participantMenu } from './flow-menu.js';
+import { resizer } from '../components/resizer.js';
+import { describeCount } from '../../core/flow-counts.js';
 
 const LIST_CAP = 300;
+
+/** "(8)" after an entry point: distinct services, channels and stores its flow reaches; the breakdown is the tooltip. */
+const countBadge = (c) => c ? h('span.count', { title: describeCount(c) }, ` (${c.total})`) : null;
 
 export async function render({ main, query }) {
   const service = query.get('service');
@@ -30,6 +35,8 @@ export async function render({ main, query }) {
     ? (await api.service(state.env, service)).ingress.map((i) => ({ service, id: i.id, bindKey: i.bindKey, transport: i.transport, handler: i.handler, entryPoint: i.entryPoint }))
     : await api.entryPoints(state.env);
 
+  // Components each entry point's flow reaches, from one batched call; the list works without it.
+  const counts = new Map((await api.flowCounts(state.env).catch(() => [])).map((c) => [`${c.service}:${c.ingress}`, c]));
   const listBody = h('div.flows-scroll');
   const filter = h('input.input', { type: 'search', placeholder: service ? 'Filter ingress' : 'Filter entry points', 'aria-label': 'Filter starting points' });
   const drawList = () => {
@@ -42,7 +49,7 @@ export async function render({ main, query }) {
       [...groups].map(([svc, ps]) => [h('h3', svc), ps.map((p) => h('a.entry', {
         href: href('/flows', { service: p.service, ingress: p.id, scope: opts.scope }),
         'aria-current': String(p.service === start.service && p.id === start.ingress),
-      }, h('span.row', chip(p.transport), p.entryPoint ? h('span.xs.muted', 'entry point') : null), h('span.key', splitKey(p.bindKey).rest)))]),
+      }, h('span.row', chip(p.transport), p.entryPoint ? h('span.xs.muted', 'entry point') : null), h('span.key', splitKey(p.bindKey).rest, countBadge(counts.get(`${p.service}:${p.id}`)))))]),
       xs.length > LIST_CAP ? h('p.xs.muted', { style: { padding: 'var(--s2)' } }, `${xs.length - LIST_CAP} more. Type to narrow the list.`) : null,
       !xs.length ? h('p.small.muted', { style: { padding: 'var(--s2)' } }, 'No starting points match.') : null);
   };
@@ -51,10 +58,16 @@ export async function render({ main, query }) {
 
   const mainPane = h('div.flows-main');
   const panel = createPanel(mainPane, { onClose: () => mainPane.querySelector('.msg.active')?.classList.remove('active') });
+  const listEl = h('aside.flows-list', h('div.search', icon('search'), filter), listBody);
+  const flowsEl = h('div.flows', listEl, mainPane);
+  resizer(listEl, { edge: 'right', key: 'flows-list', defaultWidth: 300, label: 'Resize entry point list',
+    width: () => listEl.offsetWidth, apply: (px) => flowsEl.style.setProperty('--list-w', `${px}px`) });
+  resizer(panel.el, { edge: 'left', key: 'flow-panel', defaultWidth: 380, label: 'Resize flow details',
+    width: () => panel.el.offsetWidth, apply: (px) => { panel.el.style.width = `min(${px}px, 100%)`; } });
 
   main.append(
     pageHead('Flows', service ? `Starting points in ${service}` : `${points.length} entry points in ${state.env}`),
-    h('div.content.flush', h('div.flows', h('aside.flows-list', h('div.search', icon('search'), filter), listBody), mainPane)));
+    h('div.content.flush', flowsEl));
 
   if (!start.ingress && !start.fn) {
     mainPane.append(h('div.empty', h('h2', 'Pick a starting point'),

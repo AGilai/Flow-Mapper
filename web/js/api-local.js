@@ -5,6 +5,7 @@ import { buildIndex } from '../core/graph-index.js';
 import { systemGraph } from '../core/system-graph.js';
 import { serviceView } from '../core/service-view.js';
 import { entryPoints, trace } from '../core/trace.js';
+import { flowCounts } from '../core/flow-counts.js';
 import { findPaths } from '../core/paths.js';
 import { search } from '../core/search.js';
 import { health } from '../core/health.js';
@@ -53,6 +54,7 @@ export const api = {
     return { ...v, openBugs: bugs.filter((b) => OPEN.includes(b.status) && b.links.some((l) => l.id === name || l.service === name)).length };
   },
   entryPoints: async (env) => entryPoints(g(env)),
+  flowCounts: async (env) => flowCounts(g(env)),
   inventory: async (env) => inventory(g(env), (data.eventDtos?.[env] ?? []).map((d) => d.event)),
   clients: async (env, f = {}) => listClients(g(env), f),
   store: async (env, key) => ({ ...(storeWithClients(g(env), key) ?? fail(`data store '${key}' not found`)), schemas: (data.schemas?.[env] ?? []).filter((s) => s.key === key) }),

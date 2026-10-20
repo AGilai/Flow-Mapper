@@ -6,6 +6,7 @@ import { badRequest, notFound } from '../errors.ts';
 import { systemGraph } from '../../core/system-graph.ts';
 import { serviceView } from '../../core/service-view.ts';
 import { entryPoints, trace } from '../../core/trace.ts';
+import { flowCounts } from '../../core/flow-counts.ts';
 import { findPaths } from '../../core/paths.ts';
 import { search } from '../../core/search.ts';
 import { health } from '../../core/health.ts';
@@ -30,6 +31,7 @@ export function registerQueries(r: Router, ctx: Ctx) {
   });
 
   r.get('/api/envs/:env/entry-points', (req) => entryPoints(g(req.params.env)));
+  r.get('/api/envs/:env/flows/counts', (req) => flowCounts(g(req.params.env)));
 
   r.get('/api/envs/:env/trace', (req) => {
     const q = req.query;

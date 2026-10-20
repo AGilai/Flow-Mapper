@@ -8,6 +8,7 @@ Add a row here with every fix or feature (newest first). A row without a working
 
 | Version | Bug | What to look at | Link |
 |---|---|---|---|
+| 0.8.3 | — | Flows: component count in brackets after each entry point (tooltip has the breakdown); drag the list's right edge or the details panel's left edge to resize (arrows move 16px, double-click resets) | `#/flows?service=api-gateway` |
 | 0.8.2 | #34 | A DELETE whose call tree is a frontier: folded into "frontier: 8 steps", click it to expand; two classified leaves (db_access, external_pkg) shown as notes, not unresolved | `#/flows?service=orders-svc&ingress=in.remove` |
 | 0.8.1 | — | Long event names stay inside their chips (break after `.` `-` `_`, ellipsis for a single long segment, full name in the tooltip) in publisher, filter and consumer nodes | `#/channels/sns%3Aproduction-event-bus-sns` |
 | 0.8.0 | #27 | Clients table on a Redis key: 6 services; direct driver (ioredis 5.3.2), shared library `saferxlib` bundling ioredis 4.27.6 next to their own 5.x (coloured 5.x / 4.x pills and a callout naming saferxlib), an own wrapper on ioredis 4.28.5, one with the driver version unresolved, a 2-hop via | `#/stores/redis%3Acache-main%2Forder%3A%7Bid%7D` |
