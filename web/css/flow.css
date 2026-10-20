@@ -61,11 +61,13 @@
 .handles { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-top: 3px; font-size: var(--fs-xs); }
 
 /* Chips for event types are identifiers, so mono */
-.chips { display: inline-flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.chips { display: inline-flex; flex-wrap: wrap; gap: 4px; align-items: center; max-width: 100%; min-width: 0; }
 .chips.nowrap { flex-wrap: nowrap; }
 .lane-node .nm a.key, .lane-node .sub-id { word-break: normal; overflow-wrap: break-word; }
-.ev-chip { white-space: nowrap; font-family: var(--mono); font-size: var(--fs-xs); min-height: 22px; display: inline-flex; align-items: center; padding: 0 7px; border-radius: 11px;
+.ev-chip { max-width: 100%; min-width: 0; box-sizing: border-box; font-family: var(--mono); font-size: var(--fs-xs); line-height: 1.3; padding: 3px 7px; border-radius: 11px;
   border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); }
+.ev-chip .part { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+.handles { display: flex; flex-wrap: wrap; gap: 2px 6px; align-items: baseline; min-width: 0; }
 .all-chip { font-size: var(--fs-xs); min-height: 22px; display: inline-flex; align-items: center; padding: 0 8px; border-radius: 4px; background: var(--surface-2); color: var(--ink-2); font-weight: 600; }
 .chip-more { border: 0; background: none; padding: 0 4px; color: var(--accent); font-size: var(--fs-xs); cursor: pointer; }
 .chip-more:hover { text-decoration: underline; }
@@ -109,7 +111,7 @@
 .lane-filter.thin .thin-mid { position: relative; margin: 0 auto; padding: 0 8px; background: var(--surface); }
 
 /* Merged declarations */
-.decl { display: grid; gap: 4px; padding: 6px 8px; border: 1px dashed var(--line-strong); border-radius: var(--r-sm); background: var(--surface); font-size: var(--fs-sm); }
+.decl { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; padding: 6px 8px; border: 1px dashed var(--line-strong); border-radius: var(--r-sm); background: var(--surface); font-size: var(--fs-sm); }
 .decl .who a { color: var(--accent); }
 .decl.disagree { border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent); background: color-mix(in srgb, var(--warn) 7%, var(--surface)); gap: 6px; }
 .decl-tag { display: flex; align-items: center; gap: 6px; font-size: var(--fs-xs); font-weight: 600; color: var(--warn); }

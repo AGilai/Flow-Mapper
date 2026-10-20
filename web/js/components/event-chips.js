@@ -2,7 +2,10 @@
 
 import { h } from '../dom.js';
 
-export const evChip = (type, cls = '') => h('span.ev-chip', { class: cls }, type);
+/** Break opportunity after each . - _ : ; every segment is its own box so one too wide for the chip gets an ellipsis. */
+const segments = (text) => String(text).split(/(?<=[-._:])/).flatMap((part, i) => (i ? [h('wbr'), h('span.part', part)] : [h('span.part', part)]));
+
+export const evChip = (type, cls = '') => h('span.ev-chip', { class: cls, title: type }, segments(type));
 
 /** Chips for a list of event types; beyond `limit` a "+N more" button expands the rest. */
 export function eventChips(types, { limit = 3, cls = '', nowrap = false } = {}) {

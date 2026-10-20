@@ -84,4 +84,3 @@
 /* Publisher's "May also send" chips stay inside the node */
 .maybe { min-width: 0; }
 .maybe .chips { min-width: 0; }
-.maybe .ev-chip { white-space: normal; overflow-wrap: anywhere; max-width: 100%; }
