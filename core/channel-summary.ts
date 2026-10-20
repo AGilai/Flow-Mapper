@@ -5,7 +5,7 @@ import type { Cell, DeliveryGrid, FlowRow, Publisher } from './channel-flow.ts';
 import { filterLabel } from './glob.ts';
 
 export interface Segment { t: string; b?: boolean }
-export interface Callout { text: string; /** id of the flow row it is about */ rowId: string | null; level: 'warn' | 'bad' | 'info' }
+export interface Callout { text: string; /** the queue the text starts with (`<subject>: …`), shown bold */ subject?: string; /** id of the flow row it is about */ rowId: string | null; level: 'warn' | 'bad' | 'info' }
 export interface Summary { text: string; segments: Segment[]; callouts: Callout[] }
 
 interface Input {
@@ -90,8 +90,10 @@ export function flowSummary(i: Input): Summary {
     if (!dest.consumer) return;
     const evs = eventsWhere(d, (c) => !c.uncertain && !c.possible && c.status === 'no-handler');
     if (!evs.length) return;
-    const prefix = i.layout === 'fanout' && dest.queue ? `${dest.queue.name}: ` : '';
-    callouts.push({ text: `${prefix}${some(evs)} ${evs.length === 1 ? 'reaches' : 'reach'} ${dest.consumer.service}, which has no handler for ${evs.length === 1 ? 'it' : 'them'}.`, rowId: dest.rowId || null, level: 'bad' });
+    // On a fan-out the row lists the types; the callout names the queue and the count.
+    const subject = i.layout === 'fanout' && dest.queue ? dest.queue.name : undefined;
+    const what = subject ? `${evs.length} event ${evs.length === 1 ? 'type arrives' : 'types arrive'}` : `${some(evs)} ${evs.length === 1 ? 'reaches' : 'reach'} ${dest.consumer.service}, which has`;
+    callouts.push({ text: subject ? `${subject}: ${what} at ${dest.consumer.service} with no handler.` : `${what} no handler for ${evs.length === 1 ? 'it' : 'them'}.`, subject, rowId: dest.rowId || null, level: 'bad' });
   });
 
   // Published, but every subscription filters it out.

@@ -15,7 +15,7 @@
 .lane-node.chan[data-t='async'].here { --c: var(--t-res); }
 
 /* Producers */
-.hub-pub { padding: 6px 10px; }
+.hub-pub { padding: 6px 10px; min-width: 0; overflow-wrap: anywhere; }
 .hub-pub .possible-chip { margin-top: 0; float: right; }
 .hub-pub[role='button'] { cursor: pointer; }
 .hub-pub[role='button']:hover { border-color: var(--line-strong); background: color-mix(in srgb, var(--accent) 3%, var(--surface)); }
@@ -30,10 +30,15 @@
 .hub-q.warn { background: color-mix(in srgb, var(--warn) 6%, var(--surface)); border-color: color-mix(in srgb, var(--warn) 35%, transparent); }
 .hub-q-head { display: flex; flex-wrap: wrap; align-items: center; gap: 2px var(--s2); min-width: 0; }
 .hub-q-name { flex: 1 1 150px; min-width: 0; }
-.hub-q-name a.key { font-family: var(--mono); font-size: var(--fs-sm); font-weight: 600; overflow-wrap: break-word; }
-.hub-chev { border: 0; background: none; width: 18px; height: 22px; padding: 0; cursor: pointer; color: var(--muted); font-size: 16px; line-height: 1; flex: none; }
+.hub-q-name a.key { font-family: var(--mono); font-size: var(--fs-sm); font-weight: 600; overflow-wrap: break-word; color: var(--accent); }
+/* Healthy rows stay neutral: green lives on the tick only; problem rows keep a red or amber bar. */
+.hub-q:not(.bad):not(.warn) { border-left-color: var(--line); }
+.hub-q.bad { border-left-color: var(--bad); }
+.hub-q.warn { border-left-color: var(--warn); }
+.hub-chev { border: 0; background: none; width: 24px; height: 24px; padding: 0; cursor: pointer; color: var(--muted); font-size: 18px; border-radius: var(--r-sm); line-height: 1; flex: none; }
 .hub-chev:hover { color: var(--ink); }
 
+.hub-badge, .hub-out-t, .hub-pub .possible-chip { font-family: var(--font); }
 .hub-badge { display: inline-flex; align-items: center; gap: 5px; font-size: var(--fs-xs); font-weight: 600; white-space: nowrap; flex: none; }
 .hub-badge i, .hub-out-t i { font-style: normal; width: 16px; height: 16px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 10px; font-weight: 700; color: #fff; flex: none; }
 .hub-badge.ok i, .hub-out-t.ok i { background: var(--ok); }

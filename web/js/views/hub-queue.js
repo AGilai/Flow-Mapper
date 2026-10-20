@@ -43,10 +43,10 @@ export function queueCompact(v, { openEdge, openConsumer }) {
       edge.addEventListener('click', () => pick(edge, () => openEdge(row)));
       pressable(edge, () => edge.click());
       lanes.put(edge, 1, i);
-      lanes.put(connector(`merge ${n === 1 || i === 0 ? 'first' : i === n - 1 ? 'last' : 'mid'}`, t, dash), 2, i);
+      lanes.put(connector(`merge ${n === 1 || i === 0 ? 'first' : i === n - 1 ? 'last' : 'mid'}`, qt, dash), 2, i);
     });
     if (hidden.length) {
-      lanes.put(connector('merge last', 'async'), 2, shown.length);
+      lanes.put(connector('merge last', qt), 2, shown.length);
       lanes.put(stub(`${plural(hidden.length, 'more source')}`, items.length, () => { unfolded = true; render(); }), 0, shown.length).style.gridColumn = '1 / 3';
     }
     lanes.arrow(2, 0, qt, { half: true });

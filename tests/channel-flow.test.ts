@@ -40,6 +40,9 @@ test('a topic: handled, filtered out and unhandled events each get their own cel
   const c = cells(f);
   assert.deepEqual([c.A.status, c.A.handler], ['handled', 'onA']);
   assert.deepEqual([c.B.status, c.B.uncertain], ['no-handler', false]);
+  const bad = f.summary.callouts.find((x) => x.level === 'bad');
+  assert.equal(bad.subject, 'sqs:q');
+  assert.match(bad.text, /^sqs:q: 1 event type arrives at \S+ with no handler\.$/);
   const filtered = cells(flow(model(), 'sns:t'));
   assert.equal(filtered.B.status, 'filtered');
   assert.match(filtered.B.why, /A only/);

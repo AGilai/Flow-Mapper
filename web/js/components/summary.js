@@ -16,7 +16,7 @@ export function summary(sum, { reveal } = {}) {
     el.classList.add('flash');
   };
   const draw = (all) => h('div.callouts', (all ? sum.callouts : sum.callouts.slice(0, 3)).map((c) => h('div.callout', { class: c.level },
-    h('span.dot'), h('span.grow', c.text),
+    h('span.dot'), h('span.grow', c.subject && c.text.startsWith(`${c.subject}: `) ? [h('b.mono', c.subject), c.text.slice(c.subject.length)] : c.text),
     c.rowId ? h('a', { href: '#', on: { click: (e) => goTo(e, c.rowId) } }, 'Show the row') : null)),
     !all && sum.callouts.length > 3 ? h('button.btn.ghost.show-more', { type: 'button', on: { click: (e) => e.target.closest('.callouts').replaceWith(draw(true)) } }, `Show ${sum.callouts.length - 3} more`) : null);
   return h('div.verdict',
