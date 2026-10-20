@@ -8,12 +8,15 @@ import { ingressEvents, type EventRow } from './events.ts';
 
 export type DtoRole = 'request' | 'response';
 export const DTO_ROLES: DtoRole[] = ['request', 'response'];
-export interface Dto { role: DtoRole; content: unknown; updatedAt: string }
+/** Where a DTO came from, as the harvester reports it. All optional. `incomplete` is the reason it is partial. */
+export interface DtoMeta { source?: { repo?: string; ref?: string; file?: string; line?: number }; provenance?: string; incomplete?: string | boolean }
+/** `status` is '' for the success response, else '404', '4xx' or 'default'. `link` is the web link to meta.source. */
+export interface Dto { role: DtoRole; status?: string; content: unknown; meta?: DtoMeta | null; link?: SourceLink | null; updatedAt: string }
 
 export interface SourceLink { repo: string; url: string | null; ref: string; file?: string; line?: number }
 /** A DTO an endpoint can have, with the name people use for it. `dto` is set when one is stored. */
-export interface DtoSlot { role: DtoRole; label: string; dto: Dto | null; stale: boolean }
-export interface EventDto { event: string; content: unknown; updatedAt: string }
+export interface DtoSlot { role: DtoRole; status: string; label: string; dto: Dto | null; stale: boolean }
+export interface EventDto { event: string; content: unknown; meta?: DtoMeta | null; link?: SourceLink | null; updatedAt: string }
 /** One event type at a consumer, with its handler's code link and the event type's Message DTO. */
 export interface EventInfo extends EventRow { source: SourceLink | null; dto: EventDto | null }
 export interface EndpointInfo {
@@ -31,6 +34,19 @@ export function httpMethod(i: Ingress): string | null {
   if (i.transport !== 'http') return null;
   const m = (i.details as any)?.method ?? i.bindKey.match(/^http:([A-Za-z]+)\s/)?.[1];
   return m ? String(m).toUpperCase() : null;
+}
+
+/** Success first, then error responses by status: 400 before 4xx, classes after codes, default last. */
+export function compareStatus(a: string, b: string): number {
+  const rank = (s: string) => (s === '' ? 0 : s === 'default' ? 3 : s.endsWith('xx') ? 2 : 1);
+  return rank(a) - rank(b) || a.localeCompare(b);
+}
+
+/** Link to the file and line a DTO was derived from; null when its meta has no repo and no service repo applies. */
+export function dtoLink(meta: DtoMeta | null | undefined, svc?: Service): SourceLink | null {
+  const s = meta?.source;
+  if (!s || !(s.file || s.repo)) return null;
+  return codeLink(svc ?? ({} as Service), { repo: s.repo, commit: s.ref, file: s.file, line: s.line });
 }
 
 /** Which DTOs make sense for an endpoint: queues and topics carry one message, a GET has no body, a cron has none. */
@@ -95,9 +111,17 @@ export function endpointInfo(g: GraphIndex, service: string, ingressId: string, 
       dto: eventDtos.find((d) => d.event === r.type) ?? null,
     })),
     // A DTO loaded before the service was last harvested may describe older code.
-    slots: slots.map((x) => {
-      const dto = dtos.find((d) => d.role === x.role) ?? null;
-      return { ...x, dto, stale: !!dto && dto.updatedAt < svc.harvestedAt };
+    slots: withErrorResponses(slots, dtos).map((x) => {
+      const dto = dtos.find((d) => d.role === x.role && (d.status ?? '') === x.status) ?? null;
+      return { ...x, dto: dto && { ...dto, link: dtoLink(dto.meta, svc) }, stale: !!dto && dto.updatedAt < svc.harvestedAt };
     }),
   };
+}
+
+/** The endpoint's slots, with one more response slot per stored error status ("Response 404"). */
+function withErrorResponses(slots: { role: DtoRole; label: string }[], dtos: Dto[]): { role: DtoRole; status: string; label: string }[] {
+  const out = slots.map((x) => ({ ...x, status: '' }));
+  if (!slots.some((x) => x.role === 'response')) return out;
+  const errors = [...new Set(dtos.filter((d) => d.role === 'response' && d.status).map((d) => d.status!))].sort(compareStatus);
+  return [...out, ...errors.map((status) => ({ role: 'response' as const, status, label: `Response ${status}` }))];
 }

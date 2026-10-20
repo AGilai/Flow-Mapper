@@ -232,7 +232,9 @@ in one call each, all-or-nothing:
 # endpoint DTOs and event message DTOs
 curl -sS -X POST "$FLOW/api/envs/prod/dtos" -H 'content-type: application/json' --data '{"dtos": [
   {"service": "orders-svc", "ingress": "in.create", "role": "request",  "content": {"customerId": "c_1", "items": []}},
-  {"service": "orders-svc", "ingress": "in.create", "role": "response", "content": {"orderId": "o_1"}},
+  {"service": "orders-svc", "ingress": "in.create", "role": "response", "content": {"orderId": "o_1"},
+   "meta": {"source": {"repo": "github.com/acme/orders-svc", "ref": "fb390dc", "file": "src/schemas/createOrder.json", "line": 1}, "provenance": "derived"}},
+  {"service": "orders-svc", "ingress": "in.create", "role": "response", "status": "404", "content": {"error": "not_found"}},
   {"event": "OrderPlaced", "content": {"type": "OrderPlaced", "orderId": "o_1"}}
 ]}'
 # data-store schemas, from the code's models
@@ -246,10 +248,20 @@ Which DTO roles an endpoint takes depends on what it is; others are rejected (40
 | Ingress | Roles |
 |---|---|
 | HTTP POST / PUT / PATCH, RPC, gRPC | `request`, `response` |
-| HTTP GET / DELETE | `response` |
+| HTTP GET / DELETE / HEAD / OPTIONS | `request` (its path and query params, `{params, query}`), `response` |
 | Queue, topic or bus consumer without `events` | `request` (the message) |
 | Consumer with `events` | none: send one `{"event", "content"}` per event type instead |
 | Cron | none |
+
+A `response` DTO takes an optional `status` for the non-success shapes: `"404"`, `"4xx"` or
+`"default"`. Without it the DTO is the success response. One response per status is kept; sending
+the same status again replaces it.
+
+Add `meta` to say where a DTO came from, so people can check it: `{source: {repo, ref, file, line},
+provenance, incomplete}`, all optional. `source` becomes a link to the file and line (the service's
+repo and commit are used for what you leave out). `provenance` is free text such as `openapi` or
+`derived`. Set `incomplete` to the reason when you could only capture part of the shape (for
+example `"joi_when"`); the UI flags it. Event DTOs take `meta` too.
 
 `content` is an example payload or a JSON Schema, whichever you can produce. Schemas take
 `source: "code"` today; `"db"` is reserved for a future database harvester.

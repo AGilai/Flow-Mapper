@@ -4,10 +4,17 @@
 import type { Router } from '../http/router.ts';
 import { created } from '../http/router.ts';
 import type { Ctx } from '../context.ts';
-import { notFound } from '../errors.ts';
+import { badRequest, notFound } from '../errors.ts';
 import { endpointInfo } from '../../core/endpoint-info.ts';
 import { eventTypes, eventView } from '../../core/events.ts';
 import * as dtos from '../store/dtos.ts';
+
+/** PUT bodies are the DTO itself, so provenance rides in the query as JSON: ?meta={"source":{...}}. */
+function queryMeta(q: URLSearchParams): unknown {
+  const raw = q.get('meta');
+  if (raw === null) return undefined;
+  try { return JSON.parse(raw); } catch { throw badRequest('meta must be JSON'); }
+}
 
 export function registerDtos(r: Router, ctx: Ctx) {
   const { db } = ctx;
@@ -25,12 +32,12 @@ export function registerDtos(r: Router, ctx: Ctx) {
 
   r.put('/api/envs/:env/dtos/:service/:role/*ingress', async (req) => {
     const { env, service, role, ingress } = req.params;
-    return dtos.putDto(db, env, { service, ingress, role, content: await req.json() });
+    return dtos.putDto(db, env, { service, ingress, role, status: req.query.get('status') ?? undefined, meta: queryMeta(req.query), content: await req.json() });
   });
 
   r.delete('/api/envs/:env/dtos/:service/:role/*ingress', (req) => {
     const { env, service, role, ingress } = req.params;
-    return dtos.deleteDto(db, env, service, ingress, role);
+    return dtos.deleteDto(db, env, service, ingress, role, req.query.get('status') ?? undefined);
   });
 
   r.get('/api/envs/:env/events', (req) => {
@@ -46,7 +53,7 @@ export function registerDtos(r: Router, ctx: Ctx) {
   });
 
   r.put('/api/envs/:env/event-dtos/*type', async (req) =>
-    dtos.putEventDto(db, req.params.env, { event: req.params.type, content: await req.json() }));
+    dtos.putEventDto(db, req.params.env, { event: req.params.type, meta: queryMeta(req.query), content: await req.json() }));
 
   r.delete('/api/envs/:env/event-dtos/*type', (req) => dtos.deleteEventDto(db, req.params.env, req.params.type));
 }

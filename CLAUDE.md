@@ -13,7 +13,7 @@ graph, humans use the web UI, agents use MCP.
 ## Working here
 - Start with `docs/ARCHITECTURE.md` (where things are), then `docs/DESIGN.md` (why) and `docs/API.md` (contract).
 - No dependencies. Node ≥ 22.18 runs `.ts` directly. Do not add packages without asking.
-- Schema changes edit `server/db/migrations/001_init.sql` (no incremental migrations yet); then `npm run db:install -- --force`.
+- Schema changes add a new `server/db/migrations/NNN_name.sql`; applied migrations (`001_init.sql` included) are frozen, and an edited one is refused. Databases upgrade in place at startup and are backed up first to `<db>.pre-NNN.bak`. A migration that rebuilds a table starts with `-- migrate: foreign_keys=off`. Test an upgrade on a copy of the live DB, never on `data/`.
 - `npm test` must pass. `npm run seed` loads samples; `npm run seed:mock` loads 100 mock services.
 - One suite: `node --disable-warning=ExperimentalWarning --test tests/core.test.ts`; add
   `--test-name-pattern='<regex>'` for one test. API tests use `startApp()` in `tests/helpers.ts`

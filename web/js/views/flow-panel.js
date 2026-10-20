@@ -10,6 +10,7 @@ import { href } from '../router.js';
 import { ago, chip } from '../format.js';
 import { section } from '../components/panel.js';
 import { jsonView } from '../components/json-view.js';
+import { dtoSource } from '../components/dto-source.js';
 import { eventLink, serviceLink, storeLink } from './inventory-links.js';
 
 const KIND = { entry: 'Entry', call: 'Function call', egress: 'Call', deliver: 'Delivery from queue', resource: 'Data store access' };
@@ -84,7 +85,7 @@ async function loadDto(m, env) {
   if (m.event) {
     const t = await api.eventType(env, m.event);
     return [card(`Message · ${m.event}`, t.dto ? `updated ${ago(t.dto.updatedAt)}` : null,
-      t.dto ? jsonView(t.dto.content) : emptyDto('No message DTO for this event type yet.', `PUT /api/envs/${env}/event-dtos/${m.event}`))];
+      t.dto ? [dtoSource(t.dto), jsonView(t.dto.content)] : emptyDto('No message DTO for this event type yet.', `PUT /api/envs/${env}/event-dtos/${m.event}`))];
   }
   if (m.gap) return [];
   if (m.target && !m.unhandled) {
@@ -94,7 +95,7 @@ async function loadDto(m, env) {
         h('a', { href: href(`/services/${encodeURIComponent(m.target.service)}`, { ep: m.target.ingress }) }, 'See its event types'))];
     }
     return [...info.slots.map((s) => card(s.label, s.dto ? `updated ${ago(s.dto.updatedAt)}` : null,
-      s.dto ? jsonView(s.dto.content) : emptyDto(`No ${s.label.toLowerCase()} loaded yet.`, `PUT /api/envs/${env}/dtos/${m.target.service}/${s.role}/${m.target.ingress}`))),
+      s.dto ? [dtoSource(s.dto), jsonView(s.dto.content)] : emptyDto(`No ${s.label.toLowerCase()} loaded yet.`, `PUT /api/envs/${env}/dtos/${m.target.service}/${s.role}/${m.target.ingress}`))),
       info.note ? h('p.ep-note', info.note) : null];
   }
   if (m.store) {

@@ -106,8 +106,8 @@ export const TOOLS: Tool[] = [
       ?? (() => { throw new HttpError(404, 'NOT_FOUND', `ingress '${a.ingress}' of service '${a.service}' not found`); })(),
   },
   {
-    name: 'load_dtos', description: "Store DTO JSON (replaces an existing one). Endpoint DTO: {service, ingress, role, content}; queue/topic messages use role 'request', GET/DELETE endpoints take 'request' (their path/query params) and 'response'. Event DTO: {event, content}, the message of one event type. All or nothing.",
-    inputSchema: obj({ env, dtos: { type: 'array', items: { type: 'object', properties: { service: { type: 'string' }, ingress: { type: 'string' }, role: { enum: ['request', 'response'] }, event: { type: 'string' }, content: {} }, required: ['content'] } } }, ['dtos']),
+    name: 'load_dtos', description: "Store DTO JSON (replaces an existing one). Endpoint DTO: {service, ingress, role, status?, content, meta?} (status for non-2xx responses); queue/topic messages use role 'request', GET/DELETE endpoints take 'request' (their path/query params) and 'response'. Event DTO: {event, content, meta?}, the message of one event type. All or nothing.",
+    inputSchema: obj({ env, dtos: { type: 'array', items: { type: 'object', properties: { service: { type: 'string' }, ingress: { type: 'string' }, role: { enum: ['request', 'response'] }, status: { type: 'string', description: "response DTOs only: '404', '4xx' or 'default'; omit for the success response" }, event: { type: 'string' }, content: {}, meta: { type: 'object', description: 'provenance: {source: {repo, ref, file, line}, provenance, incomplete}' } }, required: ['content'] } } }, ['dtos']),
     run: (c, a) => dtos.loadDtos(c.db, envOf(a), a.dtos),
   },
   {

@@ -13,7 +13,7 @@ of its route.
 Needs Node 22.18 or newer. There are no dependencies to install.
 
 ```sh
-npm run db:install  # create the database (data/flow-mapper.db); --force rebuilds it, deleting data
+npm run db:install  # create the database (data/flow-mapper.db); --force rebuilds it, deleting data (upgrades need no rebuild: migrations apply at startup)
 npm run seed        # load the sample system (env "prod"), endpoint DTOs and example bugs
 npm run seed:mock   # optional: 100 generated services (env "scale-test")
 npm run dev         # UI, API and MCP on http://localhost:3000

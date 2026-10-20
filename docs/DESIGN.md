@@ -265,9 +265,13 @@ impact, `appVersion` (where it was seen), `fixedInVersion`, env, reporter, assig
   `node:http`, type stripping). See [ARCHITECTURE.md](ARCHITECTURE.md).
 - DB: SQLite now; the schema is plain SQL in migrations and moves to Postgres when needed.
   Flow-Mapper also runs on users' machines, so `npm run db:install` creates a database with the
-  full schema. While the project is early there are no incremental migrations: schema changes
-  edit `001_init.sql`, and a database built from an older schema is refused until it is
-  reinstalled (`npm run db:install -- --force`, which deletes its data).
+  full schema. Migrations are append-only: `001_init.sql` and every later file are frozen, and a
+  schema change is a new `NNN_name.sql`. Opening a database applies the pending ones in order, each
+  in a transaction, recorded with a checksum in `schema_migrations`. Before upgrading a database that
+  already has migrations applied, it is copied to `<db>.pre-<NNN>.bak` (`VACUUM INTO`). A database
+  whose applied file changed is refused: that is a developer error. A migration that rebuilds a
+  table starts with `-- migrate: foreign_keys=off`; foreign keys are off around the transaction and
+  `PRAGMA foreign_key_check` must pass before it commits. `db:install --force` still rebuilds from scratch.
 - UI: plain ES modules, canvas for the system map, SVG for sequence diagrams, no bundler.
 - MCP: implemented directly (JSON-RPC over HTTP at `/mcp` and over stdio).
 - Hosting later: AWS App Runner (or ECS) + RDS Postgres + S3 for attachments, CI from GitHub.

@@ -88,6 +88,17 @@ shows a schema as a field table (local `$ref` into `$defs`/`definitions` resolve
 | grpc | `request` (Request message), `response` (Response message) |
 | cron | none |
 
+A response can also be stored per status, for the error cases: `status` is an HTTP status (`404`), a
+class (`4xx`) or `default`; leave it out for the success response. Only `response` DTOs take a status
+(a `request` with one is a 400). `slots` lists the success response first, then one slot per stored
+status (`{role: 'response', status: '404', label: 'Response 404', dto}`), codes before classes, `default` last.
+
+Every DTO can also carry `meta`, where it came from, all fields optional:
+`{source: {repo, ref, file, line}, provenance, incomplete}`. `provenance` is free text (for example
+`openapi`, `derived`); `incomplete` is the reason the DTO is partial (or `true`). Reads return `meta`
+and, on endpoint info, `link`: the web URL of `source` (the service's repo and commit fill in what
+`source` leaves out). The UI shows it as a source line on the DTO card.
+
 Writing a role the endpoint does not take is a 400. DTOs are loaded through
 these routes, not the manifest, so re-harvesting a service keeps them; deleting the service removes
 them. Writes check that the endpoint exists (404) and the role is valid (400). The ingress id is the
@@ -96,10 +107,10 @@ last path segment and may contain `/`.
 | Method and path | What |
 |---|---|
 | `GET /api/envs/:env/endpoints/:service/:ingress` | `{ingress, method, handler, source: {repo, url, ref, file, line}, slots: [{role, label, dto, stale}], note}`; `source.url` opens the handler's file and line at the harvested commit; `stale` means the DTO was loaded before the service was last harvested |
-| `GET /api/envs/:env/dtos?service=&ingress=` | stored DTOs |
-| `POST /api/envs/:env/dtos` | bulk load `{dtos: [{service, ingress, role, content}]}`, all or nothing (201) |
-| `PUT /api/envs/:env/dtos/:service/:role/:ingress` | body is the DTO JSON; replaces an existing one |
-| `DELETE /api/envs/:env/dtos/:service/:role/:ingress` | remove one |
+| `GET /api/envs/:env/dtos?service=&ingress=` | stored DTOs `{service, ingress, role, status, content, meta, updatedAt}` |
+| `POST /api/envs/:env/dtos` | bulk load `{dtos: [{service, ingress, role, status?, content, meta?}]}`, all or nothing (201) |
+| `PUT /api/envs/:env/dtos/:service/:role/:ingress` | body is the DTO JSON; replaces an existing one. Query `status=404` for an error response, `meta=<url-encoded JSON>` for provenance (use the bulk load for large meta) |
+| `DELETE /api/envs/:env/dtos/:service/:role/:ingress` | remove one; add `?status=404` for an error response |
 
 An ingress that lists `events` takes no endpoint DTO: its messages are described per event type.
 
@@ -109,10 +120,10 @@ An ingress that lists `events` takes no endpoint DTO: its messages are described
 |---|---|
 | `GET /api/envs/:env/events` | every event type with producers, consumers (after subscription filters) and `hasDto` |
 | `GET /api/envs/:env/events/:type` | one event type with its Message DTO |
-| `PUT /api/envs/:env/event-dtos/:type` | body is the message JSON; replaces an existing one. Patterns (`*`) are a 400 |
+| `PUT /api/envs/:env/event-dtos/:type` | body is the message JSON (query `meta=` as above); replaces an existing one. Patterns (`*`) are a 400 |
 | `DELETE /api/envs/:env/event-dtos/:type` | remove it |
 
-`POST /api/envs/:env/dtos` also takes event DTOs as `{event, content}` items, mixed with endpoint
+`POST /api/envs/:env/dtos` also takes event DTOs as `{event, content, meta?}` items, mixed with endpoint
 DTOs. `GET .../endpoints/:service/:ingress` returns `events`: one row per event type at that
 consumer with `handler`, `pattern` (the glob that matched), `status` (`ok`, `unhandled`, `never`,
 `declared-only`), `producers` (`derived`, `declared`, `harvested`), the handler's `source` link

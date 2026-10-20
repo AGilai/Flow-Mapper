@@ -55,9 +55,12 @@ shows or how things link:
 
 Fixing:
 - Keep schema changes additive (optional fields). Change the schema, samples,
-  `docs/HARVESTER-GUIDE.md` and `docs/API.md` together. If `server/db/migrations/001_init.sql`
-  would change, stop and comment for the maintainer instead (reinstalling the DB deletes the
-  reporters' bugs).
+  `docs/HARVESTER-GUIDE.md` and `docs/API.md` together. A database change goes in a new additive
+  `server/db/migrations/NNN_name.sql` (new column with a default, or a new table). Never edit an
+  existing migration: databases that applied it are refused. The server backs the database up
+  and applies the migration at startup. Add a test that opens a database built from the older
+  migrations. If the change would need a table rebuild (a changed key) or drop or rewrite data,
+  stop and comment for the maintainer instead.
 - Add a test that fails before the fix; `npm test` must pass. Touch nothing unrelated.
 - Bump the patch version in `package.json`. Commit as `Fix #<id>: …` with the line
   `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`.

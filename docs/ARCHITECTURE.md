@@ -58,10 +58,10 @@ UI / agent ── GET /api/envs/:env/... ─► server/routes/queries.ts ─► 
 |---|---|
 | `main.ts`, `app.ts`, `config.ts`, `context.ts` | startup and wiring |
 | `http/router.ts`, `http/static.ts` | routing; serves web/ and type-stripped core/ |
-| `db/connection.ts`, `db/migrations/*.sql` | SQLite and migrations |
+| `db/connection.ts`, `db/migrations/*.sql` | SQLite and append-only migrations (applied in place, backed up first; see DESIGN.md) |
 | `store/snapshots.ts` | ingest (full/delta), CRUD, changelog |
 | `store/schemas.ts` | data-store schemas per source |
-| `store/dtos.ts` | request/response DTOs per ingress endpoint |
+| `store/dtos.ts` | request/response DTOs per ingress endpoint (a response per status) and event DTOs, with provenance |
 | `store/bugs.ts` | bug workflow, attachments, log scanning |
 | `graph-cache.ts` | per-environment GraphIndex cache, health history |
 | `routes/*.ts` | REST endpoints by area |

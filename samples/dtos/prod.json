@@ -34,6 +34,10 @@
       "service": "orders-svc",
       "ingress": "in.create",
       "role": "response",
+      "meta": {
+        "source": { "repo": "github.com/acme/orders-svc", "ref": "fb390dc", "file": "src/schemas/createOrder.response.json", "line": 1 },
+        "provenance": "derived from the response schema"
+      },
       "content": {
         "orderId": "o_5531",
         "status": "PENDING_PAYMENT",
@@ -67,6 +71,17 @@
           "method": "card",
           "last4": "4242"
         }
+      }
+    },
+    {
+      "service": "orders-svc",
+      "ingress": "in.get",
+      "role": "response",
+      "status": "404",
+      "meta": { "provenance": "openapi", "incomplete": "error body inferred from one example" },
+      "content": {
+        "error": "order_not_found",
+        "message": "No order with this id"
       }
     },
     {

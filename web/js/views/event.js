@@ -8,6 +8,7 @@ import { href } from '../router.js';
 import { ago } from '../format.js';
 import { pageHead } from '../components/page.js';
 import { jsonView } from '../components/json-view.js';
+import { dtoSource } from '../components/dto-source.js';
 import { icon } from '../icons.js';
 import { box, empty, fig, problems } from './detail-parts.js';
 import { channelLink, serviceLink } from './inventory-links.js';
@@ -43,7 +44,7 @@ export async function render({ main, params }) {
             : empty('It reaches no consumer.'))),
         h('div.stack', { style: { gap: 'var(--s4)' } },
           box('Message', null, v.dto
-            ? [h('span.xs.muted', `updated ${ago(v.dto.updatedAt)}`), jsonView(v.dto.content)]
+            ? [h('span.xs.muted', `updated ${ago(v.dto.updatedAt)}`), dtoSource(v.dto), jsonView(v.dto.content)]
             : h('div.ep-empty', h('p', 'No message DTO yet.'), h('code.key', `PUT /api/envs/${state.env}/event-dtos/${v.type}`))),
           box('Consumers', v.consumers.length, v.consumers.length ? h('div.list', v.consumers.map((c) => h('div.list-item',
             serviceLink(c.service), h('span.grow.truncate.key.muted', c.ingress), c.handler ? h('span.xs.key', c.handler) : h('span.pill.bad', 'no handler'))))

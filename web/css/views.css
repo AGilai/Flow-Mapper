@@ -149,3 +149,5 @@
 .pill.verified-match { background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); }
 .pill.verified-drift { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
 .ep-producer.except { border-style: dotted; }
+.dto-source { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1) var(--s2); padding: var(--s2) var(--s3) 0; font-size: var(--fs-xs); color: var(--muted); }
+.dto-source a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }

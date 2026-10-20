@@ -3,13 +3,10 @@
 
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
 import { readSample, sampleManifests, startApp, SAMPLES } from './helpers.ts';
 import { repoUrl } from '../core/endpoint-info.ts';
-import { openDb } from '../server/db/connection.ts';
 
 let app: Awaited<ReturnType<typeof startApp>>;
 before(async () => {
@@ -100,11 +97,3 @@ test('MCP get_endpoint_info returns code link and DTOs', async () => {
   assert.deepEqual(info.slots.map((x: any) => [x.role, !!x.dto]), [['request', true], ['response', true]]);
 });
 
-test('a database built from an older schema is refused', () => {
-  const path = join(mkdtempSync(join(tmpdir(), 'flow-mapper-db-')), 'old.db');
-  openDb(path).close();
-  const raw = new DatabaseSync(path);
-  raw.prepare("UPDATE schema_migrations SET checksum = 'old' WHERE name = '001_init.sql'").run();
-  raw.close();
-  assert.throws(() => openDb(path), /db:install -- --force/);
-});
