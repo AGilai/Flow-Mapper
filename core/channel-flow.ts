@@ -3,6 +3,7 @@
 // x destination that says whether each event is handled, filtered out or arrives with no handler.
 // Pure. See docs/API.md (channels) and docs/UI-GUIDE.md §3 and §4.
 
+import { bindingKeyOf, splitAmqpKey } from './amqp.ts';
 import type { GraphIndex } from './graph-index.ts';
 import { downstreamIngress, linksFrom, linksInto, sid } from './graph-index.ts';
 import { egressEvents, handlerFor, passes } from './events.ts';
@@ -16,7 +17,7 @@ export type { Events };
 export { filterLabel };
 export interface Declaration { service: string; id: string; events: Events; at: SourceLink | null; verified: 'match' | 'drift' | 'code-only' | null }
 /** The filter of one subscription. `events` is what to draw: the shared filter, or the union of the claims when they disagree. */
-export interface FlowFilter { events: Events; declarations: Declaration[]; agree: boolean; differs: 'filter' | null }
+export interface FlowFilter { events: Events; declarations: Declaration[]; agree: boolean; differs: 'filter' | null; bindingKeys?: string[] }
 export interface FlowNode { key: string; name: string; kind: string; known: boolean; eventTypes: number }
 export interface Consumer { service: string; ingress: string; handler: string; handles: { all: boolean; types: string[] } }
 /** `possible` are event types the publisher may send (it could not tell which of several). */
@@ -64,7 +65,8 @@ export function mergeFilter(bs: Binding[], g: GraphIndex): FlowFilter {
   const agree = declarations.every((d) => sameFilter(d.events, declarations[0].events));
   const union: Events = agree ? declarations[0].events
     : declarations.some((d) => d.events === '*') ? '*' : [...new Set(declarations.flatMap((d) => d.events as string[]))];
-  return { events: union, declarations, agree, differs: agree ? null : 'filter' };
+  const keys = [...new Set(bs.filter((b) => splitAmqpKey(b.from)).map((b) => bindingKeyOf(b)))]; // RabbitMQ: the binding keys, for "fed by X via key"
+  return { events: union, declarations, agree, differs: agree ? null : 'filter', ...(keys.length ? { bindingKeys: keys } : {}) };
 }
 
 /** Services that read a channel. `transitive`: also through topics or buses it forwards to. */

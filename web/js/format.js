@@ -24,6 +24,9 @@ export function ago(iso) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+/** Text with `backticked` parts in mono (keys, commands). */
+export const monoText = (s) => String(s).split('`').map((t, i) => (i % 2 ? h('span.ex-key', t) : t));
+
 /** Transport chip. t: http | sns | sqs | amqp | cron | broken | async */
 export const chip = (t, label = t) => h('span.chip', { 'data-t': t }, label);
 

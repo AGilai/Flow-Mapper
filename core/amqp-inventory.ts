@@ -19,7 +19,8 @@ export interface AmqpRow {
 }
 
 const n = (x: number, one: string, many = `${one}s`) => `${x} ${x === 1 ? one : many}`;
-const some = (xs: string[], max: number) => (xs.length > max ? `${xs.slice(0, max).join(', ')}, +${xs.length - max} more` : xs.join(', '));
+/** Keys and commands are written between backticks: the page shows them in mono. */
+const some = (xs: string[], max: number) => (xs.length > max ? `${xs.slice(0, max).map((x) => `\`${x}\``).join(', ')}, +${xs.length - max} more` : xs.map((x) => `\`${x}\``).join(', '))
 const rpcDetails = (d: any) => (d?.rpc && typeof d.rpc === 'object' ? d.rpc : null);
 
 interface Cmd { command: string; server?: { service: string; ingress: string }; queue?: string; callers: string[] }
@@ -58,8 +59,11 @@ export function amqpRows(g: GraphIndex, prior: Map<string, number> = new Map()):
     x.patterns.add(r.replyTo); x.commands.add(r.command);
   }
 
+  const queues = new Map<string, (typeof g.model.channels)[number]>(); // one row per queue, however many services declare it; the infra declaration wins
   for (const c of g.model.channels) {
-    if (c.kind !== 'amqp-queue') continue;
+    if (c.kind === 'amqp-queue' && (!queues.has(c.bindKey) || g.services.get(c.service)?.kind === 'infra')) queues.set(c.bindKey, c);
+  }
+  for (const c of queues.values()) {
     const name = c.bindKey.replace(/^amqp-queue:/, ''), label = c.name ?? name;
     const role = String(c.details?.role ?? '');
     if (role === 'rpc-command') {
@@ -83,7 +87,7 @@ export function amqpRows(g: GraphIndex, prior: Map<string, number> = new Map()):
       connections: `replies to ${service}'s ${n(x.commands.size, 'command')}, one exclusive queue per process` });
   }
   for (const c of cmds) {
-    const parts = [c.server ? `served by ${c.server.service}` : 'no harvested server', c.callers.length ? `called by ${some(c.callers, 3)}` : 'no harvested caller'];
+    const parts = [c.server ? `served by ${c.server.service}` : 'no harvested server', c.callers.length ? `called by ${c.callers.slice(0, 3).join(', ')}${c.callers.length > 3 ? `, +${c.callers.length - 3} more` : ''}` : 'no harvested caller'];
     out.push({ type: 'rpc', id: `amqp-rpc:${c.command}`, label: c.command, kind: 'amqp-rpc', team: team(c.server?.service, c.callers[0]), size: c.callers.length + (c.server ? 1 : 0),
       problems: !c.server ? 1 : 0, // called, but nothing harvested serves it; a command nobody calls is not a problem
       connections: parts.join(', '), open: { service: c.server?.service ?? c.callers[0], ...(c.server ? { ingress: c.server.ingress } : {}) } });

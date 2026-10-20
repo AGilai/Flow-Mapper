@@ -12,10 +12,10 @@ const kv = (k, ...v) => [h('dt', k), h('dd', v)];
 export function rpcCards(rpc, service) {
   const callers = rpc.callers.length
     ? h('div.rpc-callers', rpc.callers.map((c) => h('div.rpc-caller',
-      h('a.b', { href: href(`/services/${encodeURIComponent(c.service)}`) }, c.service),
-      c.timeoutMs != null ? h('span.muted', `timeout ${seconds(c.timeoutMs)}`) : h('span.muted', 'timeout not reported'),
-      c.fn ? h('a.key', { href: href('/flows', { service: c.service, fn: c.fn.id, scope: 'intra' }) }, c.fn.name) : null,
-      c.source?.url ? h('a.at-link', { href: c.source.url, target: '_blank', rel: 'noopener noreferrer', title: c.source.url }, `${(c.source.file ?? 'source').split('/').pop()}${c.source.line ? ':' + c.source.line : ''}`, icon('external')) : null)))
+      h('div.l1', h('a.b', { href: href(`/services/${encodeURIComponent(c.service)}`) }, c.service),
+        c.timeoutMs != null ? h('span.muted', `timeout ${seconds(c.timeoutMs)}`) : h('span.muted', 'timeout not reported')),
+      h('div.l2', c.fn ? h('span.key', c.fn.name) : null,
+      c.source?.url ? h('a.at-link', { href: c.source.url, target: '_blank', rel: 'noopener noreferrer', title: c.source.url }, `${(c.source.file ?? 'source').split('/').pop()}${c.source.line ? ':' + c.source.line : ''}`, icon('external')) : null))))
     : h('p.ep-note', 'No harvested service calls this command. Callers may be outside the harvest; the server works without them.');
   const plumbing = h('dl.rpc-kv',
     rpc.commandQueue ? kv('Command queue', h('span.key', rpc.commandQueue), h('small', [rpc.prefetch != null ? `prefetch ${rpc.prefetch}` : null, rpc.sharedBy > 1 ? `shared by ${rpc.sharedBy} commands` : null].filter(Boolean).join(', '))) : null,

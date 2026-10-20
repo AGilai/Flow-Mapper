@@ -92,9 +92,9 @@ export function exchangeView(g: GraphIndex, id: string): ExchangeView | null {
 
   const callouts: ExchangeCallout[] = [
     ...publishers.filter((p) => p.dropped).map((p): ExchangeCallout => ({ kind: 'dropped', row: { type: 'publisher', id: `${p.service}/${p.id}` },
-      text: `${p.routingKey} from ${p.service} matches no binding, so ${alt ? `RabbitMQ sends it to the alternate exchange ${alt}` : 'RabbitMQ drops it'}.` })),
+      text: `\`${p.routingKey}\` from ${p.service} matches no binding, so ${alt ? `RabbitMQ sends it to the alternate exchange \`${alt}\`` : 'RabbitMQ drops it'}.` })),
     ...bindings.filter((b) => b.noPublisher).map((b): ExchangeCallout => ({ kind: 'no-publisher', row: { type: 'binding', id: `${b.service}/${b.id}` },
-      text: `${b.key} → ${b.queue}: no harvested service publishes a key it matches. Its publisher's harvester may be missing.` })),
+      text: `\`${b.key}\` → \`${b.queue}\`: no harvested service publishes a key it matches. Its publisher's harvester may be missing.` })),
   ];
   const services = [...new Set([...publishers.map((p) => p.service), ...bindings.flatMap((b) => [b.service, ...b.consumers.map((c) => c.service)])])].sort();
   const team = g.services.get(def?.service ?? '')?.team ?? g.services.get(bindings.flatMap((b) => b.consumers)[0]?.service ?? '')?.team;

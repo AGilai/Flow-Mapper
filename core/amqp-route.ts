@@ -29,7 +29,7 @@ export function routeKey(bindings: Binding[], exchangeDetails: Details | undefin
   for (const b of mine) {
     if (type === 'fanout') matched.push(b);
     else if (type === 'headers') { const r = headersMatch(b.details, published); (r === 'unknown' ? possible : r ? matched : nonMatching).push(b); }
-    else (keyMatches(b.from, b.match, key) ? matched : nonMatching).push(b);
+    else (keyMatches(b.from, type === 'direct' ? 'exact' : b.match, key) ? matched : nonMatching).push(b);
   }
   return { exchange: k.exchange, ...(k.routingKey != null ? { routingKey: k.routingKey } : {}), ...(type ? { type } : {}), matched, possible, nonMatching };
 }

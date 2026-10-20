@@ -54,6 +54,7 @@ export async function render(ctx) {
   if (ctx.params.key.startsWith('amqp:')) return (await import('./exchange.js')).render(ctx); // a RabbitMQ exchange (0.19.0)
   const { main, params } = ctx;
   const v = await api.instance(state.env, params.key);
+  if (v.kind === 'amqp-exchange') return (await import('./exchange.js')).render(ctx, v); // a bare exchange name
   const host = h('div.panel-host');
   let lane;
   const panel = createPanel(host, { onClose: () => lane?.clear() });

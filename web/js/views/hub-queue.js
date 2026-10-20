@@ -50,7 +50,7 @@ export function queueCompact(v, { openEdge, openConsumer }) {
       lanes.put(stub(`${plural(hidden.length, 'more source')}`, items.length, () => { unfolded = true; render(); }), 0, shown.length).style.gridColumn = '1 / 3';
     }
     lanes.arrow(2, 0, qt, { half: true });
-    lanes.put(hubNode(v.name, 'SQS queue', qt, [[items.length, items.length === 1 ? 'source' : 'sources'], [types, 'event types'], [readers, readers === 1 ? 'consumer' : 'consumers']]), 3, 0);
+    lanes.put(hubNode(v.name, v.kind === 'amqp-queue' ? 'AMQP queue' : 'SQS queue', qt, [[items.length, items.length === 1 ? 'source' : 'sources'], [types, 'event types'], [readers, readers === 1 ? 'consumer' : 'consumers']]), 3, 0);
     lanes.arrow(4, 0, qt);
     lanes.put(h('div.lane-stack', outs.map((o) => consumerNode(o))), 5, 0);
     return lanes.el;

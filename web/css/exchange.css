@@ -50,3 +50,15 @@
 .rpc-kv dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
 .rpc-kv dd small { display: block; color: var(--muted); font-size: var(--fs-xs); }
 .kind-pill { white-space: nowrap; }
+
+/* tinted cells stay readable when the tester dims their row; a key that matches nothing is a warning */
+.ex-t tr.miss td.ex-warn { opacity: 1; }
+.ex-tester output.none { color: var(--warn); }
+.ex-t td.ex-warn { color: color-mix(in srgb, var(--warn) 70%, var(--ink)); }
+.ex-t tr.miss td { opacity: 0.55; }
+.sb-note .key, .sb-row .peers .key { white-space: nowrap; }
+.sb-group > summary { flex-wrap: wrap; }
+.rpc-fold b { white-space: nowrap; }
+.rpc-caller { display: grid; gap: 2px; }
+.rpc-caller .l1 { display: flex; gap: 10px; align-items: baseline; }
+.rpc-caller .l2 { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }

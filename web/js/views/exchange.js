@@ -12,6 +12,7 @@ import { VERIFIED } from '../components/declaration.js';
 import { routesTo } from '../../core/amqp-exchange.js';
 import { codeLink } from './detail-parts.js';
 import { channelPath, serviceLink } from './inventory-links.js';
+import { monoText } from '../format.js';
 
 const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 const list = (xs) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} and ${xs.at(-1)}` : xs[0] ?? '');
@@ -39,7 +40,7 @@ function lead(v) {
   return [pub, route];
 }
 
-const anchor = (kind, service, id) => `ex-${kind}-${service}-${id}`.replace(/[^\w-]/g, '_');
+const anchor = (kind, service, id) => `ex-${kind}-${encodeURIComponent(service)}-${encodeURIComponent(id)}`.replace(/%/g, '_P'); // encoded, so two ids never collide
 const show = (id) => (e) => {
   e.preventDefault();
   const el = document.getElementById(id);
@@ -71,14 +72,15 @@ function bindings(v) {
   const trs = v.bindings.map((b) => h('tr', { id: anchor('bind', b.service, b.id), 'data-id': `${b.service}/${b.id}` },
     h('td.ex-key', b.key), h('td.ex-arrow', '→'), h('td', h('a.ex-key', { href: href(channelPath(b.queueKey)) }, b.queue)),
     h('td', b.consumers.length ? b.consumers.map((c) => h('div', serviceLink(c.service), ' ', h('span.ex-key.xs', c.handler))) : h('span.muted', 'no harvested consumer')),
-    b.noPublisher ? h('td.ex-warn', h('b', 'No harvested publisher. '), 'The queue only gets messages from a service nobody harvests.')
+    b.noPublisher ? h('td.ex-warn', h('b', 'No harvested publisher sends a key this binding matches.'))
       : h('td.ex-mlist', b.matchedBy.map((m) => h('code', { title: m.service }, m.routingKey)))));
   const out = h('output', { for: 'ex-rk' });
   const input = h('input#ex-rk', { value: '', placeholder: v.type === 'fanout' ? 'any key' : 'device.ab12.logout', spellcheck: false, autocomplete: 'off', 'aria-label': 'Routing key to test' });
   const test = () => {
     const key = input.value.trim(), hit = key ? routesTo(v, key) : null;
     trs.forEach((tr) => { tr.classList.toggle('hit', !!hit?.has(tr.dataset.id)); tr.classList.toggle('miss', !!key && !!hit && !hit.has(tr.dataset.id)); });
-    out.textContent = !key ? '' : !hit ? 'A headers exchange routes by message headers, not by key.' : `matches ${hit.size} of ${v.bindings.length} bindings`;
+    out.textContent = !key ? '' : !hit ? 'A headers exchange routes by message headers, not by key.' : hit.size ? `matches ${hit.size} of ${v.bindings.length} bindings` : v.alternateExchange ? `matches no binding: goes to ${v.alternateExchange}` : 'matches no binding: dropped';
+    out.classList.toggle('none', !!hit && !hit.size);
   };
   input.addEventListener('input', test);
   const sample = v.publishers.find((p) => !p.dropped && p.routingKey)?.routingKey; // start from a real published key, its {placeholders} as one word
@@ -92,12 +94,12 @@ function bindings(v) {
     h('div.ex-foot', v.bindings.length ? `Bindings declared by ${list([...new Set(v.bindings.map((b) => b.service))])}. ${rule} Queue names open their pages.` : rule));
 }
 
-export async function render({ main, params }) {
-  const v = await api.instance(state.env, params.key);
+export async function render({ main, params }, loaded) {
+  const v = loaded ?? await api.instance(state.env, params.key);
   const callouts = v.callouts.map((c) => {
     const [service, ...id] = c.row.id.split('/');
-    return h('div.callout', h('span.dot'), h('span.grow', c.text),
-      h('a', { href: '#', on: { click: show(anchor(c.row.type === 'publisher' ? 'pub' : 'bind', service, id.join('/'))) } }, 'Show the row'));
+    return h('div.callout', h('span.dot'), h('span.grow', monoText(c.text)),
+      h('button.btn.ghost.sm', { type: 'button', on: { click: show(anchor(c.row.type === 'publisher' ? 'pub' : 'bind', service, id.join('/'))) } }, 'Show the row'));
   });
   const head = pageHead(h('span.title-row', h('span.titled', objectIcon('channel', 'amqp-exchange', 26), h('span', v.name)),
     h('span.ex-kind', `AMQP ${v.type ?? 'unknown type'} exchange`)), meta(v), h('a.btn', { href: href('/inventory', { type: 'amqp', kind: 'amqp-exchange' }) }, 'All exchanges'));

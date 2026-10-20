@@ -3,6 +3,7 @@
 
 import type { Cell, DeliveryGrid, FlowRow, Publisher } from './channel-flow.ts';
 import { filterLabel } from './glob.ts';
+import { splitAmqpKey } from './amqp.ts';
 
 export interface Segment { t: string; b?: boolean }
 export interface Callout { text: string; /** the queue the text starts with (`<subject>: …`), shown bold */ subject?: string; /** id of the flow row it is about */ rowId: string | null; level: 'warn' | 'bad' | 'info' }
@@ -23,7 +24,7 @@ function sentence(i: Input): Segment[] {
   const t = (s: string, b = false) => seg.push(b ? { t: s, b } : { t: s });
   const consumers = [...new Set(i.grid.destinations.flatMap((d) => (d.consumer ? [d.consumer.service] : [])))];
   if (i.layout === 'inbound') {
-    const topics = [...new Set(i.rows.filter((r) => r.from).map((r) => r.from!.name))];
+    const topics = [...new Set(i.rows.filter((r) => r.from).map((r) => (r.filter?.bindingKeys?.length && splitAmqpKey(r.from!.key) ? `${splitAmqpKey(r.from!.key)!.exchange} via ${r.filter.bindingKeys.join(', ')}` : r.from!.name)))];
     const direct = [...new Set(i.rows.flatMap((r) => r.direct.map((p) => p.service)))];
     const allTopics = i.rows.every((r) => !r.from || r.from.kind === 'sns-topic');
     if (topics.length) { t('Fed by '); t(topics.length > 3 ? plural(topics.length, allTopics ? 'topic' : 'source') : list(topics), true); }

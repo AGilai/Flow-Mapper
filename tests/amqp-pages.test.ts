@@ -5,6 +5,7 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { sampleManifests, sampleModel, startApp } from './helpers.ts';
 import { buildIndex } from '../core/graph-index.ts';
+import { routeKey } from '../core/amqp-route.ts';
 import { exchangeView, exchanges, resolveExchange, routesTo as routes } from '../core/amqp-exchange.ts';
 import { inventory } from '../core/inventory.ts';
 import { serviceView } from '../core/service-view.ts';
@@ -37,7 +38,7 @@ test('exchange page: type, publishers with what they reach, bindings with who fe
 
 test('exchange page callouts: a dropped key and a binding nobody feeds, each pointing at its row', () => {
   assert.deepEqual(ex.callouts.map((c) => c.kind).sort(), ['dropped', 'no-publisher']);
-  assert.match(ex.callouts.find((c) => c.kind === 'dropped')!.text, /firmware\.\{deviceId\}\.updated .* drops it/);
+  assert.match(ex.callouts.find((c) => c.kind === 'dropped')!.text, /`firmware\.\{deviceId\}\.updated` from cp-middleware matches no binding, so RabbitMQ drops it/);
   assert.equal(ex.problems, 2);
 });
 
@@ -55,9 +56,10 @@ test('inventory: exchanges and queues in their own words, RPC queues folded as p
   const row = (id: string) => inv.find((x) => x.id === id)!;
   assert.equal(row('amqp:saferx.EventExchange').connections, '3 publishers, 5 bindings');
   assert.equal(row('amqp:saferx.EventExchange').exchangeType, 'topic');
-  assert.equal(row('amqp-queue:domain-events-dpc').connections, 'bound by device.#, 1 consumer');
+  assert.equal(row('amqp-queue:domain-events-dpc').connections, 'bound by `device.#`, 1 consumer');
   assert.ok(row('amqp-queue:rpcv2.sxdns').plumbing && row('amqp-queue:rpcv2.sxdns').kind === 'rpc-command-queue');
   assert.match(row('amqp-queue:rpcv2.sxdns').connections, /carries 2 commands of sxdns/);
+  assert.equal(inv.filter((x) => x.id === 'amqp-queue:domain-events-dpc').length, 1);
   assert.ok(row('rpc-reply:swg-api').plumbing);
   assert.equal(inv.filter((x) => x.type === 'channel' && x.kind === 'amqp-queue' && x.plumbing).length, 0);
   const cmd = row('amqp-rpc:rpc.sxdns.dns.resolve');
@@ -104,4 +106,26 @@ test('API: the exchange page is the instance route; Redis instances and 404s kee
   assert.equal((await app.call('GET', `/api/envs/prod/instances/${encodeURIComponent('redis:cache-main')}`)).body.kind, 'redis');
   assert.deepEqual((await app.call('GET', '/api/envs/prod/exchanges')).body.map((x: any) => x.key), ['amqp:saferx.EventExchange', 'amqp:shipping']);
   assert.ok((await app.call('GET', '/api/envs/prod/instances')).body.every((x: any) => x.kind === 'redis'), 'the Redis list is unchanged');
+});
+
+test('a queue declared by infra and by its consumer is one inventory row; a direct exchange routes by equality', () => {
+  const m = sampleModel();
+  m.channels.push({ service: 'saferx-infra', bindKey: 'amqp-queue:domain-events-dpc', kind: 'amqp-queue', name: 'domain-events-dpc', details: { durable: true } });
+  const inv = inventory(buildIndex(m));
+  assert.equal(inv.filter((x) => x.id === 'amqp-queue:domain-events-dpc').length, 1);
+  const b = (from: string, match?: string) => ({ service: 's', id: from, from, match, to: 'amqp-queue:q' }) as any;
+  const bs = [b('amqp:d/a.b', 'glob'), b('amqp:d/a.*', 'glob'), b('amqp:d/a.b')];
+  const r = routeKey(bs, { type: 'direct' }, 'amqp:d/a.b')!;
+  assert.deepEqual(r.matched.map((x) => x.from), ['amqp:d/a.b', 'amqp:d/a.b'], 'direct = equality, a glob on the binding is not applied');
+});
+
+test('RPC commands are entry points of the Flows list, called or not', async () => {
+  const { entryPoints } = await import('../core/trace.ts');
+  assert.ok(entryPoints(g).some((e) => e.service === 'sxdns' && e.id === 'in.rpcResolve'));
+});
+
+test('a queue page says it is fed by the exchange via the binding key', async () => {
+  const { channelView } = await import('../core/channels.ts');
+  const v = channelView(g, 'amqp-queue:domain-events-dpc')!;
+  assert.match(v.flow.summary.text, /Fed by saferx\.EventExchange via device\.#/);
 });

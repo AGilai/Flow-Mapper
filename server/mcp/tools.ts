@@ -9,6 +9,7 @@ import * as dtos from '../store/dtos.ts';
 import * as desc from '../store/descriptions.ts';
 import * as keys from '../store/keys.ts';
 import { dbParam } from '../routes/instances.ts';
+import { exchangeView } from '../../core/amqp-exchange.ts';
 import { endpointInfo } from '../../core/endpoint-info.ts';
 import { eventTypes, eventView } from '../../core/events.ts';
 import { eventFlow } from '../../core/event-flow.ts';
@@ -169,9 +170,14 @@ export const TOOLS: Tool[] = [
     run: (c, a) => keys.readKeys(c.db, c.graph(envOf(a)), envOf(a), a.resourceId, { db: dbParam(a.dbIndex == null ? null : String(a.dbIndex)), q: a.query, problems: !!a.problems, service: a.service || undefined }),
   },
   {
-    name: 'get_channel', description: 'A topic, queue, exchange or event bus by key: publishers, subscriptions/rules with event filters, consumers, event types passing through, problems, and `flow`: merged subscription rows (declarations that disagree are named), a grid of event type x destination (handled, filtered, arrives with no handler) and a one-sentence summary with callouts.',
+    name: 'get_channel', description: 'A topic, queue, exchange or event bus by key (for an exchange page, the publishers, bindings and callouts, use get_exchange): publishers, subscriptions/rules with event filters, consumers, event types passing through, problems, and `flow`: merged subscription rows (declarations that disagree are named), a grid of event type x destination (handled, filtered, arrives with no handler) and a one-sentence summary with callouts.',
     inputSchema: obj({ env, key: { type: 'string' } }, ['key']),
     run: (c, a) => channelView(c.graph(envOf(a)), a.key) ?? (() => { throw new HttpError(404, 'NOT_FOUND', `channel '${a.key}' not found`); })(),
+  },
+  {
+    name: 'get_exchange', description: "A RabbitMQ exchange page (0.19.0) by key `amqp:<exchange>` or bare name: type, vhost, durable, alternateExchange, `publishers` (one row per service and routing key: `reaches` the bindings that route it, `dropped` when none does, publishedIn), `bindings` (binding key to queue, consumers with handlers, `matchedBy` the published keys, `noPublisher`) and `callouts` (a published key that matches no binding is dropped or goes to the alternate exchange; a binding no harvested publisher feeds). Same data as GET /api/envs/:env/instances/amqp:<exchange>. get_channel returns the exchange's flow rows instead.",
+    inputSchema: obj({ env, key: { type: 'string' } }, ['key']),
+    run: (c, a) => exchangeView(c.graph(envOf(a)), a.key) ?? (() => { throw new HttpError(404, 'NOT_FOUND', `exchange '${a.key}' not found`); })(),
   },
   {
     name: 'load_schemas', description: "Store data-store schemas: [{key, source: 'code' | 'db' | 'manual' (default code), content}]. Replaces the schema of the same key and source. All or nothing.",

@@ -46,7 +46,7 @@ export function switchboard(v, name, q, onInfo) {
 
   // ---- egress, grouped by the service reached ----
   const egress = v.egress.filter((e) => hit(e.bindKey, ...e.usedBy, ...e.targets.map((t) => t.service)));
-  const byTarget = group(egress, (e) => (gapOf(e) ? UNRESOLVED : e.dangling ? '\u0000No match' : e.rpc ? RPC_G : e.amqp ? AMQP_G : uniq(e.targets.map((t) => t.service)).join(', ') || (e.maybeTargets?.length ? 'Maybe ' + uniq(e.maybeTargets.map((t) => t.service)).join(', ') : 'No consumer')))
+  const byTarget = group(egress, (e) => (gapOf(e) ? UNRESOLVED : e.dangling ? '\u0000No match' : e.rpc ? RPC_G : e.transport === 'amqp' ? AMQP_G : uniq(e.targets.map((t) => t.service)).join(', ') || (e.maybeTargets?.length ? 'Maybe ' + uniq(e.maybeTargets.map((t) => t.service)).join(', ') : 'No consumer')))
     .sort((a, b) => rank(a[0]) - rank(b[0]));
   const resources = v.resources.filter((r) => hit(r.name, r.kind, ...r.operations.map((o) => o.fn)));
   const right = h('div.sb-col.sb-right',
@@ -57,11 +57,12 @@ export function switchboard(v, name, q, onInfo) {
         : broken ? h('span', { style: { color: 'var(--bad)' } }, 'No match') : h('span.truncate', egressGroupLabel(target, items));
       return details(label, items.length, items.length <= OPEN_LIMIT || broken || !!q, items.map((e) =>
         h('div.sb-row', { 'data-t': gapOf(e) ? 'gap' : e.dangling ? 'broken' : e.rpc ? 'rpc' : e.transport },
-          h('span', h('span.key', e.rpc ? e.rpc.command : e.amqp ? e.amqp.routingKey || e.amqp.exchange : gapOf(e) && e.bindKey.startsWith('unresolved:') ? (gapOf(e).detail || e.id || (e.source ? `${e.source.file}:${e.source.line ?? ''}` : '(no id)')) : e.bindKey), atLink(e.at)),
-          h('span.sb-actions', gapOf(e) ? gapPill(gapOf(e)) : e.rpc ? (e.rpc.timeoutMs ? h('span.xs.muted', `timeout ${seconds(e.rpc.timeoutMs)}`) : null) : e.amqp ? null : [chip(e.transport), e.mode === 'async' ? [' ', chip('async', 'async')] : null]),
+          h('span', h('span.key', e.rpc ? e.rpc.command : e.amqp ? e.amqp.routingKey || e.amqp.exchange : e.transport === 'amqp' && !gapOf(e) ? splitKey(e.bindKey).rest : gapOf(e) && e.bindKey.startsWith('unresolved:') ? (gapOf(e).detail || e.id || (e.source ? `${e.source.file}:${e.source.line ?? ''}` : '(no id)')) : e.bindKey), atLink(e.at)),
+          h('span.sb-actions', gapOf(e) ? gapPill(gapOf(e)) : e.transport === 'amqp' ? null : [chip(e.transport), e.mode === 'async' ? [' ', chip('async', 'async')] : null]),
           h('div.peers',
             e.usedBy.length ? h('span', 'from ', e.usedBy.slice(0, 3).map((f) => h('span.key', f + ' '))) : null,
             e.amqp ? h('span', '→ ', h('span.key', e.amqp.exchange), e.amqp.bindings.length ? [`, ${plural(e.amqp.bindings.length, 'binding')} (`, h('span.key', e.amqp.bindings.slice(0, 3).join(', ')), e.amqp.bindings.length > 3 ? ', …' : '', ')'] : ', no binding matches') : null,
+            e.rpc?.timeoutMs ? h('span', `timeout ${seconds(e.rpc.timeoutMs)}`) : null,
             e.rpc ? e.targets.length ? h('span', '→ ', join(e.targets.map((t) => [svcLink(t.service), ' ', h('span.key', t.handler)]))) : h('span.muted', 'no harvested server') : null,
             !e.rpc && e.targets.length ? h('span', 'to ', join(uniq(e.targets.map((t) => t.service)).slice(0, 6).map(svcLink))) : null,
             e.maybeTargets?.length ? h('span', { title: 'Event types not resolved by the harvester; may pass the subscription filter' }, 'maybe to ', join(uniq(e.maybeTargets.map((t) => t.service)).slice(0, 6).map(svcLink))) : null,

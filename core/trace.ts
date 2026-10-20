@@ -22,7 +22,7 @@ import type { Step, StepField, Unresolved } from './types.ts';
 import { altGroups, type Alt } from './alt.ts';
 import { egressVia, ingressVia, type LinkedHop } from './via.ts';
 import { bindingKeyOf, splitAmqpKey } from './amqp.ts';
-import { routeInfo, routeKey, rpcOf, withServer, type AmqpRoute, type RpcInfo } from './amqp-route.ts';
+import { routeInfo, routeKey, rpcOf, rpcServed, withServer, type AmqpRoute, type RpcInfo } from './amqp-route.ts';
 
 export interface Participant {
   id: string; label: string; kind: 'client' | 'function' | 'service' | 'channel' | 'resource' | 'missing' | 'unresolved'; service?: string;
@@ -360,7 +360,7 @@ const socketProtocol = (i: Ingress): 'tls' | 'tcp' | 'ws' => (['tls', 'tcp', 'ws
 export function entryPoints(g: GraphIndex) {
   const orphan = new Set(g.resolution.orphans.map((i) => sid(i.service, i.id)));
   return g.model.ingress
-    .filter((i) => i.entryPoint || orphan.has(sid(i.service, i.id)))
+    .filter((i) => i.entryPoint || orphan.has(sid(i.service, i.id)) || !!rpcServed(i)) // an RPC command can always be traced from (0.19.0)
     .map((i) => ({ service: i.service, id: i.id, bindKey: i.bindKey, transport: i.transport, handler: i.handler, ...(i.middleware?.length ? { middleware: i.middleware } : {}), entryPoint: !!i.entryPoint }));
 }
 
