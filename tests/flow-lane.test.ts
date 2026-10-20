@@ -157,3 +157,29 @@ test('labels: http calls show verb and path; deliveries show event and handler',
   assert.equal(callLabel({ transport: 'http', label: 'http:POST public/api/orders' }), 'POST /api/orders');
   assert.equal(callLabel({ kind: 'deliver', event: 'OrderPlaced', target: { fn: 'onOrderPlaced' }, label: 'x' }), 'OrderPlaced → onOrderPlaced');
 });
+
+// @ts-ignore
+import { columnGaps, centres, wrapId, arrowEnds, labelWidth } from '../web/js/views/flow-cols.js';
+
+test('columnGaps: a gap grows to fit the label that crosses it, never shrinks below the base', () => {
+  assert.deepEqual(columnGaps(3, [], 138), [138, 138]);
+  assert.deepEqual(columnGaps(3, [{ a: 0, b: 1, need: 200 }], 138), [200, 138]);
+  assert.deepEqual(columnGaps(3, [{ a: 1, b: 0, need: 100 }], 138), [138, 138]);
+  // a span over two gaps shares the deficit; shorter spans are met first
+  assert.deepEqual(columnGaps(3, [{ a: 0, b: 2, need: 400 }, { a: 0, b: 1, need: 180 }], 138), [221, 179]);
+  assert.deepEqual(centres(10, [100, 50]), [10, 110, 160]);
+});
+
+test('wrapId: wraps after separators, never cuts text', () => {
+  assert.deepEqual(wrapId('sqs:analytics-all-events', 15), ['sqs:analytics-', 'all-events']);
+  assert.deepEqual(wrapId('short', 15), ['short']);
+  assert.equal(wrapId('averyveryverylongunbrokenname', 10).join(''), 'averyveryverylongunbrokenname');
+});
+
+test('lane arrows: every labelled arrow has two ends, and the label width is the natural text width', () => {
+  const l = laneOf(create());
+  const labelled = l.events.filter((e: any) => e.label && arrowEnds(e));
+  assert.ok(labelled.length > 3);
+  for (const e of labelled) { const [a, b] = arrowEnds(e); assert.ok(l.columns.includes(a) && l.columns.includes(b)); }
+  assert.equal(labelWidth('GET /api/users/{id}'), Math.ceil(19 * 7.2));
+});

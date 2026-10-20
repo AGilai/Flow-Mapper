@@ -2,15 +2,26 @@
 
 /* The scroller and the drill-down are two columns, so the panel squeezes the diagram instead of covering it. */
 .flow-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; }
-.flow-body > .seq-scroll { min-width: 0; }
+.flow-body > .seq-wrap { min-width: 0; min-height: 0; position: relative; display: flex; flex-direction: column; }
+.seq-wrap > .seq-scroll { flex: 1; min-height: 0; }
+/* The diagram scrolls sideways: a fade on the right edge and a hint, until the end is reached (UI-GUIDE section 9, lanes). */
+.seq-wrap::after { content: ''; position: absolute; top: 0; bottom: 0; right: 0; width: 40px; pointer-events: none; opacity: 0; transition: opacity .15s;
+  background: linear-gradient(90deg, transparent, var(--paper)); }
+.seq-hint { position: absolute; right: 12px; bottom: 10px; z-index: 3; display: none; padding: 3px 10px; border-radius: 11px; font-size: var(--fs-xs); color: var(--ink-2);
+  background: var(--surface); border: 1px solid var(--line-strong); box-shadow: var(--shadow-panel); pointer-events: none; }
+.seq-wrap.scrolls:not(.at-end)::after { opacity: 1; }
+.seq-wrap.scrolls:not(.at-end) .seq-hint { display: block; }
+.arr .label { paint-order: stroke; stroke: var(--halo, var(--paper)); stroke-width: 5px; stroke-linejoin: round; }
+.card-lane { --halo: var(--surface); }
 
 .seq-part.k-service .stripe { fill: var(--ink); }
 .seq-part.k-plain rect:first-child, .seq-part.k-source rect:first-child { stroke-dasharray: 4 3; }
 .seq-part.k-plain .stripe { fill: var(--t-broken); }
 .seq-part.k-source .stripe { fill: var(--t-sqs); }
 .seq-part.k-rail rect:first-child { fill: color-mix(in srgb, var(--t-sns) 8%, var(--surface)); stroke: var(--t-sns); stroke-dasharray: 3 3; }
-.seq-part.k-unresolved rect:first-child { stroke: var(--t-broken); }
-.seq-part.k-unresolved .stripe { fill: var(--t-broken); }
+.seq-part.k-unresolved rect:first-child { stroke: var(--bad); stroke-width: 1.4; stroke-dasharray: 5 3; fill: color-mix(in srgb, var(--bad) 6%, var(--surface)); }
+.seq-part.k-unresolved .stripe { fill: var(--bad); }
+.seq-part.k-unresolved .name { fill: var(--bad); }
 .seq-head-static { border-bottom: 1px solid var(--line); background: var(--paper); }
 .rail { stroke: var(--t-sns); stroke-width: 1.4; stroke-dasharray: 2 4; }
 
@@ -121,18 +132,29 @@
 @media (max-width: 860px) { .flow-body { grid-template-columns: minmax(0, 1fr); } .fi { width: auto; max-width: none; border-left: 0; border-top: 1px solid var(--line); max-height: 55vh; } }
 .seq-body { user-select: none; }
 
-/* Index rows: the head wraps instead of squeezing the names the row is about; chips and buttons give way first. */
-.card-h { flex-wrap: wrap; padding-top: 4px; padding-bottom: 4px; row-gap: 4px; }
-.card-h .lane { flex: 1 1 320px; flex-wrap: wrap; white-space: normal; overflow: visible; overflow-wrap: anywhere; }
-.card-h .svc { overflow-wrap: anywhere; min-width: 0; }
+/* Index rows: one line, ~40px. The service and handler are never cut; the transport chips ellipsise first (title has the
+   full text), then the secondary text. Below 860px the row may wrap. */
+.card-h { flex-wrap: nowrap; }
+.card-h .lane { flex: 0 1 auto; min-width: 0; flex-wrap: nowrap; white-space: nowrap; overflow: visible; }
+.card-h .lane > .tc { flex: 0 1 auto; min-width: 34px; max-width: 220px; display: block; line-height: 20px; overflow: hidden; text-overflow: ellipsis; }
+.card-h .lane .arr, .card-h .layer, .card-h .chev, .card-h .chev-pad { flex: none; }
+.card-h .svc { flex: none; white-space: nowrap; }
+.card-h .nest-chip { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card-h .sum { margin-left: auto; flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.card-h .btn, .card-h .chip-warn, .card-h .chip-bad { flex: none; }
 .tc { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .grp-h .tc { max-width: min(100%, 420px); }
-.card-h .tc { max-width: 240px; }
-.card-h .nest-chip { white-space: normal; flex: 0 1 auto; }
-.card-h .sum { margin-left: auto; }
+@media (max-width: 860px) { .card-h { flex-wrap: wrap; } .card-h .lane { flex-wrap: wrap; white-space: normal; } .card-h .svc { white-space: normal; overflow-wrap: anywhere; flex: 0 1 auto; } }
 .fi-title, .fi .key, .fi .fn { word-break: normal; overflow-wrap: break-word; }
 .card-h .key, .grp-h .mono, .card-h .mono { word-break: normal; }
 .fi-head .grow { min-width: 0; }
 
+/* The message panel is a column too: .flows-right holds the main pane and the panel side by side. */
+.flows-right { min-width: 0; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; position: relative; overflow: hidden; }
+.flows-right > .panel { width: var(--panel); max-width: 70vw; position: relative; inset: auto; transform: none; display: none; box-shadow: none; z-index: 1; min-height: 0; overflow: hidden; }
+.flows-right > .panel.open { display: flex; }
+.flows-right > .panel .panel-body { min-height: 0; flex: 1; }
+@media (max-width: 860px) { .flows-right > .panel.open { position: absolute; inset: 0; width: 100% !important; max-width: none; z-index: 6; } }
+
 /* With the drill-down open the entry list steps aside, so the diagram keeps the room it needs next to the column. */
-@media (min-width: 861px) { .flows.fi-open { grid-template-columns: minmax(0, 1fr); } .flows.fi-open > .flows-list { display: none; } }
+@media (min-width: 861px) { .flows.fi-open, .flows.mp-open { grid-template-columns: minmax(0, 1fr); } .flows.fi-open > .flows-list, .flows.mp-open > .flows-list { display: none; } }

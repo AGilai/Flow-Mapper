@@ -60,14 +60,14 @@ export async function render({ main, query }) {
   drawList();
 
   const mainPane = h('div.flows-main');
-  const row = h('div.flows-row', mainPane);
-  const panel = createPanel(row, { onClose: () => mainPane.querySelector('.msg.active')?.classList.remove('active') });
+  const rightEl = h('div.flows-right', mainPane); // the message panel is this grid's second column, so it squeezes the diagram
+  const panel = createPanel(rightEl, { onClose: () => { flowsEl.classList.remove('mp-open'); mainPane.querySelector('.msg.active')?.classList.remove('active'); } });
   const listEl = h('aside.flows-list', h('div.search', icon('search'), filter), listBody);
-  const flowsEl = h('div.flows', listEl, row);
+  const flowsEl = h('div.flows', listEl, rightEl);
   resizer(listEl, { edge: 'right', key: 'flows-list', defaultWidth: 300, label: 'Resize entry point list',
     width: () => listEl.offsetWidth, apply: (px) => flowsEl.style.setProperty('--list-w', `${px}px`) });
   resizer(panel.el, { edge: 'left', key: 'flow-panel', defaultWidth: 380, label: 'Resize flow details',
-    width: () => panel.el.offsetWidth, apply: (px) => { panel.el.style.width = `min(${px}px, 100%)`; } });
+    width: () => panel.el.offsetWidth, apply: (px) => { panel.el.style.width = `${px}px`; } });
 
   main.append(
     pageHead('Flows', service ? `Starting points in ${service}` : `${points.length} entry points in ${state.env}`),
@@ -81,8 +81,14 @@ export async function render({ main, query }) {
 
   let trace, tree, index, lane;
   const scroller = h('div.seq-scroll');
-  const body = h('div.flow-body', scroller);
-  const inside = createInside(body, { env: state.env, onOpen: () => flowsEl.classList.add('fi-open'), onClose: () => { flowsEl.classList.remove('fi-open'); select(null); }, onStep: (m) => markArrow(m) });
+  const hint = h('span.seq-hint', 'More to the right. Scroll sideways ›');
+  const wrap = h('div.seq-wrap', scroller, hint);
+  const body = h('div.flow-body', wrap);
+  const edge = () => { wrap.classList.toggle('scrolls', scroller.scrollWidth > scroller.clientWidth + 2); wrap.classList.toggle('at-end', scroller.scrollLeft + scroller.clientWidth >= scroller.scrollWidth - 4); };
+  scroller.addEventListener('scroll', edge, { passive: true });
+  const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(edge) : null;
+  ro?.observe(scroller);
+  const inside = createInside(body, { env: state.env, onOpen: () => { panel.close(); flowsEl.classList.add('fi-open'); }, onClose: () => { flowsEl.classList.remove('fi-open'); select(null); }, onStep: (m) => markArrow(m) });
   const info = h('span.small.muted');
   const seg = h('div.seg', { role: 'group', 'aria-label': 'Scope' }, [['intra', 'Inside the service'], ['full', 'Full flow']].map(([id, label]) =>
     h('button', { 'aria-pressed': String(opts.scope === id), on: { click: async () => { opts.scope = id; persist(); await load(); seg.querySelectorAll('button').forEach((b, i) => b.setAttribute('aria-pressed', String(['intra', 'full'][i] === id))); } } }, label)));
@@ -141,6 +147,8 @@ export async function render({ main, query }) {
       if (m.kind === 'frontier') { opts.frontier = true; frontierCheck.querySelector('input').checked = true; persist(); await load(); return; }
       mainPane.querySelectorAll('.msg.active').forEach((e) => e.classList.remove('active'));
       g.classList.add('active');
+      inside.close(); // one side panel at a time
+      flowsEl.classList.add('mp-open');
       panel.open(...messagePanel(m, trace, state.env, opts.scope));
     },
   };
@@ -152,7 +160,9 @@ export async function render({ main, query }) {
     const services = new Set(trace.messages.map((m) => m.service).filter(Boolean));
     info.textContent = `${trace.start.event ? `${trace.start.event}: ` : ''}${trace.messages.length} steps, ${services.size} services${trace.truncated ? ', truncated' : ''}`;
     fill(scroller, lane.el, index?.el);
+    edge();
+    requestAnimationFrame(edge);
   }
   await load();
-  return { dispose: () => { panel.dispose(); inside.dispose(); } };
+  return { dispose: () => { panel.dispose(); inside.dispose(); ro?.disconnect(); } };
 }
