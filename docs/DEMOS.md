@@ -8,6 +8,7 @@ Add a row here with every fix or feature (newest first). A row without a working
 
 | Version | Bug | What to look at | Link |
 |---|---|---|---|
+| 0.8.4 | #26 | Event page, fan-in: 11 producers into one topic, queue and consumer are 11 producer nodes joined by a bracket, then one node each; 8 shown, "3 more producers" with Show all | `#/events/domain.tenant.erase.status.change` |
 | 0.8.4 | #35 | A send straight to a queue that a service consumes: service → queue → billing-eraser, drawn once; queues sit left of their consumer; untick "Queues and topics" and it is the one arrow service → billing-eraser | `#/flows?service=account-lambda-erase-controller&ingress=in.notifyBilling` |
 | 0.8.3 | — | Flows: component count in brackets after each entry point (tooltip has the breakdown); drag the list's right edge or the details panel's left edge to resize (arrows move 16px, double-click resets) | `#/flows?service=api-gateway` |
 | 0.8.2 | #34 | A DELETE whose call tree is a frontier: folded into "frontier: 8 steps", click it to expand; two classified leaves (db_access, external_pkg) shown as notes, not unresolved | `#/flows?service=orders-svc&ingress=in.remove` |

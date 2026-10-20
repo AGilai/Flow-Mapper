@@ -1,4 +1,6 @@
-// The lane block of an event page: producer, topic, queue, consumer, left to right. One producer node per
+// The lane block of an event page: producer, topic, queue, consumer, left to right. Producers that feed the same
+// topic or queue share one block (a bracket into one topic, queue and consumer node, 8 shown then "N more
+// producers"). One producer node per
 // service (its call sites merge), one consumer node per service (its ingresses and queues merge, with a
 // bracket). A direct send passes through the topic column as a labelled line; a possible producer has a
 // dashed edge with a tooltip. Collapsed rows sit inside their fan. See docs/UI-GUIDE.md §2.
@@ -35,13 +37,13 @@ export function eventFlowBlock(flow, { type, open }) {
     const queues = bs.some((b) => b.targets.some((t) => t.shown.length || t.hidden));
     const unresolved = bs.some((b) => b.unresolved.length);
     const used = new Set([...(queues ? ['sqs'] : []), ...bs.flatMap((b) => b.targets.flatMap((t) => (t.target.topic ? [transportOf(t.target.topic.kind)] : [])))]);
-    const dashed = bs.some((b) => b.targets.some((t) => t.target.possible && b.group) );
+    const dashed = bs.some((b) => b.anyPossible);
     const legend = [...used].filter((t) => LEGEND[t]).map((t) => ({ t, text: LEGEND[t] }));
     if (dashed) legend.push({ t: [...used].find((t) => t !== 'sqs') ?? 'sqs', dash: true, text: 'Possible: the type is chosen at runtime' });
     if (unresolved) legend.push({ t: 'async', dash: true, text: 'Target not resolved' });
     const unfedBlock = bs.some((b) => !b.group);
     const footer = [
-      expanded && info.total > ROW_LIMIT ? h('button.btn.ghost.show-more', { type: 'button', on: { click: () => { expanded = false; render(); } } }, 'Show fewer') : null,
+      expanded && (info.total > ROW_LIMIT || info.producers) ? h('button.btn.ghost.show-more', { type: 'button', on: { click: () => { expanded = false; render(); } } }, 'Show fewer') : null,
       unfedBlock ? h('p.lane-foot', 'Topics and queues still come from the consumers\' subscriptions. Outcome lines are hidden: nothing is delivered.') : null,
     ].filter(Boolean);
     const lanes = flowLanes(widths.map((width, i) => ({ head: heads[i], width })), { hint: 'Scroll to see the consumers and their outcome', legend, footer: footer.length ? footer : null });
@@ -61,12 +63,36 @@ export function eventFlowBlock(flow, { type, open }) {
       b.unresolved.forEach((u) => slots.push({ u }));
       if (!slots.length) slots.push({ none: true });
       const unfed = !b.group;
+      // Several producers into one topic or queue: a node each, joined by a bracket into the one node after them.
+      const merged = b.groups.length > 1;
+      const items = merged ? [...b.producers.map((g) => ({ g })), ...(b.producersHidden ? [{ more: b.producersHidden }] : [])] : [];
+      const height = Math.max(slots.length, items.length);
+      const who = b.groups.filter((g) => g.drawnPossible).map((g) => g.producer);
+      const producerName = who.length > 2 ? `any of ${who.length} producers` : who.length ? who.join(' or ') : b.group?.producer;
 
       // Producer, and one branch per direct send, per topic and per unresolved call site.
-      const pn = producerNode(b.group, () => open('producer', b.group.producer, pn), { possible: b.targets.some((t) => t.target.possible) });
-      lanes.put(pn, C.prod, start, slots.length, { sticky: true });
       const branches = [];
-      b.targets.forEach((t) => {
+      if (merged) {
+        const t0 = b.targets[0].target;
+        const tt = t0.topic ? transportOf(t0.topic.kind) : 'sqs';
+        items.forEach((it, i) => {
+          if (it.g) {
+            const pn = producerNode(it.g, () => open('producer', it.g.producer, pn), { possible: it.g.drawnPossible });
+            lanes.put(pn, C.prod, start + i);
+          } else {
+            lanes.put(h('div.lane-stub.col', h('span', plural(it.more, 'more producer')),
+              h('button.btn.ghost', { type: 'button', on: { click: () => { expanded = true; draw(); } } }, `Show all ${b.groups.length}`)), C.prod, start + i);
+          }
+          const c = connector(`merge ${i === 0 ? 'first' : i === items.length - 1 ? 'last' : 'mid'}`, tt, it.g?.drawnPossible);
+          if (it.g?.drawnPossible) { c.classList.add('has-tip'); c.append(tipFor({ group: it.g }, type)); }
+          lanes.put(c, C.c1, start + i);
+        });
+        lanes.arrow(C.c1, start, tt, { span: items.length, half: true });
+      } else {
+        const pn = producerNode(b.group, () => open('producer', b.group.producer, pn), { possible: b.targets.some((t) => t.target.possible) });
+        lanes.put(pn, C.prod, start, slots.length, { sticky: true });
+      }
+      if (!merged) b.targets.forEach((t) => {
         const tt = t.target.topic ? transportOf(t.target.topic.kind) : 'sqs';
         if (t.target.topic) used.add(tt);
         if (t.target.topic) branches.push({ at: t.first, t: tt, dash: t.target.possible, tip: t.target.possible && !unfed });
@@ -75,6 +101,7 @@ export function eventFlowBlock(flow, { type, open }) {
       slots.forEach((s, k) => { if (s.u) branches.push({ at: k, t: 'async', dash: true, tip: false }); });
       branches.sort((x, y) => x.at - y.at);
       const trunk = b.targets.find((t) => t.target.topic);
+      if (!merged) {
       branches.forEach((br, k) => {
         const cls = branches.length === 1 ? 'arrow' : `fan ${k === 0 ? 'first' : k === branches.length - 1 ? 'last' : 'mid'}`;
         const c = connector(cls, br.t, br.dash);
@@ -85,6 +112,7 @@ export function eventFlowBlock(flow, { type, open }) {
         const next = branches[k + 1];
         for (let g = br.at + 1; next && g < next.at; g++) lanes.put(connector('fan mid thru', br.t), C.c1, start + g);
       });
+      }
 
       // Topics, queues, consumers.
       b.targets.forEach((t) => {
@@ -144,11 +172,11 @@ export function eventFlowBlock(flow, { type, open }) {
           lanes.arrow(C.c3, row, 'sqs', { span: n, half: true });
         }
         const service = s.row.consumer;
-        const node = consumerNode(service, rows, b.group?.producer, () => open('consumer', service, node), { outcome: !unfed });
+        const node = consumerNode(service, rows, producerName, () => open('consumer', service, node), { outcome: !unfed });
         lanes.put(node, C.cons, row, n);
         k += n - 1;
       }
-      r += slots.length;
+      r += height;
     });
 
     lanes.el.querySelector('.lane-grid').classList.add('ev');

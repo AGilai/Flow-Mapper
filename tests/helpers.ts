@@ -10,6 +10,16 @@ export const SAMPLES = join(import.meta.dirname, '../samples');
 export const readSample = (name: string) => JSON.parse(readFileSync(join(SAMPLES, name), 'utf8'));
 export const sampleManifests = () => readdirSync(SAMPLES).filter((f) => f.endsWith('.json')).sort().map(readSample);
 
+/** The sample manifests as one in-memory model (env prod), for tests of core/ without a server. */
+export function sampleModel(): any {
+  const model: any = { env: 'prod', services: [], functions: [], ingress: [], egress: [], resources: [], channels: [], bindings: [] };
+  for (const m of sampleManifests()) {
+    model.services.push({ ...m.service, version: m.version, harvestedAt: m.harvestedAt });
+    for (const l of ['functions', 'ingress', 'egress', 'resources', 'channels', 'bindings']) for (const e of m[l] ?? []) model[l].push({ ...e, service: m.service.name, ...(l === 'functions' ? { steps: e.steps ?? [] } : {}) });
+  }
+  return model;
+}
+
 export async function startApp() {
   const dir = mkdtempSync(join(tmpdir(), 'flow-mapper-test-'));
   const { server, ctx } = createApp({ dbPath: join(dir, 'test.db'), dataDir: dir });

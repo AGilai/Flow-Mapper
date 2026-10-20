@@ -21,26 +21,87 @@ function adjacent(targets) {
 
 const target = (t) => ({ target: t, all: t.rows.length, rows: t.rows.filter(visible), shown: [], hidden: 0 });
 
-/** One block per producer service, plus one for consumers nothing feeds when no producer is known. */
+const outcomeRank = (o) => ({ 'no-handler': 0, handled: 1, 'no-reader': 2, possible: 3 }[o] ?? 4);
+
+/** Two rows that reach the same consumer on the same queue, from different producers, are one row. */
+function mergeRows(a, b) {
+  const best = outcomeRank(a.outcome) <= outcomeRank(b.outcome) ? a : b;
+  const ingresses = [...a.ingresses];
+  for (const i of b.ingresses) if (!ingresses.some((x) => x.id === i.id)) ingresses.push(i);
+  // A producer that surely sends it makes the row a sure one; a possible row only stays possible when all of them are.
+  const merged = { ...best, ingresses, alias: [...(a.alias ?? []), b.id, ...(b.alias ?? [])] };
+  if (merged.outcome !== 'possible') delete merged.ifSent;
+  return merged;
+}
+
+/** What a producer sends first: one topic, or direct queues. Producers with the same one share a block. */
+const signature = (g, unresolved) => (unresolved.length ? null : JSON.stringify(g.targets.map((t) => (t.topic ? `t:${t.topic.key}` : `q:${t.rows.filter(visible).map((r) => `${r.queue?.key}>${r.consumer}`).join(',')}`))));
+const oneBranch = (g) => g.targets.length === 1 && (g.targets[0].topic || g.targets[0].rows.filter(visible).length === 1);
+
+/**
+ * Blocks of the page. Producers whose first hop is the same single topic (or the same single queue) are
+ * one block: one topic, queue and consumer node however many of them feed it. A producer that sends to
+ * several places, or has an unresolved call site, keeps its own block. A block with no producer holds
+ * the consumers nothing feeds.
+ */
 export function prepare(flow) {
-  const mk = (group, targets, unresolved) => ({
-    group, unresolved,
+  const mk = (groups, targets, unresolved) => ({
+    group: groups[0] ?? null, groups, unresolved,
     targets: adjacent(targets.map(target)).filter((t) => t.rows.length || t.target.topic),
   });
-  const blocks = flow.groups.map((g) => mk(g, g.targets, flow.unresolved.filter((u) => u.service === g.producer)));
-  if (!flow.groups.length && flow.unfed.length) blocks.push(mk(null, flow.unfed, []));
+  const blocks = [];
+  const shared = new Map();
+  for (const g of flow.groups) {
+    const unresolved = flow.unresolved.filter((u) => u.service === g.producer);
+    const sig = oneBranch(g) ? signature(g, unresolved) : null;
+    const into = sig && shared.get(sig);
+    if (!into) {
+      const b = mk([g], g.targets, unresolved);
+      blocks.push(b);
+      if (sig) shared.set(sig, b);
+      continue;
+    }
+    into.groups.push(g);
+    const t = into.targets[0], from = g.targets[0];
+    t.target = { ...t.target, possible: t.target.possible && from.possible };
+    for (const r of from.rows) {
+      const k = t.target.rows.findIndex((x) => x.queue?.key === r.queue?.key && x.consumer === r.consumer && x.outcome !== 'filtered' && r.outcome !== 'filtered');
+      if (k < 0) { t.target.rows.push(r); continue; }
+      t.target.rows[k] = mergeRows(t.target.rows[k], r);
+    }
+    t.target.rows = t.target.rows.map((r) => r);
+    t.rows = t.target.rows.filter(visible);
+    t.all = t.target.rows.length;
+  }
+  if (!flow.groups.length && flow.unfed.length) blocks.push(mk([], flow.unfed, []));
+  for (const b of blocks) {
+    b.anyPossible = b.groups.some((g) => g.possible || g.targets.some((t) => t.possible));
+    b.groups.forEach((g) => { g.drawnPossible = g.possible || g.targets.some((t) => t.possible); });
+  }
   return blocks;
 }
 
-/** Sets `shown` and `hidden` on every target. Returns the number of rows in all and how many are hidden. */
+/** Sets `shown` and `hidden` on every target, and `producers` / `producersHidden` on a block of many producers. */
 export function collapse(blocks, expanded) {
   const all = blocks.flatMap((b) => b.targets.flatMap((t) => t.rows));
   const room = expanded || all.length <= ROW_LIMIT ? Infinity : Math.max(3, ROW_LIMIT - all.filter((r) => r.outcome !== 'handled').length);
-  let used = 0, hidden = 0;
-  for (const b of blocks) for (const t of b.targets) {
-    t.shown = t.rows.filter((r) => r.outcome !== 'handled' || used++ < room);
-    t.hidden = t.rows.length - t.shown.length;
-    hidden += t.hidden;
+  let used = 0, hidden = 0, many = 0;
+  for (const b of blocks) {
+    for (const t of b.targets) {
+      t.shown = t.rows.filter((r) => r.outcome !== 'handled' || used++ < room);
+      t.hidden = t.rows.length - t.shown.length;
+      hidden += t.hidden;
+    }
+    // Producers collapse like rows: only when everything they reach is handled; possible ones always stay.
+    const calm = b.targets.every((t) => t.rows.every((r) => r.outcome === 'handled'));
+    const keep = (g) => !calm || g.drawnPossible;
+    const fixed = b.groups.filter(keep).length;
+    const slots = expanded || b.groups.length <= ROW_LIMIT ? Infinity : Math.max(3, ROW_LIMIT - fixed);
+    let n = 0;
+    b.producers = b.groups.filter((g) => keep(g) || n++ < slots);
+    b.producersHidden = b.groups.length - b.producers.length;
+    hidden += b.producersHidden;
+    if (b.groups.length > ROW_LIMIT) many = Math.max(many, b.groups.length);
   }
-  return { total: all.length, hidden };
+  return { total: all.length, hidden, producers: many };
 }

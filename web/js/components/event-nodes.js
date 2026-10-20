@@ -65,6 +65,6 @@ export function consumerNode(service, rows, producer, open, { outcome = true } =
       h('div.sub-id', wbr(i.id), i.handler ? [h('span.w', ' calls '), wbr(i.handler)] : h('span.w', ' has no handler for this type')),
       i.any && outcome ? h('div.handles', h('span.muted', 'handles'), h('span.all-chip', h('span.star', '*'), ' any type')) : null)),
     ings.length > 3 ? h('div.who', `+${ings.length - 3} more ingresses`) : null,
-    rows.slice(1).map((r) => h('span.anchor', { id: r.id })),
+    [...rows.slice(1).map((r) => r.id), ...rows.flatMap((r) => r.alias ?? [])].map((id) => h('span.anchor', { id })),
     o ? statusMark(o.kind, o.title, o.small) : null), open);
 }

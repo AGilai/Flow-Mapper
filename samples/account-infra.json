@@ -213,6 +213,34 @@
         "runId": "l1-2026-10-19",
         "verified": "match"
       }
+    },
+    {
+      "bindKey": "sns:production-erase-status-sns",
+      "kind": "sns-topic",
+      "name": "production-erase-status-sns",
+      "source": {
+        "file": "infra/account/topics.tf",
+        "line": 18
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-19",
+        "verified": "match"
+      }
+    },
+    {
+      "bindKey": "sqs:account-erase-status",
+      "kind": "sqs-queue",
+      "name": "account-erase-status",
+      "source": {
+        "file": "infra/account/queues.tf",
+        "line": 40
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-19",
+        "verified": "match"
+      }
     }
   ],
   "bindings": [
@@ -390,6 +418,23 @@
         "runId": "l1-2026-10-19",
         "verified": "match"
       }
+    },
+    {
+      "id": "sub.account-erase-status",
+      "from": "sns:production-erase-status-sns",
+      "to": "sqs:account-erase-status",
+      "source": {
+        "file": "infra/account/subscriptions.tf",
+        "line": 90
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-19",
+        "verified": "match"
+      },
+      "events": [
+        "domain.tenant.erase.status.change"
+      ]
     }
   ]
 }

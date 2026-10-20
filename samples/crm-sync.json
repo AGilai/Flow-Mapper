@@ -60,6 +60,28 @@
       }
     }
   ],
-  "egress": [],
+  "egress": [
+    {
+      "id": "eraseStatus.publish",
+      "bindKey": "sns:production-erase-status-sns",
+      "transport": "sns",
+      "mode": "async",
+      "delivery": "multicast",
+      "events": [
+        "domain.tenant.erase.status.change"
+      ],
+      "source": {
+        "file": "src/eraseStatus.ts",
+        "line": 22
+      },
+      "callSites": [
+        {
+          "file": "src/eraseStatus.ts",
+          "line": 22,
+          "function": "report_erase_status"
+        }
+      ]
+    }
+  ],
   "resources": []
 }

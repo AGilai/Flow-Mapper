@@ -21,13 +21,14 @@ function sampleModel(): Model {
 }
 const demo = { service: 'orders-svc', ingress: 'in.remove' };
 const demo35 = { service: 'account-lambda-erase-controller', ingress: 'in.notifyBilling' }; // added with the #35 demo, after the hash was taken
+const demo26 = { service: 'account-lambda-erase-controller', ingress: 'in.eraseStatus' }; // added with the #26 demo
 
 test('traces of every sample entry without frontier steps are unchanged (hash retaken on 0.8.4: only the lifeline order of 2 traces changed, see queue-twice.test.ts)', () => {
   const m = sampleModel();
   const g = buildIndex(m);
   const h = createHash('sha256');
   let n = 0;
-  for (const i of m.ingress.filter((x) => ![demo, demo35].some((d) => x.service === d.service && x.id === d.ingress))) for (const scope of ['intra', 'full'] as const) {
+  for (const i of m.ingress.filter((x) => ![demo, demo35, demo26].some((d) => x.service === d.service && x.id === d.ingress))) for (const scope of ['intra', 'full'] as const) {
     h.update(JSON.stringify([i.service, i.id, scope, trace(g, { service: i.service, ingress: i.id }, { scope })]));
     n++;
   }

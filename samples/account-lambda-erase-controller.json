@@ -27,6 +27,13 @@
           "event": "account.tenant.terminated.priority10"
         }
       ]
+    },
+    {
+      "id": "on_erase_status",
+      "name": "on_erase_status",
+      "file": "erase_controller/status.py",
+      "line": 12,
+      "steps": []
     }
   ],
   "ingress": [
@@ -39,6 +46,26 @@
       "details": {
         "method": "POST",
         "path": "/erase/billing"
+      }
+    },
+    {
+      "id": "in.eraseStatus",
+      "bindKey": "sqs:account-erase-status",
+      "transport": "sqs",
+      "handler": "on_erase_status",
+      "events": [
+        {
+          "type": "domain.tenant.erase.status.change",
+          "handler": "on_erase_status"
+        }
+      ],
+      "source": {
+        "file": "erase_controller/consumers/in_status.py",
+        "line": 4
+      },
+      "provenance": {
+        "producer": "queue-scanner",
+        "runId": "r1-2026-10-19"
       }
     }
   ],
