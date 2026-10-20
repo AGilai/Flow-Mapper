@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "data-lake-ingest",
+    "kind": "service",
+    "team": "data",
+    "repo": "github.com/acme/data-lake-ingest",
+    "language": "python",
+    "description": "Copies every event into the data lake"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-19T08:00:00Z",
+  "commit": "4e1c9a0",
+  "functions": [
+    {
+      "id": "ingest_any",
+      "name": "ingest_any",
+      "file": "ingest/any.py",
+      "line": 12,
+      "steps": []
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.events",
+      "bindKey": "sqs:data-lake-all-events",
+      "transport": "sqs",
+      "handler": "ingest_any",
+      "events": [
+        {
+          "type": "*",
+          "handler": "ingest_any"
+        }
+      ],
+      "source": {
+        "file": "src/consumers/in_events.py",
+        "line": 5
+      },
+      "provenance": {
+        "producer": "queue-scanner",
+        "runId": "r1-2026-10-19"
+      }
+    }
+  ],
+  "egress": [],
+  "resources": []
+}

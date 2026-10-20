@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "billing-eraser",
+    "kind": "service",
+    "team": "billing",
+    "repo": "github.com/acme/billing-eraser",
+    "language": "python",
+    "description": "Removes a tenant's billing data"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-19T08:00:00Z",
+  "commit": "4e1c9a0",
+  "functions": [
+    {
+      "id": "onTenantTerminated",
+      "name": "onTenantTerminated",
+      "file": "billing_eraser/handlers/tenant.py",
+      "line": 42,
+      "steps": []
+    },
+    {
+      "id": "handle_tenant_event",
+      "name": "handle_tenant_event",
+      "file": "billing_eraser/consumer.py",
+      "line": 18,
+      "steps": []
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.priority",
+      "bindKey": "sqs:billing-erase-priority10",
+      "transport": "sqs",
+      "handler": "onTenantTerminated",
+      "events": [
+        {
+          "type": "account.tenant.terminated.priority10",
+          "handler": "onTenantTerminated"
+        }
+      ],
+      "source": {
+        "file": "src/consumers/in_priority.py",
+        "line": 5
+      },
+      "provenance": {
+        "producer": "queue-scanner",
+        "runId": "r1-2026-10-19"
+      }
+    },
+    {
+      "id": "in.tenantEvents",
+      "bindKey": "sqs:billing-tenant-events",
+      "transport": "sqs",
+      "handler": "handle_tenant_event",
+      "events": [
+        {
+          "type": "account.tenant.*",
+          "handler": "handle_tenant_event"
+        },
+        {
+          "type": "account.tenant.restored",
+          "handler": "handle_tenant_event"
+        }
+      ],
+      "source": {
+        "file": "src/consumers/in_tenantEvents.py",
+        "line": 5
+      },
+      "provenance": {
+        "producer": "queue-scanner",
+        "runId": "r1-2026-10-19"
+      }
+    }
+  ],
+  "egress": [],
+  "resources": []
+}

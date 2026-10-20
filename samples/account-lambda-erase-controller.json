@@ -1,0 +1,112 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "account-lambda-erase-controller",
+    "kind": "lambda",
+    "team": "account-platform",
+    "repo": "github.com/acme/account-lambda-erase-controller",
+    "language": "python",
+    "description": "Erases a terminated tenant's data across the platform"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-19T08:00:00Z",
+  "commit": "4e1c9a0",
+  "functions": [],
+  "ingress": [],
+  "egress": [
+    {
+      "id": "eraseController.publishTerminated",
+      "bindKey": "sns:production-event-bus-sns",
+      "transport": "sns",
+      "mode": "async",
+      "delivery": "multicast",
+      "events": [
+        "account.tenant.terminated.priority10"
+      ],
+      "source": {
+        "file": "erase_controller/publish.py",
+        "line": 57
+      },
+      "callSites": [
+        {
+          "file": "erase_controller/publish.py",
+          "line": 57,
+          "function": "publish_terminated",
+          "via": [
+            {
+              "function": "EventPublisher.publish",
+              "file": "erase_controller/common/events.py",
+              "line": 31,
+              "kind": "wrapper"
+            },
+            {
+              "function": "SNSManager.publish",
+              "file": "erase_controller/common/sns.py",
+              "line": 18,
+              "kind": "wrapper"
+            }
+          ]
+        }
+      ],
+      "via": [
+        {
+          "function": "EventPublisher.publish",
+          "file": "erase_controller/common/events.py",
+          "line": 31,
+          "kind": "wrapper"
+        },
+        {
+          "function": "SNSManager.publish",
+          "file": "erase_controller/common/sns.py",
+          "line": 18,
+          "kind": "wrapper"
+        }
+      ]
+    },
+    {
+      "id": "eraseController.retryTerminated",
+      "bindKey": "sns:production-event-bus-sns",
+      "transport": "sns",
+      "mode": "async",
+      "delivery": "multicast",
+      "events": [
+        "account.tenant.terminated.priority10"
+      ],
+      "source": {
+        "file": "erase_controller/retry.py",
+        "line": 23
+      },
+      "callSites": [
+        {
+          "file": "erase_controller/retry.py",
+          "line": 23,
+          "function": "retry_failed_erase"
+        }
+      ]
+    },
+    {
+      "id": "billingQueue.send",
+      "bindKey": "sqs:billing-erase-priority10",
+      "transport": "sqs",
+      "mode": "async",
+      "delivery": "unicast",
+      "events": [
+        "account.tenant.terminated.priority10"
+      ],
+      "source": {
+        "file": "erase_controller/billing.py",
+        "line": 31
+      },
+      "callSites": [
+        {
+          "file": "erase_controller/billing.py",
+          "line": 31,
+          "function": "notify_billing"
+        }
+      ]
+    }
+  ],
+  "resources": []
+}

@@ -17,7 +17,7 @@
 .lane-node .handles { color: var(--muted); }
 
 /* The outcome for this event type, inside the consumer node (the delivery grid's cell, moved here) */
-.st.maybe { flex-wrap: nowrap; margin-top: 0; } /* .maybe in flow.css is the "May also send" row */
+.lane-node .st.maybe, .ep-card > .st.maybe { flex-wrap: nowrap; } /* .maybe in flow.css is the "May also send" row */
 .lane-node .st { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); }
 
 /* Every node sits at the top of its rows and every branch hits the name line (--y), so a node that spans
@@ -76,3 +76,12 @@
 .ep-card > .st { margin: 0 var(--s3) var(--s3); }
 .cand { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px var(--s3) var(--s3); }
 .ev-chip.this { border-color: var(--accent); color: var(--accent); }
+
+/* Narrow pages: producer and topic shrink first, the outcome column clips last (the lanes scroll) */
+.lane-grid.ev { min-width: 700px; }
+.panel-host.panel-open > .content { padding-right: calc(min(520px, 100%) + var(--s4)); }
+.lane-foot { margin: var(--s3) 0 0; font-size: var(--fs-xs); color: var(--muted); }
+/* Publisher's "May also send" chips stay inside the node */
+.maybe { min-width: 0; }
+.maybe .chips { min-width: 0; }
+.maybe .ev-chip { white-space: normal; overflow-wrap: anywhere; max-width: 100%; }

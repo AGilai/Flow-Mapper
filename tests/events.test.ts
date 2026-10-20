@@ -50,15 +50,15 @@ test('glob filters and handlers: analytics takes every event through sns:*-event
 
 test('link health reports every event problem', async () => {
   const h = (await app.call('GET', '/api/envs/prod/health')).body;
-  assert.deepEqual(h.items.unhandledEvents.map((x: any) => [x.service, x.event]), [['shipping-svc', 'OrderCancelled']]);
-  assert.deepEqual(h.items.undeliveredEvents.map((x: any) => [x.service, x.event]), [['users-svc', 'ProfileViewed']]);
-  assert.deepEqual(h.items.neverArrives.map((x: any) => x.event), ['StockRecount']);
+  assert.deepEqual(h.items.unhandledEvents.map((x: any) => [x.service, x.event]), [['crm-sync', 'account.tenant.terminated.priority10'], ['crm-sync', 'account.tenant.terminated.priority10'], ['shipping-svc', 'OrderCancelled']]); // crm-sync: the account demo domain, once per call site's egress
+  assert.deepEqual(h.items.undeliveredEvents.map((x: any) => [x.service, x.event]), [['billing-api', 'account.invoice.voided'], ['users-svc', 'ProfileViewed']]);
+  assert.deepEqual(h.items.neverArrives.map((x: any) => x.event).sort(), ['StockRecount', 'account.tenant.created', 'account.tenant.created', 'account.tenant.deleted', 'account.tenant.restored', 'account.tenant.restored', 'account.tenant.suspended', 'account.tenant.suspended', 'account.tenant.updated']); // plus the account demo domain's lifecycle events nobody harvested publishes
   assert.deepEqual(h.items.declaredNotSeen.map((x: any) => [x.event, x.producer]), [['PaymentCaptured', 'payments-svc']]);
   assert.equal(h.items.subscriptionConflicts.length, 1);
   const c = h.items.subscriptionConflicts[0];
   assert.deepEqual([c.from, c.to], ['sns:order-events', 'sqs:shipping-order-events']);
   assert.deepEqual(c.declarations.map((d: any) => [d.service, d.events]).sort(), [['infra', ['OrderPlaced']], ['shipping-svc', '*']]);
-  assert.equal(h.totals.unhandledEvents, 1);
+  assert.equal(h.totals.unhandledEvents, 3);
 });
 
 test('traces carry the event type and run the handler for it', async () => {

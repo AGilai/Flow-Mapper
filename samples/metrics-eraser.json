@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "metrics-eraser",
+    "kind": "service",
+    "team": "observability",
+    "repo": "github.com/acme/metrics-eraser",
+    "language": "python",
+    "description": "Removes a tenant's metrics data"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-19T08:00:00Z",
+  "commit": "4e1c9a0",
+  "functions": [
+    {
+      "id": "erase_tenant",
+      "name": "erase_tenant",
+      "file": "metrics_eraser/erase.py",
+      "line": 8,
+      "steps": []
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.erase",
+      "bindKey": "sqs:metrics-erase-events",
+      "transport": "sqs",
+      "handler": "erase_tenant",
+      "events": [
+        {
+          "type": "account.tenant.terminated.priority10",
+          "handler": "erase_tenant"
+        }
+      ],
+      "source": {
+        "file": "src/consumers/in_erase.py",
+        "line": 5
+      },
+      "provenance": {
+        "producer": "queue-scanner",
+        "runId": "r1-2026-10-19"
+      }
+    }
+  ],
+  "egress": [],
+  "resources": []
+}

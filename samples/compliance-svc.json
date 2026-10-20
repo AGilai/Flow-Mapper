@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "compliance-svc",
+    "kind": "service",
+    "team": "compliance",
+    "repo": "github.com/acme/compliance-svc",
+    "language": "typescript",
+    "description": "Retention and legal-hold checks"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-19T08:00:00Z",
+  "commit": "4e1c9a0",
+  "functions": [
+    {
+      "id": "onTenantSuspended",
+      "name": "onTenantSuspended",
+      "file": "src/tenant.ts",
+      "line": 61,
+      "steps": []
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.tenant",
+      "bindKey": "sqs:compliance-tenant-events",
+      "transport": "sqs",
+      "handler": "onTenantSuspended",
+      "events": [
+        {
+          "type": "account.tenant.suspended",
+          "handler": "onTenantSuspended"
+        }
+      ],
+      "source": {
+        "file": "src/consumers/in_tenant.ts",
+        "line": 5
+      },
+      "provenance": {
+        "producer": "queue-scanner",
+        "runId": "r1-2026-10-19"
+      }
+    }
+  ],
+  "egress": [],
+  "resources": []
+}

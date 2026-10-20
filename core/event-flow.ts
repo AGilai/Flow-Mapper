@@ -11,6 +11,7 @@ import { keyMatches } from './glob.ts';
 import { codeLink, sourceLink, type SourceLink } from './endpoint-info.ts';
 import { mergeFilter, node, candidatesOf, type FlowFilter, type FlowNode } from './channel-flow.ts';
 import { eventFlowSummary, type Summary } from './event-flow-summary.ts';
+import { egressVia, type EgressVia } from './via.ts';
 import type { Ingress, Link, Ref } from './types.ts';
 
 export type EventOutcome = 'handled' | 'no-handler' | 'filtered' | 'possible' | 'no-reader';
@@ -46,6 +47,10 @@ export interface CallSite {
   to: FlowNode[];
   /** For a possible call site: every event type it may send. */
   candidates: string[];
+  /** The calling function and where it is, from the harvested call sites (null when none was sent). */
+  fn: string | null;
+  /** The wrapper chain and the harvested call sites of this egress (see core/via.ts). */
+  via: EgressVia;
 }
 export interface ProducerGroup { producer: string; possible: boolean; callSites: CallSite[]; targets: EventTarget[] }
 export interface UnresolvedSend { service: string; egress: string; reason: string; detail: string | null; at: SourceLink | null }
@@ -123,7 +128,8 @@ export function eventFlow(g: GraphIndex, type: string): EventFlow {
     const first = linksFrom(g, ref).flatMap((l) => (l.to.type === 'channel' ? [node(g, l.to.key)] : []));
     const grp = groups.get(e.service) ?? { producer: e.service, possible: true, callSites: [], targets: [] };
     groups.set(e.service, grp);
-    grp.callSites.push({ egress: e.id, bindKey: e.bindKey, at: svc ? codeLink(svc, e.source) : null, possible: !sure, to: first, candidates: sure ? [] : [...(e.events ?? []), ...cands] });
+    const via = svc ? egressVia(svc, e) : { via: [], callSites: [] };
+    grp.callSites.push({ egress: e.id, bindKey: e.bindKey, at: svc ? codeLink(svc, e.source) : null, possible: !sure, to: first, candidates: sure ? [] : [...(e.events ?? []), ...cands], fn: via.callSites[0]?.function ?? null, via });
     if (sure) grp.possible = false;
     if (!hits.length) {
       const u = e.unresolved?.find((x) => x.what === 'target');
@@ -134,7 +140,8 @@ export function eventFlow(g: GraphIndex, type: string): EventFlow {
 
   const out = [...groups.values()].sort((a, b) => +a.possible - +b.possible || a.producer.localeCompare(b.producer));
   for (const grp of out) {
-    grp.callSites.sort((a, b) => +a.possible - +b.possible || a.egress.localeCompare(b.egress));
+    const viaTopic = (c: CallSite) => +!c.to.some((n) => !/queue/.test(n.kind));
+    grp.callSites.sort((a, b) => +a.possible - +b.possible || viaTopic(a) - viaTopic(b) || a.egress.localeCompare(b.egress));
     grp.targets.sort((a, b) => +!!a.topic - +!!b.topic || (a.topic?.name ?? '').localeCompare(b.topic?.name ?? ''));
     for (const t of grp.targets) t.rows.sort((a, b) => rank[a.outcome] - rank[b.outcome] || (a.queue?.name ?? '').localeCompare(b.queue?.name ?? '') || (a.consumer ?? '').localeCompare(b.consumer ?? ''));
   }

@@ -8,6 +8,7 @@ import { href } from '../router.js';
 import { filterLabel } from '../../core/glob.js';
 import { serviceLink } from './inventory-links.js';
 import { statusMark, uniqueIngresses } from '../components/event-nodes.js';
+import { viaChip, callSitesList } from '../components/via-chip.js';
 
 const where = (at) => (at?.file ? `${at.file}${at.line ? ':' + at.line : ''}` : at?.repo ?? null);
 const external = (url) => ({ href: url, target: '_blank', rel: 'noopener noreferrer', title: url });
@@ -66,7 +67,8 @@ export function producerPanel(flow, service) {
   const cards = g.callSites.map((c) => {
     const to = c.to.length ? c.to.map((n) => `${/queue/.test(n.kind) ? 'directly to' : 'to'} ${n.name}`).join(', ') : null;
     return card(c.egress, to,
-      link(c.bindKey, where(c.at), c.at?.url),
+      link(c.fn ?? where(c.at) ?? c.bindKey, c.fn ? where(c.at) : null, c.at?.url),
+      viaChip(c.via.via) || callSitesList(c.via.callSites) ? h('div.ep-pad.stack', { style: { gap: 'var(--s1)' } }, viaChip(c.via.via), callSitesList(c.via.callSites)) : null,
       c.possible ? [
         h('div.ep-route', `The type is chosen at runtime. The harvester lists ${plural(c.candidates.length, 'candidate')}:`),
         h('div.cand', c.candidates.map((t) => h('span.ev-chip.possible', { class: t === flow.type ? 'this' : '' }, t))),

@@ -1,0 +1,395 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "account-infra",
+    "kind": "infra",
+    "team": "platform",
+    "repo": "github.com/acme/account-infra",
+    "language": "terraform",
+    "description": "Account topics and queues declared in IaC"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-19T08:00:00Z",
+  "commit": "4e1c9a0",
+  "functions": [],
+  "ingress": [],
+  "egress": [],
+  "resources": [],
+  "channels": [
+    {
+      "bindKey": "sns:production-event-bus-sns",
+      "kind": "sns-topic",
+      "name": "production-event-bus-sns",
+      "source": {
+        "file": "infra/account/topics.tf",
+        "line": 4
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-19",
+        "verified": "match"
+      }
+    },
+    {
+      "bindKey": "sns:account-audit-sns",
+      "kind": "sns-topic",
+      "name": "account-audit-sns",
+      "source": {
+        "file": "infra/account/topics.tf",
+        "line": 4
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-19",
+        "verified": "match"
+      }
+    },
+    {
+      "bindKey": "sqs:billing-erase-priority10",
+      "kind": "sqs-queue",
+      "name": "billing-erase-priority10",
+      "source": {
+        "file": "infra/account/queues.tf",
+        "line": 6
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-19",
+        "verified": "match"
+      }
+    },
+    {
+      "bindKey": "sqs:billing-tenant-events",
+      "kind": "sqs-queue",
+      "name": "billing-tenant-events",
+      "source": {
+        "file": "infra/account/queues.tf",
+        "line": 14
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-19",
+        "verified": "match"
+      }
+    },
+    {
+      "bindKey": "sqs:data-lake-all-events",
+      "kind": "sqs-queue",
+      "name": "data-lake-all-events",
+      "source": {
+        "file": "infra/account/queues.tf",
+        "line": 22
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-19",
+        "verified": "match"
+      }
+    },
+    {
+      "bindKey": "sqs:search-erase-priority10",
+      "kind": "sqs-queue",
+      "name": "search-erase-priority10",
+      "source": {
+        "file": "infra/account/queues.tf",
+        "line": 30
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-19",
+        "verified": "match"
+      }
+    },
+    {
+      "bindKey": "sqs:crm-sync-events",
+      "kind": "sqs-queue",
+      "name": "crm-sync-events",
+      "source": {
+        "file": "infra/account/queues.tf",
+        "line": 38
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-19",
+        "verified": "match"
+      }
+    },
+    {
+      "bindKey": "sqs:tenant-notifications",
+      "kind": "sqs-queue",
+      "name": "tenant-notifications",
+      "source": {
+        "file": "infra/account/queues.tf",
+        "line": 46
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-19",
+        "verified": "match"
+      }
+    },
+    {
+      "bindKey": "sqs:metrics-erase-events",
+      "kind": "sqs-queue",
+      "name": "metrics-erase-events",
+      "source": {
+        "file": "infra/account/queues.tf",
+        "line": 54
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-19",
+        "verified": "match"
+      }
+    },
+    {
+      "bindKey": "sqs:usage-erase-events",
+      "kind": "sqs-queue",
+      "name": "usage-erase-events",
+      "source": {
+        "file": "infra/account/queues.tf",
+        "line": 62
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-19",
+        "verified": "match"
+      }
+    },
+    {
+      "bindKey": "sqs:quota-erase-events",
+      "kind": "sqs-queue",
+      "name": "quota-erase-events",
+      "source": {
+        "file": "infra/account/queues.tf",
+        "line": 70
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-19",
+        "verified": "match"
+      }
+    },
+    {
+      "bindKey": "sqs:archive-erase-events",
+      "kind": "sqs-queue",
+      "name": "archive-erase-events",
+      "source": {
+        "file": "infra/account/queues.tf",
+        "line": 78
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-19",
+        "verified": "match"
+      }
+    },
+    {
+      "bindKey": "sqs:audit-account-events",
+      "kind": "sqs-queue",
+      "name": "audit-account-events",
+      "source": {
+        "file": "infra/account/queues.tf",
+        "line": 86
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-19",
+        "verified": "match"
+      }
+    },
+    {
+      "bindKey": "sqs:compliance-tenant-events",
+      "kind": "sqs-queue",
+      "name": "compliance-tenant-events",
+      "source": {
+        "file": "infra/account/queues.tf",
+        "line": 94
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-19",
+        "verified": "match"
+      }
+    }
+  ],
+  "bindings": [
+    {
+      "id": "sub.billing-tenant-events",
+      "from": "sns:production-event-bus-sns",
+      "to": "sqs:billing-tenant-events",
+      "source": {
+        "file": "infra/account/subscriptions.tf",
+        "line": 22
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-19",
+        "verified": "match"
+      },
+      "events": [
+        "account.tenant.*"
+      ]
+    },
+    {
+      "id": "sub.data-lake-all-events",
+      "from": "sns:production-event-bus-sns",
+      "to": "sqs:data-lake-all-events",
+      "source": {
+        "file": "infra/account/subscriptions.tf",
+        "line": 34
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-19",
+        "verified": "match"
+      }
+    },
+    {
+      "id": "sub.search-erase-priority10",
+      "from": "sns:production-event-bus-sns",
+      "to": "sqs:search-erase-priority10",
+      "source": {
+        "file": "infra/account/subscriptions.tf",
+        "line": 46
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-19",
+        "verified": "match"
+      },
+      "events": [
+        "account.tenant.terminated.priority10"
+      ]
+    },
+    {
+      "id": "sub.crm-sync-events",
+      "from": "sns:production-event-bus-sns",
+      "to": "sqs:crm-sync-events",
+      "source": {
+        "file": "infra/account/subscriptions.tf",
+        "line": 58
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-19",
+        "verified": "match"
+      }
+    },
+    {
+      "id": "sub.tenant-notifications",
+      "from": "sns:production-event-bus-sns",
+      "to": "sqs:tenant-notifications",
+      "source": {
+        "file": "infra/account/subscriptions.tf",
+        "line": 70
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-19",
+        "verified": "match"
+      },
+      "events": [
+        "!account.tenant.terminated.priority10"
+      ]
+    },
+    {
+      "id": "sub.metrics-erase-events",
+      "from": "sns:production-event-bus-sns",
+      "to": "sqs:metrics-erase-events",
+      "source": {
+        "file": "infra/account/subscriptions.tf",
+        "line": 82
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-19",
+        "verified": "match"
+      },
+      "events": [
+        "account.tenant.terminated.priority10"
+      ]
+    },
+    {
+      "id": "sub.usage-erase-events",
+      "from": "sns:production-event-bus-sns",
+      "to": "sqs:usage-erase-events",
+      "source": {
+        "file": "infra/account/subscriptions.tf",
+        "line": 94
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-19",
+        "verified": "match"
+      },
+      "events": [
+        "account.tenant.terminated.priority10"
+      ]
+    },
+    {
+      "id": "sub.quota-erase-events",
+      "from": "sns:production-event-bus-sns",
+      "to": "sqs:quota-erase-events",
+      "source": {
+        "file": "infra/account/subscriptions.tf",
+        "line": 106
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-19",
+        "verified": "match"
+      },
+      "events": [
+        "account.tenant.terminated.priority10"
+      ]
+    },
+    {
+      "id": "sub.archive-erase-events",
+      "from": "sns:production-event-bus-sns",
+      "to": "sqs:archive-erase-events",
+      "source": {
+        "file": "infra/account/subscriptions.tf",
+        "line": 118
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-19",
+        "verified": "match"
+      },
+      "events": [
+        "account.tenant.terminated.priority10"
+      ]
+    },
+    {
+      "id": "sub.audit-account-events",
+      "from": "sns:account-audit-sns",
+      "to": "sqs:audit-account-events",
+      "source": {
+        "file": "infra/account/subscriptions.tf",
+        "line": 130
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-19",
+        "verified": "match"
+      }
+    },
+    {
+      "id": "sub.compliance-tenant-events",
+      "from": "sns:account-audit-sns",
+      "to": "sqs:compliance-tenant-events",
+      "source": {
+        "file": "infra/account/subscriptions.tf",
+        "line": 142
+      },
+      "provenance": {
+        "producer": "iac-scanner",
+        "runId": "l1-2026-10-19",
+        "verified": "match"
+      }
+    }
+  ]
+}

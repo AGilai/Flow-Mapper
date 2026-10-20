@@ -28,16 +28,23 @@ export function eventFlowBlock(flow, { type, open }) {
 
   const draw = () => {
     const info = collapse(bs, expanded);
-    const hasTopic = bs.some((b) => b.targets.some((t) => t.target.topic));
+    const hasTopic = bs.some((b) => b.unresolved.length || b.targets.some((t) => t.target.topic));
     const C = hasTopic ? { prod: 0, c1: 1, topic: 2, c2: 3, queue: 4, c3: 5, cons: 6 } : { prod: 0, c1: 1, queue: 2, c3: 3, cons: 4 };
-    const widths = ['minmax(146px, 1fr)', '26px', ...(hasTopic ? ['minmax(128px, 0.8fr)', '34px'] : []), 'minmax(156px, 1.05fr)', '34px', 'minmax(236px, 1.45fr)'];
+    const widths = ['minmax(110px, 1fr)', '26px', ...(hasTopic ? ['minmax(96px, 0.8fr)', '30px'] : []), 'minmax(130px, 1.05fr)', '30px', 'minmax(236px, 1.45fr)'];
     const heads = ['Producer', '', ...(hasTopic ? ['Topic', ''] : []), 'Queue', '', 'Consumer · handler · outcome'];
-    const used = new Set(['sqs', ...bs.flatMap((b) => b.targets.flatMap((t) => (t.target.topic ? [transportOf(t.target.topic.kind)] : [])))]);
+    const queues = bs.some((b) => b.targets.some((t) => t.shown.length || t.hidden));
+    const unresolved = bs.some((b) => b.unresolved.length);
+    const used = new Set([...(queues ? ['sqs'] : []), ...bs.flatMap((b) => b.targets.flatMap((t) => (t.target.topic ? [transportOf(t.target.topic.kind)] : [])))]);
     const dashed = bs.some((b) => b.targets.some((t) => t.target.possible && b.group) );
     const legend = [...used].filter((t) => LEGEND[t]).map((t) => ({ t, text: LEGEND[t] }));
     if (dashed) legend.push({ t: [...used].find((t) => t !== 'sqs') ?? 'sqs', dash: true, text: 'Possible: the type is chosen at runtime' });
-    const footer = expanded && info.total > ROW_LIMIT ? h('button.btn.ghost.show-more', { type: 'button', on: { click: () => { expanded = false; render(); } } }, 'Show fewer') : null;
-    const lanes = flowLanes(widths.map((width, i) => ({ head: heads[i], width })), { hint: 'Scroll to see queues and consumers', legend, footer });
+    if (unresolved) legend.push({ t: 'async', dash: true, text: 'Target not resolved' });
+    const unfedBlock = bs.some((b) => !b.group);
+    const footer = [
+      expanded && info.total > ROW_LIMIT ? h('button.btn.ghost.show-more', { type: 'button', on: { click: () => { expanded = false; render(); } } }, 'Show fewer') : null,
+      unfedBlock ? h('p.lane-foot', 'Topics and queues still come from the consumers\' subscriptions. Outcome lines are hidden: nothing is delivered.') : null,
+    ].filter(Boolean);
+    const lanes = flowLanes(widths.map((width, i) => ({ head: heads[i], width })), { hint: 'Scroll to see the consumers and their outcome', legend, footer: footer.length ? footer : null });
     let r = 0;
 
     bs.forEach((b, bi) => {
@@ -56,7 +63,7 @@ export function eventFlowBlock(flow, { type, open }) {
       const unfed = !b.group;
 
       // Producer, and one branch per direct send, per topic and per unresolved call site.
-      const pn = producerNode(b.group, () => open('producer', b.group.producer, pn));
+      const pn = producerNode(b.group, () => open('producer', b.group.producer, pn), { possible: b.targets.some((t) => t.target.possible) });
       lanes.put(pn, C.prod, start, slots.length, { sticky: true });
       const branches = [];
       b.targets.forEach((t) => {
@@ -108,7 +115,7 @@ export function eventFlowBlock(flow, { type, open }) {
           lanes.put(s.row.queue ? channelNode(s.row.queue, { sub: via }) : h('div.lane-pass', { 'data-t': 'sns' }, h('span', 'no queue')), C.queue, row);
         } else if (s.stub) {
           span(C.queue, C.cons, h('div.lane-stub', h('span', `${plural(s.stub, 'more queue')} from ${s.t.target.topic?.name ?? 'direct sends'}, handled`),
-            h('button.btn.ghost', { type: 'button', on: { click: () => { expanded = true; draw(); } } }, `Show all ${info.total} queues`)));
+            h('button.btn.ghost', { type: 'button', on: { click: () => { expanded = true; draw(); } } }, `Show all ${s.t.rows.length} queues`)));
         } else if (s.none) {
           const t = s.t?.target;
           span(C.queue, C.cons, h('div.lane-node.empty', t?.topic

@@ -29,7 +29,7 @@ test('access is read or write from the operation, unless the step says', () => {
 test('inventory lists every kind of object', async () => {
   const items = (await app.call('GET', '/api/envs/prod/inventory')).body as any[];
   const of = (t: string) => items.filter((x) => x.type === t);
-  assert.equal(of('service').length, 9, 'infra is not a service');
+  assert.equal(of('service').length, 23, 'infra is not a service');
   assert.ok(of('service').some((x) => x.id === 'catalog-svc' && x.connections.startsWith('50 endpoints')));
   assert.ok(of('channel').some((x) => x.id === 'eventbridge:acme-bus' && x.kind === 'eventbridge-bus'));
   assert.ok(of('store').some((x) => x.id === 'redis:cache-main/order:{id}' && x.group === 'redis:cache-main' && x.problems === 1));

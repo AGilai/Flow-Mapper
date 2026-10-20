@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "billing-api",
+    "kind": "service",
+    "team": "billing",
+    "repo": "github.com/acme/billing-api",
+    "language": "typescript",
+    "description": "Invoices and payments for tenants"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-19T08:00:00Z",
+  "commit": "4e1c9a0",
+  "functions": [],
+  "ingress": [],
+  "egress": [
+    {
+      "id": "invoices.publishVoided",
+      "bindKey": "sns:invoice-events-from-env",
+      "transport": "sns",
+      "mode": "async",
+      "events": [
+        "account.invoice.voided"
+      ],
+      "source": {
+        "file": "src/invoices/void.ts",
+        "line": 40
+      },
+      "unresolved": [
+        {
+          "what": "target",
+          "reason": "the topic ARN is read from EVENT_BUS_ARN at runtime"
+        }
+      ]
+    }
+  ],
+  "resources": []
+}

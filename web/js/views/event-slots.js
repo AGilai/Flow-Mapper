@@ -11,7 +11,10 @@ function adjacent(targets) {
   targets.forEach((t, i) => {
     const prev = i ? names(targets[i - 1]) : new Set(), next = i < targets.length - 1 ? names(targets[i + 1]) : new Set();
     const key = (r) => (next.has(r.consumer) ? 2 : prev.has(r.consumer) ? 0 : 1);
-    t.rows = t.rows.map((r, k) => [r, k]).sort((a, b) => key(a[0]) - key(b[0]) || a[1] - b[1]).map((x) => x[0]);
+    // One run per consumer: rows of a service stay together, in the order its first row had.
+    const first = new Map();
+    t.rows.forEach((r, k) => { if (!first.has(r.consumer)) first.set(r.consumer, k); });
+    t.rows = t.rows.map((r, k) => [r, k]).sort((a, b) => key(a[0]) - key(b[0]) || first.get(a[0].consumer) - first.get(b[0].consumer) || a[1] - b[1]).map((x) => x[0]);
   });
   return targets;
 }

@@ -1,0 +1,65 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "crm-sync",
+    "kind": "service",
+    "team": "sales",
+    "repo": "github.com/acme/crm-sync",
+    "language": "typescript",
+    "description": "Keeps the CRM in step with account changes"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-19T08:00:00Z",
+  "commit": "4e1c9a0",
+  "functions": [
+    {
+      "id": "onAccountEvent",
+      "name": "onAccountEvent",
+      "file": "src/crm/account.ts",
+      "line": 27,
+      "steps": []
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.accountEvents",
+      "bindKey": "sqs:crm-sync-events",
+      "transport": "sqs",
+      "handler": "onAccountEvent",
+      "events": [
+        {
+          "type": "account.tenant.created",
+          "handler": "onAccountEvent"
+        },
+        {
+          "type": "account.tenant.updated",
+          "handler": "onAccountEvent"
+        },
+        {
+          "type": "account.tenant.suspended",
+          "handler": "onAccountEvent"
+        },
+        {
+          "type": "account.tenant.deleted",
+          "handler": "onAccountEvent"
+        },
+        {
+          "type": "account.tenant.restored",
+          "handler": "onAccountEvent"
+        }
+      ],
+      "source": {
+        "file": "src/consumers/in_accountEvents.ts",
+        "line": 5
+      },
+      "provenance": {
+        "producer": "queue-scanner",
+        "runId": "r1-2026-10-19"
+      }
+    }
+  ],
+  "egress": [],
+  "resources": []
+}

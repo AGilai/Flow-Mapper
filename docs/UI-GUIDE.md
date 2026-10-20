@@ -62,6 +62,19 @@ with one column per hop and a header over each column.
 - Do: one "How events flow" lane block.
   Don't: separate "Published by", "Subscriptions" and "Consumed by" boxes stacked vertically.
 
+- Counts come from the same drawn set: the number on a topic node, in the verdict and on a "Show all N"
+  control agree, and none of them includes rows the page does not draw.
+- A dashed edge always has a matching "Possible" chip on its source node, and the verdict says the same.
+  Dashed grey (no colour) means "target not resolved", and the legend says so.
+- A consumer line names only a handler that handles this page's subject. Without one it says
+  "<ingress> has no handler for this type", never the ingress's entry function.
+- The legend lists only what is drawn.
+- Every empty state has one sentence that says what is hidden and why ("Outcome lines are hidden:
+  nothing is delivered").
+- When the page is too narrow, producer and topic shrink first and the outcome column clips last;
+  the lanes scroll with the hint and fade.
+- State classes (`.maybe`, `.warn`, `.st.*`) are scoped to their component, never global.
+
 ## 3. One row per real-world thing
 
 The harvested data is the truth, but different harvesters can describe the same thing. Group

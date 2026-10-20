@@ -45,14 +45,14 @@ const clickable = (el, open) => {
 };
 
 /** `group` is null when no harvested service publishes the event type. */
-export function producerNode(group, open) {
+export function producerNode(group, open, { possible = false } = {}) {
   if (!group) return h('div.lane-node.empty', 'No harvested service publishes it. Its producer\'s harvester may be missing.');
   const [first, ...rest] = group.callSites;
   return clickable(h('div.lane-node.svc', { 'aria-label': `${group.producer}, producer` },
     h('div.nm', wbr(group.producer)),
     h('div.sub-id', wbr(first.egress)),
     rest.length ? h('div.who', `and ${plural(rest.length, 'more call site')}`) : null,
-    group.possible ? h('span.possible-chip', { title: 'The event type is chosen at runtime' }, 'Possible') : null), open);
+    possible || group.possible ? h('span.possible-chip', { title: 'The event type is chosen at runtime' }, 'Possible') : null), open);
 }
 
 /** `rows`: the rows (one per queue) that reach this service. `outcome` is false when nothing delivers (no producer). */
@@ -62,7 +62,7 @@ export function consumerNode(service, rows, producer, open, { outcome = true } =
   return clickable(h('div.lane-node.svc', { class: o?.kind === 'warn' ? 'warn' : '', id: rows[0].id, 'aria-label': `${service}, consumer` },
     h('div.nm', wbr(service), ings.length > 1 ? h('span.badge', `${ings.length} ingresses`) : null),
     ings.slice(0, 3).map((i) => h('div.node-block',
-      h('div.sub-id', wbr(i.id), h('span.w', ' calls '), wbr(i.handler ?? i.ingressHandler)),
+      h('div.sub-id', wbr(i.id), i.handler ? [h('span.w', ' calls '), wbr(i.handler)] : h('span.w', ' has no handler for this type')),
       i.any && outcome ? h('div.handles', h('span.muted', 'handles'), h('span.all-chip', h('span.star', '*'), ' any type')) : null)),
     ings.length > 3 ? h('div.who', `+${ings.length - 3} more ingresses`) : null,
     rows.slice(1).map((r) => h('span.anchor', { id: r.id })),

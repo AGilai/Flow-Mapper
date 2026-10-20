@@ -49,13 +49,19 @@ export function eventFlowSummary(i: Input): Summary {
       t('. It reaches '); t(plural(services.length, 'service'), true);
       if (queues.length) { t(' through '); t(plural(queues.length, 'queue')); }
     } else if (rowsOf(sure).some((r) => r.outcome === 'no-reader')) t(', but no harvested service reads it');
-    else t(', but no subscription lets it through');
+    else if (sure.some((p) => p.targets.some((x) => x.rows.length))) t(', but no subscription lets it through');
+    else t(', but nothing subscribes to it');
     t('.');
     const reached = new Set(services);
     const extra = uniq(rowsOf(i.groups).filter((r) => r.outcome === 'possible').map((r) => r.consumer!)).filter((s) => !reached.has(s));
     if (maybe.length) {
       t(' '); t(list(maybe.map((p) => p.producer)), true); t(' may also send it');
       t(extra.length ? `, which would reach ${extra.length} more.` : '.');
+    }
+    const mixed = sure.filter((p) => p.targets.some((x) => x.possible));
+    if (mixed.length) {
+      t(' '); t(list(mixed.map((p) => p.producer)), true);
+      t(` may also send it to ${list(uniq(mixed.flatMap((p) => p.targets.filter((x) => x.possible).map((x) => x.topic?.name ?? 'a queue directly'))))}.`);
     }
   }
 
@@ -69,6 +75,5 @@ export function eventFlowSummary(i: Input): Summary {
     const ing = r.ingresses.find((n) => n.outcome === 'no-handler')!.id;
     callouts.push({ text: `${r.consumer} receives it${r.queue ? ` on ${r.queue.name}` : ''} but has no handler for it, so the message is read and dropped. Add it to ${ing} or filter it out of the subscription.`, rowId: r.id, level: 'warn' });
   }
-  for (const u of i.unresolved) callouts.push({ text: `${u.service} publishes it from ${u.egress}, but the harvester could not tell where to: ${u.reason}. It reaches no one we know of.`, rowId: null, level: 'warn' });
   return { text: seg.map((s) => s.t).join(''), segments: seg, callouts };
 }

@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "audit-log-svc",
+    "kind": "service",
+    "team": "compliance",
+    "repo": "github.com/acme/audit-log-svc",
+    "language": "typescript",
+    "description": "Append-only audit trail"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-19T08:00:00Z",
+  "commit": "4e1c9a0",
+  "functions": [
+    {
+      "id": "recordAccountEvent",
+      "name": "recordAccountEvent",
+      "file": "src/audit/account.ts",
+      "line": 33,
+      "steps": []
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.account",
+      "bindKey": "sqs:audit-account-events",
+      "transport": "sqs",
+      "handler": "recordAccountEvent",
+      "events": [
+        {
+          "type": "account.tenant.suspended",
+          "handler": "recordAccountEvent"
+        },
+        {
+          "type": "account.tenant.terminated.priority10",
+          "handler": "recordAccountEvent"
+        }
+      ],
+      "source": {
+        "file": "src/consumers/in_account.ts",
+        "line": 5
+      },
+      "provenance": {
+        "producer": "queue-scanner",
+        "runId": "r1-2026-10-19"
+      }
+    }
+  ],
+  "egress": [],
+  "resources": []
+}

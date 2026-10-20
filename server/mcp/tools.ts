@@ -7,7 +7,7 @@ import * as store from '../store/snapshots.ts';
 import * as bugs from '../store/bugs.ts';
 import * as dtos from '../store/dtos.ts';
 import { endpointInfo } from '../../core/endpoint-info.ts';
-import { eventTypes } from '../../core/events.ts';
+import { eventTypes, eventView } from '../../core/events.ts';
 import { eventFlow } from '../../core/event-flow.ts';
 import { inventory } from '../../core/inventory.ts';
 import { storeView, stores } from '../../core/stores.ts';
@@ -123,7 +123,7 @@ export const TOOLS: Tool[] = [
       const g = c.graph(envOf(a));
       const all = eventTypes(g);
       if (!a.type) return all;
-      const t = all.find((x) => x.type === a.type) ?? (() => { throw new HttpError(404, 'NOT_FOUND', `event type '${a.type}' not found`); })();
+      const t = eventView(g, a.type) ?? (() => { throw new HttpError(404, 'NOT_FOUND', `event type '${a.type}' not found`); })();
       return { ...t, flow: eventFlow(g, a.type), dto: dtos.getEventDto(c.db, envOf(a), a.type) };
     },
   },

@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "account-admin-api",
+    "kind": "service",
+    "team": "account-platform",
+    "repo": "github.com/acme/account-admin-api",
+    "language": "typescript",
+    "description": "Admin API for tenant lifecycle (suspend, terminate, reactivate)"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-19T08:00:00Z",
+  "commit": "4e1c9a0",
+  "functions": [],
+  "ingress": [],
+  "egress": [
+    {
+      "id": "tenantAdmin.publishLifecycle",
+      "bindKey": "sns:account-audit-sns",
+      "transport": "sns",
+      "mode": "async",
+      "delivery": "multicast",
+      "source": {
+        "file": "src/tenants/lifecycle.ts",
+        "line": 88
+      },
+      "unresolved": [
+        {
+          "what": "event",
+          "reason": "the event type is read from req.body.action at runtime",
+          "candidates": [
+            "account.tenant.suspended",
+            "account.tenant.terminated.priority10",
+            "account.tenant.reactivated"
+          ]
+        }
+      ]
+    }
+  ],
+  "resources": []
+}

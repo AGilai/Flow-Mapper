@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "tenant-notifier",
+    "kind": "service",
+    "team": "growth",
+    "repo": "github.com/acme/tenant-notifier",
+    "language": "typescript",
+    "description": "Emails tenant owners about account changes"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-19T08:00:00Z",
+  "commit": "4e1c9a0",
+  "functions": [
+    {
+      "id": "notifyTenant",
+      "name": "notifyTenant",
+      "file": "src/notify.ts",
+      "line": 14,
+      "steps": []
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.tenant",
+      "bindKey": "sqs:tenant-notifications",
+      "transport": "sqs",
+      "handler": "notifyTenant",
+      "events": [
+        {
+          "type": "account.tenant.created",
+          "handler": "notifyTenant"
+        },
+        {
+          "type": "account.tenant.suspended",
+          "handler": "notifyTenant"
+        }
+      ],
+      "source": {
+        "file": "src/consumers/in_tenant.ts",
+        "line": 5
+      },
+      "provenance": {
+        "producer": "queue-scanner",
+        "runId": "r1-2026-10-19"
+      }
+    }
+  ],
+  "egress": [],
+  "resources": []
+}
