@@ -100,7 +100,7 @@ test('plan/links: the links of a kept plan into a draft (201, then 409 NO_CHANGE
   assert.equal((await get(`${E}/abstract-links?draft=${slug}`)).length, 0, 'a draft imported before 0.28 has the links kept, not applied');
   const r = await app.call('POST', `${D}/${slug}/plan/links`, {});
   assert.equal(r.status, 201, JSON.stringify(r.body));
-  assert.deepEqual([r.body.from, r.body.to, r.body.links, r.body.counts.added > 0], [slug, slug, { abstract: 2, flow: 0, skipped: 0 }, true]);
+  assert.deepEqual([r.body.from, r.body.to, r.body.links, r.body.counts.added > 0], [slug, slug, { abstract: 2, flow: 1, skipped: 0 }, true]);
   assert.equal((await get(`${E}/abstract-links?draft=${slug}`)).length, 2);
   const again = await app.call('POST', `${D}/${slug}/plan/links`, {});
   assert.equal(again.status, 409); assert.equal(again.body.error.code, 'NO_CHANGE');

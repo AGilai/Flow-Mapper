@@ -99,6 +99,7 @@ const remote = {
   abstractLink: (env, id) => get(`/api/envs/${e(env)}/abstract-links/${e(id)}`),
   putSubsystems: (env, subsystems, author) => http('PUT', `/api/envs/${e(env)}/subsystems`, { subsystems, author }),
   putLevels: (env, levels) => http('PUT', `/api/envs/${e(env)}/levels`, { levels }),
+  flowRelations: (env, q = {}) => get(`/api/envs/${e(env)}/flow-relations${qs({ service: q.service, ingress: q.ingress, type: q.type })}`),
   planLinks: (env, slug, from, author) => put(env, `/${e(slug)}/plan/links`, 'POST', { from, author }),
   call: (env, service, egress) => get(`/api/envs/${e(env)}/call${qs({ service, egress })}`),
   flowNames: (env) => get(`/api/envs/${e(env)}/flow-names`),

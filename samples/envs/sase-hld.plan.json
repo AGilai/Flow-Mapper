@@ -98,7 +98,9 @@
       "doc": { "file": "hld/05-billing.md", "section": "5.1", "confidence": "stated" } },
     { "id": "push-config-update", "name": "push config update", "from": "grp:platform", "to": "grp:agent", "mode": "async",
       "description": "Platform pushes tenant config updates to agents.",
-      "doc": { "file": "hld/04-agent.md", "section": "4.2", "confidence": "inferred" } }
+      "doc": { "file": "hld/04-agent.md", "section": "4.2", "confidence": "inferred" } },
+    { "from": "flow:sase-agent/in.tunnel.open", "to": "flow:auth-svc/in.token.device", "type": "same-topic",
+      "note": "The tunnel set-up calls the device token endpoint: read the two together." }
   ],
   "mapping": [
     { "doc": { "file": "hld/03-pop.md", "section": "3.2 Tunnel setup" },

@@ -24,6 +24,7 @@ import { setServiceInfo } from '../design/service-info.js';
 import { openImport } from '../design/import-panel.js';
 import { editOpener, editing } from '../design/edit-open.js';
 import { loadSubsystems } from '../design/subsystems-store.js';
+import { relCounts } from './flow-relations-pure.js';
 
 // Squeeze (0.20.1): on by default, remembered per viewer; a click on a fold turns it off for that tab only (flow-tab-view.js).
 const sqStored = () => { try { return localStorage.getItem('flow-mapper.squeeze') !== '0'; } catch { return true; } };
@@ -49,6 +50,7 @@ export async function render({ main, query }) {
     : await api.entryPoints(state.env);
   const counts = new Map((await api.flowCounts(state.env).catch(() => [])).map((c) => [`${c.service}:${c.ingress}`, c]));
   const cmts = await api.commentCounts(state.env).catch(() => ({})); // comments per flow, for the 💬 count of the list
+  const relBy = relCounts(isDesign() ? await api.flowRelations(state.env).catch(() => []) : []); // 0.28.2: relations per flow, for the list's badge and filter
   const names = new Map((await api.flowNames(state.env).catch(() => [])).map((n) => [`${n.service}/${n.ingress}`, n.name]));
   points.forEach((p) => { p.name ||= names.get(`${p.service}/${p.id}`) ?? ''; });
   const nameOf = (s, i) => names.get(`${s}/${i}`) ?? '';
@@ -61,7 +63,7 @@ export async function render({ main, query }) {
   const svcs = await api.services(state.env).catch(() => []);
   setServiceInfo(svcs);
   const groupOf = new Map(svcs.map((s) => [s.name, s.groupPath ?? '']));
-  const list = createList({ points, counts, cmts, service, groupOf, groups: metaOf(state.envMeta, state.env).groups ?? [], marks, design: isDesign(), query, onPick: (p) => openEntry({ service: p.service, ingress: p.id }),
+  const list = createList({ points, counts, cmts, relBy, service, groupOf, groups: metaOf(state.envMeta, state.env).groups ?? [], marks, design: isDesign(), query, onPick: (p) => openEntry({ service: p.service, ingress: p.id }),
     onAll: () => go('/flows', { tabs: S.keys.join(',') || null, tab: S.keys.length > 1 ? S.active : null }),
     onCollapse: (c) => flowsEl.classList.toggle('list-c', c) });
   const flowsEl = h('div.flows', list.el, rightEl);
@@ -110,7 +112,7 @@ export async function render({ main, query }) {
     openEntry: (e) => openEntry(e),
     paintChrome: () => paintChrome(),
     importRef: (anchor, source) => openImport({ panel, flowsEl, anchor, source }),
-    nameOf,
+    nameOf, relType: query.get('relType'),
     edit: null, // set below: the form opener (Edit with a draft)
     initialStep: (k) => (k === stepTab ? stepParam : null),
     setStep: (k, n) => { if (k === S.active) { stepParam = n; persist(); } },

@@ -197,7 +197,16 @@ same, is a **warning and is skipped** (`links[i]: ...`), the rest of the plan st
 Refine one end to a component when the doc names it. **When both ends are endpoints it is a call: refine it, do not delete it** (0.28.0): write the call in the manifests (or extensions) and
 set the link's ends to its egress and endpoint with `refinedBy: [{service, egress}]` (the `refine-link` edit does this: `use` an existing call, or make a new one). A refined link is kept: it
 folds into its roll-up line ("includes: usage metering"), keeps its name, description and `doc`, and shows as `broken` with a problem if the call goes away. A typed link between two flows
-(`{from: "flow:<s>/<ingress>", to: ..., type}`) is a flow relation: skipped with a warning until 0.28.2.
+(`{from: "flow:<s>/<ingress>", to: ..., type}`) is a **flow relation** (0.28.2): see the next section.
+
+**Flow relations** (0.28.2, #50: contradicting, alternative or superseded flows, e.g. when several HLD documents describe the same thing differently). Put them in the plan's `links`, next to the abstract links; they are told apart by `type` and flow ends:
+
+```json
+{ "from": "flow:sase-agent/in.tunnel.open", "to": "flow:auth-svc/in.token.device", "type": "same-topic",
+  "note": "The tunnel set-up calls the device token endpoint: read the two together." }
+```
+
+`type` is `contradicts`, `variant-of`, `supersedes` or `same-topic` (`variant`, `variant_of` and `same_topic` are accepted). The ends are `flow:<component>/<endpoint>` anchors, or `{service, ingress}`; both endpoints must exist in the design or in this plan, and a flow cannot relate to itself. The direction counts for `variant-of` ("`from` is a variant of `to`") and `supersedes` ("`from` supersedes `to`"); `contradicts` and `same-topic` read the same from both ends. `note` (or `description`) is optional text, up to 1000 characters. Say each pair once; a repeated pair and type is one relation. A bad relation (unknown type, an end that is not an endpoint, the same flow twice) is a warning and is skipped, the rest of the plan imports. The result's `links` counts them: `{abstract, flow, skipped}`. Send them even when the flows come from another plan: relate what is in the draft or the design.
 
 **A component belongs to exactly one subsystem** (0.28.0). Do not give a component two: `details.alsoIn` (or an `alsoIn` field), or two different `groupPath` subsystems for one component in a plan
 (a manifest and an extension), is refused with `422 TWO_GROUPS` and nothing is imported. Pick one; to say it also serves another subsystem, use an abstract link or a description.
@@ -292,7 +301,7 @@ for event types. `content` is an example or a JSON Schema; partial shapes set `m
 on the endpoint (HARVESTER-GUIDE "DTOs"): a consumer with `events` takes event DTOs only, a cron none.
 **(e2) schemas**: `{key, source: "manual", content}` per new or changed collection.
 
-**(f) links**: abstract links (§6). `links[]` -> `link:<id>` ops; a bad one is a warning and is skipped; a flow relation waits for 0.28.2.
+**(f) links**: abstract links (§6). `links[]` -> `link:<id>` ops; a bad one is a warning and is skipped; a typed link between flows becomes a `rel:<id>` relation (0.28.2).
 
 **(g) mapping**: every doc section you used, and what came of it. This is the reviewer's main table:
 

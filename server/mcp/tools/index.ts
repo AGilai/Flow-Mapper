@@ -13,6 +13,7 @@ import { editDesignTool, getCallTool } from './edit.ts';
 import { getFlowNamesTool, setFlowNameTool } from './flow-names.ts';
 import { exportMermaidTool, importMermaidTool } from './mermaid.ts';
 import { listCommentsTool, addCommentTool } from './comments.ts';
+import { listFlowRelationsTool } from './relations.ts';
 import { getSubsystemsTool, getSubsystemMapTool, listAbstractLinksTool, suggestRefinementsTool, applyPlanLinksTool, setSubsystemSettingsTool, setLevelsTool } from './subsystems.ts';
 import type { Tool } from './common.ts';
 export type { Tool };
@@ -65,6 +66,7 @@ export const TOOLS: Tool[] = [
   listAbstractLinksTool,
   suggestRefinementsTool,
   applyPlanLinksTool,
+  listFlowRelationsTool,
   setSubsystemSettingsTool,
   setLevelsTool,
   exportMermaidTool,

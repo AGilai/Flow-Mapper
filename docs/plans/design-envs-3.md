@@ -522,7 +522,7 @@ design/AUDIT.md gets rows for the new page and panels. `package.json` → **0.28
 - **UI:**
   - `web/js/views/flow-relations.js` (N ~110): a "Related flows (n)" section under the description box, above Comments. Chips filter by type (All · Contradicts · Variant · Supersedes · Same topic) and are kept in the URL as `rel=`. Each row: type chip (neutral, text), phrase, other flow's name (opens its tab), note, mark. Edit with a draft: "+ relation" and ×.
   - `web/js/design/forms/relation-form.js` (N ~70): other flow (search the entry points), type, note.
-  - The Flows list gets no new filter in 3c.
+  - The Flows list gets a relation filter (`rel=any|<type>`) and a ⇄ badge per flow (added in 0.28.2 at the lead's decision: it fits #50's "filterable"). The section shows 6 rows then "Show N more" (30vh scroll when open); its type chips are kept as `relType=`.
 - **Tests:**
   - flow-relations core: id determinism, symmetric normalisation, aliases, `NO_FLOW` / `BAD_TYPE`;
   - import-plan: flow links mapped, the corev5-style example "22 contradicts" shape;

@@ -23,6 +23,7 @@ import { registerDraftEdits } from './routes/draft-edits.ts';
 import { registerMermaid } from './routes/mermaid.ts';
 import { registerFlowNames } from './routes/flow-names.ts';
 import { registerComments } from './routes/comments.ts';
+import { registerFlowRelations } from './routes/flow-relations.ts';
 import { registerSubsystems } from './routes/subsystems.ts';
 import { getDraft } from './store/drafts.ts';
 import { registerMcpHttp } from './mcp/http.ts';
@@ -67,6 +68,7 @@ export function createApp(opts: AppOptions): { server: Server; ctx: Ctx; router:
   registerFlowNames(router, ctx);
   registerComments(router, ctx);
   registerSubsystems(router, ctx);
+  registerFlowRelations(router, ctx);
   registerMarks(router, ctx);
   registerMcpHttp(router, ctx);
   registerEvents(router, ctx, opts.events);

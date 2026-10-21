@@ -29,6 +29,7 @@ export type DesignEdit =
   | { kind: 'subsystem'; key: string; label?: string; icon?: SubsystemIcon | null; order?: number }
   | { kind: 'abstract-link'; id?: string; name: string; from: string; to: string; mode?: Mode | null; transport?: Transport | null; description?: string; refinedBy?: null }
   | { kind: 'refine-link'; id: string; from?: string; to?: string; use?: { service: string; egress: string }; call?: Omit<CallEdit, 'kind'> }
+  | { kind: 'flow-relation'; id?: string; from: { service: string; ingress: string }; to: { service: string; ingress: string }; type: string; note?: string }
   | { kind: 'delete'; anchor: string };
 
 export class EditError extends Error {

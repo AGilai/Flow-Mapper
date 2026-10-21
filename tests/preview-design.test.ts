@@ -148,10 +148,13 @@ test('0.28 subsystems: the preview\'s subsystems, map, links and suggestions equ
   const E = '/api/envs/sase-hld';
   design.readAs('sase-hld', 'hld-import');
   for (const [local, path] of [[design.api.subsystems('sase-hld'), `${E}/subsystems`], [design.api.subsystemMap('sase-hld'), `${E}/views/subsystems`],
+    [design.api.flowRelations('sase-hld'), `${E}/flow-relations`],
     [design.api.abstractLinks('sase-hld'), `${E}/abstract-links`], [design.api.abstractLink('sase-hld', 'usage-metering'), `${E}/abstract-links/usage-metering`]] as const) {
     assert.deepEqual(JSON.parse(JSON.stringify(await local)), (await app.call('GET', `${path}?draft=hld-import`)).body, path);
   }
+  assert.deepEqual(JSON.parse(JSON.stringify(await design.api.flowRelations('sase-hld', { service: 'auth-svc', ingress: 'in.token.device' }))), (await app.call('GET', `${E}/flow-relations?service=auth-svc&ingress=in.token.device&draft=hld-import`)).body);
   design.readAs('sase-hld', null);
+  assert.deepEqual(await design.api.flowRelations('sase-hld'), []); assert.deepEqual(await design.api.flowRelations('prod'), []);
   assert.deepEqual((await design.api.subsystemMap('sase-hld')).abstract, []);
   design.readAs('sase-hld', 'hld-import');
   await design.api.createDraft('sase-hld', 'Sub try', 'me');
