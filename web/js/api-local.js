@@ -6,6 +6,8 @@ import { systemGraph } from '../core/system-graph.js';
 import { serviceView } from '../core/service-view.js';
 import { entryPoints, trace } from '../core/trace.js';
 import { flowCounts } from '../core/flow-counts.js';
+import { refsReached } from '../core/flow-refs.js';
+import { decorateEntries } from '../core/flow-text.js';
 import { findPaths } from '../core/paths.js';
 import { search } from '../core/search.js';
 import { health } from '../core/health.js';
@@ -53,8 +55,9 @@ function rescore(b) {
 function noStart(env, q) {
   const ing = q.ingress && g(env).ingress.get(`${q.service}:${q.ingress}`);
   if (!ing || g(env).fns.get(`${q.service}:${ing.handler}`)) return fail('start point not found');
-  const e = new Error(`This endpoint's behaviour lives in ${D.source(env)}: ${env} holds the endpoint, not the functions behind it`);
-  e.status = 409; e.details = { source: D.source(env), service: q.service, ingress: ing.id };
+  const anchor = `ing:${q.service}/${ing.id}`, ref = D.refsOf(env).endpoints[anchor], source = ref?.source ?? D.source(env);
+  const e = new Error(ref ? `This endpoint is a reference: its behaviour lives in ${source}` : `This endpoint's behaviour lives in ${source}: ${env} holds the endpoint, not the functions behind it`);
+  e.status = 409; e.code = 'NO_HANDLER'; e.details = { source, service: q.service, ingress: ing.id, reference: !!ref, anchor };
   throw e;
 }
 
@@ -73,8 +76,11 @@ export const api = {
     if (!v) fail(`service '${name}' not found`);
     return { ...v, openBugs: bugs.filter((b) => OPEN.includes(b.status) && b.links.some((l) => l.id === name || l.service === name)).length };
   },
-  entryPoints: async (env) => entryPoints(g(env)),
-  flowCounts: async (env) => flowCounts(g(env)),
+  entryPoints: async (env) => {
+    const refs = D.refsOf(env), design = D.isDesign(env);
+    return decorateEntries(entryPoints(g(env)), D.texts(env), design ? refs : undefined, design ? refsReached(g(env), refs) : undefined);
+  },
+  flowCounts: async (env) => { const t = D.texts(env); return flowCounts(g(env)).map((c) => (t.get(`${c.service}/${c.ingress}`)?.name ? { ...c, name: t.get(`${c.service}/${c.ingress}`).name } : c)); },
   inventory: async (env) => inventory(g(env), D.eventDtosOf(env).map((d) => d.event), new Map((data.keys?.[env] ?? []).map((k) => [k.instance, keySummary(k.entries)]))),
   instance: async (env, id) => {
     const key = resolveInstance(g(env), id), k = (data.keys?.[env] ?? []).find((x) => x.instance === key);
@@ -91,7 +97,10 @@ export const api = {
   eventType: async (env, type) => ({ ...(eventView(g(env), type) ?? fail(`event type '${type}' not found`)), flow: eventFlow(g(env), type), dto: D.eventDtosOf(env).find((d) => d.event === type) ?? null }),
   endpoint: async (env, service, ingress) => endpointInfo(g(env), service, ingress,
     D.dtosOf(env).filter((d) => d.service === service && d.ingress === ingress), D.eventDtosOf(env)) ?? fail('endpoint not found'),
-  trace: async (env, q) => trace(g(env), q, { scope: q.scope, maxMessages: q.maxMessages ?? 500, expand: q.expand?.split(',').filter(Boolean), frontier: q.frontier === '1' || q.frontier === true }) ?? noStart(env, q),
+  trace: async (env, q) => {
+    const t = trace(g(env), q, { scope: q.scope, maxMessages: q.maxMessages ?? 500, expand: q.expand?.split(',').filter(Boolean), frontier: q.frontier === '1' || q.frontier === true });
+    return t ? D.traceOut(env, t, g(env)) : noStart(env, q);
+  },
   descriptions: async (env, service, ingress) => {
     const t = trace(g(env), { service, ingress }, HASH_TRACE) ?? fail('flow not found');
     return flowDescriptions(t, service, ingress, (data.descriptions?.[env] ?? []).filter((r) => r.service === service && r.ingress === ingress));
@@ -104,7 +113,7 @@ export const api = {
     return api.descriptions(env, service, ingress);
   },
   paths: async (env, from, to) => findPaths(g(env), from, to),
-  search: async (env, q, limit) => search(g(env), q, limit),
+  search: async (env, q, limit) => search(g(env), q, limit, new Map([...D.texts(env)].flatMap(([k, t]) => (t.name ? [[k, t.name]] : [])))),
   health: async (env) => health(g(env)),
   changelog: async () => [],
   bugs: async (f = {}) => clone(bugs.filter((b) => !f.open || OPEN.includes(b.status))

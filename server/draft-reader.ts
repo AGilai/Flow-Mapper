@@ -3,6 +3,7 @@
 
 import type { DB } from './db/connection.ts';
 import { rowsToExtras, type ItemRow } from '../core/item-rows.ts';
+import { overlayText } from '../core/flow-text.ts';
 import type { Dto, EventDto } from '../core/endpoint-info.ts';
 import type { Service } from '../core/types.ts';
 import * as dtos from './store/dtos.ts';
@@ -19,6 +20,8 @@ export interface DataReader {
   listSchemas(key?: string): schemas.StoreSchema[];
   /** The name and (human) description of a flow, if any. */
   flowText(service: string, ingress: string): FlowText | null;
+  /** Every flow text of the environment, by `<service>/<ingress>` (one read for a whole entry list). */
+  flowTexts(): Map<string, FlowText>;
   /** One service's header and entities; null when the service is not there. */
   service(name: string): { service: Service; entities: Required<Entities> } | null;
 }
@@ -35,13 +38,22 @@ export function dbReader(db: DB, env: string): DataReader {
       const d = db.prepare("SELECT text FROM descriptions WHERE env = ? AND service = ? AND ingress = ? AND callee = '' AND source = 'human'").get(env, service, ingress) as { text: string } | undefined;
       return n || d ? { ...(n ? { name: n.name } : {}), ...(d ? { description: d.text } : {}) } : null;
     },
+    flowTexts() {
+      const out = new Map<string, FlowText>();
+      for (const r of db.prepare('SELECT service, ingress, name FROM flow_names WHERE env = ?').all(env) as { service: string; ingress: string; name: string }[]) out.set(`${r.service}/${r.ingress}`, { name: r.name });
+      for (const r of db.prepare("SELECT service, ingress, text FROM descriptions WHERE env = ? AND callee = '' AND source = 'human'").all(env) as { service: string; ingress: string; text: string }[]) {
+        out.set(`${r.service}/${r.ingress}`, { ...out.get(`${r.service}/${r.ingress}`), description: r.text });
+      }
+      return out;
+    },
     service(name) {
       try { return { service: getService(db, env, name), entities: loadEntities(db, env, name) }; } catch { return null; }
     },
   };
 }
 
-export function rowsReader(rows: ItemRow[]): DataReader {
+/** Reads from the overlay rows; a flow's name and description the draft says nothing about come from `fallback` (the database). */
+export function rowsReader(rows: ItemRow[], fallback: DataReader): DataReader {
   const x = rowsToExtras(rows);
   const header = new Map(rows.filter((r) => r.list === 'header').map((r) => [r.service, r]));
   return {
@@ -50,9 +62,11 @@ export function rowsReader(rows: ItemRow[]): DataReader {
     listEventDtos: () => x.eventDtos,
     getEventDto: (t) => x.eventDtos.find((d) => d.event === t) ?? null,
     listSchemas: (k) => x.schemas.filter((s) => !k || s.key === k),
-    flowText(service, ingress) {
-      const f = x.flows.get(`${service}/${ingress}`);
-      return f && (f.name || f.description) ? { name: f.name, description: f.description } : null;
+    flowText: (service, ingress) => overlayText(x.flows.get(`${service}/${ingress}`), fallback.flowText(service, ingress)),
+    flowTexts() {
+      const out = fallback.flowTexts();
+      for (const [k, op] of x.flows) { const t = overlayText(op, out.get(k)); if (t) out.set(k, t); else out.delete(k); }
+      return out;
     },
     service(name) {
       const h = header.get(name);

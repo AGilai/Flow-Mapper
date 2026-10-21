@@ -9,7 +9,9 @@ import { rowId, rowLabel, type ItemRow } from './item-rows.ts';
 import { rawHash, same } from './diff/normalise.ts';
 
 export interface DraftOpInput { op: 'upsert' | 'delete'; anchor: string; service?: string; data?: unknown }
-export interface DraftOp extends DraftOpInput { seq: number; service: string; list: string; key: string; baseHash: string | null; author: string; byAi: boolean; at: string }
+/** Where an op's item was imported from (import ops only): the source environment and its service version then. */
+export interface OpOrigin { env: string; version: number | null }
+export interface DraftOp extends DraftOpInput { seq: number; service: string; list: string; key: string; baseHash: string | null; author: string; byAi: boolean; at: string; origin?: OpOrigin | null }
 export type NetOp = DraftOp;
 export interface DraftChange { anchor: string; change: 'added' | 'removed' | 'changed'; label: string; under?: string; authors: string[]; at: string; stale: boolean }
 export interface DraftChanges { counts: { added: number; removed: number; changed: number }; items: DraftChange[]; authors: string[] }
@@ -30,6 +32,7 @@ export function validateOpShape(o: unknown): string[] {
   if (i.op === 'upsert' && !isObj(i.data)) errs.push('upsert needs data: the whole item as an object');
   if (i.op === 'delete' && i.data !== undefined) errs.push('delete takes no data');
   if (i.service !== undefined && typeof i.service !== 'string') errs.push('service must be a string');
+  if ('origin' in i) errs.push('origin is set by import only');
   return errs;
 }
 

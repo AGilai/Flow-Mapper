@@ -122,6 +122,20 @@
       }
     },
     {
+      "service": "users-svc",
+      "ingress": "in.getPosture",
+      "role": "response",
+      "content": {
+        "userId": "c_81f2a9",
+        "devices": [
+          { "deviceId": "d_4410", "os": "macOS 15.1", "diskEncrypted": true, "firewall": true },
+          { "deviceId": "d_7721", "os": "Windows 11", "diskEncrypted": false, "firewall": true }
+        ],
+        "verdict": "review",
+        "checkedAt": "2026-10-19T08:00:00Z"
+      }
+    },
+    {
       "event": "OrderPlaced",
       "content": {
         "type": "OrderPlaced",

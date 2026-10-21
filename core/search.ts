@@ -2,9 +2,10 @@
 
 import type { GraphIndex } from './graph-index.ts';
 
-export interface SearchHit { type: 'service' | 'function' | 'ingress' | 'egress' | 'channel' | 'resource'; service?: string; id: string; label: string; detail?: string }
+export interface SearchHit { type: 'service' | 'function' | 'ingress' | 'egress' | 'channel' | 'resource'; service?: string; id: string; label: string; detail?: string; /** An endpoint's flow name, where it has one (the search matches it too). */ name?: string }
 
-export function search(g: GraphIndex, q: string, limit = 50): SearchHit[] {
+/** `names`: flow names by `<service>/<ingress>` (server/refs.ts flowNameMap). */
+export function search(g: GraphIndex, q: string, limit = 50, names?: Map<string, string>): SearchHit[] {
   const needle = q.trim().toLowerCase();
   if (!needle) return [];
   const hit = (...xs: (string | undefined)[]) => xs.some((x) => x?.toLowerCase().includes(needle));
@@ -14,8 +15,8 @@ export function search(g: GraphIndex, q: string, limit = 50): SearchHit[] {
       .map((s) => ({ type: 'service' as const, id: s.name, label: s.name, detail: s.team })),
     ...m.functions.filter((f) => hit(f.id, f.name, f.file))
       .map((f) => ({ type: 'function' as const, service: f.service, id: f.id, label: f.name, detail: f.file })),
-    ...m.ingress.filter((i) => hit(i.id, i.bindKey))
-      .map((i) => ({ type: 'ingress' as const, service: i.service, id: i.id, label: i.bindKey, detail: i.transport })),
+    ...m.ingress.filter((i) => hit(i.id, i.bindKey, names?.get(`${i.service}/${i.id}`)))
+      .map((i) => ({ type: 'ingress' as const, service: i.service, id: i.id, label: i.bindKey, detail: i.transport, ...(names?.get(`${i.service}/${i.id}`) ? { name: names.get(`${i.service}/${i.id}`) } : {}) })),
     ...m.egress.filter((e) => hit(e.id, e.bindKey))
       .map((e) => ({ type: 'egress' as const, service: e.service, id: e.id, label: e.bindKey, detail: e.transport })),
     ...[...g.channels.values()].filter((c) => hit(c.bindKey, c.name))

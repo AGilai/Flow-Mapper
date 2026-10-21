@@ -254,7 +254,7 @@ impact, `appVersion` (where it was seen), `fixedInVersion`, env, reporter, assig
 - Bugs: `/bugs` CRUD, `/bugs/:id/attachments`, `/bugs/:id/comments`
 
 **MCP tools** (same service layer): `search`, `get_service`, `trace_flow`, `find_paths`,
-`link_health`, `changelog`, `upsert_entity`, `delete_entity`, `ingest_manifest`,
+`link_health`, `changelog`, `ingest_manifest`,
 `get_endpoint_info`, `event_types`, `load_dtos`, `list_bugs`, `get_bug`, `report_bug`, `update_bug`. See [API.md](API.md).
 
 ---
@@ -354,6 +354,17 @@ A copied component keeps problems it already had (dangling handlers after a Comp
 and the pages decorate themselves from one `marks` map keyed by anchor. One diff function computes the marks and the counts, so the bar, the inventory filter and the review list agree.
 The diff is pure (`core/diff/`), shared with the browser, which is how the static preview computes the same marks. The rules that make it usable on real data: noise is dropped before comparing
 (provenance, code locations, versions, `details.doc`, step numbers), steps are aligned by content so an inserted step is one added step, the highest level carries a mark, a changed child marks its parents.
-Manual CRUD on environments is refused for both kinds until the edit forms replace it (decision M2): sealed means harvesters, design means drafts.
+Manual CRUD on environments is gone (0.25.0, decision M2: kept as 409s until the edit forms existed): sealed means harvesters, design means drafts.
+
+**References and import (0.25.0).** A design that starts as a Components copy holds endpoints whose behaviour stayed in the source. Showing them as ordinary endpoints would hide that
+the flow stops there; showing them as errors would be wrong (referencing prod is normal). So an endpoint is a *reference* iff it came from another environment (a baseline row, or
+an import op), names a handler, and no handler is a function of its component. One definition, in `core/references.ts`, used by the server, the preview and the UI; the lock the UI draws
+is neutral. A design-made endpoint with a dangling handler is not a reference: it is "not designed yet". A flow that continues into a reference is *partial*, and says which steps.
+*Import into design* copies **one level**: the endpoint's own flow and what it uses, never what it calls in other components, which stays a reference and is listed with its own import.
+Recursion would pull the whole system in one click; one level makes the next level an explicit choice. A callee the design lacks comes along as a stub (header, endpoint, DTOs; no
+behaviour) so the imported call resolves and shows the lock. **Why the baseline of imported items lives on the op** (`draft_ops.origin`, migration 008) and not in `baseline_items` at
+import time: baseline rows for items that exist only in a draft would show as Removed in the environment and in every other draft, and leave orphans on discard, undo or revert. On the
+op they follow the draft's life for free; apply copies them into `baseline_items`. Imported items are unchanged against their source, so they get no New mark, and editing them in the same
+draft shows Changed. The edit forms (`DesignEdit`) are pure builders of the same whole-item ops, so a form, an import plan, an agent (`edit_design`) and the preview all make identical drafts.
 
 `undecided` is a transport value for "not chosen yet", not `other` plus a flag: it resolves by key like any transport, so a design can wire two components before deciding how they talk.

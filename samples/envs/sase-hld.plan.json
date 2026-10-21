@@ -41,7 +41,8 @@
         { "id": "TunnelHandler.open", "name": "TunnelHandler.open", "steps": [
           { "seq": 1, "type": "egress", "target": "out.auth.token", "operation": "POST /token",
             "details": { "doc": { "file": "hld/03-pop.md", "section": "3.2 Tunnel setup", "confidence": "stated", "quote": "pop-edge exchanges the device certificate for a session token at the platform auth service" } } },
-          { "seq": 2, "type": "egress", "target": "out.policy.get", "note": "fetch the tenant policy bundle" }
+          { "seq": 2, "type": "egress", "target": "out.users.posture", "operation": "GET /users/{id}/posture", "note": "device posture of the signed-in user" },
+          { "seq": 3, "type": "egress", "target": "out.policy.get", "note": "fetch the tenant policy bundle" }
         ] }
       ],
       "ingress": [
@@ -50,6 +51,7 @@
       ],
       "egress": [
         { "id": "out.auth.token", "transport": "http", "mode": "sync", "bindKey": "http:POST auth-svc/token", "provenance": { "producer": "hld-import", "runId": "sase-hld-2026-10-21" } },
+        { "id": "out.users.posture", "transport": "http", "mode": "sync", "bindKey": "http:GET users-svc/users/{id}/posture", "provenance": { "producer": "hld-import", "runId": "sase-hld-2026-10-21" } },
         { "id": "out.policy.get", "transport": "other", "bindKey": "tbd:pop-policy-cache/GetTenantPolicy",
           "details": { "transport": "undecided", "candidates": ["grpc", "amqp"], "doc": { "file": "hld/03-pop.md", "section": "3.4", "confidence": "stated", "quote": "transport to be decided (gRPC or AMQP RPC)", "questions": ["Q2"] } } }
       ]
@@ -74,7 +76,8 @@
       "steps": [
         { "n": 1, "from": "sase-agent", "to": "pop-edge", "text": "Agent opens the tunnel with its device certificate." },
         { "n": 2, "from": "pop-edge", "to": "auth-svc", "text": "Trades the certificate for a session token." },
-        { "n": 3, "from": "pop-edge", "to": "pop-policy-cache", "text": "Fetches the tenant policy bundle (transport not decided)." }
+        { "n": 3, "from": "pop-edge", "to": "users-svc", "text": "Asks users-svc for the device posture of the signed-in user (prod's endpoint, not changed by this design)." },
+        { "n": 4, "from": "pop-edge", "to": "pop-policy-cache", "text": "Fetches the tenant policy bundle (transport not decided)." }
       ],
       "doc": { "file": "hld/03-pop.md", "section": "3.2 Tunnel setup", "confidence": "stated" }
     }

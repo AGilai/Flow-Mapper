@@ -17,9 +17,10 @@ import * as descriptions from '../server/store/descriptions.ts';
 import * as keys from '../server/store/keys.ts';
 import { seedEnvRecipes } from './seed-envs.ts';
 import { listEnvMeta } from '../server/store/envs.ts';
-import { envItemRows, baselineRows, sourceNowRows } from '../server/store/item-rows.ts';
+import { envItemRows, baselineRows } from '../server/store/item-rows.ts';
 import { listDrafts, loadOps } from '../server/store/drafts.ts';
 import { stores } from '../core/stores.ts';
+import { dbReader } from '../server/draft-reader.ts';
 import { generateMock } from './mock/generate.ts';
 import { seedBugs } from './mock/bugs.ts';
 
@@ -46,7 +47,9 @@ for (const f of read(join(samples, 'schemas'))) {
 
 seedEnvRecipes(ctx, join(samples, 'envs'));
 
-const designs = listEnvMeta(ctx.db).filter((e) => e.kind === 'design').map((e) => e.name);
+const metas = listEnvMeta(ctx.db), designs = metas.filter((e) => e.kind === 'design').map((e) => e.name);
+// a design's rows, and the rows of every environment a design was taken from (an import reads them)
+const withRows = [...new Set([...designs, ...metas.filter((e) => e.kind === 'design' && e.source).map((e) => e.source as string)])];
 const data = {
   version: ctx.appVersion,
   envMeta: listEnvMeta(ctx.db),
@@ -57,10 +60,9 @@ const data = {
   keys: Object.fromEntries(store.listEnvs(ctx.db).map((env) => [env, keys.allForPreview(ctx.db, env)])),
   schemas: Object.fromEntries(store.listEnvs(ctx.db).map((env) => [env, schemas.listSchemas(ctx.db, env)])),
   // Design environments: their rows, their frozen baseline and their open drafts with ops, so the page can compute marks and draft views with core/.
-  rows: Object.fromEntries(designs.map((env) => [env, envItemRows(ctx.db, env)])),
+  rows: Object.fromEntries(withRows.map((env) => [env, envItemRows(ctx.db, env)])),
   baselines: Object.fromEntries(designs.map((env) => [env, baselineRows(ctx.db, env)])),
-  // the source environment as it is now (for "compared with prod now")
-  sources: Object.fromEntries(designs.map((env) => { const { rows, vanished } = sourceNowRows(ctx.db, env, baselineRows(ctx.db, env)); return [env, { rows, vanished: [...vanished] }]; })),
+  flowTexts: Object.fromEntries(store.listEnvs(ctx.db).map((env) => [env, [...dbReader(ctx.db, env).flowTexts()]])),
   drafts: Object.fromEntries(designs.map((env) => [env, listDrafts(ctx.db, env, 'open').map((d) => ({ ...d, ops: loadOps(ctx.db, d.id) }))])),
   bugs: bugs.listBugs(ctx.db, {}, ctx.appVersion).map((b) => {
     const full = bugs.getBug(ctx.db, b.id, ctx.appVersion);

@@ -17,7 +17,7 @@
 
 import type { GraphIndex } from './graph-index.ts';
 import { linksFrom, sid } from './graph-index.ts';
-import type { Ref } from './types.ts';
+import type { Ingress, Ref } from './types.ts';
 import { handlerFor, passes, boundValues, passesUntyped, untypedEventSet } from './events.ts';
 import { refKey, unresolvedTarget } from './resolve.ts';
 import { splitAmqpKey } from './amqp.ts';
@@ -33,9 +33,10 @@ interface Node { local: Set<string>; next: string[] }
 const counted = new WeakMap<GraphIndex, FlowCount[]>();
 const cache = new WeakMap<GraphIndex, Map<string, string[]>>();
 
-/** Component ids ('s:<service>', 'c:<channel key>', 'r:<store key>') reachable from a function. */
-function componentSets(g: GraphIndex): Map<string, string[]> {
-  const hit = cache.get(g);
+/** Component ids ('s:<service>', 'c:<channel key>', 'r:<store key>') reachable from a function. `mark` (core/flow-refs.ts) names an
+ *  ingress the walk reaches with an extra id of its own, and then the result is not cached here (the caller keeps it). */
+export function componentSets(g: GraphIndex, mark?: (i: Ingress) => string | undefined): Map<string, string[]> {
+  const hit = mark ? undefined : cache.get(g);
   if (hit) return hit;
   const nodes = new Map<string, Node>();
   const nodeOf = (k: string): Node => {
@@ -68,6 +69,8 @@ function componentSets(g: GraphIndex): Map<string, string[]> {
           const i = g.ingress.get(sid(r.service, r.id));
           if (!i) return;
           node.local.add('s:' + i.service);
+          const m = mark?.(i);
+          if (m) node.local.add(m);
           const handlers = st.eventFrom && i.events?.length ? [...set!.known, ...set!.candidates].map((t) => handlerFor(i, t)) : [event ? handlerFor(i, event) : i.handler];
           for (const handler of new Set(handlers)) if (handler && g.fns.get(sid(i.service, handler))) node.next.push(sid(i.service, handler));
         }
@@ -117,7 +120,7 @@ function componentSets(g: GraphIndex): Map<string, string[]> {
   }
   const result = new Map<string, string[]>();
   for (const [k, s] of sets) result.set(k, [...s]);
-  cache.set(g, result);
+  if (!mark) cache.set(g, result);
   return result;
 }
 

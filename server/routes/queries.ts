@@ -7,7 +7,8 @@ import { sid } from '../../core/graph-index.ts';
 import { getEnvRow } from '../store/envs.ts';
 import { systemGraph } from '../../core/system-graph.ts';
 import { serviceView } from '../../core/service-view.ts';
-import { entryPoints, trace } from '../../core/trace.ts';
+import { trace } from '../../core/trace.ts';
+import { entryPointsOut, flowNameMap, refsFor, traceOut } from '../refs.ts';
 import { flowCounts } from '../../core/flow-counts.ts';
 import { findPaths } from '../../core/paths.ts';
 import { search } from '../../core/search.ts';
@@ -31,8 +32,8 @@ export function registerQueries(r: Router, ctx: Ctx) {
     return { ...v, openBugs: bugs.length };
   });
 
-  r.get('/api/envs/:env/entry-points', (req) => entryPoints(ctx.graphOf(req)));
-  r.get('/api/envs/:env/flows/counts', (req) => flowCounts(ctx.graphOf(req)));
+  r.get('/api/envs/:env/entry-points', (req) => entryPointsOut(ctx, req.params.env, req.query.get('draft')));
+  r.get('/api/envs/:env/flows/counts', (req) => { const names = flowNameMap(ctx, req.params.env, req.query.get('draft')); return flowCounts(ctx.graphOf(req)).map((c) => (names.has(`${c.service}/${c.ingress}`) ? { ...c, name: names.get(`${c.service}/${c.ingress}`) } : c)); });
 
   r.get('/api/envs/:env/trace', (req) => {
     const q = req.query;
@@ -44,11 +45,13 @@ export function registerQueries(r: Router, ctx: Ctx) {
       { scope, maxDepth: int(q.get('maxDepth'), 25), maxMessages: Math.min(int(q.get('maxMessages'), 500), 5000), expand: q.get('expand')?.split(',').filter(Boolean), frontier: ['1', 'true'].includes(q.get('frontier') ?? '') });
     const ing = q.get('ingress') ? g.ingress.get(sid(service, q.get('ingress')!)) : undefined;
     if (!t && ing && !g.fns.get(sid(service, ing.handler))) { // a copied endpoint: the endpoint came along, its functions did not
-      const source = getEnvRow(ctx.db, req.params.env)?.source ?? null;
-      throw conflict('NO_HANDLER', `This endpoint's behaviour lives in ${source ?? 'another environment'}: ${req.params.env} holds the endpoint, not the functions behind it`, { source, service, ingress: ing.id });
+      const anchor = `ing:${service}/${ing.id}`, ref = refsFor(ctx, req.params.env, q.get('draft')).endpoints[anchor];
+      const source = ref?.source ?? getEnvRow(ctx.db, req.params.env)?.source ?? null;
+      throw conflict('NO_HANDLER', ref ? `This endpoint is a reference: its behaviour lives in ${source}` : `This endpoint's behaviour lives in ${source ?? 'another environment'}: ${req.params.env} holds the endpoint, not the functions behind it`,
+        { source, service, ingress: ing.id, reference: !!ref, anchor });
     }
     if (!t) throw notFound('start point (service + ingress or fn)');
-    return t;
+    return traceOut(ctx, req.params.env, q.get('draft'), t);
   });
 
   r.get('/api/envs/:env/paths', (req) => {
@@ -57,7 +60,7 @@ export function registerQueries(r: Router, ctx: Ctx) {
     return findPaths(ctx.graphOf(req), from, to, Math.min(int(req.query.get('limit'), 5), 20));
   });
 
-  r.get('/api/envs/:env/search', (req) => search(ctx.graphOf(req), req.query.get('q') ?? '', Math.min(int(req.query.get('limit'), 50), 500)));
+  r.get('/api/envs/:env/search', (req) => search(ctx.graphOf(req), req.query.get('q') ?? '', Math.min(int(req.query.get('limit'), 50), 500), flowNameMap(ctx, req.params.env, req.query.get('draft'))));
 
   r.get('/api/envs/:env/health', (req) => health(ctx.graphOf(req)));
 

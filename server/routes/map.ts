@@ -1,4 +1,5 @@
-// Ingest and CRUD for the map. See docs/API.md.
+// Ingest and the read routes of the map. See docs/API.md. Since 0.25.0 there are no routes that edit a service or an entity by hand:
+// harvesters ingest into a sealed environment, a design is edited through a draft (edits, import, ops).
 
 import type { Req, Router } from '../http/router.ts';
 import { created } from '../http/router.ts';
@@ -34,60 +35,17 @@ export function registerMap(r: Router, ctx: Ctx) {
     return g.model.services.map((s) => ({ ...s, health: h.get(s.name) }));
   });
 
-  r.post('/api/envs/:env/services', async (req) => {
-    const out = store.createService(db, req.params.env, await req.json(), source(req.query));
-    ctx.changed(req.params.env);
-    return created(out);
-  });
-
   /** One service's header and entities, from the database or (?draft=) from the draft's overlay. */
   const serviceOf = (req: Req) => ctx.readerOf(req).service(req.params.service) ?? (() => { throw notFound(`service '${req.params.service}' in env '${req.params.env}'`); })();
   r.get('/api/envs/:env/services/:service', (req) => { const v = serviceOf(req); return { service: v.service, ...v.entities }; });
 
-  r.patch('/api/envs/:env/services/:service', async (req) => {
-    const out = store.updateService(db, req.params.env, req.params.service, await req.json(), source(req.query));
-    ctx.changed(req.params.env);
-    return out;
-  });
-
-  r.delete('/api/envs/:env/services/:service', (req) => {
-    const out = store.deleteService(db, req.params.env, req.params.service, source(req.query));
-    ctx.changed(req.params.env);
-    return out;
-  });
-
   r.get('/api/envs/:env/services/:service/:list', (req) => serviceOf(req).entities[list(req.params.list)]);
-
-  r.post('/api/envs/:env/services/:service/:list', async (req) => {
-    const l = list(req.params.list);
-    const body = await req.json();
-    const existing = store.loadEntities(db, req.params.env, req.params.service)[l];
-    if (existing.some((e: any) => keyOf(l, e) === keyOf(l, body))) throw badRequest(`${l} '${keyOf(l, body)}' already exists; use PUT to replace`);
-    const out = store.upsertEntity(db, req.params.env, req.params.service, l, body, source(req.query));
-    ctx.changed(req.params.env);
-    return created(out);
-  });
 
   // Keys may contain '/' (channel bind keys), so the key is a rest segment.
   r.get('/api/envs/:env/services/:service/:list/*key', (req) => {
     const l = list(req.params.list);
     if (!req.query.get('draft')) return store.getEntity(db, req.params.env, req.params.service, l, req.params.key);
     return serviceOf(req).entities[l].find((e: any) => keyOf(l, e) === req.params.key) ?? (() => { throw notFound(`${l} '${req.params.key}' in service '${req.params.service}'`); })();
-  });
-
-  r.put('/api/envs/:env/services/:service/:list/*key', async (req) => {
-    const l = list(req.params.list);
-    const body = await req.json();
-    if (keyOf(l, body) !== req.params.key) throw badRequest(`body ${l === 'channels' ? 'bindKey' : 'id'} must equal '${req.params.key}'`);
-    const out = store.upsertEntity(db, req.params.env, req.params.service, l, body, source(req.query));
-    ctx.changed(req.params.env);
-    return out;
-  });
-
-  r.delete('/api/envs/:env/services/:service/:list/*key', (req) => {
-    const out = store.deleteEntity(db, req.params.env, req.params.service, list(req.params.list), req.params.key, source(req.query));
-    ctx.changed(req.params.env);
-    return out;
   });
 
   r.get('/api/meta/collections', () => LISTS);

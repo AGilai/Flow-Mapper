@@ -1,9 +1,8 @@
-// Write tools: manifest ingest and entity edits.
+// Write tools: manifest ingest (a design is edited through the draft tools: edit_design, import_into_draft, edit_in_draft).
 
 import { HttpError } from '../../errors.ts';
-import { isList, LISTS } from '../../schema.ts';
 import * as store from '../../store/snapshots.ts';
-import { type Tool, env, obj, envOf, listArg, draftArg } from './common.ts';
+import { type Tool, obj, draftArg } from './common.ts';
 import { draftPrelude } from '../../store/draft-prelude.ts';
 
 export const ingestManifestTool: Tool = {
@@ -18,16 +17,4 @@ export const ingestManifestTool: Tool = {
     const out = a.manifests ? { results: rs } : rs[0];
     return a.dryRun ? { dryRun: true, ...out } : out;
   },
-};
-
-export const upsertEntityTool: Tool = {
-  name: 'upsert_entity', description: `Create or replace one entity of a service. list: ${LISTS.join(', ')}.`,
-  inputSchema: obj({ env, service: { type: 'string' }, list: { enum: [...LISTS] }, entity: { type: 'object' } }, ['service', 'list', 'entity']),
-  run: (c, a) => { const r = store.upsertEntity(c.db, envOf(a), a.service, listArg(a.list), a.entity, 'mcp'); c.changed(r.env); return r; },
-};
-
-export const deleteEntityTool: Tool = {
-  name: 'delete_entity', description: 'Delete one entity of a service by id (bindKey for channels).',
-  inputSchema: obj({ env, service: { type: 'string' }, list: { enum: [...LISTS] }, key: { type: 'string' } }, ['service', 'list', 'key']),
-  run: (c, a) => { const r = store.deleteEntity(c.db, envOf(a), a.service, listArg(a.list), a.key, 'mcp'); c.changed(r.env); return r; },
 };

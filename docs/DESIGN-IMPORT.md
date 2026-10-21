@@ -31,8 +31,8 @@ curl -s $FLOW/api/envs/meta  # environments with kind sealed | design
 - MCP over stdio: `FLOW_DB=/tmp/fm/flow.db node --disable-warning=ExperimentalWarning server/mcp/stdio.ts`
   (same as `npm run mcp`). It opens the database file directly: point `FLOW_DB` at the same file as the server.
 - Every MCP tool takes `env`; it **defaults to `default`**, not `prod`. Always pass `env: "prod"`.
-- **Never call a write tool against `prod`** (`ingest_manifest` without `dryRun: true`, `upsert_entity`,
-  `delete_entity`, `load_dtos`, `load_schemas`, `set_description`, `create_env`, REST POST/PUT/PATCH/DELETE).
+- **Never call a write tool against `prod`** (`ingest_manifest` without `dryRun: true`,
+  `load_dtos`, `load_schemas`, `set_description`, `create_env`, REST POST/PUT/PATCH/DELETE).
   `prod` is sealed, but a real ingest into it is still accepted (it is the harvester path), so the guard will not save you. Dry runs and drafts are safe: they never write the environment.
 
 Keep the plan in your own workspace (e.g. `hld-import/plan.json`). You hand it over; Flow-Mapper applies it later.
@@ -316,6 +316,13 @@ You may also dry-run single manifests: `POST $FLOW/api/ingest?dryRun=1&draft=<sl
 4. Review: marks show New / Changed against the baseline (`get_marks`, or the draft's changes); the mapping table and questions go to the reviewer. Edit the draft with `edit_in_draft` if needed.
 5. `apply_draft` (a person decides): one delta per touched component, a full manifest per new one, in one transaction; DTOs, schemas, flow names and flow descriptions with it. Newer edit wins: whatever changed in the environment since the draft touched it is overwritten and listed.
    Per-step descriptions (`set_description`, step keys from the trace) come after.
+
+6. **Bring prod's behaviour into the design instead of describing it again** (0.25.0). When the design copied a prod component without its functions, its endpoints are references (`get_marks` `refs`, a lock in the UI).
+   If your plan needs to change or extend one, `import_preview {env, draft, source: "prod", anchor: "ing:<service>/<id>"}` says what would come along, `import_into_draft` brings it (one level: the endpoint, its flow inside the component and what it uses;
+   what it calls in other components stays a reference, listed with its own anchor). Imported items start unchanged against prod. `svc:<service>` brings a component's endpoints as references. Both are AI edits and write the draft only.
+7. **Edit with forms instead of raw ops** (0.25.0). `edit_design {env, draft, edit}` takes one of: component, endpoint, call, delete-call, flow (name, entry point, step order), dto, event-dto, delete. A call is an arrow that traces:
+   `{kind: 'call', from: {service, fn}, to: {service, ingress} | {endpoint: {...}} | {bindKey, transport}}` makes the egress and the step; `{bindKey, transport: 'undecided'}` ends are fine. `set_flow_name` names a flow (with `draft`: in the draft).
+   `edit_in_draft` stays for anything else. `get_call` says which side of a call is a reference. Errors name the form field (`BAD_NAME`, `NO_GROUP`, `NO_TARGET`...).
 
 Not now: do not create design environments on a shared instance, do not ingest (without `dryRun`) anywhere, do not call `apply_draft`, do not write DTOs, schemas or descriptions outside a draft, do not report bugs about missing design features. Produce the file.
 

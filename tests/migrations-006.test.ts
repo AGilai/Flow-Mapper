@@ -59,7 +59,7 @@ test('006 adds drafts, draft_ops, flow_names and changelog.draft_id to a 005 dat
 
 test('006 applies after 007 on a database that has 007 but not 006 (the live DB state)', () => {
   const path = join(dir(), 'live.db');
-  dbUpTo(path, '999', ['006_drafts.sql']);
+  dbUpTo(path, '007_events.sql', ['006_drafts.sql']); // up to 007 (the state this models; later migrations such as 008 need 006)
   const db = quiet(() => openDb(path));
   assert.equal(count(db, "SELECT count(*) AS n FROM schema_migrations WHERE name IN ('006_drafts.sql', '007_events.sql')"), 2);
   assert.equal(count(db, "SELECT count(*) AS n FROM sqlite_master WHERE name IN ('drafts', 'draft_ops', 'flow_names', 'events')"), 4);

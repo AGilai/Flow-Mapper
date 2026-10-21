@@ -5,17 +5,20 @@ import { envDeleted } from '../events/emitters.ts';
 import type { DB } from '../db/connection.ts';
 import { tx } from '../db/connection.ts';
 import { conflict, notFound } from '../errors.ts';
+import { ensureColors } from './colors.ts';
 
 export type EnvKind = 'sealed' | 'design';
 export interface EnvGroup { key: string; label: string }
 export interface EnvMeta {
   name: string; kind: EnvKind; source: string | null; copiedAt: string | null; groups: EnvGroup[]; levels: string[];
   createdAt: string; createdBy: string; counts: Record<string, number>;
+  /** Component colour slots 1..8 ({component: slot}, core/colors.ts). */
+  colors: Record<string, number>;
 }
-interface Row { name: string; kind: EnvKind; source: string | null; copied_at: string | null; groups: string; levels: string; created_at: string; created_by: string }
+interface Row { colors?: string; name: string; kind: EnvKind; source: string | null; copied_at: string | null; groups: string; levels: string; created_at: string; created_by: string }
 const toMeta = (r: Row, counts: Record<string, number> = {}): EnvMeta => ({
   name: r.name, kind: r.kind, source: r.source, copiedAt: r.copied_at, groups: JSON.parse(r.groups), levels: JSON.parse(r.levels),
-  createdAt: r.created_at, createdBy: r.created_by, counts,
+  createdAt: r.created_at, createdBy: r.created_by, counts, colors: JSON.parse(r.colors || '{}'),
 });
 
 /** Names only (GET /api/envs): the envs table plus any env that still has snapshots (a rollout safety net). */
@@ -34,12 +37,13 @@ function countsOf(db: DB, env: string): Record<string, number> {
 }
 
 export function getEnv(db: DB, name: string): EnvMeta {
-  const r = getEnvRow(db, name);
-  if (!r) throw notFound(`environment '${name}'`);
-  return toMeta(r, countsOf(db, name));
+  if (!getEnvRow(db, name)) throw notFound(`environment '${name}'`);
+  ensureColors(db, name);
+  return toMeta(getEnvRow(db, name)!, countsOf(db, name));
 }
 
 export function listEnvMeta(db: DB): EnvMeta[] {
+  for (const r of db.prepare('SELECT name FROM envs').all() as { name: string }[]) ensureColors(db, r.name);
   const rows = new Map((db.prepare('SELECT * FROM envs').all() as unknown as Row[]).map((r) => [r.name, r]));
   const fallback = (n: string): Row => ({ name: n, kind: 'sealed', source: null, copied_at: null, groups: '[]', levels: '["Subsystem","Component"]', created_at: '', created_by: 'anonymous' });
   return listEnvs(db).map((n) => toMeta(rows.get(n) ?? fallback(n), countsOf(db, n)));
@@ -50,12 +54,11 @@ export function ensureEnv(db: DB, name: string) {
   db.prepare("INSERT INTO envs (name, kind, created_at) VALUES (?, 'sealed', ?) ON CONFLICT (name) DO NOTHING").run(name, new Date().toISOString());
 }
 
-export type Writer = 'harvester' | 'manual' | 'draft' | 'dry';
+export type Writer = 'harvester' | 'draft' | 'dry';
 
 /**
  * The one guard of the write path.
  *   harvester  ingest, DTOs, schemas, Redis keys: a sealed or a new environment, never a design.
- *   manual     the entity / service CRUD routes: refused everywhere (sealed: the harvesters' record; design: edit through a draft).
  *   draft      creating or applying a draft: a design only (sealed refuses, unknown is 404).
  *   dry        a dry run (validated, then rolled back): any environment.
  * Annotations (descriptions, bugs) do not pass through here.
@@ -69,7 +72,6 @@ export function guardEnv(db: DB, env: string, writer: Writer) {
   }
   if (!kind) throw notFound(`environment '${env}'`);
   if (kind === 'sealed') throw conflict('ENV_SEALED', `environment '${env}' is sealed: only harvesters fill it (ingest, DTOs, schemas). Copy it into a design environment to edit it (POST /api/envs).`);
-  if (writer === 'manual') throw conflict('ENV_DRAFT', `environment '${env}' is a design environment: edit it through a draft (POST /api/envs/${env}/drafts), not through the entity routes.`);
 }
 
 const TABLES = ['entities', 'snapshots', 'changelog', 'health_history', 'endpoint_dtos', 'event_dtos', 'store_schemas', 'resource_keys', 'resource_keys_meta', 'descriptions', 'baseline_items', 'drafts', 'flow_names'];
