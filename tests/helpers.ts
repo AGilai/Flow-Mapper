@@ -1,6 +1,6 @@
 // Test helpers: start the app on a random port with a fresh database and the sample manifests.
 
-import { mkdtempSync, readdirSync, readFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { AddressInfo } from 'node:net';
@@ -37,7 +37,7 @@ export async function startApp(opts: { dir?: string; events?: StreamOptions } = 
     try { json = text ? JSON.parse(text) : null; } catch { json = text; }
     return { status: res.status, body: json };
   };
-  return { base, ctx, router, dbPath: join(dir, 'test.db'), call, close: () => new Promise<void>((r) => { server.close(() => r()); server.closeAllConnections(); }) };
+  return { base, ctx, router, dbPath: join(dir, 'test.db'), call, close: () => new Promise<void>((r) => { server.close(() => { if (!opts.dir) rmSync(dir, { recursive: true, force: true }); r(); }); server.closeAllConnections(); }) }; // a temp dir made here goes with the app (they piled up to 5 GB in /tmp)
 }
 
 /** The app with the samples in prod and a design environment (Components copy of users-svc and auth-svc, subsystem platform). */
