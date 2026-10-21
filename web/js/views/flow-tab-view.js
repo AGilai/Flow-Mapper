@@ -21,6 +21,7 @@ import { createPartial } from './flow-partial.js';
 import { nameEditor } from './flow-name.js';
 import { createComments } from '../comments/thread.js';
 import { linksRow } from '../components/ext-links.js';
+import { exportButton, importButton } from '../design/mermaid-export.js';
 import { state } from '../state.js';
 
 const tc = (t, label) => h('span.tc', { class: t, title: label }, label);
@@ -44,7 +45,8 @@ export function createTabView(data, host) {
   const label = host.describe(key);
   // The flow's description sits under its title, full width and collapsible (0.20.0); a sub-flow tab keeps its one line.
   const flowBox = root && data.kind !== 'sub' ? descDetails(host.desc, root, null, { cls: 'flowhead', remember: 'flowhead-open', title: 'What this flow is for', onGenerate: () => generate(null),
-    summary: [root ? nameEditor({ root, name: host.nameOf?.(root.service, root.ingress) ?? '', fallback: label.title }).el : h('span.fh-t', label.title), label.sub ? h('span.mono.xs.muted', label.sub) : null, linksRow(trace.start?.links), editFlow()] }) : null;
+    summary: [root ? nameEditor({ root, name: host.nameOf?.(root.service, root.ingress) ?? '', fallback: label.title }).el : h('span.fh-t', label.title), label.sub ? h('span.mono.xs.muted', label.sub) : null, linksRow(trace.start?.links), editFlow(), editing ? importButton() : null,
+      exportButton({ ...root, name: host.nameOf?.(root.service, root.ingress) || label.title })] }) : null;
   const subLine = root && data.kind === 'sub' ? descLine(host.desc, root, [`${data.service}:${data.name}`, data.service], { onGenerate: () => generate(data.service) }) : null;
   descs.push(flowBox, subLine);
   // Comments under the description (0.27.0): the flow's own discussion; a sub-flow or function tab has none.

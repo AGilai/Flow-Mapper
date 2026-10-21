@@ -342,6 +342,18 @@ You may also dry-run single manifests: `POST $FLOW/api/ingest?dryRun=1&draft=<sl
 
 Not now: do not create design environments on a shared instance, do not ingest (without `dryRun`) anywhere, do not call `apply_draft`, do not write DTOs, schemas or descriptions outside a draft, do not report bugs about missing design features. Produce the file.
 
+## Importing a Mermaid sequence diagram
+
+When the documentation is a Mermaid `sequenceDiagram` (one flow, a few components), import it straight into the draft instead of writing a plan (0.27.4; the contract is in API.md "Mermaid").
+
+1. `import_mermaid { env, draft, text, dryRun: true }` writes nothing. Read `participants`: each has `match` (the component it was matched to) and `how` (`exact`, `alias`, `normalized`, `similar`, `in-prod`, `actor`, `infra`, `none`). Read `creates` (the components that would be created), `undecided` (messages with no `METHOD /path`) and `warnings` (skipped lines with their line number).
+2. Decide the matches. Reuse before you invent (section 4): a participant that is a component of the design must be matched, not created. The matcher fixes spelling and case; it does not know that `Policy service` is `pdp-svc`, so say so in `matches`. A name that only the source environment has is **not** imported by itself: pick `{fromSource: true}` for a component whose behaviour you need, otherwise it is created empty. A channel or data store lifeline (`sns:q`, `users-db.users`) is skipped; model it in the plan, not here.
+3. Send the corrected `matches` back with `dryRun: true` until `creates` is what you mean, then without `dryRun`. The import is one batch (`batch` in the answer) that Undo import removes: `DELETE /api/envs/<env>/drafts/<slug>/mermaid/<batch>` (`409 DEPENDENT_OPS` when later ops of the draft depend on it).
+4. Name things in the diagram the way the code does. `POST /token` becomes the http endpoint `http:POST <callee>/token` (a harvester's endpoint with that bind key is reused, so it links); `Evaluate` becomes an `undecided` endpoint (`tbd:<callee>/Evaluate`, shown dashed) that someone decides later in the call's form. Put the text a reader needs after `: ` in the label (`Score: how risky`) or in a `Note over`: it becomes the step's note.
+5. The first message starts the flow. From an `actor` it is the entry endpoint of the callee; `title` names the flow and `%% Description:` describes it. Importing the same text again adds nothing, so a diagram can be re-sent after a fix.
+
+What it does not do: calls inside one component, `rect` blocks, other participants' internals. A flow the diagram only hints at belongs in a plan.
+
 ## 10. Checklist
 
 - [ ] Own instance running, version >= 0.23.0, `FLOW` set; every MCP call passes `env: "prod"`.

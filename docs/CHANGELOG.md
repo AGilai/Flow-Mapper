@@ -8,6 +8,18 @@ in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.m
 ## 0.27.3 (2026-10-21)
 - UI: flow diagrams show the product icon of what each lifeline is: data stores and store bands (MongoDB, Redis, Postgres, DynamoDB, S3, MySQL, Elasticsearch), topics and queues (SNS, SQS, EventBridge, RabbitMQ), lambdas and gateways. Unknown kinds keep the line glyph. No API change.
 
+## 0.27.4 (2026-10-21)
+- Mermaid export and import of flows (details in [API.md](API.md) "Mermaid"). Additive; no migration.
+  - Export, any environment (sealed and the static preview too): `GET /api/envs/:env/flows/mermaid?service=&ingress=&draft=` answers `text/plain`; MCP `export_mermaid {env, service, ingress, draft?}` -> `{text}`. The full trace as `sequenceDiagram`: `participant <id> as <name>` per lifeline (channels and data stores labelled by their key, the entry client an `actor`), `->>` with its `-->>` return, `-)` async, `Note over` the step description, `title` the flow name, a `%% Description:` comment.
+  - Import, design environments only, always into an open draft (sealed: `409 ENV_SEALED`): `POST /api/envs/:env/drafts/:slug/mermaid/preview {text, matches?, groupPath?}` (writes nothing), `POST .../mermaid {text, matches?, groupPath?, author?}` (201), MCP `import_mermaid {env, draft, text, matches?, groupPath?, dryRun?}`.
+  - Dry-run / preview shape: `{title, description, summary, participants: [{id, label, actor, match, how, candidates, source?, note?, choice, createName}], matches, components, source, creates, imports, counts {components, endpoints, calls, notes, reused}, undecided, flow {service, ingress, name?}, edits: [DesignEdit], ops, warnings: [{line?, text}]}`. An agent sends the `matches` back, corrected: participant id -> a component name, `{create: true, name?}`, `{fromSource: true}`, `{client: true}` or `{skip: true}`.
+  - Matching, in order: id or `as` label equals a component name (`how` `exact` / `alias`); normalized equal (case, `-` `_` space, a trailing `-svc` / `service`); a close spelling (2 edits or fewer, only when exactly one component is that close, 4 letters or more); a name only the source environment has (`in-prod`). A name found only in the source is **never imported by itself**: the default is `create`, copying it (one level, the 2a-1 import rules, same batch) is the choice `{fromSource: true}`. A label that is a key (`sns:q`, `users-db.users`) is `infra`: skipped by default. An unmatched actor is the entry client.
+  - What it makes: `component` edits for created participants; `METHOD /path` messages become `http:METHOD <callee>/<path>` endpoints, other messages `undecided` endpoints (`tbd:<callee>/<label>`, the label as the operation); `-)` messages are `mode: 'async'` calls; notes, the part after `: ` of a label and the innermost block (`[alt: cond]`) become the step's `note`; `title` is the flow name, `%% Description:` its description. New: `note` on the `call` form of `edit_design` / `POST .../edits` (the step's own text).
+  - Limits and errors: a line over 2000 characters is skipped with a warning (the parser is linear); a `matches` value naming a component that is not in the design is `422 UNKNOWN_COMPONENT` (use `{create: true, name}`); on MCP, a `dryRun` that is not a boolean is a JSON-RPC `-32602` invalid-params error for every tool that takes `dryRun` (a string like `"false"` is no longer read as a real run). `%%` in exported text is written `%#37;`.
+  - Re-import is idempotent: a component, endpoint (same bind key) or call (same function, bind key and occurrence) that exists is reused (`counts.reused`); nothing new answers `batch: null`.
+  - Undo: each import is one batch, its ops carry `origin {kind: 'mermaid', batch}` (ops copied through `fromSource` carry `{env, version, batch}`). `DELETE /api/envs/:env/drafts/:slug/mermaid/:batch` removes them; `409 DEPENDENT_OPS` with `error.details.blocking: [{seq, op, anchor, author}]` when a later op touches what the batch made. `404` for an unknown batch.
+  - UI: Export menu on a flow's header (Copy Mermaid, Download .mmd), "Edit" menu in the draft bar with "Import Mermaid…" (also on the flow header while Edit is on), a three-step dialog (paste, match, preview), and "Undo import" under the draft bar. The static preview exports; its import is refused.
+
 ## 0.27.1 (2026-10-21)
 - UI: in a flow diagram each data-store collection is its own lifeline (a band names the store; more than 5 collections of one store fold into one lifeline), and every store arrow shows the operation as harvested. Reads and writes differ by line weight. Additive on the trace: a resource message also carries `storeKind` and `access` (`read` / `write` / `read_write` / `unknown`); trace hashes are unchanged (#62). Also UI: a flow with no comments starts its Comments section collapsed to one line.
 
@@ -81,7 +93,6 @@ in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.m
 - Migration 008.
 
 ## Coming next
-- 0.27.2: Mermaid export/import of flows. MCP `export_mermaid`, `import_mermaid` (dry run with proposed matches).
 - 0.28.x: the subsystem level.
   - **Breaking for plans:** a component in two subsystems, or one carrying `details.alsoIn`, is refused with
     `422 TWO_GROUPS`, because a component has exactly one subsystem (#51 won't be built).

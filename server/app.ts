@@ -20,6 +20,7 @@ import { registerInstances } from './routes/instances.ts';
 import { registerDrafts } from './routes/drafts.ts';
 import { registerMarks } from './routes/marks.ts';
 import { registerDraftEdits } from './routes/draft-edits.ts';
+import { registerMermaid } from './routes/mermaid.ts';
 import { registerFlowNames } from './routes/flow-names.ts';
 import { registerComments } from './routes/comments.ts';
 import { getDraft } from './store/drafts.ts';
@@ -61,6 +62,7 @@ export function createApp(opts: AppOptions): { server: Server; ctx: Ctx; router:
   registerInstances(router, ctx);
   registerDrafts(router, ctx);
   registerDraftEdits(router, ctx);
+  registerMermaid(router, ctx);
   registerFlowNames(router, ctx);
   registerComments(router, ctx);
   registerMarks(router, ctx);

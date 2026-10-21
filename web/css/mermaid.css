@@ -1,0 +1,67 @@
+/* Mermaid import and export (0.27.4, frame 14). Prefix mm-. The dialog is a native <dialog>; the table is a grid that stacks at 760 px. */
+
+.mm-dlg { padding: 0; width: min(820px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; background: var(--surface); color: var(--ink); border: 1px solid var(--line-strong); border-radius: var(--r-md); box-shadow: var(--shadow-panel); font-size: var(--fs-sm); }
+.mm-dlg::backdrop { background: rgba(10, 13, 20, .45); }
+.mm-dlg[open] { display: flex; flex-direction: column; }
+.mm-dh { display: flex; align-items: center; gap: var(--s3); padding: var(--s3) var(--s4); border-bottom: 1px solid var(--line); flex-wrap: wrap; flex: none; }
+.mm-dh h3 { font-size: var(--fs-md); margin: 0; } .mm-dh h3 .mono { margin-left: .4em; }
+.mm-x { margin-left: auto; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: 0; background: transparent; color: var(--muted); border-radius: var(--r-sm); cursor: pointer; }
+.mm-x:hover { background: var(--surface-2); color: var(--ink); }
+.mm-steps { display: inline-flex; gap: 6px; font-size: var(--fs-xs); color: var(--muted); list-style: none; margin: 0; padding: 0; }
+.mm-steps li { padding: 2px 9px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); }
+.mm-steps li.on { background: var(--accent-soft); color: var(--accent); border-color: transparent; font-weight: 600; }
+.mm-steps li.done { color: var(--ink-2); }
+.mm-db { padding: var(--s4); display: grid; gap: var(--s3); overflow: auto; flex: 1 1 auto; min-height: 0; align-content: start; }
+.mm-df { display: flex; align-items: center; gap: var(--s2); padding: var(--s3) var(--s4); border-top: 1px solid var(--line); background: var(--surface-2); border-radius: 0 0 var(--r-md) var(--r-md); flex-wrap: wrap; flex: none; }
+.mm-df .r { margin-left: auto; display: flex; gap: var(--s2); align-items: center; flex-wrap: wrap; }
+
+.mm-pick { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; }
+.mm-pick .btn { display: inline-flex; align-items: center; gap: 6px; }
+.mm-or { display: flex; align-items: center; gap: var(--s3); color: var(--muted); font-size: var(--fs-xs); flex: 1; min-width: 160px; }
+.mm-or::before, .mm-or::after { content: ''; flex: 1; border-top: 1px solid var(--line); }
+.mm-text { width: 100%; min-height: 220px; resize: vertical; font: 500 12px/1.6 var(--mono); background: var(--surface-2); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 8px 12px; tab-size: 2; }
+.mm-text:focus { outline: 2px solid var(--focus); outline-offset: 1px; }
+.mm-sum { display: flex; gap: var(--s2); align-items: flex-start; flex-wrap: wrap; font-size: var(--fs-sm); }
+.mm-sum .ok { color: var(--ok); font-weight: 600; } .mm-sum .w { color: var(--warn); font-weight: 600; }
+.mm-lines { flex-basis: 100%; }
+.mm-line { border: 0; background: transparent; padding: 0; font: 600 var(--fs-xs) var(--mono); color: var(--accent); text-decoration: underline; cursor: pointer; }
+
+.mm-wbar { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; padding: 8px 12px; border-radius: var(--r-sm); background: color-mix(in srgb, var(--warn) 10%, var(--surface)); border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent); }
+.mm-wbar.calm { background: var(--surface-2); border-color: var(--line); } .mm-wbar.calm b { font-weight: 500; color: var(--ink-2); }
+.mm-ic { width: 15px; height: 15px; flex: none; stroke: var(--warn); stroke-width: 1.8; }
+.mm-wbar .sub { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: var(--fs-xs); color: var(--ink-2); }
+.mm-sel { height: 28px; padding: 0 8px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); background: var(--surface); font: 500 12px var(--mono); color: var(--ink); min-width: 190px; max-width: 100%; }
+.mm-sel.warn { border-color: var(--warn); } .mm-sel:focus { outline: 2px solid var(--focus); outline-offset: 1px; }
+.mm-rows { border: 1px solid var(--line); border-radius: var(--r-sm); }
+.mm-row { display: grid; grid-template-columns: minmax(120px, 1fr) 18px minmax(220px, 1.5fr) 110px; gap: var(--s2); align-items: center; padding: 8px 12px; border-top: 1px solid var(--line); }
+.mm-row.h { border-top: 0; background: var(--surface-2); color: var(--muted); font-size: var(--fs-xs); font-weight: 600; border-radius: var(--r-sm) var(--r-sm) 0 0; padding-top: 6px; padding-bottom: 6px; }
+.mm-row .pn { font: 600 12.5px var(--mono); overflow-wrap: anywhere; } .mm-row .pn small { display: block; font: 400 11px var(--font); color: var(--muted); }
+.mm-row .ar { color: var(--muted); text-align: center; }
+.mm-row .sel-c { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.mm-row.warnr { background: color-mix(in srgb, var(--warn) 7%, var(--surface)); }
+.mm-row .hint { grid-column: 3 / 5; font-size: var(--fs-xs); color: var(--muted); margin-top: -2px; }
+.mm-chip { display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 10px; font-size: var(--fs-xs); font-weight: 600; border: 1px solid var(--line-strong); color: var(--ink-2); background: var(--surface); white-space: nowrap; justify-self: start; }
+.mm-chip.exact { border-color: color-mix(in srgb, var(--ok) 55%, transparent); color: var(--ok); }
+.mm-chip.similar, .mm-chip.norm { border-color: color-mix(in srgb, var(--accent) 45%, transparent); color: var(--accent); background: var(--accent-soft); }
+.mm-chip.prod { color: var(--muted); background: var(--surface-2); border-color: var(--line); font-weight: 500; }
+.mm-chip.actor { color: var(--ink-2); background: var(--surface-2); }
+.mm-ord { font-size: var(--fs-xs); color: var(--ink-2); line-height: 1.5; margin: 0; } .mm-ord b { color: var(--ink); font-weight: 600; }
+
+.mm-counts { display: flex; gap: 8px; flex-wrap: wrap; } .mm-counts span { border: 1px solid var(--line-strong); border-radius: var(--r-sm); padding: 6px 12px; background: var(--surface); font-weight: 600; }
+.mm-counts small { display: block; color: var(--muted); font-weight: 400; font-size: var(--fs-xs); } .mm-counts .nm { font-weight: 500; }
+.mm-wh { font-size: var(--fs-xs); color: var(--muted); font-weight: 600; margin: 0 0 6px; }
+.mm-warns { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; } .mm-warns li { display: flex; gap: 8px; align-items: flex-start; color: var(--ink-2); margin: 0; }
+
+/* after the import: the line under the draft bar */
+.dz-imported { display: flex; align-items: center; gap: var(--s2) var(--s3); flex-wrap: wrap; padding: var(--s2) var(--s5); border-top: 1px solid var(--line); background: var(--accent-soft); color: var(--ink); font-size: var(--fs-sm); }
+.dz-imported-t { flex: 1 1 320px; min-width: 0; }
+.mm-export .dz-caret { margin-left: 4px; }
+
+@media (max-width: 760px) {
+  .mm-row { grid-template-columns: 1fr auto; row-gap: 6px; }
+  .mm-row.h, .mm-row .ar { display: none; }
+  .mm-row .sel-c { grid-column: 1 / -1; grid-row: 2; } .mm-sel { width: 100%; }
+  .mm-row .hint { grid-column: 1 / -1; }
+  .mm-wbar .sub { margin-left: 0; width: 100%; }
+  .mm-dlg { width: calc(100vw - 16px); }
+}

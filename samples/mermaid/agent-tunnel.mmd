@@ -1,0 +1,24 @@
+%% Demo for the Mermaid import (0.27.4): import it into the draft hld-import of sase-hld.
+%% Description: The agent asks the nearest POP for a tunnel; the POP checks the device and the policy before it says yes.
+sequenceDiagram
+    title Agent opens a tunnel (from Mermaid)
+    actor Agent
+    participant P as pop-edge
+    participant A as AuthService
+    participant U as users svc
+    participant C as cp-middlewre
+    participant PE as policy-engine
+    participant R as risk-scorer
+    participant L as audit-log-svc
+    Agent->>P: POST /tunnels: the agent asks for a tunnel
+    P->>A: POST /token
+    A-->>P: token
+    Note over P,A: the edge swaps the device token for a session token
+    rect rgb(240, 240, 255)
+        P->>U: GET /users/{id}/posture
+        P->>C: PUT /devices/{deviceId}/sync
+    end
+    P->>PE: Evaluate
+    PE->>R: Score: how risky the device is
+    P->>L: POST /events
+    P-->>Agent: tunnel ready
