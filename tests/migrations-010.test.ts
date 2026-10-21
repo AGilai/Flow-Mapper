@@ -17,7 +17,7 @@ test('010 adds resource_keys.assumed to an older database: rows kept with [], a 
   const path = join(mkdtempSync(join(tmpdir(), 'flow-mapper-mig10-')), 'old.db');
   const raw = new DatabaseSync(path);
   raw.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; CREATE TABLE schema_migrations (name TEXT PRIMARY KEY, applied_at TEXT NOT NULL, checksum TEXT)');
-  for (const f of ALL.filter((f) => f < '009')) {
+  for (const f of ALL.filter((f) => f < '010')) {
     const sql = readFileSync(join(MIG, f), 'utf8');
     raw.exec(sql);
     raw.prepare('INSERT INTO schema_migrations VALUES (?, ?, ?)').run(f, 'then', createHash('sha256').update(sql).digest('hex'));
