@@ -7,7 +7,7 @@ import { applyOp, opRow, validateOpShape, type DraftOpInput } from '../../core/d
 import { buildIndex } from '../../core/graph-index.ts';
 import { dtoSlots } from '../../core/endpoint-info.ts';
 import { stores } from '../../core/stores.ts';
-import { designIssues, SERVICE_KINDS } from '../../core/design-rules.ts';
+import { designIssues, SERVICE_KINDS, twoGroups } from '../../core/design-rules.ts';
 import { checkLinks } from '../../core/links.ts';
 import { HttpError } from '../errors.ts';
 import { isList, keyOf, validateEntity, validateServiceHeader, type ListName } from '../schema.ts';
@@ -69,6 +69,13 @@ function check(map: Map<string, ItemRow>, i: DraftOpInput): PreparedOp {
   } else if (r.list === 'schema') {
     const source = r.key.slice(r.key.lastIndexOf('|') + 1);
     if (!(SOURCES as readonly string[]).includes(source)) bad(`source must be one of ${SOURCES.join(', ')}`);
+  } else if (r.list === 'subsystem') {
+    if (!isObj(data) || typeof data.label !== 'string' || !data.label.trim() || data.label.length > 80) bad('a subsystem item is {label (1 to 80 characters), icon?, order?}');
+    if (data.order !== undefined && (!Number.isInteger(data.order) || data.order < 0)) bad('order must be a position, 0 or more');
+  } else if (r.list === 'link') {
+    if (!isObj(data)) bad('a link item is {name, from, to, mode?, transport?, description?, refinedBy?}');
+  } else if (r.list === 'flowrel') {
+    if (!isObj(data) || typeof data.from !== 'string' || typeof data.to !== 'string' || typeof data.type !== 'string') bad('a flow relation item is {from, to, type, note?}');
   } else if (r.list === 'flow') {
     if (!isObj(data)) bad('a flow item is {name?, description?, links?, steps?, doc?}');
     else if ((data as any).links !== undefined && (data as any).links !== null) { const e = checkLinks((data as any).links); if (e) bad(e); }
@@ -77,7 +84,7 @@ function check(map: Map<string, ItemRow>, i: DraftOpInput): PreparedOp {
   return { ...base, data };
 }
 
-/** Prepare a request's ops in order, laying each accepted op over `rows` (mutated). Throws 422 listing every bad op. `groups`: the environment's subsystem keys (NO_GROUP is not checked without them). */
+/** Prepare a request's ops in order, laying each accepted op over `rows` (mutated). Throws 422 listing every bad op. `groups`: pass an array to have NO_GROUP checked (the subsystems are the `subsystem` rows of `rows`). */
 export function prepareOps(rows: Map<string, ItemRow>, inputs: unknown, opts: { groups?: string[] } = {}): PreparedOp[] {
   if (!Array.isArray(inputs) || !inputs.length) throw new HttpError(422, 'INVALID', 'ops must be a non-empty list of {op, anchor, service?, data?}');
   if (inputs.length > MAX_OPS) throw new HttpError(422, 'INVALID', `at most ${MAX_OPS} ops per request`);
@@ -91,7 +98,9 @@ export function prepareOps(rows: Map<string, ItemRow>, inputs: unknown, opts: { 
     }
   });
   if (!errs.length) {
-    errs.push(...designIssues(rows, out.flatMap((p, index) => (p.op === 'upsert' ? [{ index, service: p.service, list: p.list, key: p.key }] : [])), opts.groups));
+    errs.push(...twoGroups(out.map((p, index) => ({ index, op: p.op, service: p.service, list: p.list, data: p.data }))));
+    errs.push(...designIssues(rows, out.flatMap((p, index) => (p.op === 'upsert' ? [{ index, service: p.service, list: p.list, key: p.key }] : [])), opts.groups,
+      out.flatMap((p, index) => (p.op === 'delete' ? [{ index, service: p.service, list: p.list, key: p.key }] : []))));
     const wanted = out.filter((p) => p.list === 'schema' && p.op === 'upsert');
     if (wanted.length) {
       const known = new Set(stores(buildIndex(rowsToModel('', [...rows.values()]))).map((s) => s.key));

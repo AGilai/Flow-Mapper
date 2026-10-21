@@ -4,6 +4,7 @@
 import type { Mode, Transport } from './types.ts';
 import type { Links } from './links.ts';
 import { rowId, type ItemRow } from './item-rows.ts';
+import type { SubsystemIcon } from './subsystems.ts';
 
 export type EndpointEdit = {
   service: string; id?: string; transport: Transport; bindKey?: string; handler?: string; entryPoint?: boolean | null;
@@ -25,6 +26,9 @@ export type DesignEdit =
   | { kind: 'flow'; service: string; ingress: string; name?: string; description?: string; links?: Links | null; entryPoint?: boolean | null; order?: { fn: string; seqs: number[] } }
   | { kind: 'dto'; service: string; ingress: string; role: 'request' | 'response'; status?: string; content: unknown }
   | { kind: 'event-dto'; type: string; content: unknown }
+  | { kind: 'subsystem'; key: string; label?: string; icon?: SubsystemIcon | null; order?: number }
+  | { kind: 'abstract-link'; id?: string; name: string; from: string; to: string; mode?: Mode | null; transport?: Transport | null; description?: string; refinedBy?: null }
+  | { kind: 'refine-link'; id: string; from?: string; to?: string; use?: { service: string; egress: string }; call?: Omit<CallEdit, 'kind'> }
   | { kind: 'delete'; anchor: string };
 
 export class EditError extends Error {

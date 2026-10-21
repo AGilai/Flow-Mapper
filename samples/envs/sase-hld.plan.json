@@ -8,7 +8,7 @@
     "name": "sase-hld",
     "source": "prod",
     "mode": "components",
-    "groups": [{ "key": "agent", "label": "Agent" }, { "key": "network", "label": "Network (POP)" }, { "key": "platform", "label": "Platform" }]
+    "groups": [{ "key": "agent", "label": "Agent", "icon": "agent" }, { "key": "network", "label": "Network (POP)", "icon": "network" }, { "key": "platform", "label": "Platform", "icon": "platform" }]
   },
   "manifests": [
     {
@@ -95,7 +95,10 @@
   "links": [
     { "id": "usage-metering", "name": "usage metering", "from": "grp:network", "to": "grp:platform", "mode": "async", "transport": null,
       "description": "POPs report per-tenant traffic volumes so the platform can bill and enforce quotas.",
-      "doc": { "file": "hld/05-billing.md", "section": "5.1", "confidence": "stated" } }
+      "doc": { "file": "hld/05-billing.md", "section": "5.1", "confidence": "stated" } },
+    { "id": "push-config-update", "name": "push config update", "from": "grp:platform", "to": "grp:agent", "mode": "async",
+      "description": "Platform pushes tenant config updates to agents.",
+      "doc": { "file": "hld/04-agent.md", "section": "4.2", "confidence": "inferred" } }
   ],
   "mapping": [
     { "doc": { "file": "hld/03-pop.md", "section": "3.2 Tunnel setup" },

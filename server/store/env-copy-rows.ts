@@ -100,3 +100,11 @@ export function copyDescriptions(c: CopyCtx) {
 export function copyAllBaseline(c: CopyCtx) {
   if (c.fromKind === 'design') copyBaseline(c, '1 = 1', []);
 }
+
+/** A full copy of a design carries its abstract links and flow relations as they are (a Components or Blank copy, or a copy of a sealed environment, has none). */
+export function copyDesignLists(c: CopyCtx) {
+  c.db.prepare(`INSERT INTO abstract_links (env, id, name, from_ref, to_ref, mode, transport, description, doc, refined_by, author, updated_at)
+    SELECT ?, id, name, from_ref, to_ref, mode, transport, description, doc, refined_by, author, updated_at FROM abstract_links WHERE env = ?`).run(c.to, c.from);
+  c.db.prepare(`INSERT INTO flow_relations (env, id, from_service, from_ingress, to_service, to_ingress, type, note, author, updated_at)
+    SELECT ?, id, from_service, from_ingress, to_service, to_ingress, type, note, author, updated_at FROM flow_relations WHERE env = ?`).run(c.to, c.from);
+}

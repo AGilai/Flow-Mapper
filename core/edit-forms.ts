@@ -86,11 +86,11 @@ export function dtoOps(e: Extract<DesignEdit, { kind: 'dto' | 'event-dto' }>, x:
   return [up(`dto:${e.service}/${e.role}/${status || '-'}/${e.ingress}`, { content: e.content, meta: old?.data.meta ?? null })];
 }
 
-/** Delete a component (svc:), endpoint (ing:, with its DTOs and flow text), DTO (dto:) or event DTO (evt:). */
+/** Delete a component (svc:), endpoint (ing:, with its DTOs and flow text), DTO (dto:), event DTO (evt:), subsystem (grp:), abstract link (link:) or flow relation (rel:). */
 export function deleteOps(e: Extract<DesignEdit, { kind: 'delete' }>, rows: ItemRow[], x: Idx): DraftOpInput[] {
   const p = parseAnchor(e.anchor);
-  if (!p || p.field !== undefined || !['svc', 'ing', 'dto', 'evt'].includes(p.kind)) throw new EditError('BAD_ANCHOR', `'${e.anchor}' cannot be deleted here: give svc:, ing:, dto: or evt:`, 'anchor');
-  const list = { svc: 'header', ing: 'ingress', dto: 'dto', evt: 'event_dto' }[p.kind as 'svc'];
+  if (!p || p.field !== undefined || !['svc', 'ing', 'dto', 'evt', 'grp', 'link', 'rel'].includes(p.kind)) throw new EditError('BAD_ANCHOR', `'${e.anchor}' cannot be deleted here: give svc:, ing:, dto:, evt:, grp:, link: or rel:`, 'anchor');
+  const list = { svc: 'header', ing: 'ingress', dto: 'dto', evt: 'event_dto', grp: 'subsystem', link: 'link', rel: 'flowrel' }[p.kind as 'svc'];
   const key = p.key, service = p.service ?? '';
   if (!x.get(service, list, key)) throw new EditError('NO_ITEM', `'${e.anchor}' does not exist in this design`, 'anchor');
   const out: DraftOpInput[] = [{ op: 'delete', anchor: e.anchor }];

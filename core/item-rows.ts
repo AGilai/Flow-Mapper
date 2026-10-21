@@ -5,12 +5,17 @@
 //   event_dto  service '', key = type      data {content, meta}
 //   schema     service '', key `storeKey|source`   data = content
 //   flow       key = ingress (drafts only) data {name?, description?, steps?, doc?}
+//   subsystem  service '', key = path      data {label, icon?, order}   (design lists, 0.28: never part of a model; settings of a subsystem, grp:<path>)
+//   link       service '', key = id        data LinkData (core/abstract-links.ts)   (link:<id>)
+//   flowrel    service '', key = id        data {from: 'flow:<s>/<i>', to, type, note?}   (rel:<id>, from 0.28.2)
 
 import type { Model, Service } from './types.ts';
 import { dtoLink, type Dto, type DtoMeta, type EventDto } from './endpoint-info.ts';
 
 export interface ItemRow { service: string; list: string; key: string; data: any }
 export const ENTITY_LISTS = ['functions', 'ingress', 'egress', 'resources', 'channels', 'bindings'] as const;
+/** The lists that belong to the design, not to a component: rowsToModel and rowsToExtras ignore them; a draft writes them through server/store/design-side.ts. */
+export const DESIGN_LISTS = ['subsystem', 'link', 'flowrel'] as const;
 export const rowId = (r: Pick<ItemRow, 'service' | 'list' | 'key'>) => `${r.service}\u0000${r.list}\u0000${r.key}`;
 /** A short human name of a row: the service, the id or key, `request of in.x` for a DTO, the store key of a schema. */
 export function rowLabel(r: Pick<ItemRow, 'service' | 'list' | 'key'>): string {

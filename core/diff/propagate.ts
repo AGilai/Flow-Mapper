@@ -70,10 +70,10 @@ export function rollUp(marks: Map<string, RawMark>, base: Side, cur: Side, opts:
   return out;
 }
 
-const CATEGORY: Record<string, keyof EnvMarks['counts']> = { svc: 'components', ing: 'endpoints', egr: 'calls', ch: 'channels', dto: 'messages', evt: 'messages' };
+const CATEGORY: Record<string, keyof EnvMarks['counts']> = { svc: 'components', ing: 'endpoints', egr: 'calls', ch: 'channels', dto: 'messages', evt: 'messages', grp: 'subsystems', link: 'links', rel: 'relations' };
 
 export function counts(marks: Map<string, MarkInfo>, cur: Side): EnvMarks['counts'] {
-  const c = Object.fromEntries((['components', 'endpoints', 'calls', 'channels', 'messages', 'fields'] as const).map((k) => [k, { new: 0, changed: 0, removed: 0 }])) as EnvMarks['counts'];
+  const c = Object.fromEntries((['components', 'endpoints', 'calls', 'channels', 'messages', 'fields', 'subsystems', 'links', 'relations'] as const).map((k) => [k, { new: 0, changed: 0, removed: 0 }])) as EnvMarks['counts'];
   for (const [a, m] of marks) { const p = parseAnchor(a); const cat = p?.field !== undefined ? 'fields' : CATEGORY[p?.kind ?? '']; if (cat) c[cat][m.mark]++; }
   const total = (...lists: string[]) => [...cur.rows.values()].filter((r) => lists.includes(r.list)).length;
   const totals = { components: cur.services.size, endpoints: total('ingress'), calls: total('egress'), channels: total('channels'), messages: total('dto', 'event_dto') };

@@ -12,6 +12,7 @@ import { importPreviewTool, importIntoDraftTool } from './import.ts';
 import { editDesignTool, getCallTool } from './edit.ts';
 import { getFlowNamesTool, setFlowNameTool } from './flow-names.ts';
 import { listCommentsTool, addCommentTool } from './comments.ts';
+import { getSubsystemsTool, getSubsystemMapTool, listAbstractLinksTool, suggestRefinementsTool, applyPlanLinksTool, setSubsystemSettingsTool, setLevelsTool } from './subsystems.ts';
 import type { Tool } from './common.ts';
 export type { Tool };
 
@@ -58,4 +59,11 @@ export const TOOLS: Tool[] = [
   setFlowNameTool,
   listCommentsTool,
   addCommentTool,
+  getSubsystemsTool,
+  getSubsystemMapTool,
+  listAbstractLinksTool,
+  suggestRefinementsTool,
+  applyPlanLinksTool,
+  setSubsystemSettingsTool,
+  setLevelsTool,
 ];

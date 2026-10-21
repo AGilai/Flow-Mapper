@@ -6,7 +6,7 @@
 //   source does not have is looked up item by item (the synthetic `<source>-infra` that holds copied channels and bindings); env-scoped rows
 //   (event DTOs, schemas) whose key is in the baseline. `vanished` = copied components the source no longer has.
 
-import { rowId, type ItemRow } from '../item-rows.ts';
+import { DESIGN_LISTS, rowId, type ItemRow } from '../item-rows.ts';
 
 export interface BaseRow extends ItemRow { sourceEnv: string; sourceVersion: number | null; takenAt: string }
 
@@ -21,6 +21,8 @@ export function sourceNow(sources: Map<string, ItemRow[] | null>, base: BaseRow[
   }
   return { rows: out, vanished };
 }
+
+const isDesign = (r: ItemRow) => (DESIGN_LISTS as readonly string[]).includes(r.list);
 
 function fromSource(src: ItemRow[], base: BaseRow[], out: ItemRow[], vanished: Set<string>, copiedAt?: string | null) {
   const bySvc = new Map<string, ItemRow[]>();
@@ -43,8 +45,10 @@ function fromSource(src: ItemRow[], base: BaseRow[], out: ItemRow[], vanished: S
       if (hit) out.push({ service: h.service, list: b.list, key: b.key, data: b.list === 'bindings' ? { ...hit.data, id: b.key } : hit.data });
     }
   }
-  const keys = new Set(base.filter((r) => r.service === '').map((r) => rowId(r)));
+  const keys = new Set(base.filter((r) => r.service === '' && !isDesign(r)).map((r) => rowId(r)));
   out.push(...(bySvc.get('') ?? []).filter((r) => keys.has(rowId(r))));
+  // Subsystems, links and relations are design content: the source never has them, so they pass through as the baseline has them (new against the source too).
+  out.push(...base.filter(isDesign).map(({ service, list, key, data }) => ({ service, list, key, data })));
 }
 
 /** A binding copied under the synthetic infra owner is keyed `<service>.<id>`: find it in the source by trying each split. */

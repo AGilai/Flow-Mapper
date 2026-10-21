@@ -33,7 +33,7 @@ function plan(ctx: Ctx, env: string, slug: string, i: ImportRequest): { set: Imp
     const set = importSet({
       source: i.source, anchor: i.anchor, srcRows, srcGraph: ctx.view(i.source).g,
       srcVersions: new Map(srcRows.filter((r) => r.list === 'header').map((r) => [r.service, Number(r.data?.version) || 0])),
-      here, groups: (JSON.parse(getEnvRow(db, env)!.groups) as { key: string }[]).map((g) => g.key), groupPath: i.groupPath,
+      here, groups: here.filter((r) => r.list === 'subsystem').map((r) => r.key), groupPath: i.groupPath,
       infraOwner: pickInfraOwner(here, srcRows, i.source),
     });
     return { set, preview: previewOf(set, i.anchor, i.source) };

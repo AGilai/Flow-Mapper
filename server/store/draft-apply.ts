@@ -18,6 +18,7 @@ import { deleteServiceIn } from './snapshots-crud.ts';
 import { loadModel, type Source, type WriteResult } from './snapshots-read.ts';
 import { writeChangelog } from './snapshots-write.ts';
 import { writeSide } from './draft-side.ts';
+import { writeDesignSide } from './design-side.ts';
 import { writeImportBaseline } from './baseline-write.ts';
 import { withDry } from './dry-run.ts';
 
@@ -46,6 +47,7 @@ export function applyDraftIn(db: DB, env: string, slug: string, opts: { by: stri
   const results = dm.manifests.length ? ingestIn(db, dm.manifests, opts.source, { writer: 'draft', tolerateExisting: true, replaceHeader: dm.replaceHeader, draftId: d.id }) : [];
   for (const name of dm.deletes) deleteServiceIn(db, env, name, opts.source, d.id);
   const warnings = writeSide(db, env, dm.side, buildIndex(loadModel(db, env)), opts.by);
+  writeDesignSide(db, env, dm.side, opts.by);
   const imported = writeImportBaseline(db, env, ops);
   const changelogId = writeChangelog(db, env, '', null, null, 'draft', opts.source, { draft: slug, name: d.name, counts: changes.counts, replaced: replaced.map((r) => r.anchor), ...(imported ? { imported } : {}) }, d.id);
   const at = new Date().toISOString();

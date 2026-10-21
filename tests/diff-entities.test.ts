@@ -20,7 +20,8 @@ test('D1 a new component: only svc: is marked, its children carry nothing', () =
     { service: 'pop-edge', list: 'functions', key: 'H', data: { id: 'H', name: 'H', steps: [] } },
     { service: 'pop-edge', list: 'dto', key: 'in.t|request|', data: { content: { a: 1 }, meta: null } }];
   const m = diff(base, cur);
-  assert.deepEqual(marksOf(m), { 'svc:pop-edge': 'new' });
+  // 0.28: the subsystem 'network' now carries a mark too (every component in it is new), see diff-subsystems.test.ts
+  assert.deepEqual(marksOf(m), { 'grp:network': 'new', 'svc:pop-edge': 'new' });
   assert.equal(m.counts.components.new, 1);
   assert.equal(m.counts.endpoints.new, 0);
 });
@@ -75,7 +76,10 @@ test('noise: provenance, source, groupPath, version, details.doc only -> no mark
   row(cur, 'users-svc', 'egress', 'out.pub').data.details = { doc: { file: 'x.md', quote: 'q' } };
   Object.assign(row(cur, 'users-svc', 'header', '').data, { groupPath: 'other', version: 9, harvestedAt: 'later', commit: 'abc', details: { doc: 1 } });
   row(cur, 'users-svc', 'functions', 'UserCtl.get').data.steps[0].source = { file: 'z.ts' };
-  assert.deepEqual(diff(base, cur).marks, {});
+  // 0.28: a component that changes subsystem marks the subsystem it moved into (and no svc: or item mark)
+  const m = diff(base, cur).marks;
+  assert.deepEqual(Object.keys(m).filter((a) => !a.startsWith('grp:')), []);
+  assert.equal(m['grp:other'].what, 'moved in: users-svc');
 });
 
 test('header change: svc: changed "header: team, description"', () => {
@@ -98,7 +102,8 @@ test('step inserted mid-function: one added step, the function is changed, nothi
   });
   const m = diff(base, cur);
   assert.equal(m.marks['fn:users-svc/UserCtl.get'].what, '+1 step: out.pub');
-  assert.deepEqual(Object.keys(m.marks).sort(), ['fn:users-svc/UserCtl.get', 'svc:users-svc']);
+  assert.deepEqual(Object.keys(m.marks).sort(), ['fn:users-svc/UserCtl.get', 'grp:platform', 'svc:users-svc']);   // 0.28: and the subsystem of the changed component
+  assert.equal(m.marks['grp:platform'].what, '1 changed component');
   assert.equal(m.marks['svc:users-svc'].what, '~1 function');
 });
 

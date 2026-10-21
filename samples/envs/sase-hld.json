@@ -3,9 +3,9 @@
   "source": "prod",
   "mode": "components",
   "groups": [
-    { "key": "agent", "label": "Agent" },
-    { "key": "network", "label": "Network (POP)" },
-    { "key": "platform", "label": "Platform" }
+    { "key": "agent", "label": "Agent", "icon": "agent" },
+    { "key": "network", "label": "Network (POP)", "icon": "network" },
+    { "key": "platform", "label": "Platform", "icon": "platform" }
   ],
   "services": [
     { "name": "sxdns", "groupPath": "network" },
