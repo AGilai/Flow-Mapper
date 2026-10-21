@@ -34,3 +34,6 @@ function ends(e) {
 export const stepAtRow = (steps, row) => steps.find((s) => s.row === row) ?? null;
 /** The step a stored key belongs to (kept across redraws), or null. */
 export const stepByKey = (steps, key) => steps.find((s) => s.key === key) ?? null;
+
+/** The columns at the two ends of a step's arrow: [from, to]; a store stub or a missing target has no component column at the far end. */
+export const stepCols = (e) => (e.type === 'store' || e.type === 'unresolved' ? [e.bar.col, null] : [e.from, e.to]);

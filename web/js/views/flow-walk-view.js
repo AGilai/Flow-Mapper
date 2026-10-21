@@ -21,8 +21,8 @@ function reveal(tiles, n, behavior) {
 const calm = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } };
 
 /** createWalkView({ store, root, messages, initial, onStep(n), onRestep(cols) }) -> { el, decorate(res, built), endsOf(built), hit(event), onKey(ev), move(action), current(), dispose }
- *  onRestep(cols): the viewer moved to a step whose lifelines are the columns `cols` (Squeeze folds again for it). endsOf(built): the columns of the current step, before the lane is drawn. */
-export function createWalkView({ store, root, messages = () => null, initial = null, onStep, onRestep }) {
+ *  onSteps(steps): the numbering of the lane just drawn (the partial-flow line reads it). onRestep(cols): the viewer moved to a step whose lifelines are the columns `cols` (Squeeze folds again for it). endsOf(built): the columns of the current step, before the lane is drawn. */
+export function createWalkView({ store, root, messages = () => null, initial = null, onStep, onRestep, onSteps }) {
   let steps = [], built = null, tiles = null, cur = initial ?? 1, curKey = null, jumpOnDraw = initial != null;
   const bar = createStepbar({ store, root, onMove: (a) => move(a) });
 
@@ -41,6 +41,7 @@ export function createWalkView({ store, root, messages = () => null, initial = n
   function decorate(res, lane) {
     built = lane;
     steps = stepsOf(built, stepKeys, messages());
+    onSteps?.(steps);
     tiles = steps.length ? drawStepTiles(res, built, steps, (n) => go(n)) : null;
     const keep = steps.find((s) => s.key === curKey);
     go(keep ? keep.n : cur, { scroll: false, user: false });

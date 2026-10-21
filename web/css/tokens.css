@@ -45,6 +45,7 @@
   --fs-xs: 11.5px; --fs-sm: 13px; --fs-md: 14.5px; --fs-lg: 18px; --fs-xl: 24px; --fs-2xl: 32px;
 
   --flow-1: #c0392b; --flow-2: #a68a00; --flow-3: #2e8b3d; --flow-4: #0e8fb3; --flow-5: #4f46e5; --flow-6: #b5179e; --flow-7: #8d5a2b; --flow-8: #5b7aa6; /* async sub-flows: dots and bands */
+  --cmp-1: #9f5989; --cmp-2: #077fa8; --cmp-3: #5a805b; --cmp-4: #6e6ab2; --cmp-5: #ac5859; --cmp-6: #198585; --cmp-7: #846891; --cmp-8: #a5612e; /* component colours (UI-GUIDE section 8): a component, never a transport or a status */
   --rail: 220px;
   --rail-c: 56px;
   --panel: 380px;
@@ -59,6 +60,7 @@
     --t-broken: #ff6b6b; --t-gateway: #e7e9f0; --mw: #b4bdd2; --mw-bg: #2a3042;
     --flow-1: #ff7a6b; --flow-2: #e2c23a; --flow-3: #5fd070; --flow-4: #4cc9ee; --flow-5: #8a85ff; --flow-6: #f06ad9; --flow-7: #d49a5e; --flow-8: #8fb0dd;
     --new: #f7cf55; --new-ink: #f7cf55;
+    --cmp-1: #e095c7; --cmp-2: #5dbee9; --cmp-3: #96bd96; --cmp-4: #aaa7f4; --cmp-5: #ef9494; --cmp-6: #64c3c3; --cmp-7: #c2a4d0; --cmp-8: #e79e6b;
     --shadow-panel: 0 12px 32px -12px rgba(0, 0, 0, 0.6);
     color-scheme: dark;
   }
@@ -70,6 +72,7 @@
   --t-broken: #ff6b6b; --t-gateway: #e7e9f0; --mw: #b4bdd2; --mw-bg: #2a3042;
   --flow-1: #ff7a6b; --flow-2: #e2c23a; --flow-3: #5fd070; --flow-4: #4cc9ee; --flow-5: #8a85ff; --flow-6: #f06ad9; --flow-7: #d49a5e; --flow-8: #8fb0dd;
   --new: #f7cf55; --new-ink: #f7cf55;
+  --cmp-1: #e095c7; --cmp-2: #5dbee9; --cmp-3: #96bd96; --cmp-4: #aaa7f4; --cmp-5: #ef9494; --cmp-6: #64c3c3; --cmp-7: #c2a4d0; --cmp-8: #e79e6b;
   --shadow-panel: 0 12px 32px -12px rgba(0, 0, 0, 0.6);
   color-scheme: dark;
 }

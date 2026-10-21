@@ -29,6 +29,7 @@ export function createTabData(env, getOpts) {
     if (!cache.has(key)) cache.set(key, resolve(key).then((d) => { done.set(key, d); return d; }));
     return cache.get(key);
   };
+  const triggerOf = (p) => api.endpoint(env, p.service, p.ingress).then((e) => e?.ingress?.details?.trigger ?? null, () => null);
   async function resolve(key) {
     const p = parseKey(key);
     if (!p) throw new Error('This tab is not a flow.');
@@ -44,7 +45,8 @@ export function createTabData(env, getOpts) {
     else if (p.kind === 'full') Object.assign(q, { ingress: p.ingress, event: p.event, scope: 'full' });
     else Object.assign(q, { ingress: p.ingress, event: p.event, scope: p.scope });
     const trace = await traceFor(q);
-    return { key, kind: p.kind, originKey: p.origin ?? null, trace, tree: asyncTree(trace.messages), service: p.service, name: p.ingress ?? p.fn, scope: p.kind === 'full' ? 'full' : p.scope,
+    const trigger = p.ingress && trace.participants?.some((x) => x.serviceKind === 'client-app' && x.service === p.service) ? await triggerOf(p) : null; // a client app's head says what starts it
+    return { key, kind: p.kind, trigger, originKey: p.origin ?? null, trace, tree: asyncTree(trace.messages), service: p.service, name: p.ingress ?? p.fn, scope: p.kind === 'full' ? 'full' : p.scope,
       start: p.ingress && (p.kind === 'full' || p.scope === 'full') ? { service: p.service, ingress: p.ingress, event: p.event ?? null, scope: 'full' } : null };
   }
   /** The tab's label parts, from the loaded data or (before it arrives) from the key alone. */

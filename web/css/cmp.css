@@ -1,0 +1,14 @@
+/* Component colours (frame 11, option A): a pastel head (stripe + 14% tint) and activation bars (28% fill, nested 42%) in the component's slot --cc = var(--cmp-1..8).
+   Arrows keep the transport colour. Client apps, infra and externals stay neutral (no --cc). A colour means a component, never a transport or a status. */
+.seq-part.cmp rect:first-child { fill: color-mix(in srgb, var(--cc) 14%, var(--surface)); stroke: color-mix(in srgb, var(--cc) 45%, var(--line-strong)); }
+.seq-part.cmp .stripe { fill: var(--cc); }
+.act.cmp { fill: color-mix(in srgb, var(--cc) 28%, var(--surface)); stroke: color-mix(in srgb, var(--cc) 78%, var(--ink)); }
+.act.cmp.deep { fill: color-mix(in srgb, var(--cc) 42%, var(--surface)); }
+.act.cmp:hover, .act.cmp:focus-visible { fill: color-mix(in srgb, var(--cc) 40%, var(--surface)); }
+.act.cmp.selected { fill: color-mix(in srgb, var(--cc) 55%, var(--surface)); stroke-width: 2; }
+.seq-part.ca .stripe { fill: var(--muted); }
+.act.ca { fill: color-mix(in srgb, var(--muted) 22%, var(--surface)); stroke: var(--muted); }
+.sq-fold.cmp rect, .sq-band.cmp { fill: color-mix(in srgb, var(--cc) 8%, var(--surface-2)); }
+.sq-fold.cmp rect { stroke: color-mix(in srgb, var(--cc) 45%, var(--line-strong)); }
+/* the dots of the step bar repeat the bar colours; the text carries the meaning */
+.cdot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--cc, var(--muted)); margin: 0 4px 0 2px; vertical-align: -1px; }

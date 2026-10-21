@@ -17,6 +17,7 @@ import { flowId } from './flow-sub.js';
 import { removedList } from './flow-removed.js';
 import { servicesOf } from './flow-marks.js';
 import { marksNow } from '../design/marks-store.js';
+import { createPartial } from './flow-partial.js';
 import { state } from '../state.js';
 
 const tc = (t, label) => h('span.tc', { class: t, title: label }, label);
@@ -42,7 +43,9 @@ export function createTabView(data, host) {
   const subLine = root && data.kind === 'sub' ? descLine(host.desc, root, [`${data.service}:${data.name}`, data.service], { onGenerate: () => generate(data.service) }) : null;
   descs.push(flowBox, subLine);
   // The step walk: numbered arrows, the bar and the step's description. Step descriptions belong to the flow, so a sub-flow or function tab walks without them.
-  const walk = createWalkView({ store: host.desc, messages: () => trace.messages, root: data.kind === 'sub' ? null : root, initial: host.initialStep?.(key) ?? null, onStep: (n) => host.setStep?.(key, n), onRestep: (cols) => render?.restep(cols) });
+  const editing = state.mode === 'edit' && !!state.draft;
+  const partial = createPartial({ trace, editing, onImport: (anchor, source) => host.importRef?.(anchor, source) });
+  const walk = createWalkView({ store: host.desc, messages: () => trace.messages, root: data.kind === 'sub' ? null : root, initial: host.initialStep?.(key) ?? null, onStep: (n) => host.setStep?.(key, n), onRestep: (cols) => render?.restep(cols), onSteps: (st) => partial.update(st) });
   const tip = root ? createTip(host.desc, root) : null;
   const scroller = h('div.seq-scroll');
   const hint = h('span.seq-hint', 'More to the right. Scroll sideways ›');
@@ -70,7 +73,7 @@ export function createTabView(data, host) {
   }
   const lookInside = (bar, tr) => { inside.open(bar, tr); };
   const flash = (g) => { g?.scrollIntoView({ block: 'center', behavior: 'smooth' }); g?.classList.add('flash'); setTimeout(() => g?.classList.remove('flash'), 1600); };
-  const shared = { host, opts, tip, walk, squeeze: () => opts.squeeze && !sqOff, squeezeOpen: () => { sqOff = true; host.paintChrome?.(); render?.relane(); edge(); walk.reveal(true); }, fit: () => scroller.clientWidth, select, lookInside, flash, traceFor: host.traceFor,
+  const shared = { host, opts, tip, walk, trigger: () => data.trigger, importRef: (anchor, m) => host.importRef?.(anchor, m?.reference?.source), squeeze: () => opts.squeeze && !sqOff, squeezeOpen: () => { sqOff = true; host.paintChrome?.(); render?.relane(); edge(); walk.reveal(true); }, fit: () => scroller.clientWidth, select, lookInside, flash, traceFor: host.traceFor,
     openMessage: (m, g, tr) => { // clicking an arrow opens the message panel; one side panel at a time
       body.querySelectorAll('.msg.active').forEach((e) => e.classList.remove('active'));
       g.classList.add('active');
@@ -113,7 +116,7 @@ export function createTabView(data, host) {
     edge(); requestAnimationFrame(edge);
   }
   draw();
-  const el = h('div.flow-tab', h('div.flow-top', flowBox?.el, walk.el), body);
+  const el = h('div.flow-tab', h('div.flow-top', flowBox?.el, walk.el, partial.el), body);
   el.addEventListener('keydown', (ev) => walk.onKey(ev)); // ← → Home End, while focus is in the flow view and not in a text box
   return {
     el, key, data, draw, insideOpen: () => inside.isOpen(), dispose: () => { clearTimeout(resizeTimer); document.removeEventListener('fm:layout', onLayout); inside.dispose(); ro?.disconnect(); tip?.dispose(); descs.forEach((d) => d?.dispose()); walk.dispose(); },

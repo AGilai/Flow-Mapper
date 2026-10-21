@@ -44,8 +44,8 @@ export const storeLabel = (m) => ({ verb: m.label, name: (m.store ?? '').replace
  * options: numbers (Map delivery message -> { label, shows, seen, noHandler }, from deliveryNumbers(tree): the number tiles at the queues), fanOpen (Set of topics whose queues are all drawn).
  * Every event has `row` (its index). Bars: { id, service, col, level, transport, sync, msg, depth, internal: {n, gaps}, msgs, start, end }.
  */
-export function buildLane(msgs, { stores = true, scope = 'full', participants = [], mwOpen = false, numbers = new Map(), fanOpen = false } = {}) {
-  const kind = new Map(participants.map((p) => [p.id, p.kind]));
+export function buildLane(msgs, { stores = true, scope = 'full', participants = [], mwOpen = false, numbers = new Map(), fanOpen = false, trigger = null } = {}) {
+  const kind = new Map(participants.map((p) => [p.id, p.kind])), skind = (service) => participants.find((p) => p.id === `svc:${service}`)?.serviceKind;
   const cols = [], byService = new Map(), stack = [], bars = [], events = [];
   const keys = new Map();
   const mk = (c) => { c.ci = cols.length; cols.push(c); return c; };
@@ -62,7 +62,7 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
   const pickCol = (service, caller) => {
     const ex = byService.get(service);
     if (ex && !stack.some((b) => b.col !== caller && b.col !== ex && between(b.col, caller, ex))) return ex;
-    const c = mk({ id: `svc:${service}:${cols.length}`, label: service, sub: scope === 'intra' && service !== root ? 'not followed' : ex ? 'called again' : 'service', kind: scope === 'intra' && service !== root ? 'plain' : 'service', service });
+    const c = mk({ id: `svc:${service}:${cols.length}`, label: service, sub: scope === 'intra' && service !== root ? 'not followed' : ex ? 'called again' : 'service', kind: scope === 'intra' && service !== root ? 'plain' : 'service', service, serviceKind: skind(service) });
     byService.set(service, c);
     return c;
   };
@@ -99,7 +99,9 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
     return bar;
   };
 
-  const rootCol = mk({ id: `svc:${root}`, label: root, sub: 'service', kind: 'service', service: root });
+  // A client app (a design's agent) starts its own flow: no `client` column and no entry arrow, its head says "client app" and carries the trigger (UI-GUIDE section 10).
+  const clientApp = skind(root) === 'client-app' && first.kind === 'entry';
+  const rootCol = mk({ id: `svc:${root}`, label: root, sub: clientApp ? 'client app' : 'service', kind: 'service', service: root, serviceKind: skind(root), ...(clientApp ? { trigger } : {}) });
   byService.set(root, rootCol);
   const { lane, publishes } = scanLane(msgs);
   const chains = publishes.map((p) => chainOf(msgs, p)), chainAt = new Map(publishes.map((p, k) => [p.i, chains[k]]));
@@ -169,10 +171,11 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
   while (stack.length) close(stack.pop());
 
   // Pills only where something was folded; rows follow the order of what is left.
-  const kept = events.filter((e) => e.type !== 'pill' || e.bar.internal.n);
+  const entry = clientApp ? events.find((e) => e.type === 'call' && e.from === source) : null;
+  const kept = events.filter((e) => (e.type !== 'pill' || e.bar.internal.n) && e !== entry && !(clientApp && e.type === 'return' && e.to === source));
   const remap = new Map(events.map((e) => [e, kept.indexOf(e)]));
   kept.forEach((e, i) => { e.row = i; });
-  for (const b of bars) { b.start = remap.get(events[b.start]) ?? b.start; }
+  for (const b of bars) { b.start = Math.max(0, remap.get(events[b.start]) ?? b.start); }
   for (const b of bars) { // end: last kept event at or before the old end
     let e = b.end; while (e > 0 && remap.get(events[e]) < 0) e--; b.end = remap.get(events[e]);
   }
@@ -182,7 +185,7 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
     b.mw.spans = mwSpans(b.mw.labels.map((ev) => ev.row), remap.get(events[e]));
   }
   const rank = (c) => (c.kind === 'channel' ? 1 : c.kind === 'unresolved' ? 2 : 0); // topics and queues sit right after the last service lifeline, grouped per topic; the unresolved column follows
-  const columns = cols.filter((c) => events.some((e) => e.from === c || e.to === c || e.via === c || e.col === c) || c === source || c === rootCol)
+  const columns = cols.filter((c) => kept.some((e) => e.from === c || e.to === c || e.via === c || e.col === c) || (c === source && !clientApp) || c === rootCol)
     .sort((a, b) => rank(a) - rank(b) || (a.kind === 'channel' ? a.ord - b.ord : a.ci - b.ci));
   const altEvents = kept.filter((e) => e.msg);
   return { columns, events: kept, bars, altMsgs: altEvents.map((e) => e.msg), altRows: altEvents.map((e) => e.row) };

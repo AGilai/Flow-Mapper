@@ -20,15 +20,15 @@ import { wireEvents } from './flow-draw-events.js';
  * handlers: onMessage(msg, g, event, trunk), onBar(bar, 'select'?) (double-click, pill: look inside; click: select),
  * onBarMenu(bar, x, y), onParticipant(p, x, y), onNum(jump) (a number tile at a queue), onNumHover(own labels, on), onFan(topic) (fold or unfold a big fan-out).
  * `selected`: bar id drawn highlighted. Returns { el, body, events, bars, geometry, mark(label, on) } (mark: highlight the tiles of a list row).
- * marks: laneMarks(store) (flow-marks.js): sparks on heads and arrows of a design environment.
+ * marks: laneMarks(store) (flow-marks.js): sparks on heads and arrows of a design environment. refs: createRefs(trace, ...) (flow-refs-draw.js): locks on heads, the note and Import chip at an arrow into a reference.
  * squeeze: { keep: [column index] } folds lifelines when the lane is wider than `fit` (flow-squeeze.js); onSqueeze(): a fold column was clicked.
  * geometry: { x: centre x per lifeline (a folded one: its fold's left edge; folded + groups say which), plan(keep) -> the fold set for another step, y: baseline y per row, top: top y per row (plus the bottom), width, height, headHeight, colWidth }
  * for features that draw on the lane (step numbers, squeeze, editing).
  */
-export function renderLane(lane, { marks = null, onMessage, onBar, onBarMenu, onParticipant, onNum, onNumHover, onFan, onMw, onBarTip, onSqueeze, selected = null, sticky = true, fit = 0, squeeze = null } = {}) {
+export function renderLane(lane, { marks = null, refs = null, onMessage, onBar, onBarMenu, onParticipant, onNum, onNumHover, onFan, onMw, onBarTip, onSqueeze, selected = null, sticky = true, fit = 0, squeeze = null } = {}) {
   const c = layoutLane(lane, fit, squeeze), { columns, events, bars, width, height, top, ys, frames, strips } = c;
-  const head = drawHead({ ...c, marks });
-  const drawn = foldRows(drawRows({ ...c, marks }), c);
+  const head = drawHead({ ...c, marks, refs });
+  const drawn = foldRows(drawRows({ ...c, marks, refs }), c);
   const { rects, segs } = drawBars(c, { selected, onBarTip });
   const body = s('svg', { width, height, class: 'seq-body', role: 'group', 'aria-label': `Flow with ${bars.length} calls across ${columns.length} lifelines` },
     s('defs', {}, s('pattern', { id: 'mwh', width: 6, height: 6, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' }, s('rect', { width: 6, height: 6, fill: 'var(--mw-bg)' }), s('rect', { width: 2.4, height: 6, fill: 'var(--mw)' }))),

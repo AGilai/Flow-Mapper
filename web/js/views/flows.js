@@ -19,6 +19,7 @@ import { createDescStore } from './flow-desc.js';
 import { swap } from './flow-tabs-anim.js';
 import * as T from './flow-tabs-state.js';
 import { decodeStep, encodeStep } from './flow-walk.js';
+import { openImport } from '../design/import-panel.js';
 
 // Squeeze (0.20.1): on by default, remembered per viewer; a click on a fold turns it off for that tab only (flow-tab-view.js).
 const sqStored = () => { try { return localStorage.getItem('flow-mapper.squeeze') !== '0'; } catch { return true; } };
@@ -90,6 +91,7 @@ export async function render({ main, query }) {
     jumpToLabel: (label) => { const k = S.keys.find((x) => data.peek(x)?.label === label); if (k) commit(T.activate(S, k)); },
     openEntry: (e) => openEntry(e),
     paintChrome: () => paintChrome(),
+    importRef: (anchor, source) => openImport({ panel, flowsEl, anchor, source }),
     initialStep: (k) => (k === stepTab ? stepParam : null),
     setStep: (k, n) => { if (k === S.active) { stepParam = n; persist(); } },
     setFrontier: () => { opts.frontier = true; frontierCheck.querySelector('input').checked = true; persist(); reloadAll(); },

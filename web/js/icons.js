@@ -18,6 +18,8 @@ const P = {
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.6h.01"/>',
   commit: '<circle cx="12" cy="12" r="3.5"/><path d="M3 12h5.5M15.5 12H21"/>',
   rpc: '<path d="M3 8h17M16 4l4 4-4 4M21 16H4M8 12l-4 4 4 4"/>',
+  lock: '<rect x="5.5" y="10.5" width="13" height="9.5" rx="2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/>',
+  k8s: '<path d="M12 2.6l7.6 3.6 1.9 8.2-5.3 6.6H7.8l-5.3-6.6 1.9-8.2z"/><path d="M12 8.2v4M12 12.2l3.2 2M12 12.2l-3.2 2"/>',
   external: '<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
 };
 
@@ -26,6 +28,9 @@ export const GLYPH = {
   new: { d: 'M6 .6L7.5 4.5 11.4 6 7.5 7.5 6 11.4 4.5 7.5.6 6 4.5 4.5z', fill: true },
   chg: { d: 'M6 1.6a4.4 4.4 0 1 0 0 8.8 4.4 4.4 0 0 0 0-8.8zM6 2.8a3.2 3.2 0 1 0 0 6.4 3.2 3.2 0 0 0 0-6.4zM6 4.8a1.2 1.2 0 1 0 0 2.4 1.2 1.2 0 0 0 0-2.4z', fill: false },
 };
+
+/** Lock (a reference) and the Kubernetes mark on a 24px grid, for drawings: `<g>` paths, drawn with the surrounding stroke. */
+export const SVG_PATH = { lock: P.lock, k8s: P.k8s };
 
 export function icon(name, cls = '') {
   const el = document.createElementNS('http://www.w3.org/2000/svg', 'svg');

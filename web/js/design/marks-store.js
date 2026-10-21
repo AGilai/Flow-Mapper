@@ -10,7 +10,7 @@ const listeners = new Set();
 
 /** `changes`: the draft's changes (GET /changes items) when a draft is open in Edit: `inDraft(anchor)` says an item was added by the draft. */
 export function createMarks(p = EMPTY, changes = []) {
-  const marks = p.marks ?? {}, ghosts = p.ghosts ?? {}, added = new Set(changes.filter((c) => c.change === 'added').map((c) => c.anchor));
+  const marks = p.marks ?? {}, ghosts = p.ghosts ?? {}, refs = p.refs ?? {}, added = new Set(changes.filter((c) => c.change === 'added').map((c) => c.anchor));
   const fieldMarks = (item) => {
     const out = new Map(), pre = `${item}#`;
     for (const [a, m] of Object.entries(marks)) if (a.startsWith(pre)) out.set(a.slice(pre.length), m);
@@ -20,6 +20,10 @@ export function createMarks(p = EMPTY, changes = []) {
     payload: p, against: p.against, source: p.source, baselineAt: p.baselineAt, counts: p.counts ?? {},
     empty: !Object.keys(marks).length && !Object.keys(ghosts).length,
     markOf: (anchor) => marks[anchor] ?? null,
+    /** References (0.25.0): `refOf('ing:<s>/<id>')` -> {service, ingress, bindKey, source} | null; `componentRefs(svc)` -> {refs, endpoints} | null; `originOf(ing)` -> {from, at, imported, inDraft?} | null (an endpoint that came with its behaviour). */
+    refOf: (anchor) => refs.endpoints?.[anchor] ?? null,
+    componentRefs: (svc) => refs.components?.[`svc:${svc}`] ?? null,
+    originOf: (anchor) => refs.origins?.[anchor] ?? null,
     inDraft: (anchor) => added.has(anchor),
     /** Anchors the draft removed: [{anchor, label}] (from /changes). */
     removedInDraft: (prefix) => changes.filter((c) => c.change === 'removed' && c.anchor.startsWith(prefix)),
