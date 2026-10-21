@@ -3,6 +3,7 @@
 
 import { altFrames, stripsByRow, STRIP } from './sequence-alt.js';
 import { arrowEnds, columnGaps, centres, labelWidth, wrapId, clampLines } from './flow-cols.js';
+import { FOLD_W, displayCols, foldGroups, planFold } from './flow-squeeze.js';
 
 export const COL = 138, COL_MIN = 132, PAD = 16, GUTTER = 8, BAR = 12, NEST = 8, CH_HEAD = 116; // CH_HEAD: a topic or queue head is narrower than a service head
 const ROWH = { call: 46, return: 36, pill: 32, mw: 34, store: 46, hop: 48, unresolved: 42, frontier: 32, amqpnote: 26 };
@@ -15,8 +16,8 @@ export const tileW = (t) => Math.max(22, Math.ceil(String(t).length * TILE_PX) +
 export const markW = (m) => Math.ceil(m.label.length * (m.kind === 'key' ? 6.9 : 6.4)) + 30; // an exchange's binding key is mono
 export const FUNNEL = 'M1.5 2h9L7 6.3V10l-2-1V6.3z';
 
-/** layoutLane(lane, fit) -> every measure the drawing needs; `fit`: the width the diagram has (0 = no limit). */
-export function layoutLane(lane, fit = 0) {
+/** layoutLane(lane, fit, sq) -> every measure the drawing needs; `fit`: the width the diagram has (0 = no limit); sq: { keep: [column index] } turns Squeeze on (flow-squeeze.js). */
+export function layoutLane(lane, fit = 0, sq = null) {
   const { columns, events, bars } = lane;
   // Each gap between lifelines grows to fit the longest arrow label that crosses it: a label is never cut.
   const idx = new Map(columns.map((c, i) => [c, i]));
@@ -36,14 +37,21 @@ export function layoutLane(lane, fit = 0) {
     return out;
   });
   // `fit`: the room the diagram has. The plain gap shrinks (to COL_MIN) until everything shows without scrolling; topic and queue gaps stay.
-  const layout = (col) => {
-    const xs = centres(PAD + GUTTER + col / 2, columnGaps(columns.length, spans, (i) => Math.round((headW(columns[i], col) + headW(columns[i + 1], col)) / 2 + 8)));
-    const last = columns[columns.length - 1];
-    const reach = Math.max(xs[xs.length - 1] + (isCh(last) ? 92 : 200), ...events.filter((e) => e.type === 'amqpnote').map((e) => xs[idx.get(e.col)] + 10 + e.text.length * 5.6 + 100));
+  // Still too wide and Squeeze on: lifelines fold into fold columns (flow-squeeze.js); a fold is FOLD_W wide and an arrow into it stops at its left edge.
+  const layout = (col, folded) => {
+    const dc = displayCols(columns.length, folded), di = new Map();
+    dc.forEach((d, k) => d.cols.forEach((c) => di.set(c, k)));
+    const hw = (d) => (d.fold ? FOLD_W : headW(columns[d.cols[0]], col)), room = (c) => (folded.has(c) ? FOLD_W / 2 : 0);
+    const dsp = spans.map((p) => ({ a: di.get(p.a), b: di.get(p.b), need: p.need + room(p.a) + room(p.b) }));
+    const dx = centres(PAD + GUTTER + (dc[0].fold ? FOLD_W : col) / 2, columnGaps(dc.length, dsp, (i) => Math.round((hw(dc[i]) + hw(dc[i + 1])) / 2 + 8)));
+    const xs = columns.map((_, c) => dx[di.get(c)] - room(c)), last = dc[dc.length - 1];
+    const reach = Math.max(dx[dx.length - 1] + (last.fold ? FOLD_W / 2 + 20 : isCh(columns[last.cols[0]]) ? 92 : 200), ...events.filter((e) => e.type === 'amqpnote').map((e) => xs[idx.get(e.col)] + 10 + e.text.length * 5.6 + 100));
     return { xs, col, width: Math.ceil(reach + PAD) };
   };
-  let L = layout(COL);
-  for (let col = COL - 6; fit && L.width > fit && col >= COL_MIN; col -= 6) L = layout(col);
+  const fitted = (folded) => { let M = layout(COL, folded); for (let col = COL - 6; fit && M.width > fit && col >= COL_MIN; col -= 6) M = layout(col, folded); return M; };
+  const plan = (keep) => planFold({ n: columns.length, ends: keep, fit, widthOf: (f) => layout(COL_MIN, f).width });
+  let L = fitted(new Set()), folded = new Set();
+  if (sq && fit && L.width > fit) { folded = plan(sq.keep); if (folded.size) L = fitted(folded); }
   const { xs, col: COLW, width } = L, HEAD_BOX = COLW - 8, nameCh = (c) => Math.max(9, Math.floor((headW(c, COLW) - 14) / 6.6));
   const colX = new Map(columns.map((c, i) => [c, xs[i]]));
   // a queue head drops its transport prefix and the 'queue delivery' line (the title keeps both): two lines at most
@@ -56,8 +64,9 @@ export function layoutLane(lane, fit = 0) {
   events.forEach((e, r) => { top[r] = y; ys[r] = y + nStrips(r) * STRIP + LINE[e.type]; y += nStrips(r) * STRIP + rowH(e); });
   top[events.length] = y;
   const height = y + PAD;
-  const barX = (bar, dir) => colX.get(bar.col) + bar.level * NEST + dir * BAR / 2;
+  const barX = (bar, dir) => (folded.has(idx.get(bar.col)) ? colX.get(bar.col) + (dir < 0 ? 0 : FOLD_W) : colX.get(bar.col) + bar.level * NEST + dir * BAR / 2); // in a fold: its edge on that side
+  const groups = foldGroups(columns.length, folded).map((g) => ({ ...g, x: xs[g.from], names: g.cols.map((c) => columns[c].service ?? columns[c].label) }));
   const edge = (bar, col, dir) => (bar ? barX(bar, dir) : colX.get(col));
   const headBox = (c) => headW(c, COLW);
-  return { columns, events, bars, idx, isCh, headW, headBox, xs, COLW, width, height, colX, heads, boxH, HEAD, frames, strips, top, ys, barX, edge };
+  return { columns, events, bars, idx, folded, groups, plan, fit, isCh, headW, headBox, xs, COLW, width, height, colX, heads, boxH, HEAD, frames, strips, top, ys, barX, edge };
 }
