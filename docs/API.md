@@ -450,6 +450,7 @@ Event: `{id, type, at, env?, bugId?, reporter?, summary, data}`. `summary` is on
 |---|---|---|
 | `bug.created` | a bug was reported (API, UI, MCP) | `title, severity, priority, links` |
 | `bug.commented` | a comment was added; `reporter` is the bug's reporter | `commentId, author, body` (first 1000 chars) |
+| `comment.created`, `comment.edited`, `comment.deleted` | a comment under a flow (0.27.0); `env` is set, no `reporter` | `anchor, id, author, text` (first 300 chars of the plain text) |
 | `bug.status` | the status changed | `from, to, fixedInVersion, resolution, assignee` |
 | `bug.updated` | other fields changed (title, description, severity, priority, assignee, links, ...) | `fields` |
 | `version.deployed` | at startup, when the version differs from the last recorded one | `version, previous` |
@@ -485,6 +486,32 @@ transport, event, target, store and call (trace options: scope full, 2000 messag
 messages that touch that service, so changing one branch does not outdate the others. It is stable across reloads.
 `trace_flow` over MCP (with `ingress`) and `get_service` carry the descriptions too (below); `GET /trace` does not,
 read them with the endpoint above.
+
+## Comments under a flow (0.27.0)
+
+A discussion under each flow: a list of rich-text comments with one level of replies. Stored in `comments` (migration `011_comments.sql`),
+anchored with `flow:<service>/<ingress>` (the `core/anchors.ts` grammar) so later slices can open threads on any anchor without a migration.
+Comments are annotations: **every environment takes them**, sealed ones too, and no draft is needed. `?draft=<slug>` on a read or a post
+lets a flow that only exists in an open draft be discussed (an unknown draft is `404`, a closed one `409`).
+
+| Method + path | |
+|---|---|
+| `GET /api/envs/:env/comments?anchor=flow:<s>/<i>[&draft=]` | `{anchor, count, comments: [{id, step, author, body, createdAt, editedAt, deleted, replies: [...]}]}`, oldest first, replies oldest first. `count` is the live comments, replies included. A deleted top comment that still has replies comes back with `deleted: true`, `author: null`, `body: ''`; one without replies is not listed |
+| `GET /api/envs/:env/comments/counts` | `{<anchor>: n}`, live comments per anchor (the Flows list badge) |
+| `POST /api/envs/:env/comments[?draft=]` | `{anchor, step?, parentId?, author, body}` -> the row `{id, anchor, step, parentId, author, body, createdAt, editedAt, deletedAt}` |
+| `PATCH /api/envs/:env/comments/:id` | `{author, body}`: sets `editedAt`, keeps `createdAt` |
+| `DELETE /api/envs/:env/comments/:id?author=` | soft delete (`deletedAt` set, the text is emptied) -> `{deleted: id}` |
+
+- **Body** is HTML, always sanitized by the server (`core/rich-text.ts`, an allowlist written without a DOM): `p br b strong i em s del strike u ul ol li a table thead tbody tr th td span code pre blockquote`.
+  `a` keeps only an `http(s)` `href` and gets `rel="noopener noreferrer" target="_blank"`; `span` keeps only a palette class (`cc-coral cc-ochre cc-sage cc-cyan cc-sky cc-violet`);
+  `td` / `th` keep `colspan` / `rowspan` (2 to 20). Everything else is removed: other tags and their attributes, styles, comments, `script` / `style` contents; text is escaped, entities are decoded once.
+  `div` and `h1`..`h6` become `p`, so pasted line breaks survive. Limits: 20 000 characters after sanitizing (`422`), nesting depth 20, a table at most 50 rows x 20 columns. A body with no text after sanitizing is `422` ("the comment is empty"). The server sanitizes again on every read, so a row that did not come through a write is never served raw. Clients should still sanitize before they set `innerHTML` (the UI does, with the same code).
+- **Identity is naive.** There are no accounts. `author` (1 to 80 characters) is whatever the client says; only the comment's own author edits or deletes it (`403 FORBIDDEN` when `author` differs, `404` for a deleted or unknown id). The UI remembers the name in `localStorage` (`flow-mapper.reporter`, the bug dialog's name).
+- **Validation.** `anchor` must be `flow:<service>/<ingress>` of a flow that exists in the environment (or the open draft): `400` for another anchor, `404` for an unknown environment or flow. `step`, when given, is a step key (`#step:...`, see Flow descriptions) of that flow's trace (`400` otherwise). `parentId` must be a comment under the same anchor (`404`), not deleted (`422`); a reply to a reply is stored under the top comment (one level only).
+- **Copy.** A Full copy of an environment copies its comments (authors, times, replies); Blank and Components copies do not. Deleting a design environment deletes its comments.
+- **Events** (`GET /api/events`): `comment.created`, `comment.edited`, `comment.deleted`, each with `env` and `data {anchor, id, author, text}` (`text`: the first 300 characters of the plain text; absent on `deleted`).
+- **MCP.** `list_comments {env, service, ingress, draft?, since?}` returns `{anchor, count, comments}` with, per comment, `text` (plain) and `html` (sanitized) and its replies; `since` (ISO time) keeps only comments created or edited after it, for polling. `add_comment {env, service, ingress, author, body, step?, parentId?, draft?}`: `body` is plain text with Markdown-lite (`**bold**`, `~~strike~~`, `- ` lists, blank line = paragraph) or HTML from the subset above, sanitized either way.
+- **Preview.** The static preview bundles the seeded comments and keeps what the viewer posts in memory (like bug edits).
 
 ## MCP
 
