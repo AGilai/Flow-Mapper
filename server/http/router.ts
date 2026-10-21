@@ -32,6 +32,8 @@ export class Router {
     this.routes.push({ method, parts: path.split('/').filter(Boolean), handler });
     return this;
   }
+  /** Every registered route as `METHOD /path` (tests walk the write routes to check each one is guarded or classified). */
+  list(): string[] { return this.routes.map((r) => `${r.method} /${r.parts.join('/')}`); }
   get(p: string, h: Handler) { return this.on('GET', p, h); }
   post(p: string, h: Handler) { return this.on('POST', p, h); }
   put(p: string, h: Handler) { return this.on('PUT', p, h); }

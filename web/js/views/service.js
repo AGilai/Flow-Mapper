@@ -23,7 +23,7 @@ export async function render({ main, params, query }) {
   const orphans = v.ingress.filter((i) => i.orphan).length;
 
   const meta = h('div.svc-meta',
-    h('span', { gateway: 'Gateway', lambda: 'Lambda' }[s.kind] ?? 'Service', s.team ? [' owned by ', h('b', s.team)] : null),
+    h('span', { gateway: 'Gateway', lambda: 'Lambda', 'client-app': 'Client app' }[s.kind] ?? 'Service', s.team ? [' owned by ', h('b', s.team)] : null),
     s.language ? h('span', h('b', s.language)) : null,
     h('span', 'Version ', h('b', `v${s.version}`), s.commit ? h('span.muted', ` (${s.commit})`) : null),
     h('span', 'Harvested ', h('b', ago(s.harvestedAt))),

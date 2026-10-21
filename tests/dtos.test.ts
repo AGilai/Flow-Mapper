@@ -85,8 +85,12 @@ test('DTOs survive re-ingest and go with their service', async () => {
   assert.equal((await app.call('POST', '/api/ingest', { ...users, version: users.version + 10 })).status, 201);
   const kept = (await app.call('GET', '/api/envs/prod/endpoints/users-svc/in.getUser')).body.slots.find((x: any) => x.role === 'response');
   assert.deepEqual(kept.dto.content, { id: 'u1' });
-  assert.equal((await app.call('DELETE', '/api/envs/prod/services/users-svc')).status, 200);
-  assert.equal((await app.call('GET', '/api/envs/prod/dtos?service=users-svc')).body.length, 0);
+  // deleting a service by hand needs a design env (prod is sealed): its DTOs are copied with it and go with it
+  assert.equal((await app.call('POST', '/api/envs', { name: 'dto-copy', source: 'prod', mode: 'full' })).status, 201);
+  assert.equal((await app.call('GET', '/api/envs/dto-copy/dtos?service=users-svc')).body.length > 0, true);
+  assert.equal((await app.call('DELETE', '/api/envs/dto-copy/services/users-svc')).status, 200);
+  assert.equal((await app.call('GET', '/api/envs/dto-copy/dtos?service=users-svc')).body.length, 0);
+  assert.ok((await app.call('GET', '/api/envs/prod/dtos?service=users-svc')).body.length > 0, 'prod keeps its own');
 });
 
 test('MCP get_endpoint_info returns code link and DTOs', async () => {

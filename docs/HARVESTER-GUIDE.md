@@ -15,6 +15,7 @@ Contract files: [`schema/manifest.schema.json`](../schema/manifest.schema.json) 
 | Harvester | Reports | `service.kind` |
 |---|---|---|
 | Service (one per repo) | functions and their steps, ingress, egress, data stores, event types, DTOs, store schemas | `service`, `gateway` or `lambda` |
+| Client application (agent, mobile app) | egress only: the calls it makes | `client-app` |
 | Infrastructure (IaC, AWS APIs) | topics, queues, exchanges, event buses, and the subscriptions/rules between them | `infra` |
 
 ## The loop
@@ -81,7 +82,7 @@ the version you last sent was accepted.
   "schemaVersion": "1.0",
   "kind": "full",
   "env": "prod",
-  "service": { "name": "orders-svc", "kind": "service", "team": "checkout",
+  "service": { "name": "orders-svc", "kind": "service", "team": "checkout", "groupPath": "platform",
                "repo": "github.com/acme/orders-svc", "language": "typescript", "description": "Order lifecycle" },
   "version": 12,
   "harvestedAt": "2026-10-19T08:00:00Z",
@@ -91,6 +92,10 @@ the version you last sent was accepted.
 ```
 
 `service.name`: lowercase letters, digits and `-`, the same name other services use to call it.
+
+Two optional service fields (0.21.0): `groupPath` is the subsystem the service belongs to (`platform`, later `platform/identity`; lowercase path segments). Most harvesters leave it out; design environments set it. `kind: "client-app"` is for a device or browser application that calls services (an agent, a mobile app): send its egress and no ingress.
+
+Design environments: harvesters only write to sealed environments. Posting a manifest, DTOs, schemas or Redis keys to a design environment is refused with `409 ENV_DESIGN`; a name that does not exist yet is created sealed, as before.
 
 ## What to extract from a service
 

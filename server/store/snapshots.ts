@@ -2,3 +2,4 @@
 export * from './snapshots-read.ts';
 export * from './snapshots-ingest.ts';
 export * from './snapshots-crud.ts';
+export { listEnvs } from './envs.ts';

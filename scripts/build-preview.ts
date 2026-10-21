@@ -15,6 +15,8 @@ import * as dtos from '../server/store/dtos.ts';
 import * as schemas from '../server/store/schemas.ts';
 import * as descriptions from '../server/store/descriptions.ts';
 import * as keys from '../server/store/keys.ts';
+import { copyEnv } from '../server/store/env-copy.ts';
+import { listEnvMeta } from '../server/store/envs.ts';
 import { stores } from '../core/stores.ts';
 import { generateMock } from './mock/generate.ts';
 import { seedBugs } from './mock/bugs.ts';
@@ -39,8 +41,11 @@ for (const f of read(join(samples, 'schemas'))) {
   schemas.loadSchemas(ctx.db, f.env, f.schemas, (k) => keys.has(k));
 }
 
+for (const recipe of read(join(samples, 'envs'))) { copyEnv(ctx.db, recipe); ctx.changed(recipe.name); }
+
 const data = {
   version: ctx.appVersion,
+  envMeta: listEnvMeta(ctx.db),
   models: Object.fromEntries(store.listEnvs(ctx.db).map((env) => [env, store.loadModel(ctx.db, env)])),
   dtos: Object.fromEntries(store.listEnvs(ctx.db).map((env) => [env, dtos.listDtos(ctx.db, env)])),
   eventDtos: Object.fromEntries(store.listEnvs(ctx.db).map((env) => [env, dtos.listEventDtos(ctx.db, env)])),

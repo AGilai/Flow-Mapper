@@ -4,6 +4,7 @@
 import type { DB } from '../db/connection.ts';
 import { tx } from '../db/connection.ts';
 import { badRequest, notFound } from '../errors.ts';
+import { guardEnv } from './envs.ts';
 
 export const SOURCES = ['code', 'db', 'manual'] as const;
 export interface StoreSchema { key: string; source: string; content: unknown; updatedAt: string }
@@ -26,6 +27,7 @@ function write(db: DB, env: string, s: { key: string; source?: string; content: 
 }
 
 export function putSchema(db: DB, env: string, s: { key: string; source: string; content: unknown }, known: (key: string) => boolean) {
+  guardEnv(db, env, 'harvester');
   write(db, env, s, known);
   return listSchemas(db, env, s.key).find((x) => x.source === s.source)!;
 }
@@ -33,6 +35,7 @@ export function putSchema(db: DB, env: string, s: { key: string; source: string;
 /** Load many schemas in one transaction: [{key, source = 'code', content}]. All or nothing. */
 export function loadSchemas(db: DB, env: string, items: unknown, known: (key: string) => boolean) {
   if (!Array.isArray(items)) throw badRequest('body must be {schemas: [{key, source, content}]}');
+  guardEnv(db, env, 'harvester');
   return tx(db, () => {
     items.forEach((s: any, i) => {
       try { write(db, env, s ?? {}, known); } catch (err: any) { err.message = `schemas[${i}]: ${err.message}`; throw err; }
@@ -42,6 +45,7 @@ export function loadSchemas(db: DB, env: string, items: unknown, known: (key: st
 }
 
 export function deleteSchema(db: DB, env: string, key: string, source: string) {
+  guardEnv(db, env, 'harvester');
   const r = db.prepare('DELETE FROM store_schemas WHERE env = ? AND store_key = ? AND source = ?').run(env, key, source);
   if (!r.changes) throw notFound(`${source} schema of '${key}'`);
   return { deleted: { key, source } };

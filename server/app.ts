@@ -9,6 +9,7 @@ import { Router, sendJson } from './http/router.ts';
 import { serveStatic } from './http/static.ts';
 import { afterWrite, graphFor } from './graph-cache.ts';
 import type { Ctx } from './context.ts';
+import { registerEnvs } from './routes/envs.ts';
 import { registerMap } from './routes/map.ts';
 import { registerQueries } from './routes/queries.ts';
 import { registerBugs } from './routes/bugs.ts';
@@ -31,10 +32,11 @@ export function createContext(opts: AppOptions): Ctx {
   };
 }
 
-export function createApp(opts: AppOptions): { server: Server; ctx: Ctx } {
+export function createApp(opts: AppOptions): { server: Server; ctx: Ctx; router: Router } {
   const ctx = createContext(opts);
   const router = new Router();
   router.get('/api/version', () => ({ version: APP_VERSION }));
+  registerEnvs(router, ctx);
   registerMap(router, ctx);
   registerQueries(router, ctx);
   registerBugs(router, ctx);
@@ -50,5 +52,5 @@ export function createApp(opts: AppOptions): { server: Server; ctx: Ctx } {
     if (await serveStatic(req, res, !!opts.dev)) return;
     sendJson(res, 404, { error: { code: 'NOT_FOUND', message: 'not found' } });
   });
-  return { server, ctx };
+  return { server, ctx, router };
 }
