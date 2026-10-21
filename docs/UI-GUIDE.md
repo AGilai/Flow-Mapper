@@ -70,6 +70,7 @@ with one column per hop and a header over each column.
 - A consumer line names only a handler that handles this page's subject. Without one it says
   "<ingress> has no handler for this type", never the ingress's entry function.
 - The legend lists only what is drawn.
+- Subsystem bands (0.28.1) group lifeline heads: a band is grey (`--surface-2`, a line icon from the six in `--ink-2`), never a component colour, and only a New subsystem carries a spark. The store bands sit under them, same row height.
 - Every empty state has one sentence that says what is hidden and why ("Outcome lines are hidden:
   nothing is delivered").
 - When the page is too narrow, producer and topic shrink first and the outcome column clips last;
@@ -163,6 +164,7 @@ whether the zero is normal for this kind of object.
   colour the node by its transport token, not by the logo, and make the legend match what is drawn.
 - Use `--accent` for links and the current navigation item only.
 - Component colours (`--cmp-1..8`) mean a component, never a transport or a status. They colour the head stripe and tint and the activation bars of that component (28% fill, nested bars 42%), the Squeeze fold of one component, the step-bar dots and the map node's ring, nowhere else. The slot comes from `GET /api/envs/meta` `colors` (kept per environment; past 8 the palette repeats). Client apps and infra stay neutral; lines, arrowheads and chips keep their transport token.
+- Inside one flow two components never share a colour: `declash` (core/colors.ts) gives the later one the next free slot for that flow only; the stored colour of the environment is not touched.
 - Test both themes: every colour comes from a token, so dark mode must work without extra rules.
 
 ## 9. Cards, tables or lanes
@@ -199,6 +201,8 @@ whether the zero is normal for this kind of object.
 - Where marks go: the system map (spark on a new node, ring on a changed one, the words under it), Inventory (the All / New / Changed / Unchanged filter and a "What changed" column), the service page (badge by the name and on section titles and rows), flow heads and arrows (an arrow takes the mark of its call, else of a new endpoint it reaches), the DTO / message / schema field tables (a 3px edge, "was ...", removed fields struck).
 - Tokens: `--new` / `--new-ink` only on a mark (shape first: the glyph is mandatory in every New and Changed badge, never colour alone); `--warn` never on a mark; Removed is `--muted` plus strike-through, never `--bad`. One short twinkle on load; none with reduced motion. `--flow-2` (async dots) is also yellow and stays that way: it is never a star.
 - Checklist line: no `--warn` glyph, no `--new` on a problem, every mark has its glyph.
+
+- **The subsystem level (0.28.1)** (`level=subsystems`): a box per subsystem with its icon, label, member count and the components as a list (prod ones muted, a New box carries one spark and no per-component sparks). A rolled-up line is in the transport colour, thicker with more calls, dashed when async, labelled "2 calls · http"; more than 6 lines between two boxes collapse into "N calls · M transports". An abstract link is dashed ink with open ends and a chip with its state (abstract, partial, ready, broken): never colour alone. A refined one disappears into its roll-up line ("includes: <name>"). "Not set" is a box only when its members take part in calls. With more than 8 boxes there is one merged line per pair (all transports and directions), drawn only for the hovered or selected box unless "All lines" is on. Boxes, lines and links are focusable (Tab, Enter). At component level a region round each subsystem's components replaces the team districts; its head opens Inventory.
 
 ### References, import, forms and the Flows list (0.26.0)
 

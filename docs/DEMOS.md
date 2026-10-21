@@ -8,6 +8,12 @@ Add a row here with every fix or feature (newest first). A row without a working
 
 | Version | Bug | What to look at | Link |
 |---|---|---|---|
+| 0.28.1 | — | The subsystem level on the map: Agent, Network (POP) and Platform with the rolled-up calls (colour = transport, thickness = count), the two abstract links dashed with open ends, "Open in this design" under it. | `#/system?env=sase-hld&draft=hld-import&level=subsystems` |
+| 0.28.1 | — | Refine an abstract link: Edit mode, click "usage metering", then "Use swg-api" (an existing async call into Platform). The link leaves "Open in this design" and its line says "includes 1 link". | `#/system?env=sase-hld&draft=hld-import&mode=edit&level=subsystems&link=usage-metering` |
+| 0.28.1 | — | The component level with subsystem regions (head: "4 components: 2 changed", the split of new and prod; click a head for Inventory). | `#/system?env=sase-hld&draft=hld-import` |
+| 0.28.1 | — | A flow with subsystem bands over its heads (Agent, Network (POP), Platform); untick "Group by subsystem" to see the flow's own order. | `#/flows?env=sase-hld&draft=hld-import&tabs=sase-agent/in.tunnel.open` |
+| 0.28.1 | — | Environment settings: Subsystems (name, icon, order, add, delete) and level names; in Edit each change goes to the draft. Try Platform's icon: Cloud. | `#/envs/sase-hld/settings?draft=hld-import&mode=edit` |
+| 0.28.1 | — | De-clash: in the prod flow createOrder, api-gateway, orders-svc and users-svc share one stored palette slot (56 components, 8 slots); inside this flow they get three different colours, and the stored colours are unchanged. | `#/flows?env=prod&tabs=api-gateway/in.createOrder` |
 | 0.28.0 | — | The subsystem level, API only until 0.28.1: sase-hld with its draft hld-import, rolled up by subsystem (agent → network → platform lines, counts, the two abstract links as `abstract`). | `/api/envs/sase-hld/views/subsystems?draft=hld-import` |
 | 0.28.0 | — | An abstract link with suggestions: `usage-metering` (Network → Platform, async, state `abstract`) lists the existing calls it could be refined into. | `/api/envs/sase-hld/abstract-links/usage-metering?draft=hld-import` |
 | 0.28.0 | — | Subsystems with icons and order; a component belongs to one subsystem (sxdns is only in Network; `alsoIn` is refused with `TWO_GROUPS`). Marks: `grp:agent` is New (whole subsystem), `grp:network` and `grp:platform` are Changed. | `/api/envs/sase-hld/subsystems?draft=hld-import` and `/api/envs/sase-hld/marks?draft=hld-import` |

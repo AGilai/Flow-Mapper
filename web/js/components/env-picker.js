@@ -52,7 +52,8 @@ export function envPicker() {
       const next = rows[Math.max(0, Math.min(rows.length - 1, to))];
       rows.forEach((r) => { r.tabIndex = r === next ? 0 : -1; });
       next.focus();
-    } } }, list, h('a.env-opt.env-add', { href: '#/envs/new', on: { click: () => close(false) } }, '+ New environment'));
+    } } }, list, h('a.env-opt.env-add', { href: '#/envs/new', on: { click: () => close(false) } }, '+ New environment'),
+      h('a.env-opt.env-add', { href: `#/envs/${encodeURIComponent(state.env)}/settings`, 'data-qa': 'env-settings', on: { click: () => close(false) } }, 'Environment settings'));
     wrap.append(pop);
     trigger.setAttribute('aria-expanded', 'true');
     place();

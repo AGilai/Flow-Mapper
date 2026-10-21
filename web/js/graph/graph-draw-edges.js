@@ -24,7 +24,7 @@ export function drawDistricts(ctx, S) {
 
 /** Edges, batched by style. Quieter as the map gets denser. */
 export function drawEdges(ctx, S, focus, dimmed) {
-  const { edges, isVis, edgeOk, hoverSet, hovered, highlight, selected, theme, byId, degree, k, toScreen, pos } = S;
+  const { quiet, edges, isVis, edgeOk, hoverSet, hovered, highlight, selected, theme, byId, degree, k, toScreen, pos } = S;
   const density = Math.max(0, Math.min(1, 1 - (edges.length - 60) / 600));
   const batches = new Map();
   for (const e of edges) {
@@ -34,7 +34,7 @@ export function drawEdges(ctx, S, focus, dimmed) {
     const inFocus = focus && (center ? e.from === center || e.to === center : !dimmed(e.from) && !dimmed(e.to));
     const st = edgeStyle(e, theme, {
       dim: !!focus && !inFocus, focused: !!inFocus, selected: selected === e.id,
-      gateway: byId.get(e.from)?.kind === 'gateway' || byId.get(e.to)?.kind === 'gateway', density,
+      gateway: byId.get(e.from)?.kind === 'gateway' || byId.get(e.to)?.kind === 'gateway', density, quiet: !!quiet?.(e),
     });
     const key = `${st.color}|${st.dash}|${st.alpha}|${st.width}`;
     if (!batches.has(key)) batches.set(key, { st, list: [] });

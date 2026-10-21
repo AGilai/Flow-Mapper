@@ -16,6 +16,8 @@ import { laneMarks } from './flow-marks.js';
 import { marksNow } from '../design/marks-store.js';
 import { createRefs } from './flow-refs-draw.js';
 import { state } from '../state.js';
+import { groupLane } from './flow-group.js';
+import { laneSlots } from '../design/lane-slots.js';
 
 /**
  * createFlowRender({ trace, tree, key, ancestors, sticky }, sh) -> { laneBox, idxBox, drawLane(), relane(), expandAll(budget), index() }
@@ -45,8 +47,9 @@ export function createFlowRender({ trace, tree, key, ancestors = [], sticky = tr
     const lo = laneOpts();
     const msgs = trace.messages.filter((m) => m.depth <= lo.maxDepth);
     const built = buildLane(msgs, { mwOpen, fanOpen, numbers: deliveryNumbers(tree), stores: lo.stores, scope: 'full', participants: trace.participants, trigger: depth ? null : sh.trigger?.() ?? null });
+    groupLane(built, host.subs, opts.bands, marksNow(), laneSlots); // 0.28.1: the components of one subsystem together and the bands over them; a colour per flow (before Squeeze, the walk and the drawing see the columns)
     const sq = sh.squeeze?.() ? { keep: (!depth && sh.walk?.endsOf(built)) || firstStepCols(built) } : null; // Squeeze: the current step's lifelines (a card: its first step's)
-    lane = renderLane(built, { ...handlers, marks: laneMarks(marksNow()), edit: sh.addCall ? { onAddCall: sh.addCall } : null, refs: createRefs(trace, { editing: state.mode === 'edit' && !!state.draft, onImport: sh.importRef }), sticky, squeeze: sq, onSqueeze: sh.squeezeOpen, fit: Math.max(0, (sh.fit?.() ?? 0) - (depth ? 40 + depth * 28 : 0)) });
+    lane = renderLane(built, { ...handlers, marks: laneMarks(marksNow()), edit: sh.addCall ? { onAddCall: sh.addCall, onAddInBand: sh.addInBand } : null, refs: createRefs(trace, { editing: state.mode === 'edit' && !!state.draft, onImport: sh.importRef }), sticky, squeeze: sq, onSqueeze: sh.squeezeOpen, fit: Math.max(0, (sh.fit?.() ?? 0) - (depth ? 40 + depth * 28 : 0)) });
     if (!depth) sh.walk?.decorate(lane, built); // numbered steps are the top lane's only (0.20.0)
     laneBox.replaceChildren(lane.el);
   }

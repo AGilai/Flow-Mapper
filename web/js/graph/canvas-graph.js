@@ -8,8 +8,9 @@ import { drawLabels } from './graph-draw-labels.js';
 import { nodeAt, edgeAt } from './graph-hit.js';
 import { iconImage } from '../components/object-icon.js';
 import { createMarkLayer } from './graph-marks.js';
+import { drawRegions, regionAt } from './graph-regions.js';
 
-export function createCanvasGraph(host, { onSelect, onHover, marks = null, padBottom = 60 } = {}) {
+export function createCanvasGraph(host, { onSelect, onHover, marks = null, padBottom = 60, quiet = null } = {}) {
   const markLayer = marks ? createMarkLayer(marks) : null;
   const canvas = document.createElement('canvas');
   canvas.className = 'graph-canvas';
@@ -20,7 +21,7 @@ export function createCanvasGraph(host, { onSelect, onHover, marks = null, padBo
   const ctx = canvas.getContext('2d');
 
   let nodes = [], edges = [], pos = new Map(), byId = new Map(), degree = new Map();
-  let visible = null, edgeOk = null, highlight = null, selected = null, hovered = null, groups = [];
+  let regions = [], visible = null, edgeOk = null, highlight = null, selected = null, hovered = null, groups = [];
   let k = 1, tx = 0, ty = 0, w = 0, hgt = 0, dpr = 1;
   let theme = readTheme();
   let raf = 0;
@@ -52,7 +53,7 @@ export function createCanvasGraph(host, { onSelect, onHover, marks = null, padBo
   mq.addEventListener('change', onTheme);
 
   // The state the drawing and hit-testing modules read, as a snapshot of the closure at call time.
-  const view = () => ({ nodes, edges, pos, byId, degree, visible, edgeOk, highlight, selected, hovered, hoverSet, groups, k, w, hgt, theme, isVis, toScreen, toWorld });
+  const view = () => ({ quiet, nodes, edges, pos, byId, degree, visible, edgeOk, highlight, selected, hovered, hoverSet, groups, k, w, hgt, theme, isVis, toScreen, toWorld });
 
   function draw() {
     raf = 0;
@@ -62,6 +63,7 @@ export function createCanvasGraph(host, { onSelect, onHover, marks = null, padBo
     const focus = hoverSet ?? highlight;
     const dimmed = (id) => focus && !focus.has(id);
 
+    drawRegions(ctx, S, regions);
     drawDistricts(ctx, S);
     drawEdges(ctx, S, focus, dimmed);
 
@@ -100,7 +102,7 @@ export function createCanvasGraph(host, { onSelect, onHover, marks = null, padBo
     }
     const n = nodeAt(view(), ev.offsetX, ev.offsetY);
     const id = n?.id ?? null;
-    canvas.style.cursor = n || edgeAt(view(), ev.offsetX, ev.offsetY) ? 'pointer' : 'grab';
+    canvas.style.cursor = n || edgeAt(view(), ev.offsetX, ev.offsetY) || regionAt(regions, ...toWorld(ev.offsetX, ev.offsetY)) ? 'pointer' : 'grab';
     if (id !== hovered) {
       hovered = id;
       hoverSet = null;
@@ -113,7 +115,7 @@ export function createCanvasGraph(host, { onSelect, onHover, marks = null, padBo
     if (drag && !drag.moved && pointers.size === 0) {
       const n = nodeAt(view(), ev.offsetX, ev.offsetY);
       if (n) onSelect?.({ type: 'node', item: n });
-      else { const e = edgeAt(view(), ev.offsetX, ev.offsetY); onSelect?.(e ? { type: 'edge', item: e } : null); }
+      else { const e = edgeAt(view(), ev.offsetX, ev.offsetY), r = !e && regionAt(regions, ...toWorld(ev.offsetX, ev.offsetY)); onSelect?.(e ? { type: 'edge', item: e } : r ? { type: 'region', item: r } : null); }
     }
     if (pointers.size === 0) drag = null;
   };
@@ -130,6 +132,7 @@ export function createCanvasGraph(host, { onSelect, onHover, marks = null, padBo
   function fit(ids) {
     fitIds = ids; autoFit = true;
     const pts = (ids ? [...ids] : nodes.filter((n) => isVis(n.id)).map((n) => n.id)).map((id) => pos.get(id)).filter(Boolean);
+    if (!ids) for (const r of regions) if (r.ids.some(isVis)) pts.push({ x: r.x, y: r.y }, { x: r.x + r.w, y: r.y + r.h });
     if (!w) { pendingFit = { ids }; return; }
     if (!pts.length) return;
     const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
@@ -142,7 +145,7 @@ export function createCanvasGraph(host, { onSelect, onHover, marks = null, padBo
 
   return {
     setData(d) {
-      nodes = d.nodes; edges = d.edges; pos = d.positions;
+      nodes = d.nodes; edges = d.edges; pos = d.positions; regions = d.regions ?? [];
       byId = new Map(nodes.map((n) => [n.id, n]));
       degree = new Map();
       for (const e of edges) { degree.set(e.from, (degree.get(e.from) ?? 0) + 1); degree.set(e.to, (degree.get(e.to) ?? 0) + 1); }
@@ -150,6 +153,7 @@ export function createCanvasGraph(host, { onSelect, onHover, marks = null, padBo
       schedule();
     },
     updateGroups() {
+      if (regions.length) { groups = []; return; } // subsystem regions name the groups (a team label would sit on a region head)
       const m = new Map();
       for (const n of nodes) {
         if (!n.team || !isVis(n.id)) continue;

@@ -39,6 +39,26 @@ export const GLYPH = {
 /** Lock (a reference) and the Kubernetes mark on a 24px grid, for drawings: `<g>` paths, drawn with the surrounding stroke. */
 export const SVG_PATH = { lock: P.lock, k8s: P.k8s };
 
+/** The six subsystem icons (0.28.1, frame 12c): simple 16px line icons, drawn with the surrounding stroke (`--ink-2`). The names are core/subsystems.ts SUBSYSTEM_ICONS. */
+export const SS_PATH = {
+  platform: '<path d="M8 2l6 3-6 3-6-3z"/><path d="M2 8l6 3 6-3M2 11l6 3 6-3"/>',
+  agent: '<rect x="3" y="3" width="10" height="7" rx="1"/><path d="M1.5 13h13M6.5 10v3M9.5 10v3"/>',
+  network: '<circle cx="8" cy="8" r="6"/><ellipse cx="8" cy="8" rx="2.6" ry="6"/><path d="M2 8h12"/>',
+  cloud: '<path d="M4.5 12.5a3 3 0 0 1-.3-6 4 4 0 0 1 7.7 1A2.6 2.6 0 0 1 11.5 12.5z"/>',
+  shield: '<path d="M8 1.8l5 1.8v4c0 3-2.2 5-5 6.4C5.2 12.6 3 10.6 3 7.6v-4z"/><path d="M5.8 8l1.5 1.5L10.3 6.5"/>',
+  database: '<ellipse cx="8" cy="3.6" rx="5" ry="2"/><path d="M3 3.6v8.8c0 1.1 2.2 2 5 2s5-.9 5-2V3.6M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>',
+};
+export const SS_NAMES = Object.keys(SS_PATH);
+
+/** A subsystem icon as an <svg> (HTML pages and panels); null when the name is not one of the six. `size` px. */
+export function subIcon(name, size = 16) {
+  if (!Object.hasOwn(SS_PATH, name)) return null;
+  const el = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  for (const [k, v] of Object.entries({ viewBox: '0 0 16 16', width: size, height: size, fill: 'none', 'stroke-width': 1.2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true', class: 'ss-icon' })) el.setAttribute(k, v);
+  el.innerHTML = SS_PATH[name];
+  return el;
+}
+
 export function icon(name, cls = '') {
   const el = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   el.setAttribute('viewBox', '0 0 24 24');

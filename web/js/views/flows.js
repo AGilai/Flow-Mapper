@@ -23,16 +23,21 @@ import { decodeStep, encodeStep } from './flow-walk.js';
 import { setServiceInfo } from '../design/service-info.js';
 import { openImport } from '../design/import-panel.js';
 import { editOpener, editing } from '../design/edit-open.js';
+import { loadSubsystems } from '../design/subsystems-store.js';
 
 // Squeeze (0.20.1): on by default, remembered per viewer; a click on a fold turns it off for that tab only (flow-tab-view.js).
 const sqStored = () => { try { return localStorage.getItem('flow-mapper.squeeze') !== '0'; } catch { return true; } };
+// Group by subsystem (0.28.1, frame 12c): on by default, remembered per viewer; only offered when the environment has subsystems.
+const bandStored = () => { try { return localStorage.getItem('flow-mapper.bands') !== '0'; } catch { return true; } };
+const bandSave = (on) => { try { localStorage.setItem('flow-mapper.bands', on ? '1' : '0'); } catch { /* storage unavailable */ } };
 const sqSave = (on) => { try { localStorage.setItem('flow-mapper.squeeze', on ? '1' : '0'); } catch { /* storage unavailable */ } };
 
 export async function render({ main, query }) {
   const marks = await loadMarks(); // the marks of a design environment (sparks on heads and arrows, the removed list; a mark on each entry point)
   const service = query.get('service');
+  const subs = await loadSubsystems(); // the subsystem of each component: bands and grouping over a flow's heads
   const opts = { stores: query.get('stores') !== '0', depth: query.get('depth') ?? 'all',
-    frontier: query.get('frontier') === '1', squeeze: sqStored() }; // steps the harvester marked as frontier (call trees that reach no sink)
+    frontier: query.get('frontier') === '1', squeeze: sqStored(), bands: bandStored() }; // steps the harvester marked as frontier (call trees that reach no sink)
   let S = T.decodeUrl(query);
   let stepParam = decodeStep(query); // `step=`: the walk's step in the active tab; a link opens on it (0.20.0)
   const stepTab = S.active; // ...and only that tab, once
@@ -78,7 +83,9 @@ export async function render({ main, query }) {
     ['all', '1', '2', '3', '4', '6', '8'].map((d) => h('option', { value: d, selected: d === opts.depth }, d === 'all' ? 'All depths' : `Depth ${d}`)));
   const sqCheck = h('label.check', { title: 'When the diagram is wider than the window, fold the lifelines the current step does not need. Click a fold to open it.' },
     h('input', { type: 'checkbox', checked: opts.squeeze, on: { change: (e) => { opts.squeeze = e.target.checked; sqSave(opts.squeeze); views.forEach((v, k) => { v.resetSqueeze(); if (k === S.active) v.draw(); else stale.add(k); }); } } }), 'Squeeze');
-  const toolbar = h('div.seq-toolbar', seg, check('stores', 'Data stores'), frontierCheck, sqCheck, depth, h('span.spacer'),
+  const bandsCheck = subs.assigned ? h('label.check', { title: 'Put the components of one subsystem next to each other and show a band with its name over them' },
+    h('input', { type: 'checkbox', 'data-qa': 'group-by-subsystem', checked: opts.bands, on: { change: (e) => { opts.bands = e.target.checked; bandSave(opts.bands); views.forEach((v, k) => (k === S.active ? v.draw() : stale.add(k))); } } }), 'Group by subsystem') : null;
+  const toolbar = h('div.seq-toolbar', seg, bandsCheck, check('stores', 'Data stores'), frontierCheck, sqCheck, depth, h('span.spacer'),
     h('span.xs.muted', 'Double-click a bar, or right-click it, to look inside'), info,
     editing() ? h('button.btn.sm', { type: 'button', 'data-qa': 'add-component', title: 'Add a component to the draft', on: { click: () => host.edit.addComponent() } }, '+ component') : null);
 
@@ -93,7 +100,7 @@ export async function render({ main, query }) {
     setQuery({ ...T.encodeUrl(S), ...(S.keys.length ? { service: null } : {}), stores: opts.stores ? null : '0', queues: null, depth: opts.depth === 'all' ? null : opts.depth, frontier: opts.frontier ? '1' : null, step: encodeStep(stepParam) });
   }
   const host = {
-    env: state.env, opts, panel, flowsEl, traceFor: data.traceFor, describe: data.describe, desc, rootOf: (k) => T.flowRoot(k), isActive: (k) => S.active === k,
+    env: state.env, opts, subs, panel, flowsEl, traceFor: data.traceFor, describe: data.describe, desc, rootOf: (k) => T.flowRoot(k), isActive: (k) => S.active === k,
     openTab: (key, o) => commit(T.openTab(S, key, o)),
     openSub: (row, origin) => commit(T.openTab(S, T.subKey(row, origin))),
     openFull: (row, origin) => commit(T.openTab(S, T.fullKey(row.service, row.ingress, origin, row.event))),

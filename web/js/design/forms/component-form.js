@@ -3,7 +3,8 @@
 
 import { api } from '../../api.js';
 import { state } from '../../state.js';
-import { metaOf } from '../../env-info.js';
+import { h } from '../../dom.js';
+import { loadSubsystems } from '../subsystems-store.js';
 import { createFields, openForm, select, input, textarea, tag } from './form-kit.js';
 import { linksFields, hasLinks } from './links-fields.js';
 
@@ -20,18 +21,24 @@ export function componentEdit(v) {
   return e;
 }
 
+/** The sentence under the Subsystem select when an existing component's subsystem is changed (pure). */
+export const movesText = (name, from, to) => `Moves ${name} from ${from} to ${to}`;
+
 /** openComponentForm({ panel, flowsEl, service?, groupPath? }): `service` edits that component, else a new one (`groupPath` presets its subsystem). */
 export async function openComponentForm({ panel, flowsEl, service = null, groupPath = '' }) {
   let head = {}, endpoints = 0;
   if (service) { const v = await api.service(state.env, service).catch(() => null); head = v?.service ?? {}; endpoints = v?.ingress?.length ?? 0; }
-  const groups = metaOf(state.envMeta, state.env).groups ?? [], fields = createFields();
+  const subs = await loadSubsystems(), groups = subs.list().map((g) => ({ key: g.key, label: g.label })), fields = createFields(); // the draft's own subsystems (a new one shows at once)
   const name = input(service ?? '', { placeholder: 'pop-swg', mono: true, readOnly: !!service }), kind = select(KINDS, head.kind ?? 'service');
-  const sub = select([['', 'Not set'], ...groups.map((g) => [g.key, g.label])], head.groupPath ?? groupPath);
+  const was = head.groupPath ?? groupPath ?? '', sub = select([['', 'Not set'], ...groups.map((g) => [g.key, g.label]), ...(was && !groups.some((g) => g.key === was) ? [[was, was]] : [])], was);
+  const moves = h('span', { 'data-qa': 'moves' }), nameOf = (k) => (k ? groups.find((g) => g.key === k)?.label ?? k : 'Not set');
+  const paintMoves = () => { moves.textContent = service && sub.value !== was ? movesText(service, nameOf(was), nameOf(sub.value)) : ''; }; // a component has ONE subsystem: changing it moves it
+  sub.addEventListener('change', paintMoves);
   const team = input(head.team ?? ''), desc = textarea(head.description ?? '');
   const runtime = select(RUNTIMES, head.details?.runtime ?? head.runtime ?? '');
   fields.field('name', 'Name', name, service ? 'A component keeps its name: delete it and add another to rename.' : 'Lowercase letters, digits and "-".');
   fields.field('serviceKind', 'Kind', kind);
-  fields.field('groupPath', 'Subsystem', sub);
+  fields.field('groupPath', 'Subsystem', sub, moves);
   fields.field('team', 'Team', team);
   fields.field('description', 'Description', desc);
   if (hasLinks()) fields.field('runtime', 'Runs as', runtime, 'Shows a Kubernetes mark on the component.');

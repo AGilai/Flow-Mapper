@@ -21,10 +21,11 @@ export function callTo(service, pick, target) {
   return { service, ingress: pick };
 }
 
-/** openCallForm({ panel, flowsEl, from: {service, fn}, egress?, operation?, onImport(anchor, source) }) */
-export async function openCallForm({ panel, flowsEl, from: from0, egress = null, operation = null, onImport }) {
+/** openCallForm({ panel, flowsEl, from: {service, fn}, egress?, operation?, onImport(anchor, source), to?, wrap?, title? })
+ *  `to` { service, ingress? } presets the target of a new call, `wrap(edit)` turns the call edit into another (refining an abstract link: the call builder, 0.28.1), `title` replaces the heading. */
+export async function openCallForm({ panel, flowsEl, from: from0, egress = null, operation = null, onImport, to: presetTo = null, wrap = null, title = null }) {
   const view = egress ? await api.call(state.env, from0.service, egress).catch(() => null) : null;
-  const step = view?.steps.find((s) => s.operation === operation) ?? view?.steps[0] ?? null, tgt0 = view?.targets?.[0] ?? null, ref = tgt0?.reference ?? null;
+  const step = view?.steps.find((s) => s.operation === operation) ?? view?.steps[0] ?? null, tgt0 = view?.targets?.[0] ?? (presetTo ? { service: presetTo.service, ingress: presetTo.ingress } : null), ref = tgt0?.reference ?? null;
   const from = { service: from0.service, fn: step?.fn ?? from0.fn }; // an existing call: the function that holds its step
   const services = (await api.services(state.env).catch(() => [])).map((s) => s.name);
   const fields = createFields(), seg = h('div.fwide'), toSel = select(services.map((n) => [n, n]), tgt0?.service ?? (services.find((n) => n !== from.service) ?? services[0]));
@@ -56,8 +57,8 @@ export async function openCallForm({ panel, flowsEl, from: from0, egress = null,
   const top = ref ? refCallout(ref, { onImport: () => onImport?.(`ing:${ref.service}/${ref.ingress}`, ref.source), onEditOnly: () => lock(false) }) : null;
   await paintEndpoint();
   if (ref) lock(true);
-  openForm({ panel, flowsEl, fields, top, chips: [tag(egress ? 'call' : 'new call', view?.egress.transport)], title: egress ? `Call · ${from.service} → ${tgt0?.service ?? toSel.value}` : `New call from ${from.service}`,
+  openForm({ panel, flowsEl, fields, top, chips: [tag(egress ? 'call' : 'new call', view?.egress.transport)], title: title ?? (egress ? `Call · ${from.service} → ${tgt0?.service ?? toSel.value}` : `New call from ${from.service}`),
     sub: egress ? `Draft ${state.draft}` : `Added at the end of ${from.fn}`,
-    build: () => ({ kind: 'call', from, ...(step ? { edit: { egress, seq: step.seq } } : {}), to: callTo(toSel.value, epSel.value, nested?.() ?? null), ...(mode.value ? { mode: mode.value } : {}), operation: op.value.trim(), ...(cond.value.trim() ? { condition: cond.value.trim() } : {}) }),
+    build: () => (wrap ?? ((e) => e))({ kind: 'call', from, ...(step ? { edit: { egress, seq: step.seq } } : {}), to: callTo(toSel.value, epSel.value, nested?.() ?? null), ...(mode.value ? { mode: mode.value } : {}), operation: op.value.trim(), ...(cond.value.trim() ? { condition: cond.value.trim() } : {}) }),
     remove: step ? { label: 'Delete call', title: `Delete this call to ${tgt0?.service ?? 'its target'}?`, body: 'The step goes, and its egress when nothing else in the component uses it.', edit: { kind: 'delete-call', service: from.service, fn: step.fn, seq: step.seq } } : null });
 }

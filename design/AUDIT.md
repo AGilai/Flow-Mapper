@@ -121,6 +121,15 @@ marked **[C:name]** use a shared component (listed at the end). The rules are in
 3. **Removed items are listed, not drawn.** A call the draft removed shows in the list under the flow diagram, not faded in place (it is not in the trace of the draft). Revisit with the edit forms (2a).
 4. **The strip adds two rows above every page** of a design environment (design chip and switches, then the draft bar). At 760px the buttons wrap; the review panel scrolls inside 52% of the height.
 
+## Subsystem level, 0.28.1 (frames 2, 3, 12c)
+- **Map, subsystem level** (`#/system?level=subsystems`): checked at 1440 and 760, both themes. Up to three boxes keep one row and the drawing shrinks to fit (never below half; the text keeps 10px at least); more stack by width. With no component in a subsystem it says so instead of drawing a "Not set" box.
+- **Known gap (0.28.1):** abstract links are not drawn on the component-level canvas (`graph-abstract.js` of the 3b spec); they show at subsystem level and in the panels.
+- **Many subsystems** (more than 8, the 26-box mock): one merged line per pair of boxes, shown only for the box under the pointer or selected ("All lines" shows every one; labels that would sit on a box are dropped). At component level the regions fill a grid of about sqrt(n) columns and every node is kept inside its cell.
+- **Map, component level**: regions replace the team districts; a region's head is the click target for Inventory (the rest of the region still closes the panel).
+- **Link panel** (`design/link-panel.js`): the Refine grid, the suggestions (at most 3) and "Make it a call…". 380px at 1440; full width at 760. View mode is read-only.
+- **Settings page** (`#/envs/<name>/settings`): the table stacks into labelled rows at 760.
+- **Flow bands**: a band narrower than its label clips with an ellipsis (the title has it all); a Squeeze fold of one subsystem joins its band, a mixed fold has none; a topic, queue or store between two components of one subsystem splits its band.
+
 ## Shared components (build once, use everywhere)
 | Component | What it is | Used by |
 |---|---|---|

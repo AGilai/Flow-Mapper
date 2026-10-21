@@ -46,8 +46,8 @@ export function subsystemMarks(base: Side, cur: Side, marks: Map<string, MarkInf
     const parts: string[] = [];
     const n = (m: string) => members.filter((s) => mark(s) === m).length;
     const gone = (mb.get(key) ?? []).filter((s) => !cur.services.has(s) && marks.get(`svc:${s}`)?.mark === 'removed').length;
-    const comps = [n('new') && `${n('new')} new`, n('changed') && `${n('changed')} changed`, gone && `${gone} removed`].filter(Boolean);
-    if (comps.length) parts.push(`${comps.join(', ')} component${n('new') + n('changed') + gone === 1 ? '' : 's'}`);
+    const kinds = [['new', n('new')], ['changed', n('changed')], ['removed', gone]].filter(([, c]) => c) as [string, number][];
+    if (kinds.length) parts.push(kinds.map(([k, c]) => `${c} ${k} component${c === 1 ? '' : 's'}`).join(', '));
     const movedIn = inn, movedOut = out;
     if (movedIn.length) parts.push(`moved in: ${movedIn.join(', ')}`);
     if (movedOut.length) parts.push(`moved out: ${movedOut.join(', ')}`);

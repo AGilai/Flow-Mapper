@@ -23,6 +23,7 @@ function row(it, draft, after, names) {
   return h('li.dz-row', { class: it.under ? 'under' : '', 'data-change': it.change },
     h(`span.mark.${{ added: 'new', changed: 'chg', removed: 'rm' }[it.change]}`, glyph(MARK[it.change]), WORD[it.change]),
     h('span.dz-kind', kindWord(it.anchor)), h('code.key', itemLabel(it, names)),
+    it.what ? h('span.mark-what', { 'data-qa': 'change-what' }, it.what) : null, // 0.28.1: "subsystem: Network → Platform", "moved in: sxdns"
     it.stale ? h('span.dz-stale', { title: `${state.env} changed this item since the draft first touched it` }, 'changed in the environment since') : null,
     h('span.dz-by.muted.xs', it.authors.join(', ')), h('span.spacer'), revert);
 }

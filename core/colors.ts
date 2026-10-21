@@ -16,3 +16,19 @@ export function assignColors(current: Record<string, number>, items: { name: str
   }
   return out;
 }
+
+/**
+ * Per-flow de-clash (0.28.1): `order` = the components of one flow in column order with their stored slot (null: neutral).
+ * A slot already used earlier in the flow moves to the next free one (cyclic from slot + 1); with all 8 in use it repeats.
+ * The stored assignment is never touched: the result is for drawing that flow only.
+ */
+export function declash(order: { name: string; slot: number | null }[]): Map<string, number> {
+  const used = new Set<number>(), out = new Map<string, number>();
+  for (const { name, slot } of order) {
+    if (slot == null || out.has(name)) continue;
+    let s = slot;
+    if (used.has(s) && used.size < SLOTS) { do s = (s % SLOTS) + 1; while (used.has(s)); }
+    used.add(s); out.set(name, s);
+  }
+  return out;
+}
