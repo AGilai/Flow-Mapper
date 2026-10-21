@@ -24,8 +24,9 @@ export function ingestPlan(db: DB, env: string, slug: string, plan: unknown, who
       planned = planToOps(plan, rows, { env, groups: getEnv(db, env).groups, baselineVersion: (s) => base.get(s), validateManifest: (m) => validateManifest(m) });
     } catch (e) {
       if (!(e instanceof PlanError)) throw e;
+      e.issues.sort((a, b) => Number(b.code === 'TWO_GROUPS') - Number(a.code === 'TWO_GROUPS'));
       const codes = new Set(e.issues.map((i) => i.code ?? 'INVALID'));
-      throw new HttpError(422, codes.size === 1 ? [...codes][0] : 'INVALID', `${e.issues.length} problem(s) in the plan: ${e.issues[0].path ? `${e.issues[0].path}: ` : ''}${e.issues[0].message}`, e.issues);
+      throw new HttpError(422, codes.has('TWO_GROUPS') ? 'TWO_GROUPS' : codes.size === 1 ? [...codes][0] : 'INVALID', `${e.issues.length} problem(s) in the plan: ${e.issues[0].path ? `${e.issues[0].path}: ` : ''}${e.issues[0].message}`, e.issues);
     }
     const { ops, ...rest } = planned;
     if (!ops.length) throw badRequest(`the plan changes nothing in ${env}: it yields no ops`);

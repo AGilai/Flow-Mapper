@@ -17,7 +17,19 @@ const membersOf = (side: Side): Map<string, string[]> => {
 };
 
 /** Adds / replaces `grp:` marks in `marks` (the final per-anchor marks, after propagation). */
-export function subsystemMarks(base: Side, cur: Side, marks: Map<string, MarkInfo>): void {
+export function subsystemMarks(base: Side, cur: Side, marks: Map<string, MarkInfo>, prior?: Map<string, string>): void {
+  // Moves: with a draft, against the environment as stored (`prior`); otherwise against the baseline, where a copied component has no groupPath (no move).
+  const moves: { s: string; from: string; to: string }[] = [];
+  for (const s of cur.services) {
+    const a = prior ? (prior.has(s) ? prior.get(s) : undefined) : headerOf(base, s)?.data?.groupPath, b = headerOf(cur, s)?.data?.groupPath;
+    if (a && b && topOf(a) !== topOf(b)) moves.push({ s, from: topOf(a), to: topOf(b) });
+  }
+  const label = (k: string) => cur.rows.get(rowId({ service: '', list: 'subsystem', key: k }))?.data?.label ?? k;
+  if (prior) for (const m of moves) {
+    const have = marks.get(`svc:${m.s}`), what = `subsystem: ${label(m.from)} \u2192 ${label(m.to)}`;
+    if (have?.mark === 'new') continue;
+    marks.set(`svc:${m.s}`, { mark: 'changed', what: joinWhat([...(have?.what ? [have.what] : []), what]) });
+  }
   const mc = membersOf(cur), mb = membersOf(base);
   const keys = new Set<string>([...mc.keys(), ...[...cur.rows.values()].filter((r) => r.list === 'subsystem' && !r.key.includes('/')).map((r) => r.key)]);
   const linkEnds = (side: Side, key: string): string[] => [...side.rows.values()].filter((r) => r.list === 'link' && [r.data?.from, r.data?.to].some((a) => endIn(side, a, key))).map((r) => `link:${r.key}`);
@@ -26,14 +38,17 @@ export function subsystemMarks(base: Side, cur: Side, marks: Map<string, MarkInf
     if (raw?.mark === 'removed') continue;
     const mark = (s: string) => marks.get(`svc:${s}`)?.mark;
     const allNew = members.length > 0 && members.every((s) => mark(s) === 'new');
-    if (raw?.mark === 'new' || allNew) { marks.set(anchor, { mark: 'new', ...(allNew ? { what: 'whole subsystem new' } : {}) }); continue; }
+    const inn = moves.filter((m) => m.to === key).map((m) => m.s), out = moves.filter((m) => m.from === key).map((m) => m.s);
+    if (raw?.mark === 'new' || allNew) {
+      const w = joinWhat([...(allNew ? ['whole subsystem new'] : []), ...(inn.length ? [`moved in: ${inn.join(', ')}`] : [])]);
+      marks.set(anchor, { mark: 'new', ...(w ? { what: w } : {}) }); continue;
+    }
     const parts: string[] = [];
     const n = (m: string) => members.filter((s) => mark(s) === m).length;
     const gone = (mb.get(key) ?? []).filter((s) => !cur.services.has(s) && marks.get(`svc:${s}`)?.mark === 'removed').length;
     const comps = [n('new') && `${n('new')} new`, n('changed') && `${n('changed')} changed`, gone && `${gone} removed`].filter(Boolean);
     if (comps.length) parts.push(`${comps.join(', ')} component${n('new') + n('changed') + gone === 1 ? '' : 's'}`);
-    const moved = (side: Side, from: Side, k: string, of: string[]) => of.filter((s) => { const a = headerOf(from, s)?.data?.groupPath, b = headerOf(side, s)?.data?.groupPath; return side.services.has(s) && from.services.has(s) && !!a && !!b && topOf(a) !== topOf(b) && topOf(b) === k; });
-    const movedIn = moved(cur, base, key, members), movedOut = (mb.get(key) ?? []).filter((s) => cur.services.has(s) && !!topOf(headerOf(cur, s)?.data?.groupPath) && topOf(headerOf(cur, s)?.data?.groupPath) !== key);
+    const movedIn = inn, movedOut = out;
     if (movedIn.length) parts.push(`moved in: ${movedIn.join(', ')}`);
     if (movedOut.length) parts.push(`moved out: ${movedOut.join(', ')}`);
     const links = new Set([...linkEnds(cur, key), ...linkEnds(base, key)]);

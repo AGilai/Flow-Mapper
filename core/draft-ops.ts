@@ -111,10 +111,15 @@ export function draftChanges(envRows: ItemRow[], net: NetOp[], all: DraftOp[] = 
     if (change === 'changed' && from !== to) {   // a component moved: one subsystem each, both boxes change
       const name = (k: string) => (k ? (after.get(rowId({ service: '', list: 'subsystem', key: k }))?.data?.label ?? k) : 'not set');
       item.what = `subsystem: ${name(from)} \u2192 ${name(to)}`;
-      for (const k of [from, to]) if (k) items.push({ ...item, anchor: `grp:${k}`, label: k, what: from === k ? `${r.service} moved out` : `${r.service} moved in`, under: item.anchor });
+      for (const k of [from, to]) if (k) items.push({ ...item, anchor: `grp:${k}`, label: name(k), what: from === k ? `${r.service} moved out` : `${r.service} moved in`, under: item.anchor });
     }
   }
-  for (const it of [...items]) if (it.under?.startsWith('svc:') && it.anchor.startsWith('grp:') && items.some((o) => o !== it && o.anchor === it.anchor && !o.under)) items.splice(items.indexOf(it), 1);
+  for (const it of [...items]) {   // a moved-into or moved-out subsystem that the draft also adds or edits: one row, with the move merged into its what
+    const own = it.under?.startsWith('svc:') && it.anchor.startsWith('grp:') ? items.find((o) => o !== it && o.anchor === it.anchor && !o.under) : undefined;
+    if (!own) continue;
+    own.what = [own.what, it.what].filter(Boolean).join(' \u00b7 ');
+    items.splice(items.indexOf(it), 1);
+  }
   items.sort((x, y) => (x.anchor < y.anchor ? -1 : x.anchor > y.anchor ? 1 : 0));
   const counts = { added: 0, removed: 0, changed: 0 };
   for (const i of items) if (!i.under) counts[i.change]++;

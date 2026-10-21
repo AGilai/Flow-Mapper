@@ -119,10 +119,10 @@ export function linkViews(g: GraphIndex, linkRows: ItemRow[], w: World): Abstrac
       const c = callInfo(e, hit.ingress, hit.via.length > 0, w.svc);
       if (!line && c.from !== c.to) line = c.line;
     }
-    const state: AbstractView['state'] = problems.length ? 'broken' : refinedBy.length ? 'refined'
+    const state: AbstractView['state'] = [...new Set(problems)].length ? 'broken' : refinedBy.length ? 'refined'
       : from.level === 'subsystem' && to.level === 'subsystem' ? 'abstract' : from.level === 'endpoint' && to.level === 'endpoint' ? 'ready' : 'partial';
     out.push({ id: r.key, name: d.name, from, to, ...(d.mode ? { mode: d.mode } : {}), ...(d.transport !== undefined ? { transport: d.transport } : {}), ...(d.description ? { description: d.description } : {}),
-      state, problems, refinedBy, ...(state === 'refined' && line ? { line } : {}) });
+      state, problems: [...new Set(problems)], refinedBy, ...(state === 'refined' && line ? { line } : {}) });
   }
   return out;
 }

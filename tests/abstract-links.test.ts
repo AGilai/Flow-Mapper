@@ -94,7 +94,7 @@ test('suggestRefinements: the existing calls between the two ends, the matching 
   // a link with mode async: the sync calls rank after an async one; with none async they are all still offered
   const rs2 = rows(); rs2.push(link('usage-metering', { ...ok, mode: 'async' }));
   const g2 = graphOf(rs2), map2 = rollUp(g2, subRows(rs2), linkRows(rs2));
-  assert.equal(suggestRefinements(map2.abstract[0], map2, g2, subRows(rs2))[0].use?.service, 'pop-edge');
+  assert.ok(suggestRefinements(map2.abstract[0], map2, g2, subRows(rs2)).every((x) => !x.use), 'an async link is not offered sync calls (0.28 QA)');
   const refined = rows(); refined.push(link('f', { name: 'f', from: 'egr:pop-edge/out.auth', to: 'ing:auth-svc/in.token', refinedBy: [{ service: 'pop-edge', egress: 'out.auth' }] }));
   const g3 = graphOf(refined), map3 = rollUp(g3, subRows(refined), linkRows(refined));
   assert.deepEqual(suggestRefinements(map3.abstract[0], map3, g3, subRows(refined)), [], 'a refined link needs none');

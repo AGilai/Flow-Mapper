@@ -109,7 +109,8 @@ export function prepareOps(rows: Map<string, ItemRow>, inputs: unknown, opts: { 
     }
   }
   if (errs.length) {
-    const code = errs.every((e) => e.code === errs[0].code) ? errs[0].code : 'INVALID';
+    errs.sort((a, b) => Number(b.code === 'TWO_GROUPS') - Number(a.code === 'TWO_GROUPS'));
+    const code = errs.some((e) => e.code === 'TWO_GROUPS') ? 'TWO_GROUPS' : errs.every((e) => e.code === errs[0].code) ? errs[0].code : 'INVALID';
     throw new HttpError(422, code, `${errs.length} op(s) rejected: ${errs[0].message}${errs.length > 1 ? ` (+${errs.length - 1} more)` : ''}`, errs);
   }
   return out;

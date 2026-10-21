@@ -18,6 +18,8 @@ export interface DiffOpts {
   draft?: string | null; source?: string | null; baselineAt?: string | null;
   /** against = source: components the design copied that the source no longer has (marked new, "no longer in <source>"). */
   vanished?: Set<string>;
+  /** With a draft: each component's groupPath in the environment as stored (a move is read against it; the baseline never stores one). */
+  prior?: Map<string, string>;
 }
 export interface EnvMarks {
   against: 'baseline' | 'source'; draft: string | null; source: string | null; baselineAt: string | null;
@@ -33,7 +35,7 @@ export function diffEnv(base: ItemRow[], cur: ItemRow[], opts: DiffOpts): EnvMar
   const raw = rawMarks(sb, sc, opts);
   const { marks: pruned, dropped } = prune(raw.marks, sb, sc);
   const final = rollUp(pruned, sb, sc, opts);
-  subsystemMarks(sb, sc, final);
+  subsystemMarks(sb, sc, final, opts.prior);
   for (const s of opts.vanished ?? []) if (final.get(`svc:${s}`)?.mark === 'new') final.set(`svc:${s}`, { mark: 'new', what: `no longer in ${opts.source ?? 'the source'}` });
   const ghosts = Object.fromEntries(Object.entries(raw.ghosts).filter(([a]) => !dropped.has(a)).sort(([a], [b]) => (a < b ? -1 : 1)));
   return {

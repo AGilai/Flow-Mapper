@@ -25,8 +25,9 @@ export function suggestRefinements(view: AbstractView, map: SubsystemMap, g: Gra
     for (const d of downstreamIngress(g, { type: 'egress', service: e.service, id: e.id })) {
       if (!inside(to, `ing:${d.ingress.service}/${d.ingress.id}`, w)) continue;
       const c = callInfo(e, d.ingress, d.via.length > 0, w.svc);
+      if (view.mode && c.mode !== view.mode) continue;   // an async link is realised by async calls (channels, events), a sync one by sync calls; no mode: both
       callers.add(e.service);
-      const rank = (view.mode && c.mode !== view.mode ? 2 : 0) + (view.transport && c.transport !== view.transport ? 1 : 0);
+      const rank = (view.transport && c.transport !== view.transport ? 1 : 0);
       found.push({ rank, s: { use: { service: e.service, egress: e.id }, reason: `${e.service} already calls ${d.ingress.service} over ${c.transport}${c.mode === 'async' ? ' (async)' : ''} (${operationOf(e.bindKey)})` } });
     }
   }

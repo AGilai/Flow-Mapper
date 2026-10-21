@@ -9,11 +9,12 @@ import { diffEnv, type DiffOpts, type EnvMarks } from '../core/diff/index.ts';
 import { calleeIndex } from '../core/diff/callee.ts';
 import { badRequest, conflict, notFound } from './errors.ts';
 import { checkFresh, memoGet, memoSet } from './graph-cache.ts';
-import { designRows } from './design-rows.ts';
+import { cached, designRows } from './design-rows.ts';
 import { refsFor } from './refs.ts';
 import { getEnvRow } from './store/envs.ts';
 import { getDraft } from './store/drafts.ts';
-import { sourceNowRows } from './store/item-rows.ts';
+import { envItemRows, sourceNowRows } from './store/item-rows.ts';
+import type { ItemRow } from '../core/item-rows.ts';
 
 export { cached } from './design-rows.ts';
 export type Against = 'baseline' | 'source';
@@ -44,5 +45,6 @@ export function marksFor(ctx: Ctx, env: string, opts: { against?: Against; draft
     dopts.vanished = now.vanished;
   }
   dopts.calleeOf = calleeIndex(d.cur);
+  if (draft) dopts.prior = new Map(cached<ItemRow[]>(`rows:${env}`, [env], () => envItemRows(db, env)).filter((r) => r.list === 'header').map((r) => [r.service, String(r.data?.groupPath ?? '')]));
   return memoSet(key, { ...diffEnv(reference, d.cur, dopts), refs: refsFor(ctx, env, draft, d) }, d.deps);
 }

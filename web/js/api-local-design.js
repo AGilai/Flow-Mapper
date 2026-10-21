@@ -78,7 +78,7 @@ export function createDesign(data, baseGraph) {
       if (against === 'source' && !(data.models ?? {})[m.source]) fail(`the source environment '${m.source}' of '${env}' no longer exists: compare against the baseline instead`);
       const now = against === 'source' ? sourceNow(new Map(p.base.map((r) => [r.sourceEnv, data.rows?.[r.sourceEnv] ?? null])), p.base, m.copiedAt) : null;
       return { ...diffEnv(now ? now.rows : p.base, p.cur,
-        { against, draft: slug, source: m.source, baselineAt: m.copiedAt, calleeOf: calleeIndex(p.cur), ...(now ? { vanished: now.vanished } : {}) }), refs: refsOf(env) };
+        { against, draft: slug, source: m.source, baselineAt: m.copiedAt, calleeOf: calleeIndex(p.cur), ...(d ? { prior: new Map(rowsOf(env).filter((r) => r.list === 'header').map((r) => [r.service, String(r.data?.groupPath ?? '')])) } : {}), ...(now ? { vanished: now.vanished } : {}) }), refs: refsOf(env) };
     });
   }
 
