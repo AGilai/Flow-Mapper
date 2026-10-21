@@ -171,19 +171,15 @@ test('C9 delete: a design env goes with everything in it, a sealed env cannot be
   assert.equal((await app.call('DELETE', '/api/envs/nope')).status, 404);
 });
 
-test('guards: harvesters cannot write a design env, manual edits cannot touch a sealed one, annotations pass everywhere', async () => {
+test('guards: harvesters cannot write a design env, the manual edit routes are gone, annotations pass everywhere', async () => {
   const m = { ...readSample('orders-svc.json'), env: 'comp-1', version: 99 };
   const ing = await app.call('POST', '/api/ingest', m);
   assert.equal(ing.status, 409); assert.equal(ing.body.error.code, 'ENV_DESIGN');
   assert.equal((await app.call('PUT', '/api/envs/comp-1/dtos/users-svc/response/in.getUser', { a: 1 })).body.error.code, 'ENV_DESIGN');
   assert.equal((await app.call('DELETE', '/api/envs/comp-1/event-dtos/X')).status, 409);
-  for (const [method, path, body] of [['POST', '/api/envs/prod/services', { name: 'zz' }], ['PATCH', '/api/envs/prod/services/users-svc', { team: 'x' }], ['DELETE', '/api/envs/prod/services/users-svc'],
-    ['DELETE', '/api/envs/prod/services/users-svc/ingress/in.getUser']] as const) {
-    const r = await app.call(method, path, body); assert.equal(r.status, 409, path); assert.equal(r.body.error.code, 'ENV_SEALED');
-  }
-  const mcp = (name: string, args: any) => app.call('POST', '/mcp', { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } });
-  const e = await mcp('delete_entity', { env: 'prod', service: 'users-svc', list: 'ingress', key: 'in.getUser' });
-  assert.equal(e.body.result.isError, true); assert.match(e.body.result.content[0].text, /ENV_SEALED/);
+  for (const [method, path] of [['POST', '/api/envs/prod/services'], ['PATCH', '/api/envs/prod/services/users-svc'], ['DELETE', '/api/envs/prod/services/users-svc'],
+    ['DELETE', '/api/envs/prod/services/users-svc/ingress/in.getUser']] as const) assert.ok([404, 405].includes((await app.call(method, path, method === 'DELETE' ? undefined : { name: 'zz' })).status), `${method} ${path}: removed in 0.25.0`);
+  assert.equal((await app.call('GET', '/api/envs/prod/services/users-svc/ingress/in.getUser')).status, 200, 'nothing was deleted');
   assert.equal((await app.call('PUT', '/api/envs/full-1/descriptions', { service: 'api-gateway', ingress: 'in.createOrder', text: 'noted in the design' })).status, 200);
   assert.equal((await app.call('PUT', '/api/envs/prod/descriptions', { service: 'api-gateway', ingress: 'in.createOrder', text: 'noted in prod' })).status, 200);
   assert.equal((await app.call('POST', '/api/bugs', { title: 'a bug in a design env', env: 'comp-1' })).status, 201);

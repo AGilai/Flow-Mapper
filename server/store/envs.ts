@@ -54,12 +54,11 @@ export function ensureEnv(db: DB, name: string) {
   db.prepare("INSERT INTO envs (name, kind, created_at) VALUES (?, 'sealed', ?) ON CONFLICT (name) DO NOTHING").run(name, new Date().toISOString());
 }
 
-export type Writer = 'harvester' | 'manual' | 'draft' | 'dry';
+export type Writer = 'harvester' | 'draft' | 'dry';
 
 /**
  * The one guard of the write path.
  *   harvester  ingest, DTOs, schemas, Redis keys: a sealed or a new environment, never a design.
- *   manual     the entity / service CRUD routes: refused everywhere (sealed: the harvesters' record; design: edit through a draft).
  *   draft      creating or applying a draft: a design only (sealed refuses, unknown is 404).
  *   dry        a dry run (validated, then rolled back): any environment.
  * Annotations (descriptions, bugs) do not pass through here.
@@ -73,7 +72,6 @@ export function guardEnv(db: DB, env: string, writer: Writer) {
   }
   if (!kind) throw notFound(`environment '${env}'`);
   if (kind === 'sealed') throw conflict('ENV_SEALED', `environment '${env}' is sealed: only harvesters fill it (ingest, DTOs, schemas). Copy it into a design environment to edit it (POST /api/envs).`);
-  if (writer === 'manual') throw conflict('ENV_DRAFT', `environment '${env}' is a design environment: edit it through a draft (POST /api/envs/${env}/drafts), not through the entity routes.`);
 }
 
 const TABLES = ['entities', 'snapshots', 'changelog', 'health_history', 'endpoint_dtos', 'event_dtos', 'store_schemas', 'resource_keys', 'resource_keys_meta', 'descriptions', 'baseline_items', 'drafts', 'flow_names'];

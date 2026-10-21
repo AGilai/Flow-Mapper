@@ -65,15 +65,11 @@ test('delta: applies on matching base, rejects stale base, rejects old versions'
   assert.equal(h.body.items.dangling.filter((d: any) => d.service === 'orders-svc').length, 0);
 });
 
-test('Edits of a design env go through a draft: one delta bumps the version and writes the changelog; sealed and design refuse the entity routes', async () => {
+test('Edits of a design env go through a draft: one delta bumps the version and writes the changelog; the entity routes are gone', async () => {
   // Manual edits are refused everywhere (prod is sealed: harvesters only; a design is edited through a draft), so the test copies prod first.
   assert.equal((await app.call('POST', '/api/envs', { name: 'crud-test', source: 'prod', mode: 'full' })).status, 201);
   const fn0 = { id: 'x', name: 'x', steps: [] };
-  const sealed = await app.call('POST', '/api/envs/prod/services/users-svc/functions', fn0);
-  assert.equal(sealed.status, 409);
-  assert.equal(sealed.body.error.code, 'ENV_SEALED');
-  const design = await app.call('POST', '/api/envs/crud-test/services/users-svc/functions', fn0);
-  assert.equal(design.body.error.code, 'ENV_DRAFT');
+  for (const env of ['prod', 'crud-test']) assert.ok([404, 405].includes((await app.call('POST', `/api/envs/${env}/services/users-svc/functions`, fn0)).status), `the entity routes are gone (0.25.0): ${env}`);
   const before = (await app.call('GET', '/api/envs/crud-test/services/users-svc')).body.service.version;
   const fn = { id: 'get_prefs', name: 'get_prefs', steps: [{ seq: 1, type: 'resource', target: 'usersDb', operation: 'SELECT prefs' }] };
   const ing = { id: 'in.prefs', bindKey: 'http:GET users-svc/users/{id}/prefs', transport: 'http', handler: 'get_prefs' };
@@ -157,7 +153,7 @@ test('MCP over HTTP: initialize, list tools, call tools', async () => {
   assert.equal((await app.call('POST', '/mcp', { jsonrpc: '2.0', method: 'notifications/initialized' })).status, 202);
   const tools = await app.call('POST', '/mcp', { jsonrpc: '2.0', id: 2, method: 'tools/list' });
   const names = tools.body.result.tools.map((t: any) => t.name);
-  for (const n of ['search', 'trace_flow', 'link_health', 'report_bug', 'update_bug', 'upsert_entity']) assert.ok(names.includes(n), n);
+  for (const n of ['search', 'trace_flow', 'link_health', 'report_bug', 'update_bug', 'edit_design']) assert.ok(names.includes(n), n);
   const call = await app.call('POST', '/mcp', { jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'trace_flow', arguments: { env: 'prod', service: 'orders-svc', ingress: 'in.create', scope: 'intra' } } });
   assert.equal(call.body.result.isError, false);
   assert.ok(JSON.parse(call.body.result.content[0].text).messages.length > 3);

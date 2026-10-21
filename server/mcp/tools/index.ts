@@ -2,7 +2,7 @@
 
 import { searchTool, listServicesTool, getServiceTool, listEntryPointsTool, findPathsTool, linkHealthTool, changelogTool, inventoryTool } from './map.ts';
 import { traceFlowTool, setDescriptionTool, eventTypesTool, getEndpointInfoTool, getChannelTool, getExchangeTool } from './flows.ts';
-import { ingestManifestTool, upsertEntityTool, deleteEntityTool } from './write.ts';
+import { ingestManifestTool } from './write.ts';
 import { getStoreTool, listClientsTool, getResourceKeysTool, loadSchemasTool, loadDtosTool } from './stores.ts';
 import { listBugsTool, getBugTool, reportBugTool, updateBugTool } from './bugs.ts';
 import { listEnvsTool, createEnvTool } from './envs.ts';
@@ -24,8 +24,6 @@ export const TOOLS: Tool[] = [
   linkHealthTool,
   changelogTool,
   ingestManifestTool,
-  upsertEntityTool,
-  deleteEntityTool,
   getEndpointInfoTool,
   loadDtosTool,
   eventTypesTool,
