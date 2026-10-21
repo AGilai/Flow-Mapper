@@ -17,10 +17,6 @@ export function rowToService(r: SnapshotRow): Service {
   return { name: r.service, kind: r.kind as Service['kind'], ...JSON.parse(r.meta), version: r.version, harvestedAt: r.harvested_at, commit: r.commit_sha ?? undefined };
 }
 
-export function listEnvs(db: DB): string[] {
-  return (db.prepare('SELECT DISTINCT env FROM snapshots ORDER BY env').all() as { env: string }[]).map((r) => r.env);
-}
-
 export function getSnapshotRow(db: DB, env: string, service: string): SnapshotRow | undefined {
   return db.prepare('SELECT * FROM snapshots WHERE env = ? AND service = ?').get(env, service) as SnapshotRow | undefined;
 }

@@ -5,6 +5,7 @@
 import type { DB } from '../db/connection.ts';
 import { tx } from '../db/connection.ts';
 import { badRequest, notFound } from '../errors.ts';
+import { guardEnv } from './envs.ts';
 import { DTO_ROLES, dtoLink, dtoSlots, type Dto, type DtoMeta, type DtoRole, type EventDto } from '../../core/endpoint-info.ts';
 
 export interface DtoInput { service: string; ingress: string; role: string; status?: string; content: unknown; meta?: unknown }
@@ -73,6 +74,7 @@ function write(db: DB, env: string, d: DtoInput) {
 }
 
 export function putDto(db: DB, env: string, d: DtoInput) {
+  guardEnv(db, env, 'harvester');
   check(db, env, d);
   write(db, env, d);
   return listDtos(db, env, d).find((x) => x.role === d.role && x.status === normStatus(d.status))!;
@@ -82,6 +84,7 @@ export function putDto(db: DB, env: string, d: DtoInput) {
  *  Each item is an endpoint DTO {service, ingress, role, content} or an event DTO {event, content}. */
 export function loadDtos(db: DB, env: string, items: unknown) {
   if (!Array.isArray(items)) throw badRequest('body must be {dtos: [{service, ingress, role, content} | {event, content}]}');
+  guardEnv(db, env, 'harvester');
   return tx(db, () => {
     items.forEach((d: any, i) => {
       try {
@@ -121,18 +124,21 @@ function writeEvent(db: DB, env: string, d: EventDtoInput) {
 }
 
 export function putEventDto(db: DB, env: string, d: EventDtoInput): EventDto {
+  guardEnv(db, env, 'harvester');
   checkEvent(d);
   writeEvent(db, env, d);
   return getEventDto(db, env, d.event)!;
 }
 
 export function deleteEventDto(db: DB, env: string, event: string) {
+  guardEnv(db, env, 'harvester');
   const r = db.prepare('DELETE FROM event_dtos WHERE env = ? AND event_type = ?').run(env, event);
   if (!r.changes) throw notFound(`DTO of event type '${event}'`);
   return { deleted: { event } };
 }
 
 export function deleteDto(db: DB, env: string, service: string, ingress: string, role: string, status?: string) {
+  guardEnv(db, env, 'harvester');
   const st = normStatus(status);
   const r = db.prepare('DELETE FROM endpoint_dtos WHERE env = ? AND service = ? AND ingress = ? AND role = ? AND status = ?').run(env, service, ingress, role, st);
   if (!r.changes) throw notFound(`${role}${st ? ' ' + st : ''} DTO of '${service}' ingress '${ingress}'`);

@@ -5,6 +5,7 @@ import type { DB } from '../db/connection.ts';
 import { tx } from '../db/connection.ts';
 import type { GraphIndex } from '../../core/graph-index.ts';
 import { badRequest, conflict, notFound } from '../errors.ts';
+import { guardEnv } from './envs.ts';
 import { keySummary, normaliseKeys, type KeyEntry, type KeyFilter, type KeySummary } from '../../core/keys.ts';
 import { instanceView, keysView, resolveInstance, type KeyMeta } from '../../core/instances.ts';
 
@@ -37,6 +38,7 @@ export function allForPreview(db: DB, env: string) {
 
 /** Replace the keys of one instance. `body`: {keys, version?, producer?} or the bare array. The instance must exist in the env's map. */
 export function putKeys(db: DB, g: GraphIndex, env: string, id: string, body: any) {
+  guardEnv(db, env, 'harvester');
   const instance = resolveInstance(g, id);
   if (!instance) throw notFound(`Redis instance '${id}' in env '${env}' (a resource with a bind key 'redis:<name>/…' or an infra resource 'redis:<name>')`);
   const obj = Array.isArray(body) ? { keys: body } : body;

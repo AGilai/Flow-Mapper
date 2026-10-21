@@ -65,19 +65,24 @@ test('delta: applies on matching base, rejects stale base, rejects old versions'
   assert.equal(h.body.items.dangling.filter((d: any) => d.service === 'orders-svc').length, 0);
 });
 
-test('CRUD on entities bumps version and writes changelog', async () => {
-  const before = (await app.call('GET', '/api/envs/prod/services/users-svc')).body.service.version;
+test('CRUD on entities of a design env bumps version and writes changelog; the sealed prod refuses it', async () => {
+  // Manual edits need a design environment (prod is sealed: harvesters only), so the test copies prod first.
+  assert.equal((await app.call('POST', '/api/envs', { name: 'crud-test', source: 'prod', mode: 'full' })).status, 201);
+  const sealed = await app.call('POST', '/api/envs/prod/services/users-svc/functions', { id: 'x', name: 'x', steps: [] });
+  assert.equal(sealed.status, 409);
+  assert.equal(sealed.body.error.code, 'ENV_SEALED');
+  const before = (await app.call('GET', '/api/envs/crud-test/services/users-svc')).body.service.version;
   const fn = { id: 'get_prefs', name: 'get_prefs', steps: [{ seq: 1, type: 'resource', target: 'usersDb', operation: 'SELECT prefs' }] };
-  assert.equal((await app.call('POST', '/api/envs/prod/services/users-svc/functions', fn)).status, 201);
+  assert.equal((await app.call('POST', '/api/envs/crud-test/services/users-svc/functions', fn)).status, 201);
   const ing = { id: 'in.prefs', bindKey: 'http:GET users-svc/users/{id}/prefs', transport: 'http', handler: 'get_prefs' };
-  const put = await app.call('PUT', '/api/envs/prod/services/users-svc/ingress/in.prefs', ing);
+  const put = await app.call('PUT', '/api/envs/crud-test/services/users-svc/ingress/in.prefs', ing);
   assert.equal(put.status, 200);
   assert.equal(put.body.toVersion, before + 2);
-  const del = await app.call('DELETE', '/api/envs/prod/services/users-svc/functions/get_prefs');
+  const del = await app.call('DELETE', '/api/envs/crud-test/services/users-svc/functions/get_prefs');
   assert.equal(del.status, 422, 'cannot delete a function an ingress still uses');
-  const ch = await app.call('GET', '/api/envs/prod/services/infra/channels/sqs:orders-dlq');
+  const ch = await app.call('GET', '/api/envs/crud-test/services/infra/channels/sqs:orders-dlq');
   assert.equal(ch.body.kind, 'sqs-queue', 'keys with colons/slashes resolve');
-  const log = await app.call('GET', '/api/envs/prod/changelog?service=users-svc&limit=5');
+  const log = await app.call('GET', '/api/envs/crud-test/changelog?service=users-svc&limit=5');
   assert.equal(log.body[0].kind, 'crud');
   assert.deepEqual(log.body[0].changes.added, { ingress: ['in.prefs'] });
 });

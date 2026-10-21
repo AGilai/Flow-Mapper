@@ -41,7 +41,7 @@ test('an old database is upgraded in place: data kept, backup written', () => {
   console.log = log;
 
   const applied = (db.prepare('SELECT name FROM schema_migrations ORDER BY name').all() as { name: string }[]).map((r) => r.name);
-  assert.deepEqual(applied, ['001_init.sql', '002_dto_status_meta.sql', '003_descriptions.sql', '004_resource_keys.sql']);
+  assert.deepEqual(applied, ['001_init.sql', '002_dto_status_meta.sql', '003_descriptions.sql', '004_resource_keys.sql', '005_envs.sql']);
   const rows = db.prepare('SELECT role, status, content, meta FROM endpoint_dtos ORDER BY role').all() as any[];
   assert.deepEqual(rows.map((r) => [r.role, r.status, r.content, r.meta]), [['request', '', '{"a":1}', null], ['response', '', '{"b":2}', null]]);
   assert.deepEqual({ ...(db.prepare('SELECT content, meta FROM event_dtos').get() as any) }, { content: '{"c":3}', meta: null });
@@ -87,7 +87,7 @@ test('a fresh database gets every migration and no backup', () => {
   const db = openDb(path);
   console.log = log;
   const names = (db.prepare('SELECT name FROM schema_migrations ORDER BY name').all() as { name: string }[]).map((r) => r.name);
-  assert.deepEqual(names, ['001_init.sql', '002_dto_status_meta.sql', '003_descriptions.sql', '004_resource_keys.sql']);
+  assert.deepEqual(names, ['001_init.sql', '002_dto_status_meta.sql', '003_descriptions.sql', '004_resource_keys.sql', '005_envs.sql']);
   assert.equal(count(db, "SELECT count(*) AS n FROM pragma_table_info('event_dtos') WHERE name = 'meta'"), 1);
   db.close();
   assert.deepEqual(logs, []);
@@ -117,7 +117,7 @@ test('concurrent openers of an old database all succeed and the backup stays pre
   const results = await Promise.all([run(), run(), run()]);
   for (const r of results) assert.equal(r.code, 0, r.err);
   const db = new DatabaseSync(path);
-  assert.equal(count(db, 'SELECT count(*) AS n FROM schema_migrations'), 4);
+  assert.equal(count(db, 'SELECT count(*) AS n FROM schema_migrations'), 5);
   assert.equal(count(db, 'SELECT count(*) AS n FROM endpoint_dtos'), 2);
   db.close();
   const b = new DatabaseSync(`${path}.pre-002.bak`, { readOnly: true });
@@ -139,4 +139,40 @@ test('004 adds the Redis key tables to an old database without touching its rows
   assert.throws(() => db.prepare("INSERT INTO resource_keys VALUES ('prod', 'redis:c', 0, 'k:{id}', 'svc', 'read', '[]', NULL, NULL)").run(), 'one row per env, instance, db, template and service');
   assert.ok(existsSync(`${path}.pre-002.bak`), 'the backup is taken before the first pending migration');
   db.close();
+});
+
+test('005 adds envs and baseline_items; every env found in any table becomes sealed, rows are kept, the backup lacks envs (0.21.0)', () => {
+  const path = join(dir(), 'old.db');
+  oldDb(path);
+  const raw = new DatabaseSync(path);
+  raw.exec(`
+    INSERT INTO snapshots (env, service, version, harvested_at, updated_at) VALUES ('p81', 'other', 3, 't', '2026-01-02T00:00:00Z');
+    INSERT INTO bugs (title, priority, app_version, env, created_at, updated_at) VALUES ('b2', 'P3', '0.4.5', 'only-in-bugs', 't', 't');
+    INSERT INTO changelog (env, service, kind, at, changes) VALUES ('only-in-log', 's', 'crud', 't', '{}');
+    INSERT INTO store_schemas (env, store_key, source, content, updated_at) VALUES ('only-in-schemas', 'k', 'code', '{}', 't');`);
+  raw.close();
+  const log = console.log; console.log = () => {};
+  const db = openDb(path);
+  console.log = log;
+  const envs = db.prepare('SELECT name, kind, source, copied_at, levels, groups, created_by FROM envs ORDER BY name').all() as any[];
+  assert.deepEqual(envs.map((e) => [e.name, e.kind]), [['only-in-log', 'sealed'], ['only-in-schemas', 'sealed'], ['p81', 'sealed'], ['prod', 'sealed']]);
+  assert.equal(envs.some((e) => e.name === 'only-in-bugs'), false, 'an env only a bug report names is not map data');
+  assert.deepEqual({ ...envs[0] }, { name: 'only-in-log', kind: 'sealed', source: null, copied_at: null, levels: '["Subsystem","Component"]', groups: '[]', created_by: 'anonymous' });
+  assert.equal((db.prepare("SELECT created_at FROM envs WHERE name = 'p81'").get() as any).created_at, '2026-01-02T00:00:00Z', 'created_at comes from the first snapshot');
+  assert.throws(() => db.prepare("INSERT INTO envs (name, kind, created_at) VALUES ('x', 'harvested', 't')").run(), 'kind is checked');
+  assert.equal(count(db, 'SELECT count(*) AS n FROM snapshots'), 2);
+  assert.equal(count(db, 'SELECT count(*) AS n FROM bugs'), 2);
+  assert.equal(count(db, 'SELECT count(*) AS n FROM baseline_items'), 0);
+  db.prepare("INSERT INTO baseline_items VALUES ('d', 's', 'ingress', 'k', '{}', 'prod', 1, 't')").run();
+  assert.throws(() => db.prepare("INSERT INTO baseline_items VALUES ('d', 's', 'ingress', 'k', '{}', 'prod', 1, 't')").run(), 'primary key (env, service, list, key)');
+  db.close();
+  const b = new DatabaseSync(`${path}.pre-002.bak`, { readOnly: true });
+  assert.equal(count(b, "SELECT count(*) AS n FROM sqlite_master WHERE name = 'envs'"), 0, 'the backup is the state before the upgrade');
+  b.close();
+});
+
+test('005 only adds: no table is rebuilt and the file is Postgres-friendly (TEXT JSON and timestamps, no WITHOUT ROWID)', () => {
+  const sql = readFileSync(join(import.meta.dirname, '../server/db/migrations/005_envs.sql'), 'utf8');
+  assert.doesNotMatch(sql, /DROP TABLE|ALTER TABLE|WITHOUT ROWID|foreign_keys/i);
+  assert.match(sql, /CREATE TABLE envs/);
 });
