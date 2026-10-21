@@ -13,6 +13,7 @@ const rail = document.getElementById('rail');
 const main = document.getElementById('main');
 
 route('/envs/new', () => import('./views/env-new.js'));
+route('/envs/:name/settings', () => import('./views/env-settings.js'));
 route('/system', () => import('./views/system.js'));
 route('/inventory', () => import('./views/inventory.js'));
 route('/services', () => import('./views/inventory.js'));
@@ -44,7 +45,8 @@ async function boot() {
   api.bugs({ open: true, limit: 1000 }).then((b) => { openBugs = b.length; refreshRail(); }).catch(() => {});
 
   start(async (r, params, loc) => {
-    const d = designFromQuery(loc.query);
+    const named = r.parts[0] === 'envs' && params.name && state.envs.includes(params.name) && !loc.query.has('env'); // #/envs/<name>/settings names its environment in the path
+    const d = designFromQuery(named ? new URLSearchParams([...loc.query, ['env', params.name]]) : loc.query);
     if (d.env !== state.env) setEnv(d.env, true);
     Object.assign(state, { mode: d.mode, draft: d.draft, compare: d.compare });
     setQuery(designQuery());

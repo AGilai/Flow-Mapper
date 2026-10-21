@@ -5,9 +5,9 @@ import { h } from '../dom.js';
 import { descDetails } from './flow-head.js';
 import { announce } from './flow-walk.js';
 import { stepCols } from './flow-steps.js';
-import { cmpVar } from '../design/component-colors.js';
+import { colVar } from '../design/component-colors.js';
 
-const dot = (c) => { const v = c?.kind === 'service' ? cmpVar(c.service, c.serviceKind) : null; return v ? h('span.cdot', { style: { '--cc': v }, 'aria-hidden': 'true' }) : null; };
+const dot = (c) => { const v = colVar(c); return v ? h('span.cdot', { style: { '--cc': v }, 'aria-hidden': 'true' }) : null; };
 
 /**
  * createStepbar({ store, root, onMove(action) }) -> { el, show(step|null, n, total), dispose }

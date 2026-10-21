@@ -5,9 +5,9 @@
 
 import { h, debounce } from '../dom.js';
 import { api } from '../api.js';
-import { state, isDesign } from '../state.js';
+import { state } from '../state.js';
 import { icon } from '../icons.js';
-import { setQuery } from '../router.js';
+import { setQuery, go } from '../router.js';
 import { pageHead } from '../components/page.js';
 import { createPanel } from '../components/panel.js';
 import { createCanvasGraph } from '../graph/canvas-graph.js';
@@ -15,7 +15,12 @@ import { layout } from '../graph/layout.js';
 import { withinHops } from '../../core/subgraph.js';
 import { nodePanel } from './system-panel.js';
 import { loadMarks } from '../design/marks-store.js';
-import { markLegend } from './system-marks.js';
+import { legend } from './system-legend.js';
+import { loadSubsystems } from '../design/subsystems-store.js';
+import { levelOf, showLevelControl } from './system-level.js';
+import { levelControl } from './system-toolbar.js';
+import { renderSubsystems } from './system-subsystems.js';
+import { regionsOf } from '../graph/graph-regions.js';
 import { edgePanel } from './edge-panel.js';
 
 const TRANSPORTS = ['http', 'rpc', 'grpc', 'sns', 'sqs', 'amqp', 'eventbridge', 'socket'];
@@ -24,7 +29,11 @@ const TRANSPORTS = ['http', 'rpc', 'grpc', 'sns', 'sqs', 'amqp', 'eventbridge', 
 const n1 = (n, word) => `${n.toLocaleString()} ${word}${n === 1 ? '' : 's'}`;
 
 export async function render({ main, query }) {
+  const subs = await loadSubsystems();
+  if (levelOf(query.get('level'), subs.has) === 'subsystems') return renderSubsystems({ main, query, subs, marks: await loadMarks() }); // 0.28.1: frame 3
   const [data, marks] = await Promise.all([api.system(state.env), loadMarks()]);
+  const regions = subs.has; // subsystem regions (frame 2): the map groups by subsystem instead of by team
+  const isSvc = (n) => n.kind === 'service' || n.kind === 'gateway';
   const opts = {
     q: query.get('q') ?? '', channels: query.get('channels') === '1', stores: query.get('stores') === '1',
     broken: query.get('broken') === '1', team: query.get('team') ?? '', hops: Math.max(0, Math.min(3, Number(query.get('hops')) || 0)),
@@ -35,7 +44,7 @@ export async function render({ main, query }) {
 
   const stage = h('div.graph-stage');
   const count = h('span.small.muted');
-  const content = h('div.content.flush', h('div.stage-wrap', stage, legend(marks, data)));
+  const content = h('div.content.flush', h('div.stage-wrap', stage, legend(marks, data, { regions })));
   let selected = null;
   const panel = createPanel(content, { onClose: () => { selected = null; graph.select(null); setQuery({ sel: null }); apply(); } });
   const search = h('input.input', { type: 'search', placeholder: 'Filter by service, team or function', value: opts.q, 'aria-label': 'Filter map' });
@@ -49,6 +58,7 @@ export async function render({ main, query }) {
       h('label.small.muted.row', { title: 'How many connections out from the matches or the selected service to keep showing' }, 'Hops',
         h('select.select', { 'aria-label': 'Hops around the filter or selection', on: { change: (e) => { opts.hops = Number(e.target.value); persist(); apply(); } } },
           [0, 1, 2, 3].map((n) => h('option', { value: n, selected: n === opts.hops }, String(n))))),
+      showLevelControl(subs) ? levelControl('components', subs) : null,
       h('button.btn', { on: { click: () => graph.fit() } }, icon('fit'), 'Fit')),
     h('div.filter-bar',
       h('span.small.muted', 'Show'), toggle('channels', 'Queues and topics'), toggle('stores', 'Data stores'), h('label.check', h('input', { type: 'checkbox', checked: opts.broken, on: { change: (e) => { opts.broken = e.target.checked; persist(); rebuild(); } } }), 'Broken links only'),
@@ -63,7 +73,8 @@ export async function render({ main, query }) {
     marks, padBottom: () => (content.querySelector('.legend')?.offsetHeight ?? 0) + 24, // the legend wraps to more lines on a narrow window
     onSelect: (hit) => {
       if (!hit) { panel.close(); return; }
-      if (hit.type === 'node') selectNode(hit.item.id);
+      if (hit.type === 'region') go('/inventory', { subsystem: hit.item.key }); // a region's head opens its components in Inventory
+      else if (hit.type === 'node') selectNode(hit.item.id);
       else { graph.select(hit.item.id); panel.open(...edgePanel(hit.item, byId, state.env)); }
     },
   });
@@ -88,25 +99,27 @@ export async function render({ main, query }) {
     const linked = new Set(edges.flatMap((e) => [e.from, e.to]));
     const nodes = kept.filter((n) => n.kind === 'service' || n.kind === 'gateway' || linked.has(n.id));
     // channels and stores sit in the district of the service they connect to most
-    const teamOf = new Map(data.nodes.map((n) => [n.id, n.team]));
-    for (const n of nodes) if (!n.team) {
+    const grp = (n) => (regions && isSvc(n) ? subs.subOf(n.label) : n.team); // with regions a component's district is its subsystem
+    const teamOf = new Map(data.nodes.map((n) => [n.id, grp(n)]));
+    for (const n of nodes) if (!grp(n)) {
       const e = edges.find((x) => x.to === n.id || x.from === n.id);
       n.group = e ? teamOf.get(e.to === n.id ? e.from : e.to) : 'other';
-    } else n.group = n.team;
+    } else n.group = grp(n);
     if (!layouts.has(key)) {
       // Services are laid out once; queues, stores and missing targets are added around them.
-      const svcKey = 'services';
+      const svcKey = regions ? 'services-sub' : 'services';
       if (!layouts.has(svcKey)) {
         const sn = nodes.filter((n) => n.kind === 'service' || n.kind === 'gateway');
         const ids2 = new Set(sn.map((n) => n.id));
-        layouts.set(svcKey, layout(sn, data.collapsedEdges.filter((e) => ids2.has(e.from) && ids2.has(e.to)), { iterations: 280 }));
+        const order = subs.list().map((s) => s.key), columnOf = regions ? new Map(sn.filter((n) => subs.subOf(n.label)).map((n) => [n.id, order.indexOf(subs.subOf(n.label))])) : null; // columns in the environment's subsystem order
+        layouts.set(svcKey, layout(sn, data.collapsedEdges.filter((e) => ids2.has(e.from) && ids2.has(e.to)), { iterations: 280, columnOf }));
       }
       const extra = nodes.some((n) => n.kind !== 'service' && n.kind !== 'gateway');
       layouts.set(key, extra ? layout(nodes, edges, { iterations: 90, ideal: 34, fixed: layouts.get(svcKey) }) : layouts.get(svcKey));
     }
     current = { nodes, edges };
     byId = new Map(data.nodes.map((n) => [n.id, n]));
-    graph.setData({ nodes, edges, positions: layouts.get(key) });
+    graph.setData({ nodes, edges, positions: layouts.get(key), regions: regions ? regionsOf(nodes, layouts.get(key), subs, marks) : [] });
     apply();
     graph.fit();
   }
@@ -160,18 +173,4 @@ export async function render({ main, query }) {
   const sel = query.get('sel');
   if (sel && byId.has(sel)) { selectNode(sel); graph.zoomTo(sel); }
   return { dispose: () => { graph.dispose(); panel.dispose(); } };
-}
-
-function legend(marks, data) {
-  const item = (svg, label) => h('span.legend-item', h('span', { html: svg }), label);
-  return h('div.legend', { 'aria-hidden': 'true' },
-    item('<svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>', 'Service'),
-    item('<svg width="14" height="14"><rect x="2" y="2" width="10" height="10" rx="3" fill="currentColor"/></svg>', 'Gateway'),
-    item('<svg width="14" height="14"><path d="M7 1l6 6-6 6-6-6z" fill="var(--t-sqs)"/></svg>', 'Queue / topic'),
-    item('<svg width="14" height="14"><rect x="3" y="3" width="8" height="8" fill="none" stroke="var(--t-res)" stroke-width="1.6"/></svg>', 'Data store'),
-    item('<svg width="22" height="6"><path d="M1 3h20" stroke="var(--ink-2)" stroke-width="1.6"/></svg>', 'Sync call (waits for the reply)'),
-    item('<svg width="22" height="6"><path d="M1 3h20" stroke="var(--ink-2)" stroke-width="1.6" stroke-dasharray="4 3"/></svg>', 'Async (queue, topic, event)'),
-    item('<svg width="22" height="6"><path d="M1 3h20" stroke="var(--t-socket)" stroke-width="3" stroke-linecap="round"/></svg>', 'Client socket entry (tls / tcp / ws)'),
-    item(`<svg width="22" height="6"><path d="M1 3h20" stroke="${isDesign() ? 'var(--ink-2)' : 'var(--t-broken)'}" stroke-width="1.6" stroke-dasharray="4 3"/></svg>`, isDesign() ? 'Target not in this design' : 'Broken (no target matches)'),
-    markLegend(item, marks, data));
 }

@@ -5,7 +5,8 @@
 
 // `fixed`: Map id → {x,y}. Those nodes keep their position; others start at the mean of their
 // fixed neighbours. Used to add queues and stores around an existing services layout without moving it.
-export function layout(nodes, edges, { iterations = 260, ideal = 80, fixed = null } = {}) {
+// `columnOf`: Map id -> column index (0.28.1, subsystem regions): a strong x spring to the centre of the node's column; columns are as wide as their members need and y stays free.
+export function layout(nodes, edges, { iterations = 260, ideal = 80, fixed = null, columnOf = null } = {}) {
   const n = nodes.length;
   const idx = new Map(nodes.map((d, i) => [d.id, i]));
   const x = new Float64Array(n), y = new Float64Array(n), vx = new Float64Array(n), vy = new Float64Array(n);
@@ -19,11 +20,21 @@ export function layout(nodes, edges, { iterations = 260, ideal = 80, fixed = nul
     const r = spread * Math.sqrt((i + 0.5) / groups.length), a = i * 2.39996;
     return [r * Math.cos(a), r * Math.sin(a)];
   });
+  let colCx = null;
+  if (columnOf) {
+    const cnt = new Map();
+    for (const d of nodes) { const c = columnOf.get(d.id); if (c != null) cnt.set(c, (cnt.get(c) ?? 0) + 1); }
+    colCx = new Map();
+    let cur = 0;
+    for (const c of [...cnt.keys()].sort((a, b) => a - b)) { const w = Math.max(ideal * 2.2, ideal * Math.sqrt(cnt.get(c)) * 2.1); colCx.set(c, cur + w / 2); cur += w + ideal * 1.2; }
+    for (const [c, v] of colCx) colCx.set(c, v - cur / 2);
+  }
   let seed = 12345;
   const rand = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff) - 0.5;
   nodes.forEach((d, i) => {
     const c = gc[gIndex.get(d.group ?? '')];
-    x[i] = c[0] + rand() * ideal * 3;
+    const col = colCx?.get(columnOf.get(d.id));
+    x[i] = (col ?? c[0]) + rand() * ideal * 3;
     y[i] = c[1] + rand() * ideal * 3;
   });
 
@@ -96,6 +107,8 @@ export function layout(nodes, edges, { iterations = 260, ideal = 80, fixed = nul
       const g = sum[gIndex.get(nodes[i].group ?? '')];
       vx[i] += (g[0] / g[2] - x[i]) * 0.006 - x[i] * 0.0005;
       vy[i] += (g[1] / g[2] - y[i]) * 0.006 - y[i] * 0.0005;
+      const cc = colCx?.get(columnOf.get(nodes[i].id));
+      if (cc != null) vx[i] += (cc - x[i]) * 0.05;
     }
     for (let i = 0; i < n; i++) {
       if (pinned[i]) { vx[i] = 0; vy[i] = 0; continue; }

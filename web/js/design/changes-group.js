@@ -1,6 +1,6 @@
 // The review list's grouping, pure: changes (GET /changes items) by component, and the word for the kind of item an anchor names.
 
-const KIND_WORD = { svc: 'component', fn: 'function', ing: 'endpoint', egr: 'call', res: 'store', bind: 'subscription', ch: 'channel', dto: 'message', evt: 'event message', schema: 'schema', flow: 'flow' };
+const KIND_WORD = { svc: 'component', fn: 'function', ing: 'endpoint', egr: 'call', res: 'store', bind: 'subscription', ch: 'channel', dto: 'message', evt: 'event message', schema: 'schema', flow: 'flow', grp: 'subsystem', link: 'abstract link', rel: 'flow relation' };
 const SERVICE_KINDS = new Set(['svc', 'fn', 'ing', 'egr', 'res', 'bind', 'dto', 'flow']);
 
 const kindOf = (anchor) => anchor.slice(0, Math.max(0, anchor.indexOf(':')));
