@@ -1,0 +1,12 @@
+{
+  "name": "behaviour-demo",
+  "source": "prod",
+  "mode": "components",
+  "behaviour": true,
+  "groups": [{ "key": "platform", "label": "Platform" }],
+  "services": [
+    { "name": "users-svc", "groupPath": "platform" },
+    { "name": "auth-svc", "groupPath": "platform" }
+  ],
+  "createdBy": "seed"
+}

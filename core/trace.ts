@@ -16,6 +16,8 @@ import { linksFrom, sid } from './graph-index.ts';
 import { isLeaf } from './types.ts';
 import type { Ingress, Link, Mode, Ref } from './types.ts';
 import { handlerFor, passes, passesUntyped, untypedEventSet, type EventSet } from './events.ts';
+import { emptyFlow } from './entry-points.ts';
+export { entryPoints } from './entry-points.ts';
 import { codeLink, sourceLink, type SourceLink } from './endpoint-info.ts';
 import { refKey, unresolvedTarget } from './resolve.ts';
 import { assumedOn, unknownOn } from './step-notes.ts';
@@ -68,6 +70,8 @@ export interface HopFilter { id: string; service: string; from: string; events?:
 export interface Trace {
   start: { service: string; ingress?: string; fn: string; event?: string }; scope: 'intra' | 'full';
   participants: Participant[]; messages: Message[]; truncated: boolean;
+  /** An entry point with no handler (none named, or none for the requested event) (0.25.1, #59): an empty flow (the entry participant, no messages) that can still be fetched, described and linked. */
+  noHandler?: true;
   /** Code location of every function on the trace, by `${service}:${fn}`, of call sites, by `egress:${service}:${id}`, and of steps that carry a `source`, by `step:${service}:${fn}#${seq}`. */
   code: Record<string, SourceLink | null>;
 }
@@ -84,6 +88,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
   const showFrontier = !!opts.frontier;
   const ing = start.ingress ? g.ingress.get(sid(start.service, start.ingress)) : undefined;
   const fnId = start.fn ?? (ing && start.event ? handlerFor(ing, start.event) : ing?.handler);
+  if (ing && !start.fn && !fnId) return emptyFlow(start.service, ing, scope, start.event); // no handler named (for this event): an empty flow, not a 404
   if (!fnId || !g.fns.get(sid(start.service, fnId))) return null;
 
   const participants = new Map<string, Participant>();
@@ -357,14 +362,6 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
 
 /** The wire protocol of a socket ingress (`details.protocol`: tls, tcp or ws); tcp when the harvester gave none. */
 const socketProtocol = (i: Ingress): 'tls' | 'tcp' | 'ws' => (['tls', 'tcp', 'ws'].includes(String(i.details?.protocol)) ? i.details!.protocol as 'tls' : 'tcp');
-
-/** Entry points to start a trace from: ingress marked entryPoint, else ingress nothing reaches. */
-export function entryPoints(g: GraphIndex) {
-  const orphan = new Set(g.resolution.orphans.map((i) => sid(i.service, i.id)));
-  return g.model.ingress
-    .filter((i) => i.entryPoint || orphan.has(sid(i.service, i.id)) || !!rpcServed(i)) // an RPC command can always be traced from (0.19.0)
-    .map((i) => ({ service: i.service, id: i.id, bindKey: i.bindKey, transport: i.transport, handler: i.handler, ...(i.middleware?.length ? { middleware: i.middleware } : {}), entryPoint: !!i.entryPoint }));
-}
 
 /**
  * Lifelines in delivery order: a topic or queue sits left of whatever it delivers to, so a delivery

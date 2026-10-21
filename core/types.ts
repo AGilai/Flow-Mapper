@@ -1,6 +1,8 @@
 // Shared types for the in-memory graph model. Pure types — no runtime code.
 // The model mirrors the manifest (schema/manifest.schema.json) with service/env attached.
 
+import type { Links } from './links.ts';
+
 export type Transport = 'http' | 'rpc' | 'grpc' | 'sns' | 'sqs' | 'amqp' | 'eventbridge' | 'cron' | 'socket' | 'event' | 'other' | 'undecided';
 export type Delivery = 'unicast' | 'multicast';
 export type Mode = 'sync' | 'async';
@@ -20,6 +22,7 @@ export interface Assumed { what: string; value: unknown; basis: string; reason: 
 
 export interface Service {
   name: string;
+  links?: Links;
   kind: ServiceKind;
   team?: string;
   repo?: string;
@@ -75,12 +78,12 @@ export const isLeaf = (st: Pick<Step, 'type' | 'target' | 'kind' | 'operation' |
 
 export interface StepField { role: 'filter' | 'projection' | 'update' | 'sort'; path: string; operator?: string; inDdl?: boolean; ddlRef?: string; flag?: string }
 
-export interface Fn { service: string; id: string; name: string; file?: string; line?: number; commit?: string; details?: Details; steps: Step[]; unresolved?: Unresolved[]; assumed?: Assumed[] }
+export interface Fn { service: string; id: string; name: string; links?: Links; file?: string; line?: number; commit?: string; details?: Details; steps: Step[]; unresolved?: Unresolved[]; assumed?: Assumed[] }
 /** An event type a consumer handles. `type` may be a glob (`Order*`, `*`); `producers` are declared, not derived. */
 export interface IngressEvent { type: string; handler: string; producers?: string[] }
 export interface Ingress {
   service: string; id: string; bindKey: string; match?: Match; transport: Transport;
-  handler: string; entryPoint?: boolean; details?: Details;
+  handler: string; entryPoint?: boolean; details?: Details; links?: Links;
   /** Middleware functions that run before the handler, in order (ids of functions of the same service). Traced as ordinary function visits. */
   middleware?: string[];
   events?: IngressEvent[];

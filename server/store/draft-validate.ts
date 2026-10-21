@@ -8,6 +8,7 @@ import { buildIndex } from '../../core/graph-index.ts';
 import { dtoSlots } from '../../core/endpoint-info.ts';
 import { stores } from '../../core/stores.ts';
 import { designIssues, SERVICE_KINDS } from '../../core/design-rules.ts';
+import { checkLinks } from '../../core/links.ts';
 import { HttpError } from '../errors.ts';
 import { isList, keyOf, validateEntity, validateServiceHeader, type ListName } from '../schema.ts';
 import { normMeta, normStatus } from './dtos.ts';
@@ -69,7 +70,8 @@ function check(map: Map<string, ItemRow>, i: DraftOpInput): PreparedOp {
     const source = r.key.slice(r.key.lastIndexOf('|') + 1);
     if (!(SOURCES as readonly string[]).includes(source)) bad(`source must be one of ${SOURCES.join(', ')}`);
   } else if (r.list === 'flow') {
-    if (!isObj(data)) bad('a flow item is {name?, description?, steps?, doc?}');
+    if (!isObj(data)) bad('a flow item is {name?, description?, links?, steps?, doc?}');
+    else if ((data as any).links !== undefined && (data as any).links !== null) { const e = checkLinks((data as any).links); if (e) bad(e); }
     if (!has(r.service, 'ingress', r.key)) bad(`flow entry '${r.key}' is not an ingress of '${r.service}'`);
   }
   return { ...base, data };

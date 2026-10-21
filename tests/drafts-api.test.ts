@@ -204,3 +204,16 @@ test('A6 MCP: open_draft, edit_in_draft (by_ai, author assistant), draft_changes
   assert.equal((await app.mcp('discard_draft', { env: 'hld', draft: 'by-assistant' })).isError, true, 'closed');
   assert.match((await app.mcp('open_draft', { env: 'prod', name: 'x' })).text, /ENV_SEALED/);
 });
+
+test('#56 a discarded draft gives its slug up: a new draft with it starts empty, the old one is kept', async () => {
+  assert.equal((await app.call('POST', D, { name: 'Reuse', slug: 'reuse' })).status, 201);
+  assert.equal((await ops('reuse', [up('egr:auth-svc/r1', egress('r1'))])).status, 201);
+  assert.equal((await app.call('DELETE', `${D}/reuse`)).status, 200);
+  const again = await app.call('POST', D, { name: 'Reuse', slug: 'reuse' });
+  assert.equal(again.status, 201, JSON.stringify(again.body));
+  assert.equal(again.body.ops, 0);
+  assert.equal((await app.call('GET', `${D}/reuse`)).body.ops.length, 0);
+  assert.equal(rows("SELECT count(*) AS n FROM drafts WHERE env = 'hld' AND status = 'discarded' AND slug LIKE 'reuse~%'")[0].n, 1, 'the discarded draft is kept');
+  assert.equal((await app.call('POST', D, { name: 'Reuse', slug: 'reuse' })).status, 409, 'an open draft still holds its slug');
+  assert.equal((await app.call('POST', D, { name: 'Reuse' })).body.slug, 'reuse-2', 'auto slugs still avoid open drafts');
+});

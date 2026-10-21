@@ -7,7 +7,7 @@ import { keySummary } from '../../core/keys.ts';
 import { getEntries, getMeta } from './keys.ts';
 import type { SnapshotRow } from './snapshots-read.ts';
 
-export interface CopyCtx { db: DB; from: string; to: string; at: string; fromKind: 'sealed' | 'design'; mode: 'components' | 'full' }
+export interface CopyCtx { db: DB; from: string; to: string; at: string; fromKind: 'sealed' | 'design'; mode: 'components' | 'full'; behaviour?: boolean }
 
 const base = (c: CopyCtx, service: string, list: string, key: string, data: unknown, version: number | null) =>
   c.db.prepare('INSERT OR REPLACE INTO baseline_items (env, service, list, key, data, source_env, source_version, taken_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
@@ -19,7 +19,7 @@ function copyBaseline(c: CopyCtx, where: string, args: (string | number)[]) {
     SELECT ?, service, list, key, data, source_env, source_version, taken_at FROM baseline_items WHERE env = ? AND ${where}`).run(c.to, c.from, ...args);
 }
 
-/** Snapshot header (with the subsystem path) and entities of one service. Components mode leaves the functions out. */
+/** Snapshot header (with the subsystem path) and entities of one service. Components mode leaves the functions out unless `behaviour` is set. */
 export function copyService(c: CopyCtx, name: string, groupPath: string | undefined) {
   const row = c.db.prepare('SELECT * FROM snapshots WHERE env = ? AND service = ?').get(c.from, name) as SnapshotRow | undefined;
   if (!row) return null;
@@ -27,7 +27,7 @@ export function copyService(c: CopyCtx, name: string, groupPath: string | undefi
   if (groupPath !== undefined) { if (groupPath) meta.groupPath = groupPath; else delete meta.groupPath; }
   c.db.prepare('INSERT INTO snapshots (env, service, kind, meta, version, harvested_at, commit_sha, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
     .run(c.to, name, row.kind, JSON.stringify(meta), row.version, row.harvested_at, row.commit_sha, c.at);
-  const skip = c.mode === 'components' ? 'functions' : '';
+  const skip = c.mode === 'components' && !c.behaviour ? 'functions' : '';
   const rows = c.db.prepare('SELECT list, key, data FROM entities WHERE env = ? AND service = ? AND list <> ?').all(c.from, name, skip) as { list: string; key: string; data: string }[];
   const ins = c.db.prepare('INSERT INTO entities (env, service, list, key, data) VALUES (?, ?, ?, ?, ?)');
   for (const r of rows) ins.run(c.to, name, r.list, r.key, r.data);

@@ -180,6 +180,22 @@
       "additionalProperties": true
     },
 
+    "link": {
+      "type": "object", "required": ["label", "url"], "additionalProperties": false,
+      "properties": {
+        "label": { "type": "string", "minLength": 1, "maxLength": 120, "pattern": "\\S" },
+        "url": { "type": "string", "pattern": "^https?://[^\\s]+$", "description": "http or https only." }
+      }
+    },
+    "links": {
+      "type": "object", "additionalProperties": false,
+      "description": "Where to read more (0.25.1): one main link and up to 20 sub links. Shown by the UI; never part of linking or flows.",
+      "properties": {
+        "main": { "$ref": "#/$defs/link" },
+        "sub": { "type": "array", "maxItems": 20, "items": { "$ref": "#/$defs/link" } }
+      }
+    },
+
     "service": {
       "type": "object",
       "required": ["name"],
@@ -193,7 +209,8 @@
         "description": { "type": "string" },
         "tags": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
         "groupPath": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*(/[a-z0-9][a-z0-9-]*)*$", "description": "Optional. The subsystem the service belongs to, as a path: \"platform\", later \"platform/identity\". Harvesters may leave it out; design environments set it." },
-        "details": { "$ref": "#/$defs/details", "description": "Free-form. In a design (an HLD import): `doc` (file, section, quote, confidence) says where the component comes from." }
+        "links": { "$ref": "#/$defs/links" },
+        "details": { "type": "object", "additionalProperties": true, "properties": { "runtime": { "enum": ["k8s-pod", "k8s-deployment", "k8s-daemonset", "k8s-operator", "k8s-job"], "description": "How the component runs (0.25.1)." } }, "description": "Free-form. `runtime`: k8s-pod | k8s-deployment | k8s-daemonset | k8s-operator | k8s-job. In a design (an HLD import): `doc` (file, section, quote, confidence) says where the component comes from." }
       }
     },
 
@@ -246,6 +263,7 @@
       "properties": {
         "id": { "$ref": "#/$defs/id" },
         "name": { "type": "string" },
+        "links": { "$ref": "#/$defs/links" },
         "file": { "type": "string" },
         "line": { "type": "integer", "minimum": 1 },
         "commit": { "type": "string", "description": "Only when this function was scanned at a different commit than the manifest's." },
@@ -267,7 +285,8 @@
         "transport": { "$ref": "#/$defs/transport" },
         "handler": { "$ref": "#/$defs/id", "description": "Function id that handles this ingress." },
         "middleware": { "type": "array", "items": { "$ref": "#/$defs/id" }, "description": "Optional. Function ids (same manifest, same rule as `handler`) that run before the handler, in order. Traced before the handler: their calls are real messages and edges. `details.middleware` is still accepted (not traced)." },
-        "entryPoint": { "type": "boolean", "default": false, "description": "Public API, cron, etc. Excluded from orphan stats." },
+        "links": { "$ref": "#/$defs/links" },
+        "entryPoint": { "type": "boolean", "description": "true: always an entry point (public API, cron, a client's own trigger); excluded from orphan stats. false: never one (a hop such as a tunnel, BGP or BFD session that keeps its real transport). Absent: the default rule (a socket ingress, an RPC command, or an ingress nothing reaches is one)." },
         "details": { "$ref": "#/$defs/details", "description": "Free-form. RabbitMQ RPC (0.18.0): on an ingress with bind key `amqp-rpc:{command}`, `rpc` {command, commandQueue, replyTo, exchange, correlation, timeoutMs, library, prefetch} (the server's side; what the caller declares is completed with it)." },
         "source": { "$ref": "#/$defs/source" },
         "provenance": { "$ref": "#/$defs/provenance" },

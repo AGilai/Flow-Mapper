@@ -54,7 +54,7 @@ export function createEdits(c) {
     },
     flowNames: async (env) => {
       const out = [];
-      for (const [k, t] of c.texts(env)) if (t.name) { const [service, ...rest] = k.split('/'); out.push({ service, ingress: rest.join('/'), name: t.name, author: null, updatedAt: '' }); }
+      for (const [k, t] of c.texts(env)) if (t.name) { const [service, ...rest] = k.split('/'); out.push({ service, ingress: rest.join('/'), name: t.name, author: null, updatedAt: '', ...(t.links ? { links: t.links } : {}) }); }
       return out;
     },
     setFlowName: async (env, { service, ingress, name }) => {
