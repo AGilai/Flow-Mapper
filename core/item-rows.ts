@@ -12,6 +12,12 @@ import { dtoLink, type Dto, type DtoMeta, type EventDto } from './endpoint-info.
 export interface ItemRow { service: string; list: string; key: string; data: any }
 export const ENTITY_LISTS = ['functions', 'ingress', 'egress', 'resources', 'channels', 'bindings'] as const;
 export const rowId = (r: Pick<ItemRow, 'service' | 'list' | 'key'>) => `${r.service}\u0000${r.list}\u0000${r.key}`;
+/** A short human name of a row: the service, the id or key, `request of in.x` for a DTO, the store key of a schema. */
+export function rowLabel(r: Pick<ItemRow, 'service' | 'list' | 'key'>): string {
+  if (r.list === 'dto') { const rest = r.key.slice(0, r.key.lastIndexOf('|')), i = rest.lastIndexOf('|'); return `${rest.slice(i + 1)} of ${rest.slice(0, i)}`; }
+  if (r.list === 'schema') return r.key.slice(0, r.key.lastIndexOf('|'));
+  return r.list === 'header' ? r.service : r.key;
+}
 const cmp = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 const byRow = (a: ItemRow, b: ItemRow) => cmp(a.service, b.service) || cmp(a.list, b.list) || cmp(a.key, b.key);
 

@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { openDb } from './db/connection.ts';
 import { Router, sendJson } from './http/router.ts';
 import { serveStatic } from './http/static.ts';
-import { afterWrite, graphFor } from './graph-cache.ts';
+import { afterWrite, graphFor, invalidateDraft, viewFor } from './graph-cache.ts';
 import type { Ctx } from './context.ts';
 import { registerEnvs } from './routes/envs.ts';
 import { registerMap } from './routes/map.ts';
@@ -17,6 +17,8 @@ import { registerDtos } from './routes/dtos.ts';
 import { registerDescriptions } from './routes/descriptions.ts';
 import { registerInventory } from './routes/inventory.ts';
 import { registerInstances } from './routes/instances.ts';
+import { registerDrafts } from './routes/drafts.ts';
+import { getDraft } from './store/drafts.ts';
 import { registerMcpHttp } from './mcp/http.ts';
 
 export const APP_VERSION: string = JSON.parse(readFileSync(join(import.meta.dirname, '../package.json'), 'utf8')).version;
@@ -28,7 +30,11 @@ export function createContext(opts: AppOptions): Ctx {
   return {
     db, dataDir: opts.dataDir, appVersion: APP_VERSION,
     graph: (env) => graphFor(db, env),
+    graphOf: (req) => viewFor(db, req.params.env, req.query.get('draft')).g,
+    readerOf: (req) => viewFor(db, req.params.env, req.query.get('draft')).reader,
+    view: (env, draft) => viewFor(db, env, draft ?? null),
     changed: (env) => afterWrite(db, env),
+    changedDraft: (env, slug) => invalidateDraft(env, slug),
   };
 }
 
@@ -36,6 +42,8 @@ export function createApp(opts: AppOptions): { server: Server; ctx: Ctx; router:
   const ctx = createContext(opts);
   const router = new Router();
   router.get('/api/version', () => ({ version: APP_VERSION }));
+  // Any GET under /api/envs/:env/ may carry ?draft=<slug>: an unknown draft is 404 and a closed one 409, whichever route it is.
+  router.guard((req) => { const slug = req.query.get('draft'); if (req.method === 'GET' && slug && req.params.env) getDraft(ctx.db, req.params.env, slug); });
   registerEnvs(router, ctx);
   registerMap(router, ctx);
   registerQueries(router, ctx);
@@ -44,6 +52,7 @@ export function createApp(opts: AppOptions): { server: Server; ctx: Ctx; router:
   registerDescriptions(router, ctx);
   registerInventory(router, ctx);
   registerInstances(router, ctx);
+  registerDrafts(router, ctx);
   registerMcpHttp(router, ctx);
 
   const server = createServer(async (req, res) => {

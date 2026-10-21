@@ -62,7 +62,9 @@ test('C2 components: the picked services with objects and DTOs, no functions, an
   assert.equal(entryPoints(app.ctx.graph('comp-1')).length >= 0 && app.ctx.graph('comp-1').model.functions.length, 0, 'no functions, so no flows');
   // functions are missing, so ingress handlers dangle; an edit must still go through (only new problems block it)
   const egress = { id: 'tbd', bindKey: 'http:GET users-svc/new', transport: 'http' };
-  assert.equal((await app.call('POST', '/api/envs/comp-1/services/users-svc/egress', egress)).status, 201);
+  assert.equal((await app.call('POST', '/api/envs/comp-1/drafts', { name: 'tbd', slug: 'tbd' })).status, 201);
+  assert.equal((await app.call('POST', '/api/envs/comp-1/drafts/tbd/ops', { ops: [{ op: 'upsert', anchor: 'egr:users-svc/tbd', data: egress }] })).status, 201);
+  assert.equal((await app.call('POST', '/api/envs/comp-1/drafts/tbd/apply', {})).status, 200, 'a copied component with dangling handlers takes a delta');
   assert.equal(q("SELECT count(*) AS n FROM entities WHERE env = 'prod' AND service = 'users-svc' AND key = 'tbd'")[0].n, 0, 'the source is not touched');
 });
 
@@ -90,7 +92,11 @@ test('C4 full copy of a design keeps its subsystems and its original baseline; n
   assert.deepEqual(was('dup-1').map((r) => ({ ...r })), was('comp-1').map((r) => ({ ...r })));
   assert.equal(was('dup-1')[0].source_env, 'prod', 'the baseline still says prod');
   // changing the copy leaves the original alone
-  assert.equal((await app.call('PATCH', '/api/envs/dup-1/services/users-svc', { team: 'zz' })).status, 200);
+  const { version: _v, harvestedAt: _h, commit: _c, ...header } = (await app.call('GET', '/api/envs/dup-1/services/users-svc')).body.service;
+  assert.equal((await app.call('POST', '/api/envs/dup-1/drafts', { name: 'team', slug: 'team' })).status, 201);
+  assert.equal((await app.call('POST', '/api/envs/dup-1/drafts/team/ops', { ops: [{ op: 'upsert', anchor: 'svc:users-svc', data: { ...header, name: undefined, team: 'zz' } }] })).status, 201);
+  assert.equal((await app.call('POST', '/api/envs/dup-1/drafts/team/apply', {})).status, 200);
+  assert.equal((await app.call('GET', '/api/envs/dup-1/services/users-svc')).body.service.team, 'zz');
   assert.notEqual((await app.call('GET', '/api/envs/comp-1/services/users-svc')).body.service.team, 'zz');
 });
 

@@ -73,13 +73,18 @@ export function updateService(db: DB, env: string, name: string, patch: any, sou
   });
 }
 
+/** Remove a service and (by foreign key cascade) its entities and DTOs. Unguarded: callers are the guarded wrapper and a draft's apply. */
+export function deleteServiceIn(db: DB, env: string, name: string, source: Source = 'api', draftId?: number) {
+  const cur = getSnapshotRow(db, env, name);
+  if (!cur) throw notFound(`service '${name}' in env '${env}'`);
+  db.prepare('DELETE FROM snapshots WHERE env = ? AND service = ?').run(env, name);
+  writeChangelog(db, env, name, cur.version, null, 'delete-service', source, {}, draftId);
+  return { deleted: name };
+}
+
 export function deleteService(db: DB, env: string, name: string, source: Source = 'api') {
   return tx(db, () => {
     guardEnv(db, env, 'manual');
-    const cur = getSnapshotRow(db, env, name);
-    if (!cur) throw notFound(`service '${name}' in env '${env}'`);
-    db.prepare('DELETE FROM snapshots WHERE env = ? AND service = ?').run(env, name);
-    writeChangelog(db, env, name, cur.version, null, 'delete-service', source, {});
-    return { deleted: name };
+    return deleteServiceIn(db, env, name, source);
   });
 }

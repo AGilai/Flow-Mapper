@@ -2,7 +2,7 @@
 // and not the same is changed. Functions compare by aligned steps; DTOs, event DTOs and schemas by field.
 
 import { anchorOfRow, fieldAnchor } from '../anchors.ts';
-import type { ItemRow } from '../item-rows.ts';
+import { rowLabel, type ItemRow } from '../item-rows.ts';
 import type { Step } from '../types.ts';
 import type { DiffOpts, Mark, MarkInfo } from './index.ts';
 import { diffFields, fieldsOf, type FieldMark } from './fields.ts';
@@ -54,7 +54,7 @@ export function rawMarks(base: Side, cur: Side, _opts: DiffOpts): { marks: Map<s
     if (!b || !c) {
       const mark: Mark = b ? 'removed' : 'new';
       marks.set(anchor, { mark, row });
-      if (b) ghosts[anchor] = { label: label(r), service: r.service || undefined, type: r.list };
+      if (b) ghosts[anchor] = { label: rowLabel(r), service: r.service || undefined, type: r.list };
     } else if (FIELDED.has(r.list)) {
       const fm = diffFields(fieldsOf(contentOf(b)), fieldsOf(contentOf(c)));
       if (!fm.length) continue;
@@ -63,10 +63,4 @@ export function rawMarks(base: Side, cur: Side, _opts: DiffOpts): { marks: Map<s
     } else if (!same(r.list, b.data, c.data)) marks.set(anchor, { ...changed(b, c), row });
   }
   return { marks, ghosts };
-}
-
-function label(r: ItemRow): string {
-  if (r.list === 'dto') { const rest = r.key.slice(0, r.key.lastIndexOf('|')), i = rest.lastIndexOf('|'); return `${rest.slice(i + 1)} of ${rest.slice(0, i)}`; }
-  if (r.list === 'schema') return r.key.slice(0, r.key.lastIndexOf('|'));
-  return r.list === 'header' ? r.service : r.key;
 }

@@ -6,6 +6,7 @@ import { ingestManifestTool, upsertEntityTool, deleteEntityTool } from './write.
 import { getStoreTool, listClientsTool, getResourceKeysTool, loadSchemasTool, loadDtosTool } from './stores.ts';
 import { listBugsTool, getBugTool, reportBugTool, updateBugTool } from './bugs.ts';
 import { listEnvsTool, createEnvTool } from './envs.ts';
+import { openDraftTool, listDraftsTool, draftChangesTool, editInDraftTool, applyDraftTool, discardDraftTool } from './drafts.ts';
 import type { Tool } from './common.ts';
 export type { Tool };
 
@@ -38,4 +39,10 @@ export const TOOLS: Tool[] = [
   updateBugTool,
   listEnvsTool,
   createEnvTool,
+  openDraftTool,
+  listDraftsTool,
+  draftChangesTool,
+  editInDraftTool,
+  applyDraftTool,
+  discardDraftTool,
 ];

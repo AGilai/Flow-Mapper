@@ -27,6 +27,10 @@ const MAX_BODY = 10 * 1024 * 1024;
 
 export class Router {
   private routes: Route[] = [];
+  private guards: ((req: Pick<Req, 'method' | 'path' | 'params' | 'query'>) => void)[] = [];
+
+  /** Runs before every matched handler (throw an HttpError to refuse): checks that apply to a whole family of routes. */
+  guard(fn: (req: Pick<Req, 'method' | 'path' | 'params' | 'query'>) => void) { this.guards.push(fn); return this; }
 
   on(method: string, path: string, handler: Handler) {
     this.routes.push({ method, parts: path.split('/').filter(Boolean), handler });
@@ -81,6 +85,7 @@ export class Router {
     };
     try {
       if (m === 'method') throw new HttpError(405, 'METHOD_NOT_ALLOWED', `${req.method} not allowed on ${url.pathname}`);
+      for (const g of this.guards) g({ method: req.method ?? 'GET', path: url.pathname, params: m.params, query: url.searchParams });
       const out = await m.handler({
         method: req.method ?? 'GET', path: url.pathname, params: m.params, query: url.searchParams, headers: req.headers, body,
         json: async () => {

@@ -35,9 +35,9 @@ export function replaceEntities(db: DB, env: string, service: string, e: Entitie
   for (const l of LISTS) for (const x of e[l] ?? []) ins.run(env, service, l, keyOf(l, x), JSON.stringify(x));
 }
 
-export function writeChangelog(db: DB, env: string, service: string, from: number | null, to: number | null, kind: string, source: Source, changes: unknown): number {
-  const r = db.prepare('INSERT INTO changelog (env, service, from_version, to_version, kind, source, at, changes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-    .run(env, service, from, to, kind, source, now(), JSON.stringify(changes));
+export function writeChangelog(db: DB, env: string, service: string, from: number | null, to: number | null, kind: string, source: Source, changes: unknown, draftId?: number): number {
+  const r = db.prepare('INSERT INTO changelog (env, service, from_version, to_version, kind, source, at, changes, draft_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    .run(env, service, from, to, kind, source, now(), JSON.stringify(changes), draftId ?? null);
   return Number(r.lastInsertRowid);
 }
 
