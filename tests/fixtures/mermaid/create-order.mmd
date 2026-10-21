@@ -1,0 +1,73 @@
+%% Flow: api-gateway · in.createOrder
+sequenceDiagram
+actor client as client
+participant api_gateway as api-gateway
+participant orders_svc as orders-svc
+participant http_GET_users_svc_users_id_prefs as http:GET users-svc/users/{id}/prefs
+participant sns_order_events as sns:order-events
+participant sqs_shipping_order_events as sqs:shipping-order-events
+participant shipping_svc as shipping-svc
+participant mongodb_shipping_db_shipments as mongodb:shipping-db/shipments
+participant sqs_inventory_order_events as sqs:inventory-order-events
+participant inventory_svc as inventory-svc
+participant dynamodb_inventory_stock as dynamodb:inventory-stock
+participant payments_svc as payments-svc
+participant redis_cache_main_risk_customer as redis:cache-main/risk:{customer}
+participant sns_payment_disputes as sns:payment-disputes
+participant dynamodb_payments as dynamodb:payments
+participant sns_payment_events as sns:payment-events
+participant sqs_analytics_all_events as sqs:analytics-all-events
+participant analytics_svc as analytics-svc
+participant s3_acme_event_lake as s3:acme-event-lake
+participant mongodb_orders_db_orders as mongodb:orders-db/orders
+participant amqp_queue_notify_shipping as amqp-queue:notify-shipping
+participant notifications_svc as notifications-svc
+participant users_svc as users-svc
+participant postgres_users_db_users as postgres:users-db/users
+participant external_email_provider as external:email-provider
+participant unresolved_dynamic_dispatch as unresolved: dynamic_dispatch
+participant redis_cache_main_order_id as redis:cache-main/order:{id}
+participant unresolved_method_or_path_unresolved as unresolved: method_or_path_unresolved
+client->>api_gateway: POST /api/orders
+api_gateway->>orders_svc: POST /orders
+orders_svc->>http_GET_users_svc_users_id_prefs: GET /users/{id}/prefs
+Note over orders_svc,http_GET_users_svc_users_id_prefs: loads delivery preferences
+orders_svc->>inventory_svc: POST /reservations
+inventory_svc->>dynamodb_inventory_stock: UpdateItem (conditional)
+Note over inventory_svc,dynamodb_inventory_stock: per line item
+inventory_svc-->>orders_svc: return
+orders_svc->>payments_svc: POST /payments/charge
+payments_svc->>redis_cache_main_risk_customer: GET risk:{customer}
+payments_svc-)sns_payment_disputes: publish sns:payment-disputes · DisputeOpened
+payments_svc->>dynamodb_payments: PutItem
+payments_svc-)sns_payment_events: publish sns:payment-events · PaymentCaptured
+sns_payment_events-)sqs_analytics_all_events: sns:payment-events · PaymentCaptured
+sqs_analytics_all_events-)analytics_svc: sqs:analytics-all-events · PaymentCaptured → ingest_event
+analytics_svc->>s3_acme_event_lake: PutObject
+payments_svc-->>orders_svc: return
+orders_svc->>mongodb_orders_db_orders: insertOne
+orders_svc-)sns_order_events: publish sns:order-events · OrderPlaced
+sns_order_events-)sqs_analytics_all_events: sns:order-events · OrderPlaced
+sqs_analytics_all_events-)analytics_svc: sqs:analytics-all-events · OrderPlaced → ingest_event
+sns_order_events-)sqs_shipping_order_events: sns:order-events · OrderPlaced
+sqs_shipping_order_events-)shipping_svc: sqs:shipping-order-events · OrderPlaced → onOrderPlaced
+sns_order_events-)sqs_inventory_order_events: sns:order-events · OrderPlaced
+sqs_inventory_order_events-)inventory_svc: sqs:inventory-order-events · OrderPlaced → OnOrderEvent
+analytics_svc->>s3_acme_event_lake: PutObject
+shipping_svc->>mongodb_shipping_db_shipments: insertOne
+shipping_svc-)amqp_queue_notify_shipping: publish shipping.created amqp:shipping/shipping.created
+amqp_queue_notify_shipping-)notifications_svc: amqp-queue:notify-shipping → onShippingEvent
+notifications_svc->>api_gateway: GET /api/users/{id}/contact
+Note over notifications_svc,api_gateway: via public gateway
+api_gateway->>users_svc: GET /users/{id}/contact
+users_svc->>postgres_users_db_users: SELECT contacts
+users_svc-->>api_gateway: return
+notifications_svc->>external_email_provider: POST /v3/mail/send
+api_gateway-->>notifications_svc: return
+shipping_svc->>unresolved_dynamic_dispatch: handlers[event.kind](event)
+shipping_svc->>redis_cache_main_order_id: DEL order:{id}
+Note over shipping_svc,redis_cache_main_order_id: invalidates the cached order
+inventory_svc->>dynamodb_inventory_stock: TransactWriteItems
+orders_svc-)unresolved_method_or_path_unresolved: POST ${AUDIT_URL}/events
+orders_svc-->>api_gateway: return
+api_gateway-->>client: return

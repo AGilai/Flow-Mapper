@@ -10,8 +10,9 @@ import { rawHash, same, stableJson } from './diff/normalise.ts';
 import { topOf } from './subsystems.ts';
 
 export interface DraftOpInput { op: 'upsert' | 'delete'; anchor: string; service?: string; data?: unknown }
-/** Where an op's item was imported from (import ops only): the source environment and its service version then. */
-export interface OpOrigin { env: string; version: number | null }
+/** Where an op's item was imported from (import ops only): the source environment and its service version then. `batch`: the Mermaid import it came with (0.27.2).
+ *  A Mermaid import's own ops carry {kind: 'mermaid', batch}: no baseline, only the id that Undo import removes them by. */
+export type OpOrigin = { env: string; version: number | null; batch?: string } | { kind: 'mermaid'; batch: string };
 export interface DraftOp extends DraftOpInput { seq: number; service: string; list: string; key: string; baseHash: string | null; author: string; byAi: boolean; at: string; origin?: OpOrigin | null }
 export type NetOp = DraftOp;
 /** `what`: a component that moved to another subsystem says so ("subsystem: Network → Platform"); its two grp: boxes are listed under it. */

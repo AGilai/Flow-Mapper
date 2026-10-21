@@ -31,7 +31,7 @@ after(() => app.close());
 /** A concrete URL per GET route pattern (the first test fails when a route is missing here). */
 const URLS: Record<string, string> = {
   'GET /api/envs/:env/views/system': 'views/system', 'GET /api/envs/:env/views/service/:service': 'views/service/pop', 'GET /api/envs/:env/entry-points': 'entry-points',
-  'GET /api/envs/:env/flows/counts': 'flows/counts', 'GET /api/envs/:env/trace': 'trace?service=pop&ingress=in.open', 'GET /api/envs/:env/paths': 'paths?from=pop&to=auth-svc',
+  'GET /api/envs/:env/flows/counts': 'flows/counts', 'GET /api/envs/:env/flows/mermaid': 'flows/mermaid?service=pop&ingress=in.open', 'GET /api/envs/:env/trace': 'trace?service=pop&ingress=in.open', 'GET /api/envs/:env/paths': 'paths?from=pop&to=auth-svc',
   'GET /api/envs/:env/search': 'search?q=pop', 'GET /api/envs/:env/health': 'health', 'GET /api/envs/:env/health/history': 'health/history', 'GET /api/envs/:env/changelog': 'changelog',
   'GET /api/envs/:env/model': 'model', 'GET /api/envs/:env/services': 'services', 'GET /api/envs/:env/services/:service': 'services/pop', 'GET /api/envs/:env/services/:service/:list': 'services/pop/ingress',
   'GET /api/envs/:env/services/:service/:list/*key': 'services/pop/ingress/in.open', 'GET /api/envs/:env/endpoints/:service/*ingress': 'endpoints/pop/in.open', 'GET /api/envs/:env/dtos': 'dtos',

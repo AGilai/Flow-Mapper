@@ -1,0 +1,15 @@
+%% Flow: users-svc · in.getPosture
+sequenceDiagram
+actor caller as caller
+participant users_svc as users-svc
+participant postgres_users_db_users as postgres:users-db/users
+participant redis_cache_main_user_id as redis:cache-main/user:{id}
+participant auth_svc as auth-svc
+participant redis_auth_cache_session_token as redis:auth-cache/session:{token}
+caller->>users_svc: GET /users/{id}/posture
+users_svc->>postgres_users_db_users: SELECT devices
+users_svc->>redis_cache_main_user_id: GET posture:{id}
+users_svc->>auth_svc: POST /verify
+auth_svc->>redis_auth_cache_session_token: GET session:{token}
+auth_svc-->>users_svc: return
+users_svc-->>caller: return

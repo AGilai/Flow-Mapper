@@ -11,6 +11,7 @@ import { getMarksTool, applyImportPlanTool } from './design.ts';
 import { importPreviewTool, importIntoDraftTool } from './import.ts';
 import { editDesignTool, getCallTool } from './edit.ts';
 import { getFlowNamesTool, setFlowNameTool } from './flow-names.ts';
+import { exportMermaidTool, importMermaidTool } from './mermaid.ts';
 import { listCommentsTool, addCommentTool } from './comments.ts';
 import { getSubsystemsTool, getSubsystemMapTool, listAbstractLinksTool, suggestRefinementsTool, applyPlanLinksTool, setSubsystemSettingsTool, setLevelsTool } from './subsystems.ts';
 import type { Tool } from './common.ts';
@@ -66,4 +67,6 @@ export const TOOLS: Tool[] = [
   applyPlanLinksTool,
   setSubsystemSettingsTool,
   setLevelsTool,
+  exportMermaidTool,
+  importMermaidTool,
 ];

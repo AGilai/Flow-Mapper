@@ -12,6 +12,8 @@ import { draftBar } from './draft-bar.js';
 import { loadMarks } from './marks-store.js';
 import { reviewPanel } from './draft-review.js';
 import { discardDraft } from './draft-discard.js';
+import { importedLine, lastImport, setLastImport } from './mermaid-undo.js';
+import { batchText, latestBatch } from './mermaid-pure.js';
 
 /** Mount the strip at the top of `main`; null for a sealed environment. */
 export function mountDesignStrip(main) {
@@ -40,12 +42,14 @@ export function mountDesignStrip(main) {
     let changes = null, names = new Map();
     try { changes = await api.draftChanges(state.env, d.slug); } catch { /* the bar falls back to the draft's own counts */ }
     try { names = new Map((await api.flowNames(state.env)).filter((n) => n.name).map((n) => [`${n.service}/${n.ingress}`, n.name])); } catch { /* rows read the entry id */ }
+    if (!lastImport()) { try { const b = latestBatch((await api.draft(state.env, d.slug)).ops); if (b) setLastImport({ draft: d.slug, batch: b.batch, text: batchText(b) }); } catch { /* no undo line: the preview has no ops to read */ } }   // after a reload too: derived from the ops' origin
     if (!alive) return;
     let imported = null; // endpoints the draft imported (their behaviour came along): the delta's tooltip says so
     try { const o = Object.values((await loadMarks()).payload.refs?.origins ?? {}).filter((x) => x.inDraft); imported = o.length ? { n: o.length, from: o[0].from } : null; } catch { /* no tooltip part */ }
     const paint = (focusReview = false) => { fill(bar,
       draftBar({ draft: d, changes, review, imported, onReview: () => { if (review === 'review') close(); else { review = 'review'; paint(true); } }, onApply: () => { review = 'confirm'; paint(true); },
         onDiscard: () => discardDraft(d), onPick: (a) => openDraftPicker(a, { drafts }) }),
+      importedLine({ onReview: () => { review = 'review'; paint(true); } }),
       review ? reviewPanel({ draft: d, changes: changes ?? { counts: d.counts, items: [], authors: [] }, confirm: review === 'confirm', onClose: () => close(), refresh: () => setDesign({}), names }) : null);
       if (focusReview) bar.querySelector('.dz-review')?.focus(); };
     const close = () => { review = null; paint(); bar.querySelector('[data-qa=review]')?.focus(); };
