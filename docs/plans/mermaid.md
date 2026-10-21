@@ -80,3 +80,13 @@ maintainer's request for night work; they override with a bug.
 No dependencies. Files ≤ 250 lines. core/ pure. No migration expected. Preview: export works in the static preview;
 import is refused there like apply. DEMOS rows with a sample `.mmd` in `samples/mermaid/agent-tunnel.mmd`, imported
 into sase-hld. Version 0.27.2.
+
+## Lead decisions after frame 14 (2026-10-21)
+- **Undo import is in scope.** Each Mermaid import is one batch: its ops carry `origin {kind: 'mermaid', batch: <id>}`.
+  `DELETE …/drafts/:slug/mermaid/:batch` removes that batch's ops if no later op depends on them; otherwise it
+  answers 409 and lists the blocking ops. The info line after an import shows "Undo import".
+- **Rename draft is out of scope**, so the Edit menu holds only "Import Mermaid…".
+- **"in prod" never imports by itself.** The default is "＋ create new", and "Import from prod (one level)" is an
+  explicit choice in the select. The import then goes through the 2a-1 one-level import into the same draft.
+- **Step descriptions** come from Mermaid notes, and from message labels longer than the operation text (the part
+  after `: ` when it isn't a method/path).
