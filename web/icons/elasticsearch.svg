@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><!-- simplified mark drawn for Flow-Mapper: a disc cut by the four Elastic brand colours; not the official logo -->
+<defs><clipPath id="c"><circle cx="64" cy="64" r="56"/></clipPath></defs>
+<g clip-path="url(#c)"><rect width="128" height="46" fill="#FEC514"/><rect y="40" width="128" height="24" fill="#F04E98"/><rect y="58" width="128" height="30" fill="#00BFB3"/><rect y="82" width="128" height="46" fill="#1BA9F5"/></g>
+<path fill="none" stroke="#fff" stroke-width="7" d="M20 52h88M20 76h88"/></svg>

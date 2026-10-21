@@ -7,6 +7,7 @@ import { markChips, chipsStack } from './flow-marks-draw.js';
 import { sharedVar } from '../design/component-colors.js';
 import { bandsOf } from './flow-stores-pure.js';
 import { BAND_H } from './flow-draw-bands.js';
+import { headIconOf } from './flow-draw-icons.js';
 import { FOLD_W, COL_NARROW, displayCols, foldGroups, planSqueeze } from './flow-squeeze.js';
 
 export const COL = 138, COL_MIN = 132, PAD = 16, GUTTER = 8, BAR = 12, NEST = 8, CH_HEAD = 116; // CH_HEAD: a topic or queue head is narrower than a service head
@@ -57,7 +58,7 @@ export function layoutLane(lane, fit = 0, sq = null, marks = null, edit = false)
   const plan = (keep) => planSqueeze({ n: columns.length, ends: keep, fit, widthOf: (f, o) => layout(o.narrow ? COL_NARROW : COL_MIN, f, o.foldW).width });
   let L = fitted(new Set()), folded = new Set(), fw = FOLD_W, sig = '';
   if (sq && fit && L.width > fit) { const P = plan(sq.keep); ({ folded, foldW: fw, key: sig } = P); if (folded.size) L = fitted(folded, fw, P.narrow ? COL_NARROW : COL_MIN); }
-  const { xs, col: COLW, width } = L, HEAD_BOX = COLW - 8, nameCh = (c) => Math.max(9, Math.floor((headW(c, COLW) - (c.kind === 'resource' ? 34 : 14)) / 6.6)); // a store head has an icon before the name
+  const { xs, col: COLW, width } = L, HEAD_BOX = COLW - 8, nameCh = (c) => Math.max(9, Math.floor((headW(c, COLW) - (c.kind === 'resource' || headIconOf(c) ? 34 : 14)) / 6.6)); // a store head, or one with a product icon, has it before the name
   const colX = new Map(columns.map((c, i) => [c, xs[i]]));
   // a queue head drops its transport prefix and the 'queue delivery' line (the title keeps both): two lines at most
   const subCh = COLW < COL_MIN ? Math.max(10, Math.floor((COLW - 22) / 5.8)) : SUB_CH; // narrowed heads (Squeeze, last stage) wrap the sub line shorter
