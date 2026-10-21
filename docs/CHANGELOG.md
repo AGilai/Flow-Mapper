@@ -5,6 +5,9 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## 0.27.3 (2026-10-21)
+- UI: flow diagrams show the product icon of what each lifeline is: data stores and store bands (MongoDB, Redis, Postgres, DynamoDB, S3, MySQL, Elasticsearch), topics and queues (SNS, SQS, EventBridge, RabbitMQ), lambdas and gateways. Unknown kinds keep the line glyph. No API change.
+
 ## 0.27.4 (2026-10-21)
 - Mermaid export and import of flows (details in [API.md](API.md) "Mermaid"). Additive; no migration.
   - Export, any environment (sealed and the static preview too): `GET /api/envs/:env/flows/mermaid?service=&ingress=&draft=` answers `text/plain`; MCP `export_mermaid {env, service, ingress, draft?}` -> `{text}`. The full trace as `sequenceDiagram`: `participant <id> as <name>` per lifeline (channels and data stores labelled by their key, the entry client an `actor`), `->>` with its `-->>` return, `-)` async, `Note over` the step description, `title` the flow name, a `%% Description:` comment.

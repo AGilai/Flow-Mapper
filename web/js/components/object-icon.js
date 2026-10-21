@@ -12,6 +12,7 @@ const FILES = {
   'channel:amqp-exchange': 'rabbitmq', 'channel:amqp-queue': 'rabbitmq',
   'channel:rpc-command-queue': 'rabbitmq', 'channel:rpc-reply-queue': 'rabbitmq', 'channel:rpc-reply-queues': 'rabbitmq',
   'store:dynamodb': 'aws-dynamodb', 'store:s3': 'aws-s3', 'store:redis': 'redis', 'store:mongodb': 'mongodb', 'store:postgres': 'postgres',
+  'store:mysql': 'mysql', 'store:elasticsearch': 'elasticsearch',
   event: 'aws-event',
 };
 const FALLBACK = { service: 'services', channel: 'flow', store: 'database', event: 'flow', rpc: 'rpc' };
