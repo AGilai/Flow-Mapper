@@ -4,6 +4,7 @@
 import { h } from '../dom.js';
 import { state } from '../state.js';
 import { names, deltaText } from './who.js';
+import { openEditMenu } from './edit-menu.js';
 
 /** "by seed", "by seed and 2 others" (pure). */
 export function byText(authors) {
@@ -27,6 +28,7 @@ export function draftBar({ draft, changes, review, onReview, onApply, onDiscard,
         h('span.a', `+${c.added}`), h('span.r', `−${c.removed}`), h('span.c', `~${c.changed}`)),
       h('span.spacer'),
       h('div.dz-actions',
+        h('button.btn', { type: 'button', 'data-qa': 'edit-menu', 'aria-haspopup': 'menu', disabled: busy, on: { click: (e) => openEditMenu(e.currentTarget) } }, 'Edit', h('span.dz-caret', '▾')),
         h('button.btn', { type: 'button', 'data-qa': 'review', 'aria-pressed': String(review === 'review'), disabled: busy, on: { click: onReview } }, 'Review changes'),
         h('button.btn', { type: 'button', 'data-qa': 'discard', disabled: busy, on: { click: onDiscard } }, 'Discard'),
         h('button.btn.primary', { type: 'button', 'data-qa': 'apply', disabled: busy || !total, title: total ? `Apply ${deltaText(c)} to ${state.env}` : 'No changes yet', on: { click: onApply } },

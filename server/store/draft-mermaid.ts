@@ -12,7 +12,7 @@ import { importOps, previewOf } from '../../core/import-preview.ts';
 import { pickInfraOwner } from '../../core/infra-owner.ts';
 import { rowId, type ItemRow } from '../../core/item-rows.ts';
 import { mermaidPlan, resolveTargets } from '../../core/mermaid-edits.ts';
-import { matchParticipants } from '../../core/mermaid-match.ts';
+import { componentName, matchParticipants } from '../../core/mermaid-match.ts';
 import { parseMermaid, summarize } from '../../core/mermaid-parse.ts';
 import { badRequest, conflict, HttpError, notFound } from '../errors.ts';
 import { cached } from '../design-rows.ts';
@@ -72,12 +72,12 @@ function plan(ctx: Ctx, env: string, slug: string, i: MermaidInput) {
   }
   const all = [...imports.flatMap((x) => x.ops), ...mp.ops];
   if (all.length) prepareOps(new Map(base.map((x) => [rowId(x), x])), all, { groups });   // what append would refuse, said before anything is written
-  return { d, parsed, rows, r, imports, mp, all, groups };
+  return { d, parsed, rows, r, imports, mp, all, groups, components: names(base), source };
 }
 
 const out = (p: ReturnType<typeof plan>) => ({
   title: p.parsed.title ?? null, description: p.parsed.description ?? null, summary: summarize(p.parsed),
-  participants: p.rows.map((x) => ({ ...x, choice: p.r.choices[x.id] })), matches: p.r.choices,
+  participants: p.rows.map((x) => ({ ...x, choice: p.r.choices[x.id], createName: componentName(x.source ?? x.label) })), matches: p.r.choices, components: p.components, source: p.source,
   creates: p.mp.creates, imports: p.imports.map((x) => ({ component: x.component, source: x.source, counts: x.preview.counts, total: x.preview.total })),
   counts: p.mp.counts, undecided: p.mp.undecided, flow: p.mp.flow, edits: p.mp.edits, ops: p.all.length,
   warnings: [...p.parsed.warnings, ...p.r.warnings.map((text) => ({ text })), ...p.mp.warnings],

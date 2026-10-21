@@ -25,6 +25,16 @@ async function http(method, path, body, raw) {
   return data;
 }
 
+/** A GET that answers text (a Mermaid export): the body as a string; an error comes back as JSON like the others. */
+async function httpText(path) {
+  const res = await fetch(path), text = await res.text();
+  if (res.ok) return text;
+  let data = null; try { data = JSON.parse(text); } catch { /* not JSON */ }
+  const err = new Error(data?.error?.message ?? `HTTP ${res.status}`);
+  err.status = res.status; err.code = data?.error?.code; err.details = data?.error?.details;
+  throw err;
+}
+
 const e = encodeURIComponent;
 const qs = (o) => {
   const p = new URLSearchParams(Object.entries(o).filter(([, v]) => v != null && v !== '' && v !== false));
@@ -77,6 +87,10 @@ const remote = {
   applyDraft: (env, slug, by) => put(env, `/${e(slug)}/apply`, 'POST', { by }),
   importPreview: (env, slug, i) => http('GET', `/api/envs/${e(env)}/drafts/${e(slug)}/import/preview${qs({ source: i.source, anchor: i.anchor, groupPath: i.groupPath })}`),
   importIntoDraft: (env, slug, i, author) => put(env, `/${e(slug)}/import`, 'POST', { ...i, author }),
+  mermaid: (env, service, ingress) => httpText(withDraft(`/api/envs/${e(env)}/flows/mermaid${qs({ service, ingress })}`)),
+  mermaidPreview: (env, slug, body) => put(env, `/${e(slug)}/mermaid/preview`, 'POST', body),
+  mermaidImport: (env, slug, body, author) => put(env, `/${e(slug)}/mermaid`, 'POST', { ...body, author }),
+  undoMermaid: (env, slug, batch) => put(env, `/${e(slug)}/mermaid/${e(batch)}`, 'DELETE'),
   designEdit: (env, slug, edit, author) => put(env, `/${e(slug)}/edits`, 'POST', { edit, author }),
   call: (env, service, egress) => get(`/api/envs/${e(env)}/call${qs({ service, egress })}`),
   flowNames: (env) => get(`/api/envs/${e(env)}/flow-names`),

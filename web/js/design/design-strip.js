@@ -12,6 +12,7 @@ import { draftBar } from './draft-bar.js';
 import { loadMarks } from './marks-store.js';
 import { reviewPanel } from './draft-review.js';
 import { discardDraft } from './draft-discard.js';
+import { importedLine } from './mermaid-undo.js';
 
 /** Mount the strip at the top of `main`; null for a sealed environment. */
 export function mountDesignStrip(main) {
@@ -46,6 +47,7 @@ export function mountDesignStrip(main) {
     const paint = (focusReview = false) => { fill(bar,
       draftBar({ draft: d, changes, review, imported, onReview: () => { if (review === 'review') close(); else { review = 'review'; paint(true); } }, onApply: () => { review = 'confirm'; paint(true); },
         onDiscard: () => discardDraft(d), onPick: (a) => openDraftPicker(a, { drafts }) }),
+      importedLine({ onReview: () => { review = 'review'; paint(true); } }),
       review ? reviewPanel({ draft: d, changes: changes ?? { counts: d.counts, items: [], authors: [] }, confirm: review === 'confirm', onClose: () => close(), refresh: () => setDesign({}), names }) : null);
       if (focusReview) bar.querySelector('.dz-review')?.focus(); };
     const close = () => { review = null; paint(); bar.querySelector('[data-qa=review]')?.focus(); };

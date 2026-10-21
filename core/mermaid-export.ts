@@ -52,6 +52,7 @@ export function exportMermaid(t: Pick<Trace, 'start' | 'participants' | 'message
   for (const { m, key } of kept) {
     close(m.depth);
     const a = ids.get(m.from)!, b = ids.get(m.to)!;
+    if (m.kind === 'leaf') { out.push(`Note over ${a}: ${esc(m.label)}`); continue; }   // a step that ends the tree (its own operation): a note on the lifeline, not an arrow
     out.push(`${a}${m.mode === 'async' ? '-)' : '->>'}${b}: ${esc(messageLabel(m)) || '(call)'}`);
     const note = lineText(opts.descriptions?.callees[key])?.text ?? m.note;
     if (note) out.push(`Note over ${a === b ? a : `${a},${b}`}: ${esc(note)}`);
