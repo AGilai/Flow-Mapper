@@ -1426,6 +1426,12 @@ table.t { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
 <symbol id="i-link" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6.8 9.2a2.6 2.6 0 0 0 3.7 0l2.2-2.2a2.6 2.6 0 0 0-3.7-3.7l-.8.8"/><path d="M9.2 6.8a2.6 2.6 0 0 0-3.7 0L3.3 9a2.6 2.6 0 0 0 3.7 3.7l.8-.8"/></g></symbol>
 <symbol id="i-table" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1.8" y="2.8" width="12.4" height="10.4" rx="1.5"/><path d="M1.8 6.3h12.4M1.8 9.8h12.4M6 2.8v10.4M10.2 2.8v10.4"/></g></symbol>
 <symbol id="i-more" viewBox="0 0 16 16"><g fill="currentColor"><circle cx="3" cy="8" r="1.4"/><circle cx="8" cy="8" r="1.4"/><circle cx="13" cy="8" r="1.4"/></g></symbol>
+<symbol id="ss-platform" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><path d="M8 2l6 3-6 3-6-3z"/><path d="M2 8l6 3 6-3M2 11l6 3 6-3"/></g></symbol>
+<symbol id="ss-agent" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><rect x="3" y="3" width="10" height="7" rx="1"/><path d="M1.5 13h13M6.5 10v3M9.5 10v3"/></g></symbol>
+<symbol id="ss-network" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><circle cx="8" cy="8" r="6"/><ellipse cx="8" cy="8" rx="2.6" ry="6"/><path d="M2 8h12"/></g></symbol>
+<symbol id="ss-cloud" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><path d="M4.5 12.5a3 3 0 0 1-.3-6 4 4 0 0 1 7.7 1A2.6 2.6 0 0 1 11.5 12.5z"/></g></symbol>
+<symbol id="ss-shield" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><path d="M8 1.8l5 1.8v4c0 3-2.2 5-5 6.4C5.2 12.600 3 10.600 3 7.600v-4z"/><path d="M5.800 8l1.500 1.500L10.300 6.500"/></g></symbol>
+<symbol id="ss-database" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><ellipse cx="8" cy="3.600" rx="5" ry="2"/><path d="M3 3.600v8.800c0 1.100 2.200 2 5 2s5-.9 5-2V3.600M3 8c0 1.100 2.200 2 5 2s5-.9 5-2"/></g></symbol>
 </defs></svg>
 
 <!-- =================================================================== FRAME 12 -->
@@ -1442,7 +1448,7 @@ table.t { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
 </div>
 <div class="stage"><div class="window"><div class="toolbar"><span class="seg"><span>View</span><span class="on">Edit</span></span><span class="check"><i class="on"></i>Data stores</span><span class="check"><i class="on"></i>Squeeze</span><span class="hint">3 collections of users-db: each is a lifeline</span></div>
 <div class="diagram"><svg viewBox="0 0 880 440" width="880" height="440" role="img" aria-label="One flow, three collections of one store, each its own lifeline">
-<rect class="band" x="378" y="6" width="494" height="22" rx="4"/><text class="band-t" x="386" y="21">mongodb: users-db</text>
+<rect class="band" x="378" y="6" width="494" height="22" rx="4"/><use href="#i-db" x="386" y="10" width="14" height="14"/><text class="band-t" x="406" y="21">mongodb: users-db</text>
 <rect class="hd" x="8" y="40" width="110" height="46" rx="6"/><rect class="st-client" x="8" y="40" width="3" height="46"/><text class="tn" x="20" y="60">sase-agent</text><text class="ts" x="20" y="77">client app</text>
 <g class="k2"><rect class="chd" x="170" y="40" width="130" height="46" rx="6"/><rect class="cst" x="170" y="40" width="3.5" height="46"/></g><text class="tn" x="183" y="60">auth-svc</text><text class="ts" x="183" y="77">service</text>
 <rect class="dbhd" x="380" y="40" width="150" height="46" rx="6"/><rect class="dbst" x="380" y="40" width="3" height="46"/><use href="#i-db" x="392" y="56" width="14" height="14"/><text class="tn" x="414" y="60">users</text><text class="ts" x="414" y="76">users-db · mongodb</text><rect class="dbhd" x="550" y="40" width="150" height="46" rx="6"/><rect class="dbst" x="550" y="40" width="3" height="46"/><use href="#i-db" x="562" y="56" width="14" height="14"/><text class="tn" x="584" y="60">devices</text><text class="ts" x="584" y="76">users-db · mongodb</text><rect class="dbhd" x="720" y="40" width="150" height="46" rx="6"/><rect class="dbst" x="720" y="40" width="3" height="46"/><use href="#i-db" x="732" y="56" width="14" height="14"/><text class="tn" x="754" y="60">sessions</text><text class="ts" x="754" y="76">users-db · mongodb</text>
@@ -1461,6 +1467,7 @@ table.t { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
 <div class="stage"><div class="f12">
 <div class="window"><div class="diagram"><svg viewBox="0 0 580 300" width="580" height="300" role="img" aria-label="Seven collections folded into one store lifeline">
 <g class="k3"><rect class="chd" x="8" y="30" width="130" height="46" rx="6"/><rect class="cst" x="8" y="30" width="3.5" height="46"/></g><text class="tn" x="21" y="50">audit-svc</text><text class="ts" x="21" y="67">service</text>
+<rect class="band" x="338" y="2" width="248" height="22" rx="4"/><use href="#i-db" x="346" y="6" width="14" height="14"/><text class="band-t" x="366" y="17">mongodb: users-db</text>
 <rect class="dbfold" x="350" y="26" width="236" height="46" rx="6" style="opacity:.55"/><rect class="dbfold" x="346" y="28" width="236" height="46" rx="6" style="opacity:.8"/>
 <rect class="dbhd" x="342" y="30" width="236" height="46" rx="6" style="stroke-dasharray:none"/><rect class="dbst" x="342" y="30" width="3" height="46"/>
 <use href="#i-db" x="354" y="38" width="14" height="14"/><use href="#i-db" x="358" y="42" width="14" height="14" style="opacity:.5"/><text class="tn" x="382" y="50">users-db (7 collections)</text><text class="ts" x="382" y="67">mongodb · name on each arrow</text>
@@ -1478,6 +1485,49 @@ table.t { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
     <li><b>The threshold is a constant</b> (<span class="mono">MAX_COLLECTION_LIFELINES = 5</span>), not a setting. The fold is not a click-to-open one like the Squeeze fold: the step panel lists the collections of the selected arrow.</li>
     <li><b>"Data stores"</b> keeps its meaning: unchecked it hides every store lifeline and its arrows, folded or not. Nothing else changes.</li>
     <li><b>Step walk:</b> the step label is the full operation and collection, <span class="mono">insert-one · audit_events</span>, so folded steps stay readable.</li>
+  </ul>
+</section></div>
+</div></div>
+
+<div class="frame-label"><h3 style="font-size:var(--fs-md)">12c. Subsystem bands over component lifelines</h3></div>
+<div class="stage"><div class="f12">
+<div class="window"><div class="toolbar"><span class="seg"><span>View</span><span class="on">Edit</span></span><span class="check"><i class="on"></i>Group by subsystem</span><span class="check"><i class="on"></i>Data stores</span><span class="check"><i class="on"></i>Squeeze</span></div>
+<div class="diagram"><svg viewBox="0 0 800 440" width="800" height="440" role="img" aria-label="One flow across three subsystems, with subsystem bands over component heads and a store band over collection heads">
+<rect class="band" x="4" y="4" width="118" height="22" rx="4"/><use href="#ss-agent" x="12" y="7" width="16" height="16"/><text class="band-t" x="34" y="19">Agent</text>
+<rect class="band" x="128" y="4" width="116" height="22" rx="4"/><use href="#ss-network" x="136" y="7" width="16" height="16"/><text class="band-t" x="158" y="19">Network (POP)</text>
+<rect class="band" x="250" y="4" width="526" height="22" rx="4"/><use href="#ss-platform" x="258" y="7" width="16" height="16"/><text class="band-t" x="280" y="19">Platform</text>
+<rect class="band" x="494" y="32" width="282" height="22" rx="4"/><use href="#i-db" x="502" y="36" width="14" height="14"/><text class="band-t" x="524" y="47">mongodb: users-db</text>
+<rect class="hd" x="8" y="58" width="110" height="46" rx="6"/><rect class="st-client" x="8" y="58" width="3" height="46"/><text class="tn" x="21" y="78">sase-agent</text><text class="ts" x="21" y="95">client app</text>
+<g class="k4"><rect class="chd" x="128" y="58" width="116" height="46" rx="6"/><rect class="cst" x="128" y="58" width="3.5" height="46"/></g><text class="tn" x="141" y="78">pop-edge</text><text class="ts" x="141" y="95">service</text>
+<g class="k2"><rect class="chd" x="250" y="58" width="116" height="46" rx="6"/><rect class="cst" x="250" y="58" width="3.5" height="46"/></g><text class="tn" x="263" y="78">auth-svc</text><text class="ts" x="263" y="95">service</text>
+<g class="k3"><rect class="chd" x="372" y="58" width="116" height="46" rx="6"/><rect class="cst" x="372" y="58" width="3.5" height="46"/></g><text class="tn" x="385" y="78">users-svc</text><text class="ts" x="385" y="95">service</text>
+<rect class="dbhd" x="496" y="58" width="130" height="46" rx="6"/><rect class="dbst" x="496" y="58" width="3" height="46"/><use href="#i-db" x="507" y="74" width="14" height="14"/><text class="tn" x="529" y="78">users</text><text class="ts" x="529" y="94">users-db</text>
+<rect class="dbhd" x="636" y="58" width="130" height="46" rx="6"/><rect class="dbst" x="636" y="58" width="3" height="46"/><use href="#i-db" x="647" y="74" width="14" height="14"/><text class="tn" x="669" y="78">devices</text><text class="ts" x="669" y="94">users-db</text>
+<line class="ll" x1="63" y1="104" x2="63" y2="420"/>
+<line class="ll" x1="186" y1="104" x2="186" y2="420"/>
+<line class="ll" x1="308" y1="104" x2="308" y2="420"/>
+<line class="ll" x1="430" y1="104" x2="430" y2="420"/>
+<line class="ll" x1="561" y1="104" x2="561" y2="420"/>
+<line class="ll" x1="701" y1="104" x2="701" y2="420"/>
+<g class="k4"><rect class="cbar" x="180" y="140" width="12" height="230" rx="2"/></g><g class="k2"><rect class="cbar" x="302" y="176" width="12" height="170" rx="2"/></g><g class="k3"><rect class="cbar" x="424" y="212" width="12" height="100" rx="2"/></g>
+<line class="s http" x1="63" y1="140" x2="171" y2="140"/><polygon class="f-http" points="180,140 171,135.5 171,144.5"/><g class="num"><rect x="68" y="118" width="16" height="16" rx="4"/><text x="73" y="130">1</text></g><text class="lbl" x="92" y="129">POST /login</text>
+<line class="s http" x1="192" y1="176" x2="293" y2="176"/><polygon class="f-http" points="302,176 293,171.5 293,180.5"/><g class="num"><rect x="197" y="154" width="16" height="16" rx="4"/><text x="202" y="166">2</text></g><text class="lbl" x="221" y="165">POST /auth</text>
+<line class="s http" x1="314" y1="212" x2="415" y2="212"/><polygon class="f-http" points="424,212 415,207.5 415,216.5"/><g class="num"><rect x="319" y="190" width="16" height="16" rx="4"/><text x="324" y="202">3</text></g><text class="lbl" x="343" y="201">GET /users/{id}</text>
+<line class="s res" x1="436" y1="252" x2="546" y2="252"/><polygon class="f-res" points="555,252 546,247.5 546,256.5"/><g class="num"><rect x="441" y="230" width="16" height="16" rx="4"/><text x="446" y="242">4</text></g><text class="lbl" x="465" y="241">find-one users</text>
+<rect class="bar-old" x="555" y="252" width="12" height="30" rx="2"/>
+<line class="s res" x1="436" y1="310" x2="686" y2="310"/><polygon class="f-res" points="695,310 686,305.5 686,314.5"/><g class="num"><rect x="441" y="288" width="16" height="16" rx="4"/><text x="446" y="300">5</text></g><text class="lbl" x="465" y="299">find-one devices</text>
+<rect class="bar-old" x="695" y="310" width="12" height="30" rx="2"/>
+<line class="s http ret" x1="180" y1="396" x2="72" y2="396"/><polyline class="o-http" points="73,391.500 64,396 73,400.500"/><text class="ret-t" x="92" y="390">200</text>
+</svg></div>
+<div class="legend" style="gap:14px;flex-wrap:wrap"><b>Subsystem icons</b><span style="display:inline-flex;align-items:center;gap:4px"><svg width="16" height="16"><use href="#ss-platform"/></svg>platform</span><span style="display:inline-flex;align-items:center;gap:4px"><svg width="16" height="16"><use href="#ss-agent"/></svg>agent</span><span style="display:inline-flex;align-items:center;gap:4px"><svg width="16" height="16"><use href="#ss-network"/></svg>network</span><span style="display:inline-flex;align-items:center;gap:4px"><svg width="16" height="16"><use href="#ss-cloud"/></svg>cloud</span><span style="display:inline-flex;align-items:center;gap:4px"><svg width="16" height="16"><use href="#ss-shield"/></svg>shield</span><span style="display:inline-flex;align-items:center;gap:4px"><svg width="16" height="16"><use href="#ss-database"/></svg>database</span><span>No icon: the band shows the name only.</span></div></div>
+<div class="notes" style="padding:0;max-width:none"><section>
+  <h3>Subsystem bands and colour de-clash</h3>
+  <ul style="margin:0;padding-left:18px">
+    <li><b>Two band rows:</b> subsystem bands sit on top of the component heads; store bands sit over the collection heads, same row height. Below Platform, users-svc's collections sit under their store band, so both levels show.</li>
+    <li><b>Order:</b> components of one subsystem stay together. Components with no groupPath sit under no band.</li>
+    <li><b>Icons</b> are a built-in set of simple 16px line icons (platform, agent, network, cloud, shield, database), chosen per subsystem in <b>Environment settings › Subsystems</b>: name, icon. A subsystem with no icon shows its name only.</li>
+    <li><b>Group by subsystem</b> sits next to Data stores and Squeeze: on by default in design envs, off in sealed envs that have no groupPath.</li>
+    <li><b>Per-flow colour de-clash:</b> in an env with more than 8 components, two components in the same flow can share a palette slot. The later one takes the next free slot for that flow only. The stored env colour is unchanged.</li>
   </ul>
 </section></div>
 </div></div>
