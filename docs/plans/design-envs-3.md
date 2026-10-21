@@ -579,5 +579,5 @@ design/AUDIT.md gets rows for the new page and panels. `package.json` → **0.28
 - /home/ubuntu/Flow-Mapper/web/js/views/flow-render.js
 
 ## Lead decision on §13 (2026-10-21, night)
-The maintainer asked for work to continue overnight. Q1 to Q4 are taken as recommended (the recommendation is the
-first option of each). The maintainer can override any of them by opening a bug.
+Q1 is void (one subsystem per component, see the note at the top). The maintainer approved Q2 to Q4 as recommended
+(2026-10-21).
