@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 // @ts-ignore plain JS modules shared with the browser
-import { regionsOf, regionText, regionAt, REGION_PAD, REGION_HEAD } from '../web/js/graph/graph-regions.js';
+import { regionsOf, regionText, regionAt, regionCells, REGION_PAD, REGION_HEAD } from '../web/js/graph/graph-regions.js';
 // @ts-ignore
 import { layout } from '../web/js/graph/layout.js';
 // @ts-ignore
@@ -51,4 +51,21 @@ test('layout columnOf: members of a column end up near the column, y stays free,
   assert.ok(mean(nodes.slice(6).map((n) => n.id)) - mean(nodes.slice(0, 6).map((n) => n.id)) > 150, 'column 1 sits right of column 0');
   const ys = nodes.map((n) => a.get(n.id).y);
   assert.ok(Math.max(...ys) - Math.min(...ys) > 40, 'y is free');
+});
+
+test('regionCells: about ceil(sqrt(n)) columns, cells never overlap, nodes of a cell stay inside it', () => {
+  const groups = Array.from({ length: 26 }, (_, i) => ({ key: `g${i}`, count: 1 + (i % 9) })), cells = regionCells(groups), all = [...cells.values()];
+  const cols = new Set(all.map((c: any) => Math.round(c.x0 / 5))).size;
+  assert.ok(cols <= 7 && cols >= 5, `a grid of about 6 columns, got ${cols}`);
+  for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++) {
+    const a: any = all[i], b: any = all[j], pad = REGION_PAD;
+    const ra = { x0: a.x0 - pad, x1: a.x1 + pad, y0: a.y0 - pad - REGION_HEAD, y1: a.y1 + pad }, rb = { x0: b.x0 - pad, x1: b.x1 + pad, y0: b.y0 - pad - REGION_HEAD, y1: b.y1 + pad };
+    assert.ok(ra.x1 <= rb.x0 || rb.x1 <= ra.x0 || ra.y1 <= rb.y0 || rb.y1 <= ra.y0, `regions of g${i} and g${j} overlap`);
+  }
+});
+
+test('layout bounds: every node stays inside its cell', () => {
+  const nodes = Array.from({ length: 10 }, (_, i) => ({ id: `n${i}`, group: i < 5 ? 'x' : 'y' })), bounds = new Map(nodes.map((n, i) => [n.id, i < 5 ? { x0: 0, y0: 0, x1: 100, y1: 100 } : { x0: 400, y0: 0, x1: 500, y1: 100 }]));
+  const p = layout(nodes, [{ from: 'n0', to: 'n9' }], { iterations: 100, bounds });
+  for (const n of nodes) { const b: any = bounds.get(n.id), q = p.get(n.id); assert.ok(q.x >= b.x0 && q.x <= b.x1 && q.y >= b.y0 && q.y <= b.y1, n.id); }
 });

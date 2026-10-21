@@ -14,8 +14,8 @@ const svcLink = (n) => h('a', { href: href(`/services/${encodeURIComponent(n)}`)
 
 /** linePanel(line, { map, label, onLink }) -> [head, ...body] for panel.open(). `label(key)`: a subsystem's name. */
 export function linePanel(l, { map, label, onLink }) {
-  const head = h('div.stack', { style: { gap: '4px' } }, h('h2', `${label(l.from)} → ${label(l.to)}`),
-    h('div.row', l.transports ? l.transports.map((t) => chip(t)) : chip(l.transport), h('span.pill', l.mode === 'async' ? 'Async' : 'Sync'), h('span.xs.muted', lineLabel(l))));
+  const head = h('div.stack', { style: { gap: '4px' } }, h('h2', `${label(l.from)} ${l.merged ? '↔' : '→'} ${label(l.to)}`),
+    h('div.row', l.transports ? l.transports.map((t) => chip(t)) : chip(l.transport), l.merged ? null : h('span.pill', l.mode === 'async' ? 'Async' : 'Sync'), h('span.xs.muted', lineLabel(l))));
   const calls = l.calls.slice(0, MAX).map((c) => h('div.ss-call', { 'data-qa': 'ss-call' },
     h('div', svcLink(c.from.service), h('span.muted', ` · ${c.from.egress} → `), svcLink(c.to.service), h('span.muted', ` · ${c.to.ingress}`)),
     h('div.xs', h('span.key', c.bindKey), ' ', h('a.xs', { href: href('/flows', { tabs: `${c.to.service}/${c.to.ingress}` }) }, 'flow'))));

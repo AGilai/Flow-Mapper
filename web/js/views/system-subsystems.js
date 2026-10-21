@@ -11,16 +11,24 @@ import { createPanel } from '../components/panel.js';
 import { editing } from '../design/edit-target.js';
 import { openLinkPanel } from '../design/link-panel.js';
 import { openLinkForm } from '../design/forms/link-form.js';
-import { layoutBoxes, gridFor } from '../graph/subsystem-layout.js';
+import { layoutBoxes, gridFor, MANY } from '../graph/subsystem-layout.js';
 import { drawSubsystems } from './subsystem-draw.js';
 import { linePanel, boxPanel } from './subsystem-panel.js';
 import { openList } from './subsystem-open.js';
 import { levelControl, subsystemBar } from './system-toolbar.js';
+import { href } from '../router.js';
 import { subsystemLegend } from './system-legend.js';
 
 export async function renderSubsystems({ main, query, subs, marks }) {
   const map = await api.subsystemMap(state.env), edit = editing();
-  const opts = { rolled: query.get('lines') !== '0', abstract: query.get('abs') !== '0' };
+  const opts = { rolled: query.get('lines') !== '0', abstract: query.get('abs') !== '0', all: query.get('all') === '1' };
+  if (!map.boxes.some((b) => b.key && b.components.length)) { // nothing is assigned: a "Not set" box with every component would say nothing
+    main.append(pageHead('System map', 'No subsystems in use', levelControl('subsystems', subs)),
+      h('div.content', h('p.muted.ss-none', { 'data-qa': 'ss-empty' }, 'No component is assigned to a subsystem yet. Assign components in Inventory or with a plan; ', h('a', { href: href(`/envs/${encodeURIComponent(state.env)}/settings`) }, 'Subsystem settings'), '.')));
+    return { dispose: () => {} };
+  }
+  const many = map.boxes.length > MANY; // a merged line per pair of boxes, shown for the box in focus
+  let hoverKey = null, draw = null;
   const label = (k) => subs.labelOf(k) || 'Not set';
   let selected = query.get('link') ? `link:${query.get('link')}` : query.get('line') ?? (query.get('box') != null ? `box:${query.get('box')}` : null);
 
@@ -33,15 +41,19 @@ export async function renderSubsystems({ main, query, subs, marks }) {
   const openBox = (key) => { pick(`box:${key}`, { box: key }); panel.open(...boxPanel(map.boxes.find((b) => b.key === key), { map, marks, label, onGo: goDown, onLink: openLink })); };
   const goDown = (service) => go('/system', { sel: `svc:${service}` });
 
+  const boxSel = () => (selected?.startsWith('box:') ? selected.slice(4) : null), lineSel = () => (selected && !selected.startsWith('box:') && !selected.startsWith('link:') ? selected : null);
   function paint() {
     const { cols, scale } = gridFor(stage.clientWidth || 900, map.boxes.length), L = layoutBoxes(map.boxes, { cols });
-    const { el } = drawSubsystems({ L, map, marks, opts, selected, scale, onBox: openBox, onLine: openLine, onLink: openLink, onGo: goDown });
+    const tf = Math.max(1, 10 / (10.5 * scale)); // the drawing shrinks to fit the width, its text does not (10px at least)
+    draw = drawSubsystems({ L, map, marks, opts, selected, scale, tf, many, onBox: openBox, onLine: openLine, onLink: openLink, onGo: goDown, onHover: (k) => { hoverKey = k; draw.focus(k ?? boxSel(), lineSel(), opts.all); } });
+    const { el } = draw;
+    draw.focus(boxSel(), lineSel(), opts.all);
     fill(stage, map.boxes.length ? el : h('p.muted.ss-none', 'This environment has no subsystems yet. Give components a subsystem, or add one in Subsystem settings.'));
     fill(under, openList(map, { label, onLink: openLink, selected: selected?.startsWith('link:') ? selected.slice(5) : null }));
   }
 
   main.append(pageHead('System map', `${map.boxes.length} subsystems, ${map.lines.length} rolled-up ${map.lines.length === 1 ? 'line' : 'lines'}, ${map.abstract.length} abstract ${map.abstract.length === 1 ? 'link' : 'links'}`, levelControl('subsystems', subs)),
-    subsystemBar({ opts, editing: edit, onToggle: () => { setQuery({ lines: opts.rolled ? null : '0', abs: opts.abstract ? null : '0' }); paint(); }, onAddLink: () => openLinkForm({ panel, subs }) }), content);
+    subsystemBar({ opts, editing: edit, many, onToggle: () => { setQuery({ lines: opts.rolled ? null : '0', abs: opts.abstract ? null : '0', all: opts.all ? '1' : null }); paint(); }, onAddLink: () => openLinkForm({ panel, subs }) }), content);
 
   let lastCols = '';
   const ro = new ResizeObserver(() => { const g = gridFor(stage.clientWidth || 900, map.boxes.length), c = `${g.cols}|${Math.round(g.scale * 20)}`; if (c !== lastCols) { lastCols = c; paint(); } });

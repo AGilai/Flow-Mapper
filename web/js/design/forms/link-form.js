@@ -24,8 +24,8 @@ export function linkEdit(v) {
 }
 
 /** One end's two selects: the subsystem, then "Whole subsystem" or one of its components. Returns { el, get() } (value read at Done). */
-function endSelects(subs, end) {
-  const subSel = select(subs.list().map((s) => [s.key, s.label]), end?.subsystem ?? subs.list()[0]?.key ?? ''), svcSel = select([], '');
+function endSelects(subs, end, nth = 0) { // a new link: `nth` is the subsystem the select starts on (From the first, To the second: a link inside one subsystem is the odd case)
+  const subSel = select(subs.list().map((s) => [s.key, s.label]), end?.subsystem ?? (subs.list()[nth] ?? subs.list()[0])?.key ?? ''), svcSel = select([], '');
   const paint = (value) => { const s = subs.info(subSel.value); fill(svcSel, h('option', { value: '' }, 'Whole'), (s?.components ?? []).map((c) => h('option', { value: c.name }, c.name))); svcSel.value = value ?? ''; };
   paint(end?.service);
   subSel.addEventListener('change', () => paint(''));
@@ -35,7 +35,7 @@ function endSelects(subs, end) {
 /** openLinkForm({ panel, subs, view?, onSaved? }): a new link, or `view` (an AbstractView) edited. */
 export function openLinkForm({ panel, subs, view = null }) {
   const fields = createFields(), name = input(view?.name ?? '', { placeholder: 'usage metering' }), mode = select(MODES, view?.mode ?? ''), transport = select(TRANSPORT_OPTS, view?.transport ?? '');
-  const from = endSelects(subs, view?.from), to = endSelects(subs, view?.to), desc = textarea(view?.description ?? '');
+  const from = endSelects(subs, view?.from, 0), to = endSelects(subs, view?.to, 1), desc = textarea(view?.description ?? '');
   fields.field('name', 'Name', name);
   fields.field('from', 'From', from.el, 'A subsystem, or one of its components.');
   fields.field('to', 'To', to.el);

@@ -73,7 +73,8 @@ function heptagon(ctx, cx, cy, r, color) {
 
 /** Edges are quiet at rest so a dense map stays legible; focus (hover/select) brings them forward.
  *  Gateway edges connect to almost everything, so they are quieter still unless focused. */
-export function edgeStyle(e, theme, { dim, focused, selected, gateway, density = 1 }) {
+export function edgeStyle(e, theme, { dim, focused, selected, gateway, density = 1, quiet = false }) {
+  if (quiet && !selected && !focused) return { color: theme.line, dash: false, alpha: dim ? 0.04 : 0.55, width: 0.8 }; // between two components that came with the copy: thin and grey (frame 2)
   const t = e.broken ? null : e.transports.find((x) => x !== 'other') ?? 'other';
   const color = e.broken ? theme.broken : selected ? theme.accent : theme.t[t] ?? theme.t.other;
   const async = !e.broken && e.modes.includes('async') && !e.modes.includes('sync');

@@ -7,7 +7,7 @@ import { groupColumns } from './flow-bands.js';
 /** groupLane(built, subs, on, marks, slotsOf): `subs` = the subsystems store (design/subsystems-store.js); `on`: the "Group by subsystem" check; `marks`: the marks store (a New subsystem gets a spark);
  *  `slotsOf(columns)` -> Map service -> slot (component-colors.js laneSlots, the de-clash). */
 export function groupLane(built, subs, on, marks, slotsOf = null) {
-  if (on && subs?.has) {
+  if (on && subs?.assigned) {
     built.columns = groupColumns(built.columns, subs.subOf);
     built.group = { subOf: subs.subOf, info: subs.info, markOf: (key) => marks?.markOf(`grp:${key}`)?.mark ?? null };
   }

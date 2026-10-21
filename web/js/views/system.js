@@ -5,7 +5,7 @@
 
 import { h, debounce } from '../dom.js';
 import { api } from '../api.js';
-import { state } from '../state.js';
+import { state, isDesign } from '../state.js';
 import { icon } from '../icons.js';
 import { setQuery, go } from '../router.js';
 import { pageHead } from '../components/page.js';
@@ -20,7 +20,7 @@ import { loadSubsystems } from '../design/subsystems-store.js';
 import { levelOf, showLevelControl } from './system-level.js';
 import { levelControl } from './system-toolbar.js';
 import { renderSubsystems } from './system-subsystems.js';
-import { regionsOf } from '../graph/graph-regions.js';
+import { regionsOf, regionCells } from '../graph/graph-regions.js';
 import { edgePanel } from './edge-panel.js';
 
 const TRANSPORTS = ['http', 'rpc', 'grpc', 'sns', 'sqs', 'amqp', 'eventbridge', 'socket'];
@@ -32,12 +32,14 @@ export async function render({ main, query }) {
   const subs = await loadSubsystems();
   if (levelOf(query.get('level'), subs.has) === 'subsystems') return renderSubsystems({ main, query, subs, marks: await loadMarks() }); // 0.28.1: frame 3
   const [data, marks] = await Promise.all([api.system(state.env), loadMarks()]);
-  const regions = subs.has; // subsystem regions (frame 2): the map groups by subsystem instead of by team
   const isSvc = (n) => n.kind === 'service' || n.kind === 'gateway';
+  const regions = subs.assigned && data.nodes.some((n) => isSvc(n) && subs.subOf(n.label)); // subsystem regions (frame 2), only when a shown component has a subsystem: the map groups by subsystem instead of by team
+  const design = isDesign() && !marks.empty; // a design with marks: "Components from prod", "Only what's new", and prod-to-prod edges drawn quiet
   const opts = {
     q: query.get('q') ?? '', channels: query.get('channels') === '1', stores: query.get('stores') === '1',
     broken: query.get('broken') === '1', team: query.get('team') ?? '', hops: Math.max(0, Math.min(3, Number(query.get('hops')) || 0)),
     transports: new Set((query.get('t') ?? TRANSPORTS.join(',')).split(',').filter(Boolean)),
+    fromProd: query.get('prod') !== '0', onlyNew: query.get('new') === '1',
   };
   const teams = [...new Set(data.nodes.map((n) => n.team).filter(Boolean))].sort();
   const services = data.nodes.filter((n) => n.kind === 'service' || n.kind === 'gateway').length;
@@ -48,6 +50,7 @@ export async function render({ main, query }) {
   let selected = null;
   const panel = createPanel(content, { onClose: () => { selected = null; graph.select(null); setQuery({ sel: null }); apply(); } });
   const search = h('input.input', { type: 'search', placeholder: 'Filter by service, team or function', value: opts.q, 'aria-label': 'Filter map' });
+  const filt = (key, label) => h('label.check', h('input', { type: 'checkbox', 'data-qa': `map-${key}`, checked: opts[key], on: { change: (e) => { opts[key] = e.target.checked; persist(); apply(); } } }), label);
   const toggle = (key, label) => h('label.check', h('input', { type: 'checkbox', checked: opts[key], on: { change: (e) => { opts[key] = e.target.checked; persist(); rebuild(); } } }), label);
 
   main.append(
@@ -61,16 +64,16 @@ export async function render({ main, query }) {
       showLevelControl(subs) ? levelControl('components', subs) : null,
       h('button.btn', { on: { click: () => graph.fit() } }, icon('fit'), 'Fit')),
     h('div.filter-bar',
-      h('span.small.muted', 'Show'), toggle('channels', 'Queues and topics'), toggle('stores', 'Data stores'), h('label.check', h('input', { type: 'checkbox', checked: opts.broken, on: { change: (e) => { opts.broken = e.target.checked; persist(); rebuild(); } } }), 'Broken links only'),
+      h('span.small.muted', 'Show'), design ? [filt('fromProd', 'Components from prod'), filt('onlyNew', "Only what's new")] : null, toggle('channels', 'Queues and topics'), toggle('stores', 'Data stores'), h('label.check', h('input', { type: 'checkbox', checked: opts.broken, on: { change: (e) => { opts.broken = e.target.checked; persist(); rebuild(); } } }), 'Broken links only'),
       h('span.divider'),
       h('span.small.muted', 'Transports'),
       TRANSPORTS.map((t) => h('label.check', h('input', { type: 'checkbox', checked: opts.transports.has(t), on: { change: (e) => {
         e.target.checked ? opts.transports.add(t) : opts.transports.delete(t); persist(); apply(); } } }), h('span.chip', { 'data-t': t }, t))),
-      h('span.spacer'), count),
+      h('span.spacer'), regions ? h('span.hint.small.muted', 'Click a region to open its components in Inventory') : null, count),
     content);
 
   const graph = createCanvasGraph(stage, {
-    marks, padBottom: () => (content.querySelector('.legend')?.offsetHeight ?? 0) + 24, // the legend wraps to more lines on a narrow window
+    marks, quiet: design ? (e) => isSvc(byId.get(e.from) ?? {}) && isSvc(byId.get(e.to) ?? {}) && !marks.markOf(e.from) && !marks.markOf(e.to) : null, padBottom: () => (content.querySelector('.legend')?.offsetHeight ?? 0) + 24, // the legend wraps to more lines on a narrow window
     onSelect: (hit) => {
       if (!hit) { panel.close(); return; }
       if (hit.type === 'region') go('/inventory', { subsystem: hit.item.key }); // a region's head opens its components in Inventory
@@ -79,12 +82,12 @@ export async function render({ main, query }) {
     },
   });
 
-  let byId = new Map(), current = null;
+  let byId = new Map(), current = null, cellsOf = null;
   const layouts = new Map();
 
   function persist() {
     setQuery({ q: opts.q || null, channels: opts.channels ? 1 : null, stores: opts.stores ? 1 : null, broken: opts.broken ? 1 : null,
-      team: opts.team || null, hops: opts.hops || null, t: opts.transports.size === TRANSPORTS.length ? null : [...opts.transports].join(',') });
+      team: opts.team || null, prod: opts.fromProd ? null : '0', new: opts.onlyNew ? 1 : null, hops: opts.hops || null, t: opts.transports.size === TRANSPORTS.length ? null : [...opts.transports].join(',') });
   }
 
   // Build the node/edge set for the current "show" toggles and lay it out (cached per combination).
@@ -111,15 +114,21 @@ export async function render({ main, query }) {
       if (!layouts.has(svcKey)) {
         const sn = nodes.filter((n) => n.kind === 'service' || n.kind === 'gateway');
         const ids2 = new Set(sn.map((n) => n.id));
-        const order = subs.list().map((s) => s.key), columnOf = regions ? new Map(sn.filter((n) => subs.subOf(n.label)).map((n) => [n.id, order.indexOf(subs.subOf(n.label))])) : null; // columns in the environment's subsystem order
-        layouts.set(svcKey, layout(sn, data.collapsedEdges.filter((e) => ids2.has(e.from) && ids2.has(e.to)), { iterations: 280, columnOf }));
+        let bounds = null; // (cells: kept for the regions) // regions: a grid of cells in the environment's subsystem order, each node kept inside its own
+        if (regions) {
+          const order = [...subs.list().map((s) => s.key), ''], counts = new Map(order.map((k) => [k, 0]));
+          for (const n of sn) counts.set(subs.subOf(n.label), (counts.get(subs.subOf(n.label)) ?? 0) + 1);
+          const cells = regionCells(order.filter((k) => counts.get(k)).map((k) => ({ key: k, count: counts.get(k) })));
+          bounds = new Map(sn.map((n) => [n.id, cells.get(subs.subOf(n.label))])); cellsOf = cells;
+        }
+        layouts.set(svcKey, layout(sn, data.collapsedEdges.filter((e) => ids2.has(e.from) && ids2.has(e.to)), { iterations: 280, bounds }));
       }
       const extra = nodes.some((n) => n.kind !== 'service' && n.kind !== 'gateway');
       layouts.set(key, extra ? layout(nodes, edges, { iterations: 90, ideal: 34, fixed: layouts.get(svcKey) }) : layouts.get(svcKey));
     }
     current = { nodes, edges };
     byId = new Map(data.nodes.map((n) => [n.id, n]));
-    graph.setData({ nodes, edges, positions: layouts.get(key), regions: regions ? regionsOf(nodes, layouts.get(key), subs, marks) : [] });
+    graph.setData({ nodes, edges, positions: layouts.get(key), regions: regions ? regionsOf(nodes, layouts.get(key), subs, marks, cellsOf) : [] });
     apply();
     graph.fit();
   }
@@ -144,6 +153,8 @@ export async function render({ main, query }) {
       focus = withinHops([selected], edges, Math.max(1, opts.hops));
       visible = visible ? new Set([...focus].filter((id) => visible.has(id) || id === selected || opts.hops === 0)) : focus;
     }
+    const hide = (n) => isSvc(n) && ((opts.onlyNew && marks.markOf(n.id)?.mark !== 'new') || (!opts.fromProd && !marks.markOf(n.id)));
+    if (design && current.nodes.some(hide)) { const keep = new Set(current.nodes.filter((n) => !hide(n)).map((n) => n.id)); visible = visible ? new Set([...visible].filter((id) => keep.has(id))) : keep; }
     graph.setEdgeFilter(edgeOk);
     graph.setVisible(visible);
     graph.setHighlight(focus ?? (q && opts.hops ? hits : null));

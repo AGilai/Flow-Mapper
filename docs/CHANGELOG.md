@@ -9,6 +9,7 @@ in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.m
 UI only, nothing for harvesters or importers: the subsystem level in the web UI. The 0.28.0 routes and edits are unchanged.
 - **System map:** a Subsystems | Components level control (`level=subsystems` in the URL; hidden in an environment without subsystems), subsystem boxes with the rolled-up calls and the abstract links, regions round the components at component level.
 - **Abstract links:** "+ link", a panel with Refine (From, Via, To), the suggestions with "Use <name>" and "Make it a call…" (the call builder). A refined link folds into its line ("includes: <name>").
+- **Marks:** a subsystem's `what` now names each kind (`1 new component, 1 changed component`; a single kind reads as before).
 - **Flows:** subsystem bands over the heads ("Group by subsystem", on by default) and a per-flow colour de-clash. **Settings:** `#/envs/<name>/settings` (name, icon, order, level names).
 
 ## 0.28.0 (2026-10-21)

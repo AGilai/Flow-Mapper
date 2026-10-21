@@ -5,8 +5,9 @@
 
 // `fixed`: Map id → {x,y}. Those nodes keep their position; others start at the mean of their
 // fixed neighbours. Used to add queues and stores around an existing services layout without moving it.
+// `bounds`: Map id -> { x0, y0, x1, y1 } (subsystem regions in a grid of cells): a node starts in the middle of its cell and is kept inside it, so regions never overlap.
 // `columnOf`: Map id -> column index (0.28.1, subsystem regions): a strong x spring to the centre of the node's column; columns are as wide as their members need and y stays free.
-export function layout(nodes, edges, { iterations = 260, ideal = 80, fixed = null, columnOf = null } = {}) {
+export function layout(nodes, edges, { iterations = 260, ideal = 80, fixed = null, columnOf = null, bounds = null } = {}) {
   const n = nodes.length;
   const idx = new Map(nodes.map((d, i) => [d.id, i]));
   const x = new Float64Array(n), y = new Float64Array(n), vx = new Float64Array(n), vy = new Float64Array(n);
@@ -36,6 +37,8 @@ export function layout(nodes, edges, { iterations = 260, ideal = 80, fixed = nul
     const col = colCx?.get(columnOf.get(d.id));
     x[i] = (col ?? c[0]) + rand() * ideal * 3;
     y[i] = c[1] + rand() * ideal * 3;
+    const bd = bounds?.get(d.id);
+    if (bd) { x[i] = (bd.x0 + bd.x1) / 2 + rand() * (bd.x1 - bd.x0) * 0.6; y[i] = (bd.y0 + bd.y1) / 2 + rand() * (bd.y1 - bd.y0) * 0.6; }
   });
 
   const pinned = new Uint8Array(n);
@@ -116,6 +119,8 @@ export function layout(nodes, edges, { iterations = 260, ideal = 80, fixed = nul
       const cap = ideal * step;
       const k = sp > cap ? cap / sp : 1;
       x[i] += vx[i] * k; y[i] += vy[i] * k;
+      const bd = bounds?.get(nodes[i].id);
+      if (bd) { x[i] = Math.max(bd.x0, Math.min(bd.x1, x[i])); y[i] = Math.max(bd.y0, Math.min(bd.y1, y[i])); }
       vx[i] *= 0.55; vy[i] *= 0.55;
     }
   }

@@ -17,9 +17,10 @@ export function levelControl(level, subs) {
 }
 
 /** The subsystem level's bar: two checks, "+ link" when editing, and the link to the settings page. */
-export function subsystemBar({ opts, onToggle, editing, onAddLink }) {
+export function subsystemBar({ opts, onToggle, editing, onAddLink, many = false }) {
   const check = (key, label) => h('label.check', h('input', { type: 'checkbox', 'data-qa': `ss-${key}`, checked: opts[key], on: { change: (e) => { opts[key] = e.target.checked; onToggle(); } } }), label);
-  return h('div.filter-bar', check('rolled', 'Rolled-up calls'), check('abstract', 'Abstract links'),
+  return h('div.filter-bar', check('rolled', 'Rolled-up calls'), check('abstract', 'Abstract links'), many ? check('all', 'All lines') : null,
+    many ? h('span.small.muted', 'Hover or select a subsystem to see its lines') : null,
     editing ? h('button.btn.sm', { type: 'button', 'data-qa': 'add-link', title: 'Add an abstract link to the draft', on: { click: onAddLink } }, '+ link') : null,
     h('span.spacer'), h('a.small', { href: href(`/envs/${encodeURIComponent(state.env)}/settings`) }, 'Subsystem settings'));
 }

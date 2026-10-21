@@ -58,6 +58,7 @@ export async function openLinkPanel(view, { panel, subs, marks, map, editing }) 
   };
   async function makeCall({ from, to }) {
     if (!from) { err.textContent = 'Pick a From component first.'; err.hidden = false; return; }
+    setQuery({ link: view.id }); // the form's Done draws the page again: it reopens this panel
     const fn = (await api.service(state.env, from).catch(() => null))?.functions?.[0]?.name ?? '';
     openCallForm({ panel, flowsEl: null, from: { service: from, fn }, to, title: `Make "${view.name}" a call`, wrap: (c) => callEdit(view.id, c) });
   }

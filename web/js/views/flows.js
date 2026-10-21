@@ -83,7 +83,7 @@ export async function render({ main, query }) {
     ['all', '1', '2', '3', '4', '6', '8'].map((d) => h('option', { value: d, selected: d === opts.depth }, d === 'all' ? 'All depths' : `Depth ${d}`)));
   const sqCheck = h('label.check', { title: 'When the diagram is wider than the window, fold the lifelines the current step does not need. Click a fold to open it.' },
     h('input', { type: 'checkbox', checked: opts.squeeze, on: { change: (e) => { opts.squeeze = e.target.checked; sqSave(opts.squeeze); views.forEach((v, k) => { v.resetSqueeze(); if (k === S.active) v.draw(); else stale.add(k); }); } } }), 'Squeeze');
-  const bandsCheck = subs.has ? h('label.check', { title: 'Put the components of one subsystem next to each other and show a band with its name over them' },
+  const bandsCheck = subs.assigned ? h('label.check', { title: 'Put the components of one subsystem next to each other and show a band with its name over them' },
     h('input', { type: 'checkbox', 'data-qa': 'group-by-subsystem', checked: opts.bands, on: { change: (e) => { opts.bands = e.target.checked; bandSave(opts.bands); views.forEach((v, k) => (k === S.active ? v.draw() : stale.add(k))); } } }), 'Group by subsystem') : null;
   const toolbar = h('div.seq-toolbar', seg, bandsCheck, check('stores', 'Data stores'), frontierCheck, sqCheck, depth, h('span.spacer'),
     h('span.xs.muted', 'Double-click a bar, or right-click it, to look inside'), info,

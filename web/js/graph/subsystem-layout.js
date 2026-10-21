@@ -1,16 +1,17 @@
 // The subsystem level's geometry (0.28.1, frame 3), pure: boxes on a grid in the environment's order, the routes of the rolled-up lines and the abstract
 // links between them, thickness and label places. No DOM. The drawing is views/subsystem-draw.js.
 
+export const MANY = 8; // more boxes than this: one merged line per pair, drawn only for the box in focus
 export const BOX_W = 232, GAP_X = 128, GAP_Y = 72, HEAD_H = 80, ROW_H = 20, MAX_ROWS = 10, PAD = 20, SPACING = 30, MAX_LINES = 6;
 
 const MIN_SCALE = 0.78;
 const needed = (c) => PAD * 2 + c * BOX_W + (c - 1) * GAP_X;
 /**
  * { cols, scale } for `width` px: as many columns as fit (1 to 4, never more than `count` boxes), the drawing shrinking to 78% to keep one more column.
- * Up to three boxes stay in one row whatever the width (the stage scrolls): stacked, the calls between them would have no room for their labels.
+ * Up to three boxes stay in one row, shrinking to half (the text does not shrink with them, see subsystem-draw.js `tf`): stacked, the calls between them would have no room for their labels.
  */
 export function gridFor(width, count = 4) {
-  if (count <= 3) return { cols: Math.max(1, count), scale: Math.max(MIN_SCALE, Math.min(1, width / needed(Math.max(1, count)))) };
+  if (count <= 3) return { cols: Math.max(1, count), scale: Math.max(0.5, Math.min(1, width / needed(Math.max(1, count)))) };
   for (let c = Math.min(4, count); c > 1; c--) if (needed(c) * MIN_SCALE <= width) return { cols: c, scale: Math.min(1, width / needed(c)) };
   return { cols: 1, scale: 1 };
 }
@@ -67,28 +68,28 @@ export function routeItems(items, L) {
     g.forEach((it, i) => {
       const A = L.boxes.get(it.from), B = L.boxes.get(it.to), off = (i - (g.length - 1) / 2) * SPACING;
       if (!A || !B) return;
-      if (A === B) { const y = A.y + HEAD_H + 10 + i * 16; out.set(it.id, { d: `M${A.x + A.w} ${y} h28 v14 h-28`, from: [A.x + A.w, y], to: [A.x + A.w, y + 14], lx: A.x + A.w + 34, ly: y + 10 }); return; }
+      if (A === B) { const y = A.y + HEAD_H + 10 + i * 16; out.set(it.id, { d: `M${A.x + A.w} ${y} h28 v14 h-28`, from: [A.x + A.w, y], to: [A.x + A.w, y + 14], lx: A.x + A.w + 34, ly: y + 10, anchor: 'start', lh: it.h }); return; }
       const dc = B.col - A.col, dr = B.row - A.row;
       if (dr === 0 && Math.abs(dc) > 1) { // under the row
         const lane = low.get(A.row) ?? 0; low.set(A.row, lane + 1);
         const yl = L.rowBottom[A.row] + 26 + lane * 22, xa = A.x + A.w / 2 + off, xb = B.x + B.w / 2 + off, ya = A.y + A.h, yb = B.y + B.h;
-        out.set(it.id, { d: `M${xa} ${ya} V${yl} H${xb} V${yb}`, from: [xa, ya], to: [xb, yb], lx: (xa + xb) / 2, ly: yl - 6 });
+        out.set(it.id, { d: `M${xa} ${ya} V${yl} H${xb} V${yb}`, from: [xa, ya], to: [xb, yb], lx: (xa + xb) / 2, ly: yl - 6, bottom: yl + 8, lh: it.h });
         return;
       }
       if (dc === 0 && Math.abs(dr) > 1) { // not neighbours in a column: round the right side
         const gl = gutter.get(A.col) ?? 0; gutter.set(A.col, gl + 1);
         const gx = A.x + A.w + 26 + gl * 18, ya = A.y + 44 + off, yb = B.y + 44 + off;
-        out.set(it.id, { d: `M${A.x + A.w} ${ya} H${gx} V${yb} H${B.x + B.w}`, from: [A.x + A.w, ya], to: [B.x + B.w, yb], lx: gx + 6, ly: (ya + yb) / 2, anchor: 'start' });
+        out.set(it.id, { d: `M${A.x + A.w} ${ya} H${gx} V${yb} H${B.x + B.w}`, from: [A.x + A.w, ya], to: [B.x + B.w, yb], lx: gx + 6, ly: (ya + yb) / 2, anchor: 'start', lh: it.h });
         return;
       }
       if (dc === 0) { // one above the other
         const down = dr > 0, x = A.x + A.w / 2 + off, ya = down ? A.y + A.h : A.y, yb = down ? B.y : B.y + B.h;
-        out.set(it.id, { d: `M${x} ${ya} V${yb}`, from: [x, ya], to: [x, yb], lx: x + 8, ly: (ya + yb) / 2, anchor: 'start' });
+        out.set(it.id, { d: `M${x} ${ya} V${yb}`, from: [x, ya], to: [x, yb], lx: x + 8, ly: (ya + yb) / 2, anchor: 'start', lh: it.h });
         return;
       }
       const right = dc > 0, xa = right ? A.x + A.w : A.x, xb = right ? B.x : B.x + B.w;
       const ya = it.fromY ?? (A.y + A.h / 2 + off), yb = it.toY ?? (dr === 0 ? ya : B.y + B.h / 2 + off), mx = (xa + xb) / 2;
-      out.set(it.id, { d: dr === 0 && ya === yb ? `M${xa} ${ya} H${xb}` : `M${xa} ${ya} C${mx} ${ya} ${mx} ${yb} ${xb} ${yb}`, from: [xa, ya], to: [xb, yb], lx: mx, ly: (ya + yb) / 2 - 6 });
+      out.set(it.id, { d: dr === 0 && ya === yb ? `M${xa} ${ya} H${xb}` : `M${xa} ${ya} C${mx} ${ya} ${mx} ${yb} ${xb} ${yb}`, from: [xa, ya], to: [xb, yb], lx: mx, ly: (ya + yb) / 2 - 6, lh: it.h });
     });
   }
   spreadLabels(out);
@@ -99,14 +100,15 @@ export function routeItems(items, L) {
 function spreadLabels(routes) {
   const placed = [];
   for (const r of [...routes.values()].sort((a, b) => a.ly - b.ly || a.lx - b.lx)) {
-    while (placed.some((p) => Math.abs(p.ly - r.ly) < 13 && Math.abs(p.lx - r.lx) < 120)) r.ly += 13;
+    const hh = (p) => p.lh ?? 13;
+    while (placed.some((p) => Math.abs(p.ly - r.ly) < Math.max(hh(p), hh(r)) && Math.abs(p.lx - r.lx) < 120)) r.ly += hh(r);
     placed.push(r);
   }
 }
 
 /** "2 calls · http", "1 async · amqp", "9 calls · 3 transports". */
 export function lineLabel(l) {
-  if (l.transports) return `${l.count} calls · ${l.transports.length} transports`;
+  if (l.transports) return `${l.count} calls · ${l.transports.length === 1 ? l.transports[0] : `${l.transports.length} transports`}`;
   return `${l.count} ${l.mode === 'async' ? 'async' : l.count === 1 ? 'call' : 'calls'} · ${l.transport}`;
 }
 
@@ -115,5 +117,41 @@ export function itemsOf(map, L, { rolled = true, abstract = true } = {}) {
   const lines = rolled ? collapseLines(map.lines) : [];
   const links = abstract ? map.abstract.filter((v) => v.state !== 'refined') : [];
   const rowY = (end) => (end.level === 'subsystem' ? undefined : (L.boxes.get(end.subsystem)?.rows.find((r) => r.name === end.service)?.y ?? 0) - 4 || undefined);
-  return { lines, links, items: [...lines.map((l) => ({ id: l.id, from: l.from, to: l.to })), ...links.map((v) => ({ id: `link:${v.id}`, from: v.from.subsystem, to: v.to.subsystem, fromY: rowY(v.from), toY: rowY(v.to) }))] };
+  return { lines, links, items: [...lines.map((l) => ({ id: l.id, from: l.from, to: l.to, h: l.links?.length ? 24 : 14 })), ...links.map((v) => ({ id: `link:${v.id}`, h: 32, from: v.from.subsystem, to: v.to.subsystem, fromY: rowY(v.from), toY: rowY(v.to) }))] };
+}
+
+/**
+ * mergePairs(lines) -> one line per pair of boxes, every transport and both directions together: the count is the sum (thickness follows it), `transports` lists them.
+ * For environments with more than MANY subsystems, where a line per direction and transport is a hairball.
+ */
+export function mergePairs(lines) {
+  const by = new Map();
+  for (const l of lines) { const [a, b] = [l.from, l.to].sort(), k = `${a}\u0000${b}`; if (!by.has(k)) by.set(k, { id: `pair:${a}|${b}`, from: a, to: b, transport: 'many', mode: 'sync', count: 0, calls: [], links: [], ids: [], transports: [], merged: true }); const m = by.get(k); m.count += l.count; m.calls.push(...l.calls); m.links.push(...(l.links ?? [])); m.ids.push(l.id); if (!m.transports.includes(l.transport)) m.transports.push(l.transport); }
+  return [...by.values()];
+}
+
+/** Where the straight line between the centres of two boxes leaves one and enters the other. */
+function edgePoint(box, toward) {
+  const cx = box.x + box.w / 2, cy = box.y + box.h / 2, dx = toward[0] - cx, dy = toward[1] - cy;
+  const s = Math.min(dx ? box.w / 2 / Math.abs(dx) : Infinity, dy ? box.h / 2 / Math.abs(dy) : Infinity);
+  return [cx + dx * s, cy + dy * s];
+}
+
+/**
+ * routeMerged(lines, L) -> Map id -> { d, from, to, lx, ly, show }: a straight run between the two boxes' edges (the middle of it hidden under any box in between: boxes are
+ * drawn over the lines). The label sits at the middle of the open run, `show` false when it would sit on a box or on another label: it is dropped, the panel has the count.
+ */
+export function routeMerged(lines, L) {
+  const out = new Map(), boxes = [...L.boxes.values()], placed = [];
+  for (const l of lines) {
+    const A = L.boxes.get(l.from), B = L.boxes.get(l.to);
+    if (!A || !B) continue;
+    const ca = [A.x + A.w / 2, A.y + A.h / 2], cb = [B.x + B.w / 2, B.y + B.h / 2], p1 = edgePoint(A, cb), p2 = edgePoint(B, ca);
+    const lx = (p1[0] + p2[0]) / 2, ly = (p1[1] + p2[1]) / 2, w = lineLabel(l).length * 6.2 + 10, box = { x: lx - w / 2, y: ly - 9, w, h: 14 };
+    const hit = (r) => r.x < box.x + box.w && box.x < r.x + r.w && r.y < box.y + box.h && box.y < r.y + r.h;
+    const show = !boxes.some(hit) && !placed.some(hit);
+    if (show) placed.push(box);
+    out.set(l.id, { d: `M${p1[0]} ${p1[1]} L${p2[0]} ${p2[1]}`, from: p1, to: p2, lx, ly: ly - 3, show });
+  }
+  return out;
 }

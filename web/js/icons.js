@@ -52,7 +52,7 @@ export const SS_NAMES = Object.keys(SS_PATH);
 
 /** A subsystem icon as an <svg> (HTML pages and panels); null when the name is not one of the six. `size` px. */
 export function subIcon(name, size = 16) {
-  if (!SS_PATH[name]) return null;
+  if (!Object.hasOwn(SS_PATH, name)) return null;
   const el = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   for (const [k, v] of Object.entries({ viewBox: '0 0 16 16', width: size, height: size, fill: 'none', 'stroke-width': 1.2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true', class: 'ss-icon' })) el.setAttribute(k, v);
   el.innerHTML = SS_PATH[name];

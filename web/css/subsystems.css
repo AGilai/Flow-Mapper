@@ -8,15 +8,16 @@
 .ss-svg { display: block; max-width: none; }
 .ss-none { padding: var(--s5); }
 .ss-wrap .legend { position: static; margin: var(--s3) var(--s4) var(--s4); pointer-events: auto; max-width: calc(100% - 2 * var(--s4)); }
+.ss-svg .ss-off { display: none; }
 .ss-svg .rg { fill: color-mix(in srgb, var(--surface-2) 70%, var(--paper)); stroke: var(--line-strong); stroke-width: 1; }
 .ss-box { cursor: pointer; }
 .ss-box.sel .rg { stroke: var(--accent); stroke-width: 2; }
 .ss-box.isnew .rg { stroke: var(--ink-2); }
 .ss-box:hover .rg { stroke: var(--ink-2); }
 .ss-svg g:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
-.ss-svg .box-t { font: 600 14px var(--font); fill: var(--ink); }
-.ss-svg .box-c { font: 400 11.5px var(--font); fill: var(--muted); }
-.ss-svg .box-n { font: 500 12px var(--font); fill: var(--ink); }
+.ss-svg .box-t { font: 600 calc(14px * var(--tf, 1)) var(--font); fill: var(--ink); }
+.ss-svg .box-c { font: 400 calc(11.5px * var(--tf, 1)) var(--font); fill: var(--muted); }
+.ss-svg .box-n { font: 500 calc(12px * var(--tf, 1)) var(--font); fill: var(--ink); }
 .ss-comp { cursor: pointer; }
 .ss-comp:hover .box-n { text-decoration: underline; }
 .ss-comp.old .box-n { fill: var(--muted); font-weight: 400; }
@@ -27,13 +28,13 @@
 .ss-svg .ru-hit { fill: none; stroke: transparent; stroke-width: 14; cursor: pointer; pointer-events: stroke; }
 .ss-svg .ru-halo { fill: none; stroke-width: 11; stroke-opacity: .2; stroke-linecap: round; }
 .ss-svg .ru-halo.ink { stroke: var(--ink-2); stroke-opacity: .16; }
-.ss-svg .ru-l { font: 600 10.5px var(--font); fill: var(--ink-2); paint-order: stroke; stroke: var(--paper); stroke-width: 3px; stroke-linejoin: round; }
-.ss-svg .ru-inc { font-weight: 500; font-size: 9.5px; fill: var(--muted); }
+.ss-svg .ru-l { font: 600 calc(10.5px * var(--tf, 1)) var(--font); fill: var(--ink-2); paint-order: stroke; stroke: var(--paper); stroke-width: 3px; stroke-linejoin: round; }
+.ss-svg .ru-inc { font-weight: 500; font-size: calc(10px * var(--tf, 1)); fill: var(--muted); }
 .ss-svg .abs { fill: none; stroke: var(--ink-2); stroke-width: 1.8; stroke-dasharray: 6 4; }
 .ss-svg .abs-end { fill: var(--surface); stroke: var(--ink-2); stroke-width: 1.6; }
 .ss-svg .abs-g { cursor: pointer; }
 .ss-svg .chip-b rect { fill: var(--surface); stroke: var(--line-strong); }
-.ss-svg .chip-b text { font: 600 10.5px var(--font); fill: var(--ink-2); }
+.ss-svg .chip-b text { font: 600 calc(10.5px * var(--tf, 1)) var(--font); fill: var(--ink-2); }
 .ss-svg .chip-b.part rect { stroke: var(--ink-2); }
 .ss-svg .chip-b.broken rect { stroke: var(--bad); }
 .ss-svg .chip-b.broken text { fill: var(--bad); }
@@ -99,3 +100,4 @@
   .es-table td { border: 0; padding: 3px 0; }
   .es-table td[data-label]::before { content: attr(data-label); display: block; font-size: var(--fs-xs); color: var(--muted); }
 }
+.es-table .btn.danger-ghost:disabled { color: var(--muted); border-color: var(--line); background: var(--surface-2); opacity: 1; cursor: not-allowed; }

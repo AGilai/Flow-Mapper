@@ -8,12 +8,12 @@ import { onMarks } from './marks-store.js';
 
 const EMPTY = { levels: ['Subsystem', 'Component'], subsystems: [], notSet: [] };
 
-/** createSubsystems(payload) -> { levels, list(), info(key), subOf(service), has, notSet }. A component has ONE subsystem (0.28.0): the key of the box that lists it, '' for none. */
+/** createSubsystems(payload) -> { levels, list(), info(key), subOf(service), has, assigned, notSet }. `has`: the environment has subsystems; `assigned`: some component is in one. A component has ONE subsystem (0.28.0): the key of the box that lists it, '' for none. */
 export function createSubsystems(p = EMPTY) {
   const list = p.subsystems ?? [], of = new Map();
   for (const s of list) for (const c of s.components ?? []) of.set(c.name, s.key);
   return {
-    payload: p, levels: p.levels?.length ? p.levels : EMPTY.levels, notSet: p.notSet ?? [], has: list.length > 0,
+    payload: p, levels: p.levels?.length ? p.levels : EMPTY.levels, notSet: p.notSet ?? [], has: list.length > 0, assigned: list.some((s) => s.components?.length > 0),
     list: () => list,
     info: (key) => list.find((s) => s.key === key) ?? null,
     subOf: (service) => of.get(service) ?? '',

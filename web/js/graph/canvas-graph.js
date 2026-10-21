@@ -10,7 +10,7 @@ import { iconImage } from '../components/object-icon.js';
 import { createMarkLayer } from './graph-marks.js';
 import { drawRegions, regionAt } from './graph-regions.js';
 
-export function createCanvasGraph(host, { onSelect, onHover, marks = null, padBottom = 60 } = {}) {
+export function createCanvasGraph(host, { onSelect, onHover, marks = null, padBottom = 60, quiet = null } = {}) {
   const markLayer = marks ? createMarkLayer(marks) : null;
   const canvas = document.createElement('canvas');
   canvas.className = 'graph-canvas';
@@ -53,7 +53,7 @@ export function createCanvasGraph(host, { onSelect, onHover, marks = null, padBo
   mq.addEventListener('change', onTheme);
 
   // The state the drawing and hit-testing modules read, as a snapshot of the closure at call time.
-  const view = () => ({ nodes, edges, pos, byId, degree, visible, edgeOk, highlight, selected, hovered, hoverSet, groups, k, w, hgt, theme, isVis, toScreen, toWorld });
+  const view = () => ({ quiet, nodes, edges, pos, byId, degree, visible, edgeOk, highlight, selected, hovered, hoverSet, groups, k, w, hgt, theme, isVis, toScreen, toWorld });
 
   function draw() {
     raf = 0;
