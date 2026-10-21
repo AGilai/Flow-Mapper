@@ -13,10 +13,14 @@ import { ago } from '../format.js';
 import { switchboard } from './service-switchboard.js';
 import { endpointPanel } from './endpoint-panel.js';
 import { titled } from '../components/object-icon.js';
+import { loadMarks } from '../design/marks-store.js';
+import { markBadge, wasText } from '../components/status-mark.js';
+import { removedList } from './flow-removed.js';
 
 export async function render({ main, params, query }) {
   const name = params.name;
-  const [v, log] = await Promise.all([api.service(state.env, name), api.changelog(state.env, name, 30)]);
+  const [v, log, marks] = await Promise.all([api.service(state.env, name), api.changelog(state.env, name, 30), loadMarks()]);
+  const mine = marks.markOf(`svc:${name}`);
   const s = v.service;
   const tab = query.get('tab') ?? 'connections';
   const broken = v.egress.filter((e) => e.dangling).length;
@@ -46,11 +50,11 @@ export async function render({ main, params, query }) {
 
   function show(id) {
     tabs.querySelectorAll('button').forEach((b, i) => b.setAttribute('aria-selected', String(['connections', 'functions', 'changes'][i] === id)));
-    fill(body, id === 'functions' ? functionsTab(v, name) : id === 'changes' ? changesTab(log) : connectionsTab(v, name, query, showEndpoint));
+    fill(body, id === 'functions' ? functionsTab(v, name) : id === 'changes' ? changesTab(log) : connectionsTab(v, name, query, showEndpoint, marks));
   }
 
   main.append(
-    pageHead(titled('service', s.kind, name), s.description ?? null,
+    pageHead(h('span.row', titled('service', s.kind, name), markBadge(mine, { store: marks })), mine && wasText(mine) ? [s.description, h('span.mk-what', ` ${wasText(mine)}`)] : s.description ?? null,
       h('a.btn', { href: href('/system', { sel: `svc:${name}` }) }, icon('system'), 'Show on map'),
       h('a.btn', { href: href('/bugs/new', { service: name }) }, icon('bug'), 'Report a bug'),
       h('a.btn.primary', { href: href('/flows', { service: name }) }, icon('flow'), 'Trace a flow')),
@@ -62,10 +66,10 @@ export async function render({ main, params, query }) {
 
 const fig = (n, label, bad = false) => h('div.figure', { class: bad ? 'bad' : '' }, h('b', String(n ?? 0)), h('span', label));
 
-function connectionsTab(v, name, query, onInfo) {
+function connectionsTab(v, name, query, onInfo, marks) {
   const holder = h('div');
   const input = h('input.input', { type: 'search', placeholder: 'Filter endpoints, services, functions', value: query.get('f') ?? '', 'aria-label': 'Filter connections' });
-  const draw = () => { fill(holder, switchboard(v, name, input.value.trim().toLowerCase(), onInfo)); setQuery({ f: input.value || null }); };
+  const draw = () => { fill(holder, switchboard(v, name, input.value.trim().toLowerCase(), onInfo, marks), removedList(marks, [name], { draft: state.draft })); setQuery({ f: input.value || null }); };
   input.addEventListener('input', debounce(draw, 120));
   draw();
   return h('div.stack', { style: { gap: 'var(--s4)' } }, h('div.search', icon('search'), input), holder);

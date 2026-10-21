@@ -5,9 +5,11 @@ import { href } from '../router.js';
 import { mwLabel, isLongChain } from './flow-mw.js';
 import { colorOf } from './flow-draw-layout.js';
 import { arrow, marker, rpcChip, stop } from './flow-draw-prims.js';
+import { arrowMarkSvg } from './flow-marks-draw.js';
+import { isDesign } from '../state.js';
 
 /** drawRows(layout) -> one element per event, in order. */
-export function drawRows({ events, colX, ys, barX, edge }) {
+export function drawRows({ events, colX, ys, barX, edge, marks }) {
   return events.map((e, r) => {
     const y0 = ys[r];
     const g = (cls, ...kids) => s('g', { class: `msg ${cls}`, 'data-e': r, tabindex: e.msg ? 0 : null, role: e.msg ? 'button' : null }, ...kids);
@@ -19,7 +21,7 @@ export function drawRows({ events, colX, ys, barX, edge }) {
       const dir = Math.sign(colX.get(e.to) - colX.get(e.from)) || 1;
       const x1 = edge(e.fromBar, e.from, dir), x2 = e.bar ? barX(e.bar, -dir) : colX.get(e.to);
       const mc = colorOf(e.tr ?? e.msg.transport);
-      return g(e.rpc ? 'rpc' : '', arrow(x1, x2, y0, { label: e.label, color: mc, dashed: e.msg.mode === 'async' && !e.bar }), e.rpc?.chip ? rpcChip('amqp rpc', (x1 + x2) / 2, y0, mc) : null, e.rpc?.glyph ? s('text', { class: 'rpcglyph', x: Math.min(x1, x2) + 4, y: y0 - 5, style: `--mc:${mc}` }, '⇄') : null, hit(x1, x2), s('title', {}, e.rpc ? `${e.label} (RPC over AMQP)` : e.msg.label));
+      return g(e.rpc ? 'rpc' : '', arrow(x1, x2, y0, { label: e.label, color: mc, dashed: e.msg.mode === 'async' && !e.bar }), e.rpc?.chip ? rpcChip('amqp rpc', (x1 + x2) / 2, y0, mc) : null, e.rpc?.glyph ? s('text', { class: 'rpcglyph', x: Math.min(x1, x2) + 4, y: y0 - 5, style: `--mc:${mc}` }, '⇄') : null, hit(x1, x2), ...arrowMarkSvg(marks, e.msg, x1, x2, y0), s('title', {}, e.rpc ? `${e.label} (RPC over AMQP)` : e.msg.label));
     }
     if (e.type === 'return') {
       const dir = Math.sign(colX.get(e.to) - colX.get(e.bar.col)) || 1;
@@ -28,7 +30,8 @@ export function drawRows({ events, colX, ys, barX, edge }) {
     }
     if (e.type === 'unresolved') {
       const x1 = barX(owner, 1), x2 = colX.get(e.col) - 8;
-      return g('broken', arrow(x1, x2, y0, { dashed: true, label: e.label, color: 'var(--t-broken)', cross: true }), e.chip ? rpcChip(e.chip, (x1 + x2) / 2, y0, 'var(--t-broken)', true) : null, hit(x1, x2), s('title', {}, e.msg.label));
+      const gap = isDesign(); // in a design a missing target is not a fault: neutral, no cross
+      return g('broken', arrow(x1, x2, y0, { dashed: true, label: e.label, color: gap ? 'var(--ink-2)' : 'var(--t-broken)', cross: !gap }), e.chip ? rpcChip(e.chip, (x1 + x2) / 2, y0, 'var(--t-broken)', true) : arrowMarkSvg(null, e.msg, x1, x2, y0), hit(x1, x2), s('title', {}, e.msg.label));
     }
     if (e.type === 'hop') { // one arrow through the topic: its colour changes exactly on the topic lifeline; the event type reads like a REST path
       const x1 = edge(e.fromBar, e.from, 1), x2 = colX.get(e.to), tx = e.via ? colX.get(e.via) : e.fork ? colX.get(e.from) : null, mc = colorOf(e.transport), tc = colorOf(e.trunkTransport), hl = e.sub ? [e.label, e.sub] : e.label;

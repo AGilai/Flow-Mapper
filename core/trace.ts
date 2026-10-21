@@ -35,7 +35,7 @@ export interface Message {
   depth: number; internal?: boolean; broken?: boolean; cycle?: boolean;
   condition?: string; loop?: boolean;
   alt?: Alt;                                                 // the step is one of several alternatives (an alt frame): group, branch (1-based), number of branches; the message keeps its `condition` note?: string; fn?: string; service?: string; transport?: string; protocol?: 'tls' | 'tcp' | 'ws';
-  event?: string; unhandled?: boolean;
+  event?: string; unhandled?: boolean; operation?: string; // operation: a call out's own words (`POST /token`); `label` is that plus the bind key
   eventFrom?: { name: string; boundAt?: string };            // the event came from a caller's bind (#42): the name, and where it was bound (`<caller fn>:<seq>`); no boundAt: nothing on this path binds it
   possible?: boolean;                                        // delivered only if the publisher's event is one of its candidates (the step names no event)
   seq?: number;                                              // step number in the calling function
@@ -215,7 +215,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
         // RPC over AMQP, or a publish to an exchange: what the trace adds about the routing (additive fields).
         const rpc = rpcOf(e), ex = splitAmqpKey(e.bindKey)?.exchange;
         const route = !rpc && ex && !g.channels.has(e.bindKey) && (g.channels.has(`amqp:${ex}`) || g.model.bindings.some((b) => splitAmqpKey(b.from)?.exchange === ex)) ? routeKey(g.model.bindings, g.channels.get(`amqp:${ex}`)?.details, e.bindKey, e.details) : null;
-        const extra = rpc ? { rpc } : route ? { amqp: routeInfo(route, g.channels.get(`amqp:${ex}`)?.details) } : {};
+        const extra = { ...(st.operation ? { operation: st.operation } : {}), ...(rpc ? { rpc } : route ? { amqp: routeInfo(route, g.channels.get(`amqp:${ex}`)?.details) } : {}) };
         const ok = (l: Parameters<typeof passes>[1]) => (set ? passesUntyped(g, l, set) !== false : passes(g, l, event));
         const all = distinct(linksFrom(g, { type: 'egress', service, id: e.id }).filter(ok));
         // A send to a queue that an ingress consumes matches that ingress by key and also goes through the queue: draw the queue path only.

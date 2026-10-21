@@ -3,7 +3,9 @@
 import { h, clear, fill } from './dom.js';
 import { api } from './api.js';
 import { route, start, parseHash } from './router.js';
-import { state, onEnvChange } from './state.js';
+import { state, onEnvChange, setEnv, designFromQuery, designQuery, isDesign } from './state.js';
+import { setQuery } from './router.js';
+import { mountDesignStrip } from './design/design-strip.js';
 import { renderRail } from './components/sidebar.js';
 
 const rail = document.getElementById('rail');
@@ -40,12 +42,19 @@ async function boot() {
   api.bugs({ open: true, limit: 1000 }).then((b) => { openBugs = b.length; refreshRail(); }).catch(() => {});
 
   start(async (r, params, loc) => {
+    const d = designFromQuery(loc.query);
+    if (d.env !== state.env) setEnv(d.env, true);
+    Object.assign(state, { mode: d.mode, draft: d.draft, compare: d.compare });
+    setQuery(designQuery());
+    document.documentElement.classList.toggle('is-design', isDesign());
     refreshRail();
     fill(main, h('div.loading', 'Loading…'));
     try {
       const mod = await r.load();
       clear(main);
-      return await mod.render({ main, params, query: loc.query });
+      const view = await mod.render({ main, params, query: loc.query });
+      const strip = mountDesignStrip(main);
+      return { ...view, dispose: () => { view?.dispose?.(); strip?.dispose?.(); } };
     } catch (err) {
       console.error(err);
       fill(main, h('div.content', h('div.error-box', err.message || String(err))));

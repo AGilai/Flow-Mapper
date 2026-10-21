@@ -8,6 +8,7 @@ import { icon } from '../icons.js';
 import { storeLink } from './inventory-links.js';
 import { objectIcon } from '../components/object-icon.js';
 import { viaChip, callSitesList } from '../components/via-chip.js';
+import { markBadge, countBadges } from '../components/status-mark.js';
 
 const OPEN_LIMIT = 15;
 const UNRESOLVED = '\u0001Unresolved by the harvester';
@@ -22,18 +23,20 @@ const groupChip = (g) => (g === RPC_G ? chip('rpc', 'amqp rpc') : chip('amqp'));
 const seconds = (ms) => (ms % 1000 ? `${ms} ms` : `${ms / 1000} s`);
 const svcLink = (s) => h('a', { href: href(`/services/${encodeURIComponent(s)}`) }, s);
 
-export function switchboard(v, name, q, onInfo) {
+export function switchboard(v, name, q, onInfo, marks = null) {
+  const ingMark = (i) => marks?.markOf(`ing:${name}/${i.id}`) ?? null, egrMark = (e) => marks?.markOf(`egr:${name}/${e.id}`) ?? null;
+  const badge = (info) => (info ? markBadge(info, { store: marks }) : null);
   const hit = (...xs) => !q || xs.some((x) => x && String(x).toLowerCase().includes(q));
 
   // ---- ingress, grouped by transport ----
   const ingress = v.ingress.filter((i) => hit(i.bindKey, i.handler, ...i.callers.map((c) => c.service)));
   const byT = group(ingress, (i) => (i.rpc ? RPC_G : i.transport));
   const left = h('div.sb-col.sb-left',
-    h('h2', 'Ingress', h('span.muted.small', String(ingress.length))),
+    h('h2', 'Ingress', h('span.muted.small', String(ingress.length)), countBadges(ingress.map(ingMark), marks)),
     byT.length ? byT.map(([t, items]) => details(t === RPC_G ? [groupChip(t), queueNote(items)] : chip(t), items.length, items.length <= OPEN_LIMIT || !!q,
       items.map((i) => h('div.sb-row', { 'data-t': gapOf(i) ? 'gap' : i.orphan ? 'broken' : i.rpc ? 'rpc' : i.transport, class: '' },
         h('span', h('a.key', { href: href('/flows', { service: name, ingress: i.id }) , title: 'Trace from here' }, breakable(i.rpc ? i.rpc.command : gapOf(i) && i.bindKey.startsWith('unresolved:') ? (i.id || gapOf(i).detail || '(no id)') : splitKey(i.bindKey).rest)), atLink(i.at)),
-        h('span.xs.sb-actions', gapOf(i) ? gapPill(gapOf(i)) : i.entryPoint ? h('span.pill', 'entry') : i.orphan ? h('span.pill.warn', 'never called') : null,
+        h('span.xs.sb-actions', badge(ingMark(i)), gapOf(i) ? gapPill(gapOf(i)) : i.entryPoint ? h('span.pill', 'entry') : i.orphan ? h('span.pill.warn', 'never called') : null,
           i.events?.length ? h('span.pill', { title: i.events.map((e) => e.type).join(', ') }, `${i.events.length} event ${i.events.length === 1 ? 'type' : 'types'}`) : null,
           onInfo ? h('button.btn.ghost.icon-btn', { type: 'button', title: 'Endpoint info', 'aria-label': `Info for ${i.bindKey}`, on: { click: () => onInfo(i.id) } }, icon('info')) : null),
         h('div.peers', h('span', 'handler ', h('span.key', i.handler)),
@@ -50,7 +53,7 @@ export function switchboard(v, name, q, onInfo) {
     .sort((a, b) => rank(a[0]) - rank(b[0]));
   const resources = v.resources.filter((r) => hit(r.name, r.kind, ...r.operations.map((o) => o.fn)));
   const right = h('div.sb-col.sb-right',
-    h('h2', 'Egress', h('span.muted.small', String(egress.length))),
+    h('h2', 'Egress', h('span.muted.small', String(egress.length)), countBadges(egress.map(egrMark), marks)),
     byTarget.map(([target, items]) => {
       const broken = target.startsWith('\u0000');
       const label = target === RPC_G || target === AMQP_G ? groupChip(target) : target === UNRESOLVED ? h('span.muted', 'Unresolved by the harvester')
@@ -58,7 +61,7 @@ export function switchboard(v, name, q, onInfo) {
       return details(label, items.length, items.length <= OPEN_LIMIT || broken || !!q, items.map((e) =>
         h('div.sb-row', { 'data-t': gapOf(e) ? 'gap' : e.dangling ? 'broken' : e.rpc ? 'rpc' : e.transport },
           h('span', h('span.key', breakable(e.rpc ? e.rpc.command : e.amqp ? e.amqp.routingKey || e.amqp.exchange : e.transport === 'amqp' && !gapOf(e) ? splitKey(e.bindKey).rest : gapOf(e) && e.bindKey.startsWith('unresolved:') ? (gapOf(e).detail || e.id || (e.source ? `${e.source.file}:${e.source.line ?? ''}` : '(no id)')) : e.bindKey)), atLink(e.at)),
-          h('span.sb-actions', gapOf(e) ? gapPill(gapOf(e)) : e.transport === 'amqp' ? null : [chip(e.transport), e.mode === 'async' ? [' ', chip('async', 'async')] : null]),
+          h('span.sb-actions', badge(egrMark(e)), gapOf(e) ? gapPill(gapOf(e)) : e.transport === 'amqp' ? null : [chip(e.transport), e.mode === 'async' ? [' ', chip('async', 'async')] : null]),
           h('div.peers',
             e.usedBy.length ? h('span', 'from ', e.usedBy.slice(0, 3).map((f) => h('span.key', f + ' '))) : null,
             e.amqp ? h('span', '→ ', h('span.key', e.amqp.exchange), e.amqp.bindings.length ? [`, ${plural(e.amqp.bindings.length, 'binding')} (`, h('span.key', e.amqp.bindings.slice(0, 3).join(', ')), e.amqp.bindings.length > 3 ? ', …' : '', ')'] : ', no binding matches') : null,

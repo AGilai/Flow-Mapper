@@ -12,6 +12,8 @@ import { asyncTree, deliveryNumbers, knownOutside } from './flow-async.js';
 import { barMenu, participantMenu } from './flow-menu.js';
 import { subRequest } from './flow-sub.js';
 import { firstStepCols } from './flow-squeeze.js';
+import { laneMarks } from './flow-marks.js';
+import { marksNow } from '../design/marks-store.js';
 
 /**
  * createFlowRender({ trace, tree, key, ancestors, sticky }, sh) -> { laneBox, idxBox, drawLane(), relane(), expandAll(budget), index() }
@@ -42,7 +44,7 @@ export function createFlowRender({ trace, tree, key, ancestors = [], sticky = tr
     const msgs = trace.messages.filter((m) => m.depth <= lo.maxDepth);
     const built = buildLane(msgs, { mwOpen, fanOpen, numbers: deliveryNumbers(tree), stores: lo.stores, scope: 'full', participants: trace.participants });
     const sq = sh.squeeze?.() ? { keep: (!depth && sh.walk?.endsOf(built)) || firstStepCols(built) } : null; // Squeeze: the current step's lifelines (a card: its first step's)
-    lane = renderLane(built, { ...handlers, sticky, squeeze: sq, onSqueeze: sh.squeezeOpen, fit: Math.max(0, (sh.fit?.() ?? 0) - (depth ? 40 + depth * 28 : 0)) });
+    lane = renderLane(built, { ...handlers, marks: laneMarks(marksNow()), sticky, squeeze: sq, onSqueeze: sh.squeezeOpen, fit: Math.max(0, (sh.fit?.() ?? 0) - (depth ? 40 + depth * 28 : 0)) });
     if (!depth) sh.walk?.decorate(lane, built); // numbered steps are the top lane's only (0.20.0)
     laneBox.replaceChildren(lane.el);
   }

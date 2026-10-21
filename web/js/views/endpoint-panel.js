@@ -11,6 +11,9 @@ import { dtoSource } from '../components/dto-source.js';
 import { eventPath } from './inventory-links.js';
 import { viaChip } from '../components/via-chip.js';
 import { rpcCards } from './endpoint-rpc.js';
+import { dtoAnchor, eventAnchor } from '../components/field-diff.js';
+import { marksNow } from '../design/marks-store.js';
+import { markBadge } from '../components/status-mark.js';
 
 /** Returns [head, ...content] for panel.open(). */
 export function endpointPanel(info, env) {
@@ -18,7 +21,7 @@ export function endpointPanel(info, env) {
   const rpc = info.rpc;
   const target = rpc ? rpc.command : i.details?.path ?? splitKey(i.bindKey).rest.replace(/^[A-Z]+\s+/, '');
   const head = h('div.ep-head',
-    h('div.ep-title', method ? h('span.ep-method', { 'data-m': method }, method) : rpc ? chip('rpc', 'amqp rpc') : chip(i.transport), h('span.ep-target', target)),
+    h('div.ep-title', method ? h('span.ep-method', { 'data-m': method }, method) : rpc ? chip('rpc', 'amqp rpc') : chip(i.transport), h('span.ep-target', target), markBadge(marksNow().markOf(`ing:${service}/${i.id}`), { store: marksNow() })),
     h('div.ep-sub', h('span', service), method ? chip(i.transport) : null, i.entryPoint ? h('span.pill', 'entry point') : null));
 
   return [head, rpc ? rpcCards(rpc, service) : null, codeCard(fn, i, source, info.definedAt, info.handlerVia), ...info.slots.map((s) => dtoCard(s, env, service, i.id)),
@@ -48,7 +51,7 @@ function codeCard(fn, i, source, definedAt, handlerVia) {
 function dtoCard(slot, env, service, ingress) {
   const d = slot.dto;
   const meta = d ? h('span.ep-meta', slot.stale ? h('span.pill.warn', { title: 'Loaded before the service was last harvested' }, 'may be out of date') : null, `updated ${ago(d.updatedAt)}`) : null;
-  return card(slot.label, meta, dtoSource(d), d ? jsonView(d.content) : h('div.ep-empty',
+  return card(slot.label, meta, dtoSource(d), d ? jsonView(d.content, dtoAnchor(service, slot.role, slot.status, ingress)) : h('div.ep-empty',
     h('p', `No ${slot.label.toLowerCase()} loaded yet.`),
     h('code.key', `PUT /api/envs/${env}/dtos/${service}/${slot.role}/${ingress}`)));
 }
@@ -92,7 +95,7 @@ function eventCard(e, info, env, open) {
       e.producers.length ? h('div.ep-producers', e.producers.map(producerChip)) : h('span.small.muted', 'None found.')),
     e.type.includes('*') ? null : h('div.ep-pad.stack', { style: { gap: 'var(--s1)' } },
       h('span.ep-label', 'Message', e.dto ? h('span.muted', ` · updated ${ago(e.dto.updatedAt)}`) : null),
-      e.dto ? [dtoSource(e.dto), jsonView(e.dto.content)] : h('div.ep-empty', h('p', 'No message DTO for this event type yet.'), h('code.key', `PUT /api/envs/${env}/event-dtos/${e.type}`))),
+      e.dto ? [dtoSource(e.dto), jsonView(e.dto.content, eventAnchor(e.type))] : h('div.ep-empty', h('p', 'No message DTO for this event type yet.'), h('code.key', `PUT /api/envs/${env}/event-dtos/${e.type}`))),
     e.type.includes('*') ? null : h('div.ep-pad.row', { style: { gap: 'var(--s2)' } },
       e.handler ? h('a.btn.ghost', { href: href('/flows', { service: info.service, ingress: info.ingress.id, event: e.type }) }, icon('flow'), `Trace ${e.type}`) : null,
       h('a.btn.ghost', { href: href(eventPath(e.type)) }, 'Open event type')));

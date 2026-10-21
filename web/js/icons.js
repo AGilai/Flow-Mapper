@@ -21,6 +21,12 @@ const P = {
   external: '<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
 };
 
+/** Status-mark glyphs on a 12px grid: a 4-point star (New) and a ring with a dot (Changed). Shapes, not hues, tell them apart from a warning. */
+export const GLYPH = {
+  new: { d: 'M6 .6L7.5 4.5 11.4 6 7.5 7.5 6 11.4 4.5 7.5.6 6 4.5 4.5z', fill: true },
+  chg: { d: 'M6 1.6a4.4 4.4 0 1 0 0 8.8 4.4 4.4 0 0 0 0-8.8zM6 2.8a3.2 3.2 0 1 0 0 6.4 3.2 3.2 0 0 0 0-6.4zM6 4.8a1.2 1.2 0 1 0 0 2.4 1.2 1.2 0 0 0 0-2.4z', fill: false },
+};
+
 export function icon(name, cls = '') {
   const el = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   el.setAttribute('viewBox', '0 0 24 24');

@@ -9,6 +9,8 @@ import { href } from '../router.js';
 import { ago } from '../format.js';
 import { pageHead } from '../components/page.js';
 import { jsonView } from '../components/json-view.js';
+import { schemaAnchor } from '../components/field-diff.js';
+import { loadMarks } from '../design/marks-store.js';
 import { stepFields } from '../components/step-fields.js';
 import { box, codeLink, empty, fig, problems } from './detail-parts.js';
 import { instancePath, serviceLink, storeLink } from './inventory-links.js';
@@ -19,7 +21,7 @@ import { titled } from '../components/object-icon.js';
 const SOURCE = { code: 'From code', db: 'From the database', manual: 'Entered by hand' };
 
 export async function render({ main, params }) {
-  const v = await api.store(state.env, params.key);
+  const [v] = await Promise.all([api.store(state.env, params.key), loadMarks()]);
   const fns = v.uses.flatMap((u) => u.functions);
   const issues = [
     v.writers.length > 1 ? `Written by ${v.writers.length} services (${v.writers.join(', ')}). They are coupled through this data.` : null,
@@ -51,7 +53,7 @@ export async function render({ main, params }) {
             : empty('No entry point leads here.'))),
         h('div.stack', { style: { gap: 'var(--s4)' } },
           box('Schema', v.schemas.length, v.schemas.length ? v.schemas.map((s) => h('div.stack', { style: { gap: 'var(--s1)' } },
-              h('div.row', h('b.small', SOURCE[s.source] ?? s.source), h('span.xs.muted', `updated ${ago(s.updatedAt)}`)), jsonView(s.content)))
+              h('div.row', h('b.small', SOURCE[s.source] ?? s.source), h('span.xs.muted', `updated ${ago(s.updatedAt)}`)), jsonView(s.content, schemaAnchor(s.source, v.key))))
             : h('div.ep-empty', h('p', 'No schema yet.'), h('code.key', `PUT /api/envs/${state.env}/schemas/code/${v.key}`))),
           Object.keys(v.details).length ? box('Details', null, jsonView(v.details)) : null,
           box(`Other keys in ${v.group}`, v.siblings.length, v.siblings.length

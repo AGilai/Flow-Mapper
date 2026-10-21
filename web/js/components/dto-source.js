@@ -16,7 +16,7 @@ export function dtoSource(dto) {
   if (!where && !m.provenance && !m.incomplete) return null;
   return h('div.dto-source',
     where ? h('span', 'Source ', where, ref) : null,
-    m.provenance ? h('span', m.provenance) : null,
+    m.provenance ? h('span', `provenance: ${m.provenance}`) : null,
     m.incomplete ? h('span.pill.warn', { title: reason ?? 'The harvester could not capture every field' }, 'incomplete') : null,
     reason ? h('span', reason) : null);
 }

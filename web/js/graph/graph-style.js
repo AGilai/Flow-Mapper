@@ -4,14 +4,16 @@
 // Nodes with an object icon (AWS service icon or brand logo, see components/object-icon.js) draw
 // the icon instead of the shape.
 
+import { isDesign } from '../state.js';
+
 export function readTheme() {
   const cs = getComputedStyle(document.documentElement);
   const v = (n) => cs.getPropertyValue(n).trim();
   return {
     font: v('--font') || 'sans-serif', ink: v('--ink'), ink2: v('--ink-2'), muted: v('--muted'), surface: v('--surface'),
-    paper: v('--paper'), line: v('--line-strong'), accent: v('--accent'), broken: v('--t-broken'), halo: v('--paper'),
-    district: v('--muted'),
-    t: { http: v('--t-http'), rpc: v('--t-rpc'), grpc: v('--t-http'), eventbridge: v('--t-eb'), sns: v('--t-sns'), sqs: v('--t-sqs'), amqp: v('--t-amqp'), cron: v('--t-cron'), socket: v('--t-socket'), other: v('--t-res'), res: v('--t-res') },
+    paper: v('--paper'), line: v('--line-strong'), accent: v('--accent'), broken: isDesign() ? v('--ink-2') : v('--t-broken'), halo: v('--paper'),
+    district: v('--muted'), newc: v('--new'), newInk: v('--new-ink'),
+    t: { http: v('--t-http'), rpc: v('--t-rpc'), grpc: v('--t-http'), eventbridge: v('--t-eb'), sns: v('--t-sns'), sqs: v('--t-sqs'), amqp: v('--t-amqp'), cron: v('--t-cron'), socket: v('--t-socket'), other: v('--t-res'), undecided: v('--ink-2'), res: v('--t-res') },
   };
 }
 

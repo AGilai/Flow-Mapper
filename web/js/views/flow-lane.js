@@ -24,6 +24,7 @@ export const svcOf = (id) => (id.startsWith('svc:') ? id.slice(4) : id.startsWit
 export function callLabel(m) {
   if (isRpc(m)) return rpcCommand(m);
   if (m.kind === 'deliver') { const hd = m.target?.fn ?? m.label.match(/→\s*(.+)$/)?.[1] ?? ''; return m.event ? `${m.event} → ${hd}` : hd; }
+  if (m.operation && m.kind === 'egress' && !m.event) return m.operation; // the call's own words; the key is in the panel and the title
   if (m.transport === 'http' || m.transport === 'rpc') {
     const t = m.label.replace(/^\w+:/, '');
     const k = t.match(/^(\S+) [^/\s]*(\/.*)$/);
