@@ -8,7 +8,7 @@ import { rowId, type ItemRow } from '../../core/item-rows.ts';
 import { draftChanges, netOps, overlayRows, type DraftChanges, type DraftOp, type DraftOpInput, type OpOrigin } from '../../core/draft-ops.ts';
 import { rawHash } from '../../core/diff/normalise.ts';
 import { rowOfAnchor } from '../../core/anchors.ts';
-import { guardEnv } from './envs.ts';
+import { getEnvRow, guardEnv } from './envs.ts';
 import { envItemRows } from './item-rows.ts';
 import { prepareOps } from './draft-validate.ts';
 import { assignColorsIn } from './colors.ts';
@@ -110,7 +110,7 @@ export function appendOps(db: DB, env: string, slug: string, inputs: DraftOpInpu
     const d = getDraft(db, env, slug);
     const envRows = envItemRows(db, env), prior = loadOps(db, d.id);
     const overlay = new Map(overlayRows(envRows, netOps(prior)).map((r) => [rowId(r), r]));
-    const prepared = prepareOps(overlay, inputs);
+    const prepared = prepareOps(overlay, inputs, { groups: (JSON.parse(getEnvRow(db, env)!.groups) as { key: string }[]).map((g) => g.key) });
     const envMap = new Map(envRows.map((r) => [rowId(r), r]));
     const first = new Map<string, string | null>();
     for (const o of prior) if (!first.has(rowId(o))) first.set(rowId(o), o.baseHash);

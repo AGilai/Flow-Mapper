@@ -7,6 +7,7 @@ import { applyOp, opRow, validateOpShape, type DraftOpInput } from '../../core/d
 import { buildIndex } from '../../core/graph-index.ts';
 import { dtoSlots } from '../../core/endpoint-info.ts';
 import { stores } from '../../core/stores.ts';
+import { designIssues, SERVICE_KINDS } from '../../core/design-rules.ts';
 import { HttpError } from '../errors.ts';
 import { isList, keyOf, validateEntity, validateServiceHeader, type ListName } from '../schema.ts';
 import { normMeta, normStatus } from './dtos.ts';
@@ -36,6 +37,7 @@ function check(map: Map<string, ItemRow>, i: DraftOpInput): PreparedOp {
   if (r.list === 'header') {
     if (i.op === 'delete') return base;
     const { name, ...rest } = i.data as Record<string, any>;
+    if (rest.kind !== undefined && !(SERVICE_KINDS as readonly string[]).includes(rest.kind)) bad(`component kind '${rest.kind}' must be one of ${SERVICE_KINDS.join(', ')}`, 'BAD_KIND');
     if (name !== undefined && name !== r.service) bad(`header name '${name}' differs from the anchor 'svc:${r.service}'`);
     const errs = validateServiceHeader({ name: r.service, ...rest });
     if (errs.length) bad(`service header does not match schema: ${errs.slice(0, 3).map((e) => `${e.path} ${e.message}`).join('; ')}`);
@@ -71,8 +73,8 @@ function check(map: Map<string, ItemRow>, i: DraftOpInput): PreparedOp {
   return { ...base, data };
 }
 
-/** Prepare a request's ops in order, laying each accepted op over `rows` (mutated). Throws 422 listing every bad op. */
-export function prepareOps(rows: Map<string, ItemRow>, inputs: unknown): PreparedOp[] {
+/** Prepare a request's ops in order, laying each accepted op over `rows` (mutated). Throws 422 listing every bad op. `groups`: the environment's subsystem keys (NO_GROUP is not checked without them). */
+export function prepareOps(rows: Map<string, ItemRow>, inputs: unknown, opts: { groups?: string[] } = {}): PreparedOp[] {
   if (!Array.isArray(inputs) || !inputs.length) throw new HttpError(422, 'INVALID', 'ops must be a non-empty list of {op, anchor, service?, data?}');
   if (inputs.length > 500) throw new HttpError(422, 'INVALID', 'at most 500 ops per request');
   const out: PreparedOp[] = [], errs: Bad[] = [];
@@ -85,6 +87,7 @@ export function prepareOps(rows: Map<string, ItemRow>, inputs: unknown): Prepare
     }
   });
   if (!errs.length) {
+    errs.push(...designIssues(rows, out.flatMap((p, index) => (p.op === 'upsert' ? [{ index, service: p.service, list: p.list, key: p.key }] : [])), opts.groups));
     const wanted = out.filter((p) => p.list === 'schema' && p.op === 'upsert');
     if (wanted.length) {
       const known = new Set(stores(buildIndex(rowsToModel('', [...rows.values()]))).map((s) => s.key));

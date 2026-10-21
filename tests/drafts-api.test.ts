@@ -59,7 +59,7 @@ test('validation: NO_SERVICE, key differs from anchor, bad header, bad anchor; a
   assert.equal((await bad([up('ing:ghost/in.x', ingress('in.x'))])).code, 'NO_SERVICE');
   assert.equal((await bad([up('ing:auth-svc/in.a', ingress('in.b'))])).code, 'INVALID');
   assert.equal((await bad([up('svc:Bad_Name', { kind: 'service' })])).code, 'INVALID');
-  assert.equal((await bad([up('svc:pop', { kind: 'nonsense' })])).code, 'INVALID');
+  assert.equal((await bad([up('svc:pop', { kind: 'nonsense' })])).code, 'BAD_KIND'); // 0.25.0: a kind outside the enum has its own code
   assert.equal((await bad([up('wat:x', {})])).code, 'INVALID');
   assert.equal((await bad([up('ch:sns:t', { bindKey: 'sns:t', kind: 'sns-topic' })])).code, 'INVALID', 'a new channel needs its owner');
   const e = await bad([up('ing:auth-svc/in.ok', ingress('in.ok')), up('ing:auth-svc/in.x', { id: 'in.x' }), { op: 'delete', anchor: 'fn:auth-svc/H', data: {} }]);
