@@ -56,7 +56,7 @@ export function callOps(e: CallEdit, x: Idx): DraftOpInput[] {
 
   const step: Record<string, any> = { ...(old ?? {}), type: 'egress', target: egressId };
   if (e.mode !== undefined || !old) step.mode = e.mode; if (step.mode === undefined) delete step.mode;
-  for (const k of ['operation', 'condition', 'event'] as const) setField(step, k, e[k]);
+  for (const k of ['operation', 'condition', 'event', 'note'] as const) setField(step, k, e[k]);
   let next: any[];
   if (old) next = steps.map((s) => (s === old ? step : s));
   else {

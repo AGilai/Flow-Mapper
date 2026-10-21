@@ -1,0 +1,17 @@
+// A flow as Mermaid text (0.27.2): the full trace of one entry endpoint, the flow's name and description, and its step descriptions.
+// Reads only, in every environment (sealed or design, and a design as an open draft would leave it).
+
+import type { Ctx } from '../context.ts';
+import { HASH_TRACE } from '../../core/description.ts';
+import { exportMermaid } from '../../core/mermaid-export.ts';
+import { trace } from '../../core/trace.ts';
+import { badRequest, notFound } from '../errors.ts';
+import { describeFlow } from './descriptions.ts';
+
+export function flowMermaid(ctx: Ctx, env: string, draft: string | null, service: unknown, ingress: unknown): string {
+  if (typeof service !== 'string' || !service || typeof ingress !== 'string' || !ingress) throw badRequest('service and ingress are required: the flow\'s entry endpoint');
+  const { g, reader } = ctx.view(env, draft);
+  const t = trace(g, { service, ingress }, HASH_TRACE) ?? (() => { throw notFound(`ingress '${ingress}' of service '${service}' in env '${env}'`); })();
+  const text = reader.flowText(service, ingress);
+  return exportMermaid(t, { name: text?.name, description: text?.description, descriptions: describeFlow(ctx.db, g, env, service, ingress) });
+}

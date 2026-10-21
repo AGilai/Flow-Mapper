@@ -16,7 +16,7 @@ export function importBaseline(ops: DraftOp[], present: Set<string>): OriginRow[
   const out = new Map<string, OriginRow>();
   for (const o of [...ops].sort((a, b) => a.seq - b.seq)) {
     if (o.op === 'delete' && o.list === 'header') { for (const [k, r] of out) if (r.service === o.service) out.delete(k); continue; }
-    if (!o.origin || o.op !== 'upsert') continue;
+    if (!o.origin || !('env' in o.origin) || o.op !== 'upsert') continue;
     const { groupPath: _g, ...bare } = (o.data ?? {}) as Record<string, unknown>;
     out.set(rowId(o), { service: o.service, list: o.list, key: o.key, data: o.list === 'header' ? bare : o.data, sourceEnv: o.origin.env, sourceVersion: o.origin.version, takenAt: o.at });
   }
