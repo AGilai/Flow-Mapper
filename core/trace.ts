@@ -16,6 +16,8 @@ import { linksFrom, sid } from './graph-index.ts';
 import { isLeaf } from './types.ts';
 import type { Ingress, Link, Mode, Ref } from './types.ts';
 import { handlerFor, passes, passesUntyped, untypedEventSet, type EventSet } from './events.ts';
+import { emptyFlow } from './entry-points.ts';
+export { entryPoints } from './entry-points.ts';
 import { codeLink, sourceLink, type SourceLink } from './endpoint-info.ts';
 import { refKey, unresolvedTarget } from './resolve.ts';
 import type { Step, StepField, Unresolved } from './types.ts';
@@ -356,22 +358,8 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
   return { code, start: { service: root, ingress: ing?.id, fn: fnId, event: start.event }, scope, participants: deliveryOrder([...participants.values()], messages), messages, truncated };
 }
 
-/** The flow of an entry point with no handler (#59): the caller and the service, no steps. */
-function emptyFlow(service: string, ing: Ingress, scope: 'intra' | 'full', event?: string): Trace {
-  const client: Participant = { id: 'client', label: ing.entryPoint ? 'client' : 'caller', kind: 'client' };
-  return { code: {}, start: { service, ingress: ing.id, fn: '', event }, scope, participants: [client, { id: `svc:${service}`, label: service, kind: 'service', service }], messages: [], truncated: false, noHandler: true };
-}
-
 /** The wire protocol of a socket ingress (`details.protocol`: tls, tcp or ws); tcp when the harvester gave none. */
 const socketProtocol = (i: Ingress): 'tls' | 'tcp' | 'ws' => (['tls', 'tcp', 'ws'].includes(String(i.details?.protocol)) ? i.details!.protocol as 'tls' : 'tcp');
-
-/** Entry points to start a trace from: ingress marked entryPoint, else ingress nothing reaches. */
-export function entryPoints(g: GraphIndex) {
-  const orphan = new Set(g.resolution.orphans.map((i) => sid(i.service, i.id)));
-  return g.model.ingress
-    .filter((i) => i.entryPoint || orphan.has(sid(i.service, i.id)) || !!rpcServed(i)) // an RPC command can always be traced from (0.19.0)
-    .map((i) => ({ service: i.service, id: i.id, bindKey: i.bindKey, transport: i.transport, handler: i.handler, ...(i.middleware?.length ? { middleware: i.middleware } : {}), entryPoint: !!i.entryPoint }));
-}
 
 /**
  * Lifelines in delivery order: a topic or queue sits left of whatever it delivers to, so a delivery

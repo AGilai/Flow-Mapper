@@ -5,7 +5,7 @@ import type { Mode, Transport } from './types.ts';
 import { rowId, type ItemRow } from './item-rows.ts';
 
 export type EndpointEdit = {
-  service: string; id?: string; transport: Transport; bindKey?: string; handler?: string; entryPoint?: boolean;
+  service: string; id?: string; transport: Transport; bindKey?: string; handler?: string; entryPoint?: boolean | null;
   events?: { type: string; handler?: string }[]; description?: string;
 };
 export type CallEdit = {
@@ -20,7 +20,7 @@ export type DesignEdit =
   | ({ kind: 'endpoint' } & EndpointEdit)
   | CallEdit
   | DeleteCallEdit
-  | { kind: 'flow'; service: string; ingress: string; name?: string; description?: string; entryPoint?: boolean; order?: { fn: string; seqs: number[] } }
+  | { kind: 'flow'; service: string; ingress: string; name?: string; description?: string; entryPoint?: boolean | null; order?: { fn: string; seqs: number[] } }
   | { kind: 'dto'; service: string; ingress: string; role: 'request' | 'response'; status?: string; content: unknown }
   | { kind: 'event-dto'; type: string; content: unknown }
   | { kind: 'delete'; anchor: string };

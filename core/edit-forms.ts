@@ -33,7 +33,7 @@ export function endpointBuild(e: EndpointEdit, x: Idx): { ops: DraftOpInput[]; r
   if (!bindKey) throw new EditError('INVALID', 'bindKey is required (what callers address this endpoint by)', 'bindKey');
   const handler = e.handler?.trim() || old?.data.handler || `${id}.handle`;
   const data: Record<string, any> = { ...(old?.data ?? {}), id, bindKey, transport, handler };
-  if (e.entryPoint === true) data.entryPoint = true; else if (e.entryPoint === false) delete data.entryPoint;
+  if (typeof e.entryPoint === 'boolean') data.entryPoint = e.entryPoint; else if (e.entryPoint === null) delete data.entryPoint;
   if (e.events !== undefined) { if (e.events.length) data.events = e.events.map((v) => ({ ...v, handler: v.handler?.trim() || handler })); else delete data.events; }
   if (e.description !== undefined) {
     const details = { ...(data.details ?? {}) };
@@ -52,9 +52,9 @@ export function flowOps(e: Extract<DesignEdit, { kind: 'flow' }>, x: Idx): Draft
   const ing = x.get(e.service, 'ingress', e.ingress);
   if (!ing) throw new EditError('NO_ITEM', `endpoint '${e.ingress}' of '${e.service}' does not exist in this design`, 'ingress');
   const ops: DraftOpInput[] = [];
-  if (e.entryPoint !== undefined && !!ing.data.entryPoint !== e.entryPoint) {
+  if (e.entryPoint !== undefined && (ing.data.entryPoint ?? null) !== e.entryPoint) { // true / false are explicit, null clears to the default rule
     const data = { ...ing.data };
-    if (e.entryPoint) data.entryPoint = true; else delete data.entryPoint;
+    if (e.entryPoint === null) delete data.entryPoint; else data.entryPoint = e.entryPoint;
     ops.push(up(`ing:${e.service}/${e.ingress}`, data));
   }
   if (e.name !== undefined || e.description !== undefined) {

@@ -46,7 +46,7 @@
         ] }
       ],
       "ingress": [
-        { "id": "in.tunnel.open", "transport": "socket", "bindKey": "socket:tls/pop-edge/tunnel-open", "handler": "TunnelHandler.open",
+        { "id": "in.tunnel.open", "transport": "socket", "entryPoint": false, "bindKey": "socket:tls/pop-edge/tunnel-open", "handler": "TunnelHandler.open",
           "details": { "protocol": "tls", "event": "tunnel.open" }, "provenance": { "producer": "hld-import", "runId": "sase-hld-2026-10-21" } }
       ],
       "egress": [

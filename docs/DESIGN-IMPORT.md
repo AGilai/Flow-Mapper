@@ -68,6 +68,12 @@ flow = an entry endpoint (entryPoint: true) + its handler's ordered steps, follo
   produces (`bindKey: "client:sase-agent/tunnel-open"`; an ingress without `bindKey` is rejected), and
   `details.trigger` saying what starts it. Its handler's egress steps are the app's calls. It is listed by `list_entry_points` and its flow traces through those steps into the called components.
 
+- **Entry points: `entryPoint` on an ingress** (0.25.1). `true`: always an entry point. `false`: never one. Absent: the default rule
+  (an ingress nothing reaches, an RPC command, and every `socket` ingress is listed). A **hop** (a tunnel, a BGP or BFD session: something
+  a flow passes through, not where one starts) keeps its real transport (`socket`, ...) and sets `entryPoint: false`, so it is not listed as
+  a flow of its own. A flow's real start (an agent, a cron, a public API) sets `entryPoint: true`. In `edit_design`, `entryPoint: null` clears
+  the flag back to the default rule.
+
 ## 3. Classify the documentation
 
 Read every document once end to end, then classify. Rules:

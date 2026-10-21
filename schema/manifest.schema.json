@@ -248,7 +248,7 @@
         "transport": { "$ref": "#/$defs/transport" },
         "handler": { "$ref": "#/$defs/id", "description": "Function id that handles this ingress." },
         "middleware": { "type": "array", "items": { "$ref": "#/$defs/id" }, "description": "Optional. Function ids (same manifest, same rule as `handler`) that run before the handler, in order. Traced before the handler: their calls are real messages and edges. `details.middleware` is still accepted (not traced)." },
-        "entryPoint": { "type": "boolean", "default": false, "description": "Public API, cron, etc. Excluded from orphan stats." },
+        "entryPoint": { "type": "boolean", "description": "true: always an entry point (public API, cron, a client's own trigger); excluded from orphan stats. false: never one (a hop such as a tunnel, BGP or BFD session that keeps its real transport). Absent: the default rule (a socket ingress, an RPC command, or an ingress nothing reaches is one)." },
         "details": { "$ref": "#/$defs/details", "description": "Free-form. RabbitMQ RPC (0.18.0): on an ingress with bind key `amqp-rpc:{command}`, `rpc` {command, commandQueue, replyTo, exchange, correlation, timeoutMs, library, prefetch} (the server's side; what the caller declares is completed with it)." },
         "source": { "$ref": "#/$defs/source" },
         "provenance": { "$ref": "#/$defs/provenance" },
