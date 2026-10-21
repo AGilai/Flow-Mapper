@@ -9,9 +9,11 @@ import { marksNow } from '../design/marks-store.js';
 import { markBadge } from '../components/status-mark.js';
 import { afterEdit } from '../design/after-edit.js';
 import { me } from '../design/who.js';
+import { setQuery } from '../router.js';
 import { REL_TYPES, TYPE_LABEL } from './flow-relations-pure.js';
 
 const FILTER_FROM = 6; // type chips only when a flow has more relations than this
+const SHOW = 6;        // rows shown before "Show N more"; expanded, the list scrolls inside (30vh)
 
 /**
  * createRelations({ host, root, editing }) -> { el, dispose } | null (a sealed environment)
@@ -20,7 +22,7 @@ const FILTER_FROM = 6; // type chips only when a flow has more relations than th
 export function createRelations({ host, root, editing }) {
   if (!root || !isDesign(host.env)) return null;
   const el = h('section.rel-sec', { 'data-qa': 'related-flows', hidden: true, 'aria-label': 'Related flows' });
-  let views = [], only = null, gone = false;
+  let views = [], only = REL_TYPES.includes(host.relType) ? host.relType : null, more = false, gone = false; // `only`: the type chip, kept in the URL as relType=
   const nameOf = (f) => host.nameOf?.(f.service, f.ingress) || `${f.service} · ${f.ingress}`;
 
   async function remove(v) {
@@ -44,12 +46,13 @@ export function createRelations({ host, root, editing }) {
   function draw() {
     if (gone) return;
     el.hidden = !views.length && !(editing && host.edit);
-    const shown = only ? views.filter((v) => v.type === only) : views;
+    const shown = only && views.length > FILTER_FROM ? views.filter((v) => v.type === only) : views;
     const chips = views.length > FILTER_FROM ? h('div.rel-chips', { role: 'group', 'aria-label': 'Filter by type' }, [['', 'All', views.length], ...REL_TYPES.map((t) => [t, TYPE_LABEL[t], views.filter((v) => v.type === t).length]).filter(([, , n]) => n)]
-      .map(([t, label, n]) => h('button.rel-chip', { type: 'button', 'aria-pressed': String((only ?? '') === t), on: { click: () => { only = t || null; draw(); } } }, `${label} ${n}`))) : null;
+      .map(([t, label, n]) => h('button.rel-chip', { type: 'button', 'aria-pressed': String((only ?? '') === t), on: { click: () => { only = t || null; more = false; setQuery({ relType: only }); draw(); } } }, `${label} ${n}`))) : null;
     fill(el, h('div.rel-head', h('h3', 'Related flows'), h('span.count', `(${views.length})`), h('span.grow'), chips,
       editing && host.edit ? h('button.btn.sm', { type: 'button', 'data-qa': 'add-relation', title: 'Relate this flow to another one in the draft', on: { click: () => host.edit.relation({ here: root }) } }, '+ relation') : null),
-      shown.length ? h('ul.rel-list', shown.map(row)) : h('p.xs.muted.rel-none', views.length ? 'No relations of this type.' : 'No related flows yet.'));
+      shown.length ? [h('ul.rel-list', { class: more ? 'is-open' : '' }, (more ? shown : shown.slice(0, SHOW)).map(row)),
+        shown.length > SHOW ? h('button.linkish.rel-more', { type: 'button', 'data-qa': 'rel-more', on: { click: () => { more = !more; draw(); } } }, more ? 'Show fewer' : `Show ${shown.length - SHOW} more`) : null] : h('p.xs.muted.rel-none', views.length ? 'No relations of this type.' : 'No related flows yet.'));
   }
   api.flowRelations(host.env, root).then((v) => { views = v; draw(); }).catch(() => { /* the flow still works without the section */ });
   return { el, dispose: () => { gone = true; } };

@@ -11,6 +11,8 @@
 .rel-chip[aria-pressed='true'] { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
 .rel-chip:focus-visible, .rel-opt:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
 .rel-list { list-style: none; margin: var(--s2) 0 0; padding: 0; display: grid; gap: 4px; }
+.rel-list.is-open { max-height: 30vh; overflow-y: auto; }
+.rel-more { margin-top: var(--s2); font-size: var(--fs-sm); }
 .rel-row { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px var(--s2); padding: 5px var(--s2); border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); font-size: var(--fs-sm); }
 .rel-ty { display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 4px; background: var(--surface-2); border: 1px solid var(--line-strong); color: var(--ink); font-size: var(--fs-xs); font-weight: 600; white-space: nowrap; }
 .rel-name { color: var(--accent); font-weight: 600; overflow-wrap: anywhere; text-decoration: none; }

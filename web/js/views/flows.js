@@ -112,7 +112,7 @@ export async function render({ main, query }) {
     openEntry: (e) => openEntry(e),
     paintChrome: () => paintChrome(),
     importRef: (anchor, source) => openImport({ panel, flowsEl, anchor, source }),
-    nameOf,
+    nameOf, relType: query.get('relType'),
     edit: null, // set below: the form opener (Edit with a draft)
     initialStep: (k) => (k === stepTab ? stepParam : null),
     setStep: (k, n) => { if (k === S.active) { stepParam = n; persist(); } },
