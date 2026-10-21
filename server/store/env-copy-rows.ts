@@ -108,3 +108,8 @@ export function copyDesignLists(c: CopyCtx) {
   c.db.prepare(`INSERT INTO flow_relations (env, id, from_service, from_ingress, to_service, to_ingress, type, note, author, updated_at)
     SELECT ?, id, from_service, from_ingress, to_service, to_ingress, type, note, author, updated_at FROM flow_relations WHERE env = ?`).run(c.to, c.from);
 }
+
+/** `entryPoints: 'none'`: every copied ingress becomes entryPoint:false, in the environment and in its baseline (so it diffs as unchanged). */
+export function clearEntryPoints(c: CopyCtx) {
+  for (const t of ['entities', 'baseline_items']) c.db.prepare(`UPDATE ${t} SET data = json_set(data, '$.entryPoint', json('false')) WHERE env = ? AND list = 'ingress'`).run(c.to);
+}

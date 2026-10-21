@@ -18,6 +18,7 @@ export const createEnvTool: Tool = {
     groups: { type: 'array', items: obj({ key: { type: 'string' }, label: { type: 'string' } }, ['key', 'label']) },
     levels: { type: 'array', items: { type: 'string' } },
     behaviour: { type: 'boolean', description: "components mode: also copy the services' functions and steps (flows of copied endpoints trace; they are unchanged against the baseline). Default false" },
+    entryPoints: { enum: ['keep', 'none'], description: "components / full: 'none' marks every copied ingress entryPoint:false (not listed as an entry point, no marks). Default 'keep'" },
     services: { type: 'array', items: obj({ name: { type: 'string' }, groupPath: { type: 'string' } }, ['name']) },
   }, ['name', 'source', 'mode']),
   run: (c, a) => { const e = copyEnv(c.db, { ...a, createdBy: 'mcp' }); c.changed(e.name); return e; },
