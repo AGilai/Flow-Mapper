@@ -8,6 +8,7 @@ Add a row here with every fix or feature (newest first). A row without a working
 
 | Version | Bug | What to look at | Link |
 |---|---|---|---|
+| 0.26.2 | feature | App icon switched to option D (maintainer choice): two lifelines with a call and its teal return, in the browser tab, the touch icon and the rail logo. All options: `design/mockups/app-icon.html` | `#/system?env=prod` |
 | 0.26.1 | feature | New app icon: an M-shaped route of nodes on an accent tile, in the browser tab (`favicon.svg`, `apple-touch-icon.png`) and in the rail logo. Options: `design/mockups/app-icon.html` | `#/system?env=prod` |
 | 0.26.0 | #49 | Runtime mark: `analytics-svc` (`details.runtime: k8s-deployment`) shows a small Kubernetes mark (a heptagon outline) next to its name on the service page, in its lifeline head on the flow and at the top-left of its node on the system map; the tooltip is the runtime name | `#/services/analytics-svc?env=prod`, `#/system?env=prod` |
 | 0.26.0 | #54 | Links: `analytics-svc` shows its main link (Runbook ↗) and sub chips (Dashboard, Repo) under the name; the `sase-hld` agent flow shows "Tunnel design ↗" and "Sequence diagram ↗" in its header; the entry point shows ↗ in the list when it has a main link | `#/services/analytics-svc?env=prod`, `#/flows?env=sase-hld&draft=hld-import&tabs=sase-agent/in.tunnel.open` |

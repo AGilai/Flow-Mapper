@@ -48,15 +48,15 @@ export function icon(name, cls = '') {
   return el;
 }
 
-/** Brand mark (same as web/favicon.svg): an M-shaped route of nodes, the middle one ringed. */
+/** Brand mark (same as web/favicon.svg): two lifelines with a call and its return (option D). */
 export function brandMark() {
   const el = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   el.setAttribute('viewBox', '0 0 32 32');
   el.setAttribute('class', 'brand-mark');
   el.setAttribute('aria-hidden', 'true');
   el.innerHTML = `<rect width="32" height="32" rx="7" fill="var(--accent)"/>
-    <path d="M8 24V9l8 9 8-9v15" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-    <circle cx="8" cy="8.5" r="3.2" fill="#fff"/><circle cx="24" cy="8.5" r="3.2" fill="#fff"/>
-    <circle cx="16" cy="18" r="3.2" fill="var(--accent)" stroke="#8ff0df" stroke-width="2.4"/>`;
+    <path d="M8 6v20M24 6v20" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+    <path d="M12.5 12h8M17.5 8.5l3.5 3.5-3.5 3.5" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M19.5 21h-8M14.5 17.5L11 21l3.5 3.5" fill="none" stroke="#8ff0df" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>`;
   return el;
 }
