@@ -8,6 +8,7 @@ import { api } from '../api.js';
 import { flowAnchor, cleanName } from '../../core/comments.js';
 import { commentItem } from './comment.js';
 import { createComposer, avatar, remembered } from './composer.js';
+import { startsOpen } from './pure.js';
 
 const OPEN = 'flow-mapper.comments-open';
 const read = () => { try { const v = localStorage.getItem(OPEN); return v === null ? true : v === '1'; } catch { return true; } };
@@ -23,8 +24,9 @@ export function createComments({ env, root, walk, onCount }) {
   let thread = { count: 0, comments: [] }, items = [], composer = null, replying = null, loaded = false, seq = 0;
   const title = h('span.cm-t', 'Comments'), count = h('span.muted.sm', '(0)'), hint = h('span.cm-hint.cm-sum');
   const list = h('div.cm-list'), tail = h('div.cm-tail');
-  const el = h('details.cm-sec', { open: read(), 'data-qa': 'comments' }, h('summary', title, count, hint), list, tail);
-  el.addEventListener('toggle', () => write(el.open));
+  const el = h('details.cm-sec', { open: false, 'data-qa': 'comments' }, h('summary', title, count, hint), list, tail);
+  let auto = false; // the toggle the first load makes itself is not the viewer's choice
+  el.addEventListener('toggle', () => { if (auto) { auto = false; return; } if (thread.count) write(el.open); });
 
   const stepOf = (key) => { const s = walk.steps().find((x) => x.key === key); return s ? { n: s.n } : null; };
   const stepNow = () => { const s = walk.picked() ? walk.steps()[walk.current() - 1] : null; return s ? { n: s.n, key: s.key } : null; };
@@ -54,7 +56,7 @@ export function createComments({ env, root, walk, onCount }) {
     list.hidden = !nodes.length && !loaded;
     const top = thread.comments.filter((c) => !c.deleted).length, replies = thread.count - top;
     count.textContent = `(${thread.count})`;
-    hint.textContent = thread.count ? `${plural(top, 'comment')}${replies ? ` and ${plural(replies, 'reply')}` : ''}, oldest first` : '';
+    hint.textContent = thread.count ? `${plural(top, 'comment')}${replies ? ` and ${plural(replies, 'reply')}` : ''}, oldest first` : loaded ? '· Add' : '';
     if (!composer) {
       composer = createComposer({ mode: 'new', step: stepNow, onSubmit: async ({ html, step, name }) => { await api.addComment(env, { anchor, step, author: name, body: html }); await refresh(true); } });
       tail.replaceChildren(h('div.cm-compose', avatar(remembered()), composer.el));
@@ -68,7 +70,9 @@ export function createComments({ env, root, walk, onCount }) {
     try {
       const t = await api.comments(env, anchor);
       if (mine !== seq) return;
-      thread = t; loaded = true;
+      thread = t;
+      if (!loaded) { const open = startsOpen({ count: t.count, remembered: read(), stepKey: walk.picked() ? walk.steps()[walk.current() - 1]?.key : null, comments: t.comments }); if (open !== el.open) { auto = true; el.open = open; } }
+      loaded = true;
       if (force || !busy()) draw();
       onCount?.(t.count);
     } catch (e) {

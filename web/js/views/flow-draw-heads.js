@@ -9,14 +9,17 @@ import { isDesign } from '../state.js';
 import { cmpVar } from '../design/component-colors.js';
 import { headRefSvg, headRefSub } from './flow-refs-draw.js';
 import { runtimeFor, runtimeSvg } from '../design/service-info.js';
+import { drawBands, storeIcon, STORE_X } from './flow-draw-bands.js';
 
-export function drawHead({ columns, heads, boxH, HEAD, width, colX, isCh, headBox, folded, groups, marks, refs }) {
-  return s('svg', { width, height: HEAD, class: 'seq-head', role: 'presentation' }, foldHeads(groups, boxH), columns.map((c, i) => folded.has(i) ? null :
-    s('g', { class: `seq-part k-${c.kind}${c.fan ? ' fan' : ''}${look(c).cls}`, 'data-p': i, style: look(c).style, transform: `translate(${colX.get(c) - headBox(c) / 2},8)`, tabindex: c.fan ? 0 : null, role: c.fan ? 'button' : null },
-      s('rect', { width: headBox(c), height: boxH, rx: 8 }), s('rect', { class: 'stripe', width: 4, height: boxH, rx: 2 }), headMarkSvg(marks, c, headBox(c)), headRefSvg(refs, c, headBox(c)), c.kind === 'service' ? runtimeSvg(runtimeFor(c.service), headBox(c) - (refs?.locked(c) ? 40 : 22), 5) : null,
-      heads[i].name.map((t, k) => s('text', { x: 12, y: 18 + k * LINE_H, class: 'name' }, t)),
-      isCh(c) ? headChip(c, heads[i].name.length * LINE_H + 5) : (c.kind === 'unresolved' && isDesign() ? ['not designed yet'] : headRefSub(refs, c, heads[i].sub)).map((t, k) => s('text', { x: 12, y: 18 + heads[i].name.length * LINE_H + 1 + k * 13, class: 'sub' }, t)),
-      s('title', {}, c.trigger ? `${c.label}: a client app. Starts when: ${c.trigger}` : c.folded ? `${c.folded.length} more queues: ${c.folded.map(chName).join(', ')}. Click to show them all.` : c.fan?.open ? `${c.label}. Click to fold the healthy queues again.` : c.label))));
+export function drawHead({ columns, heads, boxH, HEAD, bandH, bands, width, colX, isCh, headBox, folded, groups, marks, refs }) {
+  const top = 8 + bandH, tx = (c) => (c.kind === 'resource' ? STORE_X : 12); // a store head has its icon before the name
+  return s('svg', { width, height: HEAD, class: 'seq-head', role: 'presentation' }, drawBands(bands, { colX, headBox, columns }), foldHeads(groups, boxH, top), columns.map((c, i) => folded.has(i) ? null :
+    s('g', { class: `seq-part k-${c.kind}${c.fan ? ' fan' : ''}${look(c).cls}`, 'data-p': i, style: look(c).style, transform: `translate(${colX.get(c) - headBox(c) / 2},${top})`, tabindex: c.fan ? 0 : null, role: c.fan ? 'button' : null },
+      c.stack ? [s('rect', { class: 'stack', x: 8, y: 5, width: headBox(c), height: boxH, rx: 8, opacity: 0.55 }), s('rect', { class: 'stack', x: 4, y: 2.5, width: headBox(c), height: boxH, rx: 8, opacity: 0.8 })] : null,
+      s('rect', { width: headBox(c), height: boxH, rx: 8 }), s('rect', { class: 'stripe', width: 4, height: boxH, rx: 2 }), c.kind === 'resource' ? storeIcon(12, 10, c.stack) : null, headMarkSvg(marks, c, headBox(c)), headRefSvg(refs, c, headBox(c)), c.kind === 'service' ? runtimeSvg(runtimeFor(c.service), headBox(c) - (refs?.locked(c) ? 40 : 22), 5) : null,
+      heads[i].name.map((t, k) => s('text', { x: tx(c), y: 18 + k * LINE_H, class: 'name' }, t)),
+      isCh(c) ? headChip(c, heads[i].name.length * LINE_H + 5) : (c.kind === 'unresolved' && isDesign() ? ['not designed yet'] : headRefSub(refs, c, heads[i].sub)).map((t, k) => s('text', { x: tx(c), y: 18 + heads[i].name.length * LINE_H + 1 + k * 13, class: 'sub' }, t)),
+      s('title', {}, c.trigger ? `${c.label}: a client app. Starts when: ${c.trigger}` : c.kind === 'resource' ? (c.stack ? `${c.label}: ${c.sub}` : `${c.label}\n${c.sub}`) : c.folded ? `${c.folded.length} more queues: ${c.folded.map(chName).join(', ')}. Click to show them all.` : c.fan?.open ? `${c.label}. Click to fold the healthy queues again.` : c.label))));
   function look(c) { // the component's colour (a service with a slot), a locked head (a reference), a client app
     const cc = c.kind === 'service' ? cmpVar(c.service, c.serviceKind) : null, mc = isCh(c) || c.transport ? `--mc:${colorOf(c.transport)}` : null;
     return { style: [mc, cc ? `--cc:${cc}` : null].filter(Boolean).join(';') || null, cls: `${cc ? ' cmp' : ''}${c.serviceKind === 'client-app' ? ' ca' : ''}${refs?.locked(c) ? ' locked' : ''}` };

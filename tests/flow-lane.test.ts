@@ -118,7 +118,7 @@ test('unresolved calls: red arrow to the unresolved column, no bar, no return', 
   assert.ok(lane.bars.every((b: any) => !un.some((e: any) => e.msg === b.msg)));
 });
 
-test('stores are stubs on the bar and go away with "Data stores" off', () => {
+test('stores are arrows to a lifeline of their own and go away with "Data stores" off', () => {
   const t = create();
   const on = laneOf(t), off = buildLane(t.messages, { stores: false, scope: t.scope, participants: t.participants });
   const stubs = on.events.filter((e: any) => e.type === 'store');

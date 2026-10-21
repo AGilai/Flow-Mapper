@@ -20,7 +20,7 @@ import { emptyFlow } from './entry-points.ts';
 export { entryPoints } from './entry-points.ts';
 import { codeLink, sourceLink, type SourceLink } from './endpoint-info.ts';
 import { refKey, unresolvedTarget } from './resolve.ts';
-import { assumedOn, unknownOn } from './step-notes.ts';
+import { assumedOn, storeOn, unknownOn } from './step-notes.ts';
 import type { Step, StepField, Unresolved } from './types.ts';
 import { altGroups, type Alt } from './alt.ts';
 import { egressVia, ingressVia, type LinkedHop } from './via.ts';
@@ -43,7 +43,7 @@ export interface Message {
   possible?: boolean;                                        // delivered only if the publisher's event is one of its candidates (the step names no event)
   seq?: number;                                              // step number in the calling function
   target?: { service: string; ingress: string; fn?: string }; // ingress reached, and the handler that runs
-  store?: string;                                            // data-store key, for resource steps
+  store?: string; storeKind?: string; access?: 'read' | 'write' | 'read_write' | 'unknown'; // resource steps: data-store key; its driver (`mongodb`); read / write from the step's `access`, else its operation (0.27.1, the drawing's line weight)
   fields?: StepField[];                                      // fields a resource step touches (role, path, operator, inDdl)
   calls?: string;                                            // function called, for call steps (same service)
   egress?: string;                                           // egress id, for calls out (its call site is in `code`)
@@ -207,7 +207,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
       } else if (st.type === 'resource') {
         const r = g.resources.get(sid(service, st.target));
         const to = part({ id: `res:${r?.bindKey ?? sid(service, st.target)}`, label: r?.name ?? st.target, kind: 'resource' });
-        push({ ...base, from: me, to, label: st.operation ?? 'use', mode: st.mode ?? 'sync', kind: 'resource', transport: 'res', store: r?.bindKey ?? sid(service, st.target), ...(st.fields?.length ? { fields: st.fields } : {}), ...unknownOn(st), ...assumedOn(st) });
+        push({ ...base, from: me, to, label: st.operation ?? 'use', mode: st.mode ?? 'sync', kind: 'resource', transport: 'res', store: r?.bindKey ?? sid(service, st.target), ...storeOn(st, r), ...(st.fields?.length ? { fields: st.fields } : {}), ...unknownOn(st), ...assumedOn(st) });
       } else {
         const e = g.egress.get(sid(service, st.target));
         if (!e) continue;

@@ -10,7 +10,6 @@ const H = 16, tw = (n) => Math.max(20, String(n).length * 7 + 12);
 /** Where a step's arrow starts and ends: { x1, x2, dir } in lane pixels (x1 is the start, just outside the bar it leaves). */
 export function arrowSpan(step, { columns, geometry }) {
   const e = step.event, X = (c) => geometry.x[columns.indexOf(c)];
-  if (e.type === 'store') { const x = X(e.bar.col) + e.bar.level * NEST + BAR / 2; return { x1: x, x2: x + 96, dir: 1 }; }
   const from = e.type === 'unresolved' ? e.bar.col : e.from, to = e.type === 'unresolved' ? e.col : e.to;
   const xf = X(from), xt = X(to), dir = Math.sign(xt - xf) || 1;
   const bar = e.type === 'unresolved' ? e.bar : e.fromBar;

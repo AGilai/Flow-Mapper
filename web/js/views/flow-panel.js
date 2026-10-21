@@ -19,6 +19,7 @@ import { stepFields } from '../components/step-fields.js';
 import { asyncFlowOf, isChannel } from './flow-scan.js';
 import { filterMarker, hopLabel, chType, exchangeOf } from './flow-chain.js';
 import { eventLink, serviceLink, storeLink } from './inventory-links.js';
+import { splitStore, opLabel } from './flow-stores-pure.js';
 import { isRpc, rpcCommand } from './flow-amqp.js';
 import { rpcCard, rpcMissing, routingRows } from './flow-panel-amqp.js';
 
@@ -99,6 +100,11 @@ function codeCard(m, trace) {
   if (m.via?.length) rows.push(h('div.ep-pad.stack', { style: { gap: 'var(--s1)' } }, h('span.ep-label', 'Goes through'), viaChip(m.via)));
   if (m.handlerVia?.length) rows.push(h('div.ep-pad.stack', { style: { gap: 'var(--s1)' } }, h('span.ep-label', 'Handler resolved through'), viaChip(m.handlerVia)));
   if (m.store) rows.push(h('div.ep-pad.stack', { style: { gap: '2px' } }, h('span.ep-label', 'Data store'), storeLink(m.store)));
+  if (m.kind === 'resource') { // 0.27.1: the operation as harvested and the collection this arrow touches (a folded store lifeline names none)
+    const { collection, store, kind } = splitStore(m), acc = { write: 'write', read: 'read', read_write: 'read and write' }[m.access] ?? 'access not reported';
+    rows.push(h('div.ep-pad.stack', { style: { gap: '2px' } }, h('span.ep-label', collection ? 'Collection' : 'Store'), h('span.mono', collection ?? store), h('span.small.muted', `${kind} · ${store}`)),
+      h('div.ep-pad.stack', { style: { gap: '2px' } }, h('span.ep-label', 'Operation'), h('span.mono', opLabel(m)), h('span.small.muted', acc)));
+  }
   if (m.fields?.length) rows.push(h('div.ep-pad.stack', { style: { gap: '2px' } }, h('span.ep-label', 'Fields'), stepFields(m.fields)));
   if (m.assumed?.length) rows.push(assumedBlock(m.assumed));
   if (m.unknown?.length) rows.push(h('div.ep-pad.stack', { style: { gap: '2px' } }, h('span.ep-label', 'Not reported'), h('span.small.muted', m.unknown.map((u) => `${u.field}: unknown (${u.reason})`).join(' · '))));

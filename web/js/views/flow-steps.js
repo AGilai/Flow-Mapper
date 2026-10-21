@@ -4,6 +4,8 @@
 // Steps are numbered for the top lane only; the lanes of open async cards are not. The step's key is built from the message
 // content (core/description.ts stepKeys), never from its row, so a redraw or an inserted arrow does not move a description.
 
+import { stepLabel } from './flow-stores-pure.js';
+
 // Pure web modules cannot import core/*.js in node tests (those are .ts there), so the caller hands over stepKeys.
 
 const STEP_TYPES = new Set(['call', 'hop', 'unresolved', 'store']);
@@ -21,11 +23,11 @@ export function stepsOf(lane, stepKeys, all = null) {
 
 const name = (c) => (c?.service ?? c?.label ?? '?');
 function labelOf(e) {
-  if (e.type === 'store') return e.verb; // the target is the end of the arrow: shown once, in the ends
+  if (e.type === 'store') return stepLabel(e.msg); // the full operation and collection, so a folded store's step stays readable
   return Array.isArray(e.label) ? e.label.join(' ') : e.label;
 }
 function ends(e) {
-  if (e.type === 'store') return { from: name(e.bar.col), to: e.name };
+  if (e.type === 'store') return { from: name(e.bar.col), to: e.col.store }; // the store; the collection is in the label
   if (e.type === 'unresolved') return { from: name(e.bar.col), to: 'unresolved' };
   return { from: name(e.from), to: name(e.to) };
 }
@@ -35,5 +37,5 @@ export const stepAtRow = (steps, row) => steps.find((s) => s.row === row) ?? nul
 /** The step a stored key belongs to (kept across redraws), or null. */
 export const stepByKey = (steps, key) => steps.find((s) => s.key === key) ?? null;
 
-/** The columns at the two ends of a step's arrow: [from, to]; a store stub or a missing target has no component column at the far end. */
-export const stepCols = (e) => (e.type === 'store' || e.type === 'unresolved' ? [e.bar.col, null] : [e.from, e.to]);
+/** The columns at the two ends of a step's arrow: [from, to]; a missing target has no component column at the far end. */
+export const stepCols = (e) => (e.type === 'unresolved' ? [e.bar.col, null] : [e.from, e.to]);

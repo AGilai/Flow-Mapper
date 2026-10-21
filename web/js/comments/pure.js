@@ -23,3 +23,6 @@ export const addressOf = (t) => { const s = String(t).trim(); return /^[a-z][a-z
 
 /** Plain paragraphs to HTML: blank lines separate paragraphs, single newlines are line breaks (the caller escapes: it passes its own `esc`). */
 export const textToHtml = (t, esc) => String(t).replace(/\r\n?/g, '\n').split(/\n{2,}/).map((p) => p.trim()).filter(Boolean).map((p) => `<p>${esc(p).replace(/\n/g, '<br>')}</p>`).join('');
+
+/** Whether the Comments section starts open once its thread is loaded: an empty one starts collapsed to its header, unless a comment is attached to the step the viewer arrived on (a step deep-link); otherwise the remembered state. */
+export const startsOpen = ({ count, remembered, stepKey = null, comments = [] }) => (!count ? false : remembered || (stepKey != null && comments.some((c) => c.step === stepKey || c.replies?.some((r) => r.step === stepKey))));

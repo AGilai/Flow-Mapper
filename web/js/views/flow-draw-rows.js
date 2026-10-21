@@ -3,14 +3,14 @@
 import { s } from '../dom.js';
 import { href } from '../router.js';
 import { mwLabel, isLongChain } from './flow-mw.js';
-import { colorOf } from './flow-draw-layout.js';
+import { colorOf, BAR } from './flow-draw-layout.js';
 import { arrow, marker, rpcChip, stop } from './flow-draw-prims.js';
 import { arrowMarkSvg } from './flow-marks-draw.js';
 import { isDesign } from '../state.js';
 import { refNoteSvg } from './flow-refs-draw.js';
 
 /** drawRows(layout) -> one element per event, in order. */
-export function drawRows({ events, colX, ys, barX, edge, marks, refs, stacked }) {
+export function drawRows({ events, colX, ys, barX, edge, marks, refs, stacked, folded, idx }) {
   return events.map((e, r) => {
     const y0 = ys[r];
     const g = (cls, ...kids) => s('g', { class: `msg ${cls}`, 'data-e': r, tabindex: e.msg ? 0 : null, role: e.msg ? 'button' : null }, ...kids);
@@ -49,10 +49,12 @@ export function drawRows({ events, colX, ys, barX, edge, marks, refs, stacked })
       return s('g', { class: 'amqpnote' }, s('text', { x: x0, y: y0 + 4 }, e.text),
         s('a', { href: href(`/instances/${encodeURIComponent('amqp:' + e.exchange)}`), 'aria-label': `Exchange page of ${e.exchange}` }, s('text', { class: 'lnk', x: x0 + e.text.length * 5.6 + 12, y: y0 + 4 }, 'Exchange page'), s('title', {}, `Open the exchange ${e.exchange}`)));
     }
-    if (e.type === 'store') {
-      const x0 = barX(e.bar, 1), w = Math.max(e.verb.length * 7, e.name.length * 6) + 18;
-      return g('store', s('line', { class: 'stub', x1: x0, x2: x0 + 14, y1: y0, y2: y0 }), s('rect', { class: 'spill', x: x0 + 14, y: y0 - 16, width: w, height: 32, rx: 6 }),
-        s('text', { class: 'p1', x: x0 + 23, y: y0 - 2 }, e.verb), s('text', { class: 'p2', x: x0 + 23, y: y0 + 11 }, e.name), s('title', {}, `${e.msg.label}\n${e.msg.store ?? ''}`));
+    if (e.type === 'store') { // an arrow to the lifeline of the collection: a read keeps a bar and a dashed return, a write is heavier with a shorter bar and no return (0.27.1)
+      const x1 = barX(e.bar, 1), inFold = folded.has(idx.get(e.col)), x2 = inFold ? colX.get(e.col) : colX.get(e.col) - BAR / 2, mc = colorOf('res'), bx = colX.get(e.col) - BAR / 2;
+      return g(`store${e.write ? ' write' : ''}`, arrow(x1, x2, y0, { label: e.label, color: mc }),
+        s('rect', { class: 'sbar', x: bx, y: y0 - 5, width: BAR, height: e.write ? 16 : 28, rx: 2 }),
+        e.write ? null : s('g', { class: 'sret' }, arrow(bx, x1, y0 + 17, { dashed: true, open: true, color: mc, bare: false })),
+        hit(x1, x2), ...arrowMarkSvg(marks, e.msg, x1, x2, y0, stacked?.has(e)), s('title', {}, `${e.msg.label}\n${e.msg.store ?? ''}${e.write ? '\nwrite' : ''}`));
     }
     if (e.type === 'frontier') {
       const x0 = barX(e.bar, 1);

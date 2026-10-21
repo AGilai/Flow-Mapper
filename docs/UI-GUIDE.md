@@ -182,6 +182,9 @@ whether the zero is normal for this kind of object.
 - A details or info panel squeezes the page: it takes its own column on the right and the page
   narrows to make room. It never overlays the content (maintainer rule, 2026-10-20). Below
   860px the panel may take the full width instead.
+- Data stores in a flow (0.27.1, frame 12): one neutral head per collection (store icon, collection, `<store> · <kind>`, the `--t-res` stripe, never a
+  component colour) under a grey band "<kind>: <store>". More than 5 collections of one store in a flow fold into one stacked head. A read is a thin
+  line with a dashed return, a write a heavier line with no return and a shorter bar: weight, never colour, says which. Labels are the harvester's operation.
 
 ## 10. Design environments and status marks
 

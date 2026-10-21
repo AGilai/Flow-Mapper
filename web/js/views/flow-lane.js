@@ -7,6 +7,8 @@
 //  - calls inside a service ("call" steps) are not drawn: they are counted on the bar (the pill);
 //  - a publish is one arrow through the topic / bus / exchange that forks to each subscribed queue (flow-chain.js). It stops at the queue: an end
 //    marker with the number of each async flow that starts there (the row of the async index); the consumer's work is not in the lane (flow-async.js);
+//  - a data-store step (0.27.1) is an arrow to the lifeline of its collection (a store with more than 5 collections in this flow: one lifeline, flow-stores-pure.js),
+//    after the last component; a read keeps a short bar and a return, a write a shorter bar and none;
 //  - a call that matches nothing ends at the "unresolved" column, without a bar or a return; that column comes after the last lifeline, after the topic and queue lifelines (narrow, grouped per topic);
 //  - middleware (m.middlewareChain on the call) is a run of segments on top of the bar: one "mw" row per segment, then the rows of
 //    its calls; the handler's part (and the internal-calls pill) follow. Chains over 3 fold into one segment unless its key is in `mwOpen` (a Set of bar keys, or true for all);
@@ -17,6 +19,7 @@ import { callerFor } from './flow-sub.js';
 import { mwSegments, segmentOf, mwSpans } from './flow-mw.js';
 import { chainOf, planChains, hopLabel, filterMarker, badgesAt, chType, chName, isQueueKey } from './flow-chain.js';
 import { isRpc, isSyncCall, tOf, rpcCommand, pairPlan, trunkKey, nonMatchText } from './flow-amqp.js';
+import { foldedStores, storeColumn, arrowLabel, isWrite, splitStore, orderStores } from './flow-stores-pure.js';
 
 export const svcOf = (id) => (id.startsWith('svc:') ? id.slice(4) : id.startsWith('fn:') ? id.split(':')[1] : null);
 
@@ -33,8 +36,8 @@ export function callLabel(m) {
   return m.event ?? m.label.replace(/^.*→\s*/, '').replace(/^\w+:/, '');
 }
 const CH_KIND = (key) => (isQueueKey(key) ? 'queue' : 'topic');
-/** Verb and store name of a data-store stub: "UpdateItem" over "inventory-stock". */
-export const storeLabel = (m) => ({ verb: m.label, name: (m.store ?? '').replace(/^[^:]+:/, '').replace('/', '.') });
+/** The operation and the collection of a data-store step: "UpdateItem" and "inventory-stock" (the whole store when the key names no collection). */
+export const storeLabel = (m) => ({ verb: m.label, name: splitStore(m).collection ?? splitStore(m).store });
 
 /**
  * buildLane(msgs, { stores, scope, participants })
@@ -107,6 +110,8 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
   const rootCol = mk({ id: `svc:${root}`, label: root, sub: clientApp ? 'client app' : 'service', kind: 'service', service: root, serviceKind: skind(root), ...(clientApp ? { trigger } : {}) });
   byService.set(root, rootCol);
   const { lane, publishes } = scanLane(msgs);
+  const folds = stores ? foldedStores(lane.map((i) => msgs[i])) : new Map(); // stores with more than 5 collections in this flow
+  const storeCol = (m) => { const sc = storeColumn(m, folds); return cols.find((c) => c.id === sc.id) ?? mk(sc); };
   const chains = publishes.map((p) => chainOf(msgs, p)), chainAt = new Map(publishes.map((p, k) => [p.i, chains[k]]));
   const plan = planChains(chains, { fanOpen });
   const chanCol = (key) => {
@@ -163,7 +168,10 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
     }
     if (m.kind === 'call') { top.internal.n++; if (m.gap || m.broken) top.internal.gaps++; return; }
     if (m.kind === 'leaf') return;
-    if (m.kind === 'resource') { if (stores) push({ type: 'store', msg: m, bar: top, ...storeLabel(m) }); return; }
+    if (m.kind === 'resource') {
+      if (stores) { const col = storeCol(m); push({ type: 'store', msg: m, bar: top, from: top.col, fromBar: top, to: col, col, label: arrowLabel(m, col.stack), write: isWrite(m), ...storeLabel(m) }); }
+      return;
+    }
     if (m.kind === 'frontier') { push({ type: 'frontier', msg: m, bar: top }); return; }
     if (isPublish(m)) { emitChain(top, chainAt.get(idx)); return; }
     const k = kind.get(m.to), service = svcOf(m.to);
@@ -187,9 +195,10 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
     let e = b.mw.endIdx; while (e > 0 && remap.get(events[e]) < 0) e--;
     b.mw.spans = mwSpans(b.mw.labels.map((ev) => ev.row), remap.get(events[e]));
   }
-  const rank = (c) => (c.kind === 'channel' ? 1 : c.kind === 'unresolved' ? 2 : 0); // topics and queues sit right after the last service lifeline, grouped per topic; the unresolved column follows
+  const rank = (c) => (c.kind === 'channel' ? 2 : c.kind === 'unresolved' ? 3 : c.kind === 'resource' ? 1 : 0); // data stores sit right after the last service lifeline, then topics and queues, grouped per topic; the unresolved column follows
+  const storeAt = new Map(orderStores(cols.filter((c) => c.kind === 'resource')).map((c, i) => [c, i])); // a store's collections together, in the order of their first step
   const columns = cols.filter((c) => kept.some((e) => e.from === c || e.to === c || e.via === c || e.col === c) || (c === source && !clientApp) || c === rootCol)
-    .sort((a, b) => rank(a) - rank(b) || (a.kind === 'channel' ? a.ord - b.ord : a.ci - b.ci));
+    .sort((a, b) => rank(a) - rank(b) || (a.kind === 'channel' ? a.ord - b.ord : a.kind === 'resource' ? storeAt.get(a) - storeAt.get(b) : a.ci - b.ci));
   const altEvents = kept.filter((e) => e.msg);
   return { columns, events: kept, bars, altMsgs: altEvents.map((e) => e.msg), altRows: altEvents.map((e) => e.row) };
 }
