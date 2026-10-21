@@ -1,4 +1,4 @@
-// A flow as Mermaid text (0.27.2): the full trace of one entry endpoint, the flow's name and description, and its step descriptions.
+// A flow as Mermaid text (0.27.4): the full trace of one entry endpoint, the flow's name and description, and its step descriptions.
 // Reads only, in every environment (sealed or design, and a design as an open draft would leave it).
 
 import type { Ctx } from '../context.ts';

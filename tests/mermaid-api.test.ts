@@ -1,4 +1,4 @@
-// Mermaid through REST and MCP (0.27.2): export (golden texts, every environment), preview, import into a draft, matching and create-new,
+// Mermaid through REST and MCP (0.27.4): export (golden texts, every environment), preview, import into a draft, matching and create-new,
 // idempotent re-import, the round trip into a blank design, undo by batch (409 when later ops depend on it), sealed refusals.
 
 import { test, before, after } from 'node:test';

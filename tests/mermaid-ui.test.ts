@@ -1,4 +1,4 @@
-// Mermaid UI, the logic with no DOM (0.27.2): the selects of the matching table, the amber bar, the chips, the preview tiles and warnings;
+// Mermaid UI, the logic with no DOM (0.27.4): the selects of the matching table, the amber bar, the chips, the preview tiles and warnings;
 // the export file name; the sample file the demos import.
 
 import { test } from 'node:test';

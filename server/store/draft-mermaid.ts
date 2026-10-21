@@ -1,4 +1,4 @@
-// Mermaid import into a draft (0.27.2): parse, match the participants to the design's components, make the edits, and (for the import
+// Mermaid import into a draft (0.27.4): parse, match the participants to the design's components, make the edits, and (for the import
 // itself) append them as ops of one batch. docs/plans/mermaid.md, API.md "Mermaid". The preview reads only; the import is all or nothing;
 // Undo import removes one batch's ops unless a later op depends on them. Sealed environments refuse everything here (409 ENV_SEALED).
 
@@ -42,6 +42,10 @@ function plan(ctx: Ctx, env: string, slug: string, i: MermaidInput) {
   const parsed = parseMermaid(i.text);
   const rows = matchParticipants(parsed.participants, names(base), names(srcRows));
   const r = resolveTargets(rows, i.matches);
+  const known = new Set(names(base));
+  for (const [id, c] of Object.entries(r.choices)) {
+    if ('component' in c && !known.has(c.component)) throw new HttpError(422, 'UNKNOWN_COMPONENT', `'${c.component}' (the match for '${id}') is not a component of this design: use {create: true, name} to make it, or {fromSource: true} to copy it`, { participant: id, component: c.component });
+  }
 
   // components copied from the source first (one level, the same rules as POST .../import)
   const imports: { component: string; source: string; preview: ReturnType<typeof previewOf>; ops: DraftOpInput[]; origins: OpOrigin[] }[] = [];

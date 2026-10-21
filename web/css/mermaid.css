@@ -1,4 +1,4 @@
-/* Mermaid import and export (0.27.2, frame 14). Prefix mm-. The dialog is a native <dialog>; the table is a grid that stacks at 760 px. */
+/* Mermaid import and export (0.27.4, frame 14). Prefix mm-. The dialog is a native <dialog>; the table is a grid that stacks at 760 px. */
 
 .mm-dlg { padding: 0; width: min(820px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; background: var(--surface); color: var(--ink); border: 1px solid var(--line-strong); border-radius: var(--r-md); box-shadow: var(--shadow-panel); font-size: var(--fs-sm); }
 .mm-dlg::backdrop { background: rgba(10, 13, 20, .45); }

@@ -1,4 +1,4 @@
-// Mermaid tools (0.27.2): a flow as a sequenceDiagram, and a sequenceDiagram imported into a draft of a design.
+// Mermaid tools (0.27.4): a flow as a sequenceDiagram, and a sequenceDiagram imported into a draft of a design.
 
 import { mermaidImport, mermaidPreview } from '../../store/draft-mermaid.ts';
 import { flowMermaid } from '../../store/flow-mermaid.ts';

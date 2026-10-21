@@ -1,8 +1,8 @@
-// Import Mermaid (frame 14, 0.27.2): a three-step dialog into the open draft: 1 paste (or a .mmd file), 2 match (every participant has a select
+// Import Mermaid (frame 14, 0.27.4): a three-step dialog into the open draft: 1 paste (or a .mmd file), 2 match (every participant has a select
 // and a chip saying how it was matched; what creates something is amber and counted), 3 preview (counts, warnings). The draft is touched only
 // by the last button. The parse summary of step 1 runs in the browser; matching and the preview ask the server (the same code the API runs).
 
-import { h, fill, toast } from '../dom.js';
+import { h, fill, toast, debounce } from '../dom.js';
 import { api } from '../api.js';
 import { state } from '../state.js';
 import { go, href } from '../router.js';
@@ -47,7 +47,8 @@ export function openMermaidImport({ text = '' } = {}) {
         c.warnings ? h('span.w', ` · ${plural(c.warnings, 'warning')}`) : null,
         c.warnings ? h('ul.mm-warns.mm-lines', p.warnings.map((w) => h('li', h('button.mm-line', { type: 'button', title: 'Select this line', on: { click: () => mark(w.line) } }, `line ${w.line}`), ` ${w.text}`))) : null]);
     }
-    area.addEventListener('input', update);
+    const later = debounce(update, 250);   // a big paste is parsed once, not on every key
+    area.addEventListener('input', () => { S.text = area.value; later(); });
     setTimeout(update);
     return { body: [h('div.mm-pick', h('button.btn', { type: 'button', on: { click: () => file.click() } }, icon('upload'), 'Choose a .mmd file'), file, h('span.mm-or', 'or paste the text')), area, sum, err()],
       foot: [h('span.small.muted', 'Nothing is written to the draft until the last step.'), h('div.r', h('button.btn', { type: 'button', on: { click: close } }, 'Cancel'), next)] };

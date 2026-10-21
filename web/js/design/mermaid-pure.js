@@ -1,4 +1,4 @@
-// The Mermaid import dialog's logic with no DOM (0.27.2): what a participant's select offers, how a select value maps to the `matches` the
+// The Mermaid import dialog's logic with no DOM (0.27.4): what a participant's select offers, how a select value maps to the `matches` the
 // server takes, what the amber bar says, and the preview's tiles and warnings. Pure, so a test can run it.
 
 const plural = (n, one, many = one + 's') => `${n} ${n === 1 ? one : many}`;
@@ -82,3 +82,12 @@ export function afterText(out, group) {
   if (c.notes) bits.push(`${plural(c.notes, 'step description')}`);
   return `Imported from Mermaid: ${bits.join(', ')}.${out.undecided?.length ? ' Undecided transport shows as a dashed arrow until you pick one in the call\'s form.' : ''}`;
 }
+
+/** The draft's most recent Mermaid import, from its ops' origin (no storage of its own): { batch, ops, components } or null. */
+export function latestBatch(ops) {
+  const mine = (ops ?? []).filter((o) => o.origin?.batch);
+  if (!mine.length) return null;
+  const batch = mine[mine.length - 1].origin.batch, of = mine.filter((o) => o.origin.batch === batch);
+  return { batch, ops: of.length, components: of.filter((o) => o.list === 'header' && o.op === 'upsert' && o.origin.kind === 'mermaid').length };
+}
+export const batchText = (b) => `Imported from Mermaid: ${b.ops} change${b.ops === 1 ? '' : 's'}${b.components ? `, ${b.components} new component${b.components === 1 ? '' : 's'}` : ''} (the latest import in this draft).`;

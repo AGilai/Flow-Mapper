@@ -1,4 +1,4 @@
-// A parsed Mermaid diagram as DesignEdits and the ops they make (0.27.2). Pure. The edits are the same kinds the edit forms send (component,
+// A parsed Mermaid diagram as DesignEdits and the ops they make (0.27.4). Pure. The edits are the same kinds the edit forms send (component,
 // endpoint, call, flow), applied one after the other to the draft's rows, so each one sees what the one before made. Only new things are
 // written: a component, endpoint or call that is already there (same bind key, same step) is reused, so importing the same text twice adds nothing.
 
@@ -113,7 +113,7 @@ export function mermaidPlan(parsed: MmParsed, targets: Record<string, Target>, r
       return;
     }
     if (!cur.has(S.name)) {   // the sender was never called: it starts here, with an endpoint of its own that is not yet designed
-      const e = ensureEndpoint(S.name, { transport: 'undecided', bindKey: `tbd:${S.name}/${slug(parsed.title || 'mermaid-flow')}` }, !entry);
+      const e = ensureEndpoint(S.name, { transport: 'undecided', bindKey: `tbd:${S.name}/${slug(parsed.title || 'mermaid-flow').toLowerCase()}` }, !entry);
       if (!entry) entry = { service: S.name, ingress: e.id };
       cur.set(S.name, e.handler);
     }

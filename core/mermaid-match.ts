@@ -1,4 +1,4 @@
-// Match the participants of a Mermaid diagram to the components of a design (0.27.2). Pure.
+// Match the participants of a Mermaid diagram to the components of a design (0.27.4). Pure.
 // Order: exact name (the id, or the `as` label), normalized (case, - _ space, a -svc / service suffix), close spelling (Levenshtein <= 2,
 // only when one component is that close), then a name that only the source environment has ("in prod": never imported by itself).
 

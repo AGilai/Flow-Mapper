@@ -1,4 +1,4 @@
-// Mermaid, the pure parts (0.27.2): the parser's corpus, the matcher, the label rules and the mapping to edits (core/mermaid-*.ts).
+// Mermaid, the pure parts (0.27.4): the parser's corpus, the matcher, the label rules and the mapping to edits (core/mermaid-*.ts).
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

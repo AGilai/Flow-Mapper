@@ -344,7 +344,7 @@ Not now: do not create design environments on a shared instance, do not ingest (
 
 ## Importing a Mermaid sequence diagram
 
-When the documentation is a Mermaid `sequenceDiagram` (one flow, a few components), import it straight into the draft instead of writing a plan (0.27.2; the contract is in API.md "Mermaid").
+When the documentation is a Mermaid `sequenceDiagram` (one flow, a few components), import it straight into the draft instead of writing a plan (0.27.4; the contract is in API.md "Mermaid").
 
 1. `import_mermaid { env, draft, text, dryRun: true }` writes nothing. Read `participants`: each has `match` (the component it was matched to) and `how` (`exact`, `alias`, `normalized`, `similar`, `in-prod`, `actor`, `infra`, `none`). Read `creates` (the components that would be created), `undecided` (messages with no `METHOD /path`) and `warnings` (skipped lines with their line number).
 2. Decide the matches. Reuse before you invent (section 4): a participant that is a component of the design must be matched, not created. The matcher fixes spelling and case; it does not know that `Policy service` is `pdp-svc`, so say so in `matches`. A name that only the source environment has is **not** imported by itself: pick `{fromSource: true}` for a component whose behaviour you need, otherwise it is created empty. A channel or data store lifeline (`sns:q`, `users-db.users`) is skipped; model it in the plan, not here.

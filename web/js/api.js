@@ -79,6 +79,7 @@ const remote = {
   marks: (env, against) => get(`/api/envs/${e(env)}/marks${qs({ against: against === 'source' ? 'source' : null })}`),
   drafts: (env) => http('GET', `/api/envs/${e(env)}/drafts`),
   createDraft: (env, name, createdBy) => put(env, '', 'POST', { name, createdBy }),
+  draft: (env, slug) => http('GET', `/api/envs/${e(env)}/drafts/${e(slug)}`),
   draftChanges: (env, slug) => http('GET', `/api/envs/${e(env)}/drafts/${e(slug)}/changes`),
   renameDraft: (env, slug, name) => put(env, `/${e(slug)}`, 'PATCH', { name }),
   editDraft: (env, slug, ops, author) => put(env, `/${e(slug)}/ops`, 'POST', { ops, author }),

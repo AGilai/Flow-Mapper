@@ -35,8 +35,11 @@ export function handleRpc(ctx: Ctx, msg: RpcRequest): object | null {
     case 'tools/call': {
       const tool = byName.get(msg.params?.name);
       if (!tool) return error(-32602, `unknown tool ${msg.params?.name}`);
+      const args = msg.params?.arguments ?? {};
+      // one check for every tool that takes dryRun: a string like "false" must never read as a real run
+      if ((tool.inputSchema as any).properties?.dryRun && args.dryRun !== undefined && args.dryRun !== null && typeof args.dryRun !== 'boolean') return error(-32602, `invalid params: dryRun must be a boolean (true or false), got ${JSON.stringify(args.dryRun)}`);
       try {
-        const out = tool.run(ctx, msg.params?.arguments ?? {});
+        const out = tool.run(ctx, args);
         return reply({ content: [{ type: 'text', text: JSON.stringify(out, null, 1) }], isError: false });
       } catch (err) {
         const text = err instanceof HttpError ? `${err.code}: ${err.message}${err.details ? '\n' + JSON.stringify(err.details) : ''}` : String(err);

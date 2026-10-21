@@ -1,4 +1,4 @@
-// The Export menu on a flow's header (frame 14a, 0.27.2): "Copy Mermaid" and "Download .mmd". It exports the open flow's full trace as `sequenceDiagram`
+// The Export menu on a flow's header (frame 14a, 0.27.4): "Copy Mermaid" and "Download .mmd". It exports the open flow's full trace as `sequenceDiagram`
 // text, in every environment (sealed ones and the static preview too). The text comes from the same code as the REST route and `export_mermaid`.
 
 import { h, toast } from '../dom.js';

@@ -1,4 +1,4 @@
-// Mermaid (0.27.2): export of a flow in every environment, import into a draft of a design, undo of one import. See docs/API.md "Mermaid".
+// Mermaid (0.27.4): export of a flow in every environment, import into a draft of a design, undo of one import. See docs/API.md "Mermaid".
 
 import type { Router } from '../http/router.ts';
 import { created, Reply } from '../http/router.ts';
