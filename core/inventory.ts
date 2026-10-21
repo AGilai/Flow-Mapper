@@ -13,7 +13,7 @@ import { amqpRows, type AmqpRow } from './amqp-inventory.ts';
 export type InventoryType = 'service' | 'channel' | 'store' | 'event' | 'rpc';
 export interface InventoryItem {
   type: InventoryType; id: string; label: string; kind: string;
-  group?: string; team?: string; connections: string; size: number; problems: number;
+  group?: string; team?: string; /** Services: the subsystem path, where set. */ groupPath?: string; connections: string; size: number; problems: number;
   /** Event types only: whether the event type has a message DTO. */
   hasDto?: boolean;
   /** Data stores: this row is a Redis cluster or instance (its page is /instances/<id>), not one key pattern. `kind` stays 'redis'. */
@@ -35,7 +35,7 @@ export function inventory(g: GraphIndex, dtoEvents: Iterable<string> = [], keySu
     if (svc.kind === 'infra') continue;
     const ingress = g.model.ingress.filter((i) => i.service === s.service).length;
     out.push({
-      type: 'service', id: s.service, label: s.service, kind: svc.kind, team: svc.team,
+      type: 'service', id: s.service, label: s.service, kind: svc.kind, team: svc.team, ...(svc.groupPath ? { groupPath: svc.groupPath } : {}),
       connections: `${n(ingress, 'endpoint')}, ${n(s.egress, 'call')}`, size: ingress + s.egress,
       problems: s.dangling + s.orphans + s.unbound + s.ambiguous + s.eventIssues,
     });

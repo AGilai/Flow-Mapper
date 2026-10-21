@@ -42,16 +42,17 @@ Schema: [`schema/manifest.schema.json`](../schema/manifest.schema.json). Example
 ## Environments (0.21.0)
 
 An environment is `sealed` or `design`. **Sealed**: filled only through the harvester APIs (ingest full/delta, DTOs, event DTOs,
-schemas, Redis keys); manual entity edits are refused with `409 ENV_SEALED`. Every environment that harvesters have written
+schemas, Redis keys). Every environment that harvesters have written
 to is sealed, and an ingest into a name that does not exist yet creates it sealed. **Design**: created by a copy (below);
-harvester writes are refused with `409 ENV_DESIGN` (a dry run is allowed, see below); the Map CRUD routes and MCP `upsert_entity` / `delete_entity`
-are refused in both kinds (0.23.0): `409 ENV_SEALED` in a sealed environment, `409 ENV_DRAFT` in a design ("edit it through a draft").
-A design is edited through drafts (below). Annotations (flow descriptions, bugs) are allowed in both kinds. One guard in the store write path does this.
+harvester writes are refused with `409 ENV_DESIGN` (a dry run is allowed, see below).
+**Removed in 0.25.0: edit a design through a draft.** The Map CRUD write routes (`POST/PATCH/DELETE /api/envs/:env/services[/:service]`,
+`POST/PUT/DELETE .../services/:service/:list[/*key]`) and the MCP tools `upsert_entity` / `delete_entity` are gone (they answered `409` since 0.23.0; now a removed
+write method answers `405` where its path still has a GET, `404` elsewhere), and with them the error code `ENV_DRAFT`. A design is edited through drafts (below): edit forms, import, raw ops. Annotations (flow descriptions, bugs) are allowed in both kinds. One guard in the store write path does this.
 
 | Method | Path | Notes |
 |---|---|---|
 | GET | `/api/envs` | Names only, `string[]` (the preview and harvester scripts read it). A Blank design environment is listed. |
-| GET | `/api/envs/meta` | `[{name, kind, source, copiedAt, groups: [{key, label}], levels, createdAt, createdBy, counts: {components, ingress, egress, ...}}]` |
+| GET | `/api/envs/meta` | `[{name, kind, source, copiedAt, groups: [{key, label}], levels, createdAt, createdBy, counts: {components, ingress, egress, ...}, colors: {component: slot}}]`. `colors`: the colour slot 1..8 of each component of the environment (the UI's `--cmp-1..8`): given the first time the component is seen there (ingest, draft edit or import of a new component, a copy keeps its source's slots, older environments are filled in on first read), kept for good (a deleted component keeps its slot, so a component added again gets its colour back), no two alike up to 8, then the palette repeats in order; client apps get none |
 | GET | `/api/envs/:env/meta` | the same for one |
 | POST | `/api/envs` | Create a design environment by copying. Body below. 201 with its meta. |
 | GET | `/api/envs/:env/components` | `[{name, kind, team, groupPath, counts: {endpoints, calls, channels, stores, dtos}}]`: what each component brings into a Components copy (`channels`: the queues, topics and exchanges it declares or uses plus the routing out of them; `channelKeys` lists them, and the page counts the union of the picked rows) |
@@ -101,11 +102,14 @@ Errors are `{error: {code, message, details}}`. Draft writes need a design (`409
 | GET | `/api/envs/:env/drafts/:slug` | `DraftInfo & {ops, plan, report}` (any status; `ops` are the raw ops with `seq`, `baseHash`, `author`, `byAi`, `at`) |
 | PATCH | `/api/envs/:env/drafts/:slug` | `{name}` -> `DraftInfo` |
 | DELETE | `/api/envs/:env/drafts/:slug` | discard -> `{discarded: slug}`; the ops stay for the record; the environment and its changelog are untouched |
-| POST | `/api/envs/:env/drafts/:slug/ops` | `{ops: [{op: 'upsert' \| 'delete', anchor, service?, data?}], author?, byAi?}` (1..500) -> 201 `{from, to, counts}`. All or nothing: `422` lists every bad op in `details[i] = {index, code, message}` (`NO_SERVICE` when an op names a component the environment and the draft do not have; `INVALID` for a bad anchor, a key that differs from the anchor, a header or item that fails the manifest schema) |
+| POST | `/api/envs/:env/drafts/:slug/ops` | `{ops: [{op: 'upsert' \| 'delete', anchor, service?, data?}], author?, byAi?}` (1..5000: a 114-component HLD makes about 2,300) -> 201 `{from, to, counts}`. All or nothing: `422` lists every bad op in `details[i] = {index, code, message}` (`NO_SERVICE` when an op names a component the environment and the draft do not have; `NO_TARGET` a step of an upserted function names no function / egress / resource of its component; `NO_GROUP` a header's `groupPath` is not one of the environment's subsystems; `BAD_KIND` a header kind outside `service, gateway, lambda, infra, client-app`; `INVALID` for a bad anchor, a key that differs from the anchor, a header or item that fails the manifest schema, an `origin` key: "origin is set by import only") |
 | DELETE | `/api/envs/:env/drafts/:slug/ops/last` | undo -> `{removed: seq}` |
 | DELETE | `/api/envs/:env/drafts/:slug/ops?anchor=` | revert one item -> `{removed: n}` (`svc:<s>` also drops the ops of that component's items) |
 | GET | `/api/envs/:env/drafts/:slug/changes` | `{counts, items: [{anchor, change: added \| removed \| changed, label, under?, authors, at, stale}], authors}`. The one source of the counts in the bar, the review list and `DraftInfo`: the children of an added or removed component are listed with `under` and not counted. `stale`: the item changed in the environment since the draft first touched it (apply overwrites it) |
 | POST | `/api/envs/:env/drafts/:slug/apply?dryRun=1` | `{by?}` -> `{applied: true, results, replaced, changelogId, warnings}`; `dryRun` runs it all and rolls back: `{applied: false, dryRun: true, results, replaced}` (each result has its `contract` report) |
+| GET | `/api/envs/:env/drafts/:slug/import/preview?source=&anchor=&groupPath=` | what an import would bring: `ImportPreview` (below). Reads only |
+| POST | `/api/envs/:env/drafts/:slug/import` | `{source, anchor, groupPath?, author?}` -> 201 `{from, to, counts, preview}` (below) |
+| POST | `/api/envs/:env/drafts/:slug/edits` | `{edit: DesignEdit, author?}` -> 201 `{from, to, counts, ops, warnings}` (below) |
 | POST | `/api/envs/:env/drafts/:slug/plan?dryRun=1` | an import plan (below) -> 201 `{ops, counts, warnings, skipped: {links}, questions: {total, blocking}}`; `?dryRun=1` also applies and rolls back and answers 200 with `dryRun: true, results, replaced` |
 
 Ops are whole items: an `upsert` carries the complete item as `data` (a header is `{kind, team?, groupPath?, details?, ...}` without `name`;
@@ -130,7 +134,7 @@ Every MCP read tool takes `draft` too.
 
 ### Marks
 
-`GET /api/envs/:env/marks?against=baseline|source&draft=<slug>` -> `{against, draft, source, baselineAt, marks, ghosts, counts}`.
+`GET /api/envs/:env/marks?against=baseline|source&draft=<slug>` -> `{against, draft, source, baselineAt, marks, ghosts, counts, refs}` (`refs`: see References below).
 `marks` maps an anchor to `{mark: 'new' | 'changed' | 'removed', what?, was?}`: `what` is a phrase (`+1 endpoint · +1 call: auth-svc`, `−2 calls`,
 `header: team`, `message UserUpdated: 1 new field`, `message request of in.x: 1 changed field`, `collection users: 1 new field`; at most three, then `+N more`),
 `was` the old value (`was string`, `+ quarantined`, `now required`). Field anchors (`...#devices[].certFingerprint`) are included.
@@ -158,26 +162,73 @@ A plan (docs/DESIGN-IMPORT.md, `planVersion: 1`) becomes ops of a draft: `manife
 `PLAN_EXISTS` (a manifest for a component the environment or draft has: make it an extension), `PLAN_NO_SERVICE` (an extension of a component that is not there), `INVALID` (details: `[{path, message}]`, paths like `manifests[1].ingress[0].transport`).
 MCP: `apply_import_plan {env, draft, plan, dryRun?}`.
 
+### Import into a draft (0.25.0)
+
+`ing:<service>/<id>` or `svc:<service>` of another environment (`source`: prod, or another design) comes into the draft **one level, never recursively**.
+- **An endpoint** (`ing:`): the endpoint, its DTOs, its handler (and event handlers, middleware) and the functions it calls inside its component, the egress and stores those functions use,
+  the schemas of those stores, event DTOs, and, for each call, the channels and bindings between it and its consumers. A channel or binding whose owner is not in the design goes under an
+  `infra` component named `<source>-infra` (a binding's id gets the declaring component as prefix, as a Components copy writes them). A consumer in the same component comes along with its closure;
+  a consumer in another component stays a **reference** and is listed (`references`: `state` `designed` when the design has its handler, `reference` when it has the endpoint only, `new-reference` when it is absent:
+  its header, endpoint and DTOs come along as a stub, no functions) so the next level is an explicit choice.
+- **A component** (`svc:`): its header, endpoints, calls, stores, channels, bindings, DTOs, schemas and event DTOs; no functions and nothing downstream: its endpoints become references.
+- Rows already in the design are never imported again (the design's version is kept even if edited; `alreadyHere[].differs` says so). Nothing left: `409 NOTHING_TO_IMPORT`.
+- A component new to the design gets the source's `groupPath` when the design has that subsystem, else none; `groupPath` in the request overrides it (`422 NO_GROUP` if it is not a subsystem; `''` = none).
+
+`ImportPreview` = `{source, anchor, level: 'endpoint' | 'component', total, counts: {headers, ingress, functions, egress, resources, channels, bindings, dtos, messages, schemas}, summary: {handler?, inside, calls: [{anchor, label}], stores: [{key, access?}]}, items: [{anchor, why, label}], alreadyHere: [{anchor, label, differs}], references: [{service, ingress, bindKey, label, state}], warnings}`;
+`total` is the number of ops the import appends. Errors: `404` unknown source or `NO_ITEM`, `400` `BAD_ANCHOR` or source = the environment, `409` `NOTHING_TO_IMPORT`, `ENV_SEALED`, `DRAFT_CLOSED`, `422 NO_GROUP`.
+**Imported is not new**: each op records `origin {env, version}` (the source and its component's version then); until the draft is applied that is the item's baseline (marks read it from the ops, so imported items get no New mark, undo / revert / deleting the component leave no trace, and an item imported and deleted again is no Removed mark).
+Apply copies it into `baseline_items` (summary changelog `changes.imported`). Editing an imported item in the same draft shows it Changed. `against=source` then shows drift when the source moves.
+MCP: `import_preview {env, draft, source, anchor, groupPath?}` (read) and `import_into_draft` (an AI edit).
+
+### Edits (0.25.0)
+
+`POST /api/envs/:env/drafts/:slug/edits` takes one form-shaped edit and appends the whole-item ops that make it (validated all or nothing, like `ops`). The UI forms, MCP `edit_design` and the preview build the same ops from the same code.
+`DesignEdit` is one of:
+- `{kind: 'component', name, serviceKind: 'service' | 'gateway' | 'lambda' | 'infra' | 'client-app', groupPath?, team?, description?}`: a header (`name`: lowercase letters, digits, `-`; an existing header keeps its other fields; `''` clears one). No rename: delete and add.
+- `{kind: 'endpoint', service, id?, transport, bindKey?, handler?, entryPoint?, events?: [{type, handler?}], description?}`: an endpoint (id defaults to `in.<last word of the bind key>`, handler to `<id>.handle`, created as an empty function when absent, so a design endpoint is never a reference; transport `undecided` fills `tbd:<service>/<name>`).
+- `{kind: 'call', from: {service, fn}, before?, to, edit?, mode?, operation?, condition?, event?}`: an arrow that traces. `to` is `{service, ingress}` (an endpoint of the design), `{endpoint: <the endpoint form>}` (created with it) or `{bindKey, transport}` (not designed yet: a dangling call). The ops: an egress `out.<target>.<operation or endpoint id>` of the caller (mode defaults: async for sns, sqs, eventbridge, event and amqp publishes, sync for http, rpc, grpc, `amqp-rpc:` and undecided) and a step inserted in the function before step `before` (default last; the function is created when absent; steps are renumbered). `edit: {egress, seq}` replaces that call (the egress changes in place unless another step shares it, then a new egress is made).
+- `{kind: 'delete-call', service, fn, seq}`: the step goes, and its egress when nothing else of the component uses it.
+- `{kind: 'flow', service, ingress, name?, description?, entryPoint?, order?: {fn, seqs}}`: the flow's name and description (a `flow:` op; `''` clears the name), the endpoint's entry-point flag, the order of one function's steps (`seqs` lists every step number once, else `BAD_ORDER`).
+- `{kind: 'dto', service, ingress, role, status?, content}`, `{kind: 'event-dto', type, content}`, `{kind: 'delete', anchor}` (`svc:`, `ing:` with its DTOs and flow text, `dto:`, `evt:`).
+Errors (`422`, `error.code`, `error.details.field` for a form field): `BAD_NAME`, `BAD_KIND`, `NO_GROUP`, `NO_SERVICE`, `NO_TARGET`, `NO_ITEM`, `NO_STEP`, `BAD_ORDER`, `BAD_ANCHOR`, `NO_CHANGE`, `INVALID`, plus the codes of `ops`.
+The `description` of one call is not stored (callee descriptions are another store); the answer says so in `warnings`.
+MCP: `edit_design {env, draft, edit}` (an AI edit).
+
+`GET /api/envs/:env/call?service=&egress=&draft=` -> `{egress: {service, id, bindKey, transport, mode?}, steps: [{fn, seq, operation?}], targets: [{service, ingress, bindKey, reference?}]}`: what the call form reads. `targets[i].reference` (`{service, ingress, bindKey, source}`) is present when that endpoint is a reference: editing the call changes the call only. MCP: `get_call`.
+
+### References (0.25.0)
+
+A **reference** is an endpoint of a design environment that came from another environment (a baseline row, or an import op of the draft being read) whose behaviour is not in the design: it names a handler (its own or an event consumer's) and none of those is a function of its component.
+A Components copy makes every copied endpoint a reference, a Full copy none; an endpoint the design made with a dangling handler is "not designed yet", not a reference. Sealed environments have none.
+- **Marks** (`GET /marks`) gain `refs`: `{endpoints: {'ing:<s>/<id>': {service, ingress, bindKey, source}}, components: {'svc:<s>': {refs, endpoints}}, origins: {'ing:<s>/<id>': {from, at, imported, inDraft?}}}`; `origins` are endpoints that came with their behaviour (`imported`: taken after the environment was copied, or its handler was imported; `inDraft`: by an import op of the draft being read). A sealed environment answers empty maps.
+- **Traces** of a design (`GET /trace`, MCP `trace_flow`): a message into a reference carries `reference: {anchor, source}`; `partial: {steps: [{message, anchor, service, ingress, label, source}]}` lists the first message into each reference (`message` = 0-based index in `messages`), absent when the flow reaches none; service participants carry `serviceKind`. A sealed trace is unchanged.
+- **Entry points** (`GET /entry-points`, MCP `list_entry_points`): `reference: true` when the entry itself is a reference, `partial: n` when its flow reaches n references (design environments only). Every environment: `name` (the flow's name) and `summary` (first 140 characters of the human description) where set.
+- **`GET /trace` on a reference**: `409 NO_HANDLER`, `details {source, service, ingress, reference, anchor}`, message "This endpoint is a reference: its behaviour lives in <source>".
+
+### Flow names (0.25.0)
+
+A flow (an entry point) can have a name, shown wherever flows are listed. An annotation like descriptions: any environment, no draft.
+`GET /api/envs/:env/flow-names[?draft=]` -> `[{service, ingress, name, author, updatedAt}]` (with a draft its `flow:` ops' names win); `PUT /api/envs/:env/flow-names` `{service, ingress, name, author?}` -> `{service, ingress, name | null}` (`name` trimmed, at most 200, `''` removes; `422 NO_INGRESS` for an unknown endpoint, `404` for an unknown environment).
+In a design with an open draft a rename can instead be `edits {kind: 'flow', name}` (applied with the draft). Names are in `entry-points`, `flows/counts`, `search` (which also matches them) and the `start` of a trace, with or without `?draft=` (Fix #52); a draft read keeps the names stored in the database.
+MCP: `get_flow_names {env, draft?}`, `set_flow_name {env, service, ingress, name, draft?}` (with `draft`: a flow op, an AI edit).
+
 ### `undecided` and `details`
 
 `transport: "undecided"` (schema, `ingress` and `egress`) is for designs: the transport of a call or endpoint is not chosen yet. It resolves by bind key like any other transport (use a `tbd:<callee>/<operation>` key on both ends), reads as sync and unicast,
 counts as linked in link health when the keys match, and shows as a dangling call when the other end is missing. Harvesters never send it. `details` (a free object) is also accepted on a service header and on a function, for the `details.doc` provenance of an import.
 
-## Map CRUD
+## Map reads
 
-Collections per service: `functions`, `ingress`, `egress`, `resources`, `channels`, `bindings`.
-Entity key is `id` (or `bindKey` for channels; keys may contain `/` and `:`). Every write bumps the
-service version by one and writes a changelog entry. Writes that break internal references
-(an ingress handler or step target that does not exist) are rejected with 422.
+Collections per service: `functions`, `ingress`, `egress`, `resources`, `channels`, `bindings`. Entity key is `id` (or `bindKey` for channels; keys may contain `/` and `:`).
 
 | Method | Path |
 |---|---|
-| GET / POST | `/api/envs/:env/services` |
-| GET / PATCH / DELETE | `/api/envs/:env/services/:service` |
-| GET / POST | `/api/envs/:env/services/:service/:collection` |
-| GET / PUT / DELETE | `/api/envs/:env/services/:service/:collection/:key` |
+| GET | `/api/envs/:env/services` |
+| GET | `/api/envs/:env/services/:service` |
+| GET | `/api/envs/:env/services/:service/:collection` |
+| GET | `/api/envs/:env/services/:service/:collection/:key` |
 
-Add `?source=ui` to mark edits made from a UI in the changelog. Since 0.23.0 the write routes are refused everywhere: `409 ENV_SEALED` in a sealed environment, `409 ENV_DRAFT` in a design (edit through a draft; the routes stay as 409s until the edit forms land), `404` in an unknown one. The GET routes read as before; with `?draft=` they read the overlay. `GET /api/envs` is listed under Environments above.
+With `?draft=` they read the overlay. **Removed in 0.25.0: edit a design through a draft.** The routes that wrote here (`POST/PATCH/DELETE` on services, `POST/PUT/DELETE` on collections) are gone; sealed environments are filled by ingest only. `GET /api/envs` is listed under Environments above.
 
 ## Queries
 
@@ -437,9 +488,9 @@ read them with the endpoint above.
 - stdio: `npm run mcp` (same database, `FLOW_DB`).
 
 Tools: `search`, `list_services`, `get_service`, `list_entry_points`, `trace_flow`, `find_paths`,
-`link_health`, `changelog`, `set_description`, `ingest_manifest`, `upsert_entity`, `delete_entity`, `get_endpoint_info`,
+`link_health`, `changelog`, `set_description`, `ingest_manifest`, `get_endpoint_info`,
 `load_dtos`, `event_types`, `inventory`, `get_store`, `get_channel`, `get_exchange` (0.19.0: the exchange page, same data as GET /instances/amqp:<name>), `load_schemas`, `list_bugs`,
-`list_envs` (0.21.0: name, kind, source, copiedAt, groups, components), `create_env` (0.21.0: same body as `POST /api/envs`), `open_draft`, `list_drafts`, `draft_changes`, `edit_in_draft`, `apply_draft`, `discard_draft`, `get_marks`, `apply_import_plan` (0.23.0: see Drafts; every read tool takes `draft`; `ingest_manifest`, `load_dtos` and `load_schemas` take `dryRun` and, with it, `draft`), `get_resource_keys` (0.16.0), `list_clients` (same filters and result as `GET /clients`; `get_store` also returns `clients`), `get_bug`, `report_bug` (accepts `log` text), `update_bug` (accepts `comment`).
+`list_envs` (0.21.0: name, kind, source, copiedAt, groups, components), `create_env` (0.21.0: same body as `POST /api/envs`), `open_draft`, `list_drafts`, `draft_changes`, `edit_in_draft`, `apply_draft`, `discard_draft`, `get_marks`, `apply_import_plan`, `import_preview`, `import_into_draft`, `edit_design`, `get_call`, `get_flow_names`, `set_flow_name` (0.23.0 / 0.25.0: see Drafts; every read tool takes `draft`; `ingest_manifest`, `load_dtos` and `load_schemas` take `dryRun` and, with it, `draft`), `get_resource_keys` (0.16.0), `list_clients` (same filters and result as `GET /clients`; `get_store` also returns `clients`), `get_bug`, `report_bug` (accepts `log` text), `update_bug` (accepts `comment`).
 `set_description(env, service, ingress, callee?, text, model)` (0.14.0) saves the **AI** description of a flow (no `callee`) or of one service in it. It writes the AI record only, never the human one; it stores `model`, the time, and the hash of the flow's trace as it is now. `model` and `text` are required; the entry `ingress` must exist; `callee` must name a service of the env or be a step key of the flow (0.20.0). It returns the flow's descriptions (as `GET /descriptions`). `trace_flow` with an `ingress` returns `descriptions` next to the trace, and `get_service` returns `descriptions`: every record of that service's flows `{ingress, callee, source, text, by, at}`, so an agent sees what is already written before it writes. The UI's "Generate…" dialog hands out two prompts (the whole flow with all its services; one service) that tell an AI tool to call `trace_flow`, `get_service` and then `set_description`.
 `trace_flow` and `GET /trace` messages of steps that are alternatives (steps of one function with the same `altGroup`, else consecutive steps with the same `source` file:line that each carry a `condition`) carry `alt: {group, branch, of}`: `group` is `<function>:<altGroup>` (or `<function>:<file>:<line>@<first seq>`), `branch` the 1-based branch (one per distinct condition, in order of first appearance), `of` the number of branches; the message keeps its `condition`. The messages a branch's step leads to (the topic, queues and consumers of a publish, which carry the same `alt`) and everything below it in the call tree (messages deeper than the group) belong to that branch; every branch is followed. `maxMessages` counts the largest branch of a group, not the sum; `flows/counts` counts each component once, as it always did. The UI draws an alt frame around the group.
 `trace_flow` and `GET /trace` messages of an egress step with `eventFrom` (the step's event type comes from the nearest enclosing call step's `bind` of that name on the traced path) carry `event` as usual plus `eventFrom: {name, boundAt}`; `boundAt` is `<caller function name>:<seq>` and is absent when nothing on the path binds the name (the publish then behaves as one that names no event). `flows/counts` cannot follow binds per path: for such a step it uses every value that call steps bind to the name on a call path reaching the step's function, in the same service (a name bound in another service never counts; #44), plus the egress's events and candidates, so a count can include components a trace through one caller does not draw. Event reports and channel views list those bound values among the egress's events. Manifest: `bind: {name: value}` on `call` steps, `eventFrom: name` on egress steps; contract rule `eventfrom-unbound` (info).
