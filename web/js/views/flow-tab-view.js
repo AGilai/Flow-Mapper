@@ -9,6 +9,8 @@ import { messagePanel } from './flow-panel.js';
 import { publishPanel } from './flow-panel-publish.js';
 import { plural } from './flow-async.js';
 import { descBlock, descLine } from './flow-desc.js';
+import { descDetails } from './flow-head.js';
+import { createWalkView } from './flow-walk-view.js';
 import { createTip } from './flow-desc-tip.js';
 import { openGenerate } from './flow-desc-dialog.js';
 import { flowId } from './flow-sub.js';
@@ -29,9 +31,14 @@ export function createTabView(data, host) {
   const root = host.desc ? host.rootOf(key) : null, services = [...new Set(trace.participants.filter((p) => p.kind === 'service').map((p) => p.label))];
   const generate = (callee) => openGenerate({ env: host.env, root, services, callee, onClose: () => host.desc.refresh(root) });
   const descs = [];
-  const flowBox = root && data.kind !== 'sub' ? descBlock(host.desc, root, null, { title: 'What this flow is for', wholeFlow: true, onGenerate: () => generate(null) }) : null;
+  const label = host.describe(key);
+  // The flow's description sits under its title, full width and collapsible (0.20.0); a sub-flow tab keeps its one line.
+  const flowBox = root && data.kind !== 'sub' ? descDetails(host.desc, root, null, { cls: 'flowhead', remember: 'flowhead-open', title: 'What this flow is for', onGenerate: () => generate(null),
+    summary: [h('span.fh-t', label.title), label.sub ? h('span.mono.xs.muted', label.sub) : null] }) : null;
   const subLine = root && data.kind === 'sub' ? descLine(host.desc, root, [`${data.service}:${data.name}`, data.service], { onGenerate: () => generate(data.service) }) : null;
   descs.push(flowBox, subLine);
+  // The step walk: numbered arrows, the bar and the step's description. Step descriptions belong to the flow, so a sub-flow or function tab walks without them.
+  const walk = createWalkView({ store: host.desc, messages: () => trace.messages, root: data.kind === 'sub' ? null : root, initial: host.initialStep?.(key) ?? null, onStep: (n) => host.setStep?.(key, n) });
   const tip = root ? createTip(host.desc, root) : null;
   const scroller = h('div.seq-scroll');
   const hint = h('span.seq-hint', 'More to the right. Scroll sideways ›');
@@ -58,7 +65,7 @@ export function createTabView(data, host) {
   }
   const lookInside = (bar, tr) => { inside.open(bar, tr); };
   const flash = (g) => { g?.scrollIntoView({ block: 'center', behavior: 'smooth' }); g?.classList.add('flash'); setTimeout(() => g?.classList.remove('flash'), 1600); };
-  const shared = { host, opts, tip, fit: () => scroller.clientWidth, select, lookInside, flash, traceFor: host.traceFor,
+  const shared = { host, opts, tip, walk, fit: () => scroller.clientWidth, select, lookInside, flash, traceFor: host.traceFor,
     openMessage: (m, g, tr) => { // clicking an arrow opens the message panel; one side panel at a time
       body.querySelectorAll('.msg.active').forEach((e) => e.classList.remove('active'));
       g.classList.add('active');
@@ -78,7 +85,7 @@ export function createTabView(data, host) {
   shared.openPublish = openPublish;
 
   function head() { // breadcrumb and lane summary: sub-flow and full-flow tabs only
-    if (!data.originKey) return flowBox ? h('div.tpad', flowBox.el) : null;
+    if (!data.originKey) return null;
     const o = host.describe(data.originKey), sub = data.kind === 'sub';
     const crumbs = h('div.crumbs', { 'aria-label': 'Breadcrumb' },
       h('a', { href: '#', title: 'Go to the tab this flow was opened from', on: { click: (e) => { e.preventDefault(); host.openTab(data.originKey); } } }, o.tn ? `${o.tn} · ${o.title}` : `${o.title} · ${o.sub}`),
@@ -89,7 +96,7 @@ export function createTabView(data, host) {
     const laneRow = sub ? h('div.tp-lane', data.group?.topic && data.group.topic !== r.queue ? [tc(kindOf(data.group.topic), data.group.topic), h('i.arr', '›')] : null, tc(kindOf(r.queue), r.queue), h('i.arr', '›'),
       h('span.svc', h('b', r.service), h('span.mono', ` · ${r.handler}`)), h('span.muted.small', r.summary), h('span.grow'),
       h('button.btn.sm', { title: `Every call ${data.service} makes from here`, on: { click: () => host.openFull(data.row, key) } }, 'Start a full flow from here')) : null;
-    return h('div.tpad', crumbs, subLine?.el, laneRow, flowBox?.el);
+    return h('div.tpad', crumbs, subLine?.el, laneRow);
   }
 
   function draw() { // options changed (stores, depth): redraw the lane and the lanes of the open cards; their expansion stays
@@ -101,8 +108,10 @@ export function createTabView(data, host) {
     edge(); requestAnimationFrame(edge);
   }
   draw();
+  const el = h('div.flow-tab', h('div.flow-top', flowBox?.el, walk.el), body);
+  el.addEventListener('keydown', (ev) => walk.onKey(ev)); // ← → Home End, while focus is in the flow view and not in a text box
   return {
-    el: body, key, data, draw, insideOpen: () => inside.isOpen(), dispose: () => { document.removeEventListener('fm:layout', onLayout); inside.dispose(); ro?.disconnect(); tip?.dispose(); descs.forEach((d) => d?.dispose()); },
+    el, key, data, draw, insideOpen: () => inside.isOpen(), dispose: () => { document.removeEventListener('fm:layout', onLayout); inside.dispose(); ro?.disconnect(); tip?.dispose(); descs.forEach((d) => d?.dispose()); walk.dispose(); },
     save: () => { saved = scroller.scrollTop; },
     restore: () => { scroller.scrollTop = saved; edge(); requestAnimationFrame(edge); },
     refreshDots: () => render?.index()?.refresh(),

@@ -16,12 +16,15 @@ import { createTabView } from './flow-tab-view.js';
 import { createDescStore } from './flow-desc.js';
 import { swap } from './flow-tabs-anim.js';
 import * as T from './flow-tabs-state.js';
+import { decodeStep, encodeStep } from './flow-walk.js';
 
 export async function render({ main, query }) {
   const service = query.get('service');
   const opts = { stores: query.get('stores') !== '0', depth: query.get('depth') ?? 'all',
     frontier: query.get('frontier') === '1' }; // steps the harvester marked as frontier (call trees that reach no sink)
   let S = T.decodeUrl(query);
+  let stepParam = decodeStep(query); // `step=`: the walk's step in the active tab; a link opens on it (0.20.0)
+  const stepTab = S.active; // ...and only that tab, once
   const views = new Map(), slots = new Map(), stale = new Set();
   let token = 0, disposed = false;
 
@@ -66,7 +69,7 @@ export async function render({ main, query }) {
   mainPane.append(toolbar, strip.el, empty);
 
   function persist() {
-    setQuery({ ...T.encodeUrl(S), ...(S.keys.length ? { service: null } : {}), stores: opts.stores ? null : '0', queues: null, depth: opts.depth === 'all' ? null : opts.depth, frontier: opts.frontier ? '1' : null });
+    setQuery({ ...T.encodeUrl(S), ...(S.keys.length ? { service: null } : {}), stores: opts.stores ? null : '0', queues: null, depth: opts.depth === 'all' ? null : opts.depth, frontier: opts.frontier ? '1' : null, step: encodeStep(stepParam) });
   }
   const host = {
     env: state.env, opts, panel, flowsEl, traceFor: data.traceFor, describe: data.describe, desc, rootOf: (k) => T.flowRoot(k), isActive: (k) => S.active === k,
@@ -77,6 +80,8 @@ export async function render({ main, query }) {
     isOpen: (row, origin) => S.keys.includes(T.subKey(row, origin)),
     jumpToLabel: (label) => { const k = S.keys.find((x) => data.peek(x)?.label === label); if (k) commit(T.activate(S, k)); },
     openEntry: (e) => openEntry(e),
+    initialStep: (k) => (k === stepTab ? stepParam : null),
+    setStep: (k, n) => { if (k === S.active) { stepParam = n; persist(); } },
     setFrontier: () => { opts.frontier = true; frontierCheck.querySelector('input').checked = true; persist(); reloadAll(); },
   };
   const openEntry = ({ service: s, ingress, fn, event, scope }) => commit(T.openTab(S, ingress ? T.entryKey(s, ingress, event, scope) : T.fnKey(s, fn, event, scope)));
@@ -125,7 +130,7 @@ export async function render({ main, query }) {
     persist(); strip.render(S);
     const my = ++token, act = S.active, v = views.get(act);
     if (v && stale.delete(act)) v.draw();
-    if (prev !== act) { panel.close(); flowsEl.classList.toggle('fi-open', !!v?.insideOpen()); }
+    if (prev !== act) { stepParam = null; panel.close(); flowsEl.classList.toggle('fi-open', !!v?.insideOpen()); }
     paintChrome();
     if (prev !== act && act) {
       await swap(slots.get(prev) ?? null, slots.get(act), { opening: added.length === 1 && added[0] === act && S.keys.length > 1, tabEl: strip.tabEl(act) });

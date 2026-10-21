@@ -1,5 +1,5 @@
 // Flow descriptions, the pure part. Two records per key (source human | ai); key = service + ingress (the whole
-// flow, callee '') or + callee (a service, or "service:handler" for one delivery). The AI record keeps the hash of the
+// flow, callee '') or + callee (a service, "service:handler" for one delivery, or "#step:..." for one arrow). The AI record keeps the hash of the
 // trace it was written from, so a changed trace marks it outdated. Shared with the browser (preview, prompts).
 
 import type { Trace, Message } from './trace.ts';
@@ -29,10 +29,26 @@ export function hash53(str: string, seed = 0): string {
 
 const sig = (m: Message) => [m.depth, m.kind, m.from, m.to, m.label, m.transport ?? '', m.event ?? '', m.target?.service ?? '', m.target?.ingress ?? '', m.target?.fn ?? '', m.store ?? '', m.calls ?? '', m.broken ? 1 : 0].join('|');
 
-export const calleeService = (callee: string) => callee.split(':')[0];
+/** The callee key of one step (one arrow) of a flow: `#step:<from>><to>|<label>|<transport>`, derived from the message content, never from its position. */
+export const STEP_PREFIX = '#step:';
+export const isStepKey = (callee: string) => callee.startsWith(STEP_PREFIX);
+export const stepKey = (m: Pick<Message, 'from' | 'to' | 'label' | 'transport'>) => `${STEP_PREFIX}${m.from}>${m.to}|${m.label}|${m.transport ?? ''}`;
+/** The same arrow twice in one flow: the second carries `~2`, the third `~3`. `stepBase` takes that suffix off. */
+export const stepBase = (callee: string) => callee.replace(/~\d+$/, '');
+export function stepKeys(msgs: Pick<Message, 'from' | 'to' | 'label' | 'transport'>[]): string[] {
+  const seen = new Map<string, number>();
+  return msgs.map((m) => { const k = stepKey(m), n = (seen.get(k) ?? 0) + 1; seen.set(k, n); return n > 1 ? `${k}~${n}` : k; });
+}
+const stepMessages = (msgs: Message[], callee: string) => { const b = stepBase(callee); return msgs.filter((m) => stepKey(m) === b); };
+/** Does some message of the trace have this step key? (the server refuses a step key that matches nothing) */
+export const hasStep = (trace: Pick<Trace, 'messages'>, callee: string) => stepMessages(trace.messages, callee).length > 0;
+
+/** The service a callee names; '' for a step key (it names an arrow, not a service). */
+export const calleeService = (callee: string) => (isStepKey(callee) ? '' : callee.split(':')[0]);
 
 /** Hash of what a description describes: the whole trace, or (with a callee) the messages that touch that service. Changes when the flow changes, not between loads. */
 export function traceHash(trace: Pick<Trace, 'messages'>, callee = ''): string {
+  if (isStepKey(callee)) return hash53(stepMessages(trace.messages as Message[], callee).map(sig).join('\n')); // only the step's own messages: other changes leave its AI note current
   const svc = calleeService(callee);
   const ms = svc ? trace.messages.filter((m) => m.from === `svc:${svc}` || m.to === `svc:${svc}` || m.target?.service === svc) : trace.messages;
   return hash53(ms.map(sig).join('\n'));
