@@ -18,10 +18,14 @@ import { swap } from './flow-tabs-anim.js';
 import * as T from './flow-tabs-state.js';
 import { decodeStep, encodeStep } from './flow-walk.js';
 
+// Squeeze (0.20.1): on by default, remembered per viewer; a click on a fold turns it off for that tab only (flow-tab-view.js).
+const sqStored = () => { try { return localStorage.getItem('flow-mapper.squeeze') !== '0'; } catch { return true; } };
+const sqSave = (on) => { try { localStorage.setItem('flow-mapper.squeeze', on ? '1' : '0'); } catch { /* storage unavailable */ } };
+
 export async function render({ main, query }) {
   const service = query.get('service');
   const opts = { stores: query.get('stores') !== '0', depth: query.get('depth') ?? 'all',
-    frontier: query.get('frontier') === '1' }; // steps the harvester marked as frontier (call trees that reach no sink)
+    frontier: query.get('frontier') === '1', squeeze: sqStored() }; // steps the harvester marked as frontier (call trees that reach no sink)
   let S = T.decodeUrl(query);
   let stepParam = decodeStep(query); // `step=`: the walk's step in the active tab; a link opens on it (0.20.0)
   const stepTab = S.active; // ...and only that tab, once
@@ -58,7 +62,9 @@ export async function render({ main, query }) {
     h('input', { type: 'checkbox', checked: opts.frontier, on: { change: (e) => { opts.frontier = e.target.checked; persist(); reloadAll(); } } }), 'Frontier steps');
   const depth = h('select.select', { 'aria-label': 'Depth', on: { change: (e) => { opts.depth = e.target.value; persist(); views.forEach((v, k) => (k === S.active ? v.draw() : stale.add(k))); } } },
     ['all', '1', '2', '3', '4', '6', '8'].map((d) => h('option', { value: d, selected: d === opts.depth }, d === 'all' ? 'All depths' : `Depth ${d}`)));
-  const toolbar = h('div.seq-toolbar', seg, check('stores', 'Data stores'), frontierCheck, depth, h('span.spacer'),
+  const sqCheck = h('label.check', { title: 'When the diagram is wider than the window, fold the lifelines the current step does not need. Click a fold to open it.' },
+    h('input', { type: 'checkbox', checked: opts.squeeze, on: { change: (e) => { opts.squeeze = e.target.checked; sqSave(opts.squeeze); views.forEach((v, k) => { v.resetSqueeze(); if (k === S.active) v.draw(); else stale.add(k); }); } } }), 'Squeeze');
+  const toolbar = h('div.seq-toolbar', seg, check('stores', 'Data stores'), frontierCheck, sqCheck, depth, h('span.spacer'),
     h('span.xs.muted', 'Double-click a bar, or right-click it, to look inside'), info);
 
   // ---- tabs ----
@@ -80,6 +86,7 @@ export async function render({ main, query }) {
     isOpen: (row, origin) => S.keys.includes(T.subKey(row, origin)),
     jumpToLabel: (label) => { const k = S.keys.find((x) => data.peek(x)?.label === label); if (k) commit(T.activate(S, k)); },
     openEntry: (e) => openEntry(e),
+    paintChrome: () => paintChrome(),
     initialStep: (k) => (k === stepTab ? stepParam : null),
     setStep: (k, n) => { if (k === S.active) { stepParam = n; persist(); } },
     setFrontier: () => { opts.frontier = true; frontierCheck.querySelector('input').checked = true; persist(); reloadAll(); },
@@ -115,6 +122,7 @@ export async function render({ main, query }) {
       b.title = scoped ? '' : p ? 'Fixed for sub-flows' : '';
     });
     info.textContent = views.get(act)?.info() ?? '';
+    sqCheck.querySelector('input').checked = opts.squeeze && !views.get(act)?.squeezeOff();
     list.mark(S);
     empty.hidden = !!S.keys.length;
     views.get(act)?.refreshDots();

@@ -46,3 +46,17 @@ details.stepdesc > summary { font-size: var(--fs-xs); color: var(--muted); font-
 .steptile.cur rect { fill: var(--ink); stroke: var(--ink); }
 .steptile.cur text { fill: var(--surface); }
 .stephalo { fill: color-mix(in srgb, var(--mc, var(--accent)) 8%, transparent); stroke: var(--mc, var(--accent)); stroke-width: 2.2; stroke-opacity: .85; }
+
+/* Squeeze (0.20.1): fold columns. Own names (sq-), apart from the middleware .fold / data-mwfold. */
+.sq-fold { cursor: pointer; }
+.seq-part.sq-fold rect, .sq-fold rect { fill: var(--surface-2); stroke: var(--line-strong); stroke-dasharray: 3 3; }
+.sq-fold .fk { font-size: 12px; font-weight: 600; fill: var(--ink-2); }
+.sq-fold .sub { font-size: 11px; fill: var(--muted); }
+.sq-fold:hover rect, .sq-fold:focus-visible rect { stroke: var(--accent); }
+.sq-fold:focus-visible { outline: none; }
+.sq-band { fill: color-mix(in srgb, var(--surface-2) 60%, transparent); cursor: pointer; }
+.sq-dots { font: 700 14px var(--font); fill: var(--ink-2); }
+.sq-to { font: 400 11px var(--mono); fill: var(--muted); }
+.sq-in { cursor: pointer; }
+.sq-in .hit { fill: transparent; }
+.sq-in:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }

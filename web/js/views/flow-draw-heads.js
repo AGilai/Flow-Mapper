@@ -3,9 +3,10 @@
 import { s } from '../dom.js';
 import { chName } from './flow-chain.js';
 import { LINE_H, colorOf } from './flow-draw-layout.js';
+import { foldHeads } from './flow-draw-fold.js';
 
-export function drawHead({ columns, heads, boxH, HEAD, width, colX, isCh, headBox }) {
-  return s('svg', { width, height: HEAD, class: 'seq-head', role: 'presentation' }, columns.map((c, i) =>
+export function drawHead({ columns, heads, boxH, HEAD, width, colX, isCh, headBox, folded, groups }) {
+  return s('svg', { width, height: HEAD, class: 'seq-head', role: 'presentation' }, foldHeads(groups, boxH), columns.map((c, i) => folded.has(i) ? null :
     s('g', { class: `seq-part k-${c.kind}${c.fan ? ' fan' : ''}`, 'data-p': i, style: isCh(c) || c.transport ? `--mc:${colorOf(c.transport)}` : null, transform: `translate(${colX.get(c) - headBox(c) / 2},8)`, tabindex: c.fan ? 0 : null, role: c.fan ? 'button' : null },
       s('rect', { width: headBox(c), height: boxH, rx: 8 }), s('rect', { class: 'stripe', width: 4, height: boxH, rx: 2 }),
       heads[i].name.map((t, k) => s('text', { x: 12, y: 18 + k * LINE_H, class: 'name' }, t)),
@@ -19,4 +20,4 @@ export function drawHead({ columns, heads, boxH, HEAD, width, colX, isCh, headBo
 }
 
 /** The vertical line of each lifeline. */
-export const drawLifelines = ({ columns, colX, height, isCh }) => columns.map((c) => s('line', { class: isCh(c) ? 'lifeline ch' : 'lifeline', style: isCh(c) ? `--mc:${colorOf(c.transport)}` : null, x1: colX.get(c), x2: colX.get(c), y1: 0, y2: height }));
+export const drawLifelines = ({ columns, colX, height, isCh, folded }) => columns.map((c, i) => folded.has(i) ? null : s('line', { class: isCh(c) ? 'lifeline ch' : 'lifeline', style: isCh(c) ? `--mc:${colorOf(c.transport)}` : null, x1: colX.get(c), x2: colX.get(c), y1: 0, y2: height }));

@@ -26,7 +26,7 @@ const kindOf = (key) => String(key).split(':')[0].replace('amqp-queue', 'amqp');
 export function createTabView(data, host) {
   const { trace, tree, key } = data;
   const opts = host.opts, mwOpen = new Set(); // keys of the bars whose long middleware chain is unfolded
-  let render = null, saved = 0;
+  let render = null, saved = 0, sqOff = false; // sqOff: a fold was opened in this tab, so Squeeze is off here until it is switched on again
   // Descriptions belong to the flow (service + ingress of its entry point; a sub-flow tab belongs to the flow it came from). A function tab has none.
   const root = host.desc ? host.rootOf(key) : null, services = [...new Set(trace.participants.filter((p) => p.kind === 'service').map((p) => p.label))];
   const generate = (callee) => openGenerate({ env: host.env, root, services, callee, onClose: () => host.desc.refresh(root) });
@@ -38,7 +38,7 @@ export function createTabView(data, host) {
   const subLine = root && data.kind === 'sub' ? descLine(host.desc, root, [`${data.service}:${data.name}`, data.service], { onGenerate: () => generate(data.service) }) : null;
   descs.push(flowBox, subLine);
   // The step walk: numbered arrows, the bar and the step's description. Step descriptions belong to the flow, so a sub-flow or function tab walks without them.
-  const walk = createWalkView({ store: host.desc, messages: () => trace.messages, root: data.kind === 'sub' ? null : root, initial: host.initialStep?.(key) ?? null, onStep: (n) => host.setStep?.(key, n) });
+  const walk = createWalkView({ store: host.desc, messages: () => trace.messages, root: data.kind === 'sub' ? null : root, initial: host.initialStep?.(key) ?? null, onStep: (n) => host.setStep?.(key, n), onRestep: (cols) => render?.restep(cols) });
   const tip = root ? createTip(host.desc, root) : null;
   const scroller = h('div.seq-scroll');
   const hint = h('span.seq-hint', 'More to the right. Scroll sideways ›');
@@ -47,7 +47,8 @@ export function createTabView(data, host) {
   const edge = () => { wrap.classList.toggle('scrolls', scroller.scrollWidth > scroller.clientWidth + 2); wrap.classList.toggle('at-end', scroller.scrollLeft + scroller.clientWidth >= scroller.scrollWidth - 4); };
   scroller.addEventListener('scroll', () => { edge(); tip?.hide(); }, { passive: true });
   let sized = false; // the first time the tab has a width (it is drawn before it is attached, or while hidden), lay the lanes out to fit it
-  const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(() => { edge(); if (!sized && scroller.clientWidth > 0 && render) { sized = true; render.relane(); render.laneBox.style.visibility = ''; edge(); } }) : null;
+  let lastW = 0, resizeTimer = 0; // Squeeze folds for the width the tab has: a new width folds again (debounced)
+  const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(() => { edge(); const w = scroller.clientWidth; if (sized && w > 0 && w !== lastW && shared.squeeze()) { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { render?.relane(); edge(); }, 150); } lastW = w; if (!sized && scroller.clientWidth > 0 && render) { sized = true; render.relane(); render.laneBox.style.visibility = ''; edge(); } }) : null;
   ro?.observe(scroller);
   // a side panel was collapsed or expanded: this tab has another width, so its lanes lay themselves out again (a hidden tab does so when it is shown)
   const onLayout = () => { if (!render) return; if (scroller.clientWidth > 0) { render.relane(); edge(); } else sized = false; };
@@ -65,7 +66,7 @@ export function createTabView(data, host) {
   }
   const lookInside = (bar, tr) => { inside.open(bar, tr); };
   const flash = (g) => { g?.scrollIntoView({ block: 'center', behavior: 'smooth' }); g?.classList.add('flash'); setTimeout(() => g?.classList.remove('flash'), 1600); };
-  const shared = { host, opts, tip, walk, fit: () => scroller.clientWidth, select, lookInside, flash, traceFor: host.traceFor,
+  const shared = { host, opts, tip, walk, squeeze: () => opts.squeeze && !sqOff, squeezeOpen: () => { sqOff = true; host.paintChrome?.(); render?.relane(); edge(); walk.reveal(true); }, fit: () => scroller.clientWidth, select, lookInside, flash, traceFor: host.traceFor,
     openMessage: (m, g, tr) => { // clicking an arrow opens the message panel; one side panel at a time
       body.querySelectorAll('.msg.active').forEach((e) => e.classList.remove('active'));
       g.classList.add('active');
@@ -111,7 +112,8 @@ export function createTabView(data, host) {
   const el = h('div.flow-tab', h('div.flow-top', flowBox?.el, walk.el), body);
   el.addEventListener('keydown', (ev) => walk.onKey(ev)); // ← → Home End, while focus is in the flow view and not in a text box
   return {
-    el, key, data, draw, insideOpen: () => inside.isOpen(), dispose: () => { document.removeEventListener('fm:layout', onLayout); inside.dispose(); ro?.disconnect(); tip?.dispose(); descs.forEach((d) => d?.dispose()); walk.dispose(); },
+    el, key, data, draw, insideOpen: () => inside.isOpen(), dispose: () => { clearTimeout(resizeTimer); document.removeEventListener('fm:layout', onLayout); inside.dispose(); ro?.disconnect(); tip?.dispose(); descs.forEach((d) => d?.dispose()); walk.dispose(); },
+    squeezeOff: () => sqOff, resetSqueeze: () => { sqOff = false; },
     save: () => { saved = scroller.scrollTop; },
     restore: () => { scroller.scrollTop = saved; edge(); requestAnimationFrame(edge); },
     refreshDots: () => render?.index()?.refresh(),

@@ -1,6 +1,7 @@
 // Event wiring of a drawn lane: clicks, keys, menus, hover and the number tiles. Returns mark(label, on).
 
-export function wireEvents(head, body, { columns, events, bars }, { onMessage, onBar, onBarMenu, onParticipant, onNum, onNumHover, onFan, onMw, onBarTip }) {
+export function wireEvents(head, body, { columns, events, bars }, { onMessage, onBar, onBarMenu, onParticipant, onNum, onNumHover, onFan, onMw, onBarTip, onSqueeze }) {
+  const sqOf = (t) => t.closest?.('[data-sqfold]'); // a fold column: click opens it (squeeze off for the tab)
   const eventOf = (t) => events[Number(t.closest?.('[data-e]')?.dataset.e)];
   const barOf = (t) => { const r = t?.closest?.('[data-bar]'); return r ? bars[Number(r.dataset.bar)] : null; };
   const numOf = (t) => t?.closest?.('[data-num]');
@@ -12,9 +13,9 @@ export function wireEvents(head, body, { columns, events, bars }, { onMessage, o
     if (c?.service && onParticipant) { ev.preventDefault(); onParticipant({ id: `svc:${c.service}`, kind: 'service', service: c.service, label: c.label }, ev.clientX, ev.clientY); }
     else if (c?.fan && onFan && ev.type === 'click') onFan(c.fan.topic);
   };
-  head.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { const g = ev.target.closest?.('[data-p]'), c = g && columns[Number(g.dataset.p)]; if (c?.fan) { ev.preventDefault(); onFan?.(c.fan.topic); } } });
+  head.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { if (sqOf(ev.target)) { ev.preventDefault(); onSqueeze?.(); return; } const g = ev.target.closest?.('[data-p]'), c = g && columns[Number(g.dataset.p)]; if (c?.fan) { ev.preventDefault(); onFan?.(c.fan.topic); } } });
   head.addEventListener('contextmenu', pm);
-  head.addEventListener('click', pm);
+  head.addEventListener('click', (ev) => { if (sqOf(ev.target)) onSqueeze?.(); else pm(ev); });
   let foldTimer = 0; // a fold click waits a beat so a double-click (look inside) never flips the fold
   body.addEventListener('dblclick', (ev) => { clearTimeout(foldTimer); const f = foldOf(ev.target), b = barOf(ev.target) ?? (f ? bars[Number(f.dataset.mwfold)] : null); if (b) onBar?.(b); });
   if (onBarTip) { // the popover on a bar: hover (the caller delays it) and keyboard focus
@@ -26,6 +27,7 @@ export function wireEvents(head, body, { columns, events, bars }, { onMessage, o
   }
   body.addEventListener('contextmenu', (ev) => { const b = barOf(ev.target); if (b) { ev.preventDefault(); onBarMenu?.(b, ev.clientX, ev.clientY); } });
   body.addEventListener('click', (ev) => {
+    if (sqOf(ev.target)) return onSqueeze?.();
     const bd = numOf(ev.target), pill = pillOf(ev.target), b = barOf(ev.target), e = eventOf(ev.target);
     if (foldOf(ev.target)) { if (ev.detail <= 1) { const f = foldOf(ev.target); clearTimeout(foldTimer); foldTimer = setTimeout(() => fold(f), 200); } } else if (bd) { ev.stopPropagation(); onNum?.(bd.dataset.num); } else if (pill) onBar?.(pill); else if (b) onBar?.(b, 'select'); else if (e?.msg) onMessage?.(e.msg, ev.target.closest('[data-e]'), e, !!(e.publish && ev.target.classList?.contains('trunk')));
   });
