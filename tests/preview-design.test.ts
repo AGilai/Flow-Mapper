@@ -143,3 +143,32 @@ test('13 flow names in memory; Apply stays refused', async () => {
   await assert.rejects(() => design.api.setFlowName('sase-hld', { service: 'users-svc', ingress: 'nope', name: 'x' }), (e: any) => e.code === 'NO_INGRESS');
   await assert.rejects(() => design.api.applyDraft('sase-hld', 'hld-import', 'me'), /not available in the preview/);
 });
+
+test('0.28 subsystems: the preview\'s subsystems, map, links and suggestions equal the server\'s for sase-hld + hld-import; the new edit kinds work in memory', async () => {
+  const E = '/api/envs/sase-hld';
+  design.readAs('sase-hld', 'hld-import');
+  for (const [local, path] of [[design.api.subsystems('sase-hld'), `${E}/subsystems`], [design.api.subsystemMap('sase-hld'), `${E}/views/subsystems`],
+    [design.api.abstractLinks('sase-hld'), `${E}/abstract-links`], [design.api.abstractLink('sase-hld', 'usage-metering'), `${E}/abstract-links/usage-metering`]] as const) {
+    assert.deepEqual(JSON.parse(JSON.stringify(await local)), (await app.call('GET', `${path}?draft=hld-import`)).body, path);
+  }
+  design.readAs('sase-hld', null);
+  assert.deepEqual((await design.api.subsystemMap('sase-hld')).abstract, []);
+  design.readAs('sase-hld', 'hld-import');
+  await design.api.createDraft('sase-hld', 'Sub try', 'me');
+  design.readAs('sase-hld', 'sub-try');
+  await design.api.designEdit('sase-hld', 'sub-try', { kind: 'subsystem', key: 'agent', icon: 'cloud' });
+  await design.api.designEdit('sase-hld', 'sub-try', { kind: 'abstract-link', name: 'agent to platform', from: 'grp:agent', to: 'grp:platform' });
+  const l = await design.api.abstractLink('sase-hld', 'agent-to-platform');
+  assert.equal(l.state, 'abstract');
+  await design.api.designEdit('sase-hld', 'sub-try', { kind: 'refine-link', id: 'agent-to-platform', to: 'svc:auth-svc' });
+  assert.equal((await design.api.abstractLink('sase-hld', 'agent-to-platform')).state, 'partial');
+  assert.equal((await design.api.marks('sase-hld', 'baseline')).marks['link:agent-to-platform'].mark, 'new');
+  await assert.rejects(() => design.api.designEdit('sase-hld', 'sub-try', { kind: 'delete', anchor: 'grp:platform' }), /still used by/);
+  await assert.rejects(() => design.api.editDraft('sase-hld', 'sub-try', [{ op: 'upsert', anchor: 'svc:auth-svc', data: { kind: 'service', groupPath: 'agent', alsoIn: ['platform'] } }]), /./);
+  await assert.rejects(() => design.api.applyDraft('sase-hld', 'sub-try'), /Apply is not available in the preview/);
+  design.readAs('sase-hld', null);
+  assert.equal((await design.api.putSubsystems('prod', [{ key: 'core', label: 'Core', icon: 'shield' }])).subsystems[0].icon, 'shield');
+  await assert.rejects(() => design.api.putSubsystems('sase-hld', []), (e: any) => e.code === 'USE_DRAFT');
+  assert.deepEqual(await design.api.putLevels('prod', ['A', 'B']), { levels: ['A', 'B'] });
+  assert.equal((await design.api.subsystems('prod')).subsystems[0].key, 'core');
+});

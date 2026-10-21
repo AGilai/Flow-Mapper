@@ -18,7 +18,8 @@ export const ENTITY_LISTS = ['functions', 'ingress', 'egress', 'resources', 'cha
 export const DESIGN_LISTS = ['subsystem', 'link', 'flowrel'] as const;
 export const rowId = (r: Pick<ItemRow, 'service' | 'list' | 'key'>) => `${r.service}\u0000${r.list}\u0000${r.key}`;
 /** A short human name of a row: the service, the id or key, `request of in.x` for a DTO, the store key of a schema. */
-export function rowLabel(r: Pick<ItemRow, 'service' | 'list' | 'key'>): string {
+export function rowLabel(r: Pick<ItemRow, 'service' | 'list' | 'key'> & { data?: any }): string {
+  if ((r.list === 'subsystem' && typeof r.data?.label === 'string') || (r.list === 'link' && typeof r.data?.name === 'string')) return r.list === 'link' ? r.data.name : r.data.label;
   if (r.list === 'dto') { const rest = r.key.slice(0, r.key.lastIndexOf('|')), i = rest.lastIndexOf('|'); return `${rest.slice(i + 1)} of ${rest.slice(0, i)}`; }
   if (r.list === 'schema') return r.key.slice(0, r.key.lastIndexOf('|'));
   return r.list === 'header' ? r.service : r.key;

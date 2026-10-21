@@ -368,3 +368,17 @@ op they follow the draft's life for free; apply copies them into `baseline_items
 draft shows Changed. The edit forms (`DesignEdit`) are pure builders of the same whole-item ops, so a form, an import plan, an agent (`edit_design`) and the preview all make identical drafts.
 
 `undecided` is a transport value for "not chosen yet", not `other` plus a flag: it resolves by key like any transport, so a design can wire two components before deciding how they talk.
+
+## The subsystem level (0.28.0)
+
+- **One subsystem per component.** The subsystem is the first segment of the `groupPath` (`platform/identity` rolls up into `platform`). The maintainer decided against `alsoIn` (#51): a component in two
+  subsystems would count its calls twice or hide them, and the roll-up is only readable if every call is counted once. So there is a primary only, a request that gives two is `422 TWO_GROUPS`, and
+  changing the `groupPath` moves the component (shown on both `grp:` boxes and in the draft's changes).
+- **Settings stay in `envs.groups`** (`[{key, label, icon?}]`, order = position): it already held key, label and order and `/api/envs/meta` serves it. A new table would duplicate it, and moving JSON into rows needs
+  SQL JSON functions that SQLite and Postgres do not share. The rows the diff and the drafts see (`grp:`) are built from it (`envItemRows`) and written back by apply (`writeDesignSide`).
+- **`envs.baseline_groups`** is the subsystems a design started with: a plain column copy at creation, portable, and the baseline of the `grp:` marks. Existing designs took their groups at migration time.
+- **Roll-up without the system graph.** `rollUp` walks every egress through `downstreamIngress` once (O(S + E + P)); `systemGraph` builds an event report per channel (about 450 ms on the 100-service mock, the roll-up takes about 20 ms).
+- **A refined abstract link is kept, not deleted.** It leaves the abstract layer and folds into its roll-up line; its name, description and provenance stay, and it turns `broken` (with a problem) if the call goes away, instead of silently
+  vanishing. The cost is one more row to read; the gain is that a design decision survives the implementation changing under it.
+- **Design lists are design content.** `subsystem`, `link` and `flowrel` rows have service `''`: they never enter a model or a manifest, a draft writes them through `design-side.ts`, and against the source they pass through as the baseline has
+  them (the source never has them), so a design-made link is New against both.

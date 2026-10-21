@@ -42,6 +42,7 @@ function check(map: Map<string, ItemRow>, i: DraftOpInput): PreparedOp {
     const { name, ...rest } = i.data as Record<string, any>;
     if (rest.kind !== undefined && !(SERVICE_KINDS as readonly string[]).includes(rest.kind)) bad(`component kind '${rest.kind}' must be one of ${SERVICE_KINDS.join(', ')}`, 'BAD_KIND');
     if (name !== undefined && name !== r.service) bad(`header name '${name}' differs from the anchor 'svc:${r.service}'`);
+    if (rest.alsoIn !== undefined || rest.details?.alsoIn !== undefined) bad(`${r.service}: a component belongs to one subsystem; 'alsoIn' is not supported: pick one (groupPath)`, 'TWO_GROUPS');
     const errs = validateServiceHeader({ name: r.service, ...rest });
     if (errs.length) bad(`service header does not match schema: ${errs.slice(0, 3).map((e) => `${e.path} ${e.message}`).join('; ')}`);
     return { ...base, data: rest };

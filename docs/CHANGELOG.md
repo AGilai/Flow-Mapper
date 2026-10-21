@@ -5,6 +5,27 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## 0.28.0 (2026-10-21)
+The subsystem level (backend; the UI follows in 0.28.1). Details in [API.md](API.md) "Subsystems". Migration 012 is additive (the database is backed up to `<db>.pre-012.bak` first).
+- **Breaking, plans and edits:** a component belongs to **exactly one subsystem** (maintainer decision; `alsoIn` / #51 will not be built).
+  - **`422 TWO_GROUPS`**: a plan (manifest + extension), an ops request, an edit batch or `apply_import_plan` that gives one component two different subsystems is refused, nothing is written. The message names the component and both paths.
+  - **`details.alsoIn` (and a top-level `alsoIn`) on a manifest header or extension is refused** with the same code ("a component belongs to one subsystem: pick one"). Remove it from your plans.
+  - Changing a component's `groupPath` (edit form, ops, extension) **moves** it: the old value is replaced. A move shows on both `grp:` boxes and in the draft's changes ("subsystem: Network → Platform").
+- **Breaking, small:** in the plan result `skipped.links` now counts only the links **not applied** (it counted every link before; links used to be kept and never applied). New `links: {abstract, flow, skipped}`.
+  Suites that deepEqual `GET /marks` `counts` see three new keys (`subsystems`, `links`, `relations`), and marks gain `grp:` anchors (see below).
+- **Plan import** now applies `links[]`: an abstract link (ends `grp:` / `svc:` / `ing:`, `egr:` as `from`, no `type`) becomes `link:<id ?? slug(name)>`; a bad link is a warning and is skipped, the rest imports; a typed flow link is skipped
+  with "flow relations land in 0.28.2". `environment.groups` the design lacks become subsystems (with `icon`); a different label for a known key is a warning. **Refine, do not delete:** when a link's ends become endpoints, set its `refinedBy`
+  (the `refine-link` edit) instead of deleting it; it stays and folds into its roll-up line.
+- **A draft imported before 0.28** kept its links without applying them: `POST /api/envs/:env/drafts/:slug/plan/links` (MCP `apply_plan_links`, `{from?}`) re-reads them (`409 NO_CHANGE` when there is nothing new).
+- **Anchors** `grp:<path>` (a subsystem's settings), `link:<id>` (abstract link), `rel:<id>` (flow relation, 0.28.2). `GET /marks` carries `grp:` and `link:` marks and `counts.subsystems` / `counts.links` / `counts.relations` (additive).
+  A subsystem is New when every component in it is New, Changed when a member changed or moved or a link into it is marked; reordering never marks.
+- **REST** (all take `?draft=`): `GET /api/envs/:env/subsystems`, `.../views/subsystems` (boxes, calls rolled up by subsystem, transport and mode, each counted once), `.../abstract-links[?subsystem=]`, `.../abstract-links/:id` (with `suggestions`).
+  `PUT /api/envs/:env/subsystems` (sealed only; a design is `409 USE_DRAFT`) and `PUT /api/envs/:env/levels` (any environment) are annotations. `GET /api/envs/meta` groups carry `icon` (`platform agent network cloud shield database`); `POST /api/envs` `groups` accept it.
+- **Edits** (`edit_design`, `POST .../edits`): `{kind: 'subsystem', key, label?, icon?, order?}`, `{kind: 'abstract-link', ...}`, `{kind: 'refine-link', id, from?, to?, use?, call?}`; `delete` accepts `grp:`, `link:`, `rel:`.
+  New error codes: `BAD_KEY`, `BAD_ICON`, `GROUP_IN_USE`, `TWO_GROUPS`, `NO_END`, `BAD_END`, `SAME_END`, `NOT_INSIDE`, `REFINE_DANGLING`. `NO_GROUP` now reads the subsystems of the request's result (one added in the same request counts).
+- **MCP:** `get_subsystems`, `get_subsystem_map`, `list_abstract_links`, `suggest_refinements`, `apply_plan_links`, `set_subsystem_settings` (sealed: at once; a design needs `draft`), `set_levels`. `edit_design` and `apply_import_plan` descriptions changed.
+- A Full copy of a design copies its links and baseline groups; Blank and Components copies do not. Harvester ingest into a design is still `409 ENV_DESIGN`. Traces are unchanged (golden hashes identical).
+
 ## 0.27.3 (2026-10-21)
 - UI: flow diagrams show the product icon of what each lifeline is: data stores and store bands (MongoDB, Redis, Postgres, DynamoDB, S3, MySQL, Elasticsearch), topics and queues (SNS, SQS, EventBridge, RabbitMQ), lambdas and gateways. Unknown kinds keep the line glyph. No API change.
 
@@ -81,8 +102,6 @@ in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.m
 - Migration 008.
 
 ## Coming next
-- 0.27.2: Mermaid export/import of flows. MCP `export_mermaid`, `import_mermaid` (dry run with proposed matches).
-- 0.28.x: the subsystem level.
-  - **Breaking for plans:** a component in two subsystems, or one carrying `details.alsoIn`, is refused with
-    `422 TWO_GROUPS`, because a component has exactly one subsystem (#51 won't be built).
-  - Also: abstract subsystem links (`grp:` / `link:` anchors) and flow-to-flow relations (#50).
+- 0.28.1: the subsystem level in the UI (map level switch, link panel, flow bands, settings page).
+- 0.28.2: flow-to-flow relations (#50): `rel:` anchors, `flow_relations` (the table exists since 0.28.0), the plan's flow-shaped `links`, `list_flow_relations`.
+- Mermaid export/import of flows (MCP `export_mermaid`, `import_mermaid`) ships as 0.27.4.

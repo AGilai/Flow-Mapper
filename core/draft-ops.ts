@@ -6,7 +6,7 @@
 
 import { anchorOfRow, parseAnchor, rowOfAnchor } from './anchors.ts';
 import { rowId, rowLabel, type ItemRow } from './item-rows.ts';
-import { rawHash, same } from './diff/normalise.ts';
+import { rawHash, same, stableJson } from './diff/normalise.ts';
 import { topOf } from './subsystems.ts';
 
 export interface DraftOpInput { op: 'upsert' | 'delete'; anchor: string; service?: string; data?: unknown }
@@ -76,8 +76,9 @@ export function overlayRows(rows: ItemRow[], net: NetOp[]): ItemRow[] {
   return [...map.values()];
 }
 
-/** Does the draft's item differ from the environment's? Headers compare whole (group path and details are design content). */
+/** Does the draft's item differ from the environment's? Headers compare whole (group path and details are design content), so do subsystem settings (order included). */
 export function differs(list: string, a: unknown, b: unknown): boolean {
+  if (list === 'subsystem') return stableJson(a) !== stableJson(b);   // the diff ignores `order`, but a reorder is still something the draft writes
   return list === 'header' ? rawHash(a, 'header') !== rawHash(stripKeep(b), 'header') : !same(list, a, b);
 }
 
