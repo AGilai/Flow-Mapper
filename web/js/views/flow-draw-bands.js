@@ -15,9 +15,10 @@ export const storeIcon = (x, y, stack = false) => s('g', { class: 'sicon', trans
   s('ellipse', { cx: 7, cy: 3.2, rx: 5, ry: 2 }), s('path', { d: ICON }));
 
 /** drawBands(bands, { colX, headBox, columns }) -> svg nodes. bands: [{ from, to, label }] (column indexes, first to last). */
+const GAP = 6, clip = (t, n) => (t.length > n ? `${t.slice(0, Math.max(1, n - 1))}…` : t);
 export const drawBands = (bands, { colX, headBox, columns }) => (bands ?? []).map((b) => {
-  const a = columns[b.from], z = columns[b.to], x = colX.get(a) - headBox(a) / 2, w = colX.get(z) + headBox(z) / 2 - x;
-  return s('g', { class: 'band', transform: `translate(${x} 4)` }, s('rect', { width: w, height: 22, rx: 4 }), storeIcon(8, 4), s('text', { x: 28, y: 15 }, b.label), s('title', {}, b.label));
+  const a = columns[b.from], z = columns[b.to], x = colX.get(a) - headBox(a) / 2 + GAP / 2, w = colX.get(z) + headBox(z) / 2 - x - GAP / 2, room = Math.floor((w - 36) / 6.6); // a small gap between neighbouring bands; the label ends in an ellipsis when it does not fit (the title has it all)
+  return s('g', { class: 'band', transform: `translate(${x} 4)` }, s('rect', { width: w, height: 22, rx: 4 }), storeIcon(8, 4), room >= 3 ? s('text', { x: 28, y: 15 }, clip(b.label, room)) : null, s('title', {}, b.label));
 });
 
 const sample = (write) => s('svg', { width: 40, height: 10, 'aria-hidden': 'true' }, s('line', { class: `lg-line${write ? ' w' : ''}`, x1: 0, x2: 33, y1: 5, y2: 5 }), s('path', { class: 'lg-head', d: 'M40 5 33 1.5V8.5z' }));

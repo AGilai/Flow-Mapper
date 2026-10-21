@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { buildThread, parseFlowAnchor, flowAnchor, cleanName, type CommentRow } from '../core/comments.ts';
 import { esc } from '../core/rich-text.ts';
 // @ts-ignore plain JS module shared with the browser
-import { relTime, initials, addressOf, textToHtml } from '../web/js/comments/pure.js';
+import { relTime, initials, addressOf, textToHtml, startsOpen } from '../web/js/comments/pure.js';
 
 const row = (id: number, o: Partial<CommentRow> = {}): CommentRow => ({ id, anchor: 'flow:s/i', step: null, parentId: null, author: 'a', body: `<p>${id}</p>`, createdAt: `2026-10-21T10:0${id}:00.000Z`, editedAt: null, deletedAt: null, ...o });
 
@@ -51,4 +51,14 @@ test('names: control, bidi and zero-width characters go, whitespace and newlines
   assert.equal(cleanName('  Asaf \n\t G. '), 'Asaf G.');
   assert.equal(cleanName('A\u200Bsaf\u202E G.\u0000'), 'Asaf G.');
   assert.equal(cleanName('\u200B\u200F \n'), '');
+});
+
+test('an empty Comments section starts collapsed; with comments it keeps the remembered state; a comment on the arrival step opens it', () => {
+  assert.equal(startsOpen({ count: 0, remembered: true }), false);
+  assert.equal(startsOpen({ count: 2, remembered: true }), true);
+  assert.equal(startsOpen({ count: 2, remembered: false }), false);
+  const comments = [{ step: null, replies: [{ step: '#step:a>b|x|http' }] }];
+  assert.equal(startsOpen({ count: 2, remembered: false, stepKey: '#step:a>b|x|http', comments }), true);
+  assert.equal(startsOpen({ count: 2, remembered: false, stepKey: '#step:other', comments }), false);
+  assert.equal(startsOpen({ count: 0, remembered: true, stepKey: '#step:a>b|x|http', comments }), false);
 });
