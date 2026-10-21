@@ -3,7 +3,7 @@
 
 import { altFrames, stripsByRow, STRIP } from './sequence-alt.js';
 import { arrowEnds, columnGaps, centres, labelWidth, wrapId, clampLines } from './flow-cols.js';
-import { FOLD_W, displayCols, foldGroups, planFold } from './flow-squeeze.js';
+import { FOLD_W, COL_NARROW, displayCols, foldGroups, planSqueeze } from './flow-squeeze.js';
 
 export const COL = 138, COL_MIN = 132, PAD = 16, GUTTER = 8, BAR = 12, NEST = 8, CH_HEAD = 116; // CH_HEAD: a topic or queue head is narrower than a service head
 const ROWH = { call: 46, return: 36, pill: 32, mw: 34, store: 46, hop: 48, unresolved: 42, frontier: 32, amqpnote: 26 };
@@ -38,24 +38,25 @@ export function layoutLane(lane, fit = 0, sq = null) {
   });
   // `fit`: the room the diagram has. The plain gap shrinks (to COL_MIN) until everything shows without scrolling; topic and queue gaps stay.
   // Still too wide and Squeeze on: lifelines fold into fold columns (flow-squeeze.js); a fold is FOLD_W wide and an arrow into it stops at its left edge.
-  const layout = (col, folded) => {
+  const layout = (col, folded, fw = FOLD_W) => {
     const dc = displayCols(columns.length, folded), di = new Map();
     dc.forEach((d, k) => d.cols.forEach((c) => di.set(c, k)));
-    const hw = (d) => (d.fold ? FOLD_W : headW(columns[d.cols[0]], col)), room = (c) => (folded.has(c) ? FOLD_W / 2 : 0);
+    const hw = (d) => (d.fold ? fw : headW(columns[d.cols[0]], col)), room = (c) => (folded.has(c) ? fw / 2 : 0);
     const dsp = spans.map((p) => ({ a: di.get(p.a), b: di.get(p.b), need: p.need + room(p.a) + room(p.b) }));
-    const dx = centres(PAD + GUTTER + (dc[0].fold ? FOLD_W : col) / 2, columnGaps(dc.length, dsp, (i) => Math.round((hw(dc[i]) + hw(dc[i + 1])) / 2 + 8)));
+    const dx = centres(PAD + GUTTER + (dc[0].fold ? fw : col) / 2, columnGaps(dc.length, dsp, (i) => Math.round((hw(dc[i]) + hw(dc[i + 1])) / 2 + 8)));
     const xs = columns.map((_, c) => dx[di.get(c)] - room(c)), last = dc[dc.length - 1];
-    const reach = Math.max(dx[dx.length - 1] + (last.fold ? FOLD_W / 2 + 20 : isCh(columns[last.cols[0]]) ? 92 : 200), ...events.filter((e) => e.type === 'amqpnote').map((e) => xs[idx.get(e.col)] + 10 + e.text.length * 5.6 + 100));
+    const reach = Math.max(dx[dx.length - 1] + (last.fold ? fw / 2 + 20 : isCh(columns[last.cols[0]]) ? 92 : 200), ...events.filter((e) => e.type === 'amqpnote').map((e) => xs[idx.get(e.col)] + 10 + e.text.length * 5.6 + 100));
     return { xs, col, width: Math.ceil(reach + PAD) };
   };
-  const fitted = (folded) => { let M = layout(COL, folded); for (let col = COL - 6; fit && M.width > fit && col >= COL_MIN; col -= 6) M = layout(col, folded); return M; };
-  const plan = (keep) => planFold({ n: columns.length, ends: keep, fit, widthOf: (f) => layout(COL_MIN, f).width });
-  let L = fitted(new Set()), folded = new Set();
-  if (sq && fit && L.width > fit) { folded = plan(sq.keep); if (folded.size) L = fitted(folded); }
+  const fitted = (folded, fw = FOLD_W, min = COL_MIN) => { let M = layout(COL, folded, fw); for (let col = COL - 6; fit && M.width > fit && col >= min; col -= 6) M = layout(col, folded, fw); return M; };
+  const plan = (keep) => planSqueeze({ n: columns.length, ends: keep, fit, widthOf: (f, o) => layout(o.narrow ? COL_NARROW : COL_MIN, f, o.foldW).width });
+  let L = fitted(new Set()), folded = new Set(), fw = FOLD_W, sig = '';
+  if (sq && fit && L.width > fit) { const P = plan(sq.keep); ({ folded, foldW: fw, key: sig } = P); if (folded.size) L = fitted(folded, fw, P.narrow ? COL_NARROW : COL_MIN); }
   const { xs, col: COLW, width } = L, HEAD_BOX = COLW - 8, nameCh = (c) => Math.max(9, Math.floor((headW(c, COLW) - 14) / 6.6));
   const colX = new Map(columns.map((c, i) => [c, xs[i]]));
   // a queue head drops its transport prefix and the 'queue delivery' line (the title keeps both): two lines at most
-  const heads = columns.map((c) => (c.sub === 'queue delivery' ? { name: clampLines(wrapId(c.label.replace(/^[^:]+:/, ''), nameCh(c)), nameCh(c)), sub: [] } : { name: clampLines(wrapId(c.label, nameCh(c)), nameCh(c)), sub: isCh(c) ? [c.sub] : wrapId(c.sub ?? '', SUB_CH) }));
+  const subCh = COLW < COL_MIN ? Math.max(10, Math.floor((COLW - 22) / 5.8)) : SUB_CH; // narrowed heads (Squeeze, last stage) wrap the sub line shorter
+  const heads = columns.map((c) => (c.sub === 'queue delivery' ? { name: clampLines(wrapId(c.label.replace(/^[^:]+:/, ''), nameCh(c)), nameCh(c)), sub: [] } : { name: clampLines(wrapId(c.label, nameCh(c)), nameCh(c)), sub: isCh(c) ? [c.sub] : wrapId(c.sub ?? '', subCh) }));
   const boxH = 12 + Math.max(...heads.map((x) => x.name.length * LINE_H + x.sub.length * 13)) + 6, HEAD = boxH + 16;
   const frames = altFrames(lane.altMsgs), strips = stripsByRow(frames, lane.altRows);
   const nStrips = (r) => strips.get(r)?.length ?? 0;
@@ -64,9 +65,9 @@ export function layoutLane(lane, fit = 0, sq = null) {
   events.forEach((e, r) => { top[r] = y; ys[r] = y + nStrips(r) * STRIP + LINE[e.type]; y += nStrips(r) * STRIP + rowH(e); });
   top[events.length] = y;
   const height = y + PAD;
-  const barX = (bar, dir) => (folded.has(idx.get(bar.col)) ? colX.get(bar.col) + (dir < 0 ? 0 : FOLD_W) : colX.get(bar.col) + bar.level * NEST + dir * BAR / 2); // in a fold: its edge on that side
-  const groups = foldGroups(columns.length, folded).map((g) => ({ ...g, x: xs[g.from], names: g.cols.map((c) => columns[c].service ?? columns[c].label) }));
+  const barX = (bar, dir) => (folded.has(idx.get(bar.col)) ? colX.get(bar.col) + (dir < 0 ? 0 : fw) : colX.get(bar.col) + bar.level * NEST + dir * BAR / 2); // in a fold: its edge on that side
+  const groups = foldGroups(columns.length, folded).map((g) => ({ ...g, x: xs[g.from], w: fw, names: g.cols.map((c) => columns[c].service ?? columns[c].label) }));
   const edge = (bar, col, dir) => (bar ? barX(bar, dir) : colX.get(col));
   const headBox = (c) => headW(c, COLW);
-  return { columns, events, bars, idx, folded, groups, plan, fit, isCh, headW, headBox, xs, COLW, width, height, colX, heads, boxH, HEAD, frames, strips, top, ys, barX, edge };
+  return { columns, events, bars, idx, folded, groups, plan, sig, foldW: fw, fit, isCh, headW, headBox, xs, COLW, width, height, colX, heads, boxH, HEAD, frames, strips, top, ys, barX, edge };
 }

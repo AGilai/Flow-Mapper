@@ -5,7 +5,7 @@ import { buildIndex } from '../core/graph-index.ts';
 import { trace } from '../core/trace.ts';
 import { sampleModel } from './helpers.ts';
 // @ts-ignore plain JS modules shared with the browser
-import { FOLD_W, planFold, foldGroups, displayCols, foldedInside, foldKey, eventCols, groupOf, firstStepCols, colsOfEvent } from '../web/js/views/flow-squeeze.js';
+import { FOLD_W, FOLD_COMPACT, COL_NARROW, planSqueeze, planFold, foldGroups, displayCols, foldedInside, foldKey, eventCols, groupOf, firstStepCols, colsOfEvent } from '../web/js/views/flow-squeeze.js';
 // @ts-ignore
 import { buildLane } from '../web/js/views/flow-lane.js';
 // @ts-ignore
@@ -130,7 +130,7 @@ test('squeeze layout: a narrow room folds, keeps the step ends, and shrinks the 
   // every fold run is one x; its columns share it; an arrow into it stops at its edge
   for (const gr of L.groups) for (const c of gr.cols) assert.equal(L.xs[c], gr.x);
   const bar = L.bars.find((b: any) => L.folded.has(L.idx.get(b.col)));
-  if (bar) { assert.equal(L.barX(bar, -1), L.colX.get(bar.col)); assert.equal(L.barX(bar, 1), L.colX.get(bar.col) + FOLD_W); }
+  if (bar) { assert.equal(L.barX(bar, -1), L.colX.get(bar.col)); assert.equal(L.barX(bar, 1), L.colX.get(bar.col) + L.foldW); }
   // visible columns keep their order, left to right, and clear each fold
   const vis = L.columns.map((_: any, i: number) => i).filter((i: number) => !L.folded.has(i));
   for (let k = 1; k < vis.length; k++) assert.ok(L.xs[vis[k]] > L.xs[vis[k - 1]]);
@@ -140,8 +140,8 @@ test('squeeze layout: plan(keep) answers for another step without drawing', () =
   const L = layoutLane(lane, 700, { keep: colsOfEvent(lane, steps[0]) });
   const later = colsOfEvent(lane, steps[steps.length - 1]);
   const next = L.plan(later);
-  for (const c of later) assert.ok(!next.has(c));
-  assert.notEqual(foldKey(next), foldKey(L.folded), 'walking to the last step folds differently');
+  for (const c of later) assert.ok(!next.folded.has(c));
+  assert.notEqual(next.key, L.sig, 'walking to the last step folds differently');
 });
 
 test('squeeze: eventCols reads the lifelines of every row type, firstStepCols the first step', () => {
@@ -151,4 +151,64 @@ test('squeeze: eventCols reads the lifelines of every row type, firstStepCols th
   for (const e of lane.events) assert.ok(eventCols(e, idx).every((i: number) => i >= 0 && i < lane.columns.length));
   const ret = lane.events.find((e: any) => e.type === 'return');
   assert.equal(eventCols(ret, idx).length >= 1, true);
+});
+
+// ---- the fallback stages: the step's two ends win over context ----
+// toy lane: columns of 100 (70 when narrowed), a fold costs foldW
+const sw = (n: number) => (f: Set<number>, o: { foldW: number; narrow: boolean }) => 20 + (n - f.size) * (o.narrow ? 70 : 100) + foldGroups(n, f).length * o.foldW;
+const stage = (n: number, ends: number[], fit: number) => planSqueeze({ n, ends, fit, widthOf: sw(n) });
+
+test('squeeze stages: nothing to do when it fits', () => {
+  const r = stage(6, [1, 2], 700);
+  assert.equal(r.folded.size, 0); assert.equal(r.key, ''); assert.equal(r.stage, -1);
+});
+
+test('squeeze stages: 0 keeps the caller', () => {
+  const r = stage(6, [1, 2], 430); // fold 3..5: 20 + 300 + 100
+  assert.equal(r.stage, 0); assert.ok(r.fits); assert.ok(!r.folded.has(0)); assert.equal(r.foldW, FOLD_W);
+});
+
+test('squeeze stages: 1 folds the caller too', () => {
+  // ends 3,4: caller kept = 20+300+2 folds (1-2, 5) = 520; caller folded = 20+300+1 fold (0-2) = 420
+  const r = stage(6, [3, 4], 430);
+  assert.equal(r.stage, 1); assert.ok(r.fits);
+  assert.deepEqual([...r.folded].sort(), [0, 1, 2], 'the caller joins the leftmost fold');
+  assert.equal(foldGroups(6, r.folded)[0].cols.join(), '0,1,2');
+  assert.ok(!r.folded.has(3) && !r.folded.has(4), 'both ends stay');
+});
+
+test('squeeze stages: 2 makes the folds compact', () => {
+  const r = stage(6, [3, 4], 390); // two folds of 100 = 420 do not fit, two of 60 = 340 do
+  assert.equal(r.stage, 2); assert.ok(r.fits); assert.equal(r.foldW, FOLD_COMPACT); assert.equal(r.narrow, false);
+});
+
+test('squeeze stages: 3 narrows the kept columns', () => {
+  const r = stage(6, [3, 4], 300); // compact folds still 340; with 70-wide columns 20 + 140 + 120 = 280
+  assert.equal(r.stage, 3); assert.ok(r.fits); assert.equal(r.narrow, true); assert.equal(r.foldW, FOLD_COMPACT);
+  assert.ok(COL_NARROW < 132);
+});
+
+test('squeeze stages: nothing fits -> the last stage, fits false (the lane scrolls)', () => {
+  const r = stage(6, [3, 4], 100);
+  assert.equal(r.fits, false); assert.equal(r.stage, 3); assert.ok(r.folded.size > 0);
+  assert.ok(!r.folded.has(3) && !r.folded.has(4));
+});
+
+test('squeeze stages: on a real lane both ends stay unfolded and the lane never grows in a tighter room', () => {
+  const keep = colsOfEvent(lane, steps[7]), full = layoutLane(lane, 0).width;
+  const ls = [900, 640, 520, 420].map((fit) => layoutLane(lane, fit, { keep }));
+  for (const L of ls) { for (const c of keep) assert.ok(!L.folded.has(c)); assert.ok(L.width < full); }
+  for (let i = 1; i < ls.length; i++) assert.ok(ls[i].width <= ls[i - 1].width);
+  assert.ok(ls[3].foldW <= FOLD_W);
+});
+
+// ---- scroll target when it still scrolls ----
+// @ts-ignore
+import { scrollLeftFor } from '../web/js/views/flow-walk.js';
+test('scrollLeftFor: both ends in view when they fit, else the source end', () => {
+  assert.equal(scrollLeftFor({ from: 100, to: 400, left: 0, view: 500 }), 0, 'already in view: no move');
+  assert.equal(scrollLeftFor({ from: 100, to: 400, left: 300, view: 500 }), 84, 'the left end was cut: bring it in');
+  assert.equal(scrollLeftFor({ from: 700, to: 1000, left: 0, view: 500 }), 516, 'the right end was out of view');
+  assert.equal(scrollLeftFor({ from: 100, to: 1200, left: 600, view: 500 }), 84, 'too wide: the source end (leftward start)');
+  assert.equal(scrollLeftFor({ from: 1200, to: 100, left: 0, view: 500 }), 716, 'too wide, a return: the source end on the right');
 });

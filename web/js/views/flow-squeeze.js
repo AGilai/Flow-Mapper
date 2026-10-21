@@ -5,6 +5,8 @@
 import { isStep } from './flow-steps.js';
 
 export const FOLD_W = 100; // width of a fold column
+export const FOLD_COMPACT = 60; // ... and of a compact one ("⋯ N" only)
+export const COL_NARROW = 96; // narrowest a kept lifeline column may get (head text wraps / is cut, the title has the whole name)
 
 /** Columns an event touches, as sorted indexes (idx: lifeline -> index). Arrows: both ends (and the topic a publish goes through); a stub or pill: its own lifeline. */
 export function eventCols(e, idx) {
@@ -52,16 +54,38 @@ export function foldedInside(cols, groups) {
  * (one fold per run), then, while it still does not fit, the column farthest from the step (the later one on a tie), one at a time.
  * Caller and step ends are never folded. A plan that would be wider than the unfolded lane is dropped.
  */
-export function planFold({ n, ends = [], fit, widthOf, caller = 0 }) {
+export function planFold({ n, ends = [], fit, widthOf, caller = 0, keepCaller = true }) {
   const none = new Set(), w0 = widthOf(none);
   if (!fit || w0 <= fit || n < 3) return none;
-  const at = ends.filter((c) => c >= 0 && c < n), keep = new Set([caller, ...at]), focus = at.length ? at : [caller];
+  const at = ends.filter((c) => c >= 0 && c < n), keep = new Set([...(keepCaller || !at.length ? [caller] : []), ...at]), focus = at.length ? at : [caller];
   const folded = new Set();
-  for (let c = Math.min(...keep); c <= Math.max(...keep); c++) if (!keep.has(c)) folded.add(c);
+  for (let c = 0; c <= Math.max(...keep); c++) if (!keep.has(c)) folded.add(c);
   const dist = (c) => Math.min(...focus.map((e) => Math.abs(c - e)));
   const rest = [...Array(n).keys()].filter((c) => !keep.has(c) && !folded.has(c)).sort((a, b) => dist(b) - dist(a) || b - a);
   for (const c of rest) { if (folded.size && widthOf(folded) <= fit) break; folded.add(c); }
   return widthOf(folded) > w0 ? none : folded;
+}
+
+const STAGES = [{ foldW: FOLD_W, keepCaller: true }, { foldW: FOLD_W, keepCaller: false }, { foldW: FOLD_COMPACT, keepCaller: false }, { foldW: FOLD_COMPACT, keepCaller: false, narrow: true }];
+
+/**
+ * planSqueeze({ n, ends, fit, widthOf(folded, { foldW, narrow }), caller }) -> { folded, foldW, narrow, stage, fits, key }.
+ * The important data, both ends of the current step, must stay on screen, so when a plan does not fit the next stage gives up more context:
+ * stage 0: fold, caller kept. 1: the caller folds too (into the leftmost fold). 2: folds are compact (FOLD_COMPACT wide, "⋯ N").
+ * 3: the kept columns narrow to COL_NARROW (`narrow`; widthOf decides what that means). None fits: the last stage, `fits` false (the lane scrolls).
+ * `key` tells two plans apart ('' = nothing folds).
+ */
+export function planSqueeze({ n, ends = [], fit, widthOf, caller = 0 }) {
+  const none = new Set(), plain = { foldW: FOLD_W, narrow: false };
+  if (!fit || widthOf(none, plain) <= fit) return { folded: none, ...plain, stage: -1, fits: true, key: '' };
+  let last = null;
+  STAGES.forEach((st, stage) => {
+    if (last?.fits) return;
+    const opts = { foldW: st.foldW, narrow: !!st.narrow };
+    const folded = planFold({ n, ends, fit, widthOf: (f) => widthOf(f, opts), caller, keepCaller: st.keepCaller });
+    last = { folded, ...opts, stage, fits: folded.size > 0 && widthOf(folded, opts) <= fit, key: `${foldKey(folded)}|${opts.foldW}|${opts.narrow}` };
+  });
+  return last.folded.size ? last : { ...last, key: '' };
 }
 
 /** A stable key for a plan (to tell whether a redraw would change anything). */

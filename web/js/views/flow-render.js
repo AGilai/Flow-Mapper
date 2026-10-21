@@ -11,7 +11,7 @@ import { renderIndex } from './flow-index.js';
 import { asyncTree, deliveryNumbers, knownOutside } from './flow-async.js';
 import { barMenu, participantMenu } from './flow-menu.js';
 import { subRequest } from './flow-sub.js';
-import { firstStepCols, foldKey } from './flow-squeeze.js';
+import { firstStepCols } from './flow-squeeze.js';
 
 /**
  * createFlowRender({ trace, tree, key, ancestors, sticky }, sh) -> { laneBox, idxBox, drawLane(), relane(), expandAll(budget), index() }
@@ -48,7 +48,7 @@ export function createFlowRender({ trace, tree, key, ancestors = [], sticky = tr
   }
   /** The walk moved to a step with these columns: redraw only when that folds the lane differently. Focus stays on the same arrow. */
   function restep(cols) {
-    if (!lane || !sh.squeeze?.() || foldKey(lane.geometry.plan(cols)) === foldKey(lane.geometry.folded)) return;
+    if (!lane || !sh.squeeze?.() || lane.geometry.plan(cols).key === lane.geometry.sig) return;
     const at = laneBox.contains(document.activeElement) ? document.activeElement.closest('[data-e],[data-bar],[data-sqfold]') : null, sel = at && `[${at.hasAttribute('data-e') ? 'data-e' : at.hasAttribute('data-bar') ? 'data-bar' : 'data-sqfold'}="${at.getAttribute('data-e') ?? at.getAttribute('data-bar') ?? at.getAttribute('data-sqfold')}"]`;
     drawLane();
     if (sel) laneBox.querySelector(sel)?.focus({ preventScroll: true });
