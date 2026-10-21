@@ -79,15 +79,24 @@ function migrate(db: DB, path: string) {
   }
 }
 
-/** Run fn in a transaction; rolls back on throw. */
+const depth = new WeakMap<DB, number>();
+
+/**
+ * Run fn in a transaction; rolls back on throw. Nestable: an inner call is a SAVEPOINT, so an inner
+ * failure that the caller catches undoes only the inner part, while a throw out of the outer call undoes all.
+ */
 export function tx<T>(db: DB, fn: () => T): T {
-  db.exec('BEGIN IMMEDIATE');
+  const d = depth.get(db) ?? 0, sp = `tx_${d}`;
+  db.exec(d === 0 ? 'BEGIN IMMEDIATE' : `SAVEPOINT ${sp}`);
+  depth.set(db, d + 1);
   try {
     const out = fn();
-    db.exec('COMMIT');
+    db.exec(d === 0 ? 'COMMIT' : `RELEASE ${sp}`);
     return out;
   } catch (err) {
-    db.exec('ROLLBACK');
+    db.exec(d === 0 ? 'ROLLBACK' : `ROLLBACK TO ${sp}; RELEASE ${sp}`);
     throw err;
+  } finally {
+    depth.set(db, d);
   }
 }

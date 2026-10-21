@@ -66,16 +66,22 @@ UI / agent ── GET /api/envs/:env/... ─► server/routes/queries.ts ─► 
 |---|---|
 | `main.ts`, `app.ts`, `config.ts`, `context.ts` | startup and wiring |
 | `http/router.ts`, `http/static.ts` | routing; serves web/ and type-stripped core/ |
-| `db/connection.ts`, `db/migrations/*.sql` | SQLite and append-only migrations (applied in place, backed up first; see DESIGN.md) |
-| `store/snapshots.ts` | ingest (full/delta), CRUD, changelog |
+| `db/connection.ts`, `db/migrations/*.sql` | SQLite and append-only migrations (applied in place, backed up first; see DESIGN.md); `tx()` is nestable (inner calls are savepoints) |
+| `store/snapshots.ts` | thin re-export of the snapshot store |
+| `store/snapshots-read.ts` | types, service/entity/model loads, changelog read |
+| `store/snapshots-write.ts` | shared write helpers: diff, integrity check, entity/snapshot/changelog rows |
+| `store/snapshots-ingest.ts` | manifest ingest (full/delta, batch, dry run) |
+| `store/snapshots-crud.ts` | per-entity and per-service edits |
 | `store/schemas.ts` | data-store schemas per source |
 | `store/dtos.ts` | request/response DTOs per ingress endpoint (a response per status) and event DTOs, with provenance |
 | `store/descriptions.ts` | flow descriptions: human record (REST) and AI record (MCP `set_description`), outdated flag against the current trace |
 | `store/keys.ts` | key templates pushed per Redis instance (full replace, versioned; migration 004) |
 | `store/bugs.ts` | bug workflow, attachments, log scanning |
-| `graph-cache.ts` | per-environment GraphIndex cache, health history |
+| `graph-cache.ts` | per-environment GraphIndex cache (LRU, `FLOW_GRAPH_CACHE_MAX`, default 8; `size()`), health history |
 | `routes/*.ts` | REST endpoints by area |
-| `mcp/*.ts` | MCP protocol, tools, HTTP and stdio transports |
+| `mcp/*.ts` | MCP protocol, HTTP and stdio transports |
+| `mcp/tools.ts`, `mcp/tools/index.ts` | the tool list in client order (`tools.ts` re-exports `tools/index.ts`); `tests/mcp-tools.test.ts` pins names, descriptions and schemas |
+| `mcp/tools/{map,flows,write,stores,bugs}.ts`, `common.ts` | tool definitions by area; shared `Tool` type and helpers |
 
 ## web/
 
@@ -83,10 +89,10 @@ UI / agent ── GET /api/envs/:env/... ─► server/routes/queries.ts ─► 
 module in `js/views/`; anything a page shares lives in `js/components/` or `js/graph/`.
 `js/api.js` talks to the server, or to `js/api-local.js` in the preview build.
 
-Scale choices: the system map draws on canvas with a grid-accelerated force layout clustered by
+Scale choices: the system map draws on canvas (`graph/canvas-graph.js` is the interaction shell; `graph-draw-edges.js`, `graph-draw-labels.js` and `graph-hit.js` draw and hit-test from a state snapshot) with a grid-accelerated force layout clustered by
 team, quiet edges that brighten on focus, and labels placed by importance without overlap;
 tables render one page at a time; long lists are capped with "type to narrow"; the flows page draws one activation bar per call
-(`flow-lane.js`, `flow-scan.js`: pure layout rules; `flow-draw.js`: SVG), folds internal calls into a pill, draws
+(`flow-lane.js`, `flow-scan.js`: pure layout rules; `flow-draw.js`: SVG orchestrator, with `flow-draw-layout.js` (geometry), `-heads.js`, `-prims.js` (arrows, chips, stop bars), `-rows.js`, `-bars.js`, `-events.js`; `renderLane` returns `geometry`: column x per lifeline, y per row), folds internal calls into a pill, draws
 a publish as a routing chain (service, topic, bus or exchange, each subscribed queue) that stops at the queue, and lists the async work in an index of expandable cards (`flow-async.js`, `flow-index.js`);
 publish chains (0.17.0): `flow-chain.js` is the pure part (publish to legs, fan-out folding past 6 queues, lifeline order grouped per topic, filter marker text, number tiles). `flow-lane.js` turns the legs into `hop` rows (the event type is the label, like a REST path) and topic / queue lifelines; `flow-draw.js` draws narrow heads with a transport chip, solid arrows in the transport colour, a filter marker under the arrow, a stop bar at the queue and the number tiles; `deliveryNumbers(tree)` in `flow-async.js` is the one source of the numbers, shared by the tiles and the index rows. The old "published events" rail and the "Queues and topics" checkbox are gone. A hop through a subscription carries an additive `filter` on its trace message (docs/API.md);
 flow tabs (0.13.0): `flows.js` owns the open tabs and mirrors them in the URL (`tabs=` stable keys, `tab=`); `flow-tabs-state.js` is the pure part (keys, URL encode/decode, open/close/reopen order, "distinct" selection, keyboard map), `flow-tab-data.js` loads a tab by key (a sub-flow tab is one row of its origin's async tree, no request), `flow-tab-view.js` is one tab's DOM (breadcrumb, diagram, async list; kept alive while hidden, which is the tab memory), `flow-tabs.js` the strip and overflow list, `flow-tabs-anim.js` the 280 ms open animation, `flow-list.js` the entry-point list;
@@ -104,7 +110,7 @@ broken) mean the same thing in every view.
 
 ## Conventions
 
-- Keep files under ~250 lines; split by concern when they grow.
+- Keep files under ~250 lines (tests 350); split by concern when they grow. `npm run check:size` (part of `npm test`) enforces it; `scripts/check-size.ts` has an allowlist of existing oversize files that may shrink but never grow.
 - core/ stays pure (no `node:` imports) so the browser can run it.
 - Use `import type` for type-only imports (required by type stripping).
 - DB changes add a new `server/db/migrations/NNN_name.sql` (applied ones are frozen); see CLAUDE.md.
