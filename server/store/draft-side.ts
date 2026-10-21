@@ -37,7 +37,8 @@ export function writeSide(db: DB, env: string, side: NetOp[], g: GraphIndex, by:
       else ignoreMissing(() => deleteSchemaRow(db, env, key, source));
     } else if (o.list === 'flow') {
       if (o.op === 'delete') { db.prepare('DELETE FROM flow_names WHERE env = ? AND service = ? AND ingress = ?').run(env, o.service, o.key); continue; }
-      if (typeof d.name === 'string' && d.name.trim()) {
+      if (typeof d.name === 'string' && !d.name.trim()) db.prepare('DELETE FROM flow_names WHERE env = ? AND service = ? AND ingress = ?').run(env, o.service, o.key); // '' clears the name
+      else if (typeof d.name === 'string') {
         db.prepare(`INSERT INTO flow_names (env, service, ingress, name, author, updated_at) VALUES (?, ?, ?, ?, ?, ?)
           ON CONFLICT (env, service, ingress) DO UPDATE SET name = excluded.name, author = excluded.author, updated_at = excluded.updated_at`)
           .run(env, o.service, o.key, d.name.trim().slice(0, 200), by.slice(0, 80), new Date().toISOString());

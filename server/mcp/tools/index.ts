@@ -10,6 +10,7 @@ import { openDraftTool, listDraftsTool, draftChangesTool, editInDraftTool, apply
 import { getMarksTool, applyImportPlanTool } from './design.ts';
 import { importPreviewTool, importIntoDraftTool } from './import.ts';
 import { editDesignTool, getCallTool } from './edit.ts';
+import { getFlowNamesTool, setFlowNameTool } from './flow-names.ts';
 import type { Tool } from './common.ts';
 export type { Tool };
 
@@ -52,4 +53,6 @@ export const TOOLS: Tool[] = [
   importIntoDraftTool,
   editDesignTool,
   getCallTool,
+  getFlowNamesTool,
+  setFlowNameTool,
 ];

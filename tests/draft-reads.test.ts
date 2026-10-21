@@ -38,7 +38,7 @@ const URLS: Record<string, string> = {
   'GET /api/envs/:env/clients': 'clients', 'GET /api/envs/:env/channels/*key': 'channels/sns:pop-events', 'GET /api/envs/:env/schemas': 'schemas', 'GET /api/envs/:env/descriptions': 'descriptions?service=pop&ingress=in.open',
   'GET /api/envs/:env/instances': 'instances', 'GET /api/envs/:env/exchanges': 'exchanges', 'GET /api/envs/:env/instances/:id': 'instances/redis:cache-main', 'GET /api/envs/:env/resources/:id/keys': 'resources/redis%3Acache-main/keys',
   'GET /api/envs/:env/meta': 'meta', 'GET /api/envs/:env/components': 'components', 'GET /api/envs/:env/neighbours': 'neighbours?services=pop', 'GET /api/envs/:env/drafts': 'drafts',
-  'GET /api/envs/:env/drafts/:slug': 'drafts/reads', 'GET /api/envs/:env/drafts/:slug/changes': 'drafts/reads/changes', 'GET /api/envs/:env/marks': 'marks', 'GET /api/envs/:env/drafts/:slug/import/preview': 'drafts/reads/import/preview?source=prod&anchor=svc:orders-svc',
+  'GET /api/envs/:env/drafts/:slug': 'drafts/reads', 'GET /api/envs/:env/drafts/:slug/changes': 'drafts/reads/changes', 'GET /api/envs/:env/marks': 'marks', 'GET /api/envs/:env/flow-names': 'flow-names', 'GET /api/envs/:env/call': 'call?service=users-svc&egress=out.auth.verify', 'GET /api/envs/:env/drafts/:slug/import/preview': 'drafts/reads/import/preview?source=prod&anchor=svc:orders-svc',
 };
 const url = (p: string, q: string) => `/api/envs/hld/${p}${p.includes('?') ? '&' : '?'}${q}`;
 const GET_ROUTES = () => app.router.list().filter((r: string) => r.startsWith('GET /api/envs/:env/'));
