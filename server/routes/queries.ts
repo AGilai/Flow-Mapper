@@ -8,6 +8,7 @@ import { getEnvRow } from '../store/envs.ts';
 import { systemGraph } from '../../core/system-graph.ts';
 import { serviceView } from '../../core/service-view.ts';
 import { trace } from '../../core/trace.ts';
+import { emptyFlow } from '../../core/entry-points.ts';
 import { entryPointsOut, flowNameMap, refsFor, traceOut } from '../refs.ts';
 import { flowCounts } from '../../core/flow-counts.ts';
 import { findPaths } from '../../core/paths.ts';
@@ -46,6 +47,9 @@ export function registerQueries(r: Router, ctx: Ctx) {
     const ing = q.get('ingress') ? g.ingress.get(sid(service, q.get('ingress')!)) : undefined;
     if (!t && ing && !g.fns.get(sid(service, ing.handler))) { // a copied endpoint: the endpoint came along, its functions did not
       const anchor = `ing:${service}/${ing.id}`, ref = refsFor(ctx, req.params.env, q.get('draft')).endpoints[anchor];
+      // Only an endpoint that came from a source environment (a baseline row with a source) is a boundary; one made here, or in a sealed environment, is an empty flow (#59).
+      const fromSource = ref || ctx.db.prepare("SELECT 1 FROM baseline_items WHERE env = ? AND service = ? AND list = 'ingress' AND key = ? AND source_env IS NOT NULL").get(req.params.env, service, ing.id);
+      if (!fromSource) return traceOut(ctx, req.params.env, q.get('draft'), emptyFlow(service, ing, scope, q.get('event') ?? undefined));
       const source = ref?.source ?? getEnvRow(ctx.db, req.params.env)?.source ?? null;
       throw conflict('NO_HANDLER', ref ? `This endpoint is a reference: its behaviour lives in ${source}` : `This endpoint's behaviour lives in ${source ?? 'another environment'}: ${req.params.env} holds the endpoint, not the functions behind it`,
         { source, service, ingress: ing.id, reference: !!ref, anchor });

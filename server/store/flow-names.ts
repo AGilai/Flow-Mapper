@@ -12,7 +12,7 @@ import { getEnvRow } from './envs.ts';
 import { allFlowLinks, putFlowLinks } from './flow-links.ts';
 import { checkLinks, cleanLinks, type Links } from '../../core/links.ts';
 
-export interface FlowName { service: string; ingress: string; name: string; author: string | null; updatedAt: string; links?: Links }
+export interface FlowName { service: string; ingress: string; name: string | null; author: string | null; updatedAt: string; links?: Links }
 
 export function listFlowNames(db: DB, env: string, draft?: string | null): FlowName[] {
   if (!getEnvRow(db, env)) throw notFound(`environment '${env}'`);
@@ -31,6 +31,7 @@ export function listFlowNames(db: DB, env: string, draft?: string | null): FlowN
     }
   }
   for (const [k, v] of out) { const l = links.get(k); if (l) out.set(k, { ...v, links: l }); }
+  for (const [k, l] of links) if (!out.has(k)) { const i = k.indexOf('/'); out.set(k, { service: k.slice(0, i), ingress: k.slice(i + 1), name: null, author: null, updatedAt: '', links: l }); } // links without a name
   return [...out.values()].sort((a, b) => (a.service + a.ingress < b.service + b.ingress ? -1 : 1));
 }
 

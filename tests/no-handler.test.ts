@@ -46,3 +46,13 @@ test('a copied endpoint whose handler function is missing keeps its 409 NO_HANDL
   assert.equal(r.status, 409);
   assert.equal(r.body.error.code, 'NO_HANDLER');
 });
+
+test('a design-made endpoint whose handler function is missing is an empty flow; a copied one stays the 409 boundary', async () => {
+  assert.equal((await app.call('POST', '/api/envs/hld/drafts', { name: 'nh', slug: 'nh' })).status, 201);
+  const r = await app.call('POST', '/api/envs/hld/drafts/nh/ops', { ops: [{ op: 'upsert', anchor: 'ing:auth-svc/in.mine', data: { id: 'in.mine', transport: 'http', bindKey: 'http:GET auth-svc/mine', handler: 'not-yet', entryPoint: true } }] });
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  const t = await app.call('GET', '/api/envs/hld/trace?service=auth-svc&ingress=in.mine&draft=nh'); // a dangling handler is allowed in a draft, not in an applied environment
+  assert.equal(t.status, 200, JSON.stringify(t.body));
+  assert.equal(t.body.noHandler, true);
+  assert.equal((await app.call('GET', '/api/envs/hld/trace?service=users-svc&ingress=in.getUser')).status, 409, 'copied from prod: still the boundary');
+});

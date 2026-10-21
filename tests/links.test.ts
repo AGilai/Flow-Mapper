@@ -29,6 +29,7 @@ test('manifest: links on the header, a function and an endpoint come back from t
   assert.equal(await bad({ main: { label: 'x', url: 'ftp://h/x' } }), 422, 'http(s) only');
   assert.equal(await bad({ main: { label: 'x'.repeat(121), url: 'https://h/x' } }), 422, 'label at most 120');
   assert.equal(await bad({ sub: Array.from({ length: 21 }, () => L.main) }), 422, 'at most 20 sub links');
+  assert.equal(await bad({ main: { label: '   ', url: 'https://h/x' } }), 422, 'label is not only whitespace');
   assert.equal(await bad({ sub: Array.from({ length: 20 }, () => L.main) }), 201);
   assert.equal(await bad({ main: { label: 'x', url: 'https://h/x', extra: 1 } }), 422);
   const rt = async (runtime: string) => { const x = structuredClone(m); x.version += ++n; x.service.details = { runtime }; return (await app.call('POST', '/api/ingest', x)).status; };
@@ -73,6 +74,9 @@ test('flow-names PUT takes links; a plan takes flow links and details.runtime', 
   const put = await app.call('PUT', '/api/envs/hld/flow-names', { service: 'auth-svc', ingress: 'in.verify', name: 'Verify', links: L });
   assert.equal(put.status, 200, JSON.stringify(put.body));
   assert.deepEqual((await app.call('GET', '/api/envs/hld/flow-names')).body.find((x: any) => x.service === 'auth-svc').links, L);
+  const only = await app.call('PUT', '/api/envs/hld/flow-names', { service: 'users-svc', ingress: 'in.getUser', name: '', links: L });
+  assert.equal(only.status, 200, JSON.stringify(only.body));
+  assert.deepEqual((await app.call('GET', '/api/envs/hld/flow-names')).body.find((x: any) => x.ingress === 'in.getUser'), { service: 'users-svc', ingress: 'in.getUser', name: null, author: null, updatedAt: '', links: L }, 'links without a name are listed');
   assert.equal((await app.call('PUT', '/api/envs/hld/flow-names', { service: 'auth-svc', ingress: 'in.verify', name: 'Verify', links: { main: { label: 'x', url: 'nope' } } })).status, 422);
   assert.equal((await app.call('POST', D, { name: 'Plan', slug: 'plan' })).status, 201);
   const plan = (extra: object) => ({ planVersion: 1, planId: 'p', createdAt: '2026-10-21T12:00:00Z', createdBy: 'test', environment: { name: 'hld' }, flows: [{ entry: { service: 'auth-svc', ingress: 'in.verify' }, name: 'V', links: L, ...extra }] });
