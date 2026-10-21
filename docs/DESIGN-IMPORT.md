@@ -1,5 +1,7 @@
 # Importing an HLD into a design environment (guide for agents)
 
+> After every `git pull`, read [CHANGELOG.md](CHANGELOG.md) for what changed for harvesters and importers.
+
 You are an AI agent. You read a team's high-level design (HLD) documents and produce an **import plan**: one
 JSON file that Flow-Mapper applies to a design environment as one draft (`apply_import_plan`). You **build the plan and
 check it with a dry run** (§8): a dry run adds the ops to a draft, applies them, reports and rolls everything back, so you
