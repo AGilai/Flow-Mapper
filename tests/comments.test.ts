@@ -201,3 +201,16 @@ test('a hostile row that bypassed the write path is sanitized on the way out too
   assert.equal(l.comments[0].body, '<p>x</p>l');
   assert.equal((await app.mcp('list_comments', { env: 'prod', service: 'orders-svc', ingress: 'in.touch' })).json.comments[0].html, '<p>x</p>l');
 });
+
+test('author names are cleaned before the length check and in the edit / delete comparison', async () => {
+  const c = await post({ body: 'named', author: '  Ana\u200B \n  Lee\u202E ', anchor: 'flow:payments-svc/in.legacyRefund' });
+  assert.equal(c.status, 200, JSON.stringify(c.body));
+  assert.equal(c.body.author, 'Ana Lee');
+  const path = `/api/envs/prod/comments/${c.body.id}`;
+  assert.equal((await app.call('PATCH', path, { author: 'Ana\n\u200BLee', body: 'edited' })).status, 200, 'the same name, written differently');
+  assert.equal((await app.call('PATCH', path, { author: 'Ana Leee', body: 'x' })).status, 403);
+  assert.equal((await post({ body: 'x', author: '\u200B\u202E \n' })).status, 400, 'nothing left after cleaning');
+  assert.equal((await post({ body: 'x', author: 'a\u200B'.repeat(80) + 'b' })).status, 400, 'too long after cleaning');
+  assert.equal((await post({ body: 'x', author: 'a\u200B'.repeat(80) })).status, 200, 'exactly 80 after cleaning');
+  assert.equal((await app.call('DELETE', `${path}?author=${encodeURIComponent(' Ana  Lee ')}`)).status, 200);
+});

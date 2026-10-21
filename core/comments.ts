@@ -12,6 +12,9 @@ export interface CommentNode {
 export interface Thread { anchor: string; count: number; comments: CommentNode[] }
 
 export const MAX_AUTHOR = 80;
+/** A name as it is stored and compared: control, bidi and zero-width characters removed, runs of whitespace (newlines too) made one space, trimmed. */
+// eslint-disable-next-line no-control-regex
+export const cleanName = (a: string) => a.replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF]+/g, (m) => (/[\t\n\r\f\v]/.test(m) ? ' ' : '')).replace(/\s+/g, ' ').trim();
 export const flowAnchor = (service: string, ingress: string) => `flow:${service}/${ingress}`;
 /** `flow:<service>/<ingress>` -> its parts (the service name has no '/'), or null. */
 export function parseFlowAnchor(anchor: unknown): { service: string; ingress: string } | null {

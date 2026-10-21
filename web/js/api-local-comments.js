@@ -3,13 +3,13 @@
 
 import { trace } from '../core/trace.js';
 import { HASH_TRACE, isStepKey, hasStep } from '../core/description.js';
-import { buildThread, parseFlowAnchor, MAX_AUTHOR } from '../core/comments.js';
+import { buildThread, parseFlowAnchor, MAX_AUTHOR, cleanName } from '../core/comments.js';
 import { sanitize, tooLong, plainText } from '../core/rich-text.js';
 
 export function createComments(data, g) {
   const fail = (message, status) => { const e = new Error(message); e.status = status; throw e; };
   const rows = (env) => ((data.comments ??= {})[env] ??= []);
-  const author = (a) => { const s = typeof a === 'string' ? a.trim() : ''; if (!s) fail('author is required', 400); if (s.length > MAX_AUTHOR) fail(`author is longer than ${MAX_AUTHOR} characters`, 400); return s; };
+  const author = (a) => { const s = typeof a === 'string' ? cleanName(a) : ''; if (!s) fail('author is required', 400); if (s.length > MAX_AUTHOR) fail(`author is longer than ${MAX_AUTHOR} characters`, 400); return s; };
   const body = (b) => { if (typeof b !== 'string') fail('body is required', 400); const s = sanitize(b); if (!plainText(s)) fail('the comment is empty', 422); const l = tooLong(s); if (l) fail(l, 422); return s; };
   const mine = (env, id, a) => {
     const r = rows(env).find((x) => x.id === Number(id) && !x.deletedAt) ?? fail(`comment ${id} not found`, 404);

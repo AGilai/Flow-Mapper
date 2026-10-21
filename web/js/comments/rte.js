@@ -28,7 +28,8 @@ export function createEditor({ html = '', label = 'Comment', placeholder = '', o
 
   function exec(fn) { // run a command on the saved selection, the editor focused
     el.focus({ preventScroll: true });
-    if (saved) { const s = getSelection(); s.removeAllRanges(); s.addRange(saved); }
+    // the saved selection comes back only when the editor lost focus; while it has focus the live selection (and a pending format) stays
+    if (saved && !(document.activeElement === el && range())) { const s = getSelection(); s.removeAllRanges(); s.addRange(saved); }
     fn(range());
     keep(); note();
   }

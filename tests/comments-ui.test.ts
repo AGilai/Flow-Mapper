@@ -1,7 +1,7 @@
 // 0.27.0: the pure parts of comments: the thread tree (core/comments.ts) and the small UI rules (web/js/comments/pure.js).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildThread, parseFlowAnchor, flowAnchor, type CommentRow } from '../core/comments.ts';
+import { buildThread, parseFlowAnchor, flowAnchor, cleanName, type CommentRow } from '../core/comments.ts';
 import { esc } from '../core/rich-text.ts';
 // @ts-ignore plain JS module shared with the browser
 import { relTime, initials, addressOf, textToHtml } from '../web/js/comments/pure.js';
@@ -45,4 +45,10 @@ test('initials, addresses and pasted plain text', () => {
   assert.equal(addressOf('javascript:alert(1)'), 'javascript:alert(1)'); assert.equal(addressOf('//a.example'), '//a.example'); assert.equal(addressOf('not a link'), 'not a link');
   assert.equal(textToHtml('one\ntwo\n\n<b>three</b> & more', esc), '<p>one<br>two</p><p>&lt;b&gt;three&lt;/b&gt; &amp; more</p>');
   assert.equal(textToHtml('  ', esc), '');
+});
+
+test('names: control, bidi and zero-width characters go, whitespace and newlines collapse', () => {
+  assert.equal(cleanName('  Asaf \n\t G. '), 'Asaf G.');
+  assert.equal(cleanName('A\u200Bsaf\u202E G.\u0000'), 'Asaf G.');
+  assert.equal(cleanName('\u200B\u200F \n'), '');
 });

@@ -186,5 +186,13 @@ test('Markdown-lite for assistants: bold, strike, lists, paragraphs; HTML is san
   assert.equal(commentHtml('1 < 2 & 3'), '<p>1 &lt; 2 &amp; 3</p>');
   assert.equal(commentHtml('<p>ok</p><script>alert(1)</script><img src=x onerror=alert(1)>'), '<p>ok</p>');
   assert.equal(commentHtml(''), '');
-  assert.equal(commentHtml('**<script>alert(1)</script>**'), '****');
+  assert.equal(commentHtml('**<script>alert(1)</script>**'), '<p><strong>&lt;script&gt;alert(1)&lt;/script&gt;</strong></p>');
+});
+
+test('Markdown-lite: only a tag the sanitizer knows makes the input HTML; other angle brackets are text', () => {
+  assert.equal(commentHtml('Map<string, number> is slow'), '<p>Map&lt;string, number&gt; is slow</p>');
+  assert.equal(commentHtml('<img src=x onerror=1> **b**'), '<p>&lt;img src=x onerror=1&gt; <strong>b</strong></p>');
+  assert.equal(commentHtml('use <T> and List<Foo> here'), '<p>use &lt;T&gt; and List&lt;Foo&gt; here</p>');
+  assert.equal(commentHtml('a <b>bold</b> word'), 'a <b>bold</b> word');
+  assert.equal(commentHtml('<div>x</div><script>alert(1)</script>'), '<p>x</p>');
 });

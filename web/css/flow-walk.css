@@ -4,6 +4,7 @@
 .flow-tab { flex: 1; min-height: 0; display: flex; flex-direction: column; min-width: 0; }
 .flow-top { flex: none; max-height: 48vh; overflow-y: auto; background: var(--surface); border-bottom: 1px solid var(--line); }
 .flow-top:empty { display: none; }
+.flow-top:has(.cm-sec[open]) { max-height: 56vh; } /* a discussion needs more room than a description (0.27.0); collapsed, the pane is 48vh again */
 
 /* both boxes are <details>: the summary is the control, the text box sits under it */
 details.flowhead, details.stepdesc { padding: var(--s2) var(--s4); }

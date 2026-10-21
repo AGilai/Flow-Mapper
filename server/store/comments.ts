@@ -8,7 +8,7 @@ import { tx } from '../db/connection.ts';
 import type { GraphIndex } from '../../core/graph-index.ts';
 import { trace } from '../../core/trace.ts';
 import { HASH_TRACE, isStepKey, hasStep } from '../../core/description.ts';
-import { buildThread, parseFlowAnchor, flowAnchor, MAX_AUTHOR, type CommentRow, type Thread } from '../../core/comments.ts';
+import { buildThread, parseFlowAnchor, flowAnchor, MAX_AUTHOR, cleanName, type CommentRow, type Thread } from '../../core/comments.ts';
 import { sanitize, tooLong } from '../../core/rich-text.ts';
 import { plainText } from '../../core/rich-text-text.ts';
 import { HttpError, badRequest, invalid, notFound } from '../errors.ts';
@@ -22,9 +22,10 @@ const forbidden = (m: string) => new HttpError(403, 'FORBIDDEN', m);
 function checkEnv(db: DB, env: string) { if (!getEnvRow(db, env)) throw notFound(`environment '${env}'`); }
 function flowOf(anchor: unknown) { const f = parseFlowAnchor(anchor); if (!f) throw badRequest("anchor must be 'flow:<service>/<ingress>'"); return f; }
 function authorOf(a: unknown) {
-  if (typeof a !== 'string' || !a.trim()) throw badRequest('author is required');
-  if (a.trim().length > MAX_AUTHOR) throw badRequest(`author is longer than ${MAX_AUTHOR} characters`);
-  return a.trim();
+  const n = typeof a === 'string' ? cleanName(a) : '';
+  if (!n) throw badRequest('author is required');
+  if (n.length > MAX_AUTHOR) throw badRequest(`author is longer than ${MAX_AUTHOR} characters`);
+  return n;
 }
 function bodyOf(b: unknown) {
   if (typeof b !== 'string') throw badRequest('body is required');

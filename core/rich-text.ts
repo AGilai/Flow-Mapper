@@ -21,6 +21,9 @@ const INLINE = new Set(['b', 'strong', 'i', 'em', 's', 'del', 'strike', 'u', 'sp
 const FOSTER = new Set(['table', 'thead', 'tbody', 'tr', 'ul', 'ol']); // elements whose only children are their own parts: text and other tags in them are dropped
 const CHILD: Record<string, string[]> = { table: ['thead', 'tbody', 'tr'], thead: ['tr'], tbody: ['tr'], tr: ['td', 'th'], ul: ['li'], ol: ['li'] };
 
+/** A tag name the sanitizer knows (kept, or turned into a paragraph): what makes a text count as HTML. */
+export const isMarkupTag = (name: string) => ALLOWED.has(name.toLowerCase()) || AS_P.has(name.toLowerCase());
+
 export const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const escAttr = (s: string) => esc(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/`/g, '&#96;');
 

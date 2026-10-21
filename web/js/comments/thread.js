@@ -5,7 +5,7 @@
 
 import { h } from '../dom.js';
 import { api } from '../api.js';
-import { flowAnchor } from '../../core/comments.js';
+import { flowAnchor, cleanName } from '../../core/comments.js';
 import { commentItem } from './comment.js';
 import { createComposer, avatar, remembered } from './composer.js';
 
@@ -30,7 +30,7 @@ export function createComments({ env, root, walk, onCount }) {
   const stepNow = () => { const s = walk.picked() ? walk.steps()[walk.current() - 1] : null; return s ? { n: s.n, key: s.key } : null; };
   const busy = () => !!list.querySelector('.cm-editing, .cm-composer.reply');
   const run = async (fn) => { await fn(); await refresh(true); };
-  const author = () => remembered();
+  const author = () => cleanName(remembered()); // as the server stores and compares it
   const api_ = {
     edit: (id, html) => run(() => api.editComment(env, id, { author: author(), body: html })),
     remove: (id) => run(() => api.deleteComment(env, id, author())),
