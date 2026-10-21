@@ -15,7 +15,7 @@ import { subRequest } from './flow-sub.js';
 /**
  * createFlowRender({ trace, tree, key, ancestors, sticky }, sh) -> { laneBox, idxBox, drawLane(), relane(), expandAll(budget), index() }
  * ancestors: flow ids (service|ingress|event) of the flows this one sits inside: a row that loops back to one is not expanded.
- * sh: { host, opts, tip, select(bar), lookInside(bar, trace), openMessage(m, g, trace), flash(el), traceFor(request) }
+ * sh: { host, opts, tip, walk (the step walk, top lane only), select(bar), lookInside(bar, trace), openMessage(m, g, trace), flash(el), traceFor(request) }
  */
 export function createFlowRender({ trace, tree, key, ancestors = [], sticky = true, depth = 0 }, sh) {
   const { host, opts } = sh, mwOpen = new Set(), fanOpen = new Set(); // fanOpen: topics whose queues are all drawn
@@ -33,13 +33,15 @@ export function createFlowRender({ trace, tree, key, ancestors = [], sticky = tr
     onNum: (label) => { if (index) index.reveal(label); }, // a number tile at a queue: open that row of the list below (a card opens in place)
     onNumHover: (labels, on) => labels.forEach((l) => index?.rowNode(l)?.classList.toggle('hl', on)),
     onFan: (topic) => { if (!fanOpen.delete(topic)) fanOpen.add(topic); drawLane(); },
-    onMessage: (m, g, e, trunk) => { if (m.kind === 'frontier') host.setFrontier(); else if (trunk && e?.publish) sh.openPublish(e.publish, g, trace); else sh.openMessage(m, g, trace); },
+    onMessage: (m, g, e, trunk) => { if (!depth && e) sh.walk?.hit(e); if (m.kind === 'frontier') host.setFrontier(); else if (trunk && e?.publish) sh.openPublish(e.publish, g, trace); else sh.openMessage(m, g, trace); },
   };
 
   function drawLane() {
     const lo = laneOpts();
     const msgs = trace.messages.filter((m) => m.depth <= lo.maxDepth);
-    lane = renderLane(buildLane(msgs, { mwOpen, fanOpen, numbers: deliveryNumbers(tree), stores: lo.stores, scope: 'full', participants: trace.participants }), { ...handlers, sticky, fit: Math.max(0, (sh.fit?.() ?? 0) - (depth ? 40 + depth * 28 : 0)) });
+    const built = buildLane(msgs, { mwOpen, fanOpen, numbers: deliveryNumbers(tree), stores: lo.stores, scope: 'full', participants: trace.participants });
+    lane = renderLane(built, { ...handlers, sticky, fit: Math.max(0, (sh.fit?.() ?? 0) - (depth ? 40 + depth * 28 : 0)) });
+    if (!depth) sh.walk?.decorate(lane, built); // numbered steps are the top lane's only (0.20.0)
     laneBox.replaceChildren(lane.el);
   }
   const makeFlow = async (row, childAncestors) => {

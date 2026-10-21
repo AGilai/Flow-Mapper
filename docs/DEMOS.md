@@ -8,6 +8,7 @@ Add a row here with every fix or feature (newest first). A row without a working
 
 | Version | Bug | What to look at | Link |
 |---|---|---|---|
+| 0.20.0 | — | Flow page: the flow description sits under the title (click the text to edit; collapsible, remembered). Arrows carry numbered step tiles; ‹ › or ← → Home End walk them (halo, solid tile), clicking an arrow or tile jumps; `step=` in the URL. The step description is under the bar (steps 2, 3, 6, 8, 13 have one: human and AI) | `#/flows?tabs=api-gateway/in.createOrder&step=6` |
 | 0.19.1 | #46 | The socket demo's device-connect publish goes to `analytics-all-events`, whose consumer handles every type: no red "no handler" any more | `#/flows?service=sdp-controller&ingress=in.deviceConnect` |
 | 0.19.1 | | Click the shared trunk of a fan-out (service to topic or exchange): a neutral publish panel with event type, topic, routing key and every delivery; click a delivery to open it. Clicks after the fork still open their delivery | `#/flows?service=orders-svc&ingress=in.create`, `#/flows?service=cp-middleware&ingress=in.deviceLogout` |
 | 0.19.1 | | Egress commands and keys wrap only at dots, never mid-word (open the endpoint panel to narrow the column) | `#/services/sxdns?ep=in.rpcResolve` |

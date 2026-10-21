@@ -1,0 +1,43 @@
+// The step walk of one tab (0.20.0): owns the current step, draws the tiles on each lane it is handed, drives the bar, and answers keys and clicks.
+// The current step survives a redraw by its key (message content), never by its row. The URL gets `step=` only when the viewer moves it.
+
+import { stepKeys } from '../../core/description.js';
+import { stepsOf, stepAtRow } from './flow-steps.js';
+import { drawStepTiles } from './flow-step-tiles.js';
+import { createStepbar } from './flow-stepbar.js';
+import { clampStep, moveStep, walkAction } from './flow-walk.js';
+
+const calm = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } };
+
+/** createWalkView({ store, root, initial, onStep(n) }) -> { el, decorate(res, built), hit(event), onKey(ev), move(action), current(), dispose } */
+export function createWalkView({ store, root, initial = null, onStep }) {
+  let steps = [], tiles = null, cur = initial ?? 1, curKey = null, jumpOnDraw = initial != null;
+  const bar = createStepbar({ store, root, onMove: (a) => move(a) });
+
+  function go(n, { scroll = true, user = true } = {}) {
+    cur = clampStep(n, steps.length);
+    const st = steps[cur - 1] ?? null;
+    curKey = st?.key ?? null;
+    tiles?.setCurrent(cur);
+    bar.show(st, cur, steps.length);
+    if (user && st) onStep?.(cur);
+    if (scroll && st) tiles?.rowEl(cur)?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: calm() ? 'auto' : 'smooth' });
+  }
+  function move(action) { go(moveStep(cur, steps.length, action)); }
+
+  /** A lane was drawn (first time, or again): number its arrows and put the highlight back on the same step. */
+  function decorate(res, built) {
+    steps = stepsOf(built, stepKeys);
+    tiles = steps.length ? drawStepTiles(res, built, steps, (n) => go(n)) : null;
+    const keep = steps.find((s) => s.key === curKey);
+    go(keep ? keep.n : cur, { scroll: false, user: false });
+    if (jumpOnDraw) requestAnimationFrame(() => requestAnimationFrame(() => tiles?.rowEl(cur)?.scrollIntoView({ block: 'center', inline: 'nearest' }))); // a link opened on a step: the lane is not attached yet
+    jumpOnDraw = false;
+  }
+  return {
+    el: bar.el, decorate, move, current: () => cur,
+    hit(event) { const st = stepAtRow(steps, event.row); if (st) go(st.n, { scroll: false }); }, // a click on an arrow: the walk jumps to it
+    onKey(ev) { const a = walkAction(ev); if (a && steps.length) { ev.preventDefault(); move(a); } },
+    dispose: () => bar.dispose(),
+  };
+}

@@ -63,9 +63,11 @@ const paras = (text) => String(text).split(/\n{2,}/).map((p) => h('p', { class: 
 /**
  * descBlock(store, root, callee, { title, wholeFlow, onGenerate }) -> { el, dispose }
  * callee null = the whole flow. wholeFlow marks the "No description yet" state (a whole-flow description is required).
+ * wide: the Human text is itself the click target for editing (flow and step boxes, 0.20.0). quiet: no title row, and no AI box until
+ * there is AI text, no Generate (step descriptions: the AI text comes in through set_description).
  */
-export function descBlock(store, root, callee, { title, wholeFlow, onGenerate }) {
-  const el = h('section.desc2', { 'aria-label': title });
+export function descBlock(store, root, callee, { title, wholeFlow, onGenerate, wide = false, quiet = false }) {
+  const el = h('section.desc2', { class: wide ? 'wide' : '', 'aria-label': title });
   let data = null, error = null, editing = false, pendingFocus = false, choice = aiOpen();
 
   function human(p) {
@@ -78,10 +80,11 @@ export function descBlock(store, root, callee, { title, wholeFlow, onGenerate })
     const start = (e) => { e.preventDefault(); editing = true; render(); };
     if (!p.human) return h('div.dbox.human.empty', h('span.who', 'Human'), h('i', 'No note yet'), h('span.grow'), h('a', { href: '#', on: { click: start } }, 'Add a note'));
     return h('div.dbox.human', h('div.dbox-h', h('span.who', 'Human'), h('span.meta', [p.human.editedBy && p.human.editedBy !== 'web' ? p.human.editedBy : null, fmtDate(p.human.editedAt)].filter(Boolean).join(' · ')),
-      h('span.grow'), h('a', { href: '#', on: { click: start } }, 'Edit')), paras(p.human.text));
+      h('span.grow'), h('a', { href: '#', on: { click: start } }, 'Edit')), wide ? h('div.dtext', { title: 'Click to edit', on: { click: (e) => { if (!getSelection()?.toString()) start(e); } } }, paras(p.human.text)) : paras(p.human.text));
   }
   function ai(p) {
-    const gen = (label) => h('button.btn.sm.gen', { title: 'Copy a prompt for your AI tool', on: { click: () => { pendingFocus = true; onGenerate(); } } }, label);
+    if (quiet && !p.ai) return null;
+    const gen = (label) => quiet ? null : h('button.btn.sm.gen', { title: 'Copy a prompt for your AI tool', on: { click: () => { pendingFocus = true; onGenerate(); } } }, label);
     if (!p.ai) return h('div.dbox.aibox.empty', h('span.ai.off', 'AI'), h('i', 'No AI description yet'), h('span.grow'), gen('✦ Generate…'));
     const a = p.ai, open = choice ?? !p.human; // collapsed by default when a Human note is there
     const chev = h('button.chev', { 'aria-expanded': String(open), 'aria-label': open ? 'Collapse the AI description' : 'Expand the AI description', on: { click: () => { choice = !open; setAiOpen(choice); render(); } } },
@@ -94,7 +97,7 @@ export function descBlock(store, root, callee, { title, wholeFlow, onGenerate })
     if (editing && el.querySelector('.editing')) return; // a refresh from elsewhere must not eat what is being typed
     if (error && !data) { el.replaceChildren(h('div.desc-t', title), h('div.dbox.empty', h('i', `Descriptions are not available: ${error}`))); return; }
     const p = pairOf(data, callee);
-    el.replaceChildren(h('div.desc-t', title), human(p), ai(p));
+    el.replaceChildren(...[quiet ? null : h('div.desc-t', title), human(p), ai(p)].filter(Boolean));
     if (pendingFocus && !document.querySelector('.dlg')) { pendingFocus = false; el.querySelector('.gen')?.focus(); } // the refresh replaced the button the dialog came from
   }
   render();
