@@ -360,3 +360,25 @@ groupPath.
   "Already here". Frame 10's "11 items" is an illustration only. The UI shows `total` from `import_preview`, never a
   fixed number.
 - An endpoint whose handler was imported reads "imported from <source>" (a function's `origin` counts).
+
+## Harvester bugs folded into 2a-2 (lead decisions 2026-10-21; override via bug)
+These follow existing patterns, so no new mockup frame. The designer compares them against the nearest approved frame.
+- **#60 Flows list marks:** each entry point in the Flows list carries the same New / Changed / Removed mark as the map
+  (spark, yellow ring, struck-through). The tooltip is the "what changed" text from `GET /marks`. Marks are against the
+  current "Compared with" choice (baseline | source) and `?draft=`. Shown only in design envs.
+- **#61 "Changed only":** a toggle next to the Flows filter box. It shows entry points with New or Changed marks, and
+  Removed ones as a second option. It combines with the search text and is kept in the URL as `changed=1`
+  (`changed=all` also shows removed). Hidden in sealed envs.
+- **#57 Flow text in draft review:** with `?draft=`, the flow page shows the draft's flow name, description and step
+  descriptions (read from the draft, as 2a-1 serves them). Review changes lists flow-text ops as "Flow text: <name>"
+  rows.
+- **#59 Empty flow:** when the trace returns `noHandler: true` (0.25.1), the flow page opens with the entry
+  lifeline only and a muted hint: "No handler function. This entry point has no behaviour in <env> yet." Description and
+  links still work.
+- **#54 Links (0.25.1 backend):** `links.main` is shown as a link next to the title (service view, flow header). `sub`
+  links follow as small chips with an ↗ glyph. The entry-point list shows an ↗ icon when `main` is set. Links open in a
+  new tab with `rel="noopener"`. Edit forms get a Links group with a main link plus a repeatable sub list.
+- **#49 Runtime icon:** `details.runtime` (or `runtime`) set to `k8s-pod | k8s-deployment | k8s-daemonset | k8s-operator | k8s-job`
+  adds a small Kubernetes glyph (a heptagon outline, drawn inline in icons.js, not a brand logo) at the top-left of the
+  component on the map and inside the lifeline head. The tooltip is the runtime name. The edit form offers a runtime
+  select.
