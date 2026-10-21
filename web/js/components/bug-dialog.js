@@ -8,7 +8,7 @@ import { state } from '../state.js';
 import { parseHash } from '../router.js';
 import { bugForm } from './bug-form.js';
 
-const draft = {}; // unsent text survives closing the dialog; cleared after a successful submit
+const drafts = {}; // unsent text per environment survives closing the dialog; cleared after a successful submit
 let busy = false;
 
 /** The service the current route is about: /services/:name, or ?service= (flows page, bug links). */
@@ -26,7 +26,7 @@ export async function openBugDialog(opener = document.activeElement) {
   busy = true;
   try {
     const services = (await api.services(state.env)).filter((s) => s.kind !== 'infra').map((s) => s.name);
-    const url = location.href, service = routeService();
+    const url = location.href, service = routeService(), draft = (drafts[state.env] ??= {});
     const close = () => { dlg.close(); dlg.remove(); busy = false; (opener?.isConnected ? opener : document.getElementById('bug-fab'))?.focus?.(); };
     const { el, title } = bugForm({
       services, service: draft.service ?? service, seenOn: url, draft,

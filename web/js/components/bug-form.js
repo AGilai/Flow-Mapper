@@ -62,6 +62,7 @@ export function bugForm({ services, service = null, seenOn = null, draft = null,
       },
     },
   },
+    h('div.form.form-body',
     field('Title', title),
     field('What happened', desc),
     field('Steps to reproduce', steps, 'optional'),
@@ -71,7 +72,7 @@ export function bugForm({ services, service = null, seenOn = null, draft = null,
       field('Reported by', reporter)),
     field('Related service', svc, 'helps prioritize by impact'),
     isPreview ? null : field('Logs', logDropzone(files), 'up to 5 MB each'),
-    error,
-    h('div.row', submit, cancel));
+    error),
+    h('div.row.form-foot', submit, cancel));
   return { el, title };
 }
