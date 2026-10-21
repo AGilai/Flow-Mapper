@@ -12,7 +12,11 @@ export interface Req {
   headers: IncomingMessage['headers'];
   body: () => Promise<Buffer>;
   json: () => Promise<any>;
+  /** The raw exchange, for streaming handlers (SSE). Return STREAMED after taking over `res`. */
+  raw: { req: IncomingMessage; res: ServerResponse };
 }
+/** Returned by a handler that wrote its own response (a stream). */
+export const STREAMED = Symbol('streamed');
 export class Reply {
   status: number; headers: Record<string, string>; body: string | Buffer;
   constructor(status: number, body: string | Buffer, headers: Record<string, string> = {}) {
@@ -87,13 +91,14 @@ export class Router {
       if (m === 'method') throw new HttpError(405, 'METHOD_NOT_ALLOWED', `${req.method} not allowed on ${url.pathname}`);
       for (const g of this.guards) g({ method: req.method ?? 'GET', path: url.pathname, params: m.params, query: url.searchParams });
       const out = await m.handler({
-        method: req.method ?? 'GET', path: url.pathname, params: m.params, query: url.searchParams, headers: req.headers, body,
+        method: req.method ?? 'GET', path: url.pathname, params: m.params, query: url.searchParams, headers: req.headers, body, raw: { req, res },
         json: async () => {
           const b = await body();
           if (!b.length) return {};
           try { return JSON.parse(b.toString('utf8')); } catch { throw badRequest('body is not valid JSON'); }
         },
       });
+      if (out === STREAMED) return true;
       if (out instanceof Reply) send(res, out.status, out.body, out.headers);
       else sendJson(res, req.method === 'POST' && out && typeof out === 'object' && (out as any).__created ? 201 : 200, stripMarker(out));
     } catch (err) {

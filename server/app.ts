@@ -21,10 +21,12 @@ import { registerDrafts } from './routes/drafts.ts';
 import { registerMarks } from './routes/marks.ts';
 import { getDraft } from './store/drafts.ts';
 import { registerMcpHttp } from './mcp/http.ts';
+import { registerEvents, type StreamOptions } from './routes/events.ts';
+import { announceVersion } from './events/bus.ts';
 
 export const APP_VERSION: string = JSON.parse(readFileSync(join(import.meta.dirname, '../package.json'), 'utf8')).version;
 
-export interface AppOptions { dbPath: string; dataDir: string; dev?: boolean }
+export interface AppOptions { dbPath: string; dataDir: string; dev?: boolean; events?: StreamOptions }
 
 export function createContext(opts: AppOptions): Ctx {
   const db = openDb(opts.dbPath);
@@ -41,6 +43,7 @@ export function createContext(opts: AppOptions): Ctx {
 
 export function createApp(opts: AppOptions): { server: Server; ctx: Ctx; router: Router } {
   const ctx = createContext(opts);
+  announceVersion(ctx.db, ctx.appVersion);
   const router = new Router();
   router.get('/api/version', () => ({ version: APP_VERSION }));
   // Any GET under /api/envs/:env/ may carry ?draft=<slug>: an unknown draft is 404 and a closed one 409, whichever route it is.
@@ -56,6 +59,7 @@ export function createApp(opts: AppOptions): { server: Server; ctx: Ctx; router:
   registerDrafts(router, ctx);
   registerMarks(router, ctx);
   registerMcpHttp(router, ctx);
+  registerEvents(router, ctx, opts.events);
 
   const server = createServer(async (req, res) => {
     if (await router.handle(req, res)) return;

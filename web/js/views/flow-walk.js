@@ -26,3 +26,14 @@ export function walkAction(e) {
 }
 /** The text announced to a screen reader when the step changes. */
 export const announce = (n, total, label) => (total ? `Step ${n} of ${total}: ${label}` : 'No steps in this flow');
+
+/**
+ * scrollLeftFor({ from, to, left, view, pad = 16 }) -> the scrollLeft that shows a step's arrow (lane pixels from..to, from = its source end).
+ * Both ends in view when they fit in `view`, moving as little as possible; when they cannot both fit, the source end stays in view (and as much of the arrow as follows it).
+ */
+export function scrollLeftFor({ from, to, left, view, pad = 16 }) {
+  const lo = Math.min(from, to) - pad, hi = Math.max(from, to) + pad;
+  if (hi - lo <= view) return lo < left ? Math.max(0, lo) : hi > left + view ? hi - view : left;
+  const src = from - pad; // the arrow is wider than the window: start at the source end (or at the left end when it leads the arrow rightwards, else the right end)
+  return from <= to ? Math.max(0, src) : Math.max(0, from + pad - view);
+}

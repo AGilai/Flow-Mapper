@@ -1,6 +1,7 @@
 # Bug loop (for Flow-Mapper maintainer sessions)
 
-While a maintainer works, the lead Claude Code session runs `/loop 15m Follow docs/BUG-LOOP.md`.
+While a maintainer works, the lead Claude Code session watches the event stream ([push mode](#push-mode)) and keeps a slow
+`/loop 30m Follow docs/BUG-LOOP.md` as a safety net (without push mode: `/loop 15m`).
 Each run is a cheap check; only when there is something to do does it start a **bug agent**
 (Sonnet, in its own git worktree) to handle it. Harvesters follow up as described in
 [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md#reporting-problems-and-getting-fixes).
@@ -28,6 +29,27 @@ Each run is a cheap check; only when there is something to do does it start a **
 6. Refresh the demo data (`node --disable-warning=ExperimentalWarning scripts/seed.ts`, no `--bugs`) and
    relay the outcome to the maintainer in a few lines: what was fixed (version, commit), the demo link
    (`http://localhost:3000/#/...`), what was answered or left for them, anything that failed.
+
+## Push mode
+
+Polling every 15 minutes is slow and mostly finds nothing. Instead, arm Claude Code's **Monitor** tool on the
+event stream; each line it prints wakes the lead session at once:
+
+```sh
+curl -sN -H 'Accept: text/event-stream' 'http://localhost:3000/api/events?types=bug.created,bug.commented,bug.status' | grep --line-buffered '^data:'
+```
+
+(Add `&reporter=loader` to watch one reporter only.) Rules:
+
+- Set the Monitor timeout to its maximum (30 minutes). When it expires or the connection drops, **re-arm it with
+  `&since=<last id seen>`** (the `id` is in each `data:` line) so nothing is lost; on a fresh start use
+  `GET /api/events/recent?types=bug.*&limit=20` to see what is recent.
+- On each event, run steps 1-4 above for that one bug (`bugId`): fetch it, skip it if its last comment is
+  from `flow-mapper`, otherwise start a bug agent. Your own comments and status changes come back as events
+  (`data.author` is `flow-mapper`, or a `bug.status` you just made): ignore those.
+- Keep the timed `/loop` as a slow safety net (`/loop 30m Follow docs/BUG-LOOP.md`): it catches what a dropped
+  stream or a restart skipped. The stream does not replace the `updatedSince` check.
+- A deploy restarts the server and drops the stream: re-arm with `since`.
 
 ## Bug agent brief
 

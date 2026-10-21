@@ -8,6 +8,7 @@ import { contractReport } from '../../core/contract.ts';
 import { HttpError, conflict, invalid, notFound } from '../errors.ts';
 import { getSnapshotRow, loadEntities, loadModel, rowToService, type Entities, type Source, type WriteResult } from './snapshots-read.ts';
 import { ensureEnv, guardEnv, type Writer } from './envs.ts';
+import { manifestIngested } from '../events/emitters.ts';
 import { assertIntegrity, diff, replaceEntities, upsertSnapshot, writeChangelog } from './snapshots-write.ts';
 import { withDry } from './dry-run.ts';
 
@@ -34,10 +35,12 @@ export function ingest(db: DB, manifest: any, source: Source = 'api', opts: { dr
  * (the draft apply of `?draft=`, so the batch is checked against the environment as that draft leaves it).
  */
 export function ingestBatch(db: DB, manifests: any[], source: Source = 'api', { dryRun = false, prelude }: { dryRun?: boolean; prelude?: () => void } = {}): WriteResult[] {
-  return withDry(db, dryRun, () => {
+  const results = withDry(db, dryRun, () => {
     prelude?.();
     return ingestIn(db, manifests, source, { writer: dryRun ? 'dry' : 'harvester' });
   });
+  if (!dryRun) results.forEach((r, i) => manifestIngested(db, r, manifests[i], source)); // after the commit
+  return results;
 }
 
 /** The body of ingestBatch, without a transaction: the caller owns it. */

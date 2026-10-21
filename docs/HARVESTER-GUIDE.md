@@ -542,6 +542,19 @@ reply says exactly what to change in the manifest.
 curl -sS "$FLOW/api/bugs?reporter=my-harvester&updatedSince=$LAST_CHECK"   # changed since, comments included
 ```
 
+**Follow up without polling.** Over your SSH tunnel to the server, watch the events for your own bugs with Claude
+Code's Monitor tool (timeout 30 minutes; re-arm when it ends, with `&since=<last id>` from the last `data:` line):
+
+```sh
+curl -sN -H 'Accept: text/event-stream' "$FLOW/api/events?types=bug.status,bug.commented,version.deployed&reporter=my-harvester" | grep --line-buffered '^data:'
+```
+
+Each line is one JSON event (`type`, `bugId`, `summary`, `data`). `bug.commented` and `bug.status` carry your
+bugs only (`reporter` is the bug's reporter; `version.deployed` has none and always passes). React as the table
+below says: on `bug.status` with `data.to` = `fixed`, wait for `version.deployed` to reach `data.fixedInVersion`
+(or check `GET /api/version`), pull the Flow-Mapper repo, re-test with `?dryRun=1`, then verify or reopen. Keep the
+15-minute check as a safety net in case the tunnel drops. Details: [API.md](API.md#push-events-e1).
+
 | You see | It means | Do |
 |---|---|---|
 | a new comment, status `triaged` | a question or a proposal for you | answer with `POST /api/bugs/{id}/comments` |

@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { AddressInfo } from 'node:net';
 import { createApp } from '../server/app.ts';
+import type { StreamOptions } from '../server/routes/events.ts';
 
 export const SAMPLES = join(import.meta.dirname, '../samples');
 export const readSample = (name: string) => JSON.parse(readFileSync(join(SAMPLES, name), 'utf8'));
@@ -20,9 +21,9 @@ export function sampleModel(): any {
   return model;
 }
 
-export async function startApp() {
-  const dir = mkdtempSync(join(tmpdir(), 'flow-mapper-test-'));
-  const { server, ctx, router } = createApp({ dbPath: join(dir, 'test.db'), dataDir: dir });
+export async function startApp(opts: { dir?: string; events?: StreamOptions } = {}) {
+  const dir = opts.dir ?? mkdtempSync(join(tmpdir(), 'flow-mapper-test-'));
+  const { server, ctx, router } = createApp({ dbPath: join(dir, 'test.db'), dataDir: dir, events: opts.events });
   await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
   const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   const call = async (method: string, path: string, body?: unknown, headers: Record<string, string> = {}) => {
@@ -36,7 +37,7 @@ export async function startApp() {
     try { json = text ? JSON.parse(text) : null; } catch { json = text; }
     return { status: res.status, body: json };
   };
-  return { base, ctx, router, dbPath: join(dir, 'test.db'), call, close: () => new Promise<void>((r) => server.close(() => r())) };
+  return { base, ctx, router, dbPath: join(dir, 'test.db'), call, close: () => new Promise<void>((r) => { server.close(() => r()); server.closeAllConnections(); }) };
 }
 
 /** The app with the samples in prod and a design environment (Components copy of users-svc and auth-svc, subsystem platform). */

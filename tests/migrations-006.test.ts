@@ -15,10 +15,10 @@ const dir = () => mkdtempSync(join(tmpdir(), 'flow-mapper-mig6-'));
 const count = (db: DatabaseSync, sql: string) => (db.prepare(sql).get() as { n: number }).n;
 
 /** A database as it was when only the migrations up to `last` had been applied, with rows in prod. */
-function dbUpTo(path: string, last: string) {
+function dbUpTo(path: string, last: string, skip: string[] = []) {
   const raw = new DatabaseSync(path);
   raw.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; CREATE TABLE schema_migrations (name TEXT PRIMARY KEY, applied_at TEXT NOT NULL, checksum TEXT)');
-  for (const f of ALL.filter((f) => f <= last)) {
+  for (const f of ALL.filter((f) => f <= last && !skip.includes(f))) {
     const sql = readFileSync(join(MIG, f), 'utf8');
     raw.exec(sql);
     raw.prepare('INSERT INTO schema_migrations VALUES (?, ?, ?)').run(f, 'then', createHash('sha256').update(sql).digest('hex'));
@@ -55,6 +55,16 @@ test('006 adds drafts, draft_ops, flow_names and changelog.draft_id to a 005 dat
   const b = new DatabaseSync(`${path}.pre-006.bak`, { readOnly: true });
   assert.equal(count(b, "SELECT count(*) AS n FROM sqlite_master WHERE name = 'drafts'"), 0);
   b.close();
+});
+
+test('006 applies after 007 on a database that has 007 but not 006 (the live DB state)', () => {
+  const path = join(dir(), 'live.db');
+  dbUpTo(path, '999', ['006_drafts.sql']);
+  const db = quiet(() => openDb(path));
+  assert.equal(count(db, "SELECT count(*) AS n FROM schema_migrations WHERE name IN ('006_drafts.sql', '007_events.sql')"), 2);
+  assert.equal(count(db, "SELECT count(*) AS n FROM sqlite_master WHERE name IN ('drafts', 'draft_ops', 'flow_names', 'events')"), 4);
+  assert.equal(count(db, 'SELECT count(*) AS n FROM entities'), 1);
+  db.close();
 });
 
 test('006 only adds (no rebuild) and stays Postgres-friendly', () => {

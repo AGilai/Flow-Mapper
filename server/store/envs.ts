@@ -1,6 +1,7 @@
 // Environments: the envs table (sealed | design), the one write guard, listing with metadata, delete.
 // sealed = harvester APIs only; design = created by a copy, never written by harvesters. Annotations are allowed everywhere.
 
+import { envDeleted } from '../events/emitters.ts';
 import type { DB } from '../db/connection.ts';
 import { tx } from '../db/connection.ts';
 import { conflict, notFound } from '../errors.ts';
@@ -82,5 +83,6 @@ export function deleteEnv(db: DB, name: string) {
     for (const t of TABLES) db.prepare(`DELETE FROM ${t} WHERE env = ?`).run(name);
     db.prepare('DELETE FROM envs WHERE name = ?').run(name);
   });
+  envDeleted(db, name);
   return { deleted: name };
 }

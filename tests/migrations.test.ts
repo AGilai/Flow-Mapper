@@ -3,18 +3,17 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, readFileSync, readdirSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { openDb } from '../server/db/connection.ts';
-import { readdirSync } from 'node:fs';
 
-/** Every migration file: the list of applied ones is derived, so adding a migration does not touch these assertions. */
-const ALL_MIGRATIONS = readdirSync(join(import.meta.dirname, '../server/db/migrations')).filter((f) => f.endsWith('.sql')).sort();
 const dir = () => mkdtempSync(join(tmpdir(), 'flow-mapper-mig-'));
+/** Every shipped migration file, so a new NNN_*.sql does not need this test edited. */
+const ALL_MIGRATIONS = readdirSync(join(import.meta.dirname, '../server/db/migrations')).filter((f) => f.endsWith('.sql')).sort();
 const INIT = readFileSync(join(import.meta.dirname, '../server/db/migrations/001_init.sql'), 'utf8');
 const count = (db: DatabaseSync, sql: string) => (db.prepare(sql).get() as { n: number }).n;
 
