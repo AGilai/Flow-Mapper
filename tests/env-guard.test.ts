@@ -61,6 +61,7 @@ const DRAFT: Record<string, (e: string, slug: string) => Req> = {
   'DELETE /api/envs/:env/drafts/:slug/ops/last': (e, s) => ({ method: 'DELETE', path: `${base(e)}/drafts/${s}/ops/last` }),
   'DELETE /api/envs/:env/drafts/:slug/ops': (e, s) => ({ method: 'DELETE', path: `${base(e)}/drafts/${s}/ops?anchor=egr:users-svc/none` }),
   'POST /api/envs/:env/drafts/:slug/apply': (e, s) => ({ method: 'POST', path: `${base(e)}/drafts/${s}/apply`, body: {} }),
+  'POST /api/envs/:env/drafts/:slug/import': (e, s) => ({ method: 'POST', path: `${base(e)}/drafts/${s}/import`, body: { source: 'prod', anchor: 'svc:orders-svc' } }),
   'POST /api/envs/:env/drafts/:slug/plan': (e, s) => ({ method: 'POST', path: `${base(e)}/drafts/${s}/plan`, body: { planVersion: 1 } }),
 };
 
@@ -136,7 +137,7 @@ test('dry runs are allowed into a design env (nothing is written) and still vali
 
 // MCP tools: read tools are listed so a new tool must be classified too.
 const MCP_READ = new Set(['search', 'list_services', 'get_service', 'list_entry_points', 'trace_flow', 'find_paths', 'link_health', 'changelog', 'get_endpoint_info', 'event_types',
-  'inventory', 'get_store', 'list_clients', 'get_resource_keys', 'get_channel', 'get_exchange', 'list_bugs', 'get_bug', 'list_envs', 'list_drafts', 'draft_changes', 'get_marks']);
+  'inventory', 'get_store', 'list_clients', 'get_resource_keys', 'get_channel', 'get_exchange', 'list_bugs', 'get_bug', 'list_envs', 'list_drafts', 'draft_changes', 'get_marks', 'import_preview']);
 const MCP_HARVESTER: Record<string, (e: string, manifest: any) => any> = {
   ingest_manifest: (e, m) => ({ manifest: { ...m, env: e, version: 999 } }),
   load_dtos: (e) => ({ env: e, dtos: [] }),
@@ -151,6 +152,7 @@ const MCP_DRAFT: Record<string, (e: string, slug: string) => any> = {
   edit_in_draft: (env, draft) => ({ env, draft, ops: [{ op: 'delete', anchor: 'egr:users-svc/none' }] }),
   apply_draft: (env, draft) => ({ env, draft }),
   discard_draft: (env, draft) => ({ env, draft }),
+  import_into_draft: (env, draft) => ({ env, draft, source: 'prod', anchor: 'svc:orders-svc' }),
   apply_import_plan: (env, draft) => ({ env, draft, plan: { planVersion: 1 } }),
 };
 const MCP_EXEMPT = new Set(['set_description', 'report_bug', 'update_bug', 'create_env']);
