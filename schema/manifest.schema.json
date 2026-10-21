@@ -168,12 +168,13 @@
       "additionalProperties": false,
       "properties": {
         "name": { "type": "string", "pattern": "^[a-z0-9\\-]+$" },
-        "kind": { "enum": ["service", "gateway", "lambda", "infra"], "default": "service" },
+        "kind": { "enum": ["service", "gateway", "lambda", "infra", "client-app"], "default": "service", "description": "client-app: a device or browser application (an agent, a mobile app) that calls services; it has no ingress of its own to harvest." },
         "team": { "type": "string" },
         "repo": { "type": "string" },
         "language": { "type": "string" },
         "description": { "type": "string" },
-        "tags": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
+        "tags": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "groupPath": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*(/[a-z0-9][a-z0-9-]*)*$", "description": "Optional. The subsystem the service belongs to, as a path: \"platform\", later \"platform/identity\". Harvesters may leave it out; design environments set it." }
       }
     },
 

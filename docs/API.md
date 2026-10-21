@@ -39,6 +39,34 @@ In a batch (`manifests` with more than one entry) the failing manifest is named:
 
 Schema: [`schema/manifest.schema.json`](../schema/manifest.schema.json). Examples: [`samples/`](../samples). Guide for harvester authors: [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md).
 
+## Environments (0.21.0)
+
+An environment is `sealed` or `design`. **Sealed**: filled only through the harvester APIs (ingest full/delta, DTOs, event DTOs,
+schemas, Redis keys); manual entity edits are refused with `409 ENV_SEALED`. Every environment that harvesters have written
+to is sealed, and an ingest into a name that does not exist yet creates it sealed. **Design**: created by a copy (below);
+harvester writes are refused with `409 ENV_DESIGN`; manual edits (the Map CRUD routes, MCP `upsert_entity` / `delete_entity`)
+work only here. Annotations (flow descriptions, bugs) are allowed in both kinds. One guard in the store write path does this.
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/api/envs` | Names only, `string[]` (the preview and harvester scripts read it). A Blank design environment is listed. |
+| GET | `/api/envs/meta` | `[{name, kind, source, copiedAt, groups: [{key, label}], levels, createdAt, createdBy, counts: {components, ingress, egress, ...}}]` |
+| GET | `/api/envs/:env/meta` | the same for one |
+| POST | `/api/envs` | Create a design environment by copying. Body below. 201 with its meta. |
+| GET | `/api/envs/:env/components` | `[{name, kind, team, groupPath, counts: {endpoints, calls, channels, stores, dtos}}]`: what each component brings into a Components copy (`channels`: the queues, topics and exchanges it declares or uses plus the routing out of them; `channelKeys` lists them, and the page counts the union of the picked rows) |
+| GET | `/api/envs/:env/neighbours?services=a,b` | One hop: components that call or are called by a listed one, directly or through a topic, queue or exchange: `[{service, team, kind, reasons, reason}]`. Listed ones and `infra` services are left out. |
+| DELETE | `/api/envs/:env` | Design environments only (`409 ENV_SEALED` for a sealed one). Removes its rows in every table (bugs stay). |
+
+`POST /api/envs` body: `{name, source, mode: 'blank' | 'components' | 'full', groups: [{key, label}], levels, services: [{name, groupPath}], createdBy}`.
+`name`: lowercase letters, digits, `-`, at most 63 (`422` otherwise; `meta` and `new` are reserved); `409 EXISTS` when taken;
+`404` for an unknown source or component. `groups` are the subsystems in order (key is a path like `platform` or `platform/identity`);
+a service's `groupPath` must be one of them. `levels` defaults to `["Subsystem","Component"]`. One transaction: nothing is left behind on failure.
+- `blank`: only the environment row (source recorded).
+- `components`: the listed services with their ingress, egress, channels, bindings, resources, their DTOs, the event DTOs and store schemas they refer to, and their Redis key rows. A Components copy is self-contained: the channels (topics, queues, exchanges, buses) the picked services use (publish to, consume from, bind to), the routing out of them (the bindings that leave a copied channel and the queues they lead to) and the bindings between copied items come along even when another service declares them. They are stored under ONE synthetic `infra` service named `<source>-infra` (numbered if that name is taken; no `groupPath`), so the declaring services' other entities stay behind, and they are in `baseline_items` (unchanged against the baseline). A call whose far side is a service that was not picked (a consumer's ingress, an RPC server) is still "no match" in link health: that is the gap the design fills. **No functions or steps**, so there are no flows; an ingress keeps its `handler` id, which dangles (later edits are not blocked by problems the service already had).
+- `full`: everything of the source: all services including functions, DTOs, schemas, Redis keys, flow descriptions. Not bugs. Copying a design keeps its subsystems (unless `groups` is sent).
+A design owns its rows: nothing is shared with the source. The copied rows of a sealed source are frozen into `baseline_items`
+(what the design was copied from; the diff that reads it comes later); a copy of a design keeps that design's original baseline.
+
 ## Map CRUD
 
 Collections per service: `functions`, `ingress`, `egress`, `resources`, `channels`, `bindings`.
@@ -48,13 +76,12 @@ service version by one and writes a changelog entry. Writes that break internal 
 
 | Method | Path |
 |---|---|
-| GET | `/api/envs` |
 | GET / POST | `/api/envs/:env/services` |
 | GET / PATCH / DELETE | `/api/envs/:env/services/:service` |
 | GET / POST | `/api/envs/:env/services/:service/:collection` |
 | GET / PUT / DELETE | `/api/envs/:env/services/:service/:collection/:key` |
 
-Add `?source=ui` to mark edits made from a UI in the changelog.
+Add `?source=ui` to mark edits made from a UI in the changelog. These routes work only in a **design** environment (`409 ENV_SEALED` in a sealed one, `404` in an unknown one). `GET /api/envs` is listed under Environments above.
 
 ## Queries
 
@@ -278,7 +305,7 @@ read them with the endpoint above.
 Tools: `search`, `list_services`, `get_service`, `list_entry_points`, `trace_flow`, `find_paths`,
 `link_health`, `changelog`, `set_description`, `ingest_manifest`, `upsert_entity`, `delete_entity`, `get_endpoint_info`,
 `load_dtos`, `event_types`, `inventory`, `get_store`, `get_channel`, `get_exchange` (0.19.0: the exchange page, same data as GET /instances/amqp:<name>), `load_schemas`, `list_bugs`,
-`get_resource_keys` (0.16.0), `list_clients` (same filters and result as `GET /clients`; `get_store` also returns `clients`), `get_bug`, `report_bug` (accepts `log` text), `update_bug` (accepts `comment`).
+`list_envs` (0.21.0: name, kind, source, copiedAt, groups, components), `create_env` (0.21.0: same body as `POST /api/envs`), `get_resource_keys` (0.16.0), `list_clients` (same filters and result as `GET /clients`; `get_store` also returns `clients`), `get_bug`, `report_bug` (accepts `log` text), `update_bug` (accepts `comment`).
 `set_description(env, service, ingress, callee?, text, model)` (0.14.0) saves the **AI** description of a flow (no `callee`) or of one service in it. It writes the AI record only, never the human one; it stores `model`, the time, and the hash of the flow's trace as it is now. `model` and `text` are required; the entry `ingress` must exist; `callee` must name a service of the env or be a step key of the flow (0.20.0). It returns the flow's descriptions (as `GET /descriptions`). `trace_flow` with an `ingress` returns `descriptions` next to the trace, and `get_service` returns `descriptions`: every record of that service's flows `{ingress, callee, source, text, by, at}`, so an agent sees what is already written before it writes. The UI's "Generate…" dialog hands out two prompts (the whole flow with all its services; one service) that tell an AI tool to call `trace_flow`, `get_service` and then `set_description`.
 `trace_flow` and `GET /trace` messages of steps that are alternatives (steps of one function with the same `altGroup`, else consecutive steps with the same `source` file:line that each carry a `condition`) carry `alt: {group, branch, of}`: `group` is `<function>:<altGroup>` (or `<function>:<file>:<line>@<first seq>`), `branch` the 1-based branch (one per distinct condition, in order of first appearance), `of` the number of branches; the message keeps its `condition`. The messages a branch's step leads to (the topic, queues and consumers of a publish, which carry the same `alt`) and everything below it in the call tree (messages deeper than the group) belong to that branch; every branch is followed. `maxMessages` counts the largest branch of a group, not the sum; `flows/counts` counts each component once, as it always did. The UI draws an alt frame around the group.
 `trace_flow` and `GET /trace` messages of an egress step with `eventFrom` (the step's event type comes from the nearest enclosing call step's `bind` of that name on the traced path) carry `event` as usual plus `eventFrom: {name, boundAt}`; `boundAt` is `<caller function name>:<seq>` and is absent when nothing on the path binds the name (the publish then behaves as one that names no event). `flows/counts` cannot follow binds per path: for such a step it uses every value that call steps bind to the name on a call path reaching the step's function, in the same service (a name bound in another service never counts; #44), plus the egress's events and candidates, so a count can include components a trace through one caller does not draw. Event reports and channel views list those bound values among the egress's events. Manifest: `bind: {name: value}` on `call` steps, `eventFrom: name` on egress steps; contract rule `eventfrom-unbound` (info).

@@ -23,8 +23,9 @@ export function diff(before: Entities, after: Entities): Changes {
   return c;
 }
 
-export function assertIntegrity(service: string, e: Entities) {
-  const errs = integrityErrors(e);
+export function assertIntegrity(service: string, e: Entities, before?: Entities) {
+  const had = new Set(before ? integrityErrors(before) : []);
+  const errs = integrityErrors(e).filter((x) => !had.has(x));
   if (errs.length) throw invalid(`service '${service}' has broken internal references`, errs);
 }
 

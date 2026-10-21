@@ -5,6 +5,7 @@ import { traceFlowTool, setDescriptionTool, eventTypesTool, getEndpointInfoTool,
 import { ingestManifestTool, upsertEntityTool, deleteEntityTool } from './write.ts';
 import { getStoreTool, listClientsTool, getResourceKeysTool, loadSchemasTool, loadDtosTool } from './stores.ts';
 import { listBugsTool, getBugTool, reportBugTool, updateBugTool } from './bugs.ts';
+import { listEnvsTool, createEnvTool } from './envs.ts';
 import type { Tool } from './common.ts';
 export type { Tool };
 
@@ -35,4 +36,6 @@ export const TOOLS: Tool[] = [
   getBugTool,
   reportBugTool,
   updateBugTool,
+  listEnvsTool,
+  createEnvTool,
 ];

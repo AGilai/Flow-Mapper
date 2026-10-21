@@ -5,18 +5,20 @@ import { tx } from '../db/connection.ts';
 import { keyOf, validateEntity, validateServiceHeader, type ListName } from '../schema.ts';
 import { conflict, invalid, notFound } from '../errors.ts';
 import { getService, getSnapshotRow, loadEntities, type Entities, type Source, type WriteResult } from './snapshots-read.ts';
+import { guardEnv } from './envs.ts';
 import { assertIntegrity, diff, now, replaceEntities, upsertSnapshot, writeChangelog } from './snapshots-write.ts';
 
 
 /** Apply a manual edit to one service. Bumps the version by one. */
 function edit(db: DB, env: string, service: string, source: Source, mutate: (e: Required<Entities>) => void): WriteResult {
   return tx(db, () => {
+    guardEnv(db, env, 'manual');
     const cur = getSnapshotRow(db, env, service);
     if (!cur) throw notFound(`service '${service}' in env '${env}'`);
     const before = loadEntities(db, env, service);
     const after = structuredClone(before);
     mutate(after);
-    assertIntegrity(service, after);
+    assertIntegrity(service, after, before); // problems the service already had do not block an edit that does not cause them
     const changes = diff(before, after);
     const to = cur.version + 1;
     db.prepare('UPDATE snapshots SET version = ?, updated_at = ? WHERE env = ? AND service = ?').run(to, now(), env, service);
@@ -49,6 +51,7 @@ export function createService(db: DB, env: string, header: any, source: Source =
   const errs = validateServiceHeader(header);
   if (errs.length) throw invalid('service does not match schema', errs);
   return tx(db, () => {
+    guardEnv(db, env, 'manual');
     if (getSnapshotRow(db, env, header.name)) throw conflict('EXISTS', `service '${header.name}' already exists in env '${env}'`);
     upsertSnapshot(db, env, header, 1, now());
     writeChangelog(db, env, header.name, null, 1, 'crud', source, { created: true });
@@ -58,6 +61,7 @@ export function createService(db: DB, env: string, header: any, source: Source =
 
 export function updateService(db: DB, env: string, name: string, patch: any, source: Source = 'api') {
   return tx(db, () => {
+    guardEnv(db, env, 'manual');
     const cur = getService(db, env, name);
     const { version, harvestedAt, commit, ...rest } = cur;
     const header = { ...rest, ...patch, name };
@@ -71,6 +75,7 @@ export function updateService(db: DB, env: string, name: string, patch: any, sou
 
 export function deleteService(db: DB, env: string, name: string, source: Source = 'api') {
   return tx(db, () => {
+    guardEnv(db, env, 'manual');
     const cur = getSnapshotRow(db, env, name);
     if (!cur) throw notFound(`service '${name}' in env '${env}'`);
     db.prepare('DELETE FROM snapshots WHERE env = ? AND service = ?').run(env, name);

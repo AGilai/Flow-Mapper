@@ -22,7 +22,7 @@ export function sampleModel(): any {
 
 export async function startApp() {
   const dir = mkdtempSync(join(tmpdir(), 'flow-mapper-test-'));
-  const { server, ctx } = createApp({ dbPath: join(dir, 'test.db'), dataDir: dir });
+  const { server, ctx, router } = createApp({ dbPath: join(dir, 'test.db'), dataDir: dir });
   await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
   const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   const call = async (method: string, path: string, body?: unknown, headers: Record<string, string> = {}) => {
@@ -36,5 +36,5 @@ export async function startApp() {
     try { json = text ? JSON.parse(text) : null; } catch { json = text; }
     return { status: res.status, body: json };
   };
-  return { base, ctx, dbPath: join(dir, 'test.db'), call, close: () => new Promise<void>((r) => server.close(() => r())) };
+  return { base, ctx, router, dbPath: join(dir, 'test.db'), call, close: () => new Promise<void>((r) => server.close(() => r())) };
 }

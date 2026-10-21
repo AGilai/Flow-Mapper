@@ -59,7 +59,7 @@ export function systemGraph(g: GraphIndex): SystemGraph {
     const of = <T extends { service: string }>(xs: T[]) => xs.filter((x) => x.service === s.name);
     const ins = of(g.model.ingress), outs = of(g.model.egress);
     nodes.set(svcNode(s.name), {
-      id: svcNode(s.name), kind: s.kind === 'lambda' ? 'service' : s.kind, svcKind: s.kind, label: s.name, sub: s.team, service: s.name, team: s.team, tags: s.tags,
+      id: svcNode(s.name), kind: s.kind === 'lambda' || s.kind === 'client-app' ? 'service' : s.kind, svcKind: s.kind, label: s.name, sub: s.team, service: s.name, team: s.team, tags: s.tags,
       functions: of(g.model.functions).map((f) => f.name),
       transports: [...new Set([...ins, ...outs].map((x) => x.transport))],
       stats: {

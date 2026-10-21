@@ -20,6 +20,7 @@ import { channelView } from '../core/channels.js';
 import { eventView } from '../core/events.js';
 import { eventFlow } from '../core/event-flow.js';
 import { flowDescriptions, HASH_TRACE } from '../core/description.js';
+import { envApi } from './api-local-envs.js';
 
 const data = globalThis.FLOW_PREVIEW;
 const indexes = new Map();
@@ -47,6 +48,7 @@ function rescore(b) {
 export const api = {
   version: async () => ({ version: data.version }),
   envs: async () => Object.keys(data.models),
+  ...envApi(data, g),
   services: async (env) => {
     const h = new Map(health(g(env)).services.map((s) => [s.service, s]));
     return g(env).model.services.map((s) => ({ ...s, health: h.get(s.name) }));

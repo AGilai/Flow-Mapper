@@ -7,6 +7,7 @@ import { buildIndex } from '../../core/graph-index.ts';
 import { contractReport } from '../../core/contract.ts';
 import { HttpError, conflict, invalid, notFound } from '../errors.ts';
 import { getSnapshotRow, loadEntities, loadModel, rowToService, type Entities, type Source, type WriteResult } from './snapshots-read.ts';
+import { ensureEnv, guardEnv } from './envs.ts';
 import { assertIntegrity, diff, replaceEntities, upsertSnapshot, writeChangelog } from './snapshots-write.ts';
 
 /** Thrown at the end of a dry run so the transaction rolls back; carries the results. */
@@ -60,6 +61,8 @@ function apply(db: DB, manifest: any, source: Source): { result: WriteResult; af
   if (errs.length) throw invalid('manifest does not match schema', errs.slice(0, 50));
   const env = manifest.env ?? 'default';
   const name = manifest.service.name;
+  guardEnv(db, env, 'harvester');
+  ensureEnv(db, env);
 
   const cur = getSnapshotRow(db, env, name);
   if (cur && manifest.version <= cur.version)
