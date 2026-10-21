@@ -157,6 +157,23 @@
       }
     },
 
+    "assumed": {
+      "type": "array",
+      "description": "Values you filled by a rule instead of reading them from code (the mirror of `unresolved`). Say what, the value used, what it rests on and why; readers show it as an assumed default, never as a fact. what: a first-class name (database, ttl, ...) or \"detail\" with `detail` = the field path, like unresolved (e.g. details.databases, client.databases, details.dbIndex, details.ttlSeconds). A field may not be both unresolved and assumed (contract finding assumed-and-unresolved). It changes nothing in the graph or in link resolution; health lists it apart from problems.",
+      "items": {
+        "type": "object",
+        "required": ["what", "value", "basis", "reason"],
+        "additionalProperties": false,
+        "properties": {
+          "what": { "type": "string", "minLength": 1 },
+          "detail": { "type": "string", "description": "With what=detail: the field path." },
+          "value": { "description": "The value actually used; any JSON." },
+          "basis": { "type": "string", "minLength": 1, "description": "Short code: client_default, convention, inferred_from_name, sibling_value; free text allowed." },
+          "reason": { "type": "string", "minLength": 1, "description": "One sentence: which default or rule, and who approved it." }
+        }
+      }
+    },
+
     "details": {
       "type": "object",
       "description": "Free-form transport details (method, path, queue URL, timeouts, …).",
@@ -215,6 +232,7 @@
         "bind": { "type": "object", "additionalProperties": { "type": "string" }, "description": "For a call step: values handed to the callee, by name, e.g. {\"event\": \"entry.does.not.exist\"}. Visible to the callee and everything it calls on this path; the nearest bind of a name wins." },
         "eventFrom": { "type": "string", "description": "For an egress step: take the event type from the nearest enclosing call step's bind of this name on the traced path (a publish whose event type is a parameter of the function). Unbound on a path: treated as a publish that names no event." },
         "unresolved": { "$ref": "#/$defs/unresolved" },
+        "assumed": { "$ref": "#/$defs/assumed" },
         "source": { "$ref": "#/$defs/source", "description": "Where the call is made: file, line, col. Shown as a code link on the trace message." },
         "access": { "enum": ["read", "write", "read_write"], "description": "For a resource step: read, write or read_write (e.g. findOneAndUpdate; shown as R/W, counts as reader and writer). Default: from the operation name (find, GET, SELECT, GetItem… are reads)." },
         "fields": {
@@ -251,6 +269,7 @@
         "commit": { "type": "string", "description": "Only when this function was scanned at a different commit than the manifest's." },
         "details": { "$ref": "#/$defs/details", "description": "Free-form. In a design (an HLD import): `doc` says where the function comes from." },
         "unresolved": { "$ref": "#/$defs/unresolved" },
+        "assumed": { "$ref": "#/$defs/assumed" },
         "steps": { "type": "array", "items": { "$ref": "#/$defs/step" }, "default": [] }
       }
     },
@@ -272,6 +291,7 @@
         "source": { "$ref": "#/$defs/source" },
         "provenance": { "$ref": "#/$defs/provenance" },
         "unresolved": { "$ref": "#/$defs/unresolved" },
+        "assumed": { "$ref": "#/$defs/assumed" },
         "via": { "$ref": "#/$defs/via", "description": "How the handler was resolved, for registrations that are not a direct reference: hops from the registration to the handler, each kind 'registration' or 'bind'. `details.handlerVia` is still accepted." },
         "events": {
           "type": "array",
@@ -304,6 +324,7 @@
         "source": { "$ref": "#/$defs/source" },
         "provenance": { "$ref": "#/$defs/provenance" },
         "unresolved": { "$ref": "#/$defs/unresolved" },
+        "assumed": { "$ref": "#/$defs/assumed" },
         "events": { "type": "array", "items": { "$ref": "#/$defs/eventType" }, "description": "Event types published through this egress." },
         "via": { "$ref": "#/$defs/via" },
         "client": { "$ref": "#/$defs/client" },
@@ -320,6 +341,7 @@
         "kind": { "type": "string", "examples": ["mongodb", "redis", "dynamodb", "postgres", "s3", "elasticsearch"] },
         "name": { "type": "string" },
         "unresolved": { "$ref": "#/$defs/unresolved" },
+        "assumed": { "$ref": "#/$defs/assumed" },
         "bindKey": { "$ref": "#/$defs/bindKey", "description": "Shared key so services using the same store are grouped: {kind}:{cluster or db}/{collection, table or key pattern}, e.g. mongodb:orders-db/orders, redis:cache-main/order:{id}. The part before '/' groups keys of one cluster." },
         "client": { "$ref": "#/$defs/client" },
         "details": { "$ref": "#/$defs/details", "description": "Free-form. Redis (#29): on a service's resource, `access` (read | write | read_write: what the service does through this connection; else derived from its steps) and the interim `keys` (top N key templates: [{keyTemplate, dbIndex, commands, access, opsPerHour, ttlSeconds}]) and `lazy` {kind: 'keys', ref}; on the infra resource that defines the instance (bindKey redis:<name>, no key pattern): `engineVersion`, `nodes`, `topology` (cluster | standalone), `databases`." },

@@ -42,6 +42,7 @@ anything. There are currently no `error`-level codes (422 rejections come from v
 |---|---|---|---|
 | `unresolved-no-detail` | warn | an `unresolved` entry (on ingress, egress, function, step or resource) with an empty `detail` (or blank `reason`) | say what you could not resolve |
 | `unresolved-detail-unknown-path` | warn | `unresolved` what `detail` whose `detail` is not one of `details.databases`, `client.databases`, `details.keyTemplate`, `details.dbIndex`, `details.ttlSeconds` | use one of those paths (the entry is kept, never rejected) |
+| `assumed-and-unresolved` | warn | one field listed both in `unresolved` and in `assumed` (an assumed value is a value) | keep the `assumed` entry and drop the `unresolved` one, or the other way round |
 | `client-version-gap` | info | a `client` with a driver or lib but no version, and no `unresolved` entry saying why | send the version, or `unresolved: [{what: "client", reason, detail: "driver.version"}]` |
 | `client-unresolved-field` | warn | `unresolved` what `client` whose `detail` is not a client field path | name the field: `accessMode`, `accessId`, `driver.version`, `lib.version`, `lib.driver.version`, `via` |
 | `field-not-in-ddl` | info | store steps whose `fields` carry `inDdl: false` (one finding per service) | add the field to the schema or the DTO, or remove it from the code |
@@ -272,6 +273,14 @@ Do not invent a key and do not drop the item. Say what you found and why it is u
   checked against real endpoints and shown as possible matches.
 
 Unresolved items are never counted as broken links; they have their own section in link health.
+
+**Assumed values (#47, 0.25.2).** `unresolved` says "I could not tell"; `assumed` says "I filled this in by a rule, it is not read from code". Send it on the same objects as `unresolved` (ingress, egress, functions, steps, resources) and on Redis key entries:
+`"assumed": [{ "what": "detail", "detail": "client.databases", "value": [0], "basis": "client_default", "reason": "no db option and the URL has no path, so ioredis/node-redis select db 0 (approved by Asaf 2026-10-20)" }]`.
+- `what` follows the #45 convention: a first-class name when there is one (`database`, `ttl`), otherwise `"detail"` with `detail` = the field path (`client.databases`, `details.databases`, `details.dbIndex`, `details.ttlSeconds`, `details.keyTemplate`). `value` is the value you actually put in the manifest (any JSON, `null` allowed), so readers can show and compare it.
+- `basis` is a short code: `client_default`, `convention`, `inferred_from_name`, `sibling_value` (free text allowed). `reason` is one sentence: which rule, who approved it.
+- Keep sending the value itself (e.g. `client.databases: [0]`, `details.dbIndex: 0`): `assumed` is a label on it, it changes no link and no graph. Do not also list the field in `unresolved` (contract finding `assumed-and-unresolved`).
+- Instead of free-form `details.databaseAssumptions` / `step.details.dbIndexBasis`, send `assumed` (the UI does not show `details` free text). A key entry takes it too: `{"keyTemplate": "session:{token}", "service": "auth-svc", "ttlSeconds": 3600, "assumed": [{"what": "ttl", "value": 3600, "basis": "convention", "reason": "..."}]}`.
+- Shown as a muted "assumed" badge (basis and reason on hover and in the panel); health lists it as an informational category `assumed` (per service and per basis), never in the coverage figure or the problem counts. Key entries' `assumed` is shown on the instance page (beside the TTL) and returned by the keys API, but not counted in health (keys are not part of the graph). Readers (API, MCP) treat it as a default, not a fact.
 
 ## How a service reaches a store: `client`
 

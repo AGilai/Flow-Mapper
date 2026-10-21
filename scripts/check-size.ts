@@ -11,7 +11,7 @@ const LIMITS: [string, number][] = [['core', 250], ['server', 250], ['web/js', 2
 
 /** Oversize files and their line count when recorded. Shrink them, never grow them. */
 export const ALLOWLIST: Record<string, number> = {
-  'core/trace.ts': 444,
+  'core/trace.ts': 440,
   'core/channel-flow.ts': 286,
   'core/events.ts': 271,
   'core/instances.ts': 266,

@@ -36,6 +36,7 @@
   "egress": [],
   "resources": [
     { "id": "sessions", "kind": "redis", "name": "session:{token}", "bindKey": "redis:auth-cache/session:{token}",
-      "client": { "accessMode": "direct_driver", "accessId": "auth-svc/src/sessions.ts:9", "databases": [0], "driver": { "package": "ioredis", "version": "5.3.2", "versionSource": "lockfile" } } }
+      "client": { "accessMode": "direct_driver", "accessId": "auth-svc/src/sessions.ts:9", "databases": [0], "driver": { "package": "ioredis", "version": "5.3.2", "versionSource": "lockfile" } },
+      "assumed": [{ "what": "detail", "detail": "client.databases", "value": [0], "basis": "client_default", "reason": "no db option and the URL has no path, so ioredis selects db 0 (approved default)" }] }
   ]
 }

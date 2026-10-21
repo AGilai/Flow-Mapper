@@ -3,8 +3,11 @@
 // these commands". An owner is a service that writes the template; a template with several writers is
 // Shared, one nobody harvested writes is Unwritten. Pure: the server stores entries, this reads them.
 
+import type { Assumed } from './types.ts';
+import { assumedProblem } from './assumed.ts';
+
 export type KeyAccess = 'read' | 'write' | 'read_write';
-export interface KeyEntry { keyTemplate: string; dbIndex: number; commands: string[]; service: string; access: KeyAccess; opsPerHour?: number; ttlSeconds?: number }
+export interface KeyEntry { keyTemplate: string; dbIndex: number; commands: string[]; service: string; access: KeyAccess; opsPerHour?: number; ttlSeconds?: number; /** Values filled by a rule, not read from code (#47). */ assumed?: Assumed[] }
 export interface KeyError { index: number; field: string; message: string }
 
 export const MAX_KEYS = 50000;
@@ -47,17 +50,22 @@ export function normaliseKeys(raw: unknown, defaultService?: string): { entries:
     if (ops != null && !(typeof ops === 'number' && Number.isFinite(ops) && ops >= 0)) return bad('opsPerHour', 'must be a number >= 0');
     const ttl = pick(o, 'ttlSeconds', 'ttl');
     if (ttl != null && !(Number.isInteger(ttl) && ttl >= 0)) return bad('ttlSeconds', 'must be an integer >= 0 (seconds), or left out when there is no TTL or it is unknown');
+    const assumed = o.assumed;
+    if (assumed !== undefined) {
+      const why = !Array.isArray(assumed) ? 'must be an array of {what, value, basis, reason}' : assumed.map(assumedProblem).find(Boolean);
+      if (why) return bad('assumed', why);
+    }
     for (const service of services as string[]) {
       const id = `${service.trim()}\u0000${dbIndex}\u0000${keyTemplate.trim()}`;
       if (seen.has(id)) { bad('keyTemplate', `duplicate entry for service '${service}', db${dbIndex}, '${keyTemplate}'`); continue; }
       seen.add(id);
-      entries.push({ keyTemplate: keyTemplate.trim(), dbIndex, commands, service: service.trim(), access, ...(ops != null ? { opsPerHour: ops } : {}), ...(ttl != null ? { ttlSeconds: ttl } : {}) });
+      entries.push({ keyTemplate: keyTemplate.trim(), dbIndex, commands, service: service.trim(), access, ...(ops != null ? { opsPerHour: ops } : {}), ...(ttl != null ? { ttlSeconds: ttl } : {}), ...(assumed?.length ? { assumed } : {}) });
     }
   });
   return { entries, errors };
 }
 
-export interface KeyUse { service: string; access: KeyAccess; commands: string[]; opsPerHour: number | null; ttlSeconds: number | null }
+export interface KeyUse { service: string; access: KeyAccess; commands: string[]; opsPerHour: number | null; ttlSeconds: number | null; assumed?: Assumed[] }
 export interface KeyProblem { kind: 'no-writer' | 'ttl-disagree'; why: string; follows: string }
 /** An entry point whose flow runs a step that touches the key (`details.keyTemplate`), with the function chain to it. */
 export interface KeyFlow { access: KeyAccess | 'unknown'; service: string; ingress: string; bindKey: string; transport: string; entryPoint: boolean; chain: string[]; operation: string; step: { service: string; fn: string; seq: number }; ttlSeconds?: number }
@@ -74,7 +82,7 @@ export interface KeySummary { templates: number; services: number; writers: numb
 
 const sum = (xs: (number | null | undefined)[]) => (xs.some((x) => x != null) ? xs.reduce<number>((a, x) => a + (x ?? 0), 0) : null);
 export const isWriter = (e: { access: KeyAccess }) => e.access === 'write' || e.access === 'read_write';
-const use = (e: KeyEntry): KeyUse => ({ service: e.service, access: e.access, commands: e.commands, opsPerHour: e.opsPerHour ?? null, ttlSeconds: e.ttlSeconds ?? null });
+const use = (e: KeyEntry): KeyUse => ({ service: e.service, access: e.access, commands: e.commands, opsPerHour: e.opsPerHour ?? null, ttlSeconds: e.ttlSeconds ?? null, ...(e.assumed?.length ? { assumed: e.assumed } : {}) });
 const list = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} and ${xs.at(-1)}` : xs[0]);
 const ops = (n: number | null) => (n == null ? '' : ` ${n >= 1000 ? `${+(n / 1000).toFixed(1)}k` : n} times an hour`);
 

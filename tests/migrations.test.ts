@@ -136,9 +136,9 @@ test('004 adds the Redis key tables to an old database without touching its rows
   assert.equal(count(db, 'SELECT count(*) AS n FROM resource_keys'), 0);
   assert.equal(count(db, 'SELECT count(*) AS n FROM resource_keys_meta'), 0);
   assert.equal(count(db, 'SELECT count(*) AS n FROM bugs'), 1, 'existing rows are kept');
-  db.prepare("INSERT INTO resource_keys VALUES ('prod', 'redis:c', 0, 'k:{id}', 'svc', 'write', '[\"SET\"]', NULL, 60)").run();
-  assert.throws(() => db.prepare("INSERT INTO resource_keys VALUES ('prod', 'redis:c', 0, 'k2', 'svc', 'rw', '[]', NULL, NULL)").run(), 'access is checked');
-  assert.throws(() => db.prepare("INSERT INTO resource_keys VALUES ('prod', 'redis:c', 0, 'k:{id}', 'svc', 'read', '[]', NULL, NULL)").run(), 'one row per env, instance, db, template and service');
+  db.prepare("INSERT INTO resource_keys (env, instance, db_index, key_template, service, access, commands, ops_per_hour, ttl_seconds) VALUES ('prod', 'redis:c', 0, 'k:{id}', 'svc', 'write', '[\"SET\"]', NULL, 60)").run();
+  assert.throws(() => db.prepare("INSERT INTO resource_keys (env, instance, db_index, key_template, service, access, commands, ops_per_hour, ttl_seconds) VALUES ('prod', 'redis:c', 0, 'k2', 'svc', 'rw', '[]', NULL, NULL)").run(), 'access is checked');
+  assert.throws(() => db.prepare("INSERT INTO resource_keys (env, instance, db_index, key_template, service, access, commands, ops_per_hour, ttl_seconds) VALUES ('prod', 'redis:c', 0, 'k:{id}', 'svc', 'read', '[]', NULL, NULL)").run(), 'one row per env, instance, db, template and service');
   assert.ok(existsSync(`${path}.pre-002.bak`), 'the backup is taken before the first pending migration');
   db.close();
 });

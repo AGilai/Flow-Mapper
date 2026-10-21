@@ -8,6 +8,7 @@ Add a row here with every fix or feature (newest first). A row without a working
 
 | Version | Bug | What to look at | Link |
 |---|---|---|---|
+| 0.25.2 | #47 | Assumed values: `auth-svc` reaches the Redis instance `auth-cache` with `databases: [0]` filled by the client default (basis `client_default`): a muted "assumed" badge beside `db0`, basis and reason on hover and in the client panel. Also step 3 of `orders-svc` `in.get` (`details.ttlSeconds` assumed, basis `convention`), shown in the step panel; and the informational `Assumed values` tab in Link health | `#/instances/redis%3Aauth-cache`, `#/flows?service=orders-svc&ingress=in.get`, `#/health?kind=assumed` |
 | 0.25.1 | #54, #49 | Links and runtime (data and API; the UI renders them in 0.26.0): `analytics-svc` has header, function and endpoint links and `details.runtime: k8s-deployment`; the first `sase-hld` flow has flow links | `/api/envs/prod/services/analytics-svc`; `/api/envs/sase-hld/trace?service=sase-agent&ingress=in.tunnel.open&draft=hld-import` (`start.links`) |
 | 0.25.1 | #55 | `pop-edge`'s tunnel hop (socket) is `entryPoint: false`: it is no longer listed as an entry point of `sase-hld`; the agent flow that goes through it is | `/api/envs/sase-hld/entry-points?draft=hld-import` |
 | 0.25.1 | #56 | A discarded draft's slug can be reused (API only): `DELETE /api/envs/sase-hld/drafts/<slug>` then `POST /api/envs/sase-hld/drafts {name, slug}` answers 201 with 0 ops | `/api/envs/sase-hld/drafts?status=all` |

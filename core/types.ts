@@ -17,6 +17,8 @@ export interface Provenance { producer?: string; runId?: string; verified?: 'mat
 /** Something the harvester found but could not resolve: the target (call or consumer) or the event type. */
 /** what=caller (on a function): the backward walk stopped here because nothing could be resolved as its caller. */
 export interface Unresolved { what: 'target' | 'event' | 'caller' | 'client' | 'instance' | 'detail'; reason: string; detail?: string; candidates?: string[] }
+/** A value the harvester filled by a rule (a default, a convention), not from code (#47, 0.25.2). The mirror of `Unresolved`: `what` is a first-class name or 'detail' with `detail` the field path. */
+export interface Assumed { what: string; value: unknown; basis: string; reason: string; detail?: string }
 
 export interface Service {
   name: string;
@@ -65,6 +67,7 @@ export interface Step {
   /** Free-form. On a resource step of a Redis instance: `keyTemplate` (the key it touches, #29), `dbIndex`, `ttlSeconds`. */
   details?: Details;
   unresolved?: Unresolved[];
+  assumed?: Assumed[];
   /** Where the call is made (file, line, col). */
   source?: Source;
 }
@@ -75,7 +78,7 @@ export const isLeaf = (st: Pick<Step, 'type' | 'target' | 'kind' | 'operation' |
 
 export interface StepField { role: 'filter' | 'projection' | 'update' | 'sort'; path: string; operator?: string; inDdl?: boolean; ddlRef?: string; flag?: string }
 
-export interface Fn { service: string; id: string; name: string; links?: Links; file?: string; line?: number; commit?: string; details?: Details; steps: Step[]; unresolved?: Unresolved[] }
+export interface Fn { service: string; id: string; name: string; links?: Links; file?: string; line?: number; commit?: string; details?: Details; steps: Step[]; unresolved?: Unresolved[]; assumed?: Assumed[] }
 /** An event type a consumer handles. `type` may be a glob (`Order*`, `*`); `producers` are declared, not derived. */
 export interface IngressEvent { type: string; handler: string; producers?: string[] }
 export interface Ingress {
@@ -86,7 +89,7 @@ export interface Ingress {
   events?: IngressEvent[];
   /** How the handler was resolved (registration, bind): hops from the registration to the handler. `details.handlerVia` is read too (core/via.ts). */
   via?: ViaHop[];
-  source?: Source; provenance?: Provenance; unresolved?: Unresolved[];
+  source?: Source; provenance?: Provenance; unresolved?: Unresolved[]; assumed?: Assumed[];
 }
 /** One wrapper between a call site and the real SDK call (the last hop calls the SDK). Never a node or edge. */
 export interface ViaHop { function: string; file?: string; line?: number; col?: number; kind?: string; repo?: string; commit?: string }
@@ -107,9 +110,9 @@ export interface Egress {
   client?: ClientInfo;
   /** Event types published through this egress (literal). */
   events?: string[];
-  source?: Source; provenance?: Provenance; unresolved?: Unresolved[];
+  source?: Source; provenance?: Provenance; unresolved?: Unresolved[]; assumed?: Assumed[];
 }
-export interface Resource { service: string; id: string; kind: string; name: string; bindKey?: string; details?: Details; client?: ClientInfo; source?: Source; provenance?: Provenance; unresolved?: Unresolved[] }
+export interface Resource { service: string; id: string; kind: string; name: string; bindKey?: string; details?: Details; client?: ClientInfo; source?: Source; provenance?: Provenance; unresolved?: Unresolved[]; assumed?: Assumed[] }
 export interface Channel {
   service: string; bindKey: string; kind: 'sns-topic' | 'sqs-queue' | 'amqp-exchange' | 'amqp-queue' | 'eventbridge-bus' | 'other';
   name?: string; delivery?: Delivery; details?: Details;
