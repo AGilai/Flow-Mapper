@@ -66,6 +66,8 @@ export interface HopFilter { id: string; service: string; from: string; events?:
 export interface Trace {
   start: { service: string; ingress?: string; fn: string; event?: string }; scope: 'intra' | 'full';
   participants: Participant[]; messages: Message[]; truncated: boolean;
+  /** An entry point with no handler (none named, or none for the requested event) (0.25.1, #59): an empty flow (the entry participant, no messages) that can still be fetched, described and linked. */
+  noHandler?: true;
   /** Code location of every function on the trace, by `${service}:${fn}`, of call sites, by `egress:${service}:${id}`, and of steps that carry a `source`, by `step:${service}:${fn}#${seq}`. */
   code: Record<string, SourceLink | null>;
 }
@@ -82,6 +84,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
   const showFrontier = !!opts.frontier;
   const ing = start.ingress ? g.ingress.get(sid(start.service, start.ingress)) : undefined;
   const fnId = start.fn ?? (ing && start.event ? handlerFor(ing, start.event) : ing?.handler);
+  if (ing && !start.fn && !fnId) return emptyFlow(start.service, ing, scope, start.event); // no handler named (for this event): an empty flow, not a 404
   if (!fnId || !g.fns.get(sid(start.service, fnId))) return null;
 
   const participants = new Map<string, Participant>();
@@ -351,6 +354,12 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
     if (e?.source && !(`egress:${m.service}:${e.id}` in code)) code[`egress:${m.service}:${e.id}`] = codeLink(g.services.get(m.service!)!, e.source);
   }
   return { code, start: { service: root, ingress: ing?.id, fn: fnId, event: start.event }, scope, participants: deliveryOrder([...participants.values()], messages), messages, truncated };
+}
+
+/** The flow of an entry point with no handler (#59): the caller and the service, no steps. */
+function emptyFlow(service: string, ing: Ingress, scope: 'intra' | 'full', event?: string): Trace {
+  const client: Participant = { id: 'client', label: ing.entryPoint ? 'client' : 'caller', kind: 'client' };
+  return { code: {}, start: { service, ingress: ing.id, fn: '', event }, scope, participants: [client, { id: `svc:${service}`, label: service, kind: 'service', service }], messages: [], truncated: false, noHandler: true };
 }
 
 /** The wire protocol of a socket ingress (`details.protocol`: tls, tcp or ws); tcp when the harvester gave none. */
