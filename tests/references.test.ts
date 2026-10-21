@@ -56,3 +56,11 @@ test('an import op of the draft gives the origin inDraft; imported = taken after
   assert.equal(later.origins['ing:users/in.b'].inDraft, undefined, 'after apply the origin is the baseline: no inDraft');
   assert.equal(later.origins['ing:users/in.b'].imported, true);
 });
+
+test('an endpoint whose handler was imported after the copy reads as imported (the function origin), in the draft or after apply', () => {
+  const rows = [hdr('users'), ing('users', 'in.a', 'a'), fn('users', 'a')];
+  const copied = base(rows), fnOrigin = { service: 'users', list: 'functions', key: 'a', sourceEnv: 'prod', takenAt: 'T1' };
+  assert.deepEqual(referencesOf(rows, originsOf(copied, [fnOrigin]), 'T0').origins['ing:users/in.a'], { from: 'prod', at: 'T1', imported: true, inDraft: true });
+  assert.deepEqual(referencesOf(rows, originsOf([...copied, fnOrigin]), 'T0').origins['ing:users/in.a'], { from: 'prod', at: 'T1', imported: true });
+  assert.deepEqual(referencesOf(rows, originsOf([...copied, { ...fnOrigin, takenAt: 'T0' }]), 'T0').origins['ing:users/in.a'], { from: 'prod', at: 'T0', imported: false }, 'a function copied with the environment is not an import');
+});

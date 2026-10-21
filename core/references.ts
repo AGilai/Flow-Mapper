@@ -1,6 +1,7 @@
 // References: a copied endpoint whose behaviour (handler and call tree) is not in the design. One definition for the server, the
 // preview and the UI. An ingress row of a design environment is a reference iff
-//   (a) it has an origin: a baseline row for it (the design copied or imported it from a source env), or an import op in the draft being read,
+//   (a) it has an origin: a baseline row for it (the design copied or imported it from a source env), or an import op in the draft being read
+//       (a function's origin counts for `origins` below: an endpoint whose handler was imported later reads as imported),
 //   (b) it names at least one handler (its own or an event consumer's), and
 //   (c) none of those handlers is a function of its service in the rows being read.
 // A design-made endpoint with a dangling handler is not a reference: it is "not designed yet". Sealed environments have no origins.
@@ -19,11 +20,11 @@ export interface EnvRefs {
 }
 export interface OriginInput { service: string; list: string; key: string; sourceEnv: string; takenAt: string }
 
-/** Ingress rows that came from another environment: the baseline's, overridden by the rows a draft's import ops bring (`inDraft`). */
+/** Ingress and function rows that came from another environment: the baseline's, overridden by the rows a draft's import ops bring (`inDraft`). */
 export function originsOf(base: OriginInput[], draftBase: OriginInput[] = []): Map<string, Origin> {
   const out = new Map<string, Origin>();
-  for (const r of base) if (r.list === 'ingress') out.set(rowId(r), { sourceEnv: r.sourceEnv, takenAt: r.takenAt });
-  for (const r of draftBase) if (r.list === 'ingress') out.set(rowId(r), { sourceEnv: r.sourceEnv, takenAt: r.takenAt, inDraft: true });
+  for (const r of base) if (r.list === 'ingress' || r.list === 'functions') out.set(rowId(r), { sourceEnv: r.sourceEnv, takenAt: r.takenAt });
+  for (const r of draftBase) if (r.list === 'ingress' || r.list === 'functions') out.set(rowId(r), { sourceEnv: r.sourceEnv, takenAt: r.takenAt, inDraft: true });
   return out;
 }
 
@@ -47,7 +48,12 @@ export function referencesOf(cur: ItemRow[], origins: Map<string, Origin>, copie
       out.endpoints[anchor] = { service: r.service, ingress: r.key, bindKey: r.data?.bindKey ?? '', source: o.sourceEnv };
       const c = out.components[`svc:${r.service}`] ??= { refs: 0, endpoints: count.get(r.service) ?? 0 };
       c.refs++;
-    } else out.origins[anchor] = { from: o.sourceEnv, at: o.takenAt, imported: o.takenAt !== copiedAt, ...(o.inDraft ? { inDraft: true as const } : {}) };
+    } else {
+      // behaviour imported after the copy (its handler came in by an import) makes the endpoint "imported", whatever its own row says
+      const later = hs.map((h) => origins.get(rowId({ service: r.service, list: 'functions', key: h }))).find((f) => f && f.takenAt !== copiedAt);
+      const x = later ?? o;
+      out.origins[anchor] = { from: x.sourceEnv, at: x.takenAt, imported: x.takenAt !== copiedAt, ...(x.inDraft ? { inDraft: true as const } : {}) };
+    }
   }
   return out;
 }

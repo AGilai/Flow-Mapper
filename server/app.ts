@@ -19,6 +19,7 @@ import { registerInventory } from './routes/inventory.ts';
 import { registerInstances } from './routes/instances.ts';
 import { registerDrafts } from './routes/drafts.ts';
 import { registerMarks } from './routes/marks.ts';
+import { registerDraftEdits } from './routes/draft-edits.ts';
 import { getDraft } from './store/drafts.ts';
 import { registerMcpHttp } from './mcp/http.ts';
 import { registerEvents, type StreamOptions } from './routes/events.ts';
@@ -57,6 +58,7 @@ export function createApp(opts: AppOptions): { server: Server; ctx: Ctx; router:
   registerInventory(router, ctx);
   registerInstances(router, ctx);
   registerDrafts(router, ctx);
+  registerDraftEdits(router, ctx);
   registerMarks(router, ctx);
   registerMcpHttp(router, ctx);
   registerEvents(router, ctx, opts.events);

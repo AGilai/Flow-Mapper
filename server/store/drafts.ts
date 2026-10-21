@@ -5,7 +5,7 @@ import type { DB } from '../db/connection.ts';
 import { tx } from '../db/connection.ts';
 import { badRequest, conflict, invalid, notFound } from '../errors.ts';
 import { rowId, type ItemRow } from '../../core/item-rows.ts';
-import { draftChanges, netOps, overlayRows, type DraftChanges, type DraftOp, type DraftOpInput } from '../../core/draft-ops.ts';
+import { draftChanges, netOps, overlayRows, type DraftChanges, type DraftOp, type DraftOpInput, type OpOrigin } from '../../core/draft-ops.ts';
 import { rawHash } from '../../core/diff/normalise.ts';
 import { rowOfAnchor } from '../../core/anchors.ts';
 import { guardEnv } from './envs.ts';
@@ -30,7 +30,7 @@ export function getDraft(db: DB, env: string, slug: string, opts: { any?: boolea
 export function loadOps(db: DB, id: number): DraftOp[] {
   return (db.prepare('SELECT * FROM draft_ops WHERE draft_id = ? ORDER BY seq').all(id) as any[]).map((r) => ({
     seq: r.seq, op: r.op, anchor: r.anchor, service: r.service, list: r.list, key: r.key, ...(r.data !== null ? { data: JSON.parse(r.data) } : {}),
-    baseHash: r.base_hash, author: r.author, byAi: !!r.by_ai, at: r.at,
+    baseHash: r.base_hash, author: r.author, byAi: !!r.by_ai, at: r.at, ...(r.origin ? { origin: JSON.parse(r.origin) } : {}),
   }));
 }
 
@@ -103,7 +103,7 @@ export function discardDraft(db: DB, env: string, slug: string, by = 'anonymous'
 }
 
 /** Append ops (validated against the overlay so far, all or nothing). seq = MAX(seq)+1 inside the transaction. */
-export function appendOps(db: DB, env: string, slug: string, inputs: DraftOpInput[], who: { author?: string; byAi?: boolean } = {}) {
+export function appendOps(db: DB, env: string, slug: string, inputs: DraftOpInput[], who: { author?: string; byAi?: boolean; origins?: (OpOrigin | null)[] } = {}) {
   return tx(db, () => {
     guardEnv(db, env, 'draft');
     const d = getDraft(db, env, slug);
@@ -115,11 +115,11 @@ export function appendOps(db: DB, env: string, slug: string, inputs: DraftOpInpu
     for (const o of prior) if (!first.has(rowId(o))) first.set(rowId(o), o.baseHash);
     let seq = (db.prepare('SELECT COALESCE(MAX(seq), 0) AS m FROM draft_ops WHERE draft_id = ?').get(d.id) as { m: number }).m;
     const from = seq + 1, at = now(), author = String(who.author ?? (who.byAi ? 'assistant' : 'anonymous')).slice(0, 80);
-    const ins = db.prepare('INSERT INTO draft_ops (draft_id, seq, op, anchor, service, list, key, data, base_hash, author, by_ai, at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
-    for (const p of prepared) {
-      const id = rowId(p), e = envMap.get(id);
+    const ins = db.prepare('INSERT INTO draft_ops (draft_id, seq, op, anchor, service, list, key, data, base_hash, author, by_ai, at, origin) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+    for (const [k, p] of prepared.entries()) {
+      const id = rowId(p), e = envMap.get(id), origin = who.origins?.[k];
       if (!first.has(id)) first.set(id, e ? rawHash(e.data, p.list) : null);
-      ins.run(d.id, ++seq, p.op, p.anchor, p.service, p.list, p.key, p.data === undefined ? null : JSON.stringify(p.data), first.get(id)!, author, who.byAi ? 1 : 0, at);
+      ins.run(d.id, ++seq, p.op, p.anchor, p.service, p.list, p.key, p.data === undefined ? null : JSON.stringify(p.data), first.get(id)!, author, who.byAi ? 1 : 0, at, origin ? JSON.stringify(origin) : null);
     }
     db.prepare('UPDATE drafts SET updated_at = ? WHERE id = ?').run(at, d.id);
     return { from, to: seq, counts: changesOf(envRows, loadOps(db, d.id)).counts };

@@ -6,17 +6,13 @@
 // "a service that only declares channels". Their rows are in baseline_items too, so they read as unchanged.
 
 import { channelsFor } from '../../core/channels-for.ts';
+import { infraBindingId, infraOwnerName } from '../../core/infra-owner.ts';
 import type { CopyCtx } from './env-copy-rows.ts';
 import { loadModel } from './snapshots-read.ts';
 import { writeChangelog } from './snapshots-write.ts';
 
 /** "<source>-infra", numbered when a service of the source already has that name. */
-function ownerName(c: CopyCtx): string {
-  const taken = new Set((c.db.prepare('SELECT service FROM snapshots WHERE env = ?').all(c.from) as { service: string }[]).map((r) => r.service));
-  let name = `${c.from}-infra`;
-  for (let i = 2; taken.has(name); i++) name = `${c.from}-infra-${i}`;
-  return name;
-}
+const ownerName = (c: CopyCtx): string => infraOwnerName(new Set((c.db.prepare('SELECT service FROM snapshots WHERE env = ?').all(c.from) as { service: string }[]).map((r) => r.service)), c.from);
 
 const strip = ({ service: _s, ...rest }: any) => rest;
 
@@ -25,7 +21,7 @@ export function copySharedChannels(c: CopyCtx, picked: Set<string>) {
   const items = [
     ...bring.map((ch) => ({ list: 'channels', key: ch.bindKey, data: strip(ch) })),
     // ids are per service in the source; under one owner they are prefixed with the declaring service
-    ...bindings.map((b) => ({ list: 'bindings', key: `${b.service}.${b.id}`, data: { ...strip(b), id: `${b.service}.${b.id}` } })),
+    ...bindings.map((b) => ({ list: 'bindings', key: infraBindingId(b.service, b.id), data: { ...strip(b), id: infraBindingId(b.service, b.id) } })),
   ];
   if (!items.length) return null;
 

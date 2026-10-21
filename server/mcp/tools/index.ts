@@ -8,6 +8,7 @@ import { listBugsTool, getBugTool, reportBugTool, updateBugTool } from './bugs.t
 import { listEnvsTool, createEnvTool } from './envs.ts';
 import { openDraftTool, listDraftsTool, draftChangesTool, editInDraftTool, applyDraftTool, discardDraftTool } from './drafts.ts';
 import { getMarksTool, applyImportPlanTool } from './design.ts';
+import { importPreviewTool, importIntoDraftTool } from './import.ts';
 import type { Tool } from './common.ts';
 export type { Tool };
 
@@ -48,4 +49,6 @@ export const TOOLS: Tool[] = [
   discardDraftTool,
   getMarksTool,
   applyImportPlanTool,
+  importPreviewTool,
+  importIntoDraftTool,
 ];

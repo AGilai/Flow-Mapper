@@ -18,6 +18,7 @@ import { deleteServiceIn } from './snapshots-crud.ts';
 import { loadModel, type Source, type WriteResult } from './snapshots-read.ts';
 import { writeChangelog } from './snapshots-write.ts';
 import { writeSide } from './draft-side.ts';
+import { writeImportBaseline } from './baseline-write.ts';
 import { withDry } from './dry-run.ts';
 
 export interface ApplyResult { applied: boolean; dryRun?: boolean; results: WriteResult[]; replaced: Replaced[]; changelogId?: number; warnings: string[] }
@@ -45,7 +46,8 @@ export function applyDraftIn(db: DB, env: string, slug: string, opts: { by: stri
   const results = dm.manifests.length ? ingestIn(db, dm.manifests, opts.source, { writer: 'draft', tolerateExisting: true, replaceHeader: dm.replaceHeader, draftId: d.id }) : [];
   for (const name of dm.deletes) deleteServiceIn(db, env, name, opts.source, d.id);
   const warnings = writeSide(db, env, dm.side, buildIndex(loadModel(db, env)), opts.by);
-  const changelogId = writeChangelog(db, env, '', null, null, 'draft', opts.source, { draft: slug, name: d.name, counts: changes.counts, replaced: replaced.map((r) => r.anchor) }, d.id);
+  const imported = writeImportBaseline(db, env, ops);
+  const changelogId = writeChangelog(db, env, '', null, null, 'draft', opts.source, { draft: slug, name: d.name, counts: changes.counts, replaced: replaced.map((r) => r.anchor), ...(imported ? { imported } : {}) }, d.id);
   const at = new Date().toISOString();
   db.prepare("UPDATE drafts SET status = 'applied', closed_at = ?, closed_by = ?, updated_at = ?, report = ? WHERE id = ?")
     .run(at, opts.by.slice(0, 80), at, JSON.stringify({ results: results.map(({ contract: _c, ...r }) => r), replaced, warnings, counts: changes.counts }), d.id);
