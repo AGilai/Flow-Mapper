@@ -36,8 +36,8 @@ export const draftChangesTool: Tool = {
 
 export const editInDraftTool: Tool = {
   name: 'edit_in_draft',
-  description: "Append whole-item ops to an open draft: [{op: 'upsert' | 'delete', anchor, service?, data?}] (1..500, all or nothing). Anchors: svc:<s>, fn:|ing:|egr:|res:|bind:<s>/<id>, ch:<bindKey> (+ service = the owner), dto:<s>/<role>/<status or ->/<ingress>, evt:<type>, schema:<source>/<storeKey>, flow:<s>/<ingress>. upsert needs the whole item as `data` (a svc: header is {kind, team?, groupPath?, ...}; a dto/evt is {content, meta?}; a schema is its content; a flow is {name?, description?, steps?}). The environment is not written until apply_draft. Recorded as an AI edit.",
-  inputSchema: obj({ env, draft: slug, ops: { type: 'array', minItems: 1, maxItems: 500, items: obj({ op: { enum: ['upsert', 'delete'] }, anchor: { type: 'string' }, service: { type: 'string' }, data: {} }, ['op', 'anchor']) }, author: { type: 'string' } }, ['draft', 'ops']),
+  description: "Append whole-item ops to an open draft: [{op: 'upsert' | 'delete', anchor, service?, data?}] (1..5000, all or nothing). Anchors: svc:<s>, fn:|ing:|egr:|res:|bind:<s>/<id>, ch:<bindKey> (+ service = the owner), dto:<s>/<role>/<status or ->/<ingress>, evt:<type>, schema:<source>/<storeKey>, flow:<s>/<ingress>. upsert needs the whole item as `data` (a svc: header is {kind, team?, groupPath?, ...}; a dto/evt is {content, meta?}; a schema is its content; a flow is {name?, description?, steps?}). The environment is not written until apply_draft. Recorded as an AI edit.",
+  inputSchema: obj({ env, draft: slug, ops: { type: 'array', minItems: 1, maxItems: 5000, items: obj({ op: { enum: ['upsert', 'delete'] }, anchor: { type: 'string' }, service: { type: 'string' }, data: {} }, ['op', 'anchor']) }, author: { type: 'string' } }, ['draft', 'ops']),
   run: (c, a) => { const out = drafts.appendOps(c.db, envOf(a), need(a), a.ops, { author: a.author ?? 'assistant', byAi: true }); c.changedDraft(envOf(a), a.draft); return out; },
 };
 

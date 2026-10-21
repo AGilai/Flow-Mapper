@@ -14,6 +14,8 @@ import { normMeta, normStatus } from './dtos.ts';
 import { SOURCES } from './schemas.ts';
 
 export interface PreparedOp { op: 'upsert' | 'delete'; anchor: string; service: string; list: string; key: string; data?: any }
+/** Ops per request: a 114-component HLD import makes about 2,300 (Fix #53). */
+export const MAX_OPS = 5000;
 interface Bad { index: number; code: string; message: string }
 const isObj = (v: unknown): v is Record<string, any> => !!v && typeof v === 'object' && !Array.isArray(v);
 
@@ -76,7 +78,7 @@ function check(map: Map<string, ItemRow>, i: DraftOpInput): PreparedOp {
 /** Prepare a request's ops in order, laying each accepted op over `rows` (mutated). Throws 422 listing every bad op. `groups`: the environment's subsystem keys (NO_GROUP is not checked without them). */
 export function prepareOps(rows: Map<string, ItemRow>, inputs: unknown, opts: { groups?: string[] } = {}): PreparedOp[] {
   if (!Array.isArray(inputs) || !inputs.length) throw new HttpError(422, 'INVALID', 'ops must be a non-empty list of {op, anchor, service?, data?}');
-  if (inputs.length > 500) throw new HttpError(422, 'INVALID', 'at most 500 ops per request');
+  if (inputs.length > MAX_OPS) throw new HttpError(422, 'INVALID', `at most ${MAX_OPS} ops per request`);
   const out: PreparedOp[] = [], errs: Bad[] = [];
   inputs.forEach((i, index) => {
     try { const p = check(rows, i); applyOp(rows, p); out.push(p); }

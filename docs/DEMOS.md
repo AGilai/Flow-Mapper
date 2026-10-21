@@ -8,6 +8,7 @@ Add a row here with every fix or feature (newest first). A row without a working
 
 | Version | Bug | What to look at | Link |
 |---|---|---|---|
+| 0.25.0 | #53 | A large HLD import: one request may carry up to 5000 ops (was 500), so a 114-component plan (about 2,300 ops) is accepted in one transaction; over the cap or one bad op writes nothing. Try the demo plan, then see `tests/plan-large.test.ts` for the large one | `POST /api/envs/sase-hld/drafts/<slug>/plan` (API only) |
 | 0.25.0 | #52 | Flow names are read everywhere, with or without a draft: entry points, flows list, search (it finds a flow by its name) and the trace header carry `name`. The demo draft names its flow "Agent connects to POP"; apply the draft and the same names come without `?draft=` | `/api/envs/sase-hld/search?q=agent%20connects&draft=hld-import` (also `entry-points`, `flows/counts`, `trace`) |
 | 0.24.1 | none | Flow steps vs async jumps: step numbers are round pills at the start of an arrow, async jumps are squares with ↓ at the queue end | `#/flows?tabs=api-gateway/in.createOrder&step=10` |
 | 0.24.0 | | Design environments in the UI. Open `sase-hld` with the draft: the strip above the page (design chip, Compared with, Drafts, View | Edit), the draft bar (`+4 −0 ~1`, Review changes, Discard, Apply to sase-hld). The map has a spark on `sase-agent` and `pop-edge` and a ring with "+1 endpoint · +1 function" on `auth-svc` | `#/system?env=sase-hld&draft=hld-import` |
