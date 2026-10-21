@@ -2,7 +2,10 @@
 // collision-aware labels and team "districts". Canvas (not SVG) so ~1,000 nodes and
 // ~3,000 edges stay smooth. Colours come from CSS tokens.
 
-import { drawNode, nodeRadius, edgeStyle, readTheme } from './graph-style.js';
+import { drawNode, readTheme } from './graph-style.js';
+import { drawDistricts, drawEdges } from './graph-draw-edges.js';
+import { drawLabels } from './graph-draw-labels.js';
+import { nodeAt, edgeAt } from './graph-hit.js';
 import { iconImage } from '../components/object-icon.js';
 
 export function createCanvasGraph(host, { onSelect, onHover } = {}) {
@@ -46,62 +49,19 @@ export function createCanvasGraph(host, { onSelect, onHover } = {}) {
   const onTheme = () => { theme = readTheme(); schedule(); };
   mq.addEventListener('change', onTheme);
 
+  // The state the drawing and hit-testing modules read, as a snapshot of the closure at call time.
+  const view = () => ({ nodes, edges, pos, byId, degree, visible, edgeOk, highlight, selected, hovered, hoverSet, groups, k, w, hgt, theme, isVis, toScreen, toWorld });
+
   function draw() {
     raf = 0;
+    const S = view();
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, hgt);
     const focus = hoverSet ?? highlight;
     const dimmed = (id) => focus && !focus.has(id);
 
-    // Team districts: label at the centroid when zoomed out.
-    if (k < 1.1) {
-      ctx.font = `600 ${Math.max(12, 15 * Math.min(1, k * 1.4))}px ${theme.font}`;
-      ctx.textAlign = 'center';
-      ctx.fillStyle = theme.district;
-      const used = [];
-      for (const g of [...groups].sort((a, b) => b.size - a.size)) {
-        const [sx, sy] = toScreen(g);
-        const tw = ctx.measureText(g.name).width;
-        const box = [sx - tw / 2 - 6, sy - 10, tw + 12, 20];
-        if (used.some((b) => box[0] < b[0] + b[2] && box[0] + box[2] > b[0] && box[1] < b[1] + b[3] && box[1] + box[3] > b[1])) continue;
-        used.push(box);
-        ctx.fillText(g.name, sx, sy);
-      }
-    }
-
-    // Edges, batched by style. Quieter as the map gets denser.
-    const density = Math.max(0, Math.min(1, 1 - (edges.length - 60) / 600));
-    const batches = new Map();
-    for (const e of edges) {
-      if (!isVis(e.from) || !isVis(e.to) || (edgeOk && !edgeOk(e))) continue;
-      // With a centre (hovered/selected node), only its own edges are in focus.
-      const center = hoverSet ? hovered : highlight && selected && highlight.has(selected) ? selected : null;
-      const inFocus = focus && (center ? e.from === center || e.to === center : !dimmed(e.from) && !dimmed(e.to));
-      const st = edgeStyle(e, theme, {
-        dim: !!focus && !inFocus, focused: !!inFocus, selected: selected === e.id,
-        gateway: byId.get(e.from)?.kind === 'gateway' || byId.get(e.to)?.kind === 'gateway', density,
-      });
-      const key = `${st.color}|${st.dash}|${st.alpha}|${st.width}`;
-      if (!batches.has(key)) batches.set(key, { st, list: [] });
-      batches.get(key).list.push(e);
-    }
-    for (const { st, list } of batches.values()) {
-      ctx.strokeStyle = st.color; ctx.globalAlpha = st.alpha; ctx.lineWidth = st.width;
-      ctx.setLineDash(st.dash ? [4, 3] : []);
-      ctx.beginPath();
-      for (const e of list) {
-        const [ax, ay] = toScreen(pos.get(e.from)), [bx, by] = toScreen(pos.get(e.to));
-        ctx.moveTo(ax, ay); ctx.lineTo(bx, by);
-        if (k > 1.15) { // arrowhead at the target's edge
-          const r = nodeRadius(byId.get(e.to), degree) * Math.max(0.5, Math.min(k, 1.25)) + 2;
-          const ang = Math.atan2(by - ay, bx - ax), ex = bx - Math.cos(ang) * r, ey = by - Math.sin(ang) * r;
-          ctx.moveTo(ex - Math.cos(ang - 0.4) * 6, ey - Math.sin(ang - 0.4) * 6); ctx.lineTo(ex, ey);
-          ctx.lineTo(ex - Math.cos(ang + 0.4) * 6, ey - Math.sin(ang + 0.4) * 6);
-        }
-      }
-      ctx.stroke();
-    }
-    ctx.setLineDash([]); ctx.globalAlpha = 1;
+    drawDistricts(ctx, S);
+    drawEdges(ctx, S, focus, dimmed);
 
     // Nodes.
     const order = nodes.filter((n) => isVis(n.id));
@@ -109,58 +69,7 @@ export function createCanvasGraph(host, { onSelect, onHover } = {}) {
       dim: dimmed(n.id), selected: selected === n.id, hovered: hovered === n.id, img: iconFor(n),
     });
 
-    // Labels: most important first, skip any that would overlap one already drawn.
-    const placed = [];
-    const ranked = order
-      .map((n) => ({ n, score: (selected === n.id ? 1e6 : 0) + (hovered === n.id ? 1e5 : 0) + (focus?.has(n.id) ? 1e4 : 0) + (degree.get(n.id) ?? 0) + (n.kind === 'gateway' ? 50 : 0) }))
-      .sort((a, b) => b.score - a.score);
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    for (const { n, score } of ranked) {
-      if (dimmed(n.id)) continue;
-      const r = nodeRadius(n, degree) * Math.max(0.5, Math.min(k, 1.25));
-      const important = score >= 1e4 || (n.kind !== 'channel' && n.kind !== 'resource') ;
-      if (!important && k < 1.6) continue;
-      if (placed.length > 160) break;
-      const [sx, sy] = toScreen(pos.get(n.id));
-      if (sx < -50 || sy < -20 || sx > w + 50 || sy > hgt + 20) continue;
-      ctx.font = `${n.kind === 'channel' || n.kind === 'resource' ? 400 : 600} ${n.kind === 'channel' || n.kind === 'resource' ? 11 : 12}px ${theme.font}`;
-      const tw = ctx.measureText(n.label).width;
-      const box = [sx + r + 4, sy - 8, tw + 4, 16];
-      if (placed.some((b) => box[0] < b[0] + b[2] && box[0] + box[2] > b[0] && box[1] < b[1] + b[3] && box[1] + box[3] > b[1])) continue;
-      placed.push(box);
-      ctx.fillStyle = theme.halo;
-      ctx.fillRect(box[0] - 1, box[1] + 1, box[2], box[3] - 2);
-      ctx.fillStyle = n.kind === 'missing' ? theme.broken : theme.ink;
-      ctx.fillText(n.label, box[0] + 1, sy);
-    }
-  }
-
-  // ---- hit testing ----
-  function nodeAt(sx, sy) {
-    const [wx, wy] = toWorld(sx, sy);
-    let best = null, bd = Infinity;
-    for (const n of nodes) {
-      if (!isVis(n.id)) continue;
-      const p = pos.get(n.id), r = nodeRadius(n, degree) + 4 / k;
-      const d = Math.hypot(p.x - wx, p.y - wy);
-      if (d < r && d < bd) { best = n; bd = d; }
-    }
-    return best;
-  }
-  function edgeAt(sx, sy) {
-    const [wx, wy] = toWorld(sx, sy);
-    const tol = 8 / k;
-    let best = null, bd = tol;
-    for (const e of edges) {
-      if (!isVis(e.from) || !isVis(e.to) || (edgeOk && !edgeOk(e)) || (highlight && (!highlight.has(e.from) || !highlight.has(e.to)))) continue;
-      const a = pos.get(e.from), b = pos.get(e.to);
-      const dx = b.x - a.x, dy = b.y - a.y, l2 = dx * dx + dy * dy || 1;
-      const t = Math.max(0, Math.min(1, ((wx - a.x) * dx + (wy - a.y) * dy) / l2));
-      const d = Math.hypot(a.x + t * dx - wx, a.y + t * dy - wy);
-      if (d < bd) { best = e; bd = d; }
-    }
-    return best;
+    drawLabels(ctx, S, order, focus, dimmed);
   }
 
   // ---- interaction ----
@@ -186,9 +95,9 @@ export function createCanvasGraph(host, { onSelect, onHover } = {}) {
       schedule();
       return;
     }
-    const n = nodeAt(ev.offsetX, ev.offsetY);
+    const n = nodeAt(view(), ev.offsetX, ev.offsetY);
     const id = n?.id ?? null;
-    canvas.style.cursor = n || edgeAt(ev.offsetX, ev.offsetY) ? 'pointer' : 'grab';
+    canvas.style.cursor = n || edgeAt(view(), ev.offsetX, ev.offsetY) ? 'pointer' : 'grab';
     if (id !== hovered) {
       hovered = id;
       hoverSet = null;
@@ -199,9 +108,9 @@ export function createCanvasGraph(host, { onSelect, onHover } = {}) {
   const end = (ev) => {
     pointers.delete(ev.pointerId);
     if (drag && !drag.moved && pointers.size === 0) {
-      const n = nodeAt(ev.offsetX, ev.offsetY);
+      const n = nodeAt(view(), ev.offsetX, ev.offsetY);
       if (n) onSelect?.({ type: 'node', item: n });
-      else { const e = edgeAt(ev.offsetX, ev.offsetY); onSelect?.(e ? { type: 'edge', item: e } : null); }
+      else { const e = edgeAt(view(), ev.offsetX, ev.offsetY); onSelect?.(e ? { type: 'edge', item: e } : null); }
     }
     if (pointers.size === 0) drag = null;
   };
