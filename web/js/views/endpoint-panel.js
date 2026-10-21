@@ -2,6 +2,7 @@
 // the kind of endpoint (a queue's message, a POST's request body, a GET's response body). An event
 // consumer lists each event type with its handler, producers and Message DTO.
 
+import { assumedBlock } from '../components/assumed-badge.js';
 import { h } from '../dom.js';
 import { icon } from '../icons.js';
 import { href } from '../router.js';
@@ -44,6 +45,7 @@ function codeCard(fn, i, source, definedAt, handlerVia) {
   return card('Code', h('span.ep-meta', verified ? h('span.pill', { class: `verified-${verified}`, title: `checked against the live system: ${verified}` }, verified) : null, ref ? [icon('commit'), ref] : null),
     body, route,
     handlerVia?.length ? h('div.ep-pad.stack', { style: { gap: 'var(--s1)' } }, h('span.ep-label', 'Handler resolved through'), viaChip(handlerVia)) : null,
+    assumedBlock(i.assumed),
     gap ? h('p.ep-note.ep-pad', `Unresolved by the harvester: ${gap.reason}${gap.detail ? ` (${gap.detail})` : ''}.`) : null,
     source ? null : h('p.ep-note', 'No repository recorded for this service.'));
 }

@@ -13,6 +13,7 @@ import { createPanel } from '../components/panel.js';
 import { objectIcon, titled } from '../components/object-icon.js';
 import { VERIFIED } from '../components/declaration.js';
 import { codeLink } from './detail-parts.js';
+import { assumedBadge, valueText } from '../components/assumed-badge.js';
 import { clientPane, lanes } from './instance-lanes.js';
 import { keyCard } from './instance-key-card.js';
 
@@ -34,6 +35,7 @@ function meta(v) {
     h('span.key', v.key),
     d ? h('span', 'Defined by ', h('b', d.service), where ? [' in ', where] : null) : h('span', 'Not defined by an infra harvester: found from ', list(v.services)),
     summaryLine(v) ? h('span', summaryLine(v)) : null,
+    v.assumed?.map((a) => h('span', `${a.field}: ${valueText(a.value)}`, assumedBadge(a))),
     d?.verified ? h('span', { class: `verified-${d.verified}` }, VERIFIED[d.verified]) : null);
 }
 

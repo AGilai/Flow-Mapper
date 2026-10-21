@@ -11,8 +11,10 @@ import { codeLink, type SourceLink } from './endpoint-info.ts';
 import { entryPointsReaching } from './reach.ts';
 import { accessOf, groupOf, instanceDef, storeKey, usesOf, type Access } from './stores.ts';
 import { unresolvedTarget } from './resolve.ts';
+import { assumedUnder } from './assumed.ts';
+import { asNum, assumedAt, det, nameOf, unknownOf } from './instance-notes.ts';
 import { filterRows, groupRows, keyRows, keySummary, normaliseKeys, problemService, type KeyEntry, type KeyFilter, type KeyFlow, type KeyGroup, type KeySummary } from './keys.ts';
-import type { Fn, Resource } from './types.ts';
+import type { Assumed, Fn, Resource } from './types.ts';
 
 export type KeySource = 'pushed' | 'inline' | 'none';
 export interface KeyMeta { version: number; pushedAt: string; producer?: string | null }
@@ -70,6 +72,7 @@ export interface Lane {
   clients: ClientRow[]; databases: number[]; resources: string[];
   /** Why the databases are unknown (`unresolved` what=detail, detail `client.databases`, on one of its resources). */
   databasesUnknown?: string;
+  databasesAssumed?: Assumed; // `assumed` detail `client.databases` on one of its resources (#47)
   /** Key templates this service uses (writes or reads) in the instance's key list. */
   keyCount: number;
 }
@@ -85,10 +88,9 @@ export interface InstanceView extends InstanceSummary {
   callouts: Callout[];
   /** Instance fields the infra harvester could not read (`unresolved` what=detail, detail `details.<field>`), each with its reason. */
   unknown: { field: string; reason: string }[];
+  assumed: (Assumed & { field: string })[]; // instance fields filled by a rule (`assumed`, detail `details.<field>`, #47)
 }
 
-const asNum = (x: unknown) => (typeof x === 'number' && Number.isFinite(x) ? x : undefined);
-const det = (xs: Resource[], k: string) => xs.map((r) => (r.details as any)?.[k]).find((v) => v != null);
 const topologyOf = (defs: Resource[]): 'cluster' | 'instance' => {
   const t = String(det(defs, 'topology') ?? det(defs, 'mode') ?? '').toLowerCase();
   return t === 'cluster' || (t === '' && det(defs, 'cluster') === true) ? 'cluster' : 'instance';
@@ -102,9 +104,6 @@ const teamOf = (g: GraphIndex, x: Group) => {
   return [...n].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0];
 };
 const serviceNames = (x: Group) => [...new Set(x.members.map((r) => r.service))].sort();
-/** Entries of `unresolved` what=detail on these resources whose detail path starts with `prefix`; `field` is the path after a trailing-dot prefix. */
-const unknownOf = (rs: Resource[], prefix: string) => rs.flatMap((r) => (r.unresolved ?? []).filter((u) => u.what === 'detail' && u.detail?.trim().startsWith(prefix)).map((u) => ({ field: u.detail!.trim().slice(prefix.endsWith('.') ? prefix.length : 0), reason: u.reason })));
-const nameOf = (key: string) => key.slice(key.indexOf(':') + 1);
 
 /** Read and write together are read_write (stores.ts mergeAccess keeps one pill per use and calls that 'write'). */
 const combine = (xs: Access[]): Access => {
@@ -130,7 +129,7 @@ function lanes(g: GraphIndex, x: Group, entries: KeyEntry[]): Lane[] {
     const cs = clients.filter((c) => c.service === service);
     const dbs = new Set<number>([...rs.flatMap((r) => r.client?.databases ?? []), ...entries.filter((e) => e.service === service).map((e) => e.dbIndex)]);
     const a = accessOfService(g, rs, entries, service);
-    return { service, kind: svc?.kind, team: svc?.team, description: svc?.description, access: a.access, accessFrom: a.from, clients: cs, databases: [...dbs].sort((p, q) => p - q), resources: rs.map((r) => r.id), databasesUnknown: unknownOf(rs, 'client.databases')[0]?.reason,
+    return { service, kind: svc?.kind, team: svc?.team, description: svc?.description, access: a.access, accessFrom: a.from, clients: cs, databases: [...dbs].sort((p, q) => p - q), resources: rs.map((r) => r.id), databasesUnknown: unknownOf(rs, 'client.databases')[0]?.reason, databasesAssumed: assumedAt(rs, 'client.databases'),
       keyCount: new Set(entries.filter((e) => e.service === service).map((e) => `${e.dbIndex}\u0000${e.keyTemplate}`)).size };
   });
 }
@@ -182,6 +181,7 @@ export function instanceView(g: GraphIndex, id: string, pushed: KeyEntry[] = [],
     keys: { source: k.source, version: meta?.version ?? null, pushedAt: meta?.pushedAt ?? null, producer: meta?.producer ?? null, summary, lazy: lazy && typeof lazy === 'object' ? lazy : null },
     callouts,
     unknown: unknownOf(x.defs, 'details.'),
+    assumed: x.defs.flatMap((r) => assumedUnder(r.assumed, 'details.')),
   };
 }
 

@@ -57,7 +57,9 @@ flow = an entry endpoint (entryPoint: true) + its handler's ordered steps, follo
   **baseline**: marks show items New / Changed / Removed against it.
 - A **Components** copy brings the picked services with endpoints, calls, channels, stores, DTOs and schemas, but
   **no functions or steps**: prod flows do not come along, and a copied endpoint's `handler` dangles. Your new flows
-  may still call copied endpoints; the trace ends there.
+  may still call copied endpoints; the trace ends there. Pass `behaviour: true` to `create_env` (0.25.1) to bring the
+  picked services' functions and steps too: their flows trace as in prod, they show no marks and are not references.
+  Use it for components the design keeps as they are; leave it off for ones you mean to redesign.
 - A flow only draws if every hop is wired: ingress `handler` -> function -> step (`type: egress`, `target` egress id)
   -> egress `bindKey` == callee ingress `bindKey` (or a channel key) -> callee handler -> ... Resolution matches the
   key string only. A call with no function step behind it is a map edge, not part of a flow.
@@ -65,6 +67,18 @@ flow = an entry endpoint (entryPoint: true) + its handler's ordered steps, follo
   on it, give it one entry ingress **[decided, 0.21.0]**: `transport: "other"`, `entryPoint: true`, a key nothing else
   produces (`bindKey: "client:sase-agent/tunnel-open"`; an ingress without `bindKey` is rejected), and
   `details.trigger` saying what starts it. Its handler's egress steps are the app's calls. It is listed by `list_entry_points` and its flow traces through those steps into the called components.
+
+- **Entry points: `entryPoint` on an ingress** (0.25.1). `true`: always an entry point. `false`: never one. Absent: the default rule
+  (an ingress nothing reaches, an RPC command, and every `socket` ingress is listed). A **hop** (a tunnel, a BGP or BFD session: something
+  a flow passes through, not where one starts) keeps its real transport (`socket`, ...) and sets `entryPoint: false`, so it is not listed as
+  a flow of its own. A flow's real start (an agent, a cron, a public API) sets `entryPoint: true`. In `edit_design`, `entryPoint: null` clears
+  the flag back to the default rule.
+
+- **Links** (0.25.1): give an item its documents as `links: {main: {label, url}, sub: [{label, url}]}` (http or https URLs, label up to 120
+  characters, at most 20 sub links) on the service header, a function, an ingress, or a plan flow (`flows[].links`). The UI shows them; they
+  do not link anything. `details.doc` stays the provenance (file, section, quote); `links` is where a reader goes for more.
+- **Runtime** (0.25.1): a component may say how it runs with `details.runtime` on its service header: `k8s-pod`, `k8s-deployment`,
+  `k8s-daemonset`, `k8s-operator` or `k8s-job` (other values are rejected). `edit_design` takes `runtime` on the component form.
 
 ## 3. Classify the documentation
 

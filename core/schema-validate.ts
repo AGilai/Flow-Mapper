@@ -1,7 +1,7 @@
 // Minimal JSON Schema (2020-12) validator covering the keywords used in schema/manifest.schema.json:
 // $ref (local), type, const, enum, required, properties, additionalProperties, unevaluatedProperties
 // (as "no properties beyond those declared in this schema and its allOf"), items, oneOf, allOf,
-// pattern, minLength, minimum, uniqueItems, format: date-time.
+// pattern, minLength, maxLength, maxItems, minimum, uniqueItems, format: date-time.
 // Kept dependency-free on purpose; swap for ajv if dependencies become available.
 
 type Schema = Record<string, any> | boolean;
@@ -32,12 +32,14 @@ export function createValidator(root: Record<string, any>) {
     if ('const' in s && v !== s.const) errs.push({ path, message: `must equal ${JSON.stringify(s.const)}` });
     if (s.enum && !s.enum.includes(v)) errs.push({ path, message: `must be one of ${s.enum.join(', ')}` });
     if (typeof v === 'string') {
+      if (s.maxLength !== undefined && v.length > s.maxLength) errs.push({ path, message: `must have at most ${s.maxLength} characters` });
       if (s.minLength && v.length < s.minLength) errs.push({ path, message: `must have at least ${s.minLength} characters` });
       if (s.pattern && !new RegExp(s.pattern, 'u').test(v)) errs.push({ path, message: `must match ${s.pattern}` });
       if (s.format === 'date-time' && Number.isNaN(Date.parse(v))) errs.push({ path, message: 'must be a date-time' });
     }
     if (typeof v === 'number' && s.minimum !== undefined && v < s.minimum) errs.push({ path, message: `must be >= ${s.minimum}` });
     if (Array.isArray(v)) {
+      if (s.maxItems !== undefined && v.length > s.maxItems) errs.push({ path, message: `must have at most ${s.maxItems} items` });
       if (s.items) v.forEach((x, i) => check(s.items, x, `${path}[${i}]`, errs));
       if (s.uniqueItems && new Set(v.map((x) => JSON.stringify(x))).size !== v.length) errs.push({ path, message: 'items must be unique' });
     }

@@ -16,8 +16,11 @@ import { linksFrom, sid } from './graph-index.ts';
 import { isLeaf } from './types.ts';
 import type { Ingress, Link, Mode, Ref } from './types.ts';
 import { handlerFor, passes, passesUntyped, untypedEventSet, type EventSet } from './events.ts';
+import { emptyFlow } from './entry-points.ts';
+export { entryPoints } from './entry-points.ts';
 import { codeLink, sourceLink, type SourceLink } from './endpoint-info.ts';
 import { refKey, unresolvedTarget } from './resolve.ts';
+import { assumedOn, unknownOn } from './step-notes.ts';
 import type { Step, StepField, Unresolved } from './types.ts';
 import { altGroups, type Alt } from './alt.ts';
 import { egressVia, ingressVia, type LinkedHop } from './via.ts';
@@ -48,6 +51,7 @@ export interface Message {
   handlerVia?: LinkedHop[];                                  // how the ingress resolved to its handler (registration / bind hops); display only
   origin?: 'frontier';                                       // a step the harvester marked as frontier (shown because the trace was asked to expand them)
   frontierSteps?: number;                                    // on a kind 'frontier' marker: frontier steps folded into it (this function's and those of the frontier calls below it)
+  assumed?: { field: string; value: unknown; basis: string; reason: string }[]; // #47: details of a resource step the harvester filled by a rule
   unknown?: { field: string; reason: string }[];            // on a resource step: details the harvester could not read (`unresolved` what=detail: keyTemplate, dbIndex, ttlSeconds) and why
   gap?: Unresolved;                                          // the harvester could not resolve this call; why
   group?: string;                                            // SNS fan-out: id of the publish (`m<index of the publish message>`), on the publish and on each of its deliveries
@@ -66,6 +70,8 @@ export interface HopFilter { id: string; service: string; from: string; events?:
 export interface Trace {
   start: { service: string; ingress?: string; fn: string; event?: string }; scope: 'intra' | 'full';
   participants: Participant[]; messages: Message[]; truncated: boolean;
+  /** An entry point with no handler (none named, or none for the requested event) (0.25.1, #59): an empty flow (the entry participant, no messages) that can still be fetched, described and linked. */
+  noHandler?: true;
   /** Code location of every function on the trace, by `${service}:${fn}`, of call sites, by `egress:${service}:${id}`, and of steps that carry a `source`, by `step:${service}:${fn}#${seq}`. */
   code: Record<string, SourceLink | null>;
 }
@@ -82,6 +88,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
   const showFrontier = !!opts.frontier;
   const ing = start.ingress ? g.ingress.get(sid(start.service, start.ingress)) : undefined;
   const fnId = start.fn ?? (ing && start.event ? handlerFor(ing, start.event) : ing?.handler);
+  if (ing && !start.fn && !fnId) return emptyFlow(start.service, ing, scope, start.event); // no handler named (for this event): an empty flow, not a 404
   if (!fnId || !g.fns.get(sid(start.service, fnId))) return null;
 
   const participants = new Map<string, Participant>();
@@ -200,7 +207,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
       } else if (st.type === 'resource') {
         const r = g.resources.get(sid(service, st.target));
         const to = part({ id: `res:${r?.bindKey ?? sid(service, st.target)}`, label: r?.name ?? st.target, kind: 'resource' });
-        push({ ...base, from: me, to, label: st.operation ?? 'use', mode: st.mode ?? 'sync', kind: 'resource', transport: 'res', store: r?.bindKey ?? sid(service, st.target), ...(st.fields?.length ? { fields: st.fields } : {}), ...unknownOn(st) });
+        push({ ...base, from: me, to, label: st.operation ?? 'use', mode: st.mode ?? 'sync', kind: 'resource', transport: 'res', store: r?.bindKey ?? sid(service, st.target), ...(st.fields?.length ? { fields: st.fields } : {}), ...unknownOn(st), ...assumedOn(st) });
       } else {
         const e = g.egress.get(sid(service, st.target));
         if (!e) continue;
@@ -356,14 +363,6 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
 /** The wire protocol of a socket ingress (`details.protocol`: tls, tcp or ws); tcp when the harvester gave none. */
 const socketProtocol = (i: Ingress): 'tls' | 'tcp' | 'ws' => (['tls', 'tcp', 'ws'].includes(String(i.details?.protocol)) ? i.details!.protocol as 'tls' : 'tcp');
 
-/** Entry points to start a trace from: ingress marked entryPoint, else ingress nothing reaches. */
-export function entryPoints(g: GraphIndex) {
-  const orphan = new Set(g.resolution.orphans.map((i) => sid(i.service, i.id)));
-  return g.model.ingress
-    .filter((i) => i.entryPoint || orphan.has(sid(i.service, i.id)) || !!rpcServed(i)) // an RPC command can always be traced from (0.19.0)
-    .map((i) => ({ service: i.service, id: i.id, bindKey: i.bindKey, transport: i.transport, handler: i.handler, ...(i.middleware?.length ? { middleware: i.middleware } : {}), entryPoint: !!i.entryPoint }));
-}
-
 /**
  * Lifelines in delivery order: a topic or queue sits left of whatever it delivers to, so a delivery
  * arrow never points backwards. A channel that is right of its target moves to just before it.
@@ -412,12 +411,6 @@ export function deliveryOrder(parts: Participant[], messages: Message[], fanOut 
  * right of the topic called it. Then its delivery arrow may point left. One only called from the left (the producer
  * checks on every consumer first) moves with its queue. A consumer reached through several queues goes after the first.
  */
-/** A resource step's `unresolved` what=detail entries (details.keyTemplate, details.dbIndex, details.ttlSeconds) as `unknown` on its message. */
-const unknownOn = (st: Step) => {
-  const u = (st.unresolved ?? []).filter((x) => x.what === 'detail' && x.detail?.trim()).map((x) => ({ field: x.detail!.trim().replace(/^details\./, ''), reason: x.reason }));
-  return u.length ? { unknown: u } : {};
-};
-
 function fanOutOrder(order: Participant[], messages: Message[]): Participant[] {
   const placed = new Set<string>();
   for (const [pi, pub] of messages.entries()) {

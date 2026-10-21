@@ -9,6 +9,7 @@ import { HttpError } from '../errors.ts';
 import { deleteDtoRow, deleteEventDtoRow, putDtoRow, putEventDtoRow } from './dtos.ts';
 import { deleteSchemaRow, putSchemaRow } from './schemas.ts';
 import { putHuman } from './descriptions.ts';
+import { putFlowLinks } from './flow-links.ts';
 
 const ignoreMissing = (f: () => unknown) => { try { f(); } catch (e) { if (!(e instanceof HttpError && e.status === 404)) throw e; } };
 const bar = (key: string): [string, string] => { const i = key.lastIndexOf('|'); return [key.slice(0, i), key.slice(i + 1)]; };
@@ -36,7 +37,8 @@ export function writeSide(db: DB, env: string, side: NetOp[], g: GraphIndex, by:
       if (o.op === 'upsert') putSchemaRow(db, env, { key, source, content: d }, (k) => known.has(k));
       else ignoreMissing(() => deleteSchemaRow(db, env, key, source));
     } else if (o.list === 'flow') {
-      if (o.op === 'delete') { db.prepare('DELETE FROM flow_names WHERE env = ? AND service = ? AND ingress = ?').run(env, o.service, o.key); continue; }
+      if (o.op === 'delete') { db.prepare('DELETE FROM flow_names WHERE env = ? AND service = ? AND ingress = ?').run(env, o.service, o.key); putFlowLinks(db, env, o.service, o.key, null); continue; }
+      if (d.links !== undefined) putFlowLinks(db, env, o.service, o.key, d.links, by); // null clears
       if (typeof d.name === 'string' && !d.name.trim()) db.prepare('DELETE FROM flow_names WHERE env = ? AND service = ? AND ingress = ?').run(env, o.service, o.key); // '' clears the name
       else if (typeof d.name === 'string') {
         db.prepare(`INSERT INTO flow_names (env, service, ingress, name, author, updated_at) VALUES (?, ?, ?, ?, ?, ?)

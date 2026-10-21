@@ -107,7 +107,8 @@ test('flow: name and description in the flow item (merged), \'\' kept to clear, 
   assert.deepEqual(data(f({ name: ' New ' })[0]), { name: 'New', description: 'D' });
   assert.equal(data(f({ name: '' })[0]).name, '');
   assert.deepEqual(f({ entryPoint: true }).map((o) => [o.anchor, data(o).entryPoint]), [['ing:b/in.x', true]]);
-  assert.deepEqual(f({ entryPoint: false }), [], 'already not an entry point: nothing to do');
+  assert.deepEqual(f({ entryPoint: false }).map((o) => data(o).entryPoint), [false], 'false is explicit: never an entry point');
+  assert.deepEqual(f({ entryPoint: null }), [], 'absent already: nothing to do');
   const o = ops({ kind: 'flow', service: 'a', ingress: 'in.nope', order: { fn: 'f', seqs: [2, 1] } }, [...base, ing('a', 'in.nope', 'k', 'f')]);
   assert.deepEqual(data(o[0]).steps.map((s: any) => [s.seq, s.target]), [[1, 'out.b.y'], [2, 'out.b.x']]);
   for (const seqs of [[1], [1, 1], [1, 3]]) assert.deepEqual(code({ kind: 'flow', service: 'a', ingress: 'in.nope', order: { fn: 'f', seqs } }, [...base, ing('a', 'in.nope', 'k', 'f')]), ['BAD_ORDER', 'order']);

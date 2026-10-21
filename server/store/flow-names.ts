@@ -9,8 +9,10 @@ import { sid } from '../../core/graph-index.ts';
 import { HttpError, notFound } from '../errors.ts';
 import { getDraft, loadOps } from './drafts.ts';
 import { getEnvRow } from './envs.ts';
+import { allFlowLinks, putFlowLinks } from './flow-links.ts';
+import { checkLinks, cleanLinks, type Links } from '../../core/links.ts';
 
-export interface FlowName { service: string; ingress: string; name: string; author: string | null; updatedAt: string }
+export interface FlowName { service: string; ingress: string; name: string | null; author: string | null; updatedAt: string; links?: Links }
 
 export function listFlowNames(db: DB, env: string, draft?: string | null): FlowName[] {
   if (!getEnvRow(db, env)) throw notFound(`environment '${env}'`);
@@ -18,24 +20,30 @@ export function listFlowNames(db: DB, env: string, draft?: string | null): FlowN
   for (const r of db.prepare('SELECT service, ingress, name, author, updated_at FROM flow_names WHERE env = ? ORDER BY service, ingress').all(env) as any[]) {
     out.set(`${r.service}/${r.ingress}`, { service: r.service, ingress: r.ingress, name: r.name, author: r.author, updatedAt: r.updated_at });
   }
+  const links = allFlowLinks(db, env);
   if (draft) {
     for (const o of netOps(loadOps(db, getDraft(db, env, draft).id))) {
       if (o.list !== 'flow') continue;
-      const k = `${o.service}/${o.key}`, name = o.op === 'upsert' ? (o.data as any)?.name : undefined;
+      const k = `${o.service}/${o.key}`, name = o.op === 'upsert' ? (o.data as any)?.name : undefined, l = o.op === 'upsert' ? (o.data as any)?.links : undefined;
+      if (o.op === 'delete') links.delete(k); else if (l === null) links.delete(k); else if (l) links.set(k, l);
       if (o.op === 'delete' || name === '') out.delete(k);
       else if (typeof name === 'string') out.set(k, { service: o.service, ingress: o.key, name, author: o.author, updatedAt: o.at });
     }
   }
+  for (const [k, v] of out) { const l = links.get(k); if (l) out.set(k, { ...v, links: l }); }
+  for (const [k, l] of links) if (!out.has(k)) { const i = k.indexOf('/'); out.set(k, { service: k.slice(0, i), ingress: k.slice(i + 1), name: null, author: null, updatedAt: '', links: l }); } // links without a name
   return [...out.values()].sort((a, b) => (a.service + a.ingress < b.service + b.ingress ? -1 : 1));
 }
 
 /** Set (or, with '', remove) the name of a flow. The entry must be an ingress of the environment's graph (422 NO_INGRESS). */
-export function putFlowName(db: DB, g: GraphIndex, env: string, i: { service: string; ingress: string; name: unknown; author?: string }): { service: string; ingress: string; name: string | null } {
+export function putFlowName(db: DB, g: GraphIndex, env: string, i: { service: string; ingress: string; name: unknown; author?: string; links?: unknown }): { service: string; ingress: string; name: string | null } {
   if (!getEnvRow(db, env)) throw notFound(`environment '${env}'`);
   if (typeof i.service !== 'string' || typeof i.ingress !== 'string' || typeof i.name !== 'string') throw new HttpError(422, 'INVALID', 'service, ingress and name are required strings');
   if (!g.ingress.has(sid(i.service, i.ingress))) throw new HttpError(422, 'NO_INGRESS', `'${i.ingress}' is not an endpoint of '${i.service}' in environment '${env}'`);
   const name = i.name.trim();
+  if (i.links !== undefined && i.links !== null) { const bad = checkLinks(i.links); if (bad) throw new HttpError(422, 'INVALID', bad); }
   if (name.length > 200) throw new HttpError(422, 'INVALID', 'name is at most 200 characters');
+  if (i.links !== undefined) putFlowLinks(db, env, i.service, i.ingress, cleanLinks(i.links as Links | null), i.author ?? 'anonymous');
   if (!name) { db.prepare('DELETE FROM flow_names WHERE env = ? AND service = ? AND ingress = ?').run(env, i.service, i.ingress); return { service: i.service, ingress: i.ingress, name: null }; }
   db.prepare(`INSERT INTO flow_names (env, service, ingress, name, author, updated_at) VALUES (?, ?, ?, ?, ?, ?)
     ON CONFLICT (env, service, ingress) DO UPDATE SET name = excluded.name, author = excluded.author, updated_at = excluded.updated_at`)

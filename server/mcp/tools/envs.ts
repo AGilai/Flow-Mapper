@@ -11,12 +11,13 @@ export const listEnvsTool: Tool = {
 };
 
 export const createEnvTool: Tool = {
-  name: 'create_env', description: "Create a design environment by copying another one. mode: 'blank' (nothing copied), 'components' (the listed services with their endpoints, calls, channels, stores, DTOs and schemas; no functions or flows) or 'full' (everything of the source, flows included). groups are the subsystems in order [{key, label}]; each listed service may name its groupPath (one of the group keys).",
+  name: 'create_env', description: "Create a design environment by copying another one. mode: 'blank' (nothing copied), 'components' (the listed services with their endpoints, calls, channels, stores, DTOs and schemas; no functions or flows unless behaviour is true) or 'full' (everything of the source, flows included). groups are the subsystems in order [{key, label}]; each listed service may name its groupPath (one of the group keys).",
   inputSchema: obj({
     name: { type: 'string', description: 'Lowercase letters, digits and -' }, source: { type: 'string', description: 'The environment to copy from (any kind)' },
     mode: { enum: ['blank', 'components', 'full'] },
     groups: { type: 'array', items: obj({ key: { type: 'string' }, label: { type: 'string' } }, ['key', 'label']) },
     levels: { type: 'array', items: { type: 'string' } },
+    behaviour: { type: 'boolean', description: "components mode: also copy the services' functions and steps (flows of copied endpoints trace; they are unchanged against the baseline). Default false" },
     services: { type: 'array', items: obj({ name: { type: 'string' }, groupPath: { type: 'string' } }, ['name']) },
   }, ['name', 'source', 'mode']),
   run: (c, a) => { const e = copyEnv(c.db, { ...a, createdBy: 'mcp' }); c.changed(e.name); return e; },

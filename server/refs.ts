@@ -35,8 +35,8 @@ export function designTrace(ctx: Ctx, env: string, draft: string | null, t: Trac
 
 /** A trace for a reader: the flow's name on `start` where one is set, then (design environments) the reference decoration. */
 export function traceOut(ctx: Ctx, env: string, draft: string | null, t: Trace) {
-  const name = t.start.ingress ? ctx.view(env, draft).reader.flowText(t.start.service, t.start.ingress)?.name : undefined;
-  return designTrace(ctx, env, draft, name ? { ...t, start: { ...t.start, name } } as Trace : t);
+  const text = t.start.ingress ? ctx.view(env, draft).reader.flowText(t.start.service, t.start.ingress) : undefined;
+  return designTrace(ctx, env, draft, text?.name || text?.links ? { ...t, start: { ...t.start, ...(text.name ? { name: text.name } : {}), ...(text.links ? { links: text.links } : {}) } } as Trace : t);
 }
 
 /** The flow names of an environment (or of it as a draft would leave it), by `<service>/<ingress>`: the plain reads use the same names the draft reads do. */

@@ -196,3 +196,34 @@ test('MCP create_env and list_envs', async () => {
   assert.ok(e.components >= 1);
   assert.equal(l.find((x: any) => x.name === 'prod').kind, 'sealed');
 });
+
+test('#58 components with behaviour: functions come too, same trace as the source, no marks, no references', async () => {
+  assert.equal((await create({ name: 'beh-x', source: 'prod', mode: 'components', behaviour: 'yes', services: [{ name: 'orders-svc' }] })).status, 422);
+  const r = await create({ name: 'beh-1', source: 'prod', mode: 'components', behaviour: true, services: PICK.map((name) => ({ name })) });
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  const fns = (env: string) => q("SELECT service, key, data FROM entities WHERE env = ? AND list = 'functions' AND service IN ('orders-svc','users-svc','payments-svc') ORDER BY 1, 2", env);
+  assert.ok(fns('prod').length > 0);
+  assert.deepEqual(fns('beh-1'), fns('prod'));
+  assert.equal(q("SELECT count(*) AS n FROM baseline_items WHERE env = 'beh-1' AND list = 'functions'")[0].n, fns('prod').length);
+  const [a, b] = [app.ctx.graph('prod'), app.ctx.graph('beh-1')];
+  const eps = entryPoints(b).filter((e) => PICK.includes(e.service));
+  assert.ok(eps.length > 0);
+  // a flow that leaves the picked services ends at the border, so compare the trace as far as it stays inside them
+  const inside = (t: any) => t.messages.map((m: any) => `${m.from}>${m.to}|${m.label}`);
+  let same = 0;
+  for (const e of eps) {
+    const start = { service: e.service, ingress: e.id };
+    const [ta, tb] = [trace(a, start, { scope: 'intra', maxDepth: 25, maxMessages: 500 })!, trace(b, start, { scope: 'intra', maxDepth: 25, maxMessages: 500 })!];
+    assert.ok(tb.messages.length > 0, `${e.service} ${e.id} has steps`);
+    assert.deepEqual(inside(tb).slice(0, 1), inside(ta).slice(0, 1), `${e.service} ${e.id}`);
+    if (traceHash(tb) === traceHash(ta)) same++;
+  }
+  assert.ok(same > 0, 'a copied entry point traces exactly like the source');
+  const e0 = eps[0];
+  assert.equal((await app.call('GET', `/api/envs/beh-1/trace?service=${e0.service}&ingress=${e0.id}`)).status, 200);
+  const m = (await app.call('GET', '/api/envs/beh-1/marks')).body;
+  assert.deepEqual(m.marks, {}); assert.deepEqual(m.ghosts, {});
+  assert.deepEqual(m.refs?.endpoints ?? {}, {}, 'a copied endpoint with its behaviour is not a reference');
+  const plain = (await app.call('GET', '/api/envs/comp-1/marks')).body;
+  assert.ok(Object.keys(plain.refs?.endpoints ?? {}).length > 0, 'without behaviour they are references');
+});

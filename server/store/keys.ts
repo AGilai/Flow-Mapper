@@ -9,10 +9,10 @@ import { guardEnv } from './envs.ts';
 import { keySummary, normaliseKeys, type KeyEntry, type KeyFilter, type KeySummary } from '../../core/keys.ts';
 import { instanceView, keysView, resolveInstance, type KeyMeta } from '../../core/instances.ts';
 
-interface Row { db_index: number; key_template: string; service: string; access: string; commands: string; ops_per_hour: number | null; ttl_seconds: number | null }
+interface Row { db_index: number; key_template: string; service: string; access: string; commands: string; ops_per_hour: number | null; ttl_seconds: number | null; assumed: string }
 const toEntry = (r: Row): KeyEntry => ({
   keyTemplate: r.key_template, dbIndex: r.db_index, service: r.service, access: r.access as KeyEntry['access'], commands: JSON.parse(r.commands),
-  ...(r.ops_per_hour != null ? { opsPerHour: r.ops_per_hour } : {}), ...(r.ttl_seconds != null ? { ttlSeconds: r.ttl_seconds } : {}),
+  ...(r.ops_per_hour != null ? { opsPerHour: r.ops_per_hour } : {}), ...(r.ttl_seconds != null ? { ttlSeconds: r.ttl_seconds } : {}), ...(r.assumed && r.assumed !== '[]' ? { assumed: JSON.parse(r.assumed) } : {}),
 });
 
 export function getMeta(db: DB, env: string, instance: string): KeyMeta | null {
@@ -54,8 +54,8 @@ export function putKeys(db: DB, g: GraphIndex, env: string, id: string, body: an
   const now = new Date().toISOString();
   tx(db, () => {
     db.prepare('DELETE FROM resource_keys WHERE env = ? AND instance = ?').run(env, instance);
-    const ins = db.prepare('INSERT INTO resource_keys (env, instance, db_index, key_template, service, access, commands, ops_per_hour, ttl_seconds) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
-    for (const e of entries) ins.run(env, instance, e.dbIndex, e.keyTemplate, e.service, e.access, JSON.stringify(e.commands), e.opsPerHour ?? null, e.ttlSeconds ?? null);
+    const ins = db.prepare('INSERT INTO resource_keys (env, instance, db_index, key_template, service, access, commands, ops_per_hour, ttl_seconds, assumed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+    for (const e of entries) ins.run(env, instance, e.dbIndex, e.keyTemplate, e.service, e.access, JSON.stringify(e.commands), e.opsPerHour ?? null, e.ttlSeconds ?? null, JSON.stringify(e.assumed ?? []));
     db.prepare(`INSERT INTO resource_keys_meta (env, instance, version, pushed_at, producer, summary) VALUES (?, ?, ?, ?, ?, ?)
       ON CONFLICT (env, instance) DO UPDATE SET version = excluded.version, pushed_at = excluded.pushed_at, producer = excluded.producer, summary = excluded.summary`)
       .run(env, instance, version, now, obj.producer ?? null, JSON.stringify(summary));

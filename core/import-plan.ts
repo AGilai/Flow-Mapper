@@ -1,6 +1,7 @@
 // An HLD import plan (docs/DESIGN-IMPORT.md §7) turned into draft ops. Pure: the manifest validator and the facts about the
 // environment (its rows with the draft laid over them, its subsystems, the baseline versions) come in as arguments.
 
+import { checkLinks } from './links.ts';
 import { anchorOfRow } from './anchors.ts';
 import { ENTITY_LISTS, rowId, type ItemRow } from './item-rows.ts';
 import type { DraftOpInput } from './draft-ops.ts';
@@ -97,9 +98,11 @@ export function planToOps(plan: unknown, rows: ItemRow[], cx: PlanContext): Plan
   });
   add(p.flows, 'flows').forEach((f: any, i: number) => {
     const at = `flows[${i}]`;
-    if (!isObj(f) || typeof f.entry?.service !== 'string' || typeof f.entry?.ingress !== 'string') return err(at, 'a flow is {entry: {service, ingress}, name, description?, steps?, doc?}');
-    const { name, description, steps, doc } = f;
-    ops.push({ op: 'upsert', anchor: `flow:${f.entry.service}/${f.entry.ingress}`, data: Object.fromEntries(Object.entries({ name, description, steps, doc }).filter(([, v]) => v !== undefined)) });
+    if (!isObj(f) || typeof f.entry?.service !== 'string' || typeof f.entry?.ingress !== 'string') return err(at, 'a flow is {entry: {service, ingress}, name, description?, links?, steps?, doc?}');
+    const { name, description, steps, doc, links } = f;
+    const badLinks = links === undefined ? null : checkLinks(links, `${at}.links`);
+    if (badLinks) return err(at, badLinks);
+    ops.push({ op: 'upsert', anchor: `flow:${f.entry.service}/${f.entry.ingress}`, data: Object.fromEntries(Object.entries({ name, description, steps, doc, links }).filter(([, v]) => v !== undefined)) });
   });
 
   if (issues.length) throw new PlanError(issues);

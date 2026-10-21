@@ -151,8 +151,8 @@ export function createDesign(data, baseGraph) {
     isDesign, refsOf, texts,
     /** A trace as the server answers it: the flow name on `start`, and in a design the reference decoration. */
     traceOut: (env, t, g) => {
-      const name = t.start.ingress ? texts(env).get(`${t.start.service}/${t.start.ingress}`)?.name : undefined;
-      const named = name ? { ...t, start: { ...t.start, name } } : t;
+      const text = t.start.ingress ? texts(env).get(`${t.start.service}/${t.start.ingress}`) : undefined;
+      const named = text?.name || text?.links ? { ...t, start: { ...t.start, ...(text.name ? { name: text.name } : {}), ...(text.links ? { links: text.links } : {}) } } : t;
       return isDesign(env) ? decorateDesignTrace(named, refsOf(env), (s) => g.services.get(s)?.kind) : named;
     },
   };
