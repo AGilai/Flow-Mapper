@@ -1,7 +1,7 @@
 // Create a design environment by copying another one (any kind), in one transaction:
 //   blank       only the environment row
 //   components  the picked services with their ingress, egress, channels, bindings, resources, DTOs, schemas and Redis keys;
-//               no functions or steps (so no flows)
+//               no functions or steps (so no flows) unless `behaviour: true` (then they come too, and join the baseline)
 //   full        everything of the source: all services including functions, flows, descriptions (not bugs)
 // A design owns its rows (no sharing with the source). The rows copied from a sealed environment become its baseline;
 // a copy of a design keeps that design's original baseline.
@@ -20,6 +20,8 @@ export type CopyMode = 'blank' | 'components' | 'full';
 export interface CopyInput {
   name: string; source: string; mode: CopyMode; groups?: EnvGroup[]; levels?: string[];
   services?: { name: string; groupPath?: string }[]; createdBy?: string;
+  /** components mode: also copy the picked services' functions and steps (into the baseline too, so they are unchanged). Default false. */
+  behaviour?: boolean;
 }
 
 const NAME = /^[a-z0-9][a-z0-9-]{0,62}$/;
@@ -30,6 +32,7 @@ function validate(db: DB, i: CopyInput) {
   if (!i || typeof i !== 'object') throw badRequest('body must be {name, source, mode, groups, levels, services}');
   if (typeof i.name !== 'string' || !NAME.test(i.name) || RESERVED.has(i.name)) throw invalid(`name '${i.name ?? ''}' must be lowercase letters, digits and '-' (it is used in links), at most 63 characters`);
   if (!['blank', 'components', 'full'].includes(i.mode)) throw invalid("mode must be 'blank', 'components' or 'full'");
+  if (i.behaviour !== undefined && typeof i.behaviour !== 'boolean') throw invalid('behaviour must be true or false');
   const src = typeof i.source === 'string' ? getEnvRow(db, i.source) : undefined;
   if (!src) throw notFound(`source environment '${i.source}'`);
   if (getEnvRow(db, i.name)) throw conflict('EXISTS', `environment '${i.name}' already exists`);
@@ -75,7 +78,7 @@ export function copyEnv(db: DB, input: CopyInput): EnvMeta {
       if (new Set(names).size !== names.length) throw invalid('a component is picked twice');
     }
     const path = new Map(picks.map((s) => [s.name, s.groupPath]));
-    const c: CopyCtx = { db, from: source, to: name, at, fromKind: v.src.kind, mode: mode as 'components' | 'full' };
+    const c: CopyCtx = { db, from: source, to: name, at, fromKind: v.src.kind, mode: mode as 'components' | 'full', behaviour: input.behaviour === true };
     const types = new Set<string>(), stores = new Set<string>();
     for (const n of names) {
       const r = copyService(c, n, path.get(n))!;
