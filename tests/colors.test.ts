@@ -15,7 +15,7 @@ test('assignColors: lowest free slot in order, no clash up to 8, the palette rep
   assert.deepEqual([more.c8, more.c9, more.c10], [1, 2, 3], 'the 9th component repeats the palette from slot 1');
   assert.deepEqual(assignColors({ a: 3 }, [{ name: 'b' }, { name: 'app', kind: 'client-app' }, { name: 'a' }]), { a: 3, b: 1 });
   assert.deepEqual(assignColors({ a: 1, b: 3 }, [{ name: 'c' }, { name: 'd' }]), { a: 1, b: 3, c: 2, d: 4 }, 'free slots are reused lowest first');
-  assert.deepEqual(assignColors({}, [{ name: 'x', kind: 'infra' }, { name: 'y', kind: 'external' }]), { x: 1 });
+  assert.deepEqual(assignColors({}, [{ name: 'x', kind: 'infra' }, { name: 'y', kind: 'external' }]), {}, 'infra holders and externals stay neutral');
 });
 
 const man = (name: string, version = 1, kind = 'service') => ({ schemaVersion: '1.0', kind: 'full', env: 'col', service: { name, kind }, version, harvestedAt: '2026-10-21T00:00:00Z' });

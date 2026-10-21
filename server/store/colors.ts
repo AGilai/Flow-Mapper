@@ -11,7 +11,10 @@ export function colorsOf(db: DB, env: string): Record<string, number> {
 
 /** Give each named component a slot if it has none (in order), then store. `seed` first: a copy keeps its source's slots. */
 export function assignColorsIn(db: DB, env: string, items: { name: string; kind?: string }[], seed: Record<string, number> = {}): Record<string, number> {
-  const cur = colorsOf(db, env), merged = { ...Object.fromEntries(Object.entries(seed).filter(([k]) => items.some((i) => i.name === k))), ...cur };
+  // A copy keeps its source's slots, except where two of the copied components share one (the source had more than 8): those get new slots.
+  const names = new Set(items.map((i) => i.name)), taken = new Set<number>(), kept: Record<string, number> = {};
+  for (const [k, s] of Object.entries(seed)) if (names.has(k) && !taken.has(s)) { kept[k] = s; taken.add(s); }
+  const cur = colorsOf(db, env), merged = { ...kept, ...cur };
   const next = assignColors(merged, items);
   if (JSON.stringify(next) !== JSON.stringify(cur)) db.prepare('UPDATE envs SET colors = ? WHERE name = ?').run(JSON.stringify(next), env);
   return next;
