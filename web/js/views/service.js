@@ -17,6 +17,10 @@ import { titled } from '../components/object-icon.js';
 import { loadMarks } from '../design/marks-store.js';
 import { markBadge, wasText } from '../components/status-mark.js';
 import { removedList } from './flow-removed.js';
+import { lockChip } from '../components/lock.js';
+import { linksRow, runtimeGlyph, runtimeOf } from '../components/ext-links.js';
+import { openImport } from '../design/import-panel.js';
+import { editing } from '../design/edit-open.js';
 
 export async function render({ main, params, query }) {
   const name = params.name;
@@ -41,6 +45,8 @@ export async function render({ main, params, query }) {
   const body = h('div');
   const host = h('div.panel-host');
   const panel = createPanel(host, { onClose: () => setQuery({ ep: null }) });
+  const imp = { editing: editing(), onImport: (anchor, source) => openImport({ panel, flowsEl: null, anchor, source }) }; // a reference's "Import into design" opens the preview in this page's panel
+  const refs = marks.componentRefs(name);
   async function showEndpoint(id) {
     setQuery({ ep: id });
     try { panel.open(...endpointPanel(await api.endpoint(state.env, name, id), state.env)); }
@@ -51,11 +57,11 @@ export async function render({ main, params, query }) {
 
   function show(id) {
     tabs.querySelectorAll('button').forEach((b, i) => b.setAttribute('aria-selected', String(['connections', 'functions', 'changes'][i] === id)));
-    fill(body, id === 'functions' ? functionsTab(v, name) : id === 'changes' ? changesTab(log) : connectionsTab(v, name, query, showEndpoint, marks));
+    fill(body, id === 'functions' ? functionsTab(v, name) : id === 'changes' ? changesTab(log) : connectionsTab(v, name, query, showEndpoint, marks, imp));
   }
 
   main.append(
-    pageHead(h('span.row', titled('service', s.kind, name), markBadge(mine, { store: marks })), mine && wasText(mine) ? [s.description, h('span.mk-what', ` ${wasText(mine)}`)] : s.description ?? null,
+    pageHead(h('span.row', titled('service', s.kind, name), runtimeGlyph(runtimeOf(s)), markBadge(mine, { store: marks }), refs?.refs ? lockChip(null, { title: `${refs.refs} of its ${refs.endpoints} endpoints are references: their behaviour is in another environment.` }) : null, linksRow(s.links)), mine && wasText(mine) ? [s.description, h('span.mk-what', ` ${wasText(mine)}`)] : s.description ?? null,
       h('a.btn', { href: href('/system', { sel: `svc:${name}` }) }, icon('system'), 'Show on map'),
       h('button.btn', { type: 'button', on: { click: (e) => openBugDialog(e.currentTarget) } }, icon('bug'), 'Report a bug'),
       h('a.btn.primary', { href: href('/flows', { service: name }) }, icon('flow'), 'Trace a flow')),
@@ -67,10 +73,10 @@ export async function render({ main, params, query }) {
 
 const fig = (n, label, bad = false) => h('div.figure', { class: bad ? 'bad' : '' }, h('b', String(n ?? 0)), h('span', label));
 
-function connectionsTab(v, name, query, onInfo, marks) {
+function connectionsTab(v, name, query, onInfo, marks, imp) {
   const holder = h('div');
   const input = h('input.input', { type: 'search', placeholder: 'Filter endpoints, services, functions', value: query.get('f') ?? '', 'aria-label': 'Filter connections' });
-  const draw = () => { fill(holder, switchboard(v, name, input.value.trim().toLowerCase(), onInfo, marks), removedList(marks, [name], { draft: state.draft })); setQuery({ f: input.value || null }); };
+  const draw = () => { fill(holder, switchboard(v, name, input.value.trim().toLowerCase(), onInfo, marks, imp), removedList(marks, [name], { draft: state.draft })); setQuery({ f: input.value || null }); };
   input.addEventListener('input', debounce(draw, 120));
   draw();
   return h('div.stack', { style: { gap: 'var(--s4)' } }, h('div.search', icon('search'), input), holder);
