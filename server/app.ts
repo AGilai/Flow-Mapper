@@ -9,6 +9,7 @@ import { Router, sendJson } from './http/router.ts';
 import { serveStatic } from './http/static.ts';
 import { afterWrite, graphFor } from './graph-cache.ts';
 import type { Ctx } from './context.ts';
+import { registerEnvs } from './routes/envs.ts';
 import { registerMap } from './routes/map.ts';
 import { registerQueries } from './routes/queries.ts';
 import { registerBugs } from './routes/bugs.ts';
@@ -35,6 +36,7 @@ export function createApp(opts: AppOptions): { server: Server; ctx: Ctx } {
   const ctx = createContext(opts);
   const router = new Router();
   router.get('/api/version', () => ({ version: APP_VERSION }));
+  registerEnvs(router, ctx);
   registerMap(router, ctx);
   registerQueries(router, ctx);
   registerBugs(router, ctx);
