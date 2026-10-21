@@ -18,7 +18,7 @@ export function arrowSpan(step, { columns, geometry }) {
 }
 
 /**
- * drawStepTiles(res, built, steps, onPick(n)) -> { setCurrent(n), rowEl(n) }
+ * drawStepTiles(res, built, steps, onPick(n)) -> { setCurrent(n), rowEl(n), span(n) -> { x1, x2 } (lane pixels) }
  * res: what renderLane returned; built: what buildLane returned (its columns); steps: stepsOf(built).
  */
 export function drawStepTiles(res, built, steps, onPick) {
@@ -46,6 +46,7 @@ export function drawStepTiles(res, built, steps, onPick) {
       halo.setAttribute('x', x); halo.setAttribute('y', y - 22); halo.setAttribute('width', Math.abs(sp.x2 - sp.x1) + 16);
       halo.setAttribute('style', `--mc:${colorOf(st.transport)}`); halo.setAttribute('visibility', 'visible');
     },
+    span: (n) => spans.get(n) ?? null,
     rowEl: (n) => res.body.querySelector(`[data-e="${steps[n - 1]?.row}"]`),
   };
 }
