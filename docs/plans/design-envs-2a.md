@@ -337,3 +337,12 @@ call, "in draft" chip. `package.json` → **0.26.0**. After deploy: re-seed samp
 D1 yes (import baseline on draft ops, migration 008, copied to baseline_items on apply). D2 yes (imported items are
 editable in the same draft and then show Changed; frame 10's "editable once applied" note is superseded). D3 stub.
 D4 yes. D5 yes. D6 yes. D7 defer. D8 yes.
+
+## Component colours (frame 11, lead decision 2026-10-21; override via bug)
+Option A: pastel colour per component on lifeline heads (stripe + 14% tint) and activation bars (28% fill, nested
+42%), arrows keep the transport colour. Palette `--cmp-1..8` from frame 11 (light/dark). Assignment is stored per
+environment: a component gets the next free slot the first time it is seen in that env and keeps it (no clashes up
+to 8; past 8 the palette repeats in order). Client apps, externals and data stores stay neutral; topics/queues keep
+their transport colour. Backend (2a-1): store the assignment (e.g. `envs.colors` JSON in migration 008) and return
+it in `GET /api/envs/meta`; a copy keeps the source's assignment. UI (2a-2): apply it on flows (heads, bars, folds,
+step-bar dots) and the map node ring; UI-GUIDE §2/§8 updated with frame 11's wording.
