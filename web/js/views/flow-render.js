@@ -34,7 +34,7 @@ export function createFlowRender({ trace, tree, key, ancestors = [], sticky = tr
     onMw: (bar, sel) => { const k = bar?.mw?.key; if (!k) return; if (!mwOpen.delete(k)) mwOpen.add(k); drawLane(); laneBox.querySelector(`${sel ?? '.mwlab'}[data-mwfold="${bar.id}"]`)?.focus(); },
     onBar: (bar, mode) => { if (mode === 'select') sh.select(bar); else { sh.select(bar); sh.lookInside(bar, trace); } },
     onBarMenu: (bar, x, y) => barMenu(bar, x, y, { trace, openEntry: host.openEntry, inside: () => { sh.select(bar); sh.lookInside(bar, trace); }, toIndex: index ? () => index.el.scrollIntoView({ behavior: 'smooth' }) : null }),
-    onParticipant: (p, x, y) => participantMenu(p, x, y, { trace, openEntry: host.openEntry }),
+    onParticipant: (p, x, y, type) => (type === 'click' && sh.editHead?.(p.service)) || participantMenu(p, x, y, { trace, openEntry: host.openEntry }), // Edit with a draft: a click on a head opens its form
     onNum: (label) => { if (index) index.reveal(label); }, // a number tile at a queue: open that row of the list below (a card opens in place)
     onNumHover: (labels, on) => labels.forEach((l) => index?.rowNode(l)?.classList.toggle('hl', on)),
     onFan: (topic) => { if (!fanOpen.delete(topic)) fanOpen.add(topic); drawLane(); },
@@ -46,7 +46,7 @@ export function createFlowRender({ trace, tree, key, ancestors = [], sticky = tr
     const msgs = trace.messages.filter((m) => m.depth <= lo.maxDepth);
     const built = buildLane(msgs, { mwOpen, fanOpen, numbers: deliveryNumbers(tree), stores: lo.stores, scope: 'full', participants: trace.participants, trigger: depth ? null : sh.trigger?.() ?? null });
     const sq = sh.squeeze?.() ? { keep: (!depth && sh.walk?.endsOf(built)) || firstStepCols(built) } : null; // Squeeze: the current step's lifelines (a card: its first step's)
-    lane = renderLane(built, { ...handlers, marks: laneMarks(marksNow()), refs: createRefs(trace, { editing: state.mode === 'edit' && !!state.draft, onImport: sh.importRef }), sticky, squeeze: sq, onSqueeze: sh.squeezeOpen, fit: Math.max(0, (sh.fit?.() ?? 0) - (depth ? 40 + depth * 28 : 0)) });
+    lane = renderLane(built, { ...handlers, marks: laneMarks(marksNow()), edit: sh.addCall ? { onAddCall: sh.addCall } : null, refs: createRefs(trace, { editing: state.mode === 'edit' && !!state.draft, onImport: sh.importRef }), sticky, squeeze: sq, onSqueeze: sh.squeezeOpen, fit: Math.max(0, (sh.fit?.() ?? 0) - (depth ? 40 + depth * 28 : 0)) });
     if (!depth) sh.walk?.decorate(lane, built); // numbered steps are the top lane's only (0.20.0)
     laneBox.replaceChildren(lane.el);
   }

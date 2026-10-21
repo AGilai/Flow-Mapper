@@ -1,0 +1,35 @@
+/* Edit forms (0.26.0): the side panel's `.fgrid` (label | control), inline errors, the step list of the flow form. Prefix f-. */
+.fgrid { display: grid; grid-template-columns: minmax(74px, max-content) minmax(0, 1fr); gap: var(--s2) var(--s3); align-items: start; font-size: var(--fs-sm); }
+.fgrid .flab { color: var(--muted); padding-top: 6px; }
+.fgrid .fctl { display: grid; gap: 3px; min-width: 0; }
+.fgrid .fwide { grid-column: 1 / -1; }
+.fgrid .input, .fgrid .select, .fgrid .textarea { width: 100%; height: 30px; font-size: var(--fs-sm); }
+.fgrid .textarea { height: auto; min-height: 60px; resize: vertical; padding: 6px 8px; }
+.fgrid .input.mono { font-family: var(--mono); font-size: 12px; }
+.fgrid [aria-invalid='true'] { border-color: var(--bad); }
+.fgrid .fhint { color: var(--muted); font-size: var(--fs-xs); }
+.fgrid .ferr { color: var(--bad); font-size: var(--fs-xs); }
+.fgrid .ferr:empty { display: none; }
+.form-pane { display: grid; gap: var(--s3); align-content: start; }
+.form-pane .imp-acts { margin-top: 0; }
+.form-pane .grow { flex: 1; }
+.btn.danger-ghost { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 40%, var(--line-strong)); background: transparent; }
+.btn.danger-ghost:hover { background: color-mix(in srgb, var(--bad) 8%, var(--surface)); border-color: var(--bad); }
+.f-callout { display: flex; gap: var(--s2); align-items: baseline; padding: 8px 12px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); background: var(--surface); font-size: var(--fs-sm); }
+.f-callout .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-2); flex: none; align-self: center; }
+.f-locked { opacity: .55; pointer-events: none; }
+.f-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.f-steps li { display: flex; align-items: center; gap: var(--s2); padding: 4px 6px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); min-width: 0; }
+.f-steps li > .mono { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 12px; }
+.f-steps .btn { height: 24px; padding: 0 7px; }
+.f-sublinks { display: grid; gap: 6px; }
+.f-sublinks .row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) auto; gap: 4px; }
+.pill-add { border: 0; background: none; color: var(--accent); cursor: pointer; padding: 0; font-size: var(--fs-xs); justify-self: start; }
+
+/* "+ call" under a bar (Edit): a quiet dashed chip, neutral until hovered */
+.addcall { cursor: pointer; outline: none; }
+.addcall rect { fill: var(--surface); stroke: var(--line-strong); stroke-dasharray: 3 2; }
+.addcall text { font: 600 10.5px var(--font); fill: var(--ink-2); }
+.addcall:hover rect, .addcall:focus-visible rect { stroke: var(--accent); stroke-dasharray: none; }
+.addcall:hover text, .addcall:focus-visible text { fill: var(--accent); }
+.seq-toolbar > .btn.sm { height: 26px; }

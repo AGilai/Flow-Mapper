@@ -18,6 +18,7 @@ import { removedList } from './flow-removed.js';
 import { servicesOf } from './flow-marks.js';
 import { marksNow } from '../design/marks-store.js';
 import { createPartial } from './flow-partial.js';
+import { nameEditor } from './flow-name.js';
 import { state } from '../state.js';
 
 const tc = (t, label) => h('span.tc', { class: t, title: label }, label);
@@ -39,7 +40,7 @@ export function createTabView(data, host) {
   const label = host.describe(key);
   // The flow's description sits under its title, full width and collapsible (0.20.0); a sub-flow tab keeps its one line.
   const flowBox = root && data.kind !== 'sub' ? descDetails(host.desc, root, null, { cls: 'flowhead', remember: 'flowhead-open', title: 'What this flow is for', onGenerate: () => generate(null),
-    summary: [h('span.fh-t', label.title), label.sub ? h('span.mono.xs.muted', label.sub) : null] }) : null;
+    summary: [root ? nameEditor({ root, name: host.nameOf?.(root.service, root.ingress) ?? '', fallback: label.title }).el : h('span.fh-t', label.title), label.sub ? h('span.mono.xs.muted', label.sub) : null] }) : null;
   const subLine = root && data.kind === 'sub' ? descLine(host.desc, root, [`${data.service}:${data.name}`, data.service], { onGenerate: () => generate(data.service) }) : null;
   descs.push(flowBox, subLine);
   // The step walk: numbered arrows, the bar and the step's description. Step descriptions belong to the flow, so a sub-flow or function tab walks without them.
@@ -73,11 +74,13 @@ export function createTabView(data, host) {
   }
   const lookInside = (bar, tr) => { inside.open(bar, tr); };
   const flash = (g) => { g?.scrollIntoView({ block: 'center', behavior: 'smooth' }); g?.classList.add('flash'); setTimeout(() => g?.classList.remove('flash'), 1600); };
-  const shared = { host, opts, tip, walk, trigger: () => data.trigger, importRef: (anchor, m) => host.importRef?.(anchor, m?.reference?.source), squeeze: () => opts.squeeze && !sqOff, squeezeOpen: () => { sqOff = true; host.paintChrome?.(); render?.relane(); edge(); walk.reveal(true); }, fit: () => scroller.clientWidth, select, lookInside, flash, traceFor: host.traceFor,
-    openMessage: (m, g, tr) => { // clicking an arrow opens the message panel; one side panel at a time
+  const ed = editing && host.edit ? host.edit : null; // Edit with a draft: heads, arrows and "+ call" open forms (design/edit-open.js)
+  const shared = { host, opts, tip, walk, editHead: ed ? (service) => { ed.head(service); return true; } : null, addCall: ed ? (bar) => ed.addCall(bar.service, bar.msg.target.fn) : null, trigger: () => data.trigger, importRef: (anchor, m) => host.importRef?.(anchor, m?.reference?.source), squeeze: () => opts.squeeze && !sqOff, squeezeOpen: () => { sqOff = true; host.paintChrome?.(); render?.relane(); edge(); walk.reveal(true); }, fit: () => scroller.clientWidth, select, lookInside, flash, traceFor: host.traceFor,
+    openMessage: (m, g, tr) => { // clicking an arrow opens the message panel (in Edit: its form); one side panel at a time
       body.querySelectorAll('.msg.active').forEach((e) => e.classList.remove('active'));
       g.classList.add('active');
       inside.close();
+      if (ed?.arrow(m)) return;
       host.flowsEl.classList.add('mp-open');
       host.panel.open(...messagePanel(m, tr, host.env, 'full', host.openEntry));
     } };

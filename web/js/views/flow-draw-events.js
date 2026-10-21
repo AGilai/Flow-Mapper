@@ -10,7 +10,7 @@ export function wireEvents(head, body, { columns, events, bars }, { onMessage, o
   const pillOf = (t) => { const b = t.closest?.('[data-pill]'); return b ? bars[Number(b.dataset.pill)] : null; };
   const pm = (ev) => {
     const g = ev.target.closest?.('[data-p]'), c = g && columns[Number(g.dataset.p)];
-    if (c?.service && onParticipant) { ev.preventDefault(); onParticipant({ id: `svc:${c.service}`, kind: 'service', service: c.service, label: c.label }, ev.clientX, ev.clientY); }
+    if (c?.service && onParticipant) { ev.preventDefault(); onParticipant({ id: `svc:${c.service}`, kind: 'service', service: c.service, label: c.label }, ev.clientX, ev.clientY, ev.type); }
     else if (c?.fan && onFan && ev.type === 'click') onFan(c.fan.topic);
   };
   head.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { if (sqOf(ev.target)) { ev.preventDefault(); onSqueeze?.(); return; } const g = ev.target.closest?.('[data-p]'), c = g && columns[Number(g.dataset.p)]; if (c?.fan) { ev.preventDefault(); onFan?.(c.fan.topic); } } });

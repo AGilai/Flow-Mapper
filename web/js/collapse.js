@@ -24,10 +24,10 @@ export function writeCollapsed(key, collapsed, storage = store()) {
 /** The label a control announces: what a click will do. */
 export const toggleLabel = (what, collapsed) => `${collapsed ? 'Expand' : 'Collapse'} ${what}`;
 
-/** The text written vertically on the collapsed entry-point list: the service in view, else the plain title with its count. */
-export function stripLabel({ service = null, active = null, count = 0 } = {}) {
-  const s = service ?? (active ? String(active).replace(/^(?:fn:|full:)/, '').split('/')[0] : null);
-  return s || (count ? `Entry points (${count})` : 'Entry points');
+/** The text written vertically on the collapsed entry-point list: the service in view, else the plain title with its count, then the filters applied. */
+export function stripLabel({ service = null, active = null, count = 0, summary = '' } = {}) {
+  const s = service ?? (active ? String(active).replace(/^(?:fn:|full:)/, '').split('/')[0] : null), base = s || (count ? `Entry points (${count})` : 'Entry points');
+  return summary ? `${base} · ${summary}` : base; // the filters applied (flow-list-filter.js filterSummary), when any
 }
 
 /** The compact environment indicator of the collapsed rail: up to three characters. */

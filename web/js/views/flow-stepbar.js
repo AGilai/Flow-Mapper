@@ -29,7 +29,7 @@ export function createStepbar({ store, root, onMove }) {
     count.textContent = `Step ${n} of ${total}`;
     prev.disabled = n <= 1; next.disabled = n >= total;
     const [a, b] = stepCols(step.event);
-    what.replaceChildren(h('span.mono', step.label), ' ', dot(a), h('span.muted', `${step.from} → `), dot(b), h('span.muted', step.to));
+    what.replaceChildren(...[h('span.mono', step.label), ' ', dot(a), h('span.muted', `${step.from} → `), dot(b), h('span.muted', step.to)].filter(Boolean));
     live.textContent = announce(n, total, `${step.label}, ${step.from} to ${step.to}`);
     if (!root || shownKey === step.key) return;
     shownKey = step.key; clear();

@@ -10,8 +10,8 @@ import { subRequest, requestKey } from './flow-sub.js';
 
 const colorOf = (transport) => `var(--t-${String(transport ?? 'sqs').replace('amqp-queue', 'amqp')}, var(--t-res))`;
 
-/** createTabData(env, getOpts) -> { load(key), traceFor(request), clear(), describe(key), peek(key) }; getOpts(): { frontier } */
-export function createTabData(env, getOpts) {
+/** createTabData(env, getOpts, nameOf(service, ingress) -> flow name | '') -> { load(key), traceFor(request), clear(), describe(key), peek(key) }; getOpts(): { frontier } */
+export function createTabData(env, getOpts, nameOf = () => '') {
   const cache = new Map(), done = new Map(), traces = new Map();
   let running = 0;
   const waiting = [];
@@ -58,8 +58,9 @@ export function createTabData(env, getOpts) {
       return { kind: 'sub', tn: d?.label ?? '…', title: d?.service ?? p.handler, sub: d ? d.name : '', color: colorOf(t), tip: d ? `${d.label} · ${d.service} · ${d.name} (from ${p.queue.replace(/^[^:]+:/, '')})` : p.handler };
     }
     const name = p.ingress ?? p.fn;
-    return { kind: p.kind, title: p.service, sub: name, color: p.kind === 'full' ? 'var(--accent)' : 'var(--t-http)',
-      tip: p.kind === 'full' ? `Full flow from ${p.service} · ${name}` : `${p.service} · ${name}${p.event ? ` (${p.event})` : ''}`, scope: p.scope };
+    const named = p.kind === 'entry' || p.kind === 'full' ? nameOf(p.service, p.ingress) : ''; // a named flow: its name is the tab title, `service · key` the sub
+    return { kind: p.kind, title: named || p.service, sub: named ? `${p.service} · ${name}` : name, named, color: p.kind === 'full' ? 'var(--accent)' : 'var(--t-http)',
+      tip: p.kind === 'full' ? `Full flow from ${p.service} · ${name}` : `${named ? `${named} · ` : ''}${p.service} · ${name}${p.event ? ` (${p.event})` : ''}`, scope: p.scope };
   }
   return { load, describe, traceFor, peek: (key) => done.get(key) ?? null, clear: () => { cache.clear(); done.clear(); traces.clear(); } };
 }
