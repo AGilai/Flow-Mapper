@@ -6,6 +6,7 @@
 // A design owns its rows (no sharing with the source). The rows copied from a sealed environment become its baseline;
 // a copy of a design keeps that design's original baseline.
 
+import { envCreated } from '../events/emitters.ts';
 import type { DB } from '../db/connection.ts';
 import { tx } from '../db/connection.ts';
 import { badRequest, conflict, invalid, notFound } from '../errors.ts';
@@ -53,7 +54,7 @@ function validate(db: DB, i: CopyInput) {
 export function copyEnv(db: DB, input: CopyInput): EnvMeta {
   const v = validate(db, input);
   const { name, source, mode } = input;
-  return tx(db, () => {
+  const out = tx(db, () => {
     const at = new Date().toISOString();
     // A full copy of a design carries its subsystems (unless the request names others).
     const fullOfDesign = mode === 'full' && v.src.kind === 'design';
@@ -87,4 +88,6 @@ export function copyEnv(db: DB, input: CopyInput): EnvMeta {
     if (mode === 'full') { copyDescriptions(c); copyAllBaseline(c); }
     return getEnv(db, name);
   });
+  envCreated(db, { name: out.name, source: out.source, createdBy: out.createdBy });
+  return out;
 }

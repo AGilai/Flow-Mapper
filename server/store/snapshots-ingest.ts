@@ -8,6 +8,7 @@ import { contractReport } from '../../core/contract.ts';
 import { HttpError, conflict, invalid, notFound } from '../errors.ts';
 import { getSnapshotRow, loadEntities, loadModel, rowToService, type Entities, type Source, type WriteResult } from './snapshots-read.ts';
 import { ensureEnv, guardEnv } from './envs.ts';
+import { manifestIngested } from '../events/emitters.ts';
 import { assertIntegrity, diff, replaceEntities, upsertSnapshot, writeChangelog } from './snapshots-write.ts';
 
 /** Thrown at the end of a dry run so the transaction rolls back; carries the results. */
@@ -27,7 +28,7 @@ export function ingest(db: DB, manifest: any, source: Source = 'api', opts: { dr
  */
 export function ingestBatch(db: DB, manifests: any[], source: Source = 'api', { dryRun = false } = {}): WriteResult[] {
   try {
-    return tx(db, () => {
+    const results = tx(db, () => {
       const applied = manifests.map((m, i) => applyIn(db, m, source, manifests.length > 1 ? i : null));
       const index = new Map<string, ReturnType<typeof buildIndex>>();
       const results = applied.map(({ result, after }) => {
@@ -37,6 +38,8 @@ export function ingestBatch(db: DB, manifests: any[], source: Source = 'api', { 
       if (dryRun) throw new DryRun(results); // tx rolls back
       return results;
     });
+    if (!dryRun) results.forEach((r, i) => manifestIngested(db, r, manifests[i], source));
+    return results;
   } catch (err) {
     if (err instanceof DryRun) return err.results;
     throw err;

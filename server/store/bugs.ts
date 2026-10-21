@@ -7,6 +7,7 @@ import type { DB } from '../db/connection.ts';
 import { tx } from '../db/connection.ts';
 import type { GraphIndex } from '../../core/graph-index.ts';
 import { impact, suggestPriority, type EntityLink, type Priority, type Severity } from '../../core/impact.ts';
+import { bugCommented, bugCreated, bugPatched } from '../events/emitters.ts';
 import { HttpError, badRequest, conflict, invalid, notFound } from '../errors.ts';
 
 export const STATUSES = ['open', 'triaged', 'in_progress', 'fixed', 'verified', 'closed', 'wont_fix', 'duplicate'] as const;
@@ -69,7 +70,7 @@ export function createBug(db: DB, g: (env: string) => GraphIndex, input: BugInpu
   const score = scorePriority(g(env), severity, links);
   const priority = input.priority ?? score.suggested;
   const t = now();
-  return tx(db, () => {
+  const id = tx(db, () => {
     const r = db.prepare(`INSERT INTO bugs (title, description, steps, status, severity, priority, priority_override, impact, app_version, env, reporter, assignee, channel, created_at, updated_at)
       VALUES (?, ?, ?, 'open', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
       .run(input.title.trim(), input.description ?? '', input.steps ?? '', severity, priority, input.priority ? 1 : 0, score.impact,
@@ -78,6 +79,8 @@ export function createBug(db: DB, g: (env: string) => GraphIndex, input: BugInpu
     setLinks(db, id, links);
     return id;
   });
+  bugCreated(db, id, { title: input.title.trim(), severity, priority, env, reporter: input.reporter ?? 'anonymous', links });
+  return id;
 }
 
 function setLinks(db: DB, id: number, links: EntityLink[]) {
@@ -173,7 +176,7 @@ export function updateBug(db: DB, g: (env: string) => GraphIndex, id: number, pa
     }
     set.status = patch.status;
   }
-  return tx(db, () => {
+  tx(db, () => {
     const links = patch.links !== undefined ? checkLinks(patch.links) : null;
     if (links) setLinks(db, id, links);
     const sev = (set.severity ?? cur.severity) as Severity;
@@ -188,13 +191,15 @@ export function updateBug(db: DB, g: (env: string) => GraphIndex, id: number, pa
     const cols = Object.keys(set);
     db.prepare(`UPDATE bugs SET ${cols.map((c) => `${c} = ?`).join(', ')} WHERE id = ?`).run(...(Object.values(set) as any[]), id);
   });
+  bugPatched(db, cur, row(db, id), Object.keys(patch).filter((k) => (patch as any)[k] !== undefined));
 }
 
 export function addComment(db: DB, id: number, author: string | undefined, body: unknown) {
-  row(db, id);
+  const bug = row(db, id);
   if (typeof body !== 'string' || !body.trim()) throw invalid('comment body is required');
   const r = db.prepare('INSERT INTO bug_comments (bug_id, author, body, created_at) VALUES (?, ?, ?, ?)').run(id, author || 'anonymous', body, now());
   db.prepare('UPDATE bugs SET updated_at = ? WHERE id = ?').run(now(), id);
+  bugCommented(db, bug, Number(r.lastInsertRowid), author || 'anonymous', body);
   return Number(r.lastInsertRowid);
 }
 

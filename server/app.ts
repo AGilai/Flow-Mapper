@@ -18,10 +18,12 @@ import { registerDescriptions } from './routes/descriptions.ts';
 import { registerInventory } from './routes/inventory.ts';
 import { registerInstances } from './routes/instances.ts';
 import { registerMcpHttp } from './mcp/http.ts';
+import { registerEvents, type StreamOptions } from './routes/events.ts';
+import { announceVersion } from './events/bus.ts';
 
 export const APP_VERSION: string = JSON.parse(readFileSync(join(import.meta.dirname, '../package.json'), 'utf8')).version;
 
-export interface AppOptions { dbPath: string; dataDir: string; dev?: boolean }
+export interface AppOptions { dbPath: string; dataDir: string; dev?: boolean; events?: StreamOptions }
 
 export function createContext(opts: AppOptions): Ctx {
   const db = openDb(opts.dbPath);
@@ -34,6 +36,7 @@ export function createContext(opts: AppOptions): Ctx {
 
 export function createApp(opts: AppOptions): { server: Server; ctx: Ctx; router: Router } {
   const ctx = createContext(opts);
+  announceVersion(ctx.db, ctx.appVersion);
   const router = new Router();
   router.get('/api/version', () => ({ version: APP_VERSION }));
   registerEnvs(router, ctx);
@@ -45,6 +48,7 @@ export function createApp(opts: AppOptions): { server: Server; ctx: Ctx; router:
   registerInventory(router, ctx);
   registerInstances(router, ctx);
   registerMcpHttp(router, ctx);
+  registerEvents(router, ctx, opts.events);
 
   const server = createServer(async (req, res) => {
     if (await router.handle(req, res)) return;
