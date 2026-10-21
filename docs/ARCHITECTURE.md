@@ -20,6 +20,7 @@ docs/      DESIGN (the why), API (the contract), this file (the where).
 ```
 harvester ── POST /api/ingest ──► server/routes/map.ts ─► server/store/snapshots.ts (validate, version, diff, write)
                                                            └► graph-cache.afterWrite(env) → invalidate + record health
+store writes ── emit after commit ─► server/events/bus.ts (ring + `events` table) ─► server/routes/events.ts (GET /api/events, SSE)
 UI / agent ── GET /api/envs/:env/... ─► server/routes/queries.ts ─► graph-cache.graphFor(env)
                                                                      └► core/graph-index.buildIndex(model)  (resolve once, cached)
                                                                          └► core/system-graph | service-view | trace | paths | health
