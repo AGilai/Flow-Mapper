@@ -8,7 +8,6 @@
     { "key": "platform", "label": "Platform" }
   ],
   "services": [
-    { "name": "sase-agent", "groupPath": "agent" },
     { "name": "sxdns", "groupPath": "network" },
     { "name": "swg-api", "groupPath": "network" },
     { "name": "auth-svc", "groupPath": "platform" },

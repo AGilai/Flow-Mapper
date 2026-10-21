@@ -31,6 +31,8 @@ test('the summary sentence counts what comes along and says functions and flows 
   const s = summarySentence({ mode: 'components', source: 'prod', rows, all: 55, groups: [{ key: 'platform', label: 'Platform' }] });
   assert.match(s, /^Copies 2 components into platform: 14 endpoints, 2 calls, 3 queues and topics, 3 data stores, 21 DTOs, as of prod now\./);
   assert.match(s, /functions and flows stay in prod/);
+  assert.match(summarySentence({ mode: 'components', source: 'prod', rows, all: 55, groups: [{ key: 'a', label: 'A' }], unassigned: 2 }), /2 picked components have no subsystem yet\./);
+  assert.doesNotMatch(summarySentence({ mode: 'components', source: 'prod', rows, all: 55, groups: [], unassigned: 2 }), /no subsystem/);
   assert.match(summarySentence({ mode: 'components', source: 'prod', rows: [], all: 5, groups: [] }), /Pick at least one/);
   assert.match(summarySentence({ mode: 'full', source: 'prod', rows: [], all: 55, groups: [] }), /55 components with their functions, flows and descriptions/);
   assert.match(summarySentence({ mode: 'blank', source: 'prod', rows: [], all: 0, groups: [] }), /empty/);

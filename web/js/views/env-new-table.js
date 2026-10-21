@@ -13,7 +13,7 @@ export function pickTable(st, onChange) {
 
   const tick = (name, on) => { if (on) st.picked.add(name); else st.picked.delete(name); onChange(); };
   const groupSel = (c) => h('select.select', { 'aria-label': `Subsystem of ${c.name}`, disabled: !st.groups.length, on: { change: (e) => st.assign.set(c.name, e.target.value) } },
-    h('option', { value: '', selected: !st.assign.get(c.name) }, st.groups.length ? 'none' : 'no subsystems'),
+    h('option', { value: '', selected: !st.assign.get(c.name) }, st.groups.length ? 'not set' : 'no subsystems'),
     st.groups.map((g) => h('option', { value: g.key, selected: st.assign.get(c.name) === g.key }, g.key)));
   const row = (c, extra, off) => h('tr', { class: off ? 'env-off' : '' },
     h('td', { style: { width: '28px' } }, h('input', { type: 'checkbox', checked: st.picked.has(c.name), 'aria-label': `Copy ${c.name}`, on: { change: (e) => tick(c.name, e.target.checked) } })),

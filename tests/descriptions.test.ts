@@ -9,7 +9,7 @@ import { createHash } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 import { buildIndex } from '../core/graph-index.ts';
 import { trace } from '../core/trace.ts';
-import { traceHash, flowDescriptions, flowPrompt, servicePrompt, lineText, HASH_TRACE, type DescRow } from '../core/description.ts';
+import { stepKey, traceHash, flowDescriptions, flowPrompt, servicePrompt, lineText, HASH_TRACE, type DescRow } from '../core/description.ts';
 import { openDb } from '../server/db/connection.ts';
 import { sampleModel, sampleManifests, startApp } from './helpers.ts';
 
@@ -163,4 +163,22 @@ test('upgrade: a database with 001 and 002 applied gets 003, data kept, backup w
   assert.throws(() => db.prepare("INSERT INTO descriptions (env, service, ingress, callee, source, text, updated_at) VALUES ('prod', 's', 'i', '', 'human', 'again', 'n')").run(), 'one record per source and key');
   db.close();
   assert.ok(existsSync(`${path}.pre-003.bak`));
+});
+
+test('0.20.0 step keys: REST and MCP accept a step of the flow, refuse one that is not in it; the human and AI notes of a step live apart', async () => {
+  const a = await app();
+  try {
+    const k = stepKey(T().messages[1]), bad = '#step:svc:x>svc:y|nope|';
+    const put = await a.call('PUT', ING, { service: 'api-gateway', ingress: 'in.createOrder', callee: k, text: 'Step note.' });
+    assert.equal(put.status, 200);
+    assert.equal(put.body.callees[k].human.text, 'Step note.');
+    const set = out(await mcp(a, 'set_description', { service: 'api-gateway', ingress: 'in.createOrder', callee: k, text: 'AI step note.', model: 'm' }));
+    assert.equal(set.callees[k].ai.text, 'AI step note.');
+    assert.equal(set.callees[k].ai.outdated, false);
+    assert.equal(set.callees[k].human.text, 'Step note.');
+    assert.equal((await a.call('PUT', ING, { service: 'api-gateway', ingress: 'in.createOrder', callee: bad, text: 'x' })).status, 400);
+    assert.equal((await mcp(a, 'set_description', { service: 'api-gateway', ingress: 'in.createOrder', callee: bad, text: 'x', model: 'm' })).body.result.isError, true);
+    const clear = await a.call('PUT', ING, { service: 'api-gateway', ingress: 'in.createOrder', callee: k, text: '' });
+    assert.equal(clear.body.callees[k].human, null);
+  } finally { await a.close(); }
 });

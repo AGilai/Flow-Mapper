@@ -18,6 +18,9 @@ import { edgePanel } from './edge-panel.js';
 
 const TRANSPORTS = ['http', 'rpc', 'grpc', 'sns', 'sqs', 'amqp', 'eventbridge', 'socket'];
 
+/** "1 service", "3 services". */
+const n1 = (n, word) => `${n.toLocaleString()} ${word}${n === 1 ? '' : 's'}`;
+
 export async function render({ main, query }) {
   const data = await api.system(state.env);
   const opts = {
@@ -37,7 +40,7 @@ export async function render({ main, query }) {
   const toggle = (key, label) => h('label.check', h('input', { type: 'checkbox', checked: opts[key], on: { change: (e) => { opts[key] = e.target.checked; persist(); rebuild(); } } }), label);
 
   main.append(
-    pageHead('System map', `${services} services, ${data.edges.length.toLocaleString()} connections`,
+    pageHead('System map', `${n1(services, 'service')}, ${n1(data.edges.length, 'connection')}`,
       h('div.search', icon('search'), search),
       h('select.select', { 'aria-label': 'Team', on: { change: (e) => { opts.team = e.target.value; persist(); apply(); } } },
         h('option', { value: '' }, 'All teams'), teams.map((t) => h('option', { value: t, selected: t === opts.team }, t))),
@@ -129,7 +132,7 @@ export async function render({ main, query }) {
     graph.setVisible(visible);
     graph.setHighlight(focus ?? (q && opts.hops ? hits : null));
     const hop = opts.hops ? ` within ${opts.hops} ${opts.hops === 1 ? 'hop' : 'hops'}` : '';
-    count.textContent = selected ? `${visible.size} shown around the selection` : q ? `${hits.size} matching${hop ? `, ${visible.size} shown${hop}` : ''}` : visible ? `${visible.size} of ${current.nodes.length} shown` : `${current.nodes.length} nodes`;
+    count.textContent = selected ? `${visible.size} shown around the selection` : q ? `${hits.size} matching${hop ? `, ${visible.size} shown${hop}` : ''}` : visible ? `${visible.size} of ${current.nodes.length} shown` : n1(current.nodes.length, 'node');
   }
 
   function selectNode(id) {

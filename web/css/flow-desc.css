@@ -7,7 +7,7 @@
 
 .btn.sm { height: 26px; padding: 0 10px; font-size: var(--fs-xs); }
 .desc2 { display: grid; gap: 6px; max-width: 1000px; min-width: 0; margin-bottom: var(--s3); }
-.desc-t { font-size: var(--fs-xs); font-weight: 650; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.desc-t { font-size: var(--fs-xs); font-weight: 650; color: var(--muted); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .desc-t .chip-warn { text-transform: none; letter-spacing: 0; }
 .dbox { border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); padding: 8px 12px; min-width: 0; }
 .dbox.human { border-left: 3px solid var(--ok); }
@@ -23,6 +23,7 @@
 .fi-desc .dbox-h { flex-wrap: nowrap; }
 .dbox-h .chev { width: 22px; height: 22px; margin-left: -6px; }
 .who { font-size: var(--fs-xs); font-weight: 650; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-2); }
+.dbox .who { text-transform: none; letter-spacing: 0; font-size: var(--fs-sm); } /* UI-GUIDE: sentence case */
 .dbox.human .who { color: var(--ok); }
 .dbox p { font-size: var(--fs-sm); color: var(--ink); max-width: 90ch; margin-top: 4px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .dbox p.why { color: var(--ink-2); }

@@ -32,7 +32,7 @@ export function createContext(opts: AppOptions): Ctx {
   };
 }
 
-export function createApp(opts: AppOptions): { server: Server; ctx: Ctx } {
+export function createApp(opts: AppOptions): { server: Server; ctx: Ctx; router: Router } {
   const ctx = createContext(opts);
   const router = new Router();
   router.get('/api/version', () => ({ version: APP_VERSION }));
@@ -52,5 +52,5 @@ export function createApp(opts: AppOptions): { server: Server; ctx: Ctx } {
     if (await serveStatic(req, res, !!opts.dev)) return;
     sendJson(res, 404, { error: { code: 'NOT_FOUND', message: 'not found' } });
   });
-  return { server, ctx };
+  return { server, ctx, router };
 }

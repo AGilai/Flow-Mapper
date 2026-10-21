@@ -3,9 +3,9 @@
 
 import type { DB } from '../db/connection.ts';
 import type { GraphIndex } from '../../core/graph-index.ts';
-import { badRequest, notFound } from '../errors.ts';
+import { badRequest, notFound, HttpError } from '../errors.ts';
 import { trace } from '../../core/trace.ts';
-import { flowDescriptions, traceHash, HASH_TRACE, calleeService, type DescRow, type FlowDescriptions } from '../../core/description.ts';
+import { flowDescriptions, traceHash, HASH_TRACE, calleeService, isStepKey, hasStep, type DescRow, type FlowDescriptions } from '../../core/description.ts';
 
 const MAX_TEXT = 4000;
 interface Row { callee: string; source: 'human' | 'ai'; text: string; author: string | null; model: string | null; trace_hash: string | null; updated_at: string }
@@ -39,7 +39,7 @@ function check(g: GraphIndex, env: string, service: unknown, ingress: unknown, c
   if (text.length > MAX_TEXT) throw badRequest(`text is longer than ${MAX_TEXT} characters`);
   const t = flowTrace(g, env, service, ingress);
   const c = (callee ?? '') as string;
-  if (c && !g.model.services.some((s) => s.name === calleeService(c))) throw badRequest(`callee '${c}' is not a service in env '${env}'`);
+  if (c && isStepKey(c)) { if (!hasStep(t, c)) throw badRequest(`step '${c}' is not in the flow ${service} / ${ingress}`); } else if (c && !g.model.services.some((s) => s.name === calleeService(c))) throw badRequest(`callee '${c}' is not a service in env '${env}'`);
   return { t, callee: c };
 }
 
@@ -68,15 +68,23 @@ export function putAi(db: DB, g: GraphIndex, env: string, a: { service: string; 
 export interface SampleDescription { service: string; ingress: string; callee?: string; source: 'human' | 'ai'; text: string; editedBy?: string; model?: string; generatedAt?: string; outdated?: boolean }
 
 /** Seed data (samples/descriptions/*.json): AI records are replaced on every seed; `outdated: true` stores a trace hash that cannot match, for the demo. */
-export function loadDescriptions(db: DB, g: GraphIndex, env: string, list: SampleDescription[]): number {
+export function loadDescriptions(db: DB, g: GraphIndex, env: string, list: SampleDescription[], warn: (m: string) => void = () => {}): number {
+  let n = 0;
   for (const d of list) {
-    // A human note is someone's own words: seeding never replaces one that is already there.
-    if (d.source === 'human') { if (!rowsFor(db, env, d.service, d.ingress).some((r) => r.source === 'human' && r.callee === (d.callee ?? ''))) putHuman(db, g, env, d); continue; }
-    putAi(db, g, env, { ...d, model: d.model ?? 'claude-sonnet-5-5' });
-    db.prepare(`UPDATE descriptions SET updated_at = COALESCE(?, updated_at)${d.outdated ? ", trace_hash = 'outdated-sample'" : ''} WHERE env = ? AND service = ? AND ingress = ? AND callee = ? AND source = 'ai'`)
-      .run(d.generatedAt ?? null, env, d.service, d.ingress, d.callee ?? '');
+    try {
+      // A human note is someone's own words: seeding never replaces one that is already there.
+      if (d.source === 'human') { if (!rowsFor(db, env, d.service, d.ingress).some((r) => r.source === 'human' && r.callee === (d.callee ?? ''))) putHuman(db, g, env, d); n++; continue; }
+      putAi(db, g, env, { ...d, model: d.model ?? 'claude-sonnet-5-5' });
+      db.prepare(`UPDATE descriptions SET updated_at = COALESCE(?, updated_at)${d.outdated ? ", trace_hash = 'outdated-sample'" : ''} WHERE env = ? AND service = ? AND ingress = ? AND callee = ? AND source = 'ai'`)
+        .run(d.generatedAt ?? null, env, d.service, d.ingress, d.callee ?? '');
+      n++;
+    } catch (e) {
+      // The flow in this env may differ from the samples (harvested data on a shared instance): skip, don't abort the seed.
+      if (!(e instanceof HttpError)) throw e;
+      warn(`skipped description ${d.service} / ${d.ingress}${d.callee ? ` / ${d.callee}` : ''}: ${e.message}`);
+    }
   }
-  return list.length;
+  return n;
 }
 
 /** Every record of a service (all its flows), for get_service. */

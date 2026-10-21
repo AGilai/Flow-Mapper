@@ -1,0 +1,48 @@
+/* 0.20.0: the flow description under the title, the step walk bar and the step description, numbered step tiles on the lane.
+   Mockup: design/mockups/design-env.html, frame 9. Names are prefixed (flow-, step-) so they never meet the older .st / .who / .dbox / .numtile. */
+
+.flow-tab { flex: 1; min-height: 0; display: flex; flex-direction: column; min-width: 0; }
+.flow-top { flex: none; max-height: 48vh; overflow-y: auto; background: var(--surface); border-bottom: 1px solid var(--line); }
+.flow-top:empty { display: none; }
+
+/* both boxes are <details>: the summary is the control, the text box sits under it */
+details.flowhead, details.stepdesc { padding: var(--s2) var(--s4); }
+details.flowhead { padding-top: var(--s3); }
+details.stepdesc { border-top: 1px solid var(--line); padding-bottom: var(--s3); }
+details.flowhead > summary, details.stepdesc > summary { cursor: pointer; list-style: none; display: flex; align-items: baseline; gap: var(--s3); flex-wrap: wrap; border-radius: var(--r-sm); }
+details.flowhead > summary::-webkit-details-marker, details.stepdesc > summary::-webkit-details-marker { display: none; }
+details.flowhead > summary::before, details.stepdesc > summary::before { content: '▸'; color: var(--muted); font-size: 11px; display: inline-block; transition: transform .15s; }
+details.flowhead[open] > summary::before, details.stepdesc[open] > summary::before { transform: rotate(90deg); }
+details.flowhead > summary:focus-visible, details.stepdesc > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.fh-t { font-size: var(--fs-lg); font-weight: 600; }
+.fh-src { margin-left: auto; }
+details.stepdesc > summary { font-size: var(--fs-xs); color: var(--muted); font-weight: 600; }
+
+/* the wide variant of the Human / AI boxes: the note is the click target; the text reads at body size */
+.desc2.wide { max-width: 110ch; margin: var(--s2) 0 0; }
+.desc2.wide .desc-t { display: none; } /* the summary line above is its title */
+.desc2.wide .dtext { cursor: text; border-radius: var(--r-sm); }
+.desc2.wide .dtext:hover { background: color-mix(in srgb, var(--accent) 5%, transparent); }
+.flowhead .desc2.wide .dbox p { font-size: var(--fs-md); line-height: 1.55; max-width: none; }
+.stepdesc .desc2.wide .dbox p { font-size: var(--fs-sm); max-width: none; }
+.stepdesc .desc-f { display: none; }
+
+/* the walk bar */
+.stepbar { display: flex; align-items: center; gap: var(--s2); padding: 8px var(--s4); flex-wrap: wrap; border-top: 1px solid var(--line); }
+.stepnav { width: 30px; height: 28px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); font: 600 16px/1 var(--font); cursor: pointer; }
+.stepnav:hover:not(:disabled) { background: var(--accent-soft); color: var(--accent); }
+.stepnav:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.stepnav:disabled { opacity: .45; cursor: default; }
+.stepcnt { font-weight: 600; font-size: var(--fs-sm); min-width: 86px; text-align: center; font-variant-numeric: tabular-nums; }
+.steplabel { margin-left: var(--s2); font-size: var(--fs-sm); min-width: 0; overflow-wrap: anywhere; }
+.stepwalk[hidden] { display: none; }
+@media (max-width: 860px) { .steplabel { flex-basis: 100%; margin-left: 0; } } /* the label wraps under the buttons */
+
+/* tiles on the lane: neutral until current; the current one is solid ink with a halo in the arrow's transport colour */
+.steptile { cursor: pointer; }
+.steptile rect { fill: var(--surface); stroke: var(--line-strong); }
+.steptile text { font: 600 10.5px var(--font); fill: var(--ink-2); font-variant-numeric: tabular-nums; }
+.steptile:hover rect { stroke: var(--accent); }
+.steptile.cur rect { fill: var(--ink); stroke: var(--ink); }
+.steptile.cur text { fill: var(--surface); }
+.stephalo { fill: color-mix(in srgb, var(--mc, var(--accent)) 8%, transparent); stroke: var(--mc, var(--accent)); stroke-width: 2.2; stroke-opacity: .85; }

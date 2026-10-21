@@ -21,9 +21,11 @@ export async function render({ main, query }) {
   const st = { name: '', source: source0, mode: ['blank', 'components', 'full'].includes(query.get('mode')) ? query.get('mode') : 'components',
     groups: [], comps: [], picked: new Set(), assign: new Map(), neighbours: [], filter: '' };
   const err = h('div');
+  let showName = false, nameTimer = null; // a name problem is shown after a pause in typing or on leaving the field, never before
   const nameHelp = h('span.env-help');
   const nameInput = h('input.input.env-name', { type: 'text', id: 'env-name', autocomplete: 'off', spellcheck: false, placeholder: 'sase-hld',
-    on: { input: (e) => { st.name = e.target.value.trim(); changed(); } } });
+    on: { input: (e) => { st.name = e.target.value.trim(); showName = false; clearTimeout(nameTimer); nameTimer = setTimeout(() => { showName = true; changed(); }, 700); changed(); },
+      blur: () => { clearTimeout(nameTimer); if (st.name) { showName = true; changed(); } } } });
   const countLabel = h('span.env-count');
   const tableHost = h('div.env-field');
   const summaryText = h('p');
@@ -42,15 +44,15 @@ export async function render({ main, query }) {
   }, 200);
 
   function changed() {
-    for (const n of st.picked) if (!st.groups.some((g) => g.key === st.assign.get(n))) st.assign.set(n, st.groups[0]?.key ?? '');
-    for (const n of [...st.assign.keys()]) if (!st.picked.has(n)) st.assign.delete(n);
+    // A picked component stays unassigned until the user chooses its subsystem; a removed subsystem unassigns its components.
+    for (const n of [...st.assign.keys()]) if (!st.picked.has(n) || !st.groups.some((g) => g.key === st.assign.get(n))) st.assign.delete(n);
     const bad = nameError(st.name, takenNames());
-    nameHelp.textContent = bad || 'Lowercase letters, digits and "-". It is the name in the environment list.';
-    nameHelp.classList.toggle('bad', !!bad);
+    nameHelp.textContent = (showName && bad) || 'Lowercase letters, digits and "-". It is the name in the environment list.';
+    nameHelp.classList.toggle('bad', showName && !!bad);
     const rows = st.comps.filter((c) => st.picked.has(c.name));
     countLabel.textContent = st.mode === 'components' ? `${rows.length} picked` : '';
     tableHost.hidden = st.mode !== 'components';
-    summaryText.textContent = summarySentence({ mode: st.mode, source: st.source, rows, all: st.comps.length, groups: st.groups });
+    summaryText.textContent = summarySentence({ mode: st.mode, source: st.source, rows, all: st.comps.length, groups: st.groups, unassigned: rows.filter((c) => !st.assign.get(c.name)).length });
     create.disabled = !st.name || !!bad || (st.mode === 'components' && !rows.length);
     table.draw();
     loadNeighbours();

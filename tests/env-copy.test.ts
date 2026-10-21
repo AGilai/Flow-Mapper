@@ -108,7 +108,8 @@ test('C5 neighbours: one hop, through channels too, never the source or infra', 
   const names = n.map((x: any) => x.service);
   assert.ok(names.includes('api-gateway'), 'calls orders-svc');
   assert.ok(n.find((x: any) => x.service === 'api-gateway').reason.includes('calls orders-svc'));
-  assert.ok(n.some((x: any) => x.reason.includes('publishes to') || x.reason.includes('reads ')), 'through a topic or queue');
+  assert.ok(n.some((x: any) => x.reason.includes('gets events from') || x.reason.includes('sends events to')), 'through a topic or queue');
+  assert.ok(n.every((x: any) => !/amqp-queue:|sqs:|sns:/.test(x.reason)), 'channels by name, not bind key');
   assert.equal(names.includes('orders-svc'), false);
   assert.equal(names.includes('infra'), false);
   const two = (await app.call('GET', '/api/envs/prod/neighbours?services=api-gateway,orders-svc,users-svc')).body.map((x: any) => x.service);
@@ -121,6 +122,7 @@ test('components table: what each component brings along', async () => {
   const u = rows.find((r: any) => r.name === 'users-svc');
   assert.ok(u.counts.endpoints > 0 && u.counts.dtos >= 1);
   assert.equal('functions' in u.counts, false);
+  assert.ok(rows.find((r: any) => r.name === 'cp-middleware').counts.channels >= 1, 'a queue or exchange the service uses is counted even when an infra service declares it');
 });
 
 test('C6 the source is unchanged by a copy', async () => {

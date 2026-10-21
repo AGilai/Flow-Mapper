@@ -60,7 +60,7 @@ RabbitMQ pages (0.19.0): the exchange page data (publishers, bindings, callouts,
 | `endpoint-info.ts` | an ingress with its handler, repo link to the handler's code, and DTOs |
 | `impact.ts` | bug impact (flows through linked entities) and suggested priority |
 | `integrity.ts` | references inside one service |
-| `description.ts` | flow descriptions, pure: the trace hash, outdated flag, grouping of stored records, the two "Generate…" prompts |
+| `description.ts` | flow descriptions, pure: the trace hash, outdated flag, grouping of stored records, the two "Generate…" prompts, step keys (`stepKey`, `stepKeys`: one arrow of a flow, from message content) |
 | `schema-validate.ts` | small JSON Schema validator for our schema's keywords |
 
 ## server/
@@ -108,6 +108,7 @@ Redis instance page (0.16.0): `views/instance.js` (head, verdict), `instance-lan
 RabbitMQ pages (0.19.0): `views/exchange.js` is the exchange page, reached through `views/instance.js` for `#/instances/amqp%3A<name>` (css in `exchange.css`); the Inventory folds RPC plumbing (`inventory.js`, `rpc-fold`); the service switchboard shows RPC commands and calls as olive "amqp rpc" groups and publishes as grape "amqp" groups; `endpoint-rpc.js` adds the callers and the command queue to the endpoint panel.
 
 Fan-out trunk (0.19.1): `flow-lane.js` puts `publish` (topic, event, routing key, deliveries) on the trunk hop of a publish with 2+ deliveries; `flow-draw.js` draws a separate `hit trunk` rect for service to topic, and a click there opens `flow-panel-publish.js` (each delivery opens its own arrow).
+Step walk (0.20.0): every flow page has the flow's description under its title (`flow-head.js`: a `<details>` around `descBlock` in its `wide` mode, open or closed kept in localStorage), a numbered step on each arrow and a walk bar above the diagram. `flow-steps.js` (pure) says which lane events are steps (calls, publish rows, unresolved calls, store stubs; not returns, pills, middleware, notes) and gives each a content key (`stepKeys` in `core/description.ts`, `#step:<from>><to>|<label>|<transport>`, `~2` for a repeat); `flow-walk.js` (pure) is the current step, the `step=` URL param and the keys (← → Home End, never in a text box, never `[ ]` or 1-9). `flow-walk-view.js` owns the walk of a tab: `flow-render.js` hands it each top-lane drawing (geometry from `renderLane`), `flow-step-tiles.js` draws the tiles and the halo from that geometry (class `steptile`, apart from the async `numtile`), `flow-stepbar.js` is the bar, the aria-live line and the step's description box. Step descriptions are rows of the `descriptions` table whose callee is the step key; the current step is kept across redraws by its key. CSS: `flow-walk.css`.
 
 RabbitMQ (0.18.0): an exchange publish reuses the chain above (`flow-chain.js` exchange marker via `flow-amqp.js`); RPC over AMQP is a sync call in olive (`flow-amqp.js`: chip per caller/server pair, reply labels; `flow-panel-amqp.js`: the panel's AMQP card).
 
