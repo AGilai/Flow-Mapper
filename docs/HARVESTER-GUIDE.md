@@ -280,7 +280,7 @@ Unresolved items are never counted as broken links; they have their own section 
 - `basis` is a short code: `client_default`, `convention`, `inferred_from_name`, `sibling_value` (free text allowed). `reason` is one sentence: which rule, who approved it.
 - Keep sending the value itself (e.g. `client.databases: [0]`, `details.dbIndex: 0`): `assumed` is a label on it, it changes no link and no graph. Do not also list the field in `unresolved` (contract finding `assumed-and-unresolved`).
 - Instead of free-form `details.databaseAssumptions` / `step.details.dbIndexBasis`, send `assumed` (the UI does not show `details` free text). A key entry takes it too: `{"keyTemplate": "session:{token}", "service": "auth-svc", "ttlSeconds": 3600, "assumed": [{"what": "ttl", "value": 3600, "basis": "convention", "reason": "..."}]}`.
-- Shown as a muted "assumed" badge (basis and reason on hover and in the panel); health lists it as an informational category `assumed` (per service and per basis), never in the coverage figure or the problem counts. Readers (API, MCP) treat it as a default, not a fact.
+- Shown as a muted "assumed" badge (basis and reason on hover and in the panel); health lists it as an informational category `assumed` (per service and per basis), never in the coverage figure or the problem counts. Key entries' `assumed` is shown on the instance page (beside the TTL) and returned by the keys API, but not counted in health (keys are not part of the graph). Readers (API, MCP) treat it as a default, not a fact.
 
 ## How a service reaches a store: `client`
 

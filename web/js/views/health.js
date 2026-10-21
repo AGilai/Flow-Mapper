@@ -108,7 +108,7 @@ function itemsTable(kind, rows) {
       { key: 'candidates', label: 'Candidates', nosort: true, render: (x) => x.candidates.map((c) => h('div.key.small', c, x.possible.some((p) => p.candidate === c) ? h('span.xs.muted', ` → ${x.possible.filter((p) => p.candidate === c).map((p) => p.service).join(', ')}`) : null)) }],
     assumed: [{ key: 'basis', label: 'Basis', render: (x) => h('span.pill.assumed', { style: { marginLeft: 0 } }, x.basis) }, { key: 'service', label: 'Service', render: (x) => svc(x.service) },
       { key: 'id', label: 'Where', render: (x) => h('div.stack', { style: { gap: 0 } }, h('span.key', x.id), h('span.xs.muted', x.kind)) },
-      { key: 'detail', label: 'Field', render: (x) => h('span.small.key', x.detail ?? x.what) },
+      { key: 'detail', label: 'Field', render: (x) => h('span.small.key', { style: { whiteSpace: 'nowrap' } }, x.detail ?? x.what) },
       { key: 'value', label: 'Value used', nosort: true, render: (x) => h('span.small.key', valueText(x.value)) },
       { key: 'reason', label: 'Reason', nosort: true, render: (x) => h('span.small', x.reason) }],
     mixedCommits: [{ key: 'service', label: 'Service', render: (x) => svc(x.service) }, { key: 'commit', label: 'Manifest commit', render: (x) => h('span.key', x.commit ?? '') },
