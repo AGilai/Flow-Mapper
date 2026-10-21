@@ -3,6 +3,7 @@
 // The state (open tabs, active one, closed stack) is pure (flow-tabs-state.js) and mirrored in the URL: tabs= and tab=.
 
 import { loadMarks } from '../design/marks-store.js';
+import { boundaryNote } from './flow-boundary.js';
 import { h, fill } from '../dom.js';
 import { api } from '../api.js';
 import { state } from '../state.js';
@@ -112,7 +113,7 @@ export async function render({ main, query }) {
       slot.replaceChildren(v.el);
       if (S.active === key) { v.restore(); paintChrome(); }
       strip.render(S);
-    }).catch((err) => { if (slots.get(key) === slot) { slot.replaceChildren(h('div.content', h('div.error-box', err.message))); strip.render(S); } });
+    }).catch((err) => { if (slots.get(key) === slot) { slot.replaceChildren(boundaryNote(err) ?? h('div.content', h('div.error-box', err.message))); strip.render(S); } });
   }
   function drop(key) { views.get(key)?.dispose(); views.delete(key); slots.get(key)?.remove(); slots.delete(key); stale.delete(key); }
 

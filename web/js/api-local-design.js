@@ -91,6 +91,7 @@ export function createDesign(data, baseGraph) {
   return {
     api,
     /** Which environment and draft the next reads are about (api.js sets it before every call, like `?draft=`). */
+    source: (env) => meta(env)?.source ?? 'another environment',
     readAs: (env, draft) => { reading = { env, draft }; },
     g: (env) => view(env)?.g ?? baseGraph(env),
     dtosOf: (env) => view(env)?.x.dtos ?? data.dtos?.[env] ?? [],

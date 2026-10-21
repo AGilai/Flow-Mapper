@@ -55,6 +55,10 @@ test('on the demo draft: the new component head carries the spark, its own calls
     const lm = laneMarks(m);
     assert.deepEqual(servicesOf(t).filter((s: string) => lm.head({ kind: 'service', service: s })?.info.mark === 'new'), ['sase-agent', 'pop-edge']);
     assert.equal(lm.head({ kind: 'service', service: 'auth-svc' }).info.mark, 'changed');
+    assert.ok(t.messages.some((x: any) => x.operation === 'POST /token' && x.label.includes('http:POST auth-svc/token')), 'a call carries its own words apart from the key in the label');
+    const nh = await app.call('GET', '/api/envs/sase-hld/trace?service=users-svc&ingress=in.getUser');
+    assert.equal(nh.status, 409); assert.equal(nh.body.error.code, 'NO_HANDLER'); assert.equal(nh.body.error.details.source, 'prod');
+    assert.equal((await app.call('GET', '/api/envs/sase-hld/trace?service=users-svc&ingress=nope')).status, 404);
   } finally { await app.close(); }
 });
 

@@ -28,6 +28,6 @@ export function draftBar({ draft, changes, review, onReview, onApply, onDiscard,
         h('button.btn', { type: 'button', 'data-qa': 'discard', disabled: busy, on: { click: onDiscard } }, 'Discard'),
         h('button.btn.primary', { type: 'button', 'data-qa': 'apply', disabled: busy || !total, title: total ? `Apply ${deltaText(c)} to ${state.env}` : 'No changes yet', on: { click: onApply } },
           busy ? 'Applying…' : total ? `Apply to ${state.env}` : 'No changes yet'))),
-    stale.length ? h('div.dz-callout', { role: 'note', 'data-qa': 'stale' }, `${stale.length} item${stale.length === 1 ? '' : 's'} changed in ${state.env} since this draft touched ${stale.length === 1 ? 'it' : 'them'}; Apply overwrites ${stale.length === 1 ? 'it' : 'them'}. `,
+    stale.length && review !== 'confirm' ? h('div.dz-callout', { role: 'note', 'data-qa': 'stale' }, `${stale.length} item${stale.length === 1 ? '' : 's'} changed in ${state.env} since this draft touched ${stale.length === 1 ? 'it' : 'them'}; Apply overwrites ${stale.length === 1 ? 'it' : 'them'}. `,
       h('button.btn.sm.ghost', { type: 'button', on: { click: onReview } }, 'Show')) : null);
 }

@@ -5,7 +5,7 @@ import { h, fill } from '../dom.js';
 import { api } from '../api.js';
 import { state, isDesign, setDesign } from '../state.js';
 import { metaOf, shortDate } from '../env-info.js';
-import { modeToggle } from './mode-toggle.js';
+import { modeToggle, restoreFocus } from './mode-toggle.js';
 import { compareSwitch } from './compare-switch.js';
 import { openDraftPicker } from './draft-picker.js';
 import { draftBar } from './draft-bar.js';
@@ -39,10 +39,13 @@ export function mountDesignStrip(main) {
     let changes = null;
     try { changes = await api.draftChanges(state.env, d.slug); } catch { /* the bar falls back to the draft's own counts */ }
     if (!alive) return;
-    const paint = () => fill(bar,
-      draftBar({ draft: d, changes, review, onReview: () => { review = review === 'review' ? null : 'review'; paint(); }, onApply: () => { review = 'confirm'; paint(); },
+    const paint = (focusReview = false) => { fill(bar,
+      draftBar({ draft: d, changes, review, onReview: () => { if (review === 'review') close(); else { review = 'review'; paint(true); } }, onApply: () => { review = 'confirm'; paint(true); },
         onDiscard: () => discardDraft(d), onPick: (a) => openDraftPicker(a, { drafts }) }),
-      review ? reviewPanel({ draft: d, changes: changes ?? { counts: d.counts, items: [], authors: [] }, confirm: review === 'confirm', onClose: () => { review = null; paint(); }, refresh: () => setDesign({}) }) : null);
+      review ? reviewPanel({ draft: d, changes: changes ?? { counts: d.counts, items: [], authors: [] }, confirm: review === 'confirm', onClose: () => close(), refresh: () => setDesign({}) }) : null);
+      if (focusReview) bar.querySelector('.dz-review')?.focus(); };
+    const close = () => { review = null; paint(); bar.querySelector('[data-qa=review]')?.focus(); };
+    bar.onkeydown = (e) => { if (e.key === 'Escape' && review && bar.querySelector('.dz-review')?.contains(document.activeElement)) { e.preventDefault(); close(); } };
     paint();
   }
 
@@ -50,6 +53,7 @@ export function mountDesignStrip(main) {
     h('button.btn.sm', { type: 'button', on: { click: () => setDesign({ draft: null, mode: 'view' }) } }, 'Look at the environment'));
 
   main.prepend(el);
+  restoreFocus(el);
   load();
   return { dispose: () => { alive = false; el.remove(); } };
 }

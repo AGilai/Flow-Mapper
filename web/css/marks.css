@@ -54,13 +54,11 @@ h3 .mark, .sect-title .mark { margin-left: var(--s2); }
 .spark.new path { fill: var(--new); stroke: var(--new-ink); stroke-width: .9; stroke-linejoin: round; }
 .spark.chg path { fill: var(--new-ink); }
 .spark { animation: mark-twinkle .9s ease-out 1; transform-box: fill-box; transform-origin: center; }
-.msg.mk-new .arrow-line { stroke-dasharray: none; }
 .chip-b rect { fill: var(--surface-2); stroke: var(--line-strong); }
 .chip-b text { fill: var(--ink-2); font: 600 10.5px var(--font); }
 .chip-b.draft rect { fill: color-mix(in srgb, var(--draft) 10%, var(--surface)); stroke: var(--draft); }
 .chip-b.draft text { fill: var(--draft); }
-.chip-b.tbd rect { fill: var(--surface-2); stroke: var(--ink-2); stroke-dasharray: none; }
-.msg.mk-rm { opacity: .45; }
+.chip-b.tbd rect { fill: var(--surface-2); stroke: var(--ink-2); }
 
 @keyframes mark-twinkle { 0% { transform: scale(.4) rotate(-30deg); opacity: 0; } 55% { transform: scale(1.25) rotate(8deg); opacity: 1; } 100% { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .spark, .mark.new .mark-glyph { animation: none !important; } }
@@ -73,3 +71,16 @@ h3 .mark, .sect-title .mark { margin-left: var(--s2); }
 .json-view .fd-head, .json-view .fd-empty { padding: var(--s2) var(--s3) 0; margin: 0; }
 .mk-name { flex-wrap: wrap; row-gap: 2px; }
 .mk-name b { white-space: nowrap; }
+
+/* A missing target in a design is not a fault: neutral (UI-GUIDE section 10) */
+.is-design .msg.broken .label, .is-design .msg.broken .arr .label { fill: var(--ink-2); }
+.is-design .seq-part.k-unresolved rect:first-child { stroke: var(--ink-2); fill: var(--surface-2); }
+.is-design .seq-part.k-unresolved .stripe { fill: var(--ink-2); }
+.is-design .seq-part.k-unresolved .name { fill: var(--ink); }
+
+.info-note { display: grid; gap: var(--s2); justify-items: start; max-width: 640px; padding: var(--s4); border: 1px solid var(--line-strong); border-radius: var(--r-md); background: var(--surface); color: var(--ink-2); }
+.sb-actions { flex-wrap: wrap; justify-content: flex-end; }
+.sb-actions .pill, .sb-actions .mark { white-space: nowrap; flex: none; }
+/* a design page with the review panel open scrolls rather than crushing the map */
+.is-design .main { overflow-y: auto; }
+.is-design .content.flush { min-height: 340px; }

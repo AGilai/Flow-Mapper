@@ -37,7 +37,7 @@ export function reviewPanel({ draft, changes, confirm = false, onClose, refresh 
     try { await applyDraft(draft, total); } catch (err) { apply.disabled = false; apply.textContent = `Apply ${total} changes to ${state.env}`; footer.prepend(h('div.error-box', err.message)); }
   } } }, `Apply ${total} change${total === 1 ? '' : 's'} to ${state.env}`);
   const footer = h('div.dz-review-foot', confirm ? [h('button.btn', { type: 'button', on: { click: onClose } }, 'Cancel'), apply] : null);
-  return h('section.dz-review', { 'data-qa': 'draft-review', 'aria-label': `Changes in ${draft.name}` },
+  return h('section.dz-review', { tabindex: -1, 'data-qa': 'draft-review', 'aria-label': `Changes in ${draft.name}` },
     h('div.dz-review-head', h('h3', confirm ? `Apply "${draft.name}" to ${state.env}` : 'Review changes'),
       h('span.spacer'),
       !confirm && total ? h('button.btn.sm', { type: 'button', 'data-qa': 'undo-last', on: { click: async () => { await api.undoDraft(state.env, draft.slug); invalidateMarks(); refresh(); } } }, 'Undo last change') : null,

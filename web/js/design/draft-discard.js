@@ -16,7 +16,7 @@ export function discardSentence(count, authors, you = me()) {
 
 export async function discardDraft(draft) {
   const total = draft.counts.added + draft.counts.removed + draft.counts.changed;
-  const ok = await askDialog({ title: `Discard "${draft.name}"?`, body: discardSentence(total, draft.authors), confirm: 'Discard draft', danger: true });
+  const ok = await askDialog({ title: `Discard "${draft.name}"?`, body: discardSentence(total, draft.authors), confirm: 'Discard draft', danger: true, focus: 'cancel' });
   if (!ok) return false;
   try {
     await api.discardDraft(state.env, draft.slug, me());

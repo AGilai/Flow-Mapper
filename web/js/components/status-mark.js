@@ -61,6 +61,6 @@ export const wasText = (info) => info?.was ?? info?.what ?? '';
 /** The spark / ring as an SVG <g> at (x, y) for drawings (flow heads, arrows). kind: 'new' | 'changed'. */
 export function sparkSvg(x, y, kind, size = 12) {
   const g = GLYPH[kind === 'changed' ? 'chg' : 'new'], k = size / 12;
-  return s('g', { class: `spark ${kind === 'changed' ? 'chg' : 'new'}`, transform: `translate(${x - size / 2},${y - size / 2}) scale(${k})` },
-    s('path', { d: g.d, 'fill-rule': 'evenodd' }));
+  return s('g', { transform: `translate(${x - size / 2},${y - size / 2}) scale(${k})` }, // the twinkle animates the inner group: a CSS animation would replace this transform
+    s('g', { class: `spark ${kind === 'changed' ? 'chg' : 'new'}` }, s('path', { d: g.d, 'fill-rule': 'evenodd' })));
 }

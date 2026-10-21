@@ -2,7 +2,9 @@
 
 import type { Router } from '../http/router.ts';
 import type { Ctx } from '../context.ts';
-import { badRequest, notFound } from '../errors.ts';
+import { badRequest, conflict, notFound } from '../errors.ts';
+import { sid } from '../../core/graph-index.ts';
+import { getEnvRow } from '../store/envs.ts';
 import { systemGraph } from '../../core/system-graph.ts';
 import { serviceView } from '../../core/service-view.ts';
 import { entryPoints, trace } from '../../core/trace.ts';
@@ -37,8 +39,14 @@ export function registerQueries(r: Router, ctx: Ctx) {
     const service = q.get('service');
     if (!service) throw badRequest('service is required (plus ingress or fn)');
     const scope = q.get('scope') === 'intra' ? 'intra' : 'full';
-    const t = trace(ctx.graphOf(req), { service, ingress: q.get('ingress') ?? undefined, fn: q.get('fn') ?? undefined, event: q.get('event') ?? undefined },
+    const g = ctx.graphOf(req);
+    const t = trace(g, { service, ingress: q.get('ingress') ?? undefined, fn: q.get('fn') ?? undefined, event: q.get('event') ?? undefined },
       { scope, maxDepth: int(q.get('maxDepth'), 25), maxMessages: Math.min(int(q.get('maxMessages'), 500), 5000), expand: q.get('expand')?.split(',').filter(Boolean), frontier: ['1', 'true'].includes(q.get('frontier') ?? '') });
+    const ing = q.get('ingress') ? g.ingress.get(sid(service, q.get('ingress')!)) : undefined;
+    if (!t && ing && !g.fns.get(sid(service, ing.handler))) { // a copied endpoint: the endpoint came along, its functions did not
+      const source = getEnvRow(ctx.db, req.params.env)?.source ?? null;
+      throw conflict('NO_HANDLER', `This endpoint's behaviour lives in ${source ?? 'another environment'}: ${req.params.env} holds the endpoint, not the functions behind it`, { source, service, ingress: ing.id });
+    }
     if (!t) throw notFound('start point (service + ingress or fn)');
     return t;
   });

@@ -3,7 +3,7 @@
 import { h, clear, fill } from './dom.js';
 import { api } from './api.js';
 import { route, start, parseHash } from './router.js';
-import { state, onEnvChange, setEnv, designFromQuery, designQuery } from './state.js';
+import { state, onEnvChange, setEnv, designFromQuery, designQuery, isDesign } from './state.js';
 import { setQuery } from './router.js';
 import { mountDesignStrip } from './design/design-strip.js';
 import { renderRail } from './components/sidebar.js';
@@ -46,6 +46,7 @@ async function boot() {
     if (d.env !== state.env) setEnv(d.env, true);
     Object.assign(state, { mode: d.mode, draft: d.draft, compare: d.compare });
     setQuery(designQuery());
+    document.documentElement.classList.toggle('is-design', isDesign());
     refreshRail();
     fill(main, h('div.loading', 'Loading…'));
     try {

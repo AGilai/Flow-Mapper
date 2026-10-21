@@ -5,7 +5,7 @@
 
 import { h, debounce } from '../dom.js';
 import { api } from '../api.js';
-import { state } from '../state.js';
+import { state, isDesign } from '../state.js';
 import { icon } from '../icons.js';
 import { setQuery } from '../router.js';
 import { pageHead } from '../components/page.js';
@@ -60,7 +60,7 @@ export async function render({ main, query }) {
     content);
 
   const graph = createCanvasGraph(stage, {
-    marks, padBottom: marks.empty ? 60 : 120, // the legend has more lines in a design
+    marks, padBottom: () => (content.querySelector('.legend')?.offsetHeight ?? 0) + 24, // the legend wraps to more lines on a narrow window
     onSelect: (hit) => {
       if (!hit) { panel.close(); return; }
       if (hit.type === 'node') selectNode(hit.item.id);
@@ -172,6 +172,6 @@ function legend(marks, data) {
     item('<svg width="22" height="6"><path d="M1 3h20" stroke="var(--ink-2)" stroke-width="1.6"/></svg>', 'Sync call (waits for the reply)'),
     item('<svg width="22" height="6"><path d="M1 3h20" stroke="var(--ink-2)" stroke-width="1.6" stroke-dasharray="4 3"/></svg>', 'Async (queue, topic, event)'),
     item('<svg width="22" height="6"><path d="M1 3h20" stroke="var(--t-socket)" stroke-width="3" stroke-linecap="round"/></svg>', 'Client socket entry (tls / tcp / ws)'),
-    item('<svg width="22" height="6"><path d="M1 3h20" stroke="var(--t-broken)" stroke-width="1.6" stroke-dasharray="4 3"/></svg>', 'Broken (no target matches)'),
+    item(`<svg width="22" height="6"><path d="M1 3h20" stroke="${isDesign() ? 'var(--ink-2)' : 'var(--t-broken)'}" stroke-width="1.6" stroke-dasharray="4 3"/></svg>`, isDesign() ? 'Target not in this design' : 'Broken (no target matches)'),
     markLegend(item, marks, data));
 }

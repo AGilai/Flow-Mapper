@@ -134,9 +134,9 @@ export function createCanvasGraph(host, { onSelect, onHover, marks = null, padBo
     if (!pts.length) return;
     const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
     const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
-    const pad = 60;
-    k = Math.min(2.2, Math.min((w - pad * 2) / Math.max(1, maxX - minX), (hgt - pad - padBottom) / Math.max(1, maxY - minY)));
-    tx = w / 2 - ((minX + maxX) / 2) * k; ty = (hgt - padBottom + pad) / 2 - ((minY + maxY) / 2) * k;
+    const pad = 60, padB = Math.max(60, typeof padBottom === 'function' ? padBottom() : padBottom);
+    k = Math.min(2.2, Math.min((w - pad * 2) / Math.max(1, maxX - minX), (hgt - pad - padB) / Math.max(1, maxY - minY)));
+    tx = w / 2 - ((minX + maxX) / 2) * k; ty = (hgt - padB + pad) / 2 - ((minY + maxY) / 2) * k;
     schedule();
   }
 

@@ -49,6 +49,15 @@ function rescore(b) {
   b.needsVerification = b.status === 'fixed' && !!b.fixedInVersion;
 }
 
+/** A copied endpoint has no functions: the same 409 the server gives (NO_HANDLER) instead of a bare not-found. */
+function noStart(env, q) {
+  const ing = q.ingress && g(env).ingress.get(`${q.service}:${q.ingress}`);
+  if (!ing || g(env).fns.get(`${q.service}:${ing.handler}`)) return fail('start point not found');
+  const e = new Error(`This endpoint's behaviour lives in ${D.source(env)}: ${env} holds the endpoint, not the functions behind it`);
+  e.status = 409; e.details = { source: D.source(env), service: q.service, ingress: ing.id };
+  throw e;
+}
+
 export const api = {
   version: async () => ({ version: data.version }),
   envs: async () => Object.keys(data.models),
@@ -82,7 +91,7 @@ export const api = {
   eventType: async (env, type) => ({ ...(eventView(g(env), type) ?? fail(`event type '${type}' not found`)), flow: eventFlow(g(env), type), dto: D.eventDtosOf(env).find((d) => d.event === type) ?? null }),
   endpoint: async (env, service, ingress) => endpointInfo(g(env), service, ingress,
     D.dtosOf(env).filter((d) => d.service === service && d.ingress === ingress), D.eventDtosOf(env)) ?? fail('endpoint not found'),
-  trace: async (env, q) => trace(g(env), q, { scope: q.scope, maxMessages: q.maxMessages ?? 500, expand: q.expand?.split(',').filter(Boolean), frontier: q.frontier === '1' || q.frontier === true }) ?? fail('start point not found'),
+  trace: async (env, q) => trace(g(env), q, { scope: q.scope, maxMessages: q.maxMessages ?? 500, expand: q.expand?.split(',').filter(Boolean), frontier: q.frontier === '1' || q.frontier === true }) ?? noStart(env, q),
   descriptions: async (env, service, ingress) => {
     const t = trace(g(env), { service, ingress }, HASH_TRACE) ?? fail('flow not found');
     return flowDescriptions(t, service, ingress, (data.descriptions?.[env] ?? []).filter((r) => r.service === service && r.ingress === ingress));

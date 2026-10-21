@@ -3,7 +3,7 @@
 import { h } from '../dom.js';
 
 /** askDialog({ title, body, confirm, cancel?, input?: { label, value?, placeholder? }, danger? }) -> Promise<true | string | null> */
-export function askDialog({ title, body, confirm = 'OK', cancel = 'Cancel', input = null, danger = false }) {
+export function askDialog({ title, body, confirm = 'OK', cancel = 'Cancel', input = null, danger = false, focus = null }) {
   return new Promise((resolve) => {
     const opener = document.activeElement;
     const field = input ? h('input.input', { type: 'text', value: input.value ?? '', placeholder: input.placeholder ?? '', 'aria-label': input.label, 'data-qa': 'dialog-input' }) : null;
@@ -18,6 +18,6 @@ export function askDialog({ title, body, confirm = 'OK', cancel = 'Cancel', inpu
         h('button.btn.primary', { type: 'button', class: danger ? 'danger' : '', 'data-qa': 'dialog-ok', on: { click: ok } }, confirm)));
     document.body.append(dlg);
     dlg.showModal();
-    (field ?? dlg.querySelector('[data-qa=dialog-ok]')).focus();
+    (field ?? dlg.querySelector(focus === 'cancel' ? '[data-qa=dialog-cancel]' : '[data-qa=dialog-ok]')).focus();
   });
 }

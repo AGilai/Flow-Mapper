@@ -31,6 +31,8 @@ export async function openDraftPicker(anchor, { edit = false, drafts = null } = 
   let list = drafts;
   try { list ??= await api.drafts(state.env); } catch (err) { toast(err.message); return; }
   const r = anchor.getBoundingClientRect();
+  const back = (e) => { if (e.key === 'Escape') setTimeout(() => anchor.focus()); removeEventListener('keydown', back, true); };
+  addEventListener('keydown', back, true); setTimeout(() => removeEventListener('keydown', back, true), 20000);
   openMenu(r.left, r.bottom + 4, 'Drafts', pickerItems(list, state.draft, {
     onPick: (d) => setDesign({ draft: d.slug, mode: edit ? 'edit' : state.mode }),
     onNew: () => newDraft(edit),
