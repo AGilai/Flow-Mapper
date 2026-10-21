@@ -382,3 +382,23 @@ These follow existing patterns, so no new mockup frame. The designer compares th
   adds a small Kubernetes glyph (a heptagon outline, drawn inline in icons.js, not a brand logo) at the top-left of the
   component on the map and inside the lifeline head. The tooltip is the runtime name. The edit form offers a runtime
   select.
+
+## Flows list: collapsible, filter by subsystem and component (maintainer feature request 2026-10-21; layout by lead)
+- **Collapsible list:** the Flows page's entry-point column gets a collapse control in its header (same chevron
+  pattern as the rail). Collapsed, it becomes a narrow strip that shows the active flow's name and the filter summary,
+  and the diagram takes the width. The state is kept per viewer (localStorage, wrapped in try/catch).
+- **Two filter groups above the text filter, in this order:**
+  1. **Subsystem:** a collapsible group. Its header is "Subsystem", followed by a summary of what is applied ("All", or
+     "platform, network", or "3 of 5"). Expanded, it shows "Select all · Deselect all" and one checkbox per subsystem
+     from `groupPath` (top level), with a count of entry points. Default is all selected. Collapsed, it shows only the
+     summary.
+  2. **Component:** the same pattern, listing the components of the selected subsystems only (it follows the subsystem
+     choice). Select all / Deselect all act on that visible set. Default is all.
+- The list shows entry points whose service is in the selected components. The filters combine with the text filter
+  and the "Changed only" toggle (#61). Components with no `groupPath` fall under "(none)".
+- The URL keeps `subsystems=a,b` and `components=x,y`; the parameter is left out when everything is selected, so links
+  stay short. The same parameter names work with inventory's `subsystem=`, which takes one value.
+- Accessibility: each group header is a button with `aria-expanded`. The checkboxes are real inputs in a fieldset
+  with a legend. Keyboard works without a mouse.
+- Sealed envs with no groupPath show a single "(none)" subsystem. Hide the Subsystem group when there is only one
+  subsystem, but keep Component.
