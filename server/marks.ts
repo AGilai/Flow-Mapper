@@ -44,5 +44,5 @@ export function marksFor(ctx: Ctx, env: string, opts: { against?: Against; draft
     dopts.vanished = now.vanished;
   }
   dopts.calleeOf = calleeIndex(d.cur);
-  return memoSet(key, { ...diffEnv(reference, d.cur, dopts), refs: refsFor(ctx, env, draft) }, d.deps);
+  return memoSet(key, { ...diffEnv(reference, d.cur, dopts), refs: refsFor(ctx, env, draft, d) }, d.deps);
 }

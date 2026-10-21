@@ -7,14 +7,14 @@ import { decorateEntries } from '../core/flow-text.ts';
 import { originsOf, referencesOf, type EnvRefs } from '../core/references.ts';
 import { entryPoints, type Trace } from '../core/trace.ts';
 import { notFound } from './errors.ts';
-import { designRows } from './design-rows.ts';
+import { designRows, type DesignRows } from './design-rows.ts';
 import { checkFresh, memoGet, memoSet } from './graph-cache.ts';
 import { getEnvRow } from './store/envs.ts';
 
 export const NO_REFS: EnvRefs = { endpoints: {}, components: {}, origins: {} };
 
 /** The references of an environment, as read with `draft` (an open draft's slug) laid over it. Memoised; empty for a sealed environment. */
-export function refsFor(ctx: Ctx, env: string, draft: string | null): EnvRefs {
+export function refsFor(ctx: Ctx, env: string, draft: string | null, rows?: DesignRows): EnvRefs {
   checkFresh(ctx.db);
   const key = `${env}|${draft ?? ''}|refs`;
   const hit = memoGet<EnvRefs>(key);
@@ -22,7 +22,7 @@ export function refsFor(ctx: Ctx, env: string, draft: string | null): EnvRefs {
   const row = getEnvRow(ctx.db, env);
   if (!row) throw notFound(`environment '${env}'`);
   if (row.kind === 'sealed') return memoSet(key, NO_REFS, [env]);
-  const d = designRows(ctx, env, draft);
+  const d = rows ?? designRows(ctx, env, draft);
   return memoSet(key, referencesOf(d.cur, originsOf(d.stored, d.imported), row.copied_at), d.deps);
 }
 
