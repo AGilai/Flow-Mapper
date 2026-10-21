@@ -9,18 +9,20 @@ import { endpointInfo } from '../../../core/endpoint-info.ts';
 import { eventTypes, eventView } from '../../../core/events.ts';
 import { eventFlow } from '../../../core/event-flow.ts';
 import { channelView } from '../../../core/channels.ts';
-import { entryPoints, trace } from '../../../core/trace.ts';
+import { trace } from '../../../core/trace.ts';
+import { traceOut } from '../../refs.ts';
 import { type Tool, env, obj, envOf, draftArg, viewOf } from './common.ts';
 
 export const traceFlowTool: Tool = {
   name: 'trace_flow',
-  description: "Follow a flow from an ingress or function (egress messages carry `via`, the wrapper chain; display only): ordered calls, DB access, REST calls and async hops across services. RabbitMQ: a publish through an exchange carries `amqp` (exchange, routingKey, type, bindings that match / do not) and its hops `filter.bindingKey`; an RPC over AMQP (`amqp-rpc:{command}`) is a sync call carrying `rpc` (command, queues, timeout). scope 'intra' stays inside the service.",
+  description: "Follow a flow from an ingress or function (in a design environment a message into a copied endpoint whose behaviour lives in its source carries `reference` {anchor, source}, and `partial.steps` lists them: those steps' behaviour is not in the design; `start.name` is the flow's name; egress messages carry `via`, the wrapper chain; display only): ordered calls, DB access, REST calls and async hops across services. RabbitMQ: a publish through an exchange carries `amqp` (exchange, routingKey, type, bindings that match / do not) and its hops `filter.bindingKey`; an RPC over AMQP (`amqp-rpc:{command}`) is a sync call carrying `rpc` (command, queues, timeout). scope 'intra' stays inside the service.",
   inputSchema: obj({ draft: draftArg, service: { type: 'string' }, ingress: { type: 'string' }, fn: { type: 'string' }, event: { type: 'string', description: 'Start from the handler of this event type at the ingress' }, expand: { type: 'array', items: { type: 'string' }, description: 'Services to show function by function' }, scope: { enum: ['intra', 'full'] }, env, maxMessages: { type: 'integer', description: 'Cap on counted messages. Alternatives (messages with alt) count as their largest branch.' }, frontier: { type: 'boolean', description: "Also show steps the harvester marked origin 'frontier' (call trees that reach no sink). Off by default: one 'frontier: N steps' marker per function, not counted in maxMessages" } }, ['service']),
   run: (c, a) => {
     const g = viewOf(c, a).g;
     const t = trace(g, a, { scope: a.scope, maxMessages: Math.min(a.maxMessages ?? 300, 2000), expand: a.expand, frontier: a.frontier === true })
       ?? (() => { throw new HttpError(404, 'NOT_FOUND', 'start point not found (give ingress or fn)'); })();
-    return a.ingress ? { ...t, descriptions: desc.describeFlow(c.db, g, envOf(a), a.service, a.ingress) } : t;
+    const out = traceOut(c, envOf(a), a.draft || null, t);
+    return a.ingress ? { ...out, descriptions: desc.describeFlow(c.db, g, envOf(a), a.service, a.ingress) } : out;
   },
 };
 

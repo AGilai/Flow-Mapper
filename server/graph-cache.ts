@@ -16,7 +16,7 @@ import { config } from './config.ts';
 interface Entry { g: GraphIndex; reader?: DataReader }
 const cache = new Map<string, Entry>();
 const memo = new Map<string, { value: unknown; deps: Set<string> }>();
-const MEMO_MAX = 16;
+const MEMO_MAX = 64;
 let max = config.graphCacheMax; // LRU bound: the Map keeps insertion order, a hit re-inserts
 let seenVersion: number | null = null;
 
@@ -47,7 +47,7 @@ export function graphFor(db: DB, env: string): GraphIndex {
 export function viewFor(db: DB, env: string, slug: string | null): { g: GraphIndex; reader: DataReader } {
   if (!slug) return { g: graphFor(db, env), reader: dbReader(db, env) };
   dropIfChangedElsewhere(db);
-  const e = lru(`${env}#draft:${slug}`, () => { const { rows } = draftView(db, env, slug); return { g: buildIndex(rowsToModel(env, rows)), reader: rowsReader(rows) }; });
+  const e = lru(`${env}#draft:${slug}`, () => { const { rows } = draftView(db, env, slug); return { g: buildIndex(rowsToModel(env, rows)), reader: rowsReader(rows, dbReader(db, env)) }; });
   return { g: e.g, reader: e.reader! };
 }
 

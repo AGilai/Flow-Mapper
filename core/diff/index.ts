@@ -2,6 +2,7 @@
 // The caller decides what the sides are: baseline vs the environment (+ draft), or the source's current rows vs the design.
 
 import type { ItemRow } from '../item-rows.ts';
+import type { EnvRefs } from '../references.ts';
 import { rawMarks } from './entities.ts';
 import { counts, prune, rollUp } from './propagate.ts';
 import { sideOf } from './side.ts';
@@ -22,6 +23,8 @@ export interface EnvMarks {
   marks: Record<string, MarkInfo>;
   ghosts: Record<string, { label: string; service?: string; type?: string }>;
   counts: Record<'components' | 'endpoints' | 'calls' | 'channels' | 'messages' | 'fields', { new: number; changed: number; removed: number; unchanged?: number }>;
+  /** References of the environment (as read with the draft, if any). Set by the server and the preview, not by `diffEnv`. */
+  refs?: EnvRefs;
 }
 
 export function diffEnv(base: ItemRow[], cur: ItemRow[], opts: DiffOpts): EnvMarks {
