@@ -7,8 +7,10 @@ import type { DB } from './db/connection.ts';
 import { buildIndex, type GraphIndex } from '../core/graph-index.ts';
 import { health } from '../core/health.ts';
 import { loadModel } from './store/snapshots.ts';
+import { config } from './config.ts';
 
 const cache = new Map<string, GraphIndex>();
+let max = config.graphCacheMax; // LRU bound: the Map keeps insertion order, a hit re-inserts
 let seenVersion: number | null = null;
 
 function dropIfChangedElsewhere(db: DB) {
@@ -20,9 +22,18 @@ function dropIfChangedElsewhere(db: DB) {
 export function graphFor(db: DB, env: string): GraphIndex {
   dropIfChangedElsewhere(db);
   let g = cache.get(env);
-  if (!g) cache.set(env, (g = buildIndex(loadModel(db, env))));
+  if (g) cache.delete(env);
+  else g = buildIndex(loadModel(db, env));
+  cache.set(env, g);
+  while (cache.size > max) cache.delete(cache.keys().next().value!);
   return g;
 }
+
+/** Number of cached environments. */
+export const size = () => cache.size;
+
+/** Change the LRU bound (tests; the default comes from FLOW_GRAPH_CACHE_MAX). */
+export function setMax(n: number) { max = Math.max(1, n); while (cache.size > max) cache.delete(cache.keys().next().value!); }
 
 export function invalidate(env: string) {
   cache.delete(env);

@@ -10,5 +10,7 @@ export const config = {
   host: process.env.HOST ?? '0.0.0.0',
   dataDir,
   dbPath: process.env.FLOW_DB ?? join(dataDir, 'flow-mapper.db'),
+  /** Most environments whose resolved graph stays cached (LRU); env FLOW_GRAPH_CACHE_MAX, default 8. */
+  graphCacheMax: Math.max(1, Math.floor(Number(process.env.FLOW_GRAPH_CACHE_MAX)) || 8),
   dev: process.env.NODE_ENV !== 'production',
 };
