@@ -37,6 +37,8 @@ The bug-loop session is the QA TL. Every new bug gets triaged; none are left wai
    comment with the decision and its target version. Make low and medium decisions yourself; the maintainer
    overrides them by opening a bug. Features that need a new page or a UI rework need a mockup, so they go
    to the maintainer as a proposal.
+   Not sure about a decision? Consult an **architect** agent (`model: opus`) first, then decide. Escalate only
+   product direction, or a new page that needs a mockup approved.
 2. **Check overlap with work in flight.** `git worktree list`, then for each branch
    `git diff --stat main...<branch>` gives the files it touches. Also read the in-flight list in the
    design-envs lead's handover, if a peer lead session is running.
