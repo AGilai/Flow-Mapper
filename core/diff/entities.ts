@@ -15,6 +15,8 @@ export interface RawMark extends MarkInfo { row: { service: string; list: string
 export interface Ghost { label: string; service?: string; type?: string }
 
 const FIELDED = new Set(['dto', 'event_dto', 'schema']);
+/** JSON of an item's data, remembered per object: baseline and environment rows are reused between comparisons, so each is stringified once. */
+const jsonOf = (() => { const c = new WeakMap<object, string>(); return (d: any): string => { if (!d || typeof d !== 'object') return JSON.stringify(d); let j = c.get(d); if (j === undefined) c.set(d, (j = JSON.stringify(d))); return j; }; })();
 const contentOf = (r: ItemRow) => (r.list === 'schema' ? r.data : r.data?.content);
 
 /** The top-level keys whose normalised value differs. */
@@ -50,6 +52,7 @@ export function rawMarks(base: Side, cur: Side, _opts: DiffOpts): { marks: Map<s
   for (const id of ids) {
     const b = base.rows.get(id), c = cur.rows.get(id), r = (c ?? b)!;
     if (r.list === 'flow') continue;
+    if (b && c && (b.data === c.data || jsonOf(b.data) === jsonOf(c.data))) continue; // identical: the common case, nothing to normalise
     const anchor = anchorOfRow(r), row = { service: r.service, list: r.list, key: r.key };
     if (!b || !c) {
       const mark: Mark = b ? 'removed' : 'new';

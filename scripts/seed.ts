@@ -1,6 +1,6 @@
 // Loads manifests into the database.
 //   node scripts/seed.ts                 → samples/ (+ samples/deltas/, DTOs from samples/dtos/, store schemas from samples/schemas/)
-//                                          + design environments from samples/envs/*.json (a copy recipe each; skipped when the environment exists, so edits to a design are never overwritten)
+//                                          + design environments from samples/envs/*.json (a copy recipe each, plus its open drafts that import a plan; skipped when the environment exists, so edits to a design are never overwritten)
 //   node scripts/seed.ts --mock [n]      → generated mock system with n services (default 100) in env 'scale-test'
 //   node scripts/seed.ts --bugs          → also creates example bug reports
 // Uses FLOW_DB / FLOW_DATA_DIR like the server. Existing services are replaced (version bumped).
@@ -15,8 +15,7 @@ import { loadSchemas } from '../server/store/schemas.ts';
 import { loadDescriptions } from '../server/store/descriptions.ts';
 import { putKeys } from '../server/store/keys.ts';
 import { stores } from '../core/stores.ts';
-import { copyEnv } from '../server/store/env-copy.ts';
-import { getEnvRow } from '../server/store/envs.ts';
+import { seedEnvRecipes } from './seed-envs.ts';
 import { generateMock } from './mock/generate.ts';
 import { seedBugs } from './mock/bugs.ts';
 
@@ -61,14 +60,7 @@ if (mockIdx < 0) {
     console.log(`loaded ${loadSchemas(ctx.db, f.env, f.schemas, (k) => keys.has(k)).loaded} store schemas into ${f.env}`);
   }
 }
-if (mockIdx < 0) {
-  for (const recipe of readDir(join(import.meta.dirname, '../samples/envs'))) {
-    if (getEnvRow(ctx.db, recipe.name)) { console.log(`design environment ${recipe.name} exists, left as it is`); continue; }
-    const made = copyEnv(ctx.db, recipe);
-    ctx.changed(made.name);
-    console.log(`created design environment ${made.name} from ${made.source}: ${made.counts.components} components`);
-  }
-}
+if (mockIdx < 0) seedEnvRecipes(ctx, join(import.meta.dirname, '../samples/envs'), console.log);
 console.log(`seeded ${manifests.length} manifests into ${[...envs].join(', ')} (${config.dbPath})`);
 
 if (args.includes('--bugs')) {

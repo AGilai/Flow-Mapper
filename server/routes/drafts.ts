@@ -7,6 +7,7 @@ import type { Ctx } from '../context.ts';
 import { badRequest } from '../errors.ts';
 import * as drafts from '../store/drafts.ts';
 import { runApply } from '../store/draft-apply.ts';
+import { ingestPlan } from '../store/draft-plan.ts';
 import { getEnv } from '../store/envs.ts';
 import { envItemRows } from '../store/item-rows.ts';
 
@@ -56,5 +57,13 @@ export function registerDrafts(r: Router, ctx: Ctx) {
     const b = await req.json();
     const dryRun = flag(req.query, 'dryRun');
     return runApply(ctx, req.params.env, req.params.slug, { by: b?.by ?? 'anonymous', source: 'ui', dryRun });
+  });
+  /** An HLD import plan (docs/DESIGN-IMPORT.md) becomes ops of the draft. ?dryRun=1 also applies and rolls back (answers 200 with `results`). */
+  r.post(`${base}/:slug/plan`, async (req) => {
+    const dryRun = flag(req.query, 'dryRun');
+    const out = ingestPlan(db, req.params.env, req.params.slug, await req.json(), { author: req.query.get('author') ?? undefined, byAi: flag(req.query, 'byAi'), dryRun });
+    if (dryRun) return out;
+    ctx.changedDraft(req.params.env, req.params.slug);
+    return created(out);
   });
 }

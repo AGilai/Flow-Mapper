@@ -12,7 +12,12 @@ export interface Side {
 
 const push = (m: Map<string, string[]>, k: string, v: string) => { const a = m.get(k); if (!a) m.set(k, [v]); else if (!a.includes(v)) a.push(v); };
 
+const sides = new WeakMap<ItemRow[], Side>();
+
+/** Indexed rows. Remembered per array: a baseline (or any memoised row list) is indexed once; rows are never mutated. */
 export function sideOf(rows: ItemRow[]): Side {
+  const hit = sides.get(rows);
+  if (hit) return hit;
   const s: Side = { rows: new Map(), services: new Set(), ownerOfChannel: new Map(), producers: new Map(), storeUsers: new Map() };
   for (const r of rows) {
     s.rows.set(rowId(r), r);
@@ -21,5 +26,6 @@ export function sideOf(rows: ItemRow[]): Side {
     else if (r.list === 'egress') for (const t of r.data?.events ?? []) push(s.producers, String(t), r.service);
     else if (r.list === 'resources' && r.data?.bindKey) push(s.storeUsers, r.data.bindKey, r.service);
   }
+  sides.set(rows, s);
   return s;
 }

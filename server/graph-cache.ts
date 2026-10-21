@@ -20,6 +20,9 @@ const MEMO_MAX = 16;
 let max = config.graphCacheMax; // LRU bound: the Map keeps insertion order, a hit re-inserts
 let seenVersion: number | null = null;
 
+/** Drop everything cached if another process wrote to the database since we last looked. Reads that cache on their own (the marks memo) call this first. */
+export function checkFresh(db: DB) { dropIfChangedElsewhere(db); }
+
 function dropIfChangedElsewhere(db: DB) {
   const v = (db.prepare('PRAGMA data_version').get() as { data_version: number }).data_version;
   if (seenVersion !== null && v !== seenVersion) { cache.clear(); memo.clear(); }

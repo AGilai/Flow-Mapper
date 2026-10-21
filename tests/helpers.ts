@@ -44,6 +44,11 @@ export async function startDesign(name = 'hld') {
   const app = await startApp();
   const r = await app.call('POST', '/api/ingest', { manifests: sampleManifests() });
   if (r.status !== 201) throw new Error(`seed ingest: ${JSON.stringify(r.body)}`);
+  for (const f of readdirSync(join(SAMPLES, 'dtos')).filter((x) => x.endsWith('.json'))) {
+    const { env, dtos } = readSample(`dtos/${f}`);
+    const d = await app.call('POST', `/api/envs/${env}/dtos`, { dtos });
+    if (d.status !== 201) throw new Error(`seed dtos: ${JSON.stringify(d.body)}`);
+  }
   const e = await app.call('POST', '/api/envs', { name, source: 'prod', mode: 'components', groups: [{ key: 'platform', label: 'Platform' }, { key: 'agent', label: 'Agent' }],
     services: [{ name: 'users-svc', groupPath: 'platform' }, { name: 'auth-svc', groupPath: 'platform' }] });
   if (e.status !== 201) throw new Error(`copy: ${JSON.stringify(e.body)}`);
