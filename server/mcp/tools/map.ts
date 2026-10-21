@@ -13,6 +13,7 @@ import { trace } from '../../../core/trace.ts';
 import { entryPointsOut, flowNameMap } from '../../refs.ts';
 import { findPaths } from '../../../core/paths.ts';
 import { health } from '../../../core/health.ts';
+import { byBasis } from '../../../core/assumed.ts';
 import { type Tool, env, obj, envOf, draftArg, viewOf } from './common.ts';
 
 export const searchTool: Tool = {
@@ -28,7 +29,7 @@ export const listServicesTool: Tool = {
 };
 
 export const getServiceTool: Tool = {
-  name: 'get_service', description: "A service's ingress (with callers), egress (with targets), resources, channels and functions. Egress carries `via` (wrapper hops, the last one calls the SDK) and `callSites[].via`; one call is one egress, hops are not producers. `via` filters egress to calls through a wrapper whose function or file contains the text.",
+  name: 'get_service', description: "A service's ingress (with callers), egress (with targets), resources, channels and functions. Egress carries `via` (wrapper hops, the last one calls the SDK) and `callSites[].via`; one call is one egress, hops are not producers. `via` filters egress to calls through a wrapper whose function or file contains the text. Fields listed in `assumed` ({what, value, basis, reason}) are defaults a harvester filled by a rule, not facts read from code; do not present them as verified.",
   inputSchema: obj({ draft: draftArg, service: { type: 'string' }, via: { type: 'string', description: 'Only egress via a wrapper matching this substring, e.g. SNSManager' }, env }, ['service']),
   run: (c, a) => {
     const v = serviceView(viewOf(c, a).g, a.service) ?? (() => { throw new HttpError(404, 'NOT_FOUND', `service '${a.service}' not found`); })();
@@ -50,10 +51,14 @@ export const findPathsTool: Tool = {
 };
 
 export const linkHealthTool: Tool = {
-  name: 'link_health', description: 'Dangling egress, orphan ingress, unbound channels, broken bindings, ambiguous matches and per-service coverage.',
-  inputSchema: obj({ draft: draftArg, env, service: { type: 'string' } }),
+  name: 'link_health', description: 'Dangling egress, orphan ingress, unbound channels, broken bindings, ambiguous matches and per-service coverage. `assumed: true` returns only the assumed values (informational, not problems): values a harvester filled by a default or convention instead of reading them from code, each with {what, value, basis, reason} and counts per basis; optional `basis` narrows them. Assumed values are defaults, not facts, and are not in the coverage figure.',
+  inputSchema: obj({ draft: draftArg, env, service: { type: 'string' }, assumed: { type: 'boolean', description: 'Only the assumed values and their counts per basis' }, basis: { type: 'string', description: 'With assumed: only this basis, e.g. client_default' } }),
   run: (c, a) => {
     const h = health(viewOf(c, a).g);
+    if (a.assumed) {
+      const xs = h.items.assumed.filter((x) => (!a.service || x.service === a.service) && (!a.basis || x.basis === a.basis));
+      return { total: xs.length, byBasis: byBasis(xs), items: { assumed: xs } };
+    }
     if (!a.service) return h;
     const f = <T extends { service: string }>(xs: T[]) => xs.filter((x) => x.service === a.service);
     return { service: h.services.find((s) => s.service === a.service), items: Object.fromEntries(Object.entries(h.items).map(([k, v]) => [k, f(v as any)])) };

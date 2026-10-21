@@ -6,6 +6,7 @@ import { href } from '../router.js';
 import { MODE } from '../components/clients-table.js';
 import { viaChip } from '../components/via-chip.js';
 import { serviceLink, servicePath } from './inventory-links.js';
+import { assumedBadge, assumedRow } from '../components/assumed-badge.js';
 
 const RW = { read: ['R', 'reads'], write: ['W', 'writes'], read_write: ['R/W', 'reads and writes'], unknown: ['?', 'access not reported'] };
 const db = (n) => `db${n}`;
@@ -14,12 +15,12 @@ const driverText = (d) => (d ? `${d.package}${d.version ? ' ' + d.version : ''}`
 
 /** The driver that actually runs (inside the library when there is one), how the service reaches it, and the databases. */
 /** `unknown`: why the databases are not known (the harvester's reason), shown when none are listed. */
-export function clientLine(c, databases, unknown) {
-  if (!c) return h('span.via', 'client not reported', databases.length ? ` · ${dbs(databases)}` : unknown ? ` · databases unknown (${unknown})` : '');
+export function clientLine(c, databases, unknown, assumed) {
+  if (!c) return h('span.via', 'client not reported', databases.length ? ` · ${dbs(databases)}` : unknown ? ` · databases unknown (${unknown})` : '', assumed ? assumedBadge(assumed) : null);
   const run = c.lib?.driver?.package ? c.lib.driver : c.driver;
   const how = c.accessMode === 'shared_lib' || c.lib ? `via ${c.lib?.package ?? 'a library'}${c.lib?.version ? ' ' + c.lib.version : ''}` : (MODE[c.accessMode] ?? 'access not reported').toLowerCase();
   const d = c.databases?.length ? c.databases : databases;
-  return h('span', run?.package ? h('span.mono', driverText(run)) : h('span.via', 'driver not reported'), ' ', h('span.via', `· ${how}${d.length ? ' · ' + dbs(d) : ''}${unknown ? ` · ${d.length ? 'client dbs' : 'databases'} unknown (${unknown})` : ''}`));
+  return h('span', run?.package ? h('span.mono', driverText(run)) : h('span.via', 'driver not reported'), ' ', h('span.via', `· ${how}${d.length ? ' · ' + dbs(d) : ''}${unknown ? ` · ${d.length ? 'client dbs' : 'databases'} unknown (${unknown})` : ''}`), assumed ? assumedBadge(assumed) : null);
 }
 
 /** The access chip: R, W or R/W. */
@@ -60,7 +61,7 @@ export function lanes(v, { onPick, makeCard }) {
       const node = h('div.ri-node', { role: 'button', tabindex: 0, on: { click: (e) => { if (!e.target.closest('a')) pick(); }, keydown: (e) => { if (e.key === 'Enter' && !e.target.closest('a')) pick(); } } },
         h('div.ri-name', serviceLink(l.service)), h('div.ri-sub', [l.kind, l.team].filter(Boolean).join(' · ')));
       const acc = h('div.ri-acc', { on: { click: pick } }, accessChip(l.access), h('span.line'));
-      const cl = h('div.ri-client', { on: { click: pick } }, clientLine(c, l.databases, l.databasesUnknown), l.clients.length > 1 ? h('span.via', ` · +${l.clients.length - 1} more`) : null,
+      const cl = h('div.ri-client', { on: { click: pick } }, clientLine(c, l.databases, l.databasesUnknown, l.databasesAssumed), l.clients.length > 1 ? h('span.via', ` · +${l.clients.length - 1} more`) : null,
         l.clients.some((x) => x.mixed.length) ? h('span.pill.warn', { style: { marginLeft: '6px' }, title: 'two majors of one driver' }, '2 drivers') : null);
       const btn = l.keyCount
         ? h('button.btn.ri-showkeys', { type: 'button', 'aria-expanded': 'false', on: { click: (e) => { e.stopPropagation(); toggle(l.service); } } }, h('span', 'Show keys'), h('span.ri-count', ` · ${l.keyCount}`))
@@ -83,7 +84,8 @@ export function clientPane(v, l) {
       lib ? [h('dt', 'Library'), h('dd.ri-mono', `${lib.package}${lib.version ? ' ' + lib.version : ''}${lib.kind ? ` (${lib.kind === 'in_house' ? 'in-house' : 'third-party'})` : ''}`)] : null,
       lib?.driver ? [h('dt', 'Library driver'), h('dd.ri-mono', driverText(lib.driver))] : null,
       own ? [h('dt', 'Own driver'), h('dd.ri-mono', driverText(own))] : null,
-      h('dt', 'Databases'), h('dd.ri-mono', (c.databases?.length ? c.databases : l.databases).length ? dbs(c.databases?.length ? c.databases : l.databases) : l.databasesUnknown ? `unknown (${l.databasesUnknown})` : 'not reported'));
+      h('dt', 'Databases'), h('dd.ri-mono', (c.databases?.length ? c.databases : l.databases).length ? dbs(c.databases?.length ? c.databases : l.databases) : l.databasesUnknown ? `unknown (${l.databasesUnknown})` : 'not reported', l.databasesAssumed ? assumedBadge(l.databasesAssumed) : null),
+      l.databasesAssumed ? [h('dt', 'Assumed'), h('dd', assumedRow({ ...l.databasesAssumed, field: 'databases' }))] : null);
   };
   const body = l.clients.length ? l.clients.map((cr, i) => {
     const raw = { accessMode: cr.accessMode, lib: cr.lib, driver: cr.driver, databases: undefined };

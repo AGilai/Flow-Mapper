@@ -3,7 +3,8 @@
 import type { GraphIndex } from './graph-index.ts';
 import { eventReport } from './events.ts';
 import { stores } from './stores.ts';
-import { drift, mixedCommits, unresolvedItems, type UnresolvedItem } from './harvest-quality.ts';
+import { assumedItems, drift, mixedCommits, unresolvedItems, type AssumedItem, type UnresolvedItem } from './harvest-quality.ts';
+import { byBasis } from './assumed.ts';
 
 export interface ServiceHealth {
   service: string;
@@ -16,13 +17,17 @@ export interface ServiceHealth {
   eventIssues: number;     // unhandled, undelivered, never-arriving and declared-not-seen event types
   storeIssues: number;     // stores it shares writes to, or declares and never uses
   unresolved: number;      // items its harvester could not resolve (reported, with a reason)
+  assumed: number;         // values its harvester filled by a rule (informational: not a problem, not in coverage)
+  assumedByBasis: Record<string, number>;
   coverage: number | null; // resolved egress / egress, null when the service has no egress
 }
 
 export interface HealthReport {
   env: string;
-  totals: Omit<ServiceHealth, 'service' | 'version' | 'eventIssues' | 'storeIssues' | 'unresolved'> & { services: number; links: number; brokenBindings: number } & Record<EventKind, number>;
+  totals: Omit<ServiceHealth, 'service' | 'version' | 'eventIssues' | 'storeIssues' | 'unresolved' | 'assumedByBasis'> & { services: number; links: number; brokenBindings: number } & Record<EventKind, number>;
   services: ServiceHealth[];
+  /** Assumed values (#47) per basis, over the environment. */
+  assumedByBasis: Record<string, number>;
   items: {
     dangling: { service: string; id: string; bindKey: string; transport: string }[];
     orphans: { service: string; id: string; bindKey: string; transport: string }[];
@@ -37,6 +42,7 @@ export interface HealthReport {
     multipleWriters: { service: string; key: string; kind: string; writers: string[] }[];
     unusedStores: { service: string; key: string; kind: string }[];
     unresolved: UnresolvedItem[];
+    assumed: AssumedItem[];
     mixedCommits: { service: string; commit?: string; others: { commit: string; items: number }[] }[];
     drift: { service: string; kind: string; id: string; provenance: unknown }[];
   };
@@ -45,7 +51,7 @@ export interface HealthReport {
 export const EVENT_KINDS = ['unhandledEvents', 'undeliveredEvents', 'neverArrives', 'declaredNotSeen', 'subscriptionConflicts'] as const;
 export const STORE_KINDS = ['multipleWriters', 'unusedStores'] as const;
 /** Reported by the harvesters themselves; shown apart from link problems. */
-export const HARVEST_KINDS = ['unresolved', 'mixedCommits', 'drift'] as const;
+export const HARVEST_KINDS = ['unresolved', 'assumed', 'mixedCommits', 'drift'] as const;
 type EventKind = (typeof EVENT_KINDS)[number] | (typeof STORE_KINDS)[number] | (typeof HARVEST_KINDS)[number];
 
 export function health(g: GraphIndex): HealthReport {
@@ -64,6 +70,7 @@ export function health(g: GraphIndex): HealthReport {
     unusedStores: stores(g).filter((s) => !s.used && !s.keyUnknown).flatMap((s) => s.services.map((svc) => ({ service: svc, key: s.key, kind: s.kind }))),
     // what=detail entries (#45, an unknown field of a resource or step) stay in the API data and on the Redis page; they are not link problems
     unresolved: unresolvedItems(g).filter((u) => u.what !== 'detail'),
+    assumed: assumedItems(g),
     mixedCommits: mixedCommits(g),
     drift: drift(g),
     dangling: r.dangling.map((e) => ({ service: e.service, id: e.id, bindKey: e.bindKey, transport: e.transport })),
@@ -87,6 +94,8 @@ export function health(g: GraphIndex): HealthReport {
       eventIssues: EVENT_KINDS.reduce((n, k) => n + count(items[k], s.name), 0),
       storeIssues: STORE_KINDS.reduce((n, k) => n + count(items[k], s.name), 0),
       unresolved: count(items.unresolved, s.name),
+      assumed: count(items.assumed, s.name),
+      assumedByBasis: byBasis(items.assumed.filter((x) => x.service === s.name)),
       coverage: egress ? (egress - dangling) / egress : null,
     };
   });
@@ -105,9 +114,10 @@ export function health(g: GraphIndex): HealthReport {
       ...Object.fromEntries(EVENT_KINDS.map((k) => [k, items[k].length])) as Record<EventKind, number>,
       multipleWriters: new Set(items.multipleWriters.map((x) => x.key)).size,
       unusedStores: new Set(items.unusedStores.map((x) => x.key)).size,
-      unresolved: items.unresolved.length, mixedCommits: items.mixedCommits.length, drift: items.drift.length,
+      unresolved: items.unresolved.length, assumed: items.assumed.length, mixedCommits: items.mixedCommits.length, drift: items.drift.length,
       coverage: egressTotal ? (egressTotal - items.dangling.length) / egressTotal : null,
     },
+    assumedByBasis: byBasis(items.assumed),
     services: services.sort((a, b) => (a.coverage ?? 2) - (b.coverage ?? 2) || a.service.localeCompare(b.service)),
     items,
   };

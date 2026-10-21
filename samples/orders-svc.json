@@ -146,7 +146,8 @@
           "target": "cache",
           "operation": "SET order:{id}",
           "condition": "cache miss",
-          "details": { "keyTemplate": "order:{id}", "ttlSeconds": 3600 }
+          "details": { "keyTemplate": "order:{id}", "ttlSeconds": 3600 },
+          "assumed": [{ "what": "detail", "detail": "details.ttlSeconds", "value": 3600, "basis": "convention", "reason": "order cache entries expire after one hour by team convention; the code passes no explicit TTL" }]
         },
         {
           "seq": 4,

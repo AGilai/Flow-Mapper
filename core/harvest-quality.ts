@@ -4,7 +4,7 @@
 import type { GraphIndex } from './graph-index.ts';
 import { keyMatches } from './glob.ts';
 import { unresolvedTarget } from './resolve.ts';
-import type { Provenance, Unresolved } from './types.ts';
+import type { Assumed, Provenance, Unresolved } from './types.ts';
 
 export interface UnresolvedItem {
   service: string; kind: 'ingress' | 'egress' | 'step' | 'resource' | 'function'; id: string; fn?: string;
@@ -54,4 +54,22 @@ export function drift(g: GraphIndex): { service: string; kind: string; id: strin
     ...m.bindings.map((x) => ({ service: x.service, kind: 'binding', id: x.id, provenance: x.provenance })),
   ];
   return rows.filter((r) => r.provenance?.verified === 'drift') as any;
+}
+
+/** A value a harvester filled by a rule (#47). Informational: shown beside `unresolved`, never a problem. */
+export interface AssumedItem {
+  service: string; kind: 'ingress' | 'egress' | 'step' | 'resource' | 'function'; id: string; fn?: string;
+  what: string; detail?: string; value: unknown; basis: string; reason: string;
+}
+
+export function assumedItems(g: GraphIndex): AssumedItem[] {
+  const item = (base: Pick<AssumedItem, 'service' | 'kind' | 'id' | 'fn'>, a: Assumed): AssumedItem =>
+    ({ ...base, what: a.what, ...(a.detail !== undefined ? { detail: a.detail } : {}), value: a.value, basis: a.basis, reason: a.reason });
+  return [
+    ...g.model.ingress.flatMap((i) => (i.assumed ?? []).map((a) => item({ service: i.service, kind: 'ingress', id: i.id }, a))),
+    ...g.model.egress.flatMap((e) => (e.assumed ?? []).map((a) => item({ service: e.service, kind: 'egress', id: e.id }, a))),
+    ...g.model.resources.flatMap((r) => (r.assumed ?? []).map((a) => item({ service: r.service, kind: 'resource', id: r.id }, a))),
+    ...g.model.functions.flatMap((f) => (f.assumed ?? []).map((a) => item({ service: f.service, kind: 'function', id: f.id, fn: f.id }, a))),
+    ...g.model.functions.flatMap((f) => f.steps.flatMap((s) => (s.assumed ?? []).map((a) => item({ service: f.service, kind: 'step', id: `${f.id}#${s.seq}`, fn: f.id }, a)))),
+  ];
 }

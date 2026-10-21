@@ -6,6 +6,7 @@ import { h } from '../dom.js';
 import { href } from '../router.js';
 import { ttlText, opsText } from '../format.js';
 import { serviceLink } from './inventory-links.js';
+import { assumedListBadge } from '../components/assumed-badge.js';
 
 const flowHref = (f) => href('/flows', { service: f.service, ingress: f.ingress });
 const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
@@ -67,6 +68,7 @@ export function keyRow(r, { service, mode, onOpen }) {
     : r.ttl.seconds != null ? h('span.ri-num.ri-nw', ttlText(r.ttl.seconds))
     : h('span.ri-muted', r.writers.length ? '—' : 'unknown');
   const others = r.readers.filter((u) => u.service !== service);
+  const assumed = [...r.writers, ...r.readers].flatMap((u) => (u.assumed ?? []).map((a) => ({ ...a, who: u.service })));
   const last = mode === 'reads'
     ? (r.writers.length ? h('span.ri-readers', r.writers.map((w) => h('a', { href: '#', title: `Open ${w.service}'s keys`, on: { click: (e) => { e.preventDefault(); e.stopPropagation(); onOpen(w.service, r); } } }, w.service)))
       : h('span.ri-readers', h('span.ri-chip.warn', 'no harvested writer')))
@@ -75,7 +77,7 @@ export function keyRow(r, { service, mode, onOpen }) {
   const el = h('details.ri-k', { 'data-key': r.keyTemplate, 'data-db': String(r.dbIndex) },
     h('summary', h('span'), h('span.ri-key', r.keyTemplate), h('span.ri-db', `db${r.dbIndex}`),
       h('span.ri-cmds', r.commands.map((c) => h('span.ri-cmd', { class: r.writeCommands.includes(c) ? 'w' : '' }, c))),
-      h('span.ri-num', opsText(r.opsPerHour)), ttl, last));
+      h('span.ri-num', opsText(r.opsPerHour)), assumed.length ? h('span', ttl, assumedListBadge(assumed)) : ttl, last));
   let built = false;
   const build = () => { if (!built) { built = true; el.append(detail(r, service, mode)); } };
   el.addEventListener('toggle', () => { if (el.open) build(); });

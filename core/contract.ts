@@ -6,7 +6,8 @@ import type { GraphIndex } from './graph-index.ts';
 import { boundValues } from './events.ts';
 import { filterAllows, keyMatches } from './glob.ts';
 import { drift, mixedCommits } from './harvest-quality.ts';
-import type { ClientInfo, Source, Unresolved } from './types.ts';
+import type { Assumed, ClientInfo, Source, Unresolved } from './types.ts';
+import { assumedField } from './assumed.ts';
 
 export type Level = 'error' | 'warn' | 'info';
 export interface Finding {
@@ -19,10 +20,10 @@ export interface ContractReport { errors: number; warnings: number; infos: numbe
 /** One service's entities as stored (before placeholder bind keys are filled in). */
 export interface ServiceManifest {
   service: string;
-  functions?: { id: string; file?: string; unresolved?: Unresolved[]; steps?: { seq: number; type: string; target?: string; unresolved?: Unresolved[]; fields?: { path: string; inDdl?: boolean }[] }[] }[];
-  resources?: { id: string; client?: ClientInfo; unresolved?: Unresolved[] }[];
-  ingress?: { id: string; bindKey?: string; source?: Source; unresolved?: Unresolved[] }[];
-  egress?: { id: string; bindKey?: string; transport: string; events?: string[]; client?: ClientInfo; source?: Source; unresolved?: Unresolved[] }[];
+  functions?: { id: string; file?: string; unresolved?: Unresolved[]; assumed?: Assumed[]; steps?: { seq: number; type: string; target?: string; unresolved?: Unresolved[]; assumed?: Assumed[]; fields?: { path: string; inDdl?: boolean }[] }[] }[];
+  resources?: { id: string; client?: ClientInfo; unresolved?: Unresolved[]; assumed?: Assumed[] }[];
+  ingress?: { id: string; bindKey?: string; source?: Source; unresolved?: Unresolved[]; assumed?: Assumed[] }[];
+  egress?: { id: string; bindKey?: string; transport: string; events?: string[]; client?: ClientInfo; source?: Source; unresolved?: Unresolved[]; assumed?: Assumed[] }[];
   bindings?: { id: string; from: string; match?: 'exact' | 'glob' | 'amqp-topic'; events?: '*' | string[]; source?: Source }[];
 }
 interface Ctx { m: ServiceManifest; g: GraphIndex; add: (f: Omit<Finding, 'service'>) => void }
@@ -53,6 +54,22 @@ const unresolvedNoDetail: Rule = ({ m, add }) => {
   for (const r of m.resources ?? []) check('resource', r.id, r.unresolved);
   for (const f of m.functions ?? []) check('function', f.id, f.unresolved);
   for (const f of m.functions ?? []) for (const s of f.steps ?? []) check('step', `${f.id}#${s.seq}`, s.unresolved);
+};
+
+/** An assumed value is a value: the same field may not also be unresolved (#47). Compared by field path (`what`, or `detail` for what=detail). */
+const assumedAndUnresolved: Rule = ({ m, add }) => {
+  const check = (kind: 'ingress' | 'egress' | 'step' | 'resource' | 'function', id: string, x: { unresolved?: Unresolved[]; assumed?: Assumed[] }) => {
+    const gone = new Set((x.unresolved ?? []).map((u) => (u.what === 'detail' ? u.detail?.trim() : u.what)));
+    for (const a of x.assumed ?? []) if (gone.has(assumedField(a))) add({
+      level: 'warn', code: 'assumed-and-unresolved', kind, id,
+      message: `${kind} '${id}' lists '${assumedField(a)}' as both unresolved and assumed`,
+      fix: 'An assumed value is a value: keep the assumed entry and drop the unresolved one, or drop the assumed entry if you do not use a default.',
+    });
+  };
+  for (const i of m.ingress ?? []) check('ingress', i.id, i);
+  for (const e of m.egress ?? []) check('egress', e.id, e);
+  for (const r of m.resources ?? []) check('resource', r.id, r);
+  for (const f of m.functions ?? []) { check('function', f.id, f); for (const s of f.steps ?? []) check('step', `${f.id}#${s.seq}`, s); }
 };
 
 const missingSource: Rule = ({ m, add }) => {
@@ -176,7 +193,7 @@ const clientGaps: Rule = ({ m, add }) => {
   for (const e of m.egress ?? []) check('egress', e.id, e.client, e.unresolved);
 };
 
-export const RULES: Rule[] = [unresolvedNoDetail, clientGaps, missingSource, fieldNotInDdl, bindingNoEvents, bindingEmptyEvents, egressNoEvents, eventFromUnbound, dangling, filterMatchesNothing, harvestQuality];
+export const RULES: Rule[] = [unresolvedNoDetail, assumedAndUnresolved, clientGaps, missingSource, fieldNotInDdl, bindingNoEvents, bindingEmptyEvents, egressNoEvents, eventFromUnbound, dangling, filterMatchesNothing, harvestQuality];
 
 /** `m`: the service's entities as stored; `g`: the env's index after applying them. */
 export function contractReport(m: ServiceManifest, g: GraphIndex): ContractReport {
