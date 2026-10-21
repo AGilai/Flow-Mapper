@@ -34,7 +34,7 @@ function find(forms: string[], names: string[]): { name: string; how: 'exact' | 
 }
 
 /** A lifeline the exporter writes for a channel (`sns:order-events`) or a data store (`orders-db.orders`, `user:{id}`): not a component. */
-export const looksInfra = (s: string) => /^[A-Za-z][\w-]*:\S/.test(s) || /[{}]/.test(s) || /^[\w-]+\.[\w.-]+$/.test(s);
+export const looksInfra = (s: string) => /^[A-Za-z][\w-]*:\S/.test(s) || /^unresolved:/i.test(s) || /[{}]/.test(s) || /^[\w-]+\.[\w.-]+$/.test(s);
 
 export function matchParticipants(parts: { id: string; label: string; actor: boolean }[], here: string[], source: string[] = []): MatchRow[] {
   const sourceOnly = source.filter((n) => !here.includes(n));

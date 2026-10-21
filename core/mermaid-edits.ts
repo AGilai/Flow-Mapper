@@ -83,7 +83,7 @@ export function mermaidPlan(parsed: MmParsed, targets: Record<string, Target>, r
   }
   const cur = new Map<string, string>();   // component -> the handler its lifeline is inside of now
   let entry: { service: string; ingress: string } | null = null;
-  const seenCount = new Map<string, number>(), skipped = new Set<string>();
+  const seenCount = new Map<string, number>(), skipped = new Set<string>(), noFn = new Set<string>();
 
   /** An endpoint of `service` with this bind key: the one that is there, or a new one. */
   function ensureEndpoint(service: string, l: ReturnType<typeof readLabel>, entryPoint: boolean, description?: string) {
@@ -118,6 +118,7 @@ export function mermaidPlan(parsed: MmParsed, targets: Record<string, Target>, r
       cur.set(S.name, e.handler);
     }
     const e = ensureEndpoint(R.name, l, false), fn = cur.get(S.name)!;
+    if (!get(S.name, 'functions', fn) && !noFn.has(S.name + fn)) { noFn.add(S.name + fn); warn(`'${fn}' of ${S.name} has no function in this design (its behaviour is in another environment): its calls here go into a new function of that name`, m.line); }
     const mode = m.kind === 'async' ? 'async' : undefined;
     const seen = (key: string) => (seenCount.set(key, (seenCount.get(key) ?? 0) + 1), seenCount.get(key)! - 1);
     const key = `${S.name}/${fn}|${l.bindKey}`, before = seen(key);

@@ -1,0 +1,8 @@
+%% Flow: orders-svc · in.remove
+sequenceDiagram
+actor client as client
+participant orders_svc as orders-svc
+participant mongodb_orders_db_orders as mongodb:orders-db/orders
+client->>orders_svc: DELETE /orders/{id}
+orders_svc->>mongodb_orders_db_orders: deleteOne
+orders_svc-->>client: return

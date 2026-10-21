@@ -19,9 +19,9 @@ export function messageLabel(m: Pick<Message, 'label' | 'transport'>): string {
   return h ? `${h[1].toUpperCase()} ${h[3] ?? '/'}` : m.label;
 }
 
-/** The text a lifeline is labelled with: component name, `scheme:key` of a channel, store (collection), the unresolved thing. */
+/** The text a lifeline is labelled with: the component name; a channel or data store by its key (`sns:order-events`, `postgres:users-db/users`); the unresolved thing. */
 function labelOf(p: Participant): string {
-  return p.kind === 'channel' ? p.id.replace(/^ch:/, '') : p.kind === 'service' ? p.service ?? p.label : p.label;
+  return p.kind === 'channel' || p.kind === 'resource' ? p.id.replace(/^(ch|res):/, '') : p.kind === 'service' ? p.service ?? p.label : p.label;
 }
 
 export function exportMermaid(t: Pick<Trace, 'start' | 'participants' | 'messages'>, opts: MermaidOpts = {}): string {

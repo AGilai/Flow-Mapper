@@ -56,6 +56,9 @@ const DRAFT: Record<string, (e: string, slug: string) => Req> = {
   'POST /api/envs/:env/drafts/:slug/apply': (e, s) => ({ method: 'POST', path: `${base(e)}/drafts/${s}/apply`, body: {} }),
   'POST /api/envs/:env/drafts/:slug/edits': (e, s) => ({ method: 'POST', path: `${base(e)}/drafts/${s}/edits`, body: { edit: { kind: 'delete', anchor: 'svc:nobody' } } }),
   'POST /api/envs/:env/drafts/:slug/import': (e, s) => ({ method: 'POST', path: `${base(e)}/drafts/${s}/import`, body: { source: 'prod', anchor: 'svc:orders-svc' } }),
+  'POST /api/envs/:env/drafts/:slug/mermaid/preview': (e, s) => ({ method: 'POST', path: `${base(e)}/drafts/${s}/mermaid/preview`, body: { text: 'sequenceDiagram\nA->>B: x' } }),
+  'POST /api/envs/:env/drafts/:slug/mermaid': (e, s) => ({ method: 'POST', path: `${base(e)}/drafts/${s}/mermaid`, body: { text: 'sequenceDiagram\nA->>B: x' } }),
+  'DELETE /api/envs/:env/drafts/:slug/mermaid/:batch': (e, s) => ({ method: 'DELETE', path: `${base(e)}/drafts/${s}/mermaid/abcd1234` }),
   'POST /api/envs/:env/drafts/:slug/plan': (e, s) => ({ method: 'POST', path: `${base(e)}/drafts/${s}/plan`, body: { planVersion: 1 } }),
 };
 
@@ -129,7 +132,7 @@ test('dry runs are allowed into a design env (nothing is written) and still vali
 
 // MCP tools: read tools are listed so a new tool must be classified too.
 const MCP_READ = new Set(['search', 'list_services', 'get_service', 'list_entry_points', 'trace_flow', 'find_paths', 'link_health', 'changelog', 'get_endpoint_info', 'event_types',
-  'inventory', 'get_store', 'list_clients', 'get_resource_keys', 'get_channel', 'get_exchange', 'list_bugs', 'get_bug', 'list_envs', 'list_drafts', 'draft_changes', 'get_marks', 'import_preview', 'get_call', 'get_flow_names', 'list_comments']);
+  'inventory', 'get_store', 'list_clients', 'get_resource_keys', 'get_channel', 'get_exchange', 'list_bugs', 'get_bug', 'list_envs', 'list_drafts', 'draft_changes', 'get_marks', 'import_preview', 'get_call', 'get_flow_names', 'list_comments', 'export_mermaid']);
 const MCP_HARVESTER: Record<string, (e: string, manifest: any) => any> = {
   ingest_manifest: (e, m) => ({ manifest: { ...m, env: e, version: 999 } }),
   load_dtos: (e) => ({ env: e, dtos: [] }),
@@ -143,6 +146,7 @@ const MCP_DRAFT: Record<string, (e: string, slug: string) => any> = {
   edit_design: (env, draft) => ({ env, draft, edit: { kind: 'delete', anchor: 'svc:nobody' } }),
   import_into_draft: (env, draft) => ({ env, draft, source: 'prod', anchor: 'svc:orders-svc' }),
   apply_import_plan: (env, draft) => ({ env, draft, plan: { planVersion: 1 } }),
+  import_mermaid: (env, draft) => ({ env, draft, text: 'sequenceDiagram\nA->>B: x' }),
 };
 const MCP_EXEMPT = new Set(['set_description', 'set_flow_name', 'report_bug', 'update_bug', 'create_env', 'add_comment']);
 
