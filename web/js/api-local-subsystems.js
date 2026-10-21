@@ -6,6 +6,7 @@ import { subsystemsOf } from '../core/subsystems.js';
 import { rollUp } from '../core/subsystem-rollup.js';
 import { suggestRefinements } from '../core/link-suggest.js';
 import { SUBSYSTEM_ICONS, SUBSYSTEM_KEY } from '../core/subsystems.js';
+import { relationsOf } from '../core/flow-relations.js';
 
 export function createSubsystems(c) {
   const fail = (message, status = 422, code) => { const e = new Error(message); e.status = status; if (code) e.code = code; throw e; };
@@ -30,6 +31,8 @@ export function createSubsystems(c) {
       return { levels: c.meta(env).levels ?? ['Subsystem', 'Component'], subsystems: subsystemsOf(subRows, g.model.services), notSet: g.model.services.filter((s) => !s.groupPath).map((s) => s.name).sort() };
     },
     subsystemMap: async (env) => map(env),
+    /** Flow relations (0.28.2): a design's, as the open draft leaves them; a sealed environment has none. */
+    flowRelations: async (env, q = {}) => (c.isDesign(env) ? relationsOf(c.rowsNow(env), q.service && q.ingress ? { service: q.service, ingress: q.ingress } : null, q.type || null) : []),
     abstractLinks: async (env, subsystem) => map(env).abstract.filter((v) => !subsystem || v.from.subsystem === subsystem || v.to.subsystem === subsystem),
     abstractLink: async (env, id) => {
       const m = map(env), view = m.abstract.find((v) => v.id === id) ?? fail(`abstract link '${id}' in '${env}' not found`, 404, 'NOT_FOUND');

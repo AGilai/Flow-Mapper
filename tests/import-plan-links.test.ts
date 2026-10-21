@@ -31,11 +31,20 @@ test('a bad link is a warning and is skipped, so the rest of the plan imports', 
   assert.ok(r.warnings.some((w) => /^links\[2\]: id 'Bad Id!'/.test(w)));
 });
 
-test('a flow-shaped entry (typed, flow ends) is skipped with the 0.28.2 warning; a type with other ends is skipped too', () => {
-  const r = run({ links: [{ from: 'flow:pop-edge/in.tunnel', to: 'flow:auth-svc/in.token', type: 'contradicts' }, { from: { service: 'a', ingress: 'i' }, to: { service: 'b', ingress: 'j' }, type: 'same-topic' }, link({ id: 'z', type: 'variant-of' })] });
+test('a flow-shaped entry (typed, flow ends) becomes a rel: op: aliases, symmetric ends ordered, note kept; a type with other ends is skipped', () => {
+  const x = { from: 'flow:pop-edge/in.tunnel', to: 'flow:auth-svc/in.token' };
+  const r = run({ links: [{ ...x, type: 'contradicts', note: ' why ' }, { from: { service: 'auth-svc', ingress: 'in.token' }, to: { service: 'pop-edge', ingress: 'in.tunnel' }, type: 'same_topic' }, { ...x, type: 'variant', description: 'd' }, { ...x, type: 'contradicts' }, link({ id: 'z', type: 'variant-of' })] });
+  assert.deepEqual(r.ops.map((o) => [o.anchor.slice(0, 4), (o.data as any).type, (o.data as any).from, (o.data as any).note]),
+    [['rel:', 'contradicts', 'flow:auth-svc/in.token', 'why'], ['rel:', 'same-topic', 'flow:auth-svc/in.token', undefined], ['rel:', 'variant-of', 'flow:pop-edge/in.tunnel', 'd']]);   // the 4th repeats the 1st (same id): once
+  assert.deepEqual(r.links, { abstract: 0, flow: 3, skipped: 1 });
+  assert.match(r.warnings[0], /not flows/);
+});
+
+test('a bad flow relation is a warning and is skipped: unknown type, unknown flow, the same flow twice', () => {
+  const r = run({ links: [{ from: 'flow:pop-edge/in.tunnel', to: 'flow:auth-svc/in.token', type: 'rhymes-with' }, { from: 'flow:pop-edge/in.tunnel', to: 'flow:auth-svc/in.nope', type: 'supersedes' }, { from: 'flow:pop-edge/in.tunnel', to: 'flow:pop-edge/in.tunnel', type: 'supersedes' }] });
   assert.equal(r.ops.length, 0);
   assert.deepEqual(r.links, { abstract: 0, flow: 0, skipped: 3 });
-  assert.match(r.warnings[0], /flow relations land in 0\.28\.2/); assert.match(r.warnings[1], /flow relations land in 0\.28\.2/); assert.match(r.warnings[2], /not flows/);
+  assert.match(r.warnings[0], /rhymes-with/); assert.match(r.warnings[1], /not an entry point/); assert.match(r.warnings[2], /itself/);
 });
 
 test('a link may end at a component the same plan creates', () => {

@@ -9,6 +9,7 @@ import { dtoSlots } from '../../core/endpoint-info.ts';
 import { stores } from '../../core/stores.ts';
 import { designIssues, SERVICE_KINDS, twoGroups } from '../../core/design-rules.ts';
 import { checkLinks } from '../../core/links.ts';
+import { relationItem } from '../../core/flow-relations.ts';
 import { HttpError } from '../errors.ts';
 import { isList, keyOf, validateEntity, validateServiceHeader, type ListName } from '../schema.ts';
 import { normMeta, normStatus } from './dtos.ts';
@@ -77,6 +78,7 @@ function check(map: Map<string, ItemRow>, i: DraftOpInput): PreparedOp {
     if (!isObj(data)) bad('a link item is {name, from, to, mode?, transport?, description?, refinedBy?}');
   } else if (r.list === 'flowrel') {
     if (!isObj(data) || typeof data.from !== 'string' || typeof data.to !== 'string' || typeof data.type !== 'string') bad('a flow relation item is {from, to, type, note?}');
+    else { const it = relationItem(data); if (!it) bad('a flow relation needs a type (contradicts, variant-of, supersedes, same-topic) and two flows (flow:<component>/<endpoint>)', 'BAD_TYPE'); else if (it.id !== r.key || it.data.from !== data.from) bad(`rel:${r.key} does not match its ends and type (it should be rel:${it.id}, symmetric types with the smaller flow first)`, 'BAD_ID'); }
   } else if (r.list === 'flow') {
     if (!isObj(data)) bad('a flow item is {name?, description?, links?, steps?, doc?}');
     else if ((data as any).links !== undefined && (data as any).links !== null) { const e = checkLinks((data as any).links); if (e) bad(e); }

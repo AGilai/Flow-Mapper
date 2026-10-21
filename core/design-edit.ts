@@ -5,6 +5,7 @@ import type { DraftOpInput } from './draft-ops.ts';
 import { callOps, deleteCallOps } from './edit-calls.ts';
 import { componentOps, deleteOps, dtoOps, endpointOps, flowOps } from './edit-forms.ts';
 import { functionOps } from './edit-links.ts';
+import { relationOps } from './edit-relations.ts';
 import { abstractLinkOps, refineOps, subsystemOps } from './edit-subsystems.ts';
 import { EditError, indexRows, type DesignEdit } from './edit-kit.ts';
 import type { ItemRow } from './item-rows.ts';
@@ -25,8 +26,9 @@ export function designEditOps(edit: DesignEdit, rows: ItemRow[]): DraftOpInput[]
     case 'subsystem': return subsystemOps(edit, rows);
     case 'abstract-link': return abstractLinkOps(edit, rows, x);
     case 'refine-link': return refineOps(edit, rows, x);
+    case 'flow-relation': return relationOps(edit, rows);
     case 'delete': return deleteOps(edit, rows, x);
-    default: throw new EditError('INVALID', `edit.kind must be one of component, endpoint, function, call, delete-call, flow, dto, event-dto, subsystem, abstract-link, refine-link, delete`, 'kind');
+    default: throw new EditError('INVALID', `edit.kind must be one of component, endpoint, function, call, delete-call, flow, dto, event-dto, subsystem, abstract-link, refine-link, flow-relation, delete`, 'kind');
   }
 }
 

@@ -8,6 +8,7 @@ import { SERVICE_KINDS } from './design-rules.ts';
 import { EditError, setField, slug, unique, type DesignEdit, type EndpointEdit, type Idx } from './edit-kit.ts';
 import type { ItemRow } from './item-rows.ts';
 import { setLinks, setRuntime } from './edit-links.ts';
+import { dependentRelationOps } from './edit-relations.ts';
 import { checkLinks, cleanLinks } from './links.ts';
 
 const NAME = /^[a-z0-9][a-z0-9-]{0,62}$/;
@@ -98,5 +99,6 @@ export function deleteOps(e: Extract<DesignEdit, { kind: 'delete' }>, rows: Item
     for (const r of rows) if (r.service === service && r.list === 'dto' && r.key.startsWith(`${key}|`)) out.push({ op: 'delete', anchor: `dto:${service}/${r.key.split('|')[1]}/${r.key.split('|')[2] || '-'}/${key}` });
     if (x.get(service, 'flow', key)) out.push({ op: 'delete', anchor: `flow:${service}/${key}` });
   }
+  if (p.kind === 'svc' || p.kind === 'ing') out.push(...dependentRelationOps(rows, service, p.kind === 'ing' ? key : undefined));   // the relations that name it go too
   return out;
 }
