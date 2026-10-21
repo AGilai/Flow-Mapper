@@ -54,15 +54,15 @@ export function icon(name, cls = '') {
   return el;
 }
 
-/** Brand mark: three stations on two lines. */
+/** Brand mark (same as web/favicon.svg): two lifelines with a call and its return (option D). */
 export function brandMark() {
   const el = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  el.setAttribute('viewBox', '0 0 28 28');
+  el.setAttribute('viewBox', '0 0 32 32');
   el.setAttribute('class', 'brand-mark');
-  el.innerHTML = `<path d="M5 8h9a5 5 0 0 1 5 5v7" stroke="var(--t-http)" stroke-width="3" fill="none" stroke-linecap="round"/>
-    <path d="M5 20h6a5 5 0 0 0 5-5V8" stroke="var(--t-sqs)" stroke-width="3" fill="none" stroke-linecap="round" opacity=".9"/>
-    <circle cx="5" cy="8" r="3" fill="var(--surface)" stroke="var(--ink)" stroke-width="2"/>
-    <circle cx="19" cy="20" r="3" fill="var(--surface)" stroke="var(--ink)" stroke-width="2"/>
-    <circle cx="5" cy="20" r="3" fill="var(--surface)" stroke="var(--ink)" stroke-width="2"/>`;
+  el.setAttribute('aria-hidden', 'true');
+  el.innerHTML = `<rect width="32" height="32" rx="7" fill="var(--accent)"/>
+    <path d="M8 6v20M24 6v20" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+    <path d="M12.5 12h8M17.5 8.5l3.5 3.5-3.5 3.5" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M19.5 21h-8M14.5 17.5L11 21l3.5 3.5" fill="none" stroke="#8ff0df" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>`;
   return el;
 }

@@ -1,5 +1,7 @@
 # Writing a Flow-Mapper harvester
 
+> After every `git pull`, read [CHANGELOG.md](CHANGELOG.md) for what changed for harvesters and importers.
+
 A harvester reads one system (a service's code, or the infrastructure) and pushes what it found
 to Flow-Mapper as a **manifest**. Flow-Mapper treats harvested data as the source of truth and
 links services together by matching **bind keys**, so the one thing that matters most is that both
