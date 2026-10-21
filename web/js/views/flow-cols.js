@@ -8,7 +8,7 @@ export const labelWidth = (t) => Math.ceil(String(t).length * LABEL_PX);
 /** The two columns an event's arrow joins, or null when it draws no labelled arrow. */
 export function arrowEnds(e) {
   if (!e.label) return null;
-  if (e.type === 'call' || e.type === 'hop') return [e.from, e.to];
+  if (e.type === 'call' || e.type === 'hop' || e.type === 'store') return [e.from, e.to];
   if (e.type === 'return') return [e.bar.col, e.to];
   if (e.type === 'unresolved') return [(e.fromBar ?? e.bar).col, e.col];
   return null;

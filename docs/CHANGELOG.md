@@ -5,6 +5,9 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## 0.27.1 (2026-10-21)
+- UI: in a flow diagram each data-store collection is its own lifeline (a band names the store; more than 5 collections of one store fold into one lifeline), and every store arrow shows the operation as harvested. Reads and writes differ by line weight. Additive on the trace: a resource message also carries `storeKind` and `access` (`read` / `write` / `read_write` / `unknown`); trace hashes are unchanged (#62).
+
 ## 0.27.0 (2026-10-21)
 - Comments under each flow (details in [API.md](API.md) "Comments under a flow"). Additive; nothing breaks.
   - REST, any environment (sealed too, no draft needed): `GET /api/envs/:env/comments?anchor=flow:<service>/<ingress>`,
@@ -75,7 +78,6 @@ in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.m
 - Migration 008.
 
 ## Coming next
-- 0.27.1: DB collections as their own lifelines (#62).
 - 0.27.2: Mermaid export/import of flows. MCP `export_mermaid`, `import_mermaid` (dry run with proposed matches).
 - 0.28.x: the subsystem level.
   - **Breaking for plans:** a component in two subsystems, or one carrying `details.alsoIn`, is refused with

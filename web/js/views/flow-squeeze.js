@@ -10,7 +10,7 @@ export const COL_NARROW = 96; // narrowest a kept lifeline column may get (head 
 
 /** Columns an event touches, as sorted indexes (idx: lifeline -> index). Arrows: both ends (and the topic a publish goes through); a stub or pill: its own lifeline. */
 export function eventCols(e, idx) {
-  const ends = e.type === 'call' || e.type === 'hop' ? [e.from, e.to, e.via] : e.type === 'return' ? [e.bar?.col, e.to] : e.type === 'unresolved' ? [(e.fromBar ?? e.bar)?.col, e.col]
+  const ends = e.type === 'call' || e.type === 'hop' || e.type === 'store' ? [e.from, e.to, e.via] : e.type === 'return' ? [e.bar?.col, e.to] : e.type === 'unresolved' ? [(e.fromBar ?? e.bar)?.col, e.col]
     : e.type === 'amqpnote' ? [e.col] : e.bar ? [e.bar.col] : [];
   return [...new Set(ends.filter((c) => c != null).map((c) => idx.get(c)).filter((i) => i != null))].sort((a, b) => a - b);
 }

@@ -5,6 +5,8 @@ import { altFrames, stripsByRow, STRIP } from './sequence-alt.js';
 import { arrowEnds, columnGaps, centres, labelWidth, wrapId, clampLines } from './flow-cols.js';
 import { markChips, chipsStack } from './flow-marks-draw.js';
 import { sharedVar } from '../design/component-colors.js';
+import { bandsOf } from './flow-stores-pure.js';
+import { BAND_H } from './flow-draw-bands.js';
 import { FOLD_W, COL_NARROW, displayCols, foldGroups, planSqueeze } from './flow-squeeze.js';
 
 export const COL = 138, COL_MIN = 132, PAD = 16, GUTTER = 8, BAR = 12, NEST = 8, CH_HEAD = 116; // CH_HEAD: a topic or queue head is narrower than a service head
@@ -24,7 +26,7 @@ export function layoutLane(lane, fit = 0, sq = null, marks = null, edit = false)
   const { columns, events, bars } = lane;
   // Each gap between lifelines grows to fit the longest arrow label that crosses it: a label is never cut.
   const idx = new Map(columns.map((c, i) => [c, i]));
-  const isCh = (c) => c.kind === 'channel', headW = (c, col) => (isCh(c) ? CH_HEAD : col - 8);
+  const isCh = (c) => c.kind === 'channel', headW = (c, col) => (isCh(c) ? CH_HEAD : c.stack ? Math.round(col * 1.6) - 8 : col - 8); // a channel head is narrower, a folded store's head (its stack) wider
   // The room right of a queue for its number tiles (or "no reader"): the next lifeline in that direction must clear it.
   const endW = (e) => (e.end ? (e.end.none ? e.end.none.length * 8 + 36 : e.end.tiles.reduce((n, t) => n + tileW(t.text) + 4, 0)) + 14 : 0);
   // A publish is one arrow: the event type sits on its first part (service -> topic), the filter marker on the second (topic -> queue). Branch rows carry the marker only.
@@ -55,12 +57,13 @@ export function layoutLane(lane, fit = 0, sq = null, marks = null, edit = false)
   const plan = (keep) => planSqueeze({ n: columns.length, ends: keep, fit, widthOf: (f, o) => layout(o.narrow ? COL_NARROW : COL_MIN, f, o.foldW).width });
   let L = fitted(new Set()), folded = new Set(), fw = FOLD_W, sig = '';
   if (sq && fit && L.width > fit) { const P = plan(sq.keep); ({ folded, foldW: fw, key: sig } = P); if (folded.size) L = fitted(folded, fw, P.narrow ? COL_NARROW : COL_MIN); }
-  const { xs, col: COLW, width } = L, HEAD_BOX = COLW - 8, nameCh = (c) => Math.max(9, Math.floor((headW(c, COLW) - 14) / 6.6));
+  const { xs, col: COLW, width } = L, HEAD_BOX = COLW - 8, nameCh = (c) => Math.max(9, Math.floor((headW(c, COLW) - (c.kind === 'resource' ? 34 : 14)) / 6.6)); // a store head has an icon before the name
   const colX = new Map(columns.map((c, i) => [c, xs[i]]));
   // a queue head drops its transport prefix and the 'queue delivery' line (the title keeps both): two lines at most
   const subCh = COLW < COL_MIN ? Math.max(10, Math.floor((COLW - 22) / 5.8)) : SUB_CH; // narrowed heads (Squeeze, last stage) wrap the sub line shorter
-  const heads = columns.map((c) => (c.sub === 'queue delivery' ? { name: clampLines(wrapId(c.label.replace(/^[^:]+:/, ''), nameCh(c)), nameCh(c)), sub: [] } : { name: clampLines(wrapId(c.label, nameCh(c)), nameCh(c)), sub: isCh(c) ? [c.sub] : wrapId(c.sub ?? '', subCh) }));
-  const boxH = 12 + Math.max(...heads.map((x) => x.name.length * LINE_H + x.sub.length * 13)) + 6, HEAD = boxH + 16;
+  const heads = columns.map((c) => (c.sub === 'queue delivery' ? { name: clampLines(wrapId(c.label.replace(/^[^:]+:/, ''), nameCh(c)), nameCh(c)), sub: [] } : { name: clampLines(wrapId(c.label, nameCh(c)), nameCh(c)), sub: isCh(c) ? [c.sub] : wrapId(c.sub ?? '', c.kind === 'resource' ? Math.max(10, Math.floor((headW(c, COLW) - 38) / 5.8)) : subCh) }));
+  const boxH = 12 + Math.max(...heads.map((x) => x.name.length * LINE_H + x.sub.length * 13)) + 6, bandH = columns.some((c) => c.kind === 'resource') ? BAND_H : 0, HEAD = boxH + 16 + bandH; // bandH: the band row over the heads (flow-draw-bands.js)
+  const bands = bandsOf(columns, folded);
   const frames = altFrames(lane.altMsgs), strips = stripsByRow(frames, lane.altRows);
   const nStrips = (r) => strips.get(r)?.length ?? 0;
   const top = [], ys = [];
@@ -76,5 +79,5 @@ export function layoutLane(lane, fit = 0, sq = null, marks = null, edit = false)
   const groups = foldGroups(columns.length, folded).map((g) => ({ ...g, x: xs[g.from], w: fw, names: g.cols.map((c) => columns[c].service ?? columns[c].label), cc: sharedVar(g.cols.map((c) => columns[c])) }));
   const edge = (bar, col, dir) => (bar ? barX(bar, dir) : colX.get(col));
   const headBox = (c) => headW(c, COLW);
-  return { columns, events, bars, idx, stacked, folded, groups, plan, sig, foldW: fw, fit, isCh, headW, headBox, xs, COLW, width, height, colX, heads, boxH, HEAD, frames, strips, top, ys, barX, edge };
+  return { columns, events, bars, idx, stacked, folded, groups, plan, sig, foldW: fw, fit, isCh, headW, headBox, xs, COLW, width, height, colX, heads, boxH, HEAD, bandH, bands, frames, strips, top, ys, barX, edge };
 }

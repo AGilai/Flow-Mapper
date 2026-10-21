@@ -1,0 +1,173 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "identity-svc",
+    "kind": "service",
+    "team": "identity",
+    "repo": "github.com/acme/identity-svc",
+    "language": "typescript",
+    "description": "Sign-in and the audit trail of identity changes (demo: data-store collections as lifelines, 0.27.1)"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-21T08:00:00Z",
+  "commit": "c3a91f2",
+  "functions": [
+    {
+      "id": "login",
+      "name": "login",
+      "file": "src/login.ts",
+      "line": 14,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db_users",
+          "operation": "find-one"
+        },
+        {
+          "seq": 2,
+          "type": "resource",
+          "target": "db_devices",
+          "operation": "find-one"
+        },
+        {
+          "seq": 3,
+          "type": "resource",
+          "target": "db_sessions",
+          "operation": "update-one"
+        },
+        {
+          "seq": 4,
+          "type": "resource",
+          "target": "db_sessions",
+          "operation": "insert-one"
+        }
+      ]
+    },
+    {
+      "id": "exportAudit",
+      "name": "exportAudit",
+      "file": "src/audit.ts",
+      "line": 22,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "db_users",
+          "operation": "find-one"
+        },
+        {
+          "seq": 2,
+          "type": "resource",
+          "target": "db_devices",
+          "operation": "find"
+        },
+        {
+          "seq": 3,
+          "type": "resource",
+          "target": "db_roles",
+          "operation": "find"
+        },
+        {
+          "seq": 4,
+          "type": "resource",
+          "target": "db_policies",
+          "operation": "find"
+        },
+        {
+          "seq": 5,
+          "type": "resource",
+          "target": "db_sessions",
+          "operation": "update-one"
+        },
+        {
+          "seq": 6,
+          "type": "resource",
+          "target": "db_tokens",
+          "operation": "delete-one"
+        },
+        {
+          "seq": 7,
+          "type": "resource",
+          "target": "db_audit_events",
+          "operation": "insert-one"
+        },
+        {
+          "seq": 8,
+          "type": "resource",
+          "target": "db_users",
+          "operation": "update-one"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.login",
+      "bindKey": "http:POST identity-svc/login",
+      "transport": "http",
+      "handler": "login",
+      "details": {
+        "method": "POST",
+        "path": "/login"
+      }
+    },
+    {
+      "id": "in.auditExport",
+      "bindKey": "http:POST identity-svc/audit/export",
+      "transport": "http",
+      "handler": "exportAudit",
+      "details": {
+        "method": "POST",
+        "path": "/audit/export"
+      }
+    }
+  ],
+  "egress": [],
+  "resources": [
+    {
+      "id": "db_users",
+      "kind": "mongodb",
+      "name": "identity-db.users",
+      "bindKey": "mongodb:identity-db/users"
+    },
+    {
+      "id": "db_devices",
+      "kind": "mongodb",
+      "name": "identity-db.devices",
+      "bindKey": "mongodb:identity-db/devices"
+    },
+    {
+      "id": "db_sessions",
+      "kind": "mongodb",
+      "name": "identity-db.sessions",
+      "bindKey": "mongodb:identity-db/sessions"
+    },
+    {
+      "id": "db_audit_events",
+      "kind": "mongodb",
+      "name": "identity-db.audit_events",
+      "bindKey": "mongodb:identity-db/audit_events"
+    },
+    {
+      "id": "db_roles",
+      "kind": "mongodb",
+      "name": "identity-db.roles",
+      "bindKey": "mongodb:identity-db/roles"
+    },
+    {
+      "id": "db_policies",
+      "kind": "mongodb",
+      "name": "identity-db.policies",
+      "bindKey": "mongodb:identity-db/policies"
+    },
+    {
+      "id": "db_tokens",
+      "kind": "mongodb",
+      "name": "identity-db.tokens",
+      "bindKey": "mongodb:identity-db/tokens"
+    }
+  ]
+}

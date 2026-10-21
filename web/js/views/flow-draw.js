@@ -15,6 +15,7 @@ import { drawRows } from './flow-draw-rows.js';
 import { drawBars } from './flow-draw-bars.js';
 import { addCallChips } from './flow-add-call.js';
 import { wireEvents } from './flow-draw-events.js';
+import { storeLegend } from './flow-draw-bands.js';
 
 /**
  * renderLane(lane, handlers) -> { el, body, events, bars, geometry }
@@ -38,5 +39,5 @@ export function renderLane(lane, { marks = null, refs = null, edit = null, onMes
   const mark = wireEvents(head, body, c, { onMessage, onBar, onBarMenu, onParticipant, onNum, onNumHover, onFan, onMw, onBarTip, onSqueeze });
   body.__events = events;
   const geometry = { x: c.xs, y: ys, top, width, height, headHeight: c.HEAD, colWidth: c.COLW, folded: c.folded, groups: c.groups, plan: c.plan, sig: c.sig, foldW: c.foldW };
-  return { el: h('div.seq', h(sticky ? 'div.seq-sticky' : 'div.seq-head-static', head), body), body, events, bars, geometry, mark };
+  return { el: h('div.seq', h(sticky ? 'div.seq-sticky' : 'div.seq-head-static', head), body, events.some((e) => e.type === 'store') ? storeLegend() : null), body, events, bars, geometry, mark };
 }

@@ -9,17 +9,8 @@ import { entryPointsReaching, type EntryHit } from './reach.ts';
 import { unresolvedTarget } from './resolve.ts';
 import type { Resource, Step, StepField } from './types.ts';
 
-export type Access = 'read' | 'write' | 'read_write' | 'unknown';
-
-const READ = /^(get|mget|hget|hgetall|hmget|exists|ttl|pttl|keys|scan|smembers|sismember|lrange|zrange|zscore|find|findone|count|countdocuments|aggregate|distinct|query|select|read|list|head|headobject|getobject|getitem|batchgetitem|describe)\b/i;
-
-/** Read or write, from the step's `access` or else its operation's first word. */
-export function accessOf(step: Step): Access {
-  if (step.access) return step.access;
-  const op = step.operation?.trim();
-  if (!op) return 'unknown';
-  return READ.test(op) ? 'read' : 'write';
-}
+export { accessOf, type Access } from './access.ts';
+import { accessOf, type Access } from './access.ts';
 
 /** A resource whose harvester says its key is unresolved stands alone (never grouped by a key), like an unresolved ingress matches nothing. */
 export const storeKey = (r: Resource) => (unresolvedTarget(r) ? undefined : r.bindKey) ?? `${r.service}:${r.id}`;
