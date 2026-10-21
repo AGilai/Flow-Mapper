@@ -5,9 +5,11 @@ import { s } from '../dom.js';
 import { SVG_PATH } from '../icons.js';
 import { RUNTIME_NAMES, runtimeOf } from '../components/ext-links.js';
 
-let runtimes = new Map();
+let runtimes = new Map(), kinds = new Map();
 /** Remember the runtime of every component in a `GET /services` list. */
-export const setServiceInfo = (list) => { runtimes = new Map((list ?? []).map((x) => [x.name, runtimeOf(x)]).filter(([, r]) => r)); };
+export const setServiceInfo = (list) => { kinds = new Map((list ?? []).map((x) => [x.name, x.kind])); runtimes = new Map((list ?? []).map((x) => [x.name, runtimeOf(x)]).filter(([, r]) => r)); };
+/** The kind (service, gateway, lambda…) of a component: the trace carries it only in a design environment, so a prod diagram asks here (0.27.3, product icons). */
+export const kindFor = (service) => kinds.get(service) ?? null;
 export const runtimeFor = (service) => runtimes.get(service) ?? null;
 
 /** The mark as an SVG group at (x, y), `size` px square, tooltip = the runtime's name. */

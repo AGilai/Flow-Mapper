@@ -5,6 +5,9 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## 0.27.3 (2026-10-21)
+- UI: flow diagrams show the product icon of what each lifeline is: data stores and store bands (MongoDB, Redis, Postgres, DynamoDB, S3, MySQL, Elasticsearch), topics and queues (SNS, SQS, EventBridge, RabbitMQ), lambdas and gateways. Unknown kinds keep the line glyph. No API change.
+
 ## 0.27.1 (2026-10-21)
 - UI: in a flow diagram each data-store collection is its own lifeline (a band names the store; more than 5 collections of one store fold into one lifeline), and every store arrow shows the operation as harvested. Reads and writes differ by line weight. Additive on the trace: a resource message also carries `storeKind` and `access` (`read` / `write` / `read_write` / `unknown`); trace hashes are unchanged (#62). Also UI: a flow with no comments starts its Comments section collapsed to one line.
 
