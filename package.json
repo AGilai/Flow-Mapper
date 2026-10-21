@@ -12,7 +12,8 @@
     "db:install": "node --disable-warning=ExperimentalWarning scripts/db-install.ts",
     "seed": "node --disable-warning=ExperimentalWarning scripts/seed.ts --bugs",
     "seed:mock": "node --disable-warning=ExperimentalWarning scripts/seed.ts --mock 100 --bugs",
-    "test": "node --disable-warning=ExperimentalWarning --test tests/*.test.ts",
+    "check:size": "node --disable-warning=ExperimentalWarning scripts/check-size.ts",
+    "test": "npm run check:size && node --disable-warning=ExperimentalWarning --test tests/*.test.ts",
     "preview": "node --disable-warning=ExperimentalWarning scripts/build-preview.ts"
   }
 }
