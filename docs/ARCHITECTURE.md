@@ -63,6 +63,11 @@ RabbitMQ pages (0.19.0): the exchange page data (publishers, bindings, callouts,
 | `integrity.ts` | references inside one service |
 | `description.ts` | flow descriptions, pure: the trace hash, outdated flag, grouping of stored records, the two "Generate…" prompts, step keys (`stepKey`, `stepKeys`: one arrow of a flow, from message content) |
 | `schema-validate.ts` | small JSON Schema validator for our schema's keywords |
+| `anchors.ts` | the one anchor grammar (`svc:`, `ing:`, `dto:`, `evt:`, `schema:`, `flow:`, `...#field`): parse, row of an anchor, anchor of a row, parent |
+| `item-rows.ts` | `ItemRow {service, list, key, data}`, the one row shape of baselines, drafts and the diff; `rowsToModel` (same output as `loadModel`) and `rowsToExtras` |
+| `diff/` | marks: `normalise` (what is noise), `side` (indexed rows), `steps` (LCS by content), `fields` (DTO/schema fields), `entities` (per-row marks), `propagate` (prune, roll-up, counts), `what` (phrases), `index` (`diffEnv`) |
+| `draft-ops.ts`, `draft-manifests.ts` | net ops, overlay, the one change count; net ops -> manifests (full v1 / delta v+1 / replace), side ops, deletes |
+| `import-plan.ts` | an HLD import plan (docs/DESIGN-IMPORT.md) -> draft ops, with the errors and warnings |
 
 ## server/
 
@@ -79,17 +84,24 @@ RabbitMQ pages (0.19.0): the exchange page data (publishers, bindings, callouts,
 | `store/envs.ts` | the `envs` table (sealed / design), `guardEnv` (the one write guard), list with metadata, delete a design (0.21.0, migration 005) |
 | `store/env-copy-channels.ts` | the shared channels and bindings of a Components copy, under one synthetic `<source>-infra` service |
 | `store/env-copy.ts`, `store/env-copy-rows.ts` | create an environment by copying (blank / components / full) in one transaction; the row copiers and the baseline rows |
+| `store/item-rows.ts` | an environment, its baseline and the source's current rows as ItemRows (0.23.0) |
+| `store/drafts.ts`, `store/draft-validate.ts` | drafts and their ops (append-only, `seq` = MAX+1 in the transaction, undo / revert); per-op validation against the overlay (migration 006) |
+| `store/draft-apply.ts`, `store/draft-side.ts`, `store/draft-plan.ts`, `store/draft-prelude.ts` | apply (net ops -> manifests -> `ingestIn` in one transaction, side tables, summary changelog row, `replaced`), DTO / schema / flow writes, plan import, the `?draft=` prelude of dry runs |
+| `store/dry-run.ts` | `withDry`: the real write in a transaction that is rolled back |
 | `store/schemas.ts` | data-store schemas per source |
 | `store/dtos.ts` | request/response DTOs per ingress endpoint (a response per status) and event DTOs, with provenance |
 | `store/descriptions.ts` | flow descriptions: human record (REST) and AI record (MCP `set_description`), outdated flag against the current trace |
 | `store/keys.ts` | key templates pushed per Redis instance (full replace, versioned; migration 004) |
 | `store/bugs.ts` | bug workflow, attachments, log scanning |
-| `graph-cache.ts` | per-environment GraphIndex cache (LRU, `FLOW_GRAPH_CACHE_MAX`, default 8; `size()`), health history |
+| `graph-cache.ts` | one LRU of GraphIndex (`FLOW_GRAPH_CACHE_MAX`, default 8; `size()`), keyed `env` or `env#draft:<slug>`; `invalidate(env)` drops the environment, every draft view of it and the memos that depend on it; a small memo (marks, cap 16); health history |
+| `draft-reader.ts` | `DataReader`: DTOs, event DTOs, schemas, flow texts and service rows from the database (`dbReader`) or from a draft's overlay rows (`rowsReader`); `ctx.graphOf(req)` / `ctx.readerOf(req)` pick by `?draft=` |
+| `marks.ts` | `marksFor`: baseline or source-now rows against the environment (+ draft) through `core/diff`, memoised |
 | `routes/envs.ts` | `/api/envs/meta`, create by copy, components, neighbours, delete |
+| `routes/drafts.ts`, `routes/marks.ts` | drafts (create, ops, changes, apply, plan) and `/marks` (0.23.0) |
 | `routes/*.ts` | REST endpoints by area |
 | `mcp/*.ts` | MCP protocol, HTTP and stdio transports |
 | `mcp/tools.ts`, `mcp/tools/index.ts` | the tool list in client order (`tools.ts` re-exports `tools/index.ts`); `tests/mcp-tools.test.ts` pins names, descriptions and schemas |
-| `mcp/tools/{map,flows,write,stores,bugs,envs}.ts`, `common.ts` | tool definitions by area; shared `Tool` type and helpers |
+| `mcp/tools/{map,flows,write,stores,bugs,envs,drafts,design}.ts`, `common.ts` | tool definitions by area; shared `Tool` type and helpers (`viewOf(c, a)` reads the environment or `a.draft`) |
 
 ## web/
 
