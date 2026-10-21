@@ -72,6 +72,7 @@
     {
       "entry": { "service": "sase-agent", "ingress": "in.tunnel.open" },
       "name": "Agent connects to POP",
+      "links": { "main": { "label": "Tunnel design", "url": "https://wiki.example.com/sase/tunnel" }, "sub": [{ "label": "Sequence diagram", "url": "https://wiki.example.com/sase/tunnel/sequence" }] },
       "description": "The agent opens a TLS tunnel to the nearest POP; the POP authenticates the device and applies the tenant policy.",
       "steps": [
         { "n": 1, "from": "sase-agent", "to": "pop-edge", "text": "Agent opens the tunnel with its device certificate." },

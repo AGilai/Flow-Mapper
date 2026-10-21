@@ -7,6 +7,8 @@ import type { DraftOpInput } from './draft-ops.ts';
 import { SERVICE_KINDS } from './design-rules.ts';
 import { EditError, setField, slug, unique, type DesignEdit, type EndpointEdit, type Idx } from './edit-kit.ts';
 import type { ItemRow } from './item-rows.ts';
+import { setLinks, setRuntime } from './edit-links.ts';
+import { checkLinks, cleanLinks } from './links.ts';
 
 const NAME = /^[a-z0-9][a-z0-9-]{0,62}$/;
 const up = (anchor: string, data: unknown): DraftOpInput => ({ op: 'upsert', anchor, data });
@@ -17,6 +19,7 @@ export function componentOps(e: Extract<DesignEdit, { kind: 'component' }>, x: I
   const { version: _v, harvestedAt: _h, commit: _c, ...keep } = x.get(e.name, 'header')?.data ?? {};
   const data: Record<string, any> = { ...keep, kind: e.serviceKind };
   for (const k of ['groupPath', 'team', 'description'] as const) setField(data, k, e[k]);
+  setLinks(data, e.links); setRuntime(data, e.runtime);
   return [up(`svc:${e.name}`, data)];
 }
 
@@ -34,6 +37,7 @@ export function endpointBuild(e: EndpointEdit, x: Idx): { ops: DraftOpInput[]; r
   const handler = e.handler?.trim() || old?.data.handler || `${id}.handle`;
   const data: Record<string, any> = { ...(old?.data ?? {}), id, bindKey, transport, handler };
   if (typeof e.entryPoint === 'boolean') data.entryPoint = e.entryPoint; else if (e.entryPoint === null) delete data.entryPoint;
+  setLinks(data, e.links);
   if (e.events !== undefined) { if (e.events.length) data.events = e.events.map((v) => ({ ...v, handler: v.handler?.trim() || handler })); else delete data.events; }
   if (e.description !== undefined) {
     const details = { ...(data.details ?? {}) };
@@ -57,8 +61,9 @@ export function flowOps(e: Extract<DesignEdit, { kind: 'flow' }>, x: Idx): Draft
     if (e.entryPoint === null) delete data.entryPoint; else data.entryPoint = e.entryPoint;
     ops.push(up(`ing:${e.service}/${e.ingress}`, data));
   }
-  if (e.name !== undefined || e.description !== undefined) {
+  if (e.name !== undefined || e.description !== undefined || e.links !== undefined) {
     const data = { ...(x.get(e.service, 'flow', e.ingress)?.data ?? {}) };
+    if (e.links !== undefined) { const bad = e.links === null ? null : checkLinks(e.links); if (bad) throw new EditError('INVALID', bad, 'links'); data.links = e.links === null ? null : cleanLinks(e.links) ?? null; }  // null clears the flow's links (as '' does the name)
     if (e.name !== undefined) data.name = String(e.name).trim().slice(0, 200);   // '' clears (the draft reader and apply treat it so)
     if (e.description !== undefined) data.description = String(e.description).trim();
     ops.push(up(`flow:${e.service}/${e.ingress}`, data));

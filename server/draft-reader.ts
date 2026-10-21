@@ -9,6 +9,7 @@ import type { Service } from '../core/types.ts';
 import * as dtos from './store/dtos.ts';
 import * as schemas from './store/schemas.ts';
 import { LISTS } from './schema.ts';
+import { allFlowLinks, flowLinks } from './store/flow-links.ts';
 import { getService, loadEntities, type Entities } from './store/snapshots-read.ts';
 
 export interface FlowText { name?: string; description?: string }
@@ -36,7 +37,8 @@ export function dbReader(db: DB, env: string): DataReader {
     flowText(service, ingress) {
       const n = db.prepare('SELECT name FROM flow_names WHERE env = ? AND service = ? AND ingress = ?').get(env, service, ingress) as { name: string } | undefined;
       const d = db.prepare("SELECT text FROM descriptions WHERE env = ? AND service = ? AND ingress = ? AND callee = '' AND source = 'human'").get(env, service, ingress) as { text: string } | undefined;
-      return n || d ? { ...(n ? { name: n.name } : {}), ...(d ? { description: d.text } : {}) } : null;
+      const links = flowLinks(db, env, service, ingress);
+      return n || d || links ? { ...(n ? { name: n.name } : {}), ...(d ? { description: d.text } : {}), ...(links ? { links } : {}) } : null;
     },
     flowTexts() {
       const out = new Map<string, FlowText>();
@@ -44,6 +46,7 @@ export function dbReader(db: DB, env: string): DataReader {
       for (const r of db.prepare("SELECT service, ingress, text FROM descriptions WHERE env = ? AND callee = '' AND source = 'human'").all(env) as { service: string; ingress: string; text: string }[]) {
         out.set(`${r.service}/${r.ingress}`, { ...out.get(`${r.service}/${r.ingress}`), description: r.text });
       }
+      for (const [k, links] of allFlowLinks(db, env)) out.set(k, { ...out.get(k), links });
       return out;
     },
     service(name) {

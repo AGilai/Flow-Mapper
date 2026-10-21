@@ -74,6 +74,12 @@ flow = an entry endpoint (entryPoint: true) + its handler's ordered steps, follo
   a flow of its own. A flow's real start (an agent, a cron, a public API) sets `entryPoint: true`. In `edit_design`, `entryPoint: null` clears
   the flag back to the default rule.
 
+- **Links** (0.25.1): give an item its documents as `links: {main: {label, url}, sub: [{label, url}]}` (http or https URLs, label up to 120
+  characters, at most 20 sub links) on the service header, a function, an ingress, or a plan flow (`flows[].links`). The UI shows them; they
+  do not link anything. `details.doc` stays the provenance (file, section, quote); `links` is where a reader goes for more.
+- **Runtime** (0.25.1): a component may say how it runs with `details.runtime` on its service header: `k8s-pod`, `k8s-deployment`,
+  `k8s-daemonset`, `k8s-operator` or `k8s-job` (other values are rejected). `edit_design` takes `runtime` on the component form.
+
 ## 3. Classify the documentation
 
 Read every document once end to end, then classify. Rules:

@@ -17,6 +17,6 @@ export function entryPoints(g: GraphIndex) {
   const orphan = new Set(g.resolution.orphans.map((i) => sid(i.service, i.id)));
   return g.model.ingress
     .filter((i) => i.entryPoint !== false && (i.entryPoint || orphan.has(sid(i.service, i.id)) || !!rpcServed(i))) // an RPC command can always be traced from (0.19.0)
-    .map((i) => ({ service: i.service, id: i.id, bindKey: i.bindKey, transport: i.transport, handler: i.handler, ...(i.middleware?.length ? { middleware: i.middleware } : {}), entryPoint: !!i.entryPoint }));
+    .map((i) => ({ service: i.service, id: i.id, bindKey: i.bindKey, transport: i.transport, handler: i.handler, ...(i.middleware?.length ? { middleware: i.middleware } : {}), ...(i.links ? { links: i.links } : {}), entryPoint: !!i.entryPoint }));
 }
 

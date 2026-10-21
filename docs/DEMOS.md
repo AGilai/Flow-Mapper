@@ -8,6 +8,7 @@ Add a row here with every fix or feature (newest first). A row without a working
 
 | Version | Bug | What to look at | Link |
 |---|---|---|---|
+| 0.25.1 | #54, #49 | Links and runtime (data and API; the UI renders them in 0.26.0): `analytics-svc` has header, function and endpoint links and `details.runtime: k8s-deployment`; the first `sase-hld` flow has flow links | `/api/envs/prod/services/analytics-svc`; `/api/envs/sase-hld/trace?service=sase-agent&ingress=in.tunnel.open&draft=hld-import` (`start.links`) |
 | 0.25.1 | #55 | `pop-edge`'s tunnel hop (socket) is `entryPoint: false`: it is no longer listed as an entry point of `sase-hld`; the agent flow that goes through it is | `/api/envs/sase-hld/entry-points?draft=hld-import` |
 | 0.25.1 | #56 | A discarded draft's slug can be reused (API only): `DELETE /api/envs/sase-hld/drafts/<slug>` then `POST /api/envs/sase-hld/drafts {name, slug}` answers 201 with 0 ops | `/api/envs/sase-hld/drafts?status=all` |
 | 0.25.1 | #59 | An entry with no handler for the event is an empty flow, not a 404: `noHandler: true`, no messages | `/api/envs/prod/trace?service=inventory-svc&ingress=in.orderEvents&event=Nope` |
