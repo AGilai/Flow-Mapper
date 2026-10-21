@@ -51,6 +51,7 @@ UI / agent ── GET /api/envs/:env/... ─► server/routes/queries.ts ─► 
 
 RabbitMQ pages (0.19.0): the exchange page data (publishers, bindings, callouts, the tester's `routesTo`), the inventory rows (exchanges, queues, folded RPC plumbing, RPC commands), the callers of an RPC command for the endpoint panel |
 | `neighbours.ts` | one-hop neighbours of picked services (direct and through channels, each with a reason) and what a component brings into a Components copy (0.21.0) |
+| `channels-for.ts` | the channels and bindings a Components copy must bring so it is self-contained (used, routed to, between copied items); the server copies with it and the page counts with it |
 | `reach.ts` | reverse reachability: entry points whose flows run a function |
 | `channels.ts` | topic/queue/bus view: publishers, subscriptions, consumers, events |
 | `hub.ts` | the compact hub views: edge markers, per-queue outcomes, problem-first order and fold, the event page's consumers |
@@ -76,6 +77,7 @@ RabbitMQ pages (0.19.0): the exchange page data (publishers, bindings, callouts,
 | `store/snapshots-ingest.ts` | manifest ingest (full/delta, batch, dry run) |
 | `store/snapshots-crud.ts` | per-entity and per-service edits |
 | `store/envs.ts` | the `envs` table (sealed / design), `guardEnv` (the one write guard), list with metadata, delete a design (0.21.0, migration 005) |
+| `store/env-copy-channels.ts` | the shared channels and bindings of a Components copy, under one synthetic `<source>-infra` service |
 | `store/env-copy.ts`, `store/env-copy-rows.ts` | create an environment by copying (blank / components / full) in one transaction; the row copiers and the baseline rows |
 | `store/schemas.ts` | data-store schemas per source |
 | `store/dtos.ts` | request/response DTOs per ingress endpoint (a response per status) and event DTOs, with provenance |

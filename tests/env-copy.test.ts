@@ -47,7 +47,7 @@ test('C2 components: the picked services with objects and DTOs, no functions, an
     services: [{ name: 'users-svc', groupPath: 'platform' }, { name: 'orders-svc', groupPath: 'agent' }, { name: 'payments-svc' }] };
   const r = await create(body);
   assert.equal(r.status, 201, JSON.stringify(r.body));
-  assert.deepEqual((await app.call('GET', '/api/envs/comp-1/services')).body.map((s: any) => s.name).sort(), [...PICK].sort());
+  assert.deepEqual((await app.call('GET', '/api/envs/comp-1/services')).body.filter((s: any) => s.kind !== 'infra').map((s: any) => s.name).sort(), [...PICK].sort(), 'the picked services (the channels they use sit under one infra service, see env-copy-channels.test.ts)');
   assert.equal(count('entities', 'comp-1') > 0, true);
   assert.equal(q("SELECT count(*) AS n FROM entities WHERE env = 'comp-1' AND list = 'functions'")[0].n, 0);
   for (const list of ['ingress', 'egress', 'channels', 'resources', 'bindings'])
@@ -190,6 +190,7 @@ test('MCP create_env and list_envs', async () => {
   assert.equal(c.body.result.isError, false, c.body.result.content[0].text);
   const l = JSON.parse((await mcp('list_envs', {})).body.result.content[0].text);
   const e = l.find((x: any) => x.name === 'mcp-1');
-  assert.deepEqual([e.kind, e.source, e.components], ['design', 'prod', 1]);
+  assert.deepEqual([e.kind, e.source], ['design', 'prod']);
+  assert.ok(e.components >= 1);
   assert.equal(l.find((x: any) => x.name === 'prod').kind, 'sealed');
 });

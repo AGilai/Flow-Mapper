@@ -43,7 +43,7 @@ export function summarySentence({ mode, source, rows, all, groups, unassigned = 
   if (mode === 'full') return `Copies everything in ${source}: ${plural(all, 'component')} with their functions, flows and descriptions, as of now. That revision is the baseline the New and Changed marks compare with. Bugs stay in ${source}.`;
   if (!rows.length) return 'Pick at least one component.';
   const into = groups.length === 1 ? ` into ${groups[0].key}` : groups.length > 1 ? ` into ${plural(groups.length, 'subsystem')}` : '';
-  const parts = [plural(sum(rows, 'endpoints'), 'endpoint'), plural(sum(rows, 'calls'), 'call'), plural(sum(rows, 'channels'), 'queue and topic', 'queues and topics'), plural(sum(rows, 'stores'), 'data store'), plural(sum(rows, 'dtos'), 'DTO')];
+  const parts = [plural(sum(rows, 'endpoints'), 'endpoint'), plural(sum(rows, 'calls'), 'call'), plural(new Set(rows.flatMap((r) => r.channelKeys ?? [])).size || sum(rows, 'channels'), 'queue and topic', 'queues and topics'), plural(sum(rows, 'stores'), 'data store'), plural(sum(rows, 'dtos'), 'DTO')];
   return `Copies ${plural(rows.length, 'component')}${into}: ${parts.join(', ')}, as of ${source} now. That revision is the baseline the New and Changed marks compare with. Their functions and flows stay in ${source}.${groups.length && unassigned ? ` ${plural(unassigned, 'picked component has', 'picked components have')} no subsystem yet.` : ''}`;
 }
 

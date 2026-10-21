@@ -11,6 +11,7 @@ import { tx } from '../db/connection.ts';
 import { badRequest, conflict, invalid, notFound } from '../errors.ts';
 import { getEnv, getEnvRow, type EnvGroup, type EnvMeta } from './envs.ts';
 import { copyAllBaseline, copyDescriptions, copyDtos, copyKeys, copyService, copyShared, type CopyCtx } from './env-copy-rows.ts';
+import { copySharedChannels } from './env-copy-channels.ts';
 import { writeChangelog } from './snapshots-write.ts';
 
 export type CopyMode = 'blank' | 'components' | 'full';
@@ -80,6 +81,7 @@ export function copyEnv(db: DB, input: CopyInput): EnvMeta {
       copyDtos(c, n);
       writeChangelog(db, name, n, null, r.version, 'copy', 'api', { copiedFrom: source, mode, entities: r.entities });
     }
+    if (mode === 'components') copySharedChannels(c, new Set(names));
     copyShared(c, types, stores);
     copyKeys(c, new Set(names));
     if (mode === 'full') { copyDescriptions(c); copyAllBaseline(c); }
