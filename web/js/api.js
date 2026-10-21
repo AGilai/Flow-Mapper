@@ -31,6 +31,10 @@ const qs = (o) => {
 const remote = {
   version: () => http('GET', '/api/version'),
   envs: () => http('GET', '/api/envs'),
+  envMeta: () => http('GET', '/api/envs/meta'),
+  envComponents: (env) => http('GET', `/api/envs/${e(env)}/components`),
+  neighbours: (env, services) => http('GET', `/api/envs/${e(env)}/neighbours${qs({ services: services.join(',') })}`),
+  createEnv: (body) => http('POST', '/api/envs', body),
   services: (env) => http('GET', `/api/envs/${e(env)}/services`),
   system: (env) => http('GET', `/api/envs/${e(env)}/views/system`),
   service: (env, name) => http('GET', `/api/envs/${e(env)}/views/service/${e(name)}`),

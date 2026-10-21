@@ -8,6 +8,9 @@ Add a row here with every fix or feature (newest first). A row without a working
 
 | Version | Bug | What to look at | Link |
 |---|---|---|---|
+| 0.21.0 | | Environments as objects: the rail lists each environment with what it is ("sealed · 60 components", "design · from prod, Oct 21"). `sase-hld` is a design environment copied from prod (Components: 7 services in three subsystems agent / network / platform, no functions or flows), recreated by `scripts/seed.ts` from `samples/envs/sase-hld.json`. Pick it in the rail: the system map shows 7 components. `sase-agent` (kind `client-app`, subsystem `agent`) is the new prod sample | `#/system` (pick `sase-hld`) |
+| 0.21.0 | | New environment page: name, source, Blank / Components / Full copy, subsystems in order, a component table with "comes along" counts and unticked one-hop neighbour suggestions with the reason (try `cp-middleware` and `swg-api`: neighbours through a queue read "publishes to amqp-queue:..., which swg-api reads"), one summary sentence, Create. In the static preview Create is refused with one sentence | `#/envs/new` |
+| 0.21.0 | | Sealed vs design: `POST /api/ingest` with `env: sase-hld` answers 409 ENV_DESIGN; an entity edit in `prod` answers 409 ENV_SEALED | API only |
 | 0.19.1 | #46 | The socket demo's device-connect publish goes to `analytics-all-events`, whose consumer handles every type: no red "no handler" any more | `#/flows?service=sdp-controller&ingress=in.deviceConnect` |
 | 0.19.1 | | Click the shared trunk of a fan-out (service to topic or exchange): a neutral publish panel with event type, topic, routing key and every delivery; click a delivery to open it. Clicks after the fork still open their delivery | `#/flows?service=orders-svc&ingress=in.create`, `#/flows?service=cp-middleware&ingress=in.deviceLogout` |
 | 0.19.1 | | Egress commands and keys wrap only at dots, never mid-word (open the endpoint panel to narrow the column) | `#/services/sxdns?ep=in.rpcResolve` |

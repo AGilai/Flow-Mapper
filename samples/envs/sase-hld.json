@@ -1,0 +1,20 @@
+{
+  "name": "sase-hld",
+  "source": "prod",
+  "mode": "components",
+  "groups": [
+    { "key": "agent", "label": "Agent" },
+    { "key": "network", "label": "Network (POP)" },
+    { "key": "platform", "label": "Platform" }
+  ],
+  "services": [
+    { "name": "sase-agent", "groupPath": "agent" },
+    { "name": "sxdns", "groupPath": "network" },
+    { "name": "swg-api", "groupPath": "network" },
+    { "name": "auth-svc", "groupPath": "platform" },
+    { "name": "users-svc", "groupPath": "platform" },
+    { "name": "cp-middleware", "groupPath": "platform" },
+    { "name": "activitylog", "groupPath": "platform" }
+  ],
+  "createdBy": "seed"
+}

@@ -47,7 +47,10 @@ UI / agent ── GET /api/envs/:env/... ─► server/routes/queries.ts ─► 
 | `clients.ts` | how services reach stores (`client`): rows, driver majors, mixed-major flag, counts |
 | `keys.ts` | Redis key templates (#29): validation of what a harvester sends, rows per template and db, groups by owner (shared, no harvested writer), TTL disagreement, summary |
 | `instances.ts` | Redis instances: the group of a bind key (`redis:cache-main`), who connects (access, client, databases), key flows from steps with `details.keyTemplate`, the keys view |
-| `amqp-exchange.ts`, `amqp-inventory.ts`, `rpc-endpoint.ts` | RabbitMQ pages (0.19.0): the exchange page data (publishers, bindings, callouts, the tester's `routesTo`), the inventory rows (exchanges, queues, folded RPC plumbing, RPC commands), the callers of an RPC command for the endpoint panel |
+| `amqp-exchange.ts`, `amqp-inventory.ts`, `rpc-endpoint.ts` | Environments (0.21.0): the rail's picker is `components/env-picker.js` (rows from `state.envMeta`, text from the pure `env-info.js`); `#/envs/new` is `views/env-new.js` (page and submit), `env-new-groups.js` (subsystem chips, levels), `env-new-table.js` (component table, neighbours), CSS `css/envs.css`. The preview bundles `envMeta` and answers components and neighbours locally (`api-local-envs.js`); creating is refused there.
+
+RabbitMQ pages (0.19.0): the exchange page data (publishers, bindings, callouts, the tester's `routesTo`), the inventory rows (exchanges, queues, folded RPC plumbing, RPC commands), the callers of an RPC command for the endpoint panel |
+| `neighbours.ts` | one-hop neighbours of picked services (direct and through channels, each with a reason) and what a component brings into a Components copy (0.21.0) |
 | `reach.ts` | reverse reachability: entry points whose flows run a function |
 | `channels.ts` | topic/queue/bus view: publishers, subscriptions, consumers, events |
 | `hub.ts` | the compact hub views: edge markers, per-queue outcomes, problem-first order and fold, the event page's consumers |
@@ -72,16 +75,19 @@ UI / agent ── GET /api/envs/:env/... ─► server/routes/queries.ts ─► 
 | `store/snapshots-write.ts` | shared write helpers: diff, integrity check, entity/snapshot/changelog rows |
 | `store/snapshots-ingest.ts` | manifest ingest (full/delta, batch, dry run) |
 | `store/snapshots-crud.ts` | per-entity and per-service edits |
+| `store/envs.ts` | the `envs` table (sealed / design), `guardEnv` (the one write guard), list with metadata, delete a design (0.21.0, migration 005) |
+| `store/env-copy.ts`, `store/env-copy-rows.ts` | create an environment by copying (blank / components / full) in one transaction; the row copiers and the baseline rows |
 | `store/schemas.ts` | data-store schemas per source |
 | `store/dtos.ts` | request/response DTOs per ingress endpoint (a response per status) and event DTOs, with provenance |
 | `store/descriptions.ts` | flow descriptions: human record (REST) and AI record (MCP `set_description`), outdated flag against the current trace |
 | `store/keys.ts` | key templates pushed per Redis instance (full replace, versioned; migration 004) |
 | `store/bugs.ts` | bug workflow, attachments, log scanning |
 | `graph-cache.ts` | per-environment GraphIndex cache (LRU, `FLOW_GRAPH_CACHE_MAX`, default 8; `size()`), health history |
+| `routes/envs.ts` | `/api/envs/meta`, create by copy, components, neighbours, delete |
 | `routes/*.ts` | REST endpoints by area |
 | `mcp/*.ts` | MCP protocol, HTTP and stdio transports |
 | `mcp/tools.ts`, `mcp/tools/index.ts` | the tool list in client order (`tools.ts` re-exports `tools/index.ts`); `tests/mcp-tools.test.ts` pins names, descriptions and schemas |
-| `mcp/tools/{map,flows,write,stores,bugs}.ts`, `common.ts` | tool definitions by area; shared `Tool` type and helpers |
+| `mcp/tools/{map,flows,write,stores,bugs,envs}.ts`, `common.ts` | tool definitions by area; shared `Tool` type and helpers |
 
 ## web/
 

@@ -39,7 +39,7 @@ Environment ─┬─ ServiceSnapshot (service, version, harvestedAt, commit)
 
 | Entity | Stable ID | Key fields |
 |---|---|---|
-| Service | `name` | team, repo, language, tags, kind (`service` \| `gateway` \| `lambda` \| `infra`) |
+| Service | `name` | team, repo, language, tags, groupPath (optional subsystem, `platform` or `platform/identity`), kind (`service` \| `gateway` \| `lambda` \| `infra` \| `client-app`) |
 | Function | `service:id` | name, file, line, steps[] |
 | Step | `service:function#seq` | seq, type (`call` \| `egress` \| `resource`), target, mode (`sync` \| `async`), operation, condition, altGroup, bind (call), eventFrom (egress), loop |
 | Ingress | `service:id` | bindKey, transport, handler, delivery, entryPoint, details |
@@ -321,3 +321,20 @@ time and a hash of the trace it was written from; when the flow's trace hashes d
 instead of silently going stale. A sub-flow (callee) hash covers only the messages that touch that service.
 A whole-flow description is expected for every flow: when neither record exists the entry tab says "No description yet" with
 both actions. Descriptions hang on `service + ingress`, with no foreign key to the snapshot, so a re-harvest keeps them.
+
+## Environments (0.21.0)
+
+An environment is a row in `envs` with a kind. **Sealed** environments are the harvesters' record: only the harvester
+APIs write to them, so what a harvester reported is never second-guessed by a manual edit. **Design** environments hold a
+high-level design: they are made by copying (Blank, Components, Full), harvesters never write to them, and they are edited
+by hand. One guard in the store write path enforces both; annotations (descriptions, bugs) are allowed everywhere. Existing
+environments were backfilled as sealed (migration 005); an ingest into an unknown name still creates a sealed environment.
+
+A design is a full copy of its own: no shared rows or references with the source (decision 5 in `docs/plans/design-envs.md`).
+Components copies the picked services without functions, so there are no flows to carry; Full copies everything. The rows a
+design was copied from are frozen into `baseline_items` at copy time (old versions are not kept anywhere else), so a later diff
+compares with what the source said then; copying a design keeps its original baseline. The optional `groupPath` on a service
+is its subsystem (`platform`, later `platform/identity`); the environment lists its subsystems in order and its levels
+(`Subsystem`, later `Domain`, `Component`). `client-app` is the kind of a device or browser application that calls services.
+Neighbours for the New environment page are one hop over the resolved links, through channels too, so a design can start with the
+components that talk to the ones picked.

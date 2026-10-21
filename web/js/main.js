@@ -9,6 +9,7 @@ import { renderRail } from './components/sidebar.js';
 const rail = document.getElementById('rail');
 const main = document.getElementById('main');
 
+route('/envs/new', () => import('./views/env-new.js'));
 route('/system', () => import('./views/system.js'));
 route('/inventory', () => import('./views/inventory.js'));
 route('/services', () => import('./views/inventory.js'));
@@ -25,8 +26,9 @@ route('/bugs/:id', () => import('./views/bug-detail.js'));
 
 async function boot() {
   try {
-    const [v, envs] = await Promise.all([api.version(), api.envs()]);
+    const [v, envs, meta] = await Promise.all([api.version(), api.envs(), api.envMeta().catch(() => [])]);
     state.version = v.version;
+    state.envMeta = meta;
     state.envs = envs.length ? envs : ['default'];
     if (!state.envs.includes(state.env)) state.env = state.envs.includes('prod') ? 'prod' : state.envs[0];
   } catch (err) {
