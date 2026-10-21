@@ -5,13 +5,10 @@ import { api } from '../../api.js';
 import { state } from '../../state.js';
 import { h } from '../../dom.js';
 import { schemaTable } from '../../components/schema-table.js';
+import { parseContent, looksLikeSchema } from './dto-parse.js';
 import { createFields, openForm, select, input, textarea, tag } from './form-kit.js';
 
-/** Parse the content box (pure): the value, or an error with its field. */
-export function parseContent(text) {
-  try { return JSON.parse(text); } catch (e) { throw Object.assign(new Error(`Not valid JSON: ${e.message}`), { field: 'content' }); }
-}
-export const looksLikeSchema = (v) => !!v && typeof v === 'object' && !Array.isArray(v) && (v.properties || v.type) && typeof v.type !== 'object';
+export { parseContent, looksLikeSchema } from './dto-parse.js';
 
 /** openDtoForm({ panel, flowsEl, service, ingress, role }) */
 export async function openDtoForm({ panel, flowsEl, service, ingress, role = 'request' }) {

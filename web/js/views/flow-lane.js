@@ -51,7 +51,10 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
   const mk = (c) => { c.ci = cols.length; cols.push(c); return c; };
   const special = (id, label, sub, k) => cols.find((c) => c.id === id) ?? mk({ id, label, sub, kind: k, ci: Infinity });
   const unresolvedCol = (rpc) => special('unresolved', 'unresolved', rpc ? 'no harvested target' : 'no match / gap', 'unresolved');
-  if (!msgs.length) return { columns: [], events, bars, altMsgs: [], altRows: [] };
+  if (!msgs.length) { // an entry point with no handler (`noHandler`, 0.25.1): the caller and the component, no rows
+    const svc = participants.find((p) => p.kind === 'service');
+    return { columns: svc ? [mk(callerFor(null)), mk({ id: svc.id, label: svc.label, sub: svc.serviceKind === 'client-app' ? 'client app' : 'service', kind: 'service', service: svc.service, serviceKind: svc.serviceKind })] : [], events, bars, altMsgs: [], altRows: [] };
+  }
 
   const first = msgs[0];
   const source = mk(callerFor(first));

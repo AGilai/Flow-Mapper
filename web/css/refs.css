@@ -26,3 +26,4 @@
 .imp-body .kv { font-size: var(--fs-xs); }
 .imp-body .mono { overflow-wrap: anywhere; }
 .imp-body small { font-size: var(--fs-xs); }
+.rtg { fill: none; stroke: var(--ink-2); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }

@@ -14,21 +14,24 @@ import { groupChanges, kindWord } from './changes-group.js';
 const MARK = { added: 'new', changed: 'changed', removed: 'removed' };
 const WORD = { added: 'Added', changed: 'Changed', removed: 'Removed' };
 
-function row(it, draft, after) {
+/** The words of a row's item: a flow's text op reads "Flow text: <name>" (the flow's name when it has one, else its entry id). */
+export const itemLabel = (it, names = new Map()) => (it.anchor.startsWith('flow:') ? `Flow text: ${names.get(it.anchor.slice(5)) || it.label}` : it.label);
+
+function row(it, draft, after, names) {
   const revert = it.under ? null : h('button.btn.sm.ghost', { type: 'button', 'data-qa': 'revert', title: `Drop this draft's changes to ${it.label}`,
     on: { click: async () => { await api.revertDraftItem(state.env, draft.slug, it.anchor); invalidateMarks(); after(); } } }, 'Revert');
   return h('li.dz-row', { class: it.under ? 'under' : '', 'data-change': it.change },
     h(`span.mark.${{ added: 'new', changed: 'chg', removed: 'rm' }[it.change]}`, glyph(MARK[it.change]), WORD[it.change]),
-    h('span.dz-kind', kindWord(it.anchor)), h('code.key', it.label),
+    h('span.dz-kind', kindWord(it.anchor)), h('code.key', itemLabel(it, names)),
     it.stale ? h('span.dz-stale', { title: `${state.env} changed this item since the draft first touched it` }, 'changed in the environment since') : null,
     h('span.dz-by.muted.xs', it.authors.join(', ')), h('span.spacer'), revert);
 }
 
 /**
- * reviewPanel({ draft, changes, confirm, onClose, refresh }) -> element. `draft`: DraftInfo; `changes`: the /changes payload.
+ * reviewPanel({ draft, changes, confirm, onClose, refresh, names }); names: Map `service/ingress` -> flow name -> element. `draft`: DraftInfo; `changes`: the /changes payload.
  * confirm: the Apply step (ends with the primary button).
  */
-export function reviewPanel({ draft, changes, confirm = false, onClose, refresh }) {
+export function reviewPanel({ draft, changes, confirm = false, onClose, refresh, names = new Map() }) {
   const total = changes.counts.added + changes.counts.removed + changes.counts.changed;
   const stale = changes.items.filter((i) => i.stale && !i.under);
   const groups = groupChanges(changes.items);
@@ -44,7 +47,7 @@ export function reviewPanel({ draft, changes, confirm = false, onClose, refresh 
       h('button.btn.sm.ghost', { type: 'button', 'aria-label': 'Close the review', on: { click: onClose } }, 'Close')),
     confirm && stale.length ? h('div.dz-callout', { role: 'note' }, `${stale.length} item${stale.length === 1 ? '' : 's'} changed in ${state.env} since this draft touched ${stale.length === 1 ? 'it' : 'them'}. Apply overwrites ${stale.length === 1 ? 'it' : 'them'}: ${stale.map((s) => s.label).join(', ')}.`) : null,
     h('div.dz-review-scroll', total ? groups.map((g) => h('div.dz-group', h('h4', g.service ? h('a', { href: href(`/services/${encodeURIComponent(g.service)}`) }, g.service) : 'Shared items'),
-      h('ul.dz-list', g.items.map((it) => row(it, draft, refresh)))))
+      h('ul.dz-list', g.items.map((it) => row(it, draft, refresh, names)))))
       : h('p.fd-empty', 'No changes yet.')),
     footer);
 }

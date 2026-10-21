@@ -131,3 +131,9 @@ marked **[C:name]** use a shared component (listed at the end). The rules are in
 | **page-head-meta** | kind chip in transport colour, bind key in mono, provenance in plain words | all detail pages |
 | **json-view fix** | scrolls inside the card, sticky toolbar | store, event type, channel details |
 | **status-inline** | status chip placed after the subject's name in the same row | inventory, health, every list |
+
+## Design environments, 0.26.0 additions (frames 4, 7, 10, 11)
+- **Import panel** (`design/import-panel.js`): one level, counts from the preview's `total`, "Already here" collapsed, "Stays a reference" with an Import each. Checked at 1440 and 760 in both themes; the panel takes its own column and squeezes the diagram.
+- **Edit forms** (`design/forms/*`): `.fgrid` rows in the side panel; the call form with a new endpoint is the tallest (about 700px at 1440). At 760 the panel takes the full width. Delete always confirms.
+- **Flows list filters**: the two groups plus the text box and "Changed only" take about 260px when both groups are open; the groups start collapsed, so the list keeps its room.
+- **Known gaps**: no drag to add a call (2c), no subsystem bands (phase 3), frame 6's search across environments is not built.

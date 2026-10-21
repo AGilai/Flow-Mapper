@@ -4,7 +4,8 @@
 // Nodes with an object icon (AWS service icon or brand logo, see components/object-icon.js) draw
 // the icon instead of the shape.
 
-import { isDesign } from '../state.js';
+import { isDesign, state } from '../state.js';
+import { slotOf } from '../design/component-colors.js';
 
 export function readTheme() {
   const cs = getComputedStyle(document.documentElement);
@@ -12,7 +13,7 @@ export function readTheme() {
   return {
     font: v('--font') || 'sans-serif', ink: v('--ink'), ink2: v('--ink-2'), muted: v('--muted'), surface: v('--surface'),
     paper: v('--paper'), line: v('--line-strong'), accent: v('--accent'), broken: isDesign() ? v('--ink-2') : v('--t-broken'), halo: v('--paper'),
-    district: v('--muted'), newc: v('--new'), newInk: v('--new-ink'),
+    cmp: [1, 2, 3, 4, 5, 6, 7, 8].map((i) => v(`--cmp-${i}`)), district: v('--muted'), newc: v('--new'), newInk: v('--new-ink'),
     t: { http: v('--t-http'), rpc: v('--t-rpc'), grpc: v('--t-http'), eventbridge: v('--t-eb'), sns: v('--t-sns'), sqs: v('--t-sqs'), amqp: v('--t-amqp'), cron: v('--t-cron'), socket: v('--t-socket'), other: v('--t-res'), undecided: v('--ink-2'), res: v('--t-res') },
   };
 }
@@ -52,13 +53,22 @@ export function drawNode(ctx, n, [x, y], k, degree, theme, { dim, selected, hove
   } else {
     const broken = n.stats && (n.stats.dangling > 0);
     ctx.fillStyle = theme.surface;
-    ctx.strokeStyle = selected ? theme.accent : broken ? theme.broken : theme.ink2;
+    const slot = slotOf(state.envMeta, state.env, n.service, n.svcKind); // the component's colour ring (frame 11); client apps and infra stay neutral
+    ctx.strokeStyle = selected ? theme.accent : broken ? theme.broken : slot ? theme.cmp[slot - 1] : theme.ink2;
+    if (slot && !selected && !broken) ctx.lineWidth = 2.4;
     ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     // inner dot sized by function count: a quick sense of how much is inside
     const f = n.stats?.functions ?? 0;
     if (f && r > 6) { ctx.fillStyle = selected ? theme.accent : theme.ink2; ctx.beginPath(); ctx.arc(x, y, Math.min(r - 3, 1.5 + Math.sqrt(f) * 0.45), 0, Math.PI * 2); ctx.fill(); }
   }
+  if (n.runtime && n.kind !== 'channel' && n.kind !== 'resource') heptagon(ctx, x - r * 0.95, y - r * 0.95, Math.max(3.5, r * 0.4), theme.ink2); // Kubernetes runtime (#49): a heptagon outline, not a brand logo
   ctx.globalAlpha = 1;
+}
+
+function heptagon(ctx, cx, cy, r, color) {
+  ctx.beginPath();
+  for (let i = 0; i < 7; i++) { const a = -Math.PI / 2 + (i * 2 * Math.PI) / 7; ctx[i ? 'lineTo' : 'moveTo'](cx + Math.cos(a) * r, cy + Math.sin(a) * r); }
+  ctx.closePath(); ctx.fillStyle = 'transparent'; ctx.strokeStyle = color; ctx.lineWidth = 1.2; ctx.stroke();
 }
 
 /** Edges are quiet at rest so a dense map stays legible; focus (hover/select) brings them forward.

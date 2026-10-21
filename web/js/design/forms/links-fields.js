@@ -1,5 +1,5 @@
 // The Links group of an edit form (#54): one main link and a repeatable list of sub links, each { label, url } (http(s) only; an empty label
-// sends the URL's host). Shown only when the server is 0.25.1 or later (it has `links`); older servers would drop the field silently.
+// sends the URL's host). Shown only when the server is 0.25.1 or later (null removes, absent keeps, an object replaces) (it has `links`); older servers would drop the field silently.
 
 import { h } from '../../dom.js';
 import { state } from '../../state.js';
@@ -27,6 +27,7 @@ export function toLink(label, url, field) {
 /** linksFields(fields, links) -> { get() -> links | undefined } ; registers rows `links.main` and `links.sub` on `fields` (nothing when the server has no links). */
 export function linksFields(fields, links = {}) {
   if (!hasLinks()) return { get: () => undefined };
+  const had = !!(links?.main || links?.sub?.length);
   const mLabel = input(links.main?.label ?? '', { placeholder: 'Label (optional)' }), mUrl = input(links.main?.url ?? '', { placeholder: 'https://…', mono: true });
   fields.field('links.main', 'Main link', h('div.f-sublinks', h('div.row', { style: { gridTemplateColumns: '1fr 1.6fr' } }, mLabel, mUrl)), 'Shown next to the title.');
   const rows = h('div.f-sublinks'), subs = [];
@@ -41,6 +42,7 @@ export function linksFields(fields, links = {}) {
   return {
     get() {
       const main = toLink(mLabel.value, mUrl.value, 'links.main'), sub = subs.map((s) => toLink(s.lab.value, s.url.value, 'links.sub')).filter(Boolean);
+      if (!main && !sub.length) return had ? null : undefined; // emptied: null removes them; never set: absent keeps the stored value
       return { ...(main ? { main } : {}), ...(sub.length ? { sub } : {}) };
     },
   };

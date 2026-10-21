@@ -9,6 +9,9 @@ import { storeLink } from './inventory-links.js';
 import { objectIcon } from '../components/object-icon.js';
 import { viaChip, callSitesList } from '../components/via-chip.js';
 import { markBadge, countBadges } from '../components/status-mark.js';
+import { lockChip } from '../components/lock.js';
+import { shortDate } from '../env-info.js';
+import { subChips } from '../components/ext-links.js';
 
 const OPEN_LIMIT = 15;
 const UNRESOLVED = '\u0001Unresolved by the harvester';
@@ -23,7 +26,16 @@ const groupChip = (g) => (g === RPC_G ? chip('rpc', 'amqp rpc') : chip('amqp'));
 const seconds = (ms) => (ms % 1000 ? `${ms} ms` : `${ms / 1000} s`);
 const svcLink = (s) => h('a', { href: href(`/services/${encodeURIComponent(s)}`) }, s);
 
-export function switchboard(v, name, q, onInfo, marks = null) {
+/** Where an endpoint's behaviour is (design environments): "reference from prod" (+ Import), "imported from prod, Oct 21", "from prod", "in this design". */
+function behaviour(marks, name, i, imp) {
+  if (!marks?.source) return { chip: null, text: null };
+  const a = `ing:${name}/${i.id}`, rf = marks.refOf(a), og = marks.originOf(a);
+  if (rf) return { chip: lockChip(rf), btn: imp?.editing ? h('button.btn.sm', { type: 'button', 'data-qa': 'import-ref', on: { click: () => imp.onImport(a, rf.source) } }, 'Import into design') : null };
+  if (og) return { text: `imported from ${og.from}${og.at ? `, ${shortDate(og.at)}` : ''}` };
+  return { text: marks.markOf(a)?.mark === 'new' ? 'in this design' : `from ${marks.source}` };
+}
+
+export function switchboard(v, name, q, onInfo, marks = null, imp = null) {
   const ingMark = (i) => marks?.markOf(`ing:${name}/${i.id}`) ?? null, egrMark = (e) => marks?.markOf(`egr:${name}/${e.id}`) ?? null;
   const badge = (info) => (info ? markBadge(info, { store: marks }) : null);
   const hit = (...xs) => !q || xs.some((x) => x && String(x).toLowerCase().includes(q));
@@ -36,10 +48,10 @@ export function switchboard(v, name, q, onInfo, marks = null) {
     byT.length ? byT.map(([t, items]) => details(t === RPC_G ? [groupChip(t), queueNote(items)] : chip(t), items.length, items.length <= OPEN_LIMIT || !!q,
       items.map((i) => h('div.sb-row', { 'data-t': gapOf(i) ? 'gap' : i.orphan ? 'broken' : i.rpc ? 'rpc' : i.transport, class: '' },
         h('span', h('a.key', { href: href('/flows', { service: name, ingress: i.id }) , title: 'Trace from here' }, breakable(i.rpc ? i.rpc.command : gapOf(i) && i.bindKey.startsWith('unresolved:') ? (i.id || gapOf(i).detail || '(no id)') : splitKey(i.bindKey).rest)), atLink(i.at)),
-        h('span.xs.sb-actions', badge(ingMark(i)), gapOf(i) ? gapPill(gapOf(i)) : i.entryPoint ? h('span.pill', 'entry') : i.orphan ? h('span.pill.warn', 'never called') : null,
+        h('span.xs.sb-actions', badge(ingMark(i)), behaviour(marks, name, i, imp).chip, behaviour(marks, name, i, imp).btn, gapOf(i) ? gapPill(gapOf(i)) : i.entryPoint ? h('span.pill', 'entry') : i.orphan ? h('span.pill.warn', 'never called') : null,
           i.events?.length ? h('span.pill', { title: i.events.map((e) => e.type).join(', ') }, `${i.events.length} event ${i.events.length === 1 ? 'type' : 'types'}`) : null,
           onInfo ? h('button.btn.ghost.icon-btn', { type: 'button', title: 'Endpoint info', 'aria-label': `Info for ${i.bindKey}`, on: { click: () => onInfo(i.id) } }, icon('info')) : null),
-        h('div.peers', h('span', 'handler ', h('span.key', i.handler)),
+        h('div.peers', h('span', 'handler ', h('span.key', i.handler)), behaviour(marks, name, i, imp).text ? h('span.muted', behaviour(marks, name, i, imp).text) : null, subChips(i.links),
           i.callers.length ? h('span', 'from ', join(uniq(i.callers.map((c) => c.service)).map(svcLink))) : null,
           i.noCaller ? h('span.muted', 'no harvested caller') : null,
           i.maybeCallers?.length ? h('span', { title: 'Event types not resolved by the harvester; may pass the subscription filter' }, 'maybe from ', join(uniq(i.maybeCallers.map((c) => c.service)).map(svcLink))) : null,

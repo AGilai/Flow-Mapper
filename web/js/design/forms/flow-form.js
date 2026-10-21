@@ -18,10 +18,10 @@ export function moved(list, i, d) {
 const same = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
 const stepText = (s) => s.operation || (s.type === 'egress' ? `call ${s.target}` : s.type === 'resource' ? `use ${s.target}` : `${s.type}${s.target ? ` ${s.target}` : ''}`);
 
-/** openFlowForm({ panel, flowsEl, service, ingress, fn? , name? }): `fn` is the function whose steps can be reordered (the bar's). */
-export async function openFlowForm({ panel, flowsEl, service, ingress, fn = null, name = '' }) {
-  const [view, desc] = await Promise.all([api.service(state.env, service).catch(() => null), api.descriptions(state.env, service, ingress).catch(() => null)]);
-  const fnItem = view?.functions?.find((f) => f.id === (fn ?? view.ingress?.find((i) => i.id === ingress)?.handler)) ?? null, ep = view?.ingress?.find((i) => i.id === ingress);
+/** openFlowForm({ panel, flowsEl, service, ingress, name? }): the steps that can be reordered are the endpoint's handler's. */
+export async function openFlowForm({ panel, flowsEl, service, ingress, name = '' }) {
+  const [view, desc, info] = await Promise.all([api.service(state.env, service).catch(() => null), api.descriptions(state.env, service, ingress).catch(() => null), api.endpoint(state.env, service, ingress).catch(() => null)]);
+  const ep = view?.ingress?.find((i) => i.id === ingress), fnItem = Array.isArray(info?.handler?.steps) ? info.handler : null; // the handler's steps (the service view only counts them)
   const fields = createFields(), nameIn = input(name), text = textarea(desc?.flow?.human?.text ?? '', 4), entry = h('input', { type: 'checkbox', checked: !!ep?.entryPoint });
   let order = (fnItem?.steps ?? []).map((s) => s.seq);
   const steps = h('ol.f-steps', { 'data-qa': 'flow-steps' });

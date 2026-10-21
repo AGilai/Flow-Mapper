@@ -23,7 +23,7 @@ export function callTo(service, pick, target) {
 
 /** openCallForm({ panel, flowsEl, from: {service, fn}, egress?, operation?, onImport(anchor, source) }) */
 export async function openCallForm({ panel, flowsEl, from: from0, egress = null, operation = null, onImport }) {
-  const view = egress ? await api.call(state.env, from.service, egress).catch(() => null) : null;
+  const view = egress ? await api.call(state.env, from0.service, egress).catch(() => null) : null;
   const step = view?.steps.find((s) => s.operation === operation) ?? view?.steps[0] ?? null, tgt0 = view?.targets?.[0] ?? null, ref = tgt0?.reference ?? null;
   const from = { service: from0.service, fn: step?.fn ?? from0.fn }; // an existing call: the function that holds its step
   const services = (await api.services(state.env).catch(() => [])).map((s) => s.name);

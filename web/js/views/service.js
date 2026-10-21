@@ -61,7 +61,7 @@ export async function render({ main, params, query }) {
   }
 
   main.append(
-    pageHead(h('span.row', titled('service', s.kind, name), runtimeGlyph(runtimeOf(s)), markBadge(mine, { store: marks }), refs?.refs ? lockChip(null, { title: `${refs.refs} of its ${refs.endpoints} endpoints are references: their behaviour is in another environment.` }) : null, linksRow(s.links)), mine && wasText(mine) ? [s.description, h('span.mk-what', ` ${wasText(mine)}`)] : s.description ?? null,
+    pageHead(h('span.row', titled('service', s.kind, name), runtimeGlyph(runtimeOf(s)), markBadge(mine, { store: marks }), refs?.refs ? lockChip(null, { text: `${refs.refs} reference ${refs.refs === 1 ? 'endpoint' : 'endpoints'}`, title: `${refs.refs} of its ${refs.endpoints} endpoints are references: their behaviour is in another environment.` }) : null, linksRow(s.links)), mine && wasText(mine) ? [s.description, h('span.mk-what', ` ${wasText(mine)}`)] : s.description ?? null,
       h('a.btn', { href: href('/system', { sel: `svc:${name}` }) }, icon('system'), 'Show on map'),
       h('button.btn', { type: 'button', on: { click: (e) => openBugDialog(e.currentTarget) } }, icon('bug'), 'Report a bug'),
       h('a.btn.primary', { href: href('/flows', { service: name }) }, icon('flow'), 'Trace a flow')),

@@ -37,6 +37,7 @@ with one column per hop and a header over each column.
 | Data store | caller function → operation (read/write) → store |
 | Service | ingress (callers) → service → egress (targets) |
 
+- A bar is tinted by its component, not by the call that reaches it; the connector still carries the transport.
 - Connectors use the transport colour of the hop (`--t-sns` publish/fan-out, `--t-sqs`
   deliver/poll, `--t-http`…). Draw a dashed connector when the hop is uncertain (declarations
   disagree, unresolved). Use `--t-broken` only for a link that is known to be broken.
@@ -161,6 +162,7 @@ whether the zero is normal for this kind of object.
   them be the only cue: pair them with the transport-coloured kind chip. On the system map,
   colour the node by its transport token, not by the logo, and make the legend match what is drawn.
 - Use `--accent` for links and the current navigation item only.
+- Component colours (`--cmp-1..8`) mean a component, never a transport or a status. They colour the head stripe and tint and the activation bars of that component (28% fill, nested bars 42%), the Squeeze fold of one component, the step-bar dots and the map node's ring, nowhere else. The slot comes from `GET /api/envs/meta` `colors` (kept per environment; past 8 the palette repeats). Client apps and infra stay neutral; lines, arrowheads and chips keep their transport token.
 - Test both themes: every colour comes from a token, so dark mode must work without extra rules.
 
 ## 9. Cards, tables or lanes
@@ -194,6 +196,15 @@ whether the zero is normal for this kind of object.
 - Where marks go: the system map (spark on a new node, ring on a changed one, the words under it), Inventory (the All / New / Changed / Unchanged filter and a "What changed" column), the service page (badge by the name and on section titles and rows), flow heads and arrows (an arrow takes the mark of its call, else of a new endpoint it reaches), the DTO / message / schema field tables (a 3px edge, "was ...", removed fields struck).
 - Tokens: `--new` / `--new-ink` only on a mark (shape first: the glyph is mandatory in every New and Changed badge, never colour alone); `--warn` never on a mark; Removed is `--muted` plus strike-through, never `--bad`. One short twinkle on load; none with reduced motion. `--flow-2` (async dots) is also yellow and stays that way: it is never a star.
 - Checklist line: no `--warn` glyph, no `--new` on a problem, every mark has its glyph.
+
+### References, import, forms and the Flows list (0.26.0)
+
+- A **reference** (lock) is neutral: a copied endpoint whose behaviour is in its source. The lock is an SVG symbol (`i-lock`), never the emoji, and never `--warn`. It sits on the end of an arrow into the reference ("behaviour in prod" and "Import into design" in Edit with a draft, "Open in prod" in View), on a lifeline head only when every call of this flow into that component reaches a reference (D6), after the name in the Flows list, and on the service page ("N reference endpoints", a Behaviour line per endpoint: reference / imported from prod, Oct 21 / from prod / in this design).
+- **Import into design** copies one level. It never fires directly: it opens the preview in the side panel (counts are the preview's `total`; "Already here", "Stays a reference" with an Import each). What a callee in another component needs stays a reference. A **partial flow** says which steps continue into references (neutral line under the step bar, step numbers are the walk's). Editing a call into a reference asks every time ("Import users-svc's flow first" / "Edit the call only").
+- **Edit forms** (Edit mode with a draft only; View keeps today's panels): a head opens the component form, an arrow the call form (the entry arrow the endpoint form), "+ call" under a bar and "+ component" (flow toolbar, Inventory subsystem rows) open new ones, "Edit flow" the flow form. They live in the side panel, use `.fgrid`, show errors under the field (`EditError.field`), save with one call ("Saved to draft <name>") and delete only after a confirm. A flow's name is the page title with a pencil (Enter saves, Esc cancels; Edit with a draft: a draft op, else written at once).
+- **Flows list**: the Subsystem then Component checkbox groups (a header button with `aria-expanded` and the applied summary, "Select all · Deselect all", a fieldset with a legend) filter above the text box; "Changed only" (and removed) in a design; `subsystems=`, `components=`, `changed=` in the URL, left out when everything is selected. A collapsed list shows the active flow and the filter summary. Each row: the name over the entry key and summary, the lock, the New / Changed mark (tooltip: what changed), an ↗ when the flow has a main link.
+- **Links** (`links.main` as a link next to the title, `sub` as small ↗ chips; http(s) only, new tab, `rel=noopener`) and the **runtime** mark (a heptagon outline for k8s kinds, tooltip: the runtime) appear on the service page, the flow header, the lifeline head and the map node.
+- **Chips under an arrow** ("in draft", "transport not decided"): when they do not fit beside the step tile they stack one per line, never over the return label.
 
 ## Floating bug button and env dropdown (0.24.2)
 

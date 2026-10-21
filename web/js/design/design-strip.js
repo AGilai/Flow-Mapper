@@ -36,13 +36,14 @@ export function mountDesignStrip(main) {
     const d = state.draft && drafts.find((x) => x.slug === state.draft);
     if (state.draft && !d) { fill(bar, notOpen()); return; }
     if (!d) { fill(bar, state.mode === 'edit' ? h('div.dz-hint', 'Edit works inside a draft. ', h('button.btn.sm', { type: 'button', on: { click: (e) => openDraftPicker(e.currentTarget, { edit: true, drafts }) } }, 'Pick or start a draft')) : null); return; }
-    let changes = null;
+    let changes = null, names = new Map();
     try { changes = await api.draftChanges(state.env, d.slug); } catch { /* the bar falls back to the draft's own counts */ }
+    try { names = new Map((await api.flowNames(state.env)).filter((n) => n.name).map((n) => [`${n.service}/${n.ingress}`, n.name])); } catch { /* rows read the entry id */ }
     if (!alive) return;
     const paint = (focusReview = false) => { fill(bar,
       draftBar({ draft: d, changes, review, onReview: () => { if (review === 'review') close(); else { review = 'review'; paint(true); } }, onApply: () => { review = 'confirm'; paint(true); },
         onDiscard: () => discardDraft(d), onPick: (a) => openDraftPicker(a, { drafts }) }),
-      review ? reviewPanel({ draft: d, changes: changes ?? { counts: d.counts, items: [], authors: [] }, confirm: review === 'confirm', onClose: () => close(), refresh: () => setDesign({}) }) : null);
+      review ? reviewPanel({ draft: d, changes: changes ?? { counts: d.counts, items: [], authors: [] }, confirm: review === 'confirm', onClose: () => close(), refresh: () => setDesign({}), names }) : null);
       if (focusReview) bar.querySelector('.dz-review')?.focus(); };
     const close = () => { review = null; paint(); bar.querySelector('[data-qa=review]')?.focus(); };
     bar.onkeydown = (e) => { if (e.key === 'Escape' && review && bar.querySelector('.dz-review')?.contains(document.activeElement)) { e.preventDefault(); close(); } };

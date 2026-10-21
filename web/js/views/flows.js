@@ -20,6 +20,7 @@ import { createDescStore } from './flow-desc.js';
 import { swap } from './flow-tabs-anim.js';
 import * as T from './flow-tabs-state.js';
 import { decodeStep, encodeStep } from './flow-walk.js';
+import { setServiceInfo } from '../design/service-info.js';
 import { openImport } from '../design/import-panel.js';
 import { editOpener, editing } from '../design/edit-open.js';
 
@@ -51,7 +52,9 @@ export async function render({ main, query }) {
   const mainPane = h('div.flows-main');
   const rightEl = h('div.flows-right', mainPane); // the message panel is this grid's second column, so it squeezes the diagram
   const panel = createPanel(rightEl, { onClose: () => { flowsEl.classList.remove('mp-open'); views.get(S.active)?.clearMessage(); } });
-  const groupOf = new Map((await api.services(state.env).catch(() => [])).map((s) => [s.name, s.groupPath ?? '']));
+  const svcs = await api.services(state.env).catch(() => []);
+  setServiceInfo(svcs);
+  const groupOf = new Map(svcs.map((s) => [s.name, s.groupPath ?? '']));
   const list = createList({ points, counts, service, groupOf, groups: metaOf(state.envMeta, state.env).groups ?? [], marks, design: isDesign(), query, onPick: (p) => openEntry({ service: p.service, ingress: p.id }),
     onAll: () => go('/flows', { tabs: S.keys.join(',') || null, tab: S.keys.length > 1 ? S.active : null }),
     onCollapse: (c) => flowsEl.classList.toggle('list-c', c) });

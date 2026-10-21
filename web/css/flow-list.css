@@ -45,3 +45,6 @@
 .runtime-glyph { display: inline-grid; place-items: center; width: 18px; height: 18px; color: var(--ink-2); vertical-align: middle; }
 .runtime-glyph svg { width: 14px; height: 14px; }
 .noh-hint { margin: var(--s3) var(--s4); padding: 8px 12px; border: 1px dashed var(--line-strong); border-radius: var(--r-sm); color: var(--muted); font-size: var(--fs-sm); }
+.ext-i { width: 12px; height: 12px; }
+/* inventory rows grouped by subsystem (design environments) */
+table.grid tr.tgrp th { text-align: left; background: var(--surface-2); color: var(--ink-2); font-size: var(--fs-xs); font-weight: 600; padding: 5px var(--s3); border-top: 1px solid var(--line-strong); }

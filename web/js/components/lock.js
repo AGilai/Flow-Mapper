@@ -8,8 +8,8 @@ import { icon, SVG_PATH } from '../icons.js';
 export const lockText = (ref, short = false) => (short || !ref?.source ? 'reference' : `reference from ${ref.source}`);
 
 /** A chip: lock + words. `ref` is { source } (or null). */
-export const lockChip = (ref, { short = false, title = null } = {}) =>
-  h('span.st.lock-chip', { title: title ?? 'Its behaviour lives in another environment. Import it into the design to change it.' }, icon('lock'), lockText(ref, short));
+export const lockChip = (ref, { short = false, title = null, text = null } = {}) =>
+  h('span.st.lock-chip', { title: title ?? 'Its behaviour lives in another environment. Import it into the design to change it.' }, icon('lock'), text ?? lockText(ref, short));
 
 /** The lock as an SVG group at (x, y), `size` px square. */
 export function lockSvg(x, y, size = 12) {
