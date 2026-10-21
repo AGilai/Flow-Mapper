@@ -38,6 +38,11 @@ export function traceOut(ctx: Ctx, env: string, draft: string | null, t: Trace) 
   return designTrace(ctx, env, draft, name ? { ...t, start: { ...t.start, name } } as Trace : t);
 }
 
+/** The flow names of an environment (or of it as a draft would leave it), by `<service>/<ingress>`: the plain reads use the same names the draft reads do. */
+export function flowNameMap(ctx: Ctx, env: string, draft: string | null): Map<string, string> {
+  return new Map([...ctx.view(env, draft).reader.flowTexts()].flatMap(([k, t]) => (t.name ? [[k, t.name] as [string, string]] : [])));
+}
+
 /** Entry points with their flow's `name` and `summary` (first 140 characters of its description) where set; in a design environment
  *  also `reference: true` (the entry itself is a reference) and `partial: n` (reference endpoints its flow reaches). */
 export function entryPointsOut(ctx: Ctx, env: string, draft: string | null) {

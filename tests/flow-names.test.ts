@@ -81,3 +81,24 @@ test('MCP get_flow_names / set_flow_name: direct, and with draft as a flow op re
   assert.deepEqual((await app.mcp('get_flow_names', { env: 'hld' })).json, [], 'the draft did not write the environment');
   assert.equal((await app.mcp('set_flow_name', { env: 'prod', service: 'users-svc', ingress: 'nope', name: 'x' })).isError, true);
 });
+
+test('Fix #52: in an applied design environment (no ?draft) the flow name is read everywhere the draft reads it: entry points, flows list, search, trace header, MCP', async () => {
+  assert.equal((await app.call('POST', '/api/envs', { name: 'nm', source: 'prod', mode: 'blank', groups: [{ key: 'g', label: 'G' }] })).status, 201);
+  const slug = (await app.call('POST', '/api/envs/nm/drafts', { name: 'k8s' })).body.slug;
+  const ed = async (e: object) => assert.equal((await app.call('POST', `/api/envs/nm/drafts/${slug}/edits`, { edit: e })).status, 201);
+  await ed({ kind: 'component', name: 'kubernetes', serviceKind: 'service', groupPath: 'g' });
+  await ed({ kind: 'endpoint', service: 'kubernetes', id: 'in.pods', transport: 'http', bindKey: 'http:GET kubernetes/pods', entryPoint: true });
+  await ed({ kind: 'flow', service: 'kubernetes', ingress: 'in.pods', name: 'Pods inventory', description: 'Lists the pods.' });
+  assert.equal((await app.call('POST', `/api/envs/nm/drafts/${slug}/apply`, { by: 'bo' })).status, 200);
+  const A = '/api/envs/nm', n = 'Pods inventory';
+  assert.deepEqual((await app.call('GET', `${A}/entry-points`)).body.map((e: any) => [e.id, e.name, e.summary]), [['in.pods', n, 'Lists the pods.']]);
+  assert.deepEqual((await app.call('GET', `${A}/flows/counts`)).body.map((c: any) => [c.ingress, c.name]), [['in.pods', n]]);
+  const hits = (await app.call('GET', `${A}/search?q=pods%20inv`)).body;
+  assert.deepEqual(hits.map((h: any) => [h.type, h.id, h.name]), [['ingress', 'in.pods', n]], 'the search finds a flow by its name and says it');
+  assert.equal((await app.call('GET', `${A}/search?q=pods`)).body.find((h: any) => h.type === 'ingress').name, n);
+  assert.equal((await app.call('GET', `${A}/trace?service=kubernetes&ingress=in.pods`)).body.start.name, n);
+  assert.equal((await app.mcp('list_entry_points', { env: 'nm' })).json[0].name, n);
+  assert.equal((await app.mcp('search', { env: 'nm', query: 'Pods inventory' })).json[0].name, n);
+  assert.equal((await app.mcp('trace_flow', { env: 'nm', service: 'kubernetes', ingress: 'in.pods' })).json.start.name, n);
+  assert.equal((await app.call('GET', '/api/envs/prod/search?q=getPosture')).body.find((h: any) => h.type === 'ingress').name, undefined, 'an unnamed flow: no field');
+});

@@ -10,7 +10,7 @@ import { search } from '../../../core/search.ts';
 import { serviceView } from '../../../core/service-view.ts';
 import { viaMatches } from '../../../core/via.ts';
 import { trace } from '../../../core/trace.ts';
-import { entryPointsOut } from '../../refs.ts';
+import { entryPointsOut, flowNameMap } from '../../refs.ts';
 import { findPaths } from '../../../core/paths.ts';
 import { health } from '../../../core/health.ts';
 import { type Tool, env, obj, envOf, draftArg, viewOf } from './common.ts';
@@ -18,7 +18,7 @@ import { type Tool, env, obj, envOf, draftArg, viewOf } from './common.ts';
 export const searchTool: Tool = {
   name: 'search', description: 'Find services, functions, endpoints (by bind key), channels and resources by text.',
   inputSchema: obj({ draft: draftArg, query: { type: 'string' }, env, limit: { type: 'integer', minimum: 1, maximum: 200 } }, ['query']),
-  run: (c, a) => search(viewOf(c, a).g, a.query, a.limit ?? 30),
+  run: (c, a) => search(viewOf(c, a).g, a.query, a.limit ?? 30, flowNameMap(c, envOf(a), a.draft || null)),
 };
 
 export const listServicesTool: Tool = {

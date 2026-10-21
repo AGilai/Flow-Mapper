@@ -8,7 +8,7 @@ import { getEnvRow } from '../store/envs.ts';
 import { systemGraph } from '../../core/system-graph.ts';
 import { serviceView } from '../../core/service-view.ts';
 import { trace } from '../../core/trace.ts';
-import { entryPointsOut, refsFor, traceOut } from '../refs.ts';
+import { entryPointsOut, flowNameMap, refsFor, traceOut } from '../refs.ts';
 import { flowCounts } from '../../core/flow-counts.ts';
 import { findPaths } from '../../core/paths.ts';
 import { search } from '../../core/search.ts';
@@ -33,7 +33,7 @@ export function registerQueries(r: Router, ctx: Ctx) {
   });
 
   r.get('/api/envs/:env/entry-points', (req) => entryPointsOut(ctx, req.params.env, req.query.get('draft')));
-  r.get('/api/envs/:env/flows/counts', (req) => flowCounts(ctx.graphOf(req)));
+  r.get('/api/envs/:env/flows/counts', (req) => { const names = flowNameMap(ctx, req.params.env, req.query.get('draft')); return flowCounts(ctx.graphOf(req)).map((c) => (names.has(`${c.service}/${c.ingress}`) ? { ...c, name: names.get(`${c.service}/${c.ingress}`) } : c)); });
 
   r.get('/api/envs/:env/trace', (req) => {
     const q = req.query;
@@ -60,7 +60,7 @@ export function registerQueries(r: Router, ctx: Ctx) {
     return findPaths(ctx.graphOf(req), from, to, Math.min(int(req.query.get('limit'), 5), 20));
   });
 
-  r.get('/api/envs/:env/search', (req) => search(ctx.graphOf(req), req.query.get('q') ?? '', Math.min(int(req.query.get('limit'), 50), 500)));
+  r.get('/api/envs/:env/search', (req) => search(ctx.graphOf(req), req.query.get('q') ?? '', Math.min(int(req.query.get('limit'), 50), 500), flowNameMap(ctx, req.params.env, req.query.get('draft'))));
 
   r.get('/api/envs/:env/health', (req) => health(ctx.graphOf(req)));
 
