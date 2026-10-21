@@ -1,0 +1,17 @@
+[
+  { "service": "users-svc", "list": "header", "key": "", "data": { "kind": "service", "team": "identity", "description": "Users", "groupPath": "platform", "version": 3, "harvestedAt": "2026-10-01T00:00:00Z" } },
+  { "service": "users-svc", "list": "functions", "key": "UserCtl.get", "data": { "id": "UserCtl.get", "name": "UserCtl.get", "file": "src/u.ts", "steps": [
+    { "seq": 1, "type": "egress", "target": "out.auth.token", "operation": "POST /token" },
+    { "seq": 2, "type": "resource", "target": "res.db", "operation": "find" } ] } },
+  { "service": "users-svc", "list": "ingress", "key": "in.getUser", "data": { "id": "in.getUser", "transport": "http", "bindKey": "http:GET users-svc/users/:id", "handler": "UserCtl.get", "entryPoint": true } },
+  { "service": "users-svc", "list": "egress", "key": "out.auth.token", "data": { "id": "out.auth.token", "transport": "http", "mode": "sync", "bindKey": "http:POST auth-svc/token" } },
+  { "service": "users-svc", "list": "egress", "key": "out.pub", "data": { "id": "out.pub", "transport": "sns", "bindKey": "sns:user-events", "events": ["UserUpdated"] } },
+  { "service": "users-svc", "list": "resources", "key": "res.db", "data": { "id": "res.db", "kind": "mongodb", "name": "users-db", "bindKey": "mongodb:users-db/users" } },
+  { "service": "users-svc", "list": "channels", "key": "sns:user-events", "data": { "bindKey": "sns:user-events", "kind": "sns-topic" } },
+  { "service": "users-svc", "list": "dto", "key": "in.getUser|response|", "data": { "content": { "id": "x", "email": "e", "devices": [{ "id": "d" }] }, "meta": null } },
+  { "service": "auth-svc", "list": "header", "key": "", "data": { "kind": "service", "team": "platform", "version": 7, "harvestedAt": "2026-10-01T00:00:00Z" } },
+  { "service": "auth-svc", "list": "functions", "key": "Token.issue", "data": { "id": "Token.issue", "name": "Token.issue", "steps": [] } },
+  { "service": "auth-svc", "list": "ingress", "key": "in.token", "data": { "id": "in.token", "transport": "http", "bindKey": "http:POST auth-svc/token", "handler": "Token.issue" } },
+  { "service": "", "list": "event_dto", "key": "UserUpdated", "data": { "content": { "userId": "1", "status": "active" }, "meta": null } },
+  { "service": "", "list": "schema", "key": "mongodb:users-db/users|manual", "data": { "fields": { "_id": "ObjectId", "email": "string" } } }
+]
