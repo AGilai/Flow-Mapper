@@ -12,7 +12,7 @@ import { tx } from '../db/connection.ts';
 import { badRequest, conflict, invalid, notFound } from '../errors.ts';
 import { SUBSYSTEM_ICONS } from '../../core/subsystems.ts';
 import { getEnv, getEnvRow, type EnvGroup, type EnvMeta } from './envs.ts';
-import { copyAllBaseline, copyDescriptions, copyDesignLists, copyDtos, copyKeys, copyService, copyShared, type CopyCtx } from './env-copy-rows.ts';
+import { copyAllBaseline, copyDescriptions, clearEntryPoints, copyDesignLists, copyDtos, copyKeys, copyService, copyShared, type CopyCtx } from './env-copy-rows.ts';
 import { copyComments } from './comments.ts';
 import { copySharedChannels } from './env-copy-channels.ts';
 import { ensureColors } from './colors.ts';
@@ -24,6 +24,10 @@ export interface CopyInput {
   services?: { name: string; groupPath?: string }[]; createdBy?: string;
   /** components mode: also copy the picked services' functions and steps (into the baseline too, so they are unchanged). Default false. */
   behaviour?: boolean;
+  /** components / full: 'none' marks every copied ingress entryPoint:false (in the env and its baseline, so no marks). Default 'keep'. */
+  entryPoints?: 'keep' | 'none';
+  /** components mode: the subsystem of the synthetic `<source>-infra` service. Default 'infra'; need not exist in `groups` (a derived box). '' = none. */
+  infraGroupPath?: string;
 }
 
 const NAME = /^[a-z0-9][a-z0-9-]{0,62}$/;
@@ -35,6 +39,9 @@ function validate(db: DB, i: CopyInput) {
   if (typeof i.name !== 'string' || !NAME.test(i.name) || RESERVED.has(i.name)) throw invalid(`name '${i.name ?? ''}' must be lowercase letters, digits and '-' (it is used in links), at most 63 characters`);
   if (!['blank', 'components', 'full'].includes(i.mode)) throw invalid("mode must be 'blank', 'components' or 'full'");
   if (i.behaviour !== undefined && typeof i.behaviour !== 'boolean') throw invalid('behaviour must be true or false');
+  if (i.entryPoints !== undefined && i.entryPoints !== 'keep' && i.entryPoints !== 'none') throw invalid("entryPoints must be 'keep' or 'none'");
+  if (i.entryPoints === 'none' && i.mode === 'blank') throw invalid("entryPoints applies to 'components' and 'full' copies; a blank copy has no endpoints");
+  if (i.infraGroupPath !== undefined && (typeof i.infraGroupPath !== 'string' || (i.infraGroupPath !== '' && !PATH.test(i.infraGroupPath)))) throw invalid("infraGroupPath must be a subsystem key (lowercase, '-' or a path like platform/infra), or '' for none");
   const src = typeof i.source === 'string' ? getEnvRow(db, i.source) : undefined;
   if (!src) throw notFound(`source environment '${i.source}'`);
   if (getEnvRow(db, i.name)) throw conflict('EXISTS', `environment '${i.name}' already exists`);
@@ -91,9 +98,10 @@ export function copyEnv(db: DB, input: CopyInput): EnvMeta {
       copyDtos(c, n);
       writeChangelog(db, name, n, null, r.version, 'copy', 'api', { copiedFrom: source, mode, entities: r.entities });
     }
-    if (mode === 'components') copySharedChannels(c, new Set(names));
+    if (mode === 'components') copySharedChannels(c, new Set(names), input.infraGroupPath ?? 'infra');
     copyShared(c, types, stores);
     copyKeys(c, new Set(names));
+    if (input.entryPoints === 'none') clearEntryPoints(c);
     if (mode === 'full') { copyDescriptions(c); copyAllBaseline(c); copyComments(db, source, name); if (fullOfDesign) copyDesignLists(c); } // only a Full copy carries the discussion
     ensureColors(db, name, JSON.parse((db.prepare('SELECT colors FROM envs WHERE name = ?').get(source) as { colors: string }).colors || '{}'));
     return getEnv(db, name);

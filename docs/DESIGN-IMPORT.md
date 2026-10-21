@@ -62,6 +62,9 @@ flow = an entry endpoint (entryPoint: true) + its handler's ordered steps, follo
   may still call copied endpoints; the trace ends there. Pass `behaviour: true` to `create_env` (0.25.1) to bring the
   picked services' functions and steps too: their flows trace as in prod, they show no marks and are not references.
   Use it for components the design keeps as they are; leave it off for ones you mean to redesign.
+  Pass `entryPoints: 'none'` (0.28.3) when the design only needs a few flows: the copied ingress are then not listed as
+  entry points (the Flows page shows just the ones you add or mark `entryPoint: true`). The channels' `<source>-infra`
+  service sits in subsystem `infra` unless you pass `infraGroupPath`.
 - A flow only draws if every hop is wired: ingress `handler` -> function -> step (`type: egress`, `target` egress id)
   -> egress `bindKey` == callee ingress `bindKey` (or a channel key) -> callee handler -> ... Resolution matches the
   key string only. A call with no function step behind it is a map edge, not part of a flow.

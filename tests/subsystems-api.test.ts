@@ -34,7 +34,7 @@ test('GET subsystems: a sealed env derives them from groupPaths; the design has 
   assert.deepEqual(Object.keys(prod).sort(), ['levels', 'notSet', 'subsystems']);
   assert.ok(prod.subsystems.every((s: any) => s.derived && s.icon === null));
   const d = await get(`${E}/subsystems`);
-  assert.deepEqual(d.subsystems.map((s: any) => [s.key, s.label, s.icon, s.order, s.derived]), [['agent', 'Agent', 'agent', 0, false], ['network', 'Network (POP)', 'network', 1, false], ['platform', 'Platform', 'platform', 2, false]]);
+  assert.deepEqual(d.subsystems.map((s: any) => [s.key, s.label, s.icon, s.order, s.derived]), [['agent', 'Agent', 'agent', 0, false], ['network', 'Network (POP)', 'network', 1, false], ['platform', 'Platform', 'platform', 2, false], ['infra', 'infra', null, 3, true]]);
   assert.deepEqual(d.subsystems[1].components.map((c: any) => c.name), ['swg-api', 'sxdns']);
   assert.deepEqual(d.subsystems[0].components, []);
   const dr = await get(`${E}/subsystems?draft=hld-import`);
