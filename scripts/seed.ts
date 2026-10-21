@@ -13,6 +13,7 @@ import * as store from '../server/store/snapshots.ts';
 import { loadDtos } from '../server/store/dtos.ts';
 import { loadSchemas } from '../server/store/schemas.ts';
 import { loadDescriptions } from '../server/store/descriptions.ts';
+import { loadComments } from '../server/store/comments.ts';
 import { putKeys } from '../server/store/keys.ts';
 import { stores } from '../core/stores.ts';
 import { seedEnvRecipes } from './seed-envs.ts';
@@ -51,6 +52,9 @@ if (mockIdx < 0) {
   for (const f of readDir(join(import.meta.dirname, '../samples/dtos'))) console.log(`loaded ${loadDtos(ctx.db, f.env, f.dtos).loaded} DTOs into ${f.env}`);
   for (const f of readDir(join(import.meta.dirname, '../samples/descriptions'))) {
     console.log(`loaded ${loadDescriptions(ctx.db, ctx.graph(f.env), f.env, f.descriptions, (m) => console.warn(m))} descriptions into ${f.env}`);
+  }
+  for (const f of readDir(join(import.meta.dirname, '../samples/comments'))) {
+    console.log(`loaded ${loadComments(ctx.db, ctx.graph(f.env), f.env, f.comments, (m) => console.warn(m))} comments into ${f.env}`);
   }
   for (const f of readDir(join(import.meta.dirname, '../samples/keys'))) {
     for (const i of f.instances) console.log(`pushed ${putKeys(ctx.db, ctx.graph(f.env), f.env, i.instance, { keys: i.keys, producer: i.producer }).entries} key entries to ${i.instance} in ${f.env}`);

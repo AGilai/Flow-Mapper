@@ -42,7 +42,8 @@ function flowTrace(g: GraphIndex, env: string, service: string, ingress: string)
 
 export function listThread(db: DB, env: string, anchor: string): Thread {
   checkEnv(db, env); flowOf(anchor);
-  return buildThread(anchor, (db.prepare('SELECT * FROM comments WHERE env = ? AND anchor = ?').all(env, anchor) as unknown as R[]).map(toRow));
+  // sanitized again on the way out: a row that did not come through a write here (a restore, a hand-made insert) is never served raw
+  return buildThread(anchor, (db.prepare('SELECT * FROM comments WHERE env = ? AND anchor = ?').all(env, anchor) as unknown as R[]).map((r) => ({ ...toRow(r), body: sanitize(r.body) })));
 }
 
 /** Live comment counts per anchor, for the Flows list: `{anchor: n}` (anchors with none are absent). */

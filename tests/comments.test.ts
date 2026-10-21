@@ -193,3 +193,11 @@ test('seed data: samples/comments/prod.json loads once, with a table, colour and
   const bodies = (await list()).comments.map((c: any) => c.body + c.replies.map((r: any) => r.body).join(''));
   assert.ok(bodies.some((b: string) => b.includes('<table>')) && bodies.some((b: string) => b.includes('<s>') && b.includes('cc-')));
 });
+
+test('a hostile row that bypassed the write path is sanitized on the way out too', async () => {
+  app.ctx.db.prepare("INSERT INTO comments (env, anchor, author, body, created_at) VALUES ('prod', 'flow:orders-svc/in.touch', 'mallory', ?, '2026-10-21T00:00:00.000Z')")
+    .run('<p>x</p><img src=x onerror=alert(1)><script>alert(2)</script><a href="javascript:alert(3)">l</a>');
+  const l = await list('prod', 'flow:orders-svc/in.touch');
+  assert.equal(l.comments[0].body, '<p>x</p>l');
+  assert.equal((await app.mcp('list_comments', { env: 'prod', service: 'orders-svc', ingress: 'in.touch' })).json.comments[0].html, '<p>x</p>l');
+});
