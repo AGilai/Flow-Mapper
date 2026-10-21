@@ -26,6 +26,8 @@ before(async () => {
   const all = (d: string) => readdirSync(d).filter((f) => f.endsWith('.json')).sort().map((f) => JSON.parse(readFileSync(join(d, f), 'utf8')));
   await app.call('POST', '/api/ingest', { manifests: all(SAMPLES) });
   for (const f of all(join(SAMPLES, 'dtos'))) await app.call('POST', `/api/envs/${f.env}/dtos`, { dtos: f.dtos });
+  const sc = JSON.parse(readFileSync(join(SAMPLES, 'schemas/prod.json'), 'utf8'));
+  await app.call('POST', `/api/envs/${sc.env}/schemas`, { schemas: sc.schemas });
   seedEnvRecipes(app.ctx, join(SAMPLES, 'envs'));
 });
 after(async () => { await app.close(); rmSync(out, { recursive: true, force: true }); });
@@ -86,4 +88,58 @@ test('drafts live in memory: create, edit, undo, revert, discard; Apply is refus
   await design.api.discardDraft('sase-hld', 'my-try');
   assert.ok(!(await design.api.drafts('sase-hld')).some((x: any) => x.slug === 'my-try'));
   await assert.rejects(() => design.api.editDraft('sase-hld', 'my-try', [op], 'me'), /discarded/);
+});
+
+// 0.25.0: references, import, edit forms, calls and flow names in the preview equal what the server answers.
+const json = (v: unknown) => JSON.parse(JSON.stringify(v));
+const noAt = (refs: any) => ({ ...refs, origins: Object.fromEntries(Object.entries(refs.origins).map(([k, v]: any) => [k, { ...v, at: v.inDraft ? 'when' : v.at }])) }); // an import's time differs between the two backends
+const withRefs = (m: any) => ({ ...strip(m), refs: noAt(m.refs) });
+const srv = async (method: string, path: string, body?: unknown) => { const r = await app.call(method, path, body); assert.ok(r.status < 300, `${method} ${path}: ${JSON.stringify(r.body)}`); return r.body; };
+
+test('13 marks carry the same refs; the trace and the call are decorated like the server\'s', async () => {
+  for (const draft of ['hld-import', null]) {
+    design.readAs('sase-hld', draft);
+    const local = await design.api.marks('sase-hld', 'baseline');
+    assert.deepEqual(json(withRefs(local)), withRefs(await srv('GET', `/api/envs/sase-hld/marks${draft ? `?draft=${draft}` : ''}`)), String(draft));
+  }
+  assert.ok(json((await design.api.marks('sase-hld', 'baseline')).refs.endpoints['ing:users-svc/in.getPosture']), 'the demo reference');
+  design.readAs('sase-hld', 'hld-import');
+  const { trace } = await import(pathToFileURL(join(out, 'core/trace.js')).href);
+  const g = design.g('sase-hld'), t = trace(g, { service: 'sase-agent', ingress: 'in.tunnel.open' }, { scope: 'full', maxDepth: 25, maxMessages: 500 });
+  assert.deepEqual(json(design.traceOut('sase-hld', t, g)), await srv('GET', '/api/envs/sase-hld/trace?service=sase-agent&ingress=in.tunnel.open&draft=hld-import'));
+  assert.equal(design.traceOut('sase-hld', t, g).partial.steps.length, 1);
+  assert.deepEqual(json(await design.api.call('sase-hld', 'pop-edge', 'out.users.posture')), await srv('GET', '/api/envs/sase-hld/call?service=pop-edge&egress=out.users.posture&draft=hld-import'));
+  assert.equal(design.traceOut('prod', trace(design.g('prod'), { service: 'users-svc', ingress: 'in.getPosture' }, { scope: 'full' }), design.g('prod')).partial, undefined, 'a sealed environment: nothing added');
+});
+
+test('13 import preview, import and edit forms in memory equal the server (ops, changes, marks with refs)', async () => {
+  await srv('POST', '/api/envs/sase-hld/drafts', { name: 'cmp', slug: 'cmp' });
+  await design.api.createDraft('sase-hld', 'cmp', 'me');
+  const P = { source: 'prod', anchor: 'ing:users-svc/in.getPosture' };
+  design.readAs('sase-hld', 'cmp');
+  assert.deepEqual(json(await design.api.importPreview('sase-hld', 'cmp', P)), await srv('GET', `/api/envs/sase-hld/drafts/cmp/import/preview?source=prod&anchor=${encodeURIComponent(P.anchor)}`));
+  const li = await design.api.importIntoDraft('sase-hld', 'cmp', P, 'me'), si = await srv('POST', '/api/envs/sase-hld/drafts/cmp/import', { ...P, author: 'me' });
+  assert.deepEqual(json(li.preview), si.preview); assert.deepEqual(li.counts, si.counts);
+  const edits = [{ kind: 'component', name: 'pop-swg', serviceKind: 'service', groupPath: 'network' },
+    { kind: 'call', from: { service: 'users-svc', fn: 'get_posture' }, to: { endpoint: { service: 'pop-swg', transport: 'socket', bindKey: 'socket:tls/pop-swg/apply' } } }];
+  for (const e of edits) { const l = await design.api.designEdit('sase-hld', 'cmp', e, 'me'), s = await srv('POST', '/api/envs/sase-hld/drafts/cmp/edits', { edit: e, author: 'me' }); assert.deepEqual(json(l.ops), s.ops); assert.deepEqual(l.counts, s.counts); }
+  await assert.rejects(() => design.api.designEdit('sase-hld', 'cmp', { kind: 'component', name: 'Bad Name', serviceKind: 'service' }, 'me'), (e: any) => e.status === 422 && e.code === 'BAD_NAME' && e.details.field === 'name');
+  await assert.rejects(() => design.api.designEdit('sase-hld', 'cmp', { kind: 'component', name: 'x', serviceKind: 'service', groupPath: 'nope' }, 'me'), (e: any) => e.code === 'NO_GROUP');
+  await assert.rejects(() => design.api.importPreview('sase-hld', 'cmp', P), (e: any) => e.status === 409 && e.code === 'NOTHING_TO_IMPORT');
+  const ch = await design.api.draftChanges('sase-hld', 'cmp'), sch = await srv('GET', '/api/envs/sase-hld/drafts/cmp/changes');
+  assert.deepEqual([ch.counts, ch.items.map((i: any) => [i.anchor, i.change])], [sch.counts, sch.items.map((i: any) => [i.anchor, i.change])]);
+  for (const against of ['baseline', 'source']) assert.deepEqual(json(withRefs(await design.api.marks('sase-hld', against))), withRefs(await srv('GET', `/api/envs/sase-hld/marks?draft=cmp&against=${against}`)), against);
+  assert.equal((await design.api.marks('sase-hld', 'baseline')).refs.endpoints['ing:users-svc/in.getPosture'], undefined, 'imported: no longer a reference');
+});
+
+test('13 flow names in memory; Apply stays refused', async () => {
+  design.readAs('sase-hld', null);
+  const r = await design.api.setFlowName('sase-hld', { service: 'users-svc', ingress: 'in.getUser', name: ' Renamed ' });
+  assert.deepEqual(r, { service: 'users-svc', ingress: 'in.getUser', name: 'Renamed' });
+  assert.equal(design.texts('sase-hld').get('users-svc/in.getUser').name, 'Renamed');
+  assert.deepEqual((await design.api.flowNames('sase-hld')).map((x: any) => x.name), ['Renamed']);
+  await design.api.setFlowName('sase-hld', { service: 'users-svc', ingress: 'in.getUser', name: '' });
+  assert.deepEqual(await design.api.flowNames('sase-hld'), []);
+  await assert.rejects(() => design.api.setFlowName('sase-hld', { service: 'users-svc', ingress: 'nope', name: 'x' }), (e: any) => e.code === 'NO_INGRESS');
+  await assert.rejects(() => design.api.applyDraft('sase-hld', 'hld-import', 'me'), /not available in the preview/);
 });

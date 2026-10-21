@@ -3,6 +3,7 @@
 
 import type { DB } from './db/connection.ts';
 import { rowsToExtras, type ItemRow } from '../core/item-rows.ts';
+import { overlayText } from '../core/flow-text.ts';
 import type { Dto, EventDto } from '../core/endpoint-info.ts';
 import type { Service } from '../core/types.ts';
 import * as dtos from './store/dtos.ts';
@@ -49,13 +50,6 @@ export function dbReader(db: DB, env: string): DataReader {
       try { return { service: getService(db, env, name), entities: loadEntities(db, env, name) }; } catch { return null; }
     },
   };
-}
-
-/** The flow text a draft's flow op says (a field the op sets wins, '' clears it) over the stored one (`base`). */
-function overlayText(op: { name?: string; description?: string } | undefined, base: FlowText | null | undefined): FlowText | null {
-  const pick = (mine: string | undefined, theirs: string | undefined) => (mine === undefined ? theirs : mine.trim() || undefined);
-  const name = pick(op?.name, base?.name), description = pick(op?.description, base?.description);
-  return name || description ? { ...(name ? { name } : {}), ...(description ? { description } : {}) } : null;
 }
 
 /** Reads from the overlay rows; a flow's name and description the draft says nothing about come from `fallback` (the database). */

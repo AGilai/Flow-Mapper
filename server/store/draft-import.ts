@@ -5,7 +5,7 @@
 import type { Ctx } from '../context.ts';
 import { tx } from '../db/connection.ts';
 import { netOps, overlayRows } from '../../core/draft-ops.ts';
-import { infraOwnerName } from '../../core/infra-owner.ts';
+import { pickInfraOwner } from '../../core/infra-owner.ts';
 import { ImportError, importSet, type ImportSet } from '../../core/import-level.ts';
 import { importOps, previewOf, type ImportPreview } from '../../core/import-preview.ts';
 import type { ItemRow } from '../../core/item-rows.ts';
@@ -29,14 +29,12 @@ function plan(ctx: Ctx, env: string, slug: string, i: ImportRequest): { set: Imp
   if (i.groupPath !== undefined && typeof i.groupPath !== 'string') throw badRequest('groupPath must be a string');
   const here = overlayRows(envItemRows(db, env), netOps(loadOps(db, d.id)));
   const srcRows = cached<ItemRow[]>(`rows:${i.source}`, [i.source], () => envItemRows(db, i.source));
-  const names = new Set([...here, ...srcRows].filter((r) => r.list === 'header').map((r) => r.service));
-  const existing = here.find((r) => r.list === 'header' && r.data?.kind === 'infra' && r.service.startsWith(`${i.source}-infra`))?.service;
   try {
     const set = importSet({
       source: i.source, anchor: i.anchor, srcRows, srcGraph: ctx.view(i.source).g,
       srcVersions: new Map(srcRows.filter((r) => r.list === 'header').map((r) => [r.service, Number(r.data?.version) || 0])),
       here, groups: (JSON.parse(getEnvRow(db, env)!.groups) as { key: string }[]).map((g) => g.key), groupPath: i.groupPath,
-      infraOwner: existing ?? infraOwnerName(names, i.source),
+      infraOwner: pickInfraOwner(here, srcRows, i.source),
     });
     return { set, preview: previewOf(set, i.anchor, i.source) };
   } catch (e) {
