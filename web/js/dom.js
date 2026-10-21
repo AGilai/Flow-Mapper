@@ -49,8 +49,8 @@ export function debounce(fn, ms = 150) {
   return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
 }
 
-export function toast(msg) {
+export function toast(msg, ms = 2600) {
   const el = h('div.toast', { role: 'status' }, msg);
   document.body.append(el);
-  setTimeout(() => el.remove(), 2600);
+  setTimeout(() => el.remove(), ms);
 }

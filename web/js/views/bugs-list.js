@@ -5,6 +5,7 @@ import { api } from '../api.js';
 import { state } from '../state.js';
 import { icon } from '../icons.js';
 import { go, href, setQuery } from '../router.js';
+import { openBugDialog } from '../components/bug-dialog.js';
 import { pageHead } from '../components/page.js';
 import { dataTable } from '../components/table.js';
 import { ago, priorityPill, statusPill } from '../format.js';
@@ -45,7 +46,7 @@ export async function render({ main, query }) {
 
   main.append(
     pageHead('Bugs', `Running v${state.version}. Report Flow-Mapper problems here, through the API or from an agent over MCP.`,
-      h('a.btn.primary', { href: href('/bugs/new') }, icon('plus'), 'Report a bug')),
+      h('button.btn.primary', { type: 'button', on: { click: (e) => openBugDialog(e.currentTarget) } }, icon('plus'), 'Report a bug')),
     h('div.content', h('div.page-grid',
       h('div.figures',
         fig(open.length, 'Open'), fig(open.filter((b) => b.priority === 'P0').length, 'P0 open', open.some((b) => b.priority === 'P0')),

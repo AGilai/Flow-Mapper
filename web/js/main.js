@@ -7,6 +7,7 @@ import { state, onEnvChange, setEnv, designFromQuery, designQuery, isDesign } fr
 import { setQuery } from './router.js';
 import { mountDesignStrip } from './design/design-strip.js';
 import { renderRail } from './components/sidebar.js';
+import { mountBugButton } from './components/bug-dialog.js';
 
 const rail = document.getElementById('rail');
 const main = document.getElementById('main');
@@ -37,6 +38,7 @@ async function boot() {
     fill(main, h('div.content', h('div.error-box', `Could not reach the Flow-Mapper API: ${err.message}`)));
     return;
   }
+  mountBugButton();
   let openBugs = 0;
   const refreshRail = () => renderRail(rail, parseHash().path, { '/bugs': openBugs || null });
   api.bugs({ open: true, limit: 1000 }).then((b) => { openBugs = b.length; refreshRail(); }).catch(() => {});

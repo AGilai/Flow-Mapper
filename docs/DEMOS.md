@@ -8,6 +8,7 @@ Add a row here with every fix or feature (newest first). A row without a working
 
 | Version | Bug | What to look at | Link |
 |---|---|---|---|
+| 0.24.2 | feature requests | A round bug button on every screen (bottom-right, label on hover, hidden on `#/bugs/new`, moves left of an open side panel) opens the report form in a dialog over the page: nothing navigates, the step stays, an unsent draft is kept, "Seen on: <url>" is added to the steps. The environment picker in the rail is a dropdown that shows the active environment; click it for the list and "+ New environment" | `#/flows?tabs=api-gateway/in.createOrder&step=6`, then the bug button |
 | 0.24.1 | none | Flow steps vs async jumps: step numbers are round pills at the start of an arrow, async jumps are squares with ↓ at the queue end | `#/flows?tabs=api-gateway/in.createOrder&step=10` |
 | 0.24.0 | | Design environments in the UI. Open `sase-hld` with the draft: the strip above the page (design chip, Compared with, Drafts, View | Edit), the draft bar (`+4 −0 ~1`, Review changes, Discard, Apply to sase-hld). The map has a spark on `sase-agent` and `pop-edge` and a ring with "+1 endpoint · +1 function" on `auth-svc` | `#/system?env=sase-hld&draft=hld-import` |
 | 0.24.0 | | Inventory with the New / Changed / Unchanged filter (counts) and a "What changed" column | `#/inventory?env=sase-hld&draft=hld-import&status=new` |
