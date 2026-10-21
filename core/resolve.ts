@@ -29,8 +29,8 @@ export function withPlaceholderKeys(model: Model): Model {
   return { ...model, ingress: model.ingress.map(fill).map(socketEntry), egress: model.egress.map(fill) };
 }
 
-/** Request/reply transports: calls are synchronous unless the egress says otherwise. */
-export const SYNC = new Set<Transport>(['http', 'rpc', 'grpc']);
+/** Request/reply transports: calls are synchronous unless the egress says otherwise (an undecided transport reads as a plain call). */
+export const SYNC = new Set<Transport>(['http', 'rpc', 'grpc', 'undecided']);
 
 /** A sync call over AMQP (an RPC) goes to one server; a publish goes to every matching binding. */
 /** An RPC over AMQP: sync amqp with an `amqp-rpc:` key or `details.rpc`. */

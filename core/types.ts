@@ -1,7 +1,7 @@
 // Shared types for the in-memory graph model. Pure types — no runtime code.
 // The model mirrors the manifest (schema/manifest.schema.json) with service/env attached.
 
-export type Transport = 'http' | 'rpc' | 'grpc' | 'sns' | 'sqs' | 'amqp' | 'eventbridge' | 'cron' | 'socket' | 'event' | 'other';
+export type Transport = 'http' | 'rpc' | 'grpc' | 'sns' | 'sqs' | 'amqp' | 'eventbridge' | 'cron' | 'socket' | 'event' | 'other' | 'undecided';
 export type Delivery = 'unicast' | 'multicast';
 export type Mode = 'sync' | 'async';
 export type Match = 'exact' | 'glob' | 'amqp-topic';
@@ -26,6 +26,8 @@ export interface Service {
   tags?: string[];
   /** Subsystem path ("platform", later "platform/identity"); optional. */
   groupPath?: string;
+  /** Free-form; in a design `doc` says where the component comes from. */
+  details?: Details;
   version: number;
   harvestedAt: string;
   commit?: string;
@@ -70,7 +72,7 @@ export const isLeaf = (st: Pick<Step, 'type' | 'target' | 'kind' | 'operation' |
 
 export interface StepField { role: 'filter' | 'projection' | 'update' | 'sort'; path: string; operator?: string; inDdl?: boolean; ddlRef?: string; flag?: string }
 
-export interface Fn { service: string; id: string; name: string; file?: string; line?: number; commit?: string; steps: Step[]; unresolved?: Unresolved[] }
+export interface Fn { service: string; id: string; name: string; file?: string; line?: number; commit?: string; details?: Details; steps: Step[]; unresolved?: Unresolved[] }
 /** An event type a consumer handles. `type` may be a glob (`Order*`, `*`); `producers` are declared, not derived. */
 export interface IngressEvent { type: string; handler: string; producers?: string[] }
 export interface Ingress {

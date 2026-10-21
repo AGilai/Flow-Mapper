@@ -410,6 +410,11 @@ When messages on a topic, queue or bus carry a type (message attribute, `detail-
   Do **not** list harvested producers; Flow-Mapper finds them by following the routes.
 - Use the exact type string the code uses. `OrderPlaced.v2` and `OrderPlaced` are different types.
 
+## Designs only: `undecided` and header `details`
+
+Two things in the schema exist for design environments (HLD imports), not for harvesters. **Never send `transport: "undecided"`**: a harvester knows how a call is made; the value is for a call or endpoint a design has not decided yet.
+**`details` on a service header and on a function** (free-form) carries the provenance of an import (`details.doc`); leave it out. Neither is read by anything a harvester produces, and a sealed environment never shows them.
+
 ## Infrastructure harvester
 
 Report topics, queues, exchanges and buses as `channels`, and the subscriptions and rules between

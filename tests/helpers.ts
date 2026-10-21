@@ -39,3 +39,24 @@ export async function startApp(opts: { dir?: string; events?: StreamOptions } = 
   };
   return { base, ctx, router, dbPath: join(dir, 'test.db'), call, close: () => new Promise<void>((r) => { server.close(() => r()); server.closeAllConnections(); }) };
 }
+
+/** The app with the samples in prod and a design environment (Components copy of users-svc and auth-svc, subsystem platform). */
+export async function startDesign(name = 'hld') {
+  const app = await startApp();
+  const r = await app.call('POST', '/api/ingest', { manifests: sampleManifests() });
+  if (r.status !== 201) throw new Error(`seed ingest: ${JSON.stringify(r.body)}`);
+  for (const f of readdirSync(join(SAMPLES, 'dtos')).filter((x) => x.endsWith('.json'))) {
+    const { env, dtos } = readSample(`dtos/${f}`);
+    const d = await app.call('POST', `/api/envs/${env}/dtos`, { dtos });
+    if (d.status !== 201) throw new Error(`seed dtos: ${JSON.stringify(d.body)}`);
+  }
+  const e = await app.call('POST', '/api/envs', { name, source: 'prod', mode: 'components', groups: [{ key: 'platform', label: 'Platform' }, { key: 'agent', label: 'Agent' }],
+    services: [{ name: 'users-svc', groupPath: 'platform' }, { name: 'auth-svc', groupPath: 'platform' }] });
+  if (e.status !== 201) throw new Error(`copy: ${JSON.stringify(e.body)}`);
+  const mcp = async (tool: string, args: any) => {
+    const x = await app.call('POST', '/mcp', { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: tool, arguments: args } });
+    const { isError, content } = x.body.result;
+    return { isError: isError as boolean, text: content[0].text as string, json: isError ? null : JSON.parse(content[0].text) };
+  };
+  return { ...app, mcp, env: name };
+}

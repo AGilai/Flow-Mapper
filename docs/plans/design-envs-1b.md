@@ -330,3 +330,6 @@ Follow-up (not in 1b): once E1's `server/events/bus.ts` lands, `applyDraft`/`dis
 M1 yes (flow_names in 006). M2 keep 409 on manual CRUD for both kinds until 2a, then remove. M3 blocking plan
 questions are reported, not enforced. M4 yes (one row per service tagged draft_id + one summary row per apply).
 Demo marks show with `&draft=hld-import`, as specified.
+
+## Follow-ups (after 1b-1 QA)
+- Apply performance: applying a draft to a 100-service environment takes about 2.9 s (graph and contract rebuilt per touched service); optimise before drafts get large.

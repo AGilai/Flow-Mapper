@@ -3,9 +3,9 @@
 // (harvesters or people push them with their own API), so re-harvesting a service leaves them in place.
 
 import type { DB } from '../db/connection.ts';
-import { tx } from '../db/connection.ts';
 import { badRequest, notFound } from '../errors.ts';
 import { guardEnv } from './envs.ts';
+import { withDry } from './dry-run.ts';
 import { DTO_ROLES, dtoLink, dtoSlots, type Dto, type DtoMeta, type DtoRole, type EventDto } from '../../core/endpoint-info.ts';
 
 export interface DtoInput { service: string; ingress: string; role: string; status?: string; content: unknown; meta?: unknown }
@@ -66,7 +66,8 @@ function check(db: DB, env: string, d: DtoInput) {
   }
 }
 
-function write(db: DB, env: string, d: DtoInput) {
+/** The unguarded row writers: callers validated (the guarded wrappers below, or a draft's apply). */
+export function putDtoRow(db: DB, env: string, d: DtoInput) {
   const meta = normMeta(d.meta);
   db.prepare(`INSERT INTO endpoint_dtos (env, service, ingress, role, status, content, meta, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT (env, service, ingress, role, status) DO UPDATE SET content = excluded.content, meta = excluded.meta, updated_at = excluded.updated_at`)
@@ -76,22 +77,25 @@ function write(db: DB, env: string, d: DtoInput) {
 export function putDto(db: DB, env: string, d: DtoInput) {
   guardEnv(db, env, 'harvester');
   check(db, env, d);
-  write(db, env, d);
+  putDtoRow(db, env, d);
   return listDtos(db, env, d).find((x) => x.role === d.role && x.status === normStatus(d.status))!;
 }
 
 /** Load many DTOs in one transaction; nothing is written if any of them is invalid.
- *  Each item is an endpoint DTO {service, ingress, role, content} or an event DTO {event, content}. */
-export function loadDtos(db: DB, env: string, items: unknown) {
+ *  Each item is an endpoint DTO {service, ingress, role, content} or an event DTO {event, content}.
+ *  dryRun: validate everything, write nothing, into any environment kind; `prelude` runs first in the same transaction
+ *  (a draft's apply, so the DTOs are checked against the environment as the draft leaves it). */
+export function loadDtos(db: DB, env: string, items: unknown, { dryRun = false, prelude }: { dryRun?: boolean; prelude?: () => void } = {}) {
   if (!Array.isArray(items)) throw badRequest('body must be {dtos: [{service, ingress, role, content} | {event, content}]}');
-  guardEnv(db, env, 'harvester');
-  return tx(db, () => {
+  guardEnv(db, env, dryRun ? 'dry' : 'harvester');
+  return withDry(db, dryRun, () => {
+    prelude?.();
     items.forEach((d: any, i) => {
       try {
-        if (d && 'event' in d) { checkEvent(d); writeEvent(db, env, d); } else { check(db, env, d ?? {}); write(db, env, d); }
+        if (d && 'event' in d) { checkEvent(d); putEventDtoRow(db, env, d); } else { check(db, env, d ?? {}); putDtoRow(db, env, d); }
       } catch (err: any) { err.message = `dtos[${i}]: ${err.message}`; throw err; }
     });
-    return { env, loaded: items.length };
+    return { env, loaded: items.length, ...(dryRun ? { dryRun: true } : {}) };
   });
 }
 
@@ -116,7 +120,7 @@ function checkEvent(d: EventDtoInput) {
   normMeta(d.meta);
 }
 
-function writeEvent(db: DB, env: string, d: EventDtoInput) {
+export function putEventDtoRow(db: DB, env: string, d: EventDtoInput) {
   const meta = normMeta(d.meta);
   db.prepare(`INSERT INTO event_dtos (env, event_type, content, meta, updated_at) VALUES (?, ?, ?, ?, ?)
     ON CONFLICT (env, event_type) DO UPDATE SET content = excluded.content, meta = excluded.meta, updated_at = excluded.updated_at`)
@@ -126,21 +130,27 @@ function writeEvent(db: DB, env: string, d: EventDtoInput) {
 export function putEventDto(db: DB, env: string, d: EventDtoInput): EventDto {
   guardEnv(db, env, 'harvester');
   checkEvent(d);
-  writeEvent(db, env, d);
+  putEventDtoRow(db, env, d);
   return getEventDto(db, env, d.event)!;
 }
 
-export function deleteEventDto(db: DB, env: string, event: string) {
-  guardEnv(db, env, 'harvester');
+export function deleteEventDtoRow(db: DB, env: string, event: string) {
   const r = db.prepare('DELETE FROM event_dtos WHERE env = ? AND event_type = ?').run(env, event);
   if (!r.changes) throw notFound(`DTO of event type '${event}'`);
   return { deleted: { event } };
 }
-
-export function deleteDto(db: DB, env: string, service: string, ingress: string, role: string, status?: string) {
+export function deleteEventDto(db: DB, env: string, event: string) {
   guardEnv(db, env, 'harvester');
+  return deleteEventDtoRow(db, env, event);
+}
+
+export function deleteDtoRow(db: DB, env: string, service: string, ingress: string, role: string, status?: string) {
   const st = normStatus(status);
   const r = db.prepare('DELETE FROM endpoint_dtos WHERE env = ? AND service = ? AND ingress = ? AND role = ? AND status = ?').run(env, service, ingress, role, st);
   if (!r.changes) throw notFound(`${role}${st ? ' ' + st : ''} DTO of '${service}' ingress '${ingress}'`);
   return { deleted: { service, ingress, role, status: st } };
+}
+export function deleteDto(db: DB, env: string, service: string, ingress: string, role: string, status?: string) {
+  guardEnv(db, env, 'harvester');
+  return deleteDtoRow(db, env, service, ingress, role, status);
 }

@@ -10,11 +10,11 @@ export function registerDescriptions(r: Router, ctx: Ctx) {
   r.get('/api/envs/:env/descriptions', (req) => {
     const service = req.query.get('service'), ingress = req.query.get('ingress');
     if (!service || !ingress) throw badRequest('service and ingress are required');
-    return desc.describeFlow(ctx.db, ctx.graph(req.params.env), req.params.env, service, ingress);
+    return desc.describeFlow(ctx.db, ctx.graphOf(req), req.params.env, service, ingress);
   });
 
   r.put('/api/envs/:env/descriptions', async (req) => {
     const b = await req.json();
-    return desc.putHuman(ctx.db, ctx.graph(req.params.env), req.params.env, { service: b?.service, ingress: b?.ingress, callee: b?.callee, text: b?.text, editedBy: b?.editedBy });
+    return desc.putHuman(ctx.db, ctx.view(req.params.env).g, req.params.env, { service: b?.service, ingress: b?.ingress, callee: b?.callee, text: b?.text, editedBy: b?.editedBy });
   });
 }

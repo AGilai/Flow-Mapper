@@ -15,8 +15,10 @@ import * as dtos from '../server/store/dtos.ts';
 import * as schemas from '../server/store/schemas.ts';
 import * as descriptions from '../server/store/descriptions.ts';
 import * as keys from '../server/store/keys.ts';
-import { copyEnv } from '../server/store/env-copy.ts';
+import { seedEnvRecipes } from './seed-envs.ts';
 import { listEnvMeta } from '../server/store/envs.ts';
+import { envItemRows, baselineRows } from '../server/store/item-rows.ts';
+import { listDrafts, loadOps } from '../server/store/drafts.ts';
 import { stores } from '../core/stores.ts';
 import { generateMock } from './mock/generate.ts';
 import { seedBugs } from './mock/bugs.ts';
@@ -41,8 +43,9 @@ for (const f of read(join(samples, 'schemas'))) {
   schemas.loadSchemas(ctx.db, f.env, f.schemas, (k) => keys.has(k));
 }
 
-for (const recipe of read(join(samples, 'envs'))) { copyEnv(ctx.db, recipe); ctx.changed(recipe.name); }
+seedEnvRecipes(ctx, join(samples, 'envs'));
 
+const designs = listEnvMeta(ctx.db).filter((e) => e.kind === 'design').map((e) => e.name);
 const data = {
   version: ctx.appVersion,
   envMeta: listEnvMeta(ctx.db),
@@ -52,6 +55,10 @@ const data = {
   descriptions: Object.fromEntries(store.listEnvs(ctx.db).map((env) => [env, descriptions.allRows(ctx.db, env)])),
   keys: Object.fromEntries(store.listEnvs(ctx.db).map((env) => [env, keys.allForPreview(ctx.db, env)])),
   schemas: Object.fromEntries(store.listEnvs(ctx.db).map((env) => [env, schemas.listSchemas(ctx.db, env)])),
+  // Design environments: their rows, their frozen baseline and their open drafts with ops, so the page can compute marks and draft views with core/.
+  rows: Object.fromEntries(designs.map((env) => [env, envItemRows(ctx.db, env)])),
+  baselines: Object.fromEntries(designs.map((env) => [env, baselineRows(ctx.db, env)])),
+  drafts: Object.fromEntries(designs.map((env) => [env, listDrafts(ctx.db, env, 'open').map((d) => ({ ...d, ops: loadOps(ctx.db, d.id) }))])),
   bugs: bugs.listBugs(ctx.db, {}, ctx.appVersion).map((b) => {
     const full = bugs.getBug(ctx.db, b.id, ctx.appVersion);
     return { ...full, attachments: full.attachments.map((a: any) => ({ ...a, id: a.id })) };
@@ -61,9 +68,15 @@ const data = {
 rmSync(out, { recursive: true, force: true });
 mkdirSync(join(out, 'core'), { recursive: true });
 cpSync(join(root, 'web'), out, { recursive: true });
-for (const f of readdirSync(join(root, 'core')).filter((f) => f.endsWith('.ts'))) {
-  writeFileSync(join(out, 'core', f.replace(/\.ts$/, '.js')), transpileCore(readFileSync(join(root, 'core', f), 'utf8')));
+/** core/ and its subfolders (core/diff/): every .ts type-stripped to .js, same relative paths. */
+function copyCore(dir: string, to: string) {
+  mkdirSync(to, { recursive: true });
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    if (e.isDirectory()) copyCore(join(dir, e.name), join(to, e.name));
+    else if (e.name.endsWith('.ts')) writeFileSync(join(to, e.name.replace(/\.ts$/, '.js')), transpileCore(readFileSync(join(dir, e.name), 'utf8')));
+  }
 }
+copyCore(join(root, 'core'), join(out, 'core'));
 writeFileSync(join(out, 'data.js'), `globalThis.FLOW_PREVIEW = ${JSON.stringify(data)};\n`);
 const html = readFileSync(join(out, 'index.html'), 'utf8').replace('<script type="module" src="js/main.js">', '<script src="data.js"></script>\n  <script type="module" src="js/main.js">');
 writeFileSync(join(out, 'index.html'), html);

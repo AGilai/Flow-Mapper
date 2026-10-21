@@ -18,18 +18,18 @@ export function dbParam(v: string | null | undefined): number | undefined {
 export function registerInstances(r: Router, ctx: Ctx) {
   const { db } = ctx;
 
-  r.get('/api/envs/:env/instances', (req) => instances(ctx.graph(req.params.env), keys.allSummaries(db, req.params.env)));
+  r.get('/api/envs/:env/instances', (req) => instances(ctx.graphOf(req), keys.allSummaries(db, req.params.env)));
 
   // RabbitMQ exchanges (0.19.0): listed here, their page is GET /instances/amqp:<name> below.
-  r.get('/api/envs/:env/exchanges', (req) => exchanges(ctx.graph(req.params.env)));
+  r.get('/api/envs/:env/exchanges', (req) => exchanges(ctx.graphOf(req)));
 
   r.get('/api/envs/:env/instances/:id', (req) => {
-    const g = ctx.graph(req.params.env), id = req.params.id;
+    const g = ctx.graphOf(req), id = req.params.id;
     return !resolveInstance(g, id) && resolveExchange(g, id) != null ? exchangeView(g, id) : keys.readInstance(db, g, req.params.env, id);
   });
 
-  r.get('/api/envs/:env/resources/:id/keys', (req) => keys.readKeys(db, ctx.graph(req.params.env), req.params.env, req.params.id,
+  r.get('/api/envs/:env/resources/:id/keys', (req) => keys.readKeys(db, ctx.graphOf(req), req.params.env, req.params.id,
     { db: dbParam(req.query.get('db')), service: req.query.get('service') || undefined, q: req.query.get('q') ?? undefined, problems: ['1', 'true'].includes(req.query.get('problems') ?? '') }));
 
-  r.put('/api/envs/:env/resources/:id/keys', async (req) => keys.putKeys(db, ctx.graph(req.params.env), req.params.env, req.params.id, await req.json()));
+  r.put('/api/envs/:env/resources/:id/keys', async (req) => keys.putKeys(db, ctx.graphOf(req), req.params.env, req.params.id, await req.json()));
 }

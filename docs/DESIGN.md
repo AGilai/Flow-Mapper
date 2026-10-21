@@ -338,3 +338,22 @@ is its subsystem (`platform`, later `platform/identity`); the environment lists 
 (`Subsystem`, later `Domain`, `Component`). `client-app` is the kind of a device or browser application that calls services.
 Neighbours for the New environment page are one hop over the resolved links, through channels too, so a design can start with the
 components that talk to the ones picked.
+
+## Drafts and marks (0.23.0)
+
+A design environment is edited through **drafts**: named lists of whole-item ops (upsert or delete, by anchor). Whole items, not field patches:
+an op is one row of `baseline_items`' shape, so the diff, the overlay and the apply all work on one `ItemRow`, and a removed field simply is not in the new item.
+Reading a draft is an overlay in memory (the environment's rows, then the net ops), cached beside the environment's graph; nothing is written until apply.
+Apply turns the net ops into manifests (a full one for a new component, a delta per touched existing one) and ingests them in one transaction through the
+harvester code path (`ingestIn`), so versions, the changelog, integrity checks and contract reports behave as for a harvester, and a failure anywhere leaves the environment as it was.
+**Newer edit wins** (maintainer decision 1): there is no conflict stop. Each op remembers a hash of the environment's item when the draft first touched it; apply overwrites an item that
+moved since, and lists it (`replaced`, and in the summary changelog row) so the loss is visible. The bar can warn before (`stale`) because it is the same hash comparison.
+A copied component keeps problems it already had (dangling handlers after a Components copy): an apply is refused only for problems it would cause.
+
+**Marks are a separate endpoint**, not a field of every response: traces, service views and the inventory stay exactly as they were (a golden hash of every prod trace proves it),
+and the pages decorate themselves from one `marks` map keyed by anchor. One diff function computes the marks and the counts, so the bar, the inventory filter and the review list agree.
+The diff is pure (`core/diff/`), shared with the browser, which is how the static preview computes the same marks. The rules that make it usable on real data: noise is dropped before comparing
+(provenance, code locations, versions, `details.doc`, step numbers), steps are aligned by content so an inserted step is one added step, the highest level carries a mark, a changed child marks its parents.
+Manual CRUD on environments is refused for both kinds until the edit forms replace it (decision M2): sealed means harvesters, design means drafts.
+
+`undecided` is a transport value for "not chosen yet", not `other` plus a flag: it resolves by key like any transport, so a design can wire two components before deciding how they talk.

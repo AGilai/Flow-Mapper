@@ -1,14 +1,14 @@
 # Importing an HLD into a design environment (guide for agents)
 
 You are an AI agent. You read a team's high-level design (HLD) documents and produce an **import plan**: one
-JSON file that Flow-Mapper will later apply to a design environment as one draft. The draft write path
-(increment 1b) is not built yet, so today you **build the plan and validate it read-only**. You write nothing
-to any environment.
+JSON file that Flow-Mapper applies to a design environment as one draft (`apply_import_plan`). You **build the plan and
+check it with a dry run** (§8): a dry run adds the ops to a draft, applies them, reports and rolls everything back, so you
+write nothing to any environment. A person reviews the draft and applies it.
 
-Contract files: `schema/manifest.schema.json` (manifest format), `docs/API.md` (REST + MCP),
-`docs/HARVESTER-GUIDE.md` (bind keys, events, DTOs), `docs/plans/design-envs.md` (what 1b will do).
+Contract files: `schema/manifest.schema.json` (manifest format), `docs/API.md` (REST + MCP, Drafts and Marks),
+`docs/HARVESTER-GUIDE.md` (bind keys, events, DTOs), `docs/plans/design-envs.md` (decisions).
 Examples use an illustrative SASE design: subsystems `agent`, `network` (POP), `platform`.
-Items marked **[proposal]** are not in the schema or the server yet; use them as written, they may be renamed.
+Items marked **[proposal]** are conventions the server does not check (the shape of `details.doc`); use them as written, they may be renamed.
 
 ## 1. Connection
 
@@ -19,7 +19,7 @@ else's. Use a configurable base URL, `FLOW` (default `http://localhost:3000`).
 git clone git@github.com:AGilai/Flow-Mapper.git && cd Flow-Mapper   # Node >= 22.18, no npm install needed
 mkdir -p /tmp/fm && FLOW_DB=/tmp/fm/flow.db FLOW_DATA_DIR=/tmp/fm PORT=3000 npm run dev
 FLOW_DB=/tmp/fm/flow.db FLOW_DATA_DIR=/tmp/fm npm run seed          # optional: sample data into env `prod`
-curl -s $FLOW/api/version    # need >= 0.21.0 (groupPath, client-app, environments)
+curl -s $FLOW/api/version    # need >= 0.23.0 (drafts, marks, undecided, plan import)
 curl -s $FLOW/api/envs/meta  # environments with kind sealed | design
 ```
 
@@ -33,7 +33,7 @@ curl -s $FLOW/api/envs/meta  # environments with kind sealed | design
 - Every MCP tool takes `env`; it **defaults to `default`**, not `prod`. Always pass `env: "prod"`.
 - **Never call a write tool against `prod`** (`ingest_manifest` without `dryRun: true`, `upsert_entity`,
   `delete_entity`, `load_dtos`, `load_schemas`, `set_description`, `create_env`, REST POST/PUT/PATCH/DELETE).
-  `prod` is sealed, but a real ingest into it is still accepted (it is the harvester path), so the guard will not save you.
+  `prod` is sealed, but a real ingest into it is still accepted (it is the harvester path), so the guard will not save you. Dry runs and drafts are safe: they never write the environment.
 
 Keep the plan in your own workspace (e.g. `hld-import/plan.json`). You hand it over; Flow-Mapper applies it later.
 
@@ -54,7 +54,7 @@ flow = an entry endpoint (entryPoint: true) + its handler's ordered steps, follo
 - **Sealed** environment: filled only by harvesters (ingest, DTOs, schemas). Manual edits are refused (409 `ENV_SEALED`).
 - **Design** environment: created by copying another one (`blank`, `components`, `full`). Harvester ingest is refused
   (409 `ENV_DESIGN`). It owns its rows: nothing is shared with the source. The copied rows are frozen as its
-  **baseline**, so 1b can mark items New / Changed / Removed against it.
+  **baseline**: marks show items New / Changed / Removed against it.
 - A **Components** copy brings the picked services with endpoints, calls, channels, stores, DTOs and schemas, but
   **no functions or steps**: prod flows do not come along, and a copied endpoint's `handler` dangles. Your new flows
   may still call copied endpoints; the trace ends there.
@@ -64,7 +64,7 @@ flow = an entry endpoint (entryPoint: true) + its handler's ordered steps, follo
 - `client-app` (an agent, a mobile app) calls services and has no endpoints of its own to harvest. To start a flow
   on it, give it one entry ingress **[decided, 0.21.0]**: `transport: "other"`, `entryPoint: true`, a key nothing else
   produces (`bindKey: "client:sase-agent/tunnel-open"`; an ingress without `bindKey` is rejected), and
-  `details.trigger` saying what starts it. Its handler's egress steps are the app's calls.
+  `details.trigger` saying what starts it. Its handler's egress steps are the app's calls. It is listed by `list_entry_points` and its flow traces through those steps into the called components.
 
 ## 3. Classify the documentation
 
@@ -93,7 +93,7 @@ Read every document once end to end, then classify. Rules:
 |---|---|
 | ingress, egress, resource, channel, binding | `details.doc` **[proposal shape]** + `provenance: {producer: "hld-import", runId: "<planId>"}` |
 | function step | `details.doc` **[proposal shape]**; `note` for a one-line human reading |
-| service header, function | **no free field** (header and function are `additionalProperties: false`): record it in the plan's `mapping` table, keyed by anchor `svc:<name>` / `fn:<svc>/<id>` |
+| service header, function | `details.doc` **[proposal shape]** (free-form `details` is accepted on both since 0.23.0); also the plan's `mapping` table, keyed by anchor `svc:<name>` / `fn:<svc>/<id>` |
 | endpoint / event DTO | `meta: {source: {file, line}, provenance: "hld", incomplete: "<what is missing>"}` (existing fields) |
 | store schema, abstract link, flow, subsystem | the plan entry itself (`doc` field) |
 
@@ -150,18 +150,18 @@ endpoint" when prod's `POST /token` could serve is exactly the kind of thing to 
 **Call without parameters.** Write the egress and step; leave out DTOs and request detail. Do not write
 `"params": "tbd"`. The UI shows "params not specified". Add a question if the doc implies parameters.
 
-**Transport not decided.** The agreed value is `transport: "undecided"`, but it is **not in the schema yet**
-(check `schema/manifest.schema.json` `$defs.transport`). Until it is, encode it so it validates today (**temporary**):
+**Transport not decided.** Use `transport: "undecided"` (0.23.0) on both ends, with a `tbd:<callee>/<operation>` key that links them without pretending to be http:
 
 ```json
-{ "id": "out.policy.get", "transport": "other", "bindKey": "tbd:pop-policy-cache/GetTenantPolicy",
-  "details": { "transport": "undecided", "doc": { "file": "hld/03-pop.md", "section": "3.4", "confidence": "stated",
+{ "id": "out.policy.get", "transport": "undecided", "bindKey": "tbd:pop-policy-cache/GetTenantPolicy",
+  "details": { "doc": { "file": "hld/03-pop.md", "section": "3.4", "confidence": "stated",
     "quote": "transport to be decided (gRPC or AMQP RPC)" }, "candidates": ["grpc", "amqp"] } }
 ```
 
-The callee ingress uses the same `transport: "other"`, the same `tbd:` key and `details.transport: "undecided"`.
-The `tbd:<callee>/<operation>` key form is a **[proposal]**: it links the two ends without pretending to be http.
-When `undecided` lands in the schema, replace `other` + `details.transport` with `transport: "undecided"`, keep the key.
+The callee ingress uses the same `transport: "undecided"` and the same `tbd:` key. It resolves by key like any transport, reads as sync, and counts as linked
+when the keys match; with no callee yet it is a dangling call in the contract report, which is the honest state (add a question). The earlier encoding
+(`transport: "other"` + `details.transport: "undecided"`) is still accepted in a plan and converted, with a warning; do not write it any more.
+Harvesters never send `undecided`.
 
 **Mode unknown**: leave `mode` out; do not guess. **Callee component unknown**: do not write a dangling egress;
 write an abstract link instead.
@@ -280,69 +280,59 @@ on the endpoint (HARVESTER-GUIDE "DTOs"): a consumer with `events` takes event D
 ```
 
 Anchors: `svc:<s>`, `ing:<s>/<id>`, `egr:<s>/<id>`, `fn:<s>/<id>`, `res:<s>/<id>`, `ch:<key>`, `evt:<type>`,
-`dto:<s>/<ingress>/<role>`, `flow:<s>/<ingress>`, `grp:<key>`, `link:<id>`. Also list sections that produced
+`dto:<s>/<role>/<status or ->/<ingress>` (status `-` for the success response; the ingress is last because ids may hold `/`), `schema:<source>/<storeKey>`, `flow:<s>/<ingress>`, `grp:<key>`, `link:<id>`. The anchors of the mapping table are informational; the server's grammar is in docs/API.md. Also list sections that produced
 nothing, with `"items": []` and a reason, so nothing reads as skipped.
 
 **(h) questions**: `{ "id": "Q4", "text": "Should pop-edge use prod's POST /token with a device_cert grant instead of a
 new /token/exchange?", "about": ["egr:pop-edge/out.auth.token"], "options": ["reuse POST /token", "new endpoint"],
 "default": "reuse POST /token", "blocking": false }`. `blocking: true` only when the plan cannot be applied without an answer.
 
-## 8. Validate today (read-only)
+## 8. Validate (dry run, nothing is written)
 
-There is no dry run against a design environment: ingest into a design env is refused with 409 `ENV_DESIGN`, and
-the guard runs before the dry run rolls back. So validate against the **source** env (`prod`) with `dryRun`:
+Check the plan against a design environment with a **dry run**: it adds the plan's ops to a draft, applies them, returns the contract reports, and rolls everything back.
 
-1. Copy each manifest and set its `env` to `"prod"`. For each extension build a delta:
-   `{schemaVersion: "1.0", kind: "delta", env: "prod", service: <prod header from get_service>, version: baseVersion + 1,
-   baseVersion, harvestedAt, upsert}`.
-2. Send them **in one batch**, so links between new components resolve:
-   - MCP: `ingest_manifest { "manifests": [ ... ], "dryRun": true }`
-   - REST: `POST $FLOW/api/ingest?dryRun=1` with `{"manifests": [ ... ]}`
-
-   The response is `{dryRun: true, results: [{env, service, fromVersion, toVersion, changes, contract}]}` and nothing
-   is written (the transaction is rolled back). **Check `dryRun: true` is in the response.** If it is missing, you
-   wrote to prod: stop and tell the maintainer.
-3. Read the errors (whole batch rejected, nothing applied):
-   - `422 INVALID`: schema or internal reference; `details` gives JSON paths (prefixed `manifests[i]`). Fix and resend.
-   - `409 VERSION_NOT_NEWER` on a full manifest: a "new" component already exists in prod. Reclassify it as reuse/extend.
-   - `409 VERSION_MISMATCH` / `404 NOT_FOUND` on a delta: wrong `baseVersion`, or the component is not in prod.
-4. Read each `contract`: `dangling-egress` means a bind key matches nothing in prod + your batch: fix the spelling
-   against the callee, or it is a real gap (question or abstract link). `egress-no-events`, `binding-empty-events`,
+1. Make sure the design environment exists and a draft is open (a person or a script: `POST /api/envs`, `open_draft`). You write only into drafts.
+2. `apply_import_plan { env, draft, plan, dryRun: true }` (MCP) or `POST $FLOW/api/envs/<env>/drafts/<slug>/plan?dryRun=1` with the plan as the body.
+   The response has `dryRun: true`, `ops`, `counts`, `warnings`, `skipped`, `questions` and `results: [{env, service, fromVersion, toVersion, changes, contract}]`.
+   **Check `dryRun: true` is in the response.** Without `dryRun` the call adds the ops to the draft (still not to the environment).
+3. Read the errors (the whole plan is rejected, nothing is added):
+   - `422 PLAN_VERSION`: `planVersion` is not 1. `PLAN_ENV`: `environment.name` is not this environment.
+   - `422 PLAN_EXISTS`: a manifest for a component the environment (or the draft) already has: reclassify it as an extension. `PLAN_NO_SERVICE`: an extension of a component that is not there: add it to `environment.services` (copy) or write a manifest.
+   - `422 INVALID`: `details` lists `{path, message}` with paths like `manifests[1].ingress[0].transport` (a file reference in `manifests`, a schema error, an extension with `delete`, a bad op).
+   - `409 DRAFT_CLOSED` (the draft is applied or discarded), `409 ENV_SEALED` (that environment takes no drafts).
+4. Read each `contract`: `dangling-egress` means a bind key matches nothing in the environment + your plan: fix the spelling against the callee, or it is a real gap (question; an `undecided` call with no callee yet reads like this). `egress-no-events`, `binding-empty-events`,
    `filter-matches-nothing`: fix events. `missing-source` (info): expected for docs.
-5. DTOs and schemas: there is no dry run. Check roles against the table in HARVESTER-GUIDE and that `content` is
-   valid JSON. Do **not** call `load_dtos` / `load_schemas` on prod.
-6. Optional, closest to the real result: on a **scratch instance** (own `FLOW_DB`), `npm run seed`, create the
-   design with `create_env` (the seed already makes a demo `sase-hld`: pick another name), then in that scratch copy only you may add your items through the entity routes
-   (`POST /api/envs/sase-hld/services`, `PUT .../services/<s>/<list>/<id>`) and look at the map and `trace_flow`.
-   Throw that database away afterwards; the plan file stays the deliverable.
+5. DTOs and schemas are validated with the plan (roles against the endpoint's slots, a schema's store must be a resource of some component). To check DTOs on their own against the environment: `POST /api/envs/<env>/dtos?dryRun=1` (MCP `load_dtos` with `dryRun: true`), optionally `&draft=<slug>`.
+6. Look at what the draft would mark: `GET /api/envs/<env>/marks?draft=<slug>` (MCP `get_marks`): the new components, the `+1 endpoint` phrases and the changed fields are what the reviewer will see. Not what you meant? Fix the plan and send it to a fresh draft.
 
-## 9. How the plan will be applied (after 1b)
+You may also dry-run single manifests: `POST $FLOW/api/ingest?dryRun=1&draft=<slug>` (MCP `ingest_manifest` with `dryRun` and `draft`) checks them against the design environment as the draft leaves it.
 
-1. `create_env` with `environment` (Components copy of the reused / extended prod components into subsystems).
-   The copied rows become the frozen baseline.
-2. Open a draft (MCP `open_draft`), named after the plan.
-3. Convert the plan to whole-item ops (`edit_in_draft`): `header` + `entity` upserts per new manifest,
-   `entity` upserts per extension item, `dto` / `event_dto` / `schema` upserts, `link` upserts (phase 3).
-4. Review: marks show New / Changed against the baseline; the mapping table and questions go to the reviewer.
-5. `apply_draft`. Then flow names and descriptions (`set_description`, step keys from the trace).
+## 9. How the plan is applied
 
-Not now: do not create design environments on a shared instance, do not ingest (without `dryRun`) anywhere, do not
-write DTOs, schemas or descriptions, do not report bugs about missing design features. Produce the file.
+1. A design environment exists (`create_env` with the plan's `environment`: a Components copy of the reused / extended prod components into subsystems). The copied rows are its frozen baseline.
+2. A draft is open, named after the plan (MCP `open_draft`).
+3. `apply_import_plan { env, draft, plan }` turns the plan into whole-item ops, recorded as AI edits: a header op (with `groupPath`) and one op per item for each manifest, one op per item of each extension, `flow:` / `dto:` / `evt:` / `schema:` ops.
+   Links and questions are kept on the draft (`drafts.plan`) and reported (`skipped.links`, `questions.blocking`); a blocking question is shown to the reviewer, not enforced.
+4. Review: marks show New / Changed against the baseline (`get_marks`, or the draft's changes); the mapping table and questions go to the reviewer. Edit the draft with `edit_in_draft` if needed.
+5. `apply_draft` (a person decides): one delta per touched component, a full manifest per new one, in one transaction; DTOs, schemas, flow names and flow descriptions with it. Newer edit wins: whatever changed in the environment since the draft touched it is overwritten and listed.
+   Per-step descriptions (`set_description`, step keys from the trace) come after.
+
+Not now: do not create design environments on a shared instance, do not ingest (without `dryRun`) anywhere, do not call `apply_draft`, do not write DTOs, schemas or descriptions outside a draft, do not report bugs about missing design features. Produce the file.
 
 ## 10. Checklist
 
-- [ ] Own instance running, version >= 0.21.0, `FLOW` set; every MCP call passes `env: "prod"`.
+- [ ] Own instance running, version >= 0.23.0, `FLOW` set; every MCP call passes `env: "prod"`.
 - [ ] All HLD documents listed in `sources` with revision.
 - [ ] Subsystems listed in order with labels; every component has a `groupPath` from them.
 - [ ] Each component, endpoint, channel, event type, store searched in prod; decision reuse / extend / new recorded.
 - [ ] Reused items referenced by exact prod name and bind key; reused components listed in `environment.services`.
 - [ ] One full manifest per new component; one extension entry per extended component, whole items only.
 - [ ] Every ingress has a handler function; every step target exists; every flow hop is wired by bind key.
-- [ ] Undecided transports use `other` + `details.transport: "undecided"` + `tbd:` key (temporary).
+- [ ] Undecided transports use `transport: "undecided"` + a `tbd:` key on both ends.
 - [ ] Links without endpoints are in `links`, not in manifests.
 - [ ] Provenance on every item (`details.doc`, `mapping`, DTO `meta`); confidence `stated` / `inferred`.
 - [ ] Flows have name, description and per-step text in order.
 - [ ] Every doc section appears in `mapping`; every `inferred` decision that matters has a question.
-- [ ] Dry run of all manifests + extensions in one batch returned `dryRun: true`, no 4xx, and every
+- [ ] Dry run of the whole plan (`apply_import_plan` with `dryRun: true`) returned `dryRun: true`, no 4xx, and every
       `dangling-egress` is fixed or explained by a question.
 - [ ] Nothing written to `prod`.

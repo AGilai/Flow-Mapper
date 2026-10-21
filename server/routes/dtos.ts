@@ -9,6 +9,7 @@ import { endpointInfo } from '../../core/endpoint-info.ts';
 import { eventTypes, eventView } from '../../core/events.ts';
 import { eventFlow } from '../../core/event-flow.ts';
 import * as dtos from '../store/dtos.ts';
+import { draftPrelude } from '../store/draft-prelude.ts';
 
 /** PUT bodies are the DTO itself, so provenance rides in the query as JSON: ?meta={"source":{...}}. */
 function queryMeta(q: URLSearchParams): unknown {
@@ -22,14 +23,20 @@ export function registerDtos(r: Router, ctx: Ctx) {
 
   r.get('/api/envs/:env/endpoints/:service/*ingress', (req) => {
     const { env, service, ingress } = req.params;
-    return endpointInfo(ctx.graph(env), service, ingress, dtos.endpointDtos(db, env, service, ingress), dtos.listEventDtos(db, env))
+    const reader = ctx.readerOf(req);
+    return endpointInfo(ctx.graphOf(req), service, ingress, reader.endpointDtos(service, ingress), reader.listEventDtos())
       ?? (() => { throw notFound(`ingress '${ingress}' of service '${service}'`); })();
   });
 
   r.get('/api/envs/:env/dtos', (req) =>
-    dtos.listDtos(db, req.params.env, { service: req.query.get('service') ?? undefined, ingress: req.query.get('ingress') ?? undefined }));
+    ctx.readerOf(req).listDtos({ service: req.query.get('service') ?? undefined, ingress: req.query.get('ingress') ?? undefined }));
 
-  r.post('/api/envs/:env/dtos', async (req) => created(dtos.loadDtos(db, req.params.env, (await req.json()).dtos)));
+  r.post('/api/envs/:env/dtos', async (req) => {
+    const dryRun = ['1', 'true'].includes(req.query.get('dryRun') ?? ''), draft = req.query.get('draft');
+    const prelude = dryRun && draft ? draftPrelude(db, [{ env: req.params.env }], draft) : undefined;
+    const out = dtos.loadDtos(db, req.params.env, (await req.json()).dtos, { dryRun, prelude });
+    return dryRun ? out : created(out);
+  });
 
   r.put('/api/envs/:env/dtos/:service/:role/*ingress', async (req) => {
     const { env, service, role, ingress } = req.params;
@@ -42,14 +49,14 @@ export function registerDtos(r: Router, ctx: Ctx) {
   });
 
   r.get('/api/envs/:env/events', (req) => {
-    const has = new Set(dtos.listEventDtos(db, req.params.env).map((d) => d.event));
-    return eventTypes(ctx.graph(req.params.env)).map((t) => ({ ...t, hasDto: has.has(t.type) }));
+    const has = new Set(ctx.readerOf(req).listEventDtos().map((d) => d.event));
+    return eventTypes(ctx.graphOf(req)).map((t) => ({ ...t, hasDto: has.has(t.type) }));
   });
 
   r.get('/api/envs/:env/events/*type', (req) => {
-    const g = ctx.graph(req.params.env);
+    const g = ctx.graphOf(req);
     const t = eventView(g, req.params.type);
-    const dto = dtos.getEventDto(db, req.params.env, req.params.type);
+    const dto = ctx.readerOf(req).getEventDto(req.params.type);
     if (!t && !dto) throw notFound(`event type '${req.params.type}'`);
     return { ...(t ?? { type: req.params.type, producers: [], consumers: [] }), flow: eventFlow(g, req.params.type), dto };
   });
