@@ -24,6 +24,7 @@ import { eventFlow } from '../core/event-flow.js';
 import { flowDescriptions, HASH_TRACE } from '../core/description.js';
 import { envApi } from './api-local-envs.js';
 import { createDesign } from './api-local-design.js';
+import { createComments } from './api-local-comments.js';
 
 const data = globalThis.FLOW_PREVIEW;
 const indexes = new Map();
@@ -65,6 +66,7 @@ export const api = {
   version: async () => ({ version: data.version }),
   envs: async () => Object.keys(data.models),
   ...envApi(data, g),
+  ...createComments(data, g),
   ...D.api,
   services: async (env) => {
     const h = new Map(health(g(env)).services.map((s) => [s.service, s]));

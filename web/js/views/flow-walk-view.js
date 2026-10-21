@@ -24,14 +24,18 @@ const calm = () => { try { return matchMedia('(prefers-reduced-motion: reduce)')
  *  onSteps(steps): the numbering of the lane just drawn (the partial-flow line reads it). onRestep(cols): the viewer moved to a step whose lifelines are the columns `cols` (Squeeze folds again for it). endsOf(built): the columns of the current step, before the lane is drawn. */
 export function createWalkView({ store, root, messages = () => null, initial = null, onStep, onRestep, onSteps }) {
   let steps = [], built = null, tiles = null, cur = initial ?? 1, curKey = null, jumpOnDraw = initial != null;
+  let picked = initial != null; // a step the viewer chose (a click, a key, a link with step=): the comments' "Attach to step N" only offers one then
+  const watchers = new Set(); // the comments section reads the steps and the current one (0.27.0)
   const bar = createStepbar({ store, root, onMove: (a) => move(a) });
 
   function go(n, { scroll = true, user = true } = {}) {
     cur = clampStep(n, steps.length);
+    if (user) picked = true;
     const st = steps[cur - 1] ?? null;
     curKey = st?.key ?? null;
     tiles?.setCurrent(cur);
     bar.show(st, cur, steps.length);
+    watchers.forEach((f) => f(cur, st));
     if (user && st) { onStep?.(cur); if (built) onRestep?.(colsOfEvent(built, st.event)); } // before the scroll: a fold redraws the lane and its tiles
     if (scroll && st) reveal(tiles, cur, calm() ? 'auto' : 'smooth');
   }
@@ -54,6 +58,7 @@ export function createWalkView({ store, root, messages = () => null, initial = n
   }
   return {
     el: bar.el, decorate, endsOf,
+    steps: () => steps, picked: () => picked, go: (n) => go(n), watch: (f) => { watchers.add(f); return () => watchers.delete(f); },
     /** Scroll the current step into view and (focus) put focus on its arrow: a fold the viewer had focused was just redrawn away. */
     reveal(focus = false) { reveal(tiles, cur, 'auto'); if (focus) (tiles?.rowEl(cur) ?? null)?.focus({ preventScroll: true }); }, move, current: () => cur,
     hit(event) { const st = stepAtRow(steps, event.row); if (st) go(st.n, { scroll: false }); }, // a click on an arrow: the walk jumps to it

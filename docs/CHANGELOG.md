@@ -5,6 +5,22 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## 0.27.0 (2026-10-21)
+- Comments under each flow (details in [API.md](API.md) "Comments under a flow"). Additive; nothing breaks.
+  - REST, any environment (sealed too, no draft needed): `GET /api/envs/:env/comments?anchor=flow:<service>/<ingress>`,
+    `GET /api/envs/:env/comments/counts`, `POST` (`{anchor, step?, parentId?, author, body}`), `PATCH /:id`, `DELETE /:id?author=`.
+    The anchor is `flow:<service>/<ingress>`; `?draft=` lets a flow that exists only in an open draft be discussed.
+  - MCP: `list_comments {env, service, ingress, draft?, since?}` (plain `text` and sanitized `html`, replies nested; `since` is for polling)
+    and `add_comment {env, service, ingress, author, body, step?, parentId?, draft?}`.
+  - What an agent must know: the body is HTML limited to an allowlist (`p br b strong i em s del strike u ul ol li a table thead tbody tr th td span code pre blockquote`;
+    links `http(s)` only; colours are `cc-*` classes). Everything else is stripped, text is escaped, 20 000 characters at most (`422`).
+    For `add_comment` you can send plain text with Markdown-lite (`**bold**`, `~~strike~~`, `- ` lists) instead of HTML.
+    A comment is by `author` (at most 80 characters); only that author can edit or delete it (naive identity, `403` otherwise).
+    Replies are one level deep. A `step` is a step key (`#step:...`) of the flow's trace, else `400`.
+  - A Full copy of an environment copies its comments; Blank and Components copies do not.
+  - Push events `comment.created`, `comment.edited`, `comment.deleted` (`env`, `data {anchor, id, author, text}`).
+  - Migration 011 (`comments` table, additive; the database is backed up to `<db>.pre-011.bak` first).
+
 ## 0.26.2 (2026-10-21)
 - UI: the app icon is now option D, two lifelines.
 
@@ -59,7 +75,6 @@ in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.m
 - Migration 008.
 
 ## Coming next
-- 0.27.0: comments under each flow. REST `…/comments` and MCP `list_comments` / `add_comment`.
 - 0.27.1: DB collections as their own lifelines (#62).
 - 0.27.2: Mermaid export/import of flows. MCP `export_mermaid`, `import_mermaid` (dry run with proposed matches).
 - 0.28.x: the subsystem level.
