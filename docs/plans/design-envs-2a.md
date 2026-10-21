@@ -346,3 +346,10 @@ to 8; past 8 the palette repeats in order). Client apps, externals and data stor
 their transport colour. Backend (2a-1): store the assignment (e.g. `envs.colors` JSON in migration 008) and return
 it in `GET /api/envs/meta`; a copy keeps the source's assignment. UI (2a-2): apply it on flows (heads, bars, folds,
 step-bar dots) and the map node ring; UI-GUIDE §2/§8 updated with frame 11's wording.
+
+## Inventory: filter by subsystem (maintainer feature request, lead decision 2026-10-21)
+2a-2 adds a "Subsystem" select next to "All teams" on the Inventory (All subsystems, each group of the env in its
+order with its label, "Not set"), a Subsystem column, and in design envs rows grouped by subsystem (frame 7). The
+filter is in the URL (`subsystem=`). Backend: inventory rows already carry the service; add `groupPath` to rows if
+missing (2a-1 may include it; otherwise 2a-2 adds it). Sealed envs show the select only when any service has a
+groupPath.
