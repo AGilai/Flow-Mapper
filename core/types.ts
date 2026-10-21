@@ -5,7 +5,7 @@ export type Transport = 'http' | 'rpc' | 'grpc' | 'sns' | 'sqs' | 'amqp' | 'even
 export type Delivery = 'unicast' | 'multicast';
 export type Mode = 'sync' | 'async';
 export type Match = 'exact' | 'glob' | 'amqp-topic';
-export type ServiceKind = 'service' | 'gateway' | 'lambda' | 'infra';
+export type ServiceKind = 'service' | 'gateway' | 'lambda' | 'infra' | 'client-app';
 export type Details = Record<string, unknown>;
 
 /** Where an item is defined: code or IaC file and line. `commit`/`repo` override the service's for this item's link. */
@@ -24,6 +24,8 @@ export interface Service {
   language?: string;
   description?: string;
   tags?: string[];
+  /** Subsystem path ("platform", later "platform/identity"); optional. */
+  groupPath?: string;
   version: number;
   harvestedAt: string;
   commit?: string;
