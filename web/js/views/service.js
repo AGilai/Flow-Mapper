@@ -6,6 +6,7 @@ import { api } from '../api.js';
 import { state } from '../state.js';
 import { icon } from '../icons.js';
 import { href, setQuery } from '../router.js';
+import { openBugDialog } from '../components/bug-dialog.js';
 import { pageHead } from '../components/page.js';
 import { dataTable } from '../components/table.js';
 import { createPanel } from '../components/panel.js';
@@ -56,7 +57,7 @@ export async function render({ main, params, query }) {
   main.append(
     pageHead(h('span.row', titled('service', s.kind, name), markBadge(mine, { store: marks })), mine && wasText(mine) ? [s.description, h('span.mk-what', ` ${wasText(mine)}`)] : s.description ?? null,
       h('a.btn', { href: href('/system', { sel: `svc:${name}` }) }, icon('system'), 'Show on map'),
-      h('a.btn', { href: href('/bugs/new', { service: name }) }, icon('bug'), 'Report a bug'),
+      h('button.btn', { type: 'button', on: { click: (e) => openBugDialog(e.currentTarget) } }, icon('bug'), 'Report a bug'),
       h('a.btn.primary', { href: href('/flows', { service: name }) }, icon('flow'), 'Trace a flow')),
     host);
   host.prepend(h('div.content', h('div.page-grid', h('div.svc-head', meta, figures), h('div', tabs, body))));

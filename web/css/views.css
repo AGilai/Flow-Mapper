@@ -13,7 +13,7 @@
 .legend {
   position: absolute; left: var(--s4); bottom: var(--s4); display: flex; gap: var(--s4); flex-wrap: wrap;
   padding: 6px var(--s3); background: color-mix(in srgb, var(--surface) 88%, transparent); border: 1px solid var(--line);
-  border-radius: var(--r-sm); font-size: var(--fs-xs); color: var(--ink-2); pointer-events: none; max-width: calc(100% - 2 * var(--s4));
+  border-radius: var(--r-sm); font-size: var(--fs-xs); color: var(--ink-2); pointer-events: none; max-width: calc(100% - var(--s4) - 72px); /* leave the corner to the bug button */
 }
 .legend-item { display: inline-flex; align-items: center; gap: 6px; }
 .legend-item svg { display: block; color: var(--ink-2); }

@@ -195,6 +195,10 @@ whether the zero is normal for this kind of object.
 - Tokens: `--new` / `--new-ink` only on a mark (shape first: the glyph is mandatory in every New and Changed badge, never colour alone); `--warn` never on a mark; Removed is `--muted` plus strike-through, never `--bad`. One short twinkle on load; none with reduced motion. `--flow-2` (async dots) is also yellow and stays that way: it is never a star.
 - Checklist line: no `--warn` glyph, no `--new` on a problem, every mark has its glyph.
 
+## Floating bug button and env dropdown (0.24.2)
+
+`components/bug-dialog.js` mounts one round "Report a bug" button on every screen (hidden on `#/bugs/new`). It opens `components/bug-form.js`, the same form as the page, in a modal dialog so the page underneath is untouched; it moves left of an open right-hand panel. Keep the bottom-right corner of the viewport free of controls that matter. The rail's environment picker is a dropdown of the active environment (`components/env-picker.js`).
+
 ## Checklist before merge
 
 - [ ] Screenshot at 1440px and at 760px, in light and dark. Can you state the page's answer in
