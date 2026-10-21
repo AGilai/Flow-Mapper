@@ -20,6 +20,7 @@ export const MAX_LINE = 2000;
 
 /** `from ARROW [+-] to : text`, found by one scan for the first arrow whose rest reads as a message. */
 function readMessage(ln: string): { from: string; to: string; kind: MmKind; text: string } | null {
+  let colon = -2;   // -2: not looked up yet, -1: there is none
   for (let i = 0; i < ln.length; i++) {
     const c = ln[i];
     if (c !== '-' && c !== '<') continue;
@@ -30,10 +31,12 @@ function readMessage(ln: string): { from: string; to: string; kind: MmKind; text
     while (ln[j] === ' ' || ln[j] === '\t') j++;
     if (ln[j] === '+' || ln[j] === '-') j++;
     while (ln[j] === ' ' || ln[j] === '\t') j++;
-    const colon = ln.indexOf(':', j);
-    if (!from || colon < 0) continue;
+    if (colon !== -1 && colon < j) colon = ln.indexOf(':', j);   // the next colon is looked up only when the last one is behind us: linear
+    if (colon === -1) return null;
+    if (!from) continue;
+    if (colon === j || ln[j] === '>') continue;
     const to = ln.slice(j, colon).trim();
-    if (!to || to[0] === '>' || to[0] === ':') continue;
+    if (!to) continue;
     return { from, to, kind: arrow[1], text: ln.slice(colon + 1) };
   }
   return null;
