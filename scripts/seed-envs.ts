@@ -11,20 +11,23 @@ import { ingestPlan } from '../server/store/draft-plan.ts';
 
 const readJson = (p: string) => JSON.parse(readFileSync(p, 'utf8'));
 
-/** Create every recipe's environment that does not exist yet (an existing design is never overwritten) and its open drafts. */
+/** Create every recipe's environment that does not exist yet (an existing design is never re-copied or overwritten), and open each recipe draft whose slug does not exist yet (an existing draft is never touched). */
 export function seedEnvRecipes(ctx: Ctx, dir: string, log: (m: string) => void = () => {}) {
   if (!existsSync(dir)) return;
   for (const f of readdirSync(dir).filter((f) => f.endsWith('.json') && !f.endsWith('.plan.json')).sort()) {
     const { drafts = [], ...recipe } = readJson(join(dir, f));
-    if (getEnvRow(ctx.db, recipe.name)) { log(`design environment ${recipe.name} exists, left as it is`); continue; }
-    const made = copyEnv(ctx.db, recipe);
-    ctx.changed(made.name);
-    log(`created design environment ${made.name} from ${made.source}: ${made.counts.components} components`);
+    if (getEnvRow(ctx.db, recipe.name)) log(`design environment ${recipe.name} exists, left as it is`);
+    else {
+      const made = copyEnv(ctx.db, recipe);
+      ctx.changed(made.name);
+      log(`created design environment ${made.name} from ${made.source}: ${made.counts.components} components`);
+    }
     for (const d of drafts) {
-      createDraft(ctx.db, made.name, { name: d.name, slug: d.slug, createdBy: recipe.createdBy ?? 'seed' });
-      const r = ingestPlan(ctx.db, made.name, d.slug, readJson(join(dir, d.plan)), { author: recipe.createdBy ?? 'seed' });
-      ctx.changedDraft(made.name, d.slug);
-      log(`opened draft ${d.slug} in ${made.name}: ${r.ops} ops from ${d.plan} (+${r.counts.added} -${r.counts.removed} ~${r.counts.changed}), ${r.warnings.length} warning(s)`);
+      if (ctx.db.prepare('SELECT 1 FROM drafts WHERE env = ? AND slug = ?').get(recipe.name, d.slug)) { log(`draft ${d.slug} in ${recipe.name} exists, left as it is`); continue; }
+      createDraft(ctx.db, recipe.name, { name: d.name, slug: d.slug, createdBy: recipe.createdBy ?? 'seed' });
+      const r = ingestPlan(ctx.db, recipe.name, d.slug, readJson(join(dir, d.plan)), { author: recipe.createdBy ?? 'seed' });
+      ctx.changedDraft(recipe.name, d.slug);
+      log(`opened draft ${d.slug} in ${recipe.name}: ${r.ops} ops from ${d.plan} (+${r.counts.added} -${r.counts.removed} ~${r.counts.changed}), ${r.warnings.length} warning(s)`);
     }
   }
 }

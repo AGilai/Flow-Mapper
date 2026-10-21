@@ -44,6 +44,9 @@ export function planToOps(plan: unknown, rows: ItemRow[], cx: PlanContext): Plan
     const a = JSON.stringify(p.environment.groups.map((g: any) => g?.key)), b = JSON.stringify(cx.groups.map((g) => g.key));
     if (a !== b) warnings.push(`the plan's subsystems (${p.environment.groups.map((g: any) => g?.key).join(', ')}) differ from the environment's (${cx.groups.map((g) => g.key).join(', ') || 'none'}); the environment's are kept`);
   }
+  const KNOWN = ['planVersion', 'planId', 'createdAt', 'createdBy', 'sources', 'environment', 'manifests', 'extensions', 'flows', 'dtos', 'schemas', 'links', 'mapping', 'questions'];
+  const unknown = Object.keys(p).filter((k) => !KNOWN.includes(k));
+  if (unknown.length) warnings.push(`unknown top-level plan field(s) ignored: ${unknown.join(', ')}`);
   const have = new Set(rows.filter((r) => r.list === 'header').map((r) => r.service));
   const headerOf = (s: string) => rows.find((r) => rowId(r) === rowId({ service: s, list: 'header', key: '' }));
   const add = (list: unknown, name: string) => { if (!Array.isArray(list) && list !== undefined) err(name, `${name} must be a list`); return Array.isArray(list) ? list : []; };

@@ -3,7 +3,7 @@
 // and returns what the apply would report, contract findings included.
 
 import type { DB } from '../db/connection.ts';
-import { HttpError } from '../errors.ts';
+import { HttpError, badRequest } from '../errors.ts';
 import { PlanError, planToOps, type PlannedOps } from '../../core/import-plan.ts';
 import { validateManifest } from '../schema.ts';
 import { getEnv, guardEnv } from './envs.ts';
@@ -28,6 +28,7 @@ export function ingestPlan(db: DB, env: string, slug: string, plan: unknown, who
       throw new HttpError(422, codes.size === 1 ? [...codes][0] : 'INVALID', `${e.issues.length} problem(s) in the plan: ${e.issues[0].path ? `${e.issues[0].path}: ` : ''}${e.issues[0].message}`, e.issues);
     }
     const { ops, ...rest } = planned;
+    if (!ops.length) throw badRequest(`the plan changes nothing in ${env}: it yields no ops`);
     const out = appendOps(db, env, slug, ops, { author: who.author ?? (who.byAi ? 'assistant' : 'anonymous'), byAi: who.byAi });
     const { manifests: _m, ...kept } = plan as any;
     db.prepare('UPDATE drafts SET plan = ? WHERE id = ?').run(JSON.stringify(kept), draft.id);
