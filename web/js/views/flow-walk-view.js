@@ -52,7 +52,9 @@ export function createWalkView({ store, root, messages = () => null, initial = n
     return st ? colsOfEvent(lane, st.event) : [];
   }
   return {
-    el: bar.el, decorate, endsOf, move, current: () => cur,
+    el: bar.el, decorate, endsOf,
+    /** Scroll the current step into view and (focus) put focus on its arrow: a fold the viewer had focused was just redrawn away. */
+    reveal(focus = false) { reveal(tiles, cur, 'auto'); if (focus) (tiles?.rowEl(cur) ?? null)?.focus({ preventScroll: true }); }, move, current: () => cur,
     hit(event) { const st = stepAtRow(steps, event.row); if (st) go(st.n, { scroll: false }); }, // a click on an arrow: the walk jumps to it
     onKey(ev) { const a = walkAction(ev); if (a && steps.length) { ev.preventDefault(); move(a); } },
     dispose: () => bar.dispose(),

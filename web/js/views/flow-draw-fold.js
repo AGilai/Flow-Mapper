@@ -44,5 +44,5 @@ export function foldRows(nodes, { events, idx, columns, groups, colX, ys }) {
 function inFold(e, r, y0, g) {
   const step = isStep(e), label = textOf(e);
   return s('g', { class: 'msg sq-in', 'data-e': r, tabindex: step ? 0 : null, role: step ? 'button' : null },
-    step ? [s('rect', { class: 'hit', x: g.x, y: y0 - 12, width: g.w, height: 24 }), g.w > 80 ? s('text', { class: 'sq-to', x: g.x + 40, y: y0 + 4 }, clip(label, 8)) : null, s('title', {}, label)] : null);
+    step ? [s('rect', { class: 'hit', x: g.x, y: y0 - 12, width: g.w, height: 24 }), Math.floor((g.w - 44) / 6.6) >= 3 ? s('text', { class: 'sq-to', x: g.x + 40, y: y0 + 4 }, clip(label, Math.floor((g.w - 44) / 6.6))) : null, s('title', {}, label)] : null);
 }
