@@ -5,6 +5,9 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## 0.27.5 (2026-10-21)
+- UI: the Comments section sits under the diagram, at the bottom of the flow page (maintainer request). The diagram keeps at least 260 px; the comment pane scrolls.
+
 ## 0.27.4 (2026-10-21)
 - Mermaid export and import of flows (details in [API.md](API.md) "Mermaid"). Additive; no migration.
   - Export, any environment (sealed and the static preview too): `GET /api/envs/:env/flows/mermaid?service=&ingress=&draft=` answers `text/plain`; MCP `export_mermaid {env, service, ingress, draft?}` -> `{text}`. The full trace as `sequenceDiagram`: `participant <id> as <name>` per lifeline (channels and data stores labelled by their key, the entry client an `actor`), `->>` with its `-->>` return, `-)` async, `Note over` the step description, `title` the flow name, a `%% Description:` comment.

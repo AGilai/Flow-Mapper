@@ -128,7 +128,7 @@ export function createTabView(data, host) {
     edge(); requestAnimationFrame(edge);
   }
   draw();
-  const el = h('div.flow-tab', h('div.flow-top', flowBox?.el, comments?.el, walk.el, partial.el), body);
+  const el = h('div.flow-tab', h('div.flow-top', flowBox?.el, walk.el, partial.el), body, comments ? h('div.flow-bottom', comments.el) : null); // comments sit under the diagram (maintainer, 0.27.5)
   el.addEventListener('keydown', (ev) => walk.onKey(ev)); // ← → Home End, while focus is in the flow view and not in a text box
   return {
     el, key, data, draw, insideOpen: () => inside.isOpen(), dispose: () => { clearTimeout(resizeTimer); document.removeEventListener('fm:layout', onLayout); inside.dispose(); ro?.disconnect(); tip?.dispose(); descs.forEach((d) => d?.dispose()); comments?.dispose(); walk.dispose(); },
