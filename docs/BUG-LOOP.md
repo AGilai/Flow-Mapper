@@ -17,9 +17,8 @@ Each run is a cheap check; only when there is something to do does it start a **
 2. Drop bugs whose last comment is from `flow-mapper`, and bugs in `fixed`, `verified`, `closed`,
    `wont_fix`, `duplicate` unless the reporter moved them back to `in_progress` or asked something.
 3. Nothing left: say so in one line and stop.
-4. Otherwise start **one** bug agent (Agent tool, `model: sonnet`, `isolation: worktree`, in the
-   background) with the brief below and the bug ids (at most three). Do not start another while
-   one is running; leave the rest for the next run.
+4. Otherwise triage every new bug as the **QA TL** (below) and start bug agents (Agent tool, `model: sonnet`,
+   `isolation: worktree`, in the background) with the brief below.
 5. When it reports a pushed fix, deploy and close it: `git -C /home/ubuntu/Flow-Mapper pull --ff-only`
    (not a fast-forward: stop and tell the maintainer), stop the process whose command line is exactly
    `node --disable-warning=ExperimentalWarning server/main.ts --live-3000` (`pgrep -f -x`), start
@@ -29,6 +28,32 @@ Each run is a cheap check; only when there is something to do does it start a **
 6. Refresh the demo data (`node --disable-warning=ExperimentalWarning scripts/seed.ts`, no `--bugs`) and
    relay the outcome to the maintainer in a few lines: what was fixed (version, commit), the demo link
    (`http://localhost:3000/#/...`), what was answered or left for them, anything that failed.
+
+## QA TL: triage every bug, fix in parallel when it is safe
+
+The bug-loop session is the QA TL. Every new bug gets triaged; none are left waiting for "someone else".
+
+1. **Triage** each bug within the run: bug, feature, question, duplicate or not-ours. Post a `flow-mapper`
+   comment with the decision and its target version. Make low and medium decisions yourself; the maintainer
+   overrides them by opening a bug. Features that need a new page or a UI rework need a mockup, so they go
+   to the maintainer as a proposal.
+2. **Check overlap with work in flight.** `git worktree list`, then for each branch
+   `git diff --stat main...<branch>` gives the files it touches. Also read the in-flight list in the
+   design-envs lead's handover, if a peer lead session is running.
+   - **No overlap:** fix it now in parallel, in a bug agent. Group the bugs that touch the same files into
+     one agent, at most three bugs per agent.
+   - **Overlap:** send the bug to the session that owns that branch (SendMessage: ids and the
+     triage), so it can fold the bug into its work. Do not wait idle.
+3. **Capacity.** The box is small. Run at most **two** bug agents at once, and at most four agents
+   in total across all sessions (check `ListAgents`). Beyond that, queue the bugs for the next run.
+4. **QA before merge.** For a user-visible fix, a separate Sonnet QA agent reviews the diff, runs `npm test` and
+   checks the UI with `/home/ubuntu/tools/qa-browser` before merge. Small API-only fixes can be checked by
+   the bug agent's own test.
+5. **Merge.** Rebase the branch on the current `main`, run `npm test`, then fast-forward `main`
+   (never force) and push. If two fixes are ready, merge them one after the other, re-testing after each.
+6. **Deploy.** Before restarting :3000, tell any peer lead session (SendMessage) that a restart is coming.
+   If the peer is deploying, wait until it finishes. Then follow step 5 above. Bump the version for each
+   user-visible fix. When two fixes ship together, they share one deploy and one version.
 
 ## Push mode
 
