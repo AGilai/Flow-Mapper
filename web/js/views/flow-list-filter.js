@@ -2,6 +2,8 @@
 // The URL keeps `subsystems=a,b`, `components=x,y` and `changed=1|all`; a parameter is left out when it would select everything, so links stay short.
 // A selection is a Set, or null for "all". Components with no `groupPath` are the subsystem "(none)" (key '').
 
+import { relPasses } from './flow-relations-pure.js';
+
 export const NONE = '';
 export const NONE_LABEL = '(none)';
 export const topOf = (groupPath) => String(groupPath ?? '').split('/')[0];
@@ -44,8 +46,8 @@ export function summaryText(sel, rows) {
 }
 
 /** "platform · 3 of 9": what the collapsed list strip says about the filters (nothing when nothing is applied). */
-export function filterSummary({ subs, comps, subRows, compRows, changed, q }) {
-  const parts = [subs ? `subsystems ${summaryText(subs, subRows)}` : null, comps ? `components ${summaryText(comps, compRows)}` : null, changed ? 'changed' : null, q ? `"${q}"` : null].filter(Boolean);
+export function filterSummary({ subs, comps, subRows, compRows, changed, q, rel = null }) {
+  const parts = [subs ? `subsystems ${summaryText(subs, subRows)}` : null, comps ? `components ${summaryText(comps, compRows)}` : null, changed ? 'changed' : null, rel ? (rel === 'any' ? 'related' : rel) : null, q ? `"${q}"` : null].filter(Boolean);
   return parts.join(' · ');
 }
 
@@ -58,12 +60,13 @@ export function markOfPoint(marks, p) {
 }
 
 /** The points that pass every filter. `changed`: null | '1' (New or Changed) | 'all' (also Removed: those are ghosts, listed by `removedPoints`). */
-export function filterPoints(points, { q = '', subs = null, comps = null, changed = null, marks = null, groupOf = new Map() } = {}) {
+export function filterPoints(points, { q = '', subs = null, comps = null, changed = null, rel = null, relBy = new Map(), marks = null, groupOf = new Map() } = {}) {
   const t = q.trim().toLowerCase();
   return points.filter((p) => {
     if (t && !(p.bindKey.toLowerCase().includes(t) || p.service.includes(t) || p.handler.toLowerCase().includes(t) || (p.name ?? '').toLowerCase().includes(t) || (p.summary ?? '').toLowerCase().includes(t))) return false;
     if (subs && !subs.has(topOf(groupOf.get(p.service)))) return false;
     if (comps && !comps.has(p.service)) return false;
+    if (rel && !relPasses(relBy.get(`${p.service}/${p.id}`), rel)) return false;   // 0.28.2: a relation of this type (or any)
     if (changed) { const m = markOfPoint(marks, p)?.mark; if (m !== 'new' && m !== 'changed') return false; }
     return true;
   });

@@ -20,6 +20,7 @@ import { marksNow } from '../design/marks-store.js';
 import { createPartial } from './flow-partial.js';
 import { nameEditor } from './flow-name.js';
 import { createComments } from '../comments/thread.js';
+import { createRelations } from './flow-relations.js';
 import { linksRow } from '../components/ext-links.js';
 import { exportButton, importButton } from '../design/mermaid-export.js';
 import { state } from '../state.js';
@@ -47,6 +48,7 @@ export function createTabView(data, host) {
   const flowBox = root && data.kind !== 'sub' ? descDetails(host.desc, root, null, { cls: 'flowhead', remember: 'flowhead-open', title: 'What this flow is for', onGenerate: () => generate(null),
     summary: [root ? nameEditor({ root, name: host.nameOf?.(root.service, root.ingress) ?? '', fallback: label.title }).el : h('span.fh-t', label.title), label.sub ? h('span.mono.xs.muted', label.sub) : null, linksRow(trace.start?.links), editFlow(), editing ? importButton() : null,
       exportButton({ ...root, name: host.nameOf?.(root.service, root.ingress) || label.title })] }) : null;
+  const related = root && data.kind !== 'sub' ? createRelations({ host, root, editing }) : null; // 0.28.2: typed links to other flows, under the description
   const subLine = root && data.kind === 'sub' ? descLine(host.desc, root, [`${data.service}:${data.name}`, data.service], { onGenerate: () => generate(data.service) }) : null;
   descs.push(flowBox, subLine);
   // Comments under the description (0.27.0): the flow's own discussion; a sub-flow or function tab has none.
@@ -128,10 +130,10 @@ export function createTabView(data, host) {
     edge(); requestAnimationFrame(edge);
   }
   draw();
-  const el = h('div.flow-tab', h('div.flow-top', flowBox?.el, walk.el, partial.el), body, comments ? h('div.flow-bottom', comments.el) : null); // comments sit under the diagram (maintainer, 0.27.5)
+  const el = h('div.flow-tab', h('div.flow-top', flowBox?.el, related?.el, walk.el, partial.el), body, comments ? h('div.flow-bottom', comments.el) : null); // comments sit under the diagram (maintainer, 0.27.5)
   el.addEventListener('keydown', (ev) => walk.onKey(ev)); // ← → Home End, while focus is in the flow view and not in a text box
   return {
-    el, key, data, draw, insideOpen: () => inside.isOpen(), dispose: () => { clearTimeout(resizeTimer); document.removeEventListener('fm:layout', onLayout); inside.dispose(); ro?.disconnect(); tip?.dispose(); descs.forEach((d) => d?.dispose()); comments?.dispose(); walk.dispose(); },
+    el, key, data, draw, insideOpen: () => inside.isOpen(), dispose: () => { clearTimeout(resizeTimer); document.removeEventListener('fm:layout', onLayout); inside.dispose(); ro?.disconnect(); tip?.dispose(); descs.forEach((d) => d?.dispose()); comments?.dispose(); related?.dispose(); walk.dispose(); },
     squeezeOff: () => sqOff, resetSqueeze: () => { sqOff = false; },
     save: () => { saved = scroller.scrollTop; },
     restore: () => { scroller.scrollTop = saved; edge(); requestAnimationFrame(edge); },

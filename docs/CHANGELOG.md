@@ -5,6 +5,16 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## 0.28.2 (2026-10-21)
+Flow-to-flow relations (#50). Additive; no migration (the table came with 012). Details in [API.md](API.md) "Flow relations" and [DESIGN-IMPORT.md](DESIGN-IMPORT.md).
+- **Plan `links[]` between flows are applied now** (they were skipped with "flow relations land in 0.28.2"): `{from: "flow:<s>/<i>", to: "flow:<s>/<i>", type, note?}` with `type` one of `contradicts`, `variant-of`, `supersedes`, `same-topic` (`variant`, `variant_of`, `same_topic` accepted) becomes the draft item `rel:<id>`. A bad one is a warning and is skipped. The result's `links.flow` counts them, `links.skipped` / `skipped.links` only the ones not applied. **Counts that moved:** a plan with flow relations adds one op each.
+- **Drafts imported before 0.28.2:** `POST .../drafts/:slug/plan/links` (MCP `apply_plan_links`) now adds their kept relations as well (`409 NO_CHANGE` when nothing is new).
+- **Edits:** `{kind: 'flow-relation', from: {service, ingress}, to: {service, ingress}, type, note?, id?}` (`id` changes an existing relation); `{kind: 'delete', anchor: 'rel:<id>'}`. New codes `BAD_TYPE`, `NO_FLOW`, `SAME_FLOW`. A symmetric type (`contradicts`, `same-topic`) is stored once whichever flow is `from`. Deleting a component or endpoint deletes the relations that name it, in the same request.
+- **REST:** `GET /api/envs/:env/flow-relations?service=&ingress=&type=&draft=`: `[{id, type, from, to, note?, other, direction, phrase}]`, with `phrase` written for the asking flow ("supersedes" / "is superseded by"). Design environments only (a sealed one answers `[]`).
+- **MCP:** `list_flow_relations {env, draft?, service?, ingress?, type?}` (read); writes through `edit_design`. `edit_design`'s description changed (the tool list hash moved).
+- **Marks:** `rel:<id>` New / Changed / Removed, counted in `counts.relations`. A Full copy of a design carries its relations.
+- UI: "Related flows (n)" under the flow's description, + relation / Edit / Remove in Edit with a draft, a relation filter and a badge in the Flows list (`rel=any|<type>` in the URL). The static preview shows them.
+
 ## 0.28.1 (2026-10-21)
 UI only, nothing for harvesters or importers: the subsystem level in the web UI. The 0.28.0 routes and edits are unchanged.
 - **System map:** a Subsystems | Components level control (`level=subsystems` in the URL; hidden in an environment without subsystems), subsystem boxes with the rolled-up calls and the abstract links, regions round the components at component level.
@@ -125,4 +135,3 @@ The subsystem level (backend; the UI follows in 0.28.1). Details in [API.md](API
 
 ## Coming next
 - 0.28.1: the subsystem level in the UI (map level switch, link panel, flow bands, settings page).
-- 0.28.2: flow-to-flow relations (#50): `rel:` anchors, `flow_relations` (the table exists since 0.28.0), the plan's flow-shaped `links`, `list_flow_relations`.

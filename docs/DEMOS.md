@@ -8,6 +8,8 @@ Add a row here with every fix or feature (newest first). A row without a working
 
 | Version | Bug | What to look at | Link |
 |---|---|---|---|
+| 0.28.2 | #50 | Flow relations: the flow "Agent connects to POP" shows "Related flows (1)": same topic as `auth-svc · in.token.device`, with its note, from the plan's `links[]`. Edit mode: "+ relation", Edit and Remove on each row (pick how the flows relate, search the other flow, add a note). The Flows list has a "Related flows" filter and a ⇄ badge per flow. | `#/flows?env=sase-hld&draft=hld-import&tabs=sase-agent/in.tunnel.open` |
+| 0.28.2 | #50 | The Flows list filter: "Related flows" shows only the flows that have a relation (or one type), each with its ⇄ count. On a draft imported before 0.28.2 run `POST /api/envs/sase-hld/drafts/hld-import/plan/links` once (the seed does not touch an existing draft). | `#/flows?env=sase-hld&draft=hld-import&rel=any` |
 | 0.28.1 | — | The subsystem level on the map: Agent, Network (POP) and Platform with the rolled-up calls (colour = transport, thickness = count), the two abstract links dashed with open ends, "Open in this design" under it. | `#/system?env=sase-hld&draft=hld-import&level=subsystems` |
 | 0.28.1 | — | Refine an abstract link: Edit mode, click "usage metering", then "Use swg-api" (an existing async call into Platform). The link leaves "Open in this design" and its line says "includes 1 link". | `#/system?env=sase-hld&draft=hld-import&mode=edit&level=subsystems&link=usage-metering` |
 | 0.28.1 | — | The component level with subsystem regions (head: "4 components: 2 changed", the split of new and prod; click a head for Inventory). | `#/system?env=sase-hld&draft=hld-import` |

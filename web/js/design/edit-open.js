@@ -7,6 +7,7 @@ import { openEndpointForm } from './forms/endpoint-form.js';
 import { openCallForm } from './forms/call-form.js';
 import { openDtoForm } from './forms/dto-form.js';
 import { openFlowForm } from './forms/flow-form.js';
+import { openRelationForm } from './forms/relation-form.js';
 
 import { formFor } from './edit-target.js';
 export { editing, formFor } from './edit-target.js';
@@ -26,5 +27,6 @@ export function editOpener(host) {
     },
     addCall: (service, fn) => openCallForm({ ...base, from: { service, fn }, onImport: host.importRef }),
     flow: (service, ingress, name, fn) => openFlowForm({ ...base, service, ingress, name, fn }),
+    relation: ({ here, view }) => openRelationForm({ ...base, here, view }),
   };
 }
