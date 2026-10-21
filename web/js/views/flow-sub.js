@@ -1,7 +1,7 @@
 // Pure helpers for "a sub-flow is a full flow that starts at the consumer": who the caller lifeline is, the trace request
 // built from a delivery row, and the cache key that lets tabs and cards share one trace. No DOM.
 
-const SYNC = new Set(['http', 'rpc', 'grpc']);
+const SYNC = new Set(['http', 'rpc', 'grpc', 'undecided']); // a call whose transport a design has not decided reads as a sync call
 const stripType = (k) => String(k).replace(/^[a-z-]+:/, '');
 
 const socketProtocol = (m) => m.protocol ?? 'tcp';

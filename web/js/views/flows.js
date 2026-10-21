@@ -2,6 +2,7 @@
 // here") and it opens a tab; tabs are equal and closable. Each tab keeps its own diagram, list and drill-down.
 // The state (open tabs, active one, closed stack) is pure (flow-tabs-state.js) and mirrored in the URL: tabs= and tab=.
 
+import { loadMarks } from '../design/marks-store.js';
 import { h, fill } from '../dom.js';
 import { api } from '../api.js';
 import { state } from '../state.js';
@@ -23,6 +24,7 @@ const sqStored = () => { try { return localStorage.getItem('flow-mapper.squeeze'
 const sqSave = (on) => { try { localStorage.setItem('flow-mapper.squeeze', on ? '1' : '0'); } catch { /* storage unavailable */ } };
 
 export async function render({ main, query }) {
+  await loadMarks(); // the marks of a design environment (sparks on heads and arrows, the removed list)
   const service = query.get('service');
   const opts = { stores: query.get('stores') !== '0', depth: query.get('depth') ?? 'all',
     frontier: query.get('frontier') === '1', squeeze: sqStored() }; // steps the harvester marked as frontier (call trees that reach no sink)

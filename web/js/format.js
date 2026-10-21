@@ -28,7 +28,7 @@ export function ago(iso) {
 export const monoText = (s) => String(s).split('`').map((t, i) => (i % 2 ? h('span.ex-key', t) : t));
 
 /** Transport chip. t: http | sns | sqs | amqp | cron | broken | async */
-export const chip = (t, label = t) => h('span.chip', { 'data-t': t }, label);
+export const chip = (t, label = t === 'undecided' ? 'transport not decided' : t) => h('span.chip', { 'data-t': t }, label);
 
 export const coverageBar = (x) => {
   if (x == null) return h('span.muted.small', 'no egress');

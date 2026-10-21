@@ -14,6 +14,8 @@ import { createCanvasGraph } from '../graph/canvas-graph.js';
 import { layout } from '../graph/layout.js';
 import { withinHops } from '../../core/subgraph.js';
 import { nodePanel } from './system-panel.js';
+import { loadMarks } from '../design/marks-store.js';
+import { markLegend } from './system-marks.js';
 import { edgePanel } from './edge-panel.js';
 
 const TRANSPORTS = ['http', 'rpc', 'grpc', 'sns', 'sqs', 'amqp', 'eventbridge', 'socket'];
@@ -22,7 +24,7 @@ const TRANSPORTS = ['http', 'rpc', 'grpc', 'sns', 'sqs', 'amqp', 'eventbridge', 
 const n1 = (n, word) => `${n.toLocaleString()} ${word}${n === 1 ? '' : 's'}`;
 
 export async function render({ main, query }) {
-  const data = await api.system(state.env);
+  const [data, marks] = await Promise.all([api.system(state.env), loadMarks()]);
   const opts = {
     q: query.get('q') ?? '', channels: query.get('channels') === '1', stores: query.get('stores') === '1',
     broken: query.get('broken') === '1', team: query.get('team') ?? '', hops: Math.max(0, Math.min(3, Number(query.get('hops')) || 0)),
@@ -33,7 +35,7 @@ export async function render({ main, query }) {
 
   const stage = h('div.graph-stage');
   const count = h('span.small.muted');
-  const content = h('div.content.flush', h('div.stage-wrap', stage, legend()));
+  const content = h('div.content.flush', h('div.stage-wrap', stage, legend(marks, data)));
   let selected = null;
   const panel = createPanel(content, { onClose: () => { selected = null; graph.select(null); setQuery({ sel: null }); apply(); } });
   const search = h('input.input', { type: 'search', placeholder: 'Filter by service, team or function', value: opts.q, 'aria-label': 'Filter map' });
@@ -58,6 +60,7 @@ export async function render({ main, query }) {
     content);
 
   const graph = createCanvasGraph(stage, {
+    marks,
     onSelect: (hit) => {
       if (!hit) { panel.close(); return; }
       if (hit.type === 'node') selectNode(hit.item.id);
@@ -112,7 +115,7 @@ export async function render({ main, query }) {
   function apply() {
     const q = opts.q.trim().toLowerCase();
     const match = (n) => !q || n.label.toLowerCase().includes(q) || (n.team ?? '').toLowerCase().includes(q) || (n.functions ?? []).some((f) => f.toLowerCase().includes(q));
-    const edgeOk = (e) => (opts.broken ? e.broken : true) && (e.broken || e.transports.some((t) => opts.transports.has(t) || t === 'other'));
+    const edgeOk = (e) => (opts.broken ? e.broken : true) && (e.broken || e.transports.some((t) => opts.transports.has(t) || t === 'other' || t === 'undecided'));
     const edges = current.edges.filter(edgeOk);
     // Hits: nodes matching text and team. Nodes without a team (queues, stores, missing) never hit
     // on team alone; they appear only within the hops of a hit.
@@ -159,7 +162,7 @@ export async function render({ main, query }) {
   return { dispose: () => { graph.dispose(); panel.dispose(); } };
 }
 
-function legend() {
+function legend(marks, data) {
   const item = (svg, label) => h('span.legend-item', h('span', { html: svg }), label);
   return h('div.legend', { 'aria-hidden': 'true' },
     item('<svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>', 'Service'),
@@ -169,5 +172,6 @@ function legend() {
     item('<svg width="22" height="6"><path d="M1 3h20" stroke="var(--ink-2)" stroke-width="1.6"/></svg>', 'Sync call (waits for the reply)'),
     item('<svg width="22" height="6"><path d="M1 3h20" stroke="var(--ink-2)" stroke-width="1.6" stroke-dasharray="4 3"/></svg>', 'Async (queue, topic, event)'),
     item('<svg width="22" height="6"><path d="M1 3h20" stroke="var(--t-socket)" stroke-width="3" stroke-linecap="round"/></svg>', 'Client socket entry (tls / tcp / ws)'),
-    item('<svg width="22" height="6"><path d="M1 3h20" stroke="var(--t-broken)" stroke-width="1.6" stroke-dasharray="4 3"/></svg>', 'Broken (no target matches)'));
+    item('<svg width="22" height="6"><path d="M1 3h20" stroke="var(--t-broken)" stroke-width="1.6" stroke-dasharray="4 3"/></svg>', 'Broken (no target matches)'),
+    markLegend(item, marks, data));
 }

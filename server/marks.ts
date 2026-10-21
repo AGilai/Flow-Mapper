@@ -5,6 +5,7 @@
 
 import type { Ctx } from './context.ts';
 import { diffEnv, type DiffOpts, type EnvMarks } from '../core/diff/index.ts';
+import { calleeIndex } from '../core/diff/callee.ts';
 import { netOps, overlayRows } from '../core/draft-ops.ts';
 import type { ItemRow } from '../core/item-rows.ts';
 import { badRequest, conflict, notFound } from './errors.ts';
@@ -21,22 +22,6 @@ export const againstOf = (v: string | null | undefined): Against => {
 };
 
 const cached = <T>(key: string, deps: string[], load: () => T): T => memoGet<T>(key) ?? memoSet(key, load(), deps);
-
-/** The target of a call, for the phrase `+1 call: <callee>`: the one component whose endpoint has the call's bind key (exact keys; the graph resolves patterns and channels, marks do not need it). */
-function calleeIndex(rows: ItemRow[]): DiffOpts['calleeOf'] {
-  let byKey: Map<string, Set<string>> | undefined, egress: Map<string, string> | undefined;
-  return (service, id) => {
-    if (!byKey) {
-      byKey = new Map(); egress = new Map();
-      for (const r of rows) {
-        if (r.list === 'ingress' && r.data?.bindKey && (!r.data.match || r.data.match === 'exact')) byKey.set(r.data.bindKey, (byKey.get(r.data.bindKey) ?? new Set()).add(r.service));
-        else if (r.list === 'egress' && r.data?.bindKey) egress.set(`${r.service}\u0000${r.key}`, r.data.bindKey);
-      }
-    }
-    const to = byKey.get(egress!.get(`${service}\u0000${id}`) ?? '');
-    return to && to.size === 1 ? [...to][0] : undefined;
-  };
-}
 
 export function marksFor(ctx: Ctx, env: string, opts: { against?: Against; draft?: string | null } = {}): EnvMarks {
   const { db } = ctx, against = opts.against ?? 'baseline', draft = opts.draft || null;

@@ -21,10 +21,14 @@ import { eventView } from '../core/events.js';
 import { eventFlow } from '../core/event-flow.js';
 import { flowDescriptions, HASH_TRACE } from '../core/description.js';
 import { envApi } from './api-local-envs.js';
+import { createDesign } from './api-local-design.js';
 
 const data = globalThis.FLOW_PREVIEW;
 const indexes = new Map();
-const g = (env) => { if (!indexes.has(env)) indexes.set(env, buildIndex(data.models[env])); return indexes.get(env); };
+const base = (env) => { if (!indexes.has(env)) indexes.set(env, buildIndex(data.models[env])); return indexes.get(env); };
+const D = createDesign(data, base); // marks, drafts and the reads of a design environment as an open draft would leave it
+const g = D.g;
+export const readAs = D.readAs;
 const bugs = data.bugs.map((b) => structuredClone(b));
 const OPEN = ['open', 'triaged', 'in_progress'];
 const clone = (x) => structuredClone(x);
@@ -49,6 +53,7 @@ export const api = {
   version: async () => ({ version: data.version }),
   envs: async () => Object.keys(data.models),
   ...envApi(data, g),
+  ...D.api,
   services: async (env) => {
     const h = new Map(health(g(env)).services.map((s) => [s.service, s]));
     return g(env).model.services.map((s) => ({ ...s, health: h.get(s.name) }));
@@ -61,7 +66,7 @@ export const api = {
   },
   entryPoints: async (env) => entryPoints(g(env)),
   flowCounts: async (env) => flowCounts(g(env)),
-  inventory: async (env) => inventory(g(env), (data.eventDtos?.[env] ?? []).map((d) => d.event), new Map((data.keys?.[env] ?? []).map((k) => [k.instance, keySummary(k.entries)]))),
+  inventory: async (env) => inventory(g(env), D.eventDtosOf(env).map((d) => d.event), new Map((data.keys?.[env] ?? []).map((k) => [k.instance, keySummary(k.entries)]))),
   instance: async (env, id) => {
     const key = resolveInstance(g(env), id), k = (data.keys?.[env] ?? []).find((x) => x.instance === key);
     if (!key && resolveExchange(g(env), id) != null) return exchangeView(g(env), id);
@@ -72,11 +77,11 @@ export const api = {
     return (key && keysView(g(env), key, k?.entries ?? [], k?.meta ?? null, { db: f.db === '' || f.db == null ? undefined : Number(f.db), q: f.q, problems: !!f.problems, service: f.service || undefined })) ?? fail(`Redis instance '${id}' not found`);
   },
   clients: async (env, f = {}) => listClients(g(env), f),
-  store: async (env, key) => ({ ...(storeWithClients(g(env), key) ?? fail(`data store '${key}' not found`)), schemas: (data.schemas?.[env] ?? []).filter((s) => s.key === key) }),
+  store: async (env, key) => ({ ...(storeWithClients(g(env), key) ?? fail(`data store '${key}' not found`)), schemas: D.schemasOf(env).filter((s) => s.key === key) }),
   channel: async (env, key) => channelView(g(env), key) ?? fail(`channel '${key}' not found`),
-  eventType: async (env, type) => ({ ...(eventView(g(env), type) ?? fail(`event type '${type}' not found`)), flow: eventFlow(g(env), type), dto: (data.eventDtos?.[env] ?? []).find((d) => d.event === type) ?? null }),
+  eventType: async (env, type) => ({ ...(eventView(g(env), type) ?? fail(`event type '${type}' not found`)), flow: eventFlow(g(env), type), dto: D.eventDtosOf(env).find((d) => d.event === type) ?? null }),
   endpoint: async (env, service, ingress) => endpointInfo(g(env), service, ingress,
-    (data.dtos?.[env] ?? []).filter((d) => d.service === service && d.ingress === ingress), data.eventDtos?.[env] ?? []) ?? fail('endpoint not found'),
+    D.dtosOf(env).filter((d) => d.service === service && d.ingress === ingress), D.eventDtosOf(env)) ?? fail('endpoint not found'),
   trace: async (env, q) => trace(g(env), q, { scope: q.scope, maxMessages: q.maxMessages ?? 500, expand: q.expand?.split(',').filter(Boolean), frontier: q.frontier === '1' || q.frontier === true }) ?? fail('start point not found'),
   descriptions: async (env, service, ingress) => {
     const t = trace(g(env), { service, ingress }, HASH_TRACE) ?? fail('flow not found');

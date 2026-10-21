@@ -9,6 +9,8 @@ import { href } from '../router.js';
 import { ago, chip } from '../format.js';
 import { pageHead } from '../components/page.js';
 import { jsonView } from '../components/json-view.js';
+import { eventAnchor } from '../components/field-diff.js';
+import { loadMarks } from '../design/marks-store.js';
 import { dtoSource } from '../components/dto-source.js';
 import { createPanel } from '../components/panel.js';
 import { summary } from '../components/summary.js';
@@ -29,7 +31,7 @@ function message(v) {
   const lines = text.split('\n');
   const box = h('div.msg-box');
   const draw = (all) => box.replaceChildren(...[dtoSource(v.dto),
-    all ? jsonView(v.dto.content) : h('pre.msg-pre', lines.slice(0, PREVIEW_LINES).join('\n') + (lines.length > PREVIEW_LINES ? '\n…' : '')),
+    all ? jsonView(v.dto.content, eventAnchor(v.type)) : h('pre.msg-pre', lines.slice(0, PREVIEW_LINES).join('\n') + (lines.length > PREVIEW_LINES ? '\n…' : '')),
     lines.length > PREVIEW_LINES ? h('button.btn.ghost.show-more', { type: 'button', on: { click: () => draw(!all) } }, all ? 'Show fewer lines' : `Show all ${lines.length} lines`) : null].filter(Boolean));
   draw(false);
   return box;
@@ -37,7 +39,7 @@ function message(v) {
 
 export async function render({ main, params, query }) {
   const compact = query?.get('view') !== 'full';
-  const v = await api.eventType(state.env, params.type);
+  const [v] = await Promise.all([api.eventType(state.env, params.type), loadMarks()]);
   const flow = v.flow;
   const host = h('div.panel-host');
   let selected = null;

@@ -20,6 +20,11 @@ export const marker = (m, cx, y0, mc) => {
     m.kind === 'fold' ? null : s('g', { transform: `translate(${x + 6} ${y0 + 8})`, class: 'fun' }, s('path', { d: FUNNEL }), m.kind === 'all-but' ? s('path', { d: 'M1 11L11 1' }) : null),
     s('text', { x: x + (m.kind === 'fold' ? 10 : 22), y: y0 + 17 }, m.label));
 };
+/** A neutral chip under an arrow: "in draft" (variant 'draft', accent), "kind tbd" ('tbd'), "removed in draft" ('') ... one helper for the small chips of a diagram. */
+export const svgChip = (text, cx, y0, variant = '') => {
+  const w = Math.ceil(text.length * 6.1) + 16, x = cx - w / 2;
+  return s('g', { class: `chip-b ${variant}` }, s('rect', { x, y: y0 + 6, width: w, height: 17, rx: 8.5 }), s('text', { x: x + 8, y: y0 + 18 }, text), s('title', {}, text));
+};
 // An RPC over AMQP: "amqp rpc" under the command's arrow on the first call per caller and server pair ("no server harvested" in red when nothing serves it), a glyph on the later ones.
 export const rpcChip = (text, cx, y0, color, bad) => {
   const w = Math.ceil(text.length * 6.8) + 26, x = cx - w / 2;

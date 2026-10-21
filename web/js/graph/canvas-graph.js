@@ -7,8 +7,10 @@ import { drawDistricts, drawEdges } from './graph-draw-edges.js';
 import { drawLabels } from './graph-draw-labels.js';
 import { nodeAt, edgeAt } from './graph-hit.js';
 import { iconImage } from '../components/object-icon.js';
+import { createMarkLayer } from './graph-marks.js';
 
-export function createCanvasGraph(host, { onSelect, onHover } = {}) {
+export function createCanvasGraph(host, { onSelect, onHover, marks = null } = {}) {
+  const markLayer = marks ? createMarkLayer(marks) : null;
   const canvas = document.createElement('canvas');
   canvas.className = 'graph-canvas';
   canvas.tabIndex = 0;
@@ -70,6 +72,7 @@ export function createCanvasGraph(host, { onSelect, onHover } = {}) {
     });
 
     drawLabels(ctx, S, order, focus, dimmed);
+    if (markLayer?.draw(ctx, S, order, dimmed)) schedule(); // the twinkle runs a moment
   }
 
   // ---- interaction ----

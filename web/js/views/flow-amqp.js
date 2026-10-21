@@ -3,7 +3,7 @@
 //    a small glyph on later ones, and only the first reply per pair is labelled (a timeout always is);
 //  - a publish through an exchange: the branch marker per exchange type, the muted line for the bindings that do not match, the empty-handed pill.
 
-const SYNC = new Set(['http', 'rpc', 'grpc']);
+const SYNC = new Set(['http', 'rpc', 'grpc', 'undecided']);
 
 /** A trace message of an RPC over AMQP (`rpc` on the call, or an entry through an `amqp-rpc:` ingress). */
 export const isRpc = (m) => !!m?.rpc || (m?.transport === 'amqp' && /^amqp-rpc:/.test(String(m.label ?? '')));

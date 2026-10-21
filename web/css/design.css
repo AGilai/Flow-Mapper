@@ -1,0 +1,53 @@
+/* Design environments: the strip above the page (design chip, compare, mode), the draft bar, the review panel and the dialogs. Prefix dz-. */
+
+.dz { flex: none; background: var(--surface); border-bottom: 1px solid var(--line); }
+.dz-row1 { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s2) var(--s3); padding: var(--s2) var(--s5); }
+.dz-chip { display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 10px; background: var(--surface-2); color: var(--ink-2); font-size: var(--fs-xs); font-weight: 600; letter-spacing: .02em; }
+.dz .seg button { height: 28px; font-size: var(--fs-sm); }
+.dz .btn { height: 30px; }
+.dz .btn.sm { height: 24px; font-size: var(--fs-xs); padding: 0 var(--s2); }
+.dz-caret { margin-left: 6px; color: var(--muted); font-size: 10px; }
+
+.dz-draft:empty { display: none; }
+.dz-bar { background: color-mix(in srgb, var(--accent) 6%, var(--surface)); border-top: 1px solid color-mix(in srgb, var(--accent) 25%, var(--line)); padding: var(--s2) var(--s5); }
+.dz-bar-main { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s2) var(--s3); }
+.dz-draftname { display: inline-flex; align-items: center; border: 0; background: transparent; cursor: pointer; padding: 2px 4px; border-radius: var(--r-sm); }
+.dz-draftname:hover { background: var(--accent-soft); }
+.dz-draftname b { font-weight: 600; }
+.dz-delta { display: inline-flex; gap: 8px; font: 600 var(--fs-sm) var(--mono); }
+.dz-delta .a { color: var(--ink); } .dz-delta .r { color: var(--muted); } .dz-delta .c { color: var(--new-ink); }
+.dz-actions { display: flex; gap: var(--s2); flex-wrap: wrap; margin-left: auto; justify-content: flex-end; }
+.dz-callout { margin-top: var(--s2); padding: var(--s2) var(--s3); border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent); border-radius: var(--r-sm); background: color-mix(in srgb, var(--warn) 9%, var(--surface)); color: var(--ink); font-size: var(--fs-sm); }
+.dz-draft > .dz-callout, .dz-hint { margin: 0; border-radius: 0; border-width: 1px 0 0; padding: var(--s2) var(--s5); }
+.dz-hint { background: var(--surface-2); color: var(--ink-2); font-size: var(--fs-sm); border-top: 1px solid var(--line); }
+
+.dz-review { display: flex; flex-direction: column; max-height: 52vh; padding: var(--s3) var(--s5); background: var(--surface); border-top: 1px solid var(--line); }
+.dz-review-scroll { overflow: auto; min-height: 0; flex: 1; }
+.dz-review-head { display: flex; align-items: center; gap: var(--s2); margin-bottom: var(--s2); }
+.dz-review-head h3 { font-size: var(--fs-md); }
+.dz-group { margin-top: var(--s3); }
+.dz-group h4 { font-size: var(--fs-sm); margin-bottom: 4px; }
+.dz-list { list-style: none; margin: 0; padding: 0; display: grid; }
+.dz-row { display: flex; align-items: center; flex-wrap: wrap; gap: 4px var(--s2); padding: 5px 0; border-top: 1px solid var(--line); font-size: var(--fs-sm); }
+.dz-row.under { padding-left: var(--s5); }
+.dz-kind { color: var(--muted); font-size: var(--fs-xs); min-width: 74px; }
+.dz-stale { font-size: var(--fs-xs); color: var(--ink-2); border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent); border-radius: 9px; padding: 0 7px; }
+.dz-review-foot { display: flex; justify-content: flex-end; gap: var(--s2); margin-top: var(--s3); flex-wrap: wrap; }
+.dz-review-foot:empty { display: none; }
+.dz-report ul { margin: var(--s2) 0 0; padding-left: var(--s4); }
+.dz-report p + * { margin-top: var(--s2); }
+
+.dz-dialog { border: 1px solid var(--line-strong); border-radius: var(--r-md); background: var(--surface); color: var(--ink); padding: var(--s5); width: min(460px, calc(100vw - 32px)); box-shadow: var(--shadow-panel); }
+.dz-dialog::backdrop { background: rgba(10, 13, 20, .45); }
+.dz-dialog h2 { font-size: var(--fs-lg); margin-bottom: var(--s3); }
+.dz-dialog-body { color: var(--ink-2); font-size: var(--fs-sm); margin-bottom: var(--s3); }
+.dz-dialog-field { display: grid; gap: 4px; margin-bottom: var(--s3); }
+.dz-dialog-actions { display: flex; justify-content: flex-end; gap: var(--s2); }
+.btn.primary.danger { background: var(--bad); border-color: var(--bad); }
+
+@media (max-width: 860px) {
+  .dz-row1, .dz-bar, .dz-draft > .dz-callout, .dz-hint { padding-left: var(--s4); padding-right: var(--s4); }
+  .dz-review { padding: var(--s3) var(--s4); }
+  .dz-actions { width: 100%; }
+  .dz-compare { max-width: 100%; }
+}

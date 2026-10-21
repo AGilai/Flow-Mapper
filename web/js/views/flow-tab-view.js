@@ -14,6 +14,10 @@ import { createWalkView } from './flow-walk-view.js';
 import { createTip } from './flow-desc-tip.js';
 import { openGenerate } from './flow-desc-dialog.js';
 import { flowId } from './flow-sub.js';
+import { removedList } from './flow-removed.js';
+import { servicesOf } from './flow-marks.js';
+import { marksNow } from '../design/marks-store.js';
+import { state } from '../state.js';
 
 const tc = (t, label) => h('span.tc', { class: t, title: label }, label);
 const kindOf = (key) => String(key).split(':')[0].replace('amqp-queue', 'amqp');
@@ -101,10 +105,10 @@ export function createTabView(data, host) {
   }
 
   function draw() { // options changed (stores, depth): redraw the lane and the lanes of the open cards; their expansion stays
-    if (render) { render.relane(); fill(scroller, head(), render.laneBox, render.idxBox); } else {
+    if (render) { render.relane(); fill(scroller, head(), render.laneBox, removedList(marksNow(), servicesOf(trace), { draft: state.draft }), render.idxBox); } else {
       render = createFlowRender({ trace, tree, key, ancestors: data.start ? [flowId(data.start)] : [] }, shared);
       if (!scroller.clientWidth) render.laneBox.style.visibility = 'hidden'; // drawn before it has a width: show it once laid out to fit
-      fill(scroller, head(), render.laneBox, render.idxBox);
+      fill(scroller, head(), render.laneBox, removedList(marksNow(), servicesOf(trace), { draft: state.draft }), render.idxBox);
     }
     edge(); requestAnimationFrame(edge);
   }

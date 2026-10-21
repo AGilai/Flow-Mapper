@@ -114,6 +114,13 @@ marked **[C:name]** use a shared component (listed at the end). The rules are in
 3. **The Problems column is at the far right** and separated from the name. Fix: put the problem
    count chip next to the name. **[C:status-inline]**
 
+## Design environments (`#/...?env=sase-hld&draft=hld-import`, 0.24.0)
+1. **The map legend and the new marks share a corner.** With the marks legend lines added, the legend takes two rows and covers the lowest nodes on a small map. Fix when the map gets regions
+   (phase 3): move the legend out of the stage or let Fit leave room for it.
+2. **A component's "what changed" can be long** ("message response of in.getUser: 1 new field, 1 changed field"). The map clamps it to 44 characters; the inventory and the page head show it whole.
+3. **Removed items are listed, not drawn.** A call the draft removed shows in the list under the flow diagram, not faded in place (it is not in the trace of the draft). Revisit with the edit forms (2a).
+4. **The strip adds two rows above every page** of a design environment (design chip and switches, then the draft bar). At 760px the buttons wrap; the review panel scrolls inside 52% of the height.
+
 ## Shared components (build once, use everywhere)
 | Component | What it is | Used by |
 |---|---|---|

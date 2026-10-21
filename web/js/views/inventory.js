@@ -4,7 +4,7 @@
 
 import { h, debounce } from '../dom.js';
 import { api } from '../api.js';
-import { state } from '../state.js';
+import { state, isDesign } from '../state.js';
 import { icon } from '../icons.js';
 import { go, setQuery } from '../router.js';
 import { pageHead } from '../components/page.js';
@@ -14,6 +14,8 @@ import { objectIcon } from '../components/object-icon.js';
 import { driverCounts, driversOn } from '../../core/clients.js';
 import { MODE, breakable } from '../components/clients-table.js';
 import { monoText } from '../format.js';
+import { loadMarks } from '../design/marks-store.js';
+import { statusFilter, filterByStatus, whatColumn, statusOf } from './inventory-status.js';
 
 const TYPES = [['', 'All'], ['service', 'Services'], ['channel', 'Topics and queues'], ['event', 'Event types']];
 const RPC = ['rpc', 'RPC commands']; // listed only when the env has RPC commands (0.19.0)
@@ -30,8 +32,9 @@ const KRANK = { 'amqp-exchange': 0, 'amqp-queue': 1, 'amqp-rpc': 2 };
 const TYPE_LABEL = { service: 'Service', channel: 'Channel', store: 'Data store', event: 'Event type', rpc: 'RPC command' };
 
 export async function render({ main, query }) {
-  const [all, clients] = await Promise.all([api.inventory(state.env), api.clients(state.env)]);
-  const f = { rpcq: query.get('rpcq') === '1', type: query.get('type') ?? '', kind: query.get('kind') ?? '', team: query.get('team') ?? '', q: query.get('q') ?? '', problems: query.get('problems') === '1', dto: query.get('dto') ?? '', driver: query.get('driver') ?? '' }; // driver: `<package>@<major>`, `<package>@` when the version is unknown
+  const [all, clients, marks] = await Promise.all([api.inventory(state.env), api.clients(state.env), loadMarks()]);
+  const design = isDesign();
+  const f = { rpcq: query.get('rpcq') === '1', type: query.get('type') ?? '', kind: query.get('kind') ?? '', team: query.get('team') ?? '', q: query.get('q') ?? '', problems: query.get('problems') === '1', dto: query.get('dto') ?? '', driver: query.get('driver') ?? '', status: design ? query.get('status') ?? '' : '' }; // driver: `<package>@<major>`, `<package>@` when the version is unknown
   if (f.type === 'store') f.type = ''; // older links
   const total = h('span');
   const hasRpc = all.some((x) => x.type === 'rpc'), hasAmqp = all.some(isAmqp);
@@ -45,7 +48,7 @@ export async function render({ main, query }) {
   const types = [...dbKinds.map((k) => [`store:${k}`, DB[k] ?? k])];
 
   const table = dataTable({
-    rows: [], pageSize: 50, sortKey: 'label', onRow: (x) => go(...openTarget(x)), rowClass: (x) => (x.plumbing ? 'plumb' : ''),
+    rows: [], pageSize: 50, sortKey: 'label', onRow: (x) => go(...openTarget(x)), rowClass: (x) => (x.plumbing ? 'plumb' : statusOf(x, marks) === 'removed' ? 'gone' : ''),
     columns: [
       { key: 'label', label: 'Name', sort: (x) => (f.type === 'amqp' ? `${KRANK[x.kind] ?? 5}${x.label}` : x.label), render: (x) => h('div.name-cell', objectIcon(x.type, x.kind, 22), h('div.stack', { style: { gap: 0 } }, h('b', { class: x.type === 'service' ? '' : x.type === 'rpc' || x.plumbing ? 'key nowrap' : 'key' }, x.label), x.group && x.group !== x.id ? h('span.xs.muted', x.group) : null)) },
       { key: 'type', label: 'Type', render: (x) => h('span.small.nowrap', TYPE_LABEL[x.type]) },
@@ -54,6 +57,7 @@ export async function render({ main, query }) {
       { key: 'size', label: 'Connections', render: (x) => h('span.small', monoText(x.connections)) },
       { key: 'hasDto', label: 'Message DTO', sort: (x) => (x.type === 'event' ? (x.hasDto ? 1 : 0) : null),
         render: (x) => (x.type !== 'event' ? '' : x.hasDto ? h('span.pill.ok', 'Has DTO') : h('span.small.muted', 'No DTO')) },
+      ...(design ? [whatColumn(marks)] : []),
       { key: 'problems', label: 'Problems', num: true, render: (x) => (x.problems ? h('span', { style: { color: 'var(--bad)', fontWeight: 600 } }, String(x.problems)) : h('span.muted', '0')) },
     ],
   });
@@ -76,6 +80,7 @@ export async function render({ main, query }) {
     buttons.push([t, b]);
     return b;
   };
+  const st = design ? statusFilter(f.status, (v) => { f.status = v; apply(); }) : null;
   const recount = () => { buttons.forEach(([t, b]) => { b.lastChild.textContent = ` ${count(t)}`; }); total.textContent = `${items.length} objects in ${state.env}`; };
   /** The fold row for RPC plumbing: what is hidden, and the switch (the commands are listed as entry points of their servers). */
   const fold = h('label.check.rpc-fold');
@@ -123,7 +128,7 @@ export async function render({ main, query }) {
     const n = f.q.trim().toLowerCase();
     const kind = f.type.startsWith('store:') ? f.type.slice(6) : null;
     drawFold();
-    setQuery({ rpcq: f.rpcq ? 1 : null, type: f.type || null, kind: f.kind || null, team: f.team || null, q: f.q || null, problems: f.problems ? 1 : null, dto: f.type === 'event' && f.dto ? f.dto : null, driver: f.driver || null });
+    setQuery({ rpcq: f.rpcq ? 1 : null, type: f.type || null, kind: f.kind || null, team: f.team || null, q: f.q || null, problems: f.problems ? 1 : null, dto: f.type === 'event' && f.dto ? f.dto : null, driver: f.driver || null, status: f.status || null });
     table.el.hidden = !!f.driver;
     svcTable.el.hidden = !f.driver;
     if (f.driver) { // a driver filter lists services (who is on it and why), from the same rows the facet counts
@@ -134,8 +139,11 @@ export async function render({ main, query }) {
       shown.textContent = `${svcs} ${svcs === 1 ? 'service' : 'services'} on ${stores} ${stores === 1 ? 'store' : 'stores'}`;
       return;
     }
-    const rows = items.filter((x) => matches(x, f.type) && (!f.kind || x.kind === f.kind) && (!f.team || x.team === f.team)
+    let rows = items.filter((x) => matches(x, f.type) && (!f.kind || x.kind === f.kind) && (!f.team || x.team === f.team)
       && (!f.problems || x.problems > 0) && (f.type !== 'event' || !f.dto || (f.dto === 'yes') === !!x.hasDto) && (!n || `${x.id} ${x.label} ${x.kind} ${x.team ?? ''} ${x.group ?? ''}`.toLowerCase().includes(n)));
+    const byType = rows;
+    rows = filterByStatus(byType, f.status, marks);
+    st?.update(items.filter((x) => matches(x, f.type) && (!f.team || x.team === f.team)), f.status, marks);
     table.setRows(rows);
     shown.textContent = `${rows.length} shown`;
   }
@@ -149,6 +157,7 @@ export async function render({ main, query }) {
         h('option', { value: '' }, 'All teams'), teams.map((t) => h('option', { value: t, selected: t === f.team }, t)))),
     h('div.filter-bar', seg, facet,
       h('label.check', h('input', { type: 'checkbox', checked: f.problems, on: { change: (e) => { f.problems = e.target.checked; apply(); } } }), 'Only with problems'),
+      st ? [h('span.small.muted', 'Status'), st.el] : null,
       h('span.spacer'), shown),
     h('div.content', fold, h('div.box', table.el, svcTable.el)));
   dtoSel.hidden = f.type !== 'event';

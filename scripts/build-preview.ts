@@ -2,7 +2,7 @@
 // web/ as-is, core/ type-stripped to .js, and data.js with the sample (prod) and mock (scale-test)
 // systems plus example bugs and endpoint DTOs. The UI runs core/ in the browser via web/js/api-local.js.
 //
-//   node scripts/build-preview.ts [--services 100]
+//   node scripts/build-preview.ts [--services 100] [--out <dir>]
 
 import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -17,14 +17,15 @@ import * as descriptions from '../server/store/descriptions.ts';
 import * as keys from '../server/store/keys.ts';
 import { seedEnvRecipes } from './seed-envs.ts';
 import { listEnvMeta } from '../server/store/envs.ts';
-import { envItemRows, baselineRows } from '../server/store/item-rows.ts';
+import { envItemRows, baselineRows, sourceNowRows } from '../server/store/item-rows.ts';
 import { listDrafts, loadOps } from '../server/store/drafts.ts';
 import { stores } from '../core/stores.ts';
 import { generateMock } from './mock/generate.ts';
 import { seedBugs } from './mock/bugs.ts';
 
 const root = join(import.meta.dirname, '..');
-const out = join(root, 'dist/preview');
+const outIdx = process.argv.indexOf('--out');
+const out = outIdx > 0 ? process.argv[outIdx + 1] : join(root, 'dist/preview');
 const nIdx = process.argv.indexOf('--services');
 const n = nIdx > 0 ? Number(process.argv[nIdx + 1]) : 100;
 
@@ -58,6 +59,8 @@ const data = {
   // Design environments: their rows, their frozen baseline and their open drafts with ops, so the page can compute marks and draft views with core/.
   rows: Object.fromEntries(designs.map((env) => [env, envItemRows(ctx.db, env)])),
   baselines: Object.fromEntries(designs.map((env) => [env, baselineRows(ctx.db, env)])),
+  // the source environment as it is now (for "compared with prod now")
+  sources: Object.fromEntries(designs.map((env) => { const { rows, vanished } = sourceNowRows(ctx.db, env, baselineRows(ctx.db, env)); return [env, { rows, vanished: [...vanished] }]; })),
   drafts: Object.fromEntries(designs.map((env) => [env, listDrafts(ctx.db, env, 'open').map((d) => ({ ...d, ops: loadOps(ctx.db, d.id) }))])),
   bugs: bugs.listBugs(ctx.db, {}, ctx.appVersion).map((b) => {
     const full = bugs.getBug(ctx.db, b.id, ctx.appVersion);

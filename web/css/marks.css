@@ -1,0 +1,73 @@
+/* Status marks of a design environment (UI-GUIDE section 10). New = spark (4-point star), Changed = ring with a dot, Removed = muted and struck, never red.
+   --new / --new-ink only on a mark; --warn never. Every badge carries its glyph. */
+
+.mark { display: inline-flex; align-items: center; gap: 5px; height: 19px; padding: 0 8px 0 6px; border-radius: 10px; font-size: var(--fs-xs); font-weight: 600; white-space: nowrap; vertical-align: middle; }
+.mark.new { background: color-mix(in srgb, var(--new) 24%, var(--surface)); color: var(--new-ink); }
+.mark.chg { background: transparent; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--new-ink) 55%, transparent); color: var(--new-ink); }
+.mark.rm { background: var(--surface-2); color: var(--muted); padding-left: 8px; }
+.mark-glyph { flex: none; }
+.mark-glyph.star path { fill: var(--new); stroke: var(--new-ink); stroke-width: .9; stroke-linejoin: round; }
+.mark-glyph.ring path { fill: var(--new-ink); }
+.mark.new .mark-glyph { animation: mark-twinkle .9s ease-out 1; transform-origin: center; }
+
+/* what changed, in words, next to a mark */
+.mark-what { color: var(--new-ink); font-size: var(--fs-xs); font-weight: 500; }
+.mark-was { color: var(--muted); font-size: var(--fs-xs); font-family: var(--mono); }
+
+/* Removed: muted, struck through, never red (a removal in a design is intent, not a problem) */
+.gone, .gone * { color: var(--muted) !important; }
+.gone .gone-text, .gone-text { text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--muted) 70%, transparent); }
+tr.gone td { opacity: .62; }
+
+/* field rows of a DTO or schema: a 3px inset edge */
+table.schema-table tr.isnew td:first-child { box-shadow: inset 3px 0 0 var(--new); }
+table.schema-table tr.ischg td:first-child { box-shadow: inset 3px 0 0 var(--new-ink); }
+table.schema-table tr.isrm td:first-child { box-shadow: inset 3px 0 0 var(--line-strong); }
+table.schema-table tr.isrm td { color: var(--muted); }
+table.schema-table tr.isrm .key { text-decoration: line-through; }
+table.schema-table tr.isnew td, table.schema-table tr.ischg td { background: color-mix(in srgb, var(--new) 7%, transparent); }
+.fd-head { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s2) var(--s3); margin-bottom: var(--s2); font-size: var(--fs-sm); color: var(--ink-2); }
+.fd-head .fd-sentence { font-weight: 600; color: var(--ink); }
+.fd-empty { color: var(--muted); font-size: var(--fs-sm); margin-bottom: var(--s2); }
+.fd-was { display: block; color: var(--muted); font: 400 var(--fs-xs) var(--mono); }
+
+/* the head of a design page: what the environment is, and what marks compare with */
+.mk-meta { display: inline-flex; align-items: center; flex-wrap: wrap; gap: var(--s2); font-size: var(--fs-xs); color: var(--muted); }
+
+/* inventory: what changed column, filter counts */
+.mk-count { color: var(--muted); font-weight: 400; margin-left: 4px; font-variant-numeric: tabular-nums; }
+.seg button[aria-pressed='true'] .mk-count { color: inherit; opacity: .8; }
+.mk-cell { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; }
+.mk-cell.none { color: var(--muted); }
+
+/* section titles on the service page */
+h3 .mark, .sect-title .mark { margin-left: var(--s2); }
+
+/* the list under a flow: removed since the baseline / in this draft */
+.mk-removed { margin-top: var(--s4); padding: var(--s3) var(--s4); border: 1px dashed var(--line-strong); border-radius: var(--r-md); background: var(--surface); }
+.mk-removed h3 { font-size: var(--fs-sm); color: var(--ink-2); margin-bottom: var(--s2); }
+.mk-removed ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.mk-removed li { font-size: var(--fs-sm); color: var(--muted); }
+.mk-removed li .key { color: var(--muted); text-decoration: line-through; }
+
+/* canvas flow: sparks and chips in the SVG */
+.spark.new path { fill: var(--new); stroke: var(--new-ink); stroke-width: .9; stroke-linejoin: round; }
+.spark.chg path { fill: var(--new-ink); }
+.spark { animation: mark-twinkle .9s ease-out 1; transform-box: fill-box; transform-origin: center; }
+.msg.mk-new .arrow-line { stroke-dasharray: none; }
+.chip-b rect { fill: var(--surface-2); stroke: var(--line-strong); }
+.chip-b text { fill: var(--ink-2); font: 600 10.5px var(--font); }
+.chip-b.draft rect { fill: color-mix(in srgb, var(--draft) 10%, var(--surface)); stroke: var(--draft); }
+.chip-b.draft text { fill: var(--draft); }
+.chip-b.tbd rect { fill: var(--surface-2); stroke: var(--ink-2); stroke-dasharray: none; }
+.msg.mk-rm { opacity: .45; }
+
+@keyframes mark-twinkle { 0% { transform: scale(.4) rotate(-30deg); opacity: 0; } 55% { transform: scale(1.25) rotate(8deg); opacity: 1; } 100% { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .spark, .mark.new .mark-glyph { animation: none !important; } }
+
+/* Transport not decided (a design): neutral, solid. The chip reads "transport not decided". */
+[data-t='undecided'], .chip[data-t='undecided'], .tc.undecided, .sb-row[data-t='undecided'] { --c: var(--ink-2); }
+.chip[data-t='undecided'] { background: var(--surface-2); }
+.sb-col h2 .mark, .page-head h1 .mark { margin-left: var(--s2); font-weight: 600; }
+.sb-actions .mark { margin-right: 4px; }
+.json-view .fd-head, .json-view .fd-empty { padding: var(--s2) var(--s3) 0; margin: 0; }
