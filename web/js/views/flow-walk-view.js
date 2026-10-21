@@ -9,8 +9,8 @@ import { clampStep, moveStep, walkAction } from './flow-walk.js';
 
 const calm = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } };
 
-/** createWalkView({ store, root, initial, onStep(n) }) -> { el, decorate(res, built), hit(event), onKey(ev), move(action), current(), dispose } */
-export function createWalkView({ store, root, initial = null, onStep }) {
+/** createWalkView({ store, root, messages, initial, onStep(n) }) -> { el, decorate(res, built), hit(event), onKey(ev), move(action), current(), dispose } */
+export function createWalkView({ store, root, messages = () => null, initial = null, onStep }) {
   let steps = [], tiles = null, cur = initial ?? 1, curKey = null, jumpOnDraw = initial != null;
   const bar = createStepbar({ store, root, onMove: (a) => move(a) });
 
@@ -21,13 +21,13 @@ export function createWalkView({ store, root, initial = null, onStep }) {
     tiles?.setCurrent(cur);
     bar.show(st, cur, steps.length);
     if (user && st) onStep?.(cur);
-    if (scroll && st) tiles?.rowEl(cur)?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: calm() ? 'auto' : 'smooth' });
+    if (scroll && st) tiles?.rowEl(cur)?.scrollIntoView({ block: 'center', inline: 'nearest', behavior: calm() ? 'auto' : 'smooth' });
   }
   function move(action) { go(moveStep(cur, steps.length, action)); }
 
   /** A lane was drawn (first time, or again): number its arrows and put the highlight back on the same step. */
   function decorate(res, built) {
-    steps = stepsOf(built, stepKeys);
+    steps = stepsOf(built, stepKeys, messages());
     tiles = steps.length ? drawStepTiles(res, built, steps, (n) => go(n)) : null;
     const keep = steps.find((s) => s.key === curKey);
     go(keep ? keep.n : cur, { scroll: false, user: false });

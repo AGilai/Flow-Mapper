@@ -9,16 +9,19 @@
 const STEP_TYPES = new Set(['call', 'hop', 'unresolved', 'store']);
 export const isStep = (e) => STEP_TYPES.has(e.type) && !!e.msg;
 
-/** stepsOf(lane, stepKeys) -> [{ n (1-based), row, event, key, label, from, to, transport }]. from / to: display names ("pop-edge", "orders-queue"). */
-export function stepsOf(lane, stepKeys) {
+/** stepsOf(lane, stepKeys, all) -> [{ n (1-based), row, event, key, label, from, to, transport }]. from / to: display names ("pop-edge", "orders-queue"). */
+export function stepsOf(lane, stepKeys, all = null) {
   const evs = lane.events.filter(isStep);
-  const keys = stepKeys(evs.map((e) => e.msg));
+  // `~2` for a repeat is counted over ALL the trace's messages (`all`), so hiding stores or deep calls never moves a description to another arrow.
+  const byMsg = new Map(), full = all ? stepKeys(all) : [];
+  full.forEach((k, i) => byMsg.set(all[i], k));
+  const own = stepKeys(evs.map((e) => e.msg)), keys = evs.map((e, i) => byMsg.get(e.msg) ?? own[i]);
   return evs.map((e, i) => ({ n: i + 1, row: e.row, event: e, key: keys[i], label: labelOf(e), ...ends(e), transport: e.type === 'hop' ? e.transport : e.tr ?? e.msg.transport ?? null }));
 }
 
 const name = (c) => (c?.service ?? c?.label ?? '?');
 function labelOf(e) {
-  if (e.type === 'store') return `${e.verb} ${e.name}`;
+  if (e.type === 'store') return e.verb; // the target is the end of the arrow: shown once, in the ends
   return Array.isArray(e.label) ? e.label.join(' ') : e.label;
 }
 function ends(e) {

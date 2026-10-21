@@ -55,6 +55,18 @@ test('step keys: from message content, unique per flow, stable when the flow is 
   assert.equal(stepAtRow(steps, s.row), s);
 });
 
+test('step keys: a repeat is counted over the whole trace, so hiding the first copy (depth, stores) keeps the keys', () => {
+  const i = t.messages.findIndex((m: any) => m.kind === 'egress' && m.depth <= 2 && steps.some((x: any) => x.event.msg === m));
+  const m = t.messages[i], hidden = { ...m, depth: 99 };
+  const all = [...t.messages.slice(0, i), hidden, ...t.messages.slice(i)];
+  const visible = all.filter((x: any) => x.depth <= 50);
+  const laneOf = (msgs: any[]) => buildLane(msgs, { scope: t.scope, participants: t.participants });
+  const withAll = stepsOf(laneOf(visible), stepKeys, all).find((x: any) => x.event.msg === m);
+  assert.equal(withAll.key, `${stepKey(m)}~2`, 'the second identical arrow, as the full trace numbers it');
+  assert.equal(stepsOf(laneOf(visible), stepKeys).find((x: any) => x.event.msg === m).key, stepKey(m), 'counting only what is drawn would give it the first one\'s key');
+  assert.equal(stepsOf(laneOf(all), stepKeys, all).find((x: any) => x.event.msg === m).key, withAll.key, 'showing everything keeps it');
+});
+
 test('step keys: format, repeats get ~n, base strips it', () => {
   const m = { from: 'svc:a', to: 'svc:b', label: 'http:GET b/x', transport: 'http' };
   assert.equal(stepKey(m), '#step:svc:a>svc:b|http:GET b/x|http');
@@ -111,6 +123,8 @@ test('walk keys: arrows and Home/End; never in a text box; never clash with the 
   assert.equal(walkAction(ev('ArrowRight', { target: { tagName: 'TEXTAREA' } })), null);
   assert.equal(walkAction(ev('ArrowRight', { target: { tagName: 'DIV', isContentEditable: true } })), null);
   assert.equal(walkAction(ev('ArrowRight', { altKey: true })), null);
+  assert.equal(walkAction(ev('ArrowRight', { target: { tagName: 'DIV', classList: { contains: (c: string) => c === 'seq-scroll' } } })), null, 'a scroller being scrolled');
+  assert.equal(walkAction(ev('End', { target: { tagName: 'DIV', closest: (q: string) => (q === '.fi' ? {} : null) } })), null, 'the drill-down panel');
   for (const k of ['[', ']', '1', '9', 'Escape']) assert.equal(walkAction(ev(k)), null);
   for (const k of ['ArrowLeft', 'ArrowRight', 'Home', 'End']) assert.equal(keyAction(ev(k)), null);
   assert.equal(announce(3, 7, 'GET /x'), 'Step 3 of 7: GET /x');
