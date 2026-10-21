@@ -271,6 +271,44 @@ Priority: severity weight (S1 4 … S4 1) plus impact boost (0 if no flow passes
 entities, 1 if any does, 2 if at least a quarter of all flows do). 5+ is P0, 4 P1, 3 P2, else P3.
 Setting `priority` overrides the suggestion; `priority: null` returns to it.
 
+## Push events (E1)
+
+Instead of polling, a client can hold one connection open and be told when something happens.
+
+`GET /api/events` is a Server-Sent Events stream (`text/event-stream`). Each event is
+`id: <n>`, `event: <type>`, `data: <one-line JSON>`; a `: heartbeat` comment arrives every 25 s. Events are
+stored (7 days / 5000 rows, in the `events` table), so a client can resume:
+
+| Query / header | Meaning |
+|---|---|
+| `types=bug.*,version.deployed` | comma list of types; `*` is a wildcard. Default: all |
+| `reporter=loader,p81` | drops events whose `reporter` is a different one. Events without a reporter (`version.deployed`, `manifest.ingested`, `env.*`) still pass |
+| `env=prod` | same rule for `env` |
+| `Last-Event-ID: 41` or `since=41` | first replay the stored events with a greater id, then go live. Without either: live only |
+
+At most 32 streams at once (`503 TOO_MANY_CLIENTS`). A browser `EventSource` resumes by itself; for `curl` see
+[BUG-LOOP.md](BUG-LOOP.md#push-mode).
+
+`GET /api/events/recent?since=41&types=...&limit=100` is the same data as plain JSON `{events, lastId}`
+for clients that prefer polling (without `since`: the newest `limit`, oldest first). The static preview build has
+no server and no events; nothing in the UI depends on them.
+
+Event: `{id, type, at, env?, bugId?, reporter?, summary, data}`. `summary` is one readable line.
+
+| `type` | When | `data` |
+|---|---|---|
+| `bug.created` | a bug was reported (API, UI, MCP) | `title, severity, priority, links` |
+| `bug.commented` | a comment was added; `reporter` is the bug's reporter | `commentId, author, body` (first 1000 chars) |
+| `bug.status` | the status changed | `from, to, fixedInVersion, resolution, assignee` |
+| `bug.updated` | other fields changed (title, description, severity, priority, assignee, links, ...) | `fields` |
+| `version.deployed` | at startup, when the version differs from the last recorded one | `version, previous` |
+| `manifest.ingested` | a manifest was ingested (not for `dryRun`); one per manifest of a batch | `service, version, fromVersion, kind, producer, source, changes` (counts) |
+| `env.created` / `env.deleted` | a design environment was created or deleted | `source, createdBy` |
+
+An event is recorded once, after the write committed; a rejected or rolled-back write, a no-op patch and a dry run
+record nothing. A `PATCH` that changes the status and other fields gives one `bug.status` and one `bug.updated`;
+`fixedInVersion` and `resolution` sent with the status change belong to the `bug.status` event.
+
 ## Flow descriptions (0.14.0)
 
 Every flow has a description of what it is for, and each service in it can have one for its part. Two records per key,
