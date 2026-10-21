@@ -6,13 +6,17 @@ import assert from 'node:assert/strict';
 // @ts-ignore plain JS modules shared with the browser
 import { nameTarget, flowTitle } from '../web/js/views/flow-name.js';
 // @ts-ignore
-import { parseSel, encodeSel, subsystemRows, componentRows, summaryText, filterSummary, filterPoints, removedPoints } from '../web/js/views/flow-list-filter.js';
+import { parseSel, encodeSel, subsystemRows, componentRows, summaryText, filterSummary, filterPoints, removedPoints, markOfPoint } from '../web/js/views/flow-list-filter.js';
 // @ts-ignore
 import { subsystemOptions, inSubsystem, subsystemLabel } from '../web/js/views/inventory-subsystem.js';
 // @ts-ignore
 import { stripLabel } from '../web/js/collapse.js';
 // @ts-ignore
 import { createMarks } from '../web/js/design/marks-store.js';
+// @ts-ignore
+import { deltaTitle } from '../web/js/design/draft-bar.js';
+// @ts-ignore
+import { safeUrl } from '../web/js/components/ext-links.js';
 
 test('D4: Edit with a draft writes a draft op; View, no draft or a sealed environment writes at once', () => {
   assert.equal(nameTarget({ mode: 'edit', draft: 'd' }, true), 'draft');
@@ -90,4 +94,22 @@ test('inventory: the select shows when the environment has subsystems; a subsyst
   assert.equal(inSubsystem(items[3], ''), true);
   assert.equal(subsystemLabel(items[2], groups), 'Not set');
   assert.equal(subsystemLabel({ type: 'service', groupPath: 'network' }, groups), 'Network (POP)');
+});
+
+test('an entry of a New component takes the component mark (so Changed only keeps it); a Changed component does not mark its entries', () => {
+  const marks = createMarks({ against: 'baseline', source: 'prod', baselineAt: 'x', marks: { 'svc:new1': { mark: 'new' }, 'svc:old': { mark: 'removed' }, 'svc:chg': { mark: 'changed' }, 'ing:chg/own': { mark: 'new' } }, ghosts: {}, counts: {} });
+  assert.equal(markOfPoint(marks, { service: 'new1', id: 'in.x' }).mark, 'new');
+  assert.equal(markOfPoint(marks, { service: 'old', id: 'in.x' }).mark, 'removed');
+  assert.equal(markOfPoint(marks, { service: 'chg', id: 'in.x' }), null);
+  assert.equal(markOfPoint(marks, { service: 'chg', id: 'own' }).mark, 'new', 'its own mark wins');
+  const pts = [{ service: 'new1', id: 'in.x', bindKey: 'k', handler: 'h' }, { service: 'chg', id: 'in.x', bindKey: 'k', handler: 'h' }];
+  assert.deepEqual(filterPoints(pts, { changed: '1', marks }).map((p: any) => p.service), ['new1']);
+});
+
+test('the draft delta tooltip says how many imports are not counted; links open only http(s)', () => {
+  assert.equal(deltaTitle({ added: 6, removed: 0, changed: 1 }, { n: 2, from: 'prod' }), '6 added (2 imported from prod, not counted), 0 removed, 1 changed');
+  assert.equal(deltaTitle({ added: 6, removed: 0, changed: 1 }, null), '6 added, 0 removed, 1 changed');
+  assert.equal(safeUrl('https://a.b/c'), true);
+  assert.equal(safeUrl('javascript:alert(1)'), false);
+  assert.equal(safeUrl(undefined), false);
 });

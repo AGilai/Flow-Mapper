@@ -27,7 +27,7 @@ import { wireEvents } from './flow-draw-events.js';
  * for features that draw on the lane (step numbers, squeeze, editing).
  */
 export function renderLane(lane, { marks = null, refs = null, edit = null, onMessage, onBar, onBarMenu, onParticipant, onNum, onNumHover, onFan, onMw, onBarTip, onSqueeze, selected = null, sticky = true, fit = 0, squeeze = null } = {}) {
-  const c = layoutLane(lane, fit, squeeze, marks), { columns, events, bars, width, top, ys, frames, strips } = c, height = c.height + (edit ? 22 : 0); // Edit: room for the "+ call" under the last bar
+  const c = layoutLane(lane, fit, squeeze, marks, !!edit), { columns, events, bars, width, top, ys, frames, strips } = c, height = c.height
   const head = drawHead({ ...c, marks, refs });
   const drawn = foldRows(drawRows({ ...c, marks, refs }), c);
   const { rects, segs } = drawBars(c, { selected, onBarTip });

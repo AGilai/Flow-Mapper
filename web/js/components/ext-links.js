@@ -5,7 +5,9 @@
 import { h } from '../dom.js';
 import { icon } from '../icons.js';
 
-const safe = (l) => !!l && typeof l.url === 'string' && /^https?:\/\//i.test(l.url);
+/** Only http(s) URLs become links. */
+export const safeUrl = (u) => typeof u === 'string' && /^https?:\/\/\S/i.test(u);
+const safe = (l) => !!l && safeUrl(l.url);
 const anchor = (cls, l, ...kids) => h(`a.${cls}`, { href: l.url, target: '_blank', rel: 'noopener noreferrer', title: `${l.label || l.url} (opens in a new tab)` }, ...kids);
 
 /** The main link as text with an ↗, or null. */

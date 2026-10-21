@@ -11,8 +11,11 @@ export function byText(authors) {
   return authors.length === 1 ? `by ${authors[0]}` : `by ${authors[0]} and ${authors.length - 1} other${authors.length === 2 ? '' : 's'}`;
 }
 
+/** The delta's tooltip (pure): "+6 added (2 imported from prod), 0 removed, 1 changed"; imports are unchanged against their source and are not in the counts. */
+export const deltaTitle = (c, imported) => `${c.added} added${imported?.n ? ` (${imported.n} imported from ${imported.from ?? 'another environment'}, not counted)` : ''}, ${c.removed} removed, ${c.changed} changed`;
+
 /** draftBar({ draft, changes, review, onReview, onApply, onDiscard, onPick }) -> element. review: 'review' | 'confirm' | null. */
-export function draftBar({ draft, changes, review, onReview, onApply, onDiscard, onPick, busy = false }) {
+export function draftBar({ draft, changes, review, onReview, onApply, onDiscard, onPick, busy = false, imported = null }) {
   const c = changes?.counts ?? draft.counts, total = c.added + c.removed + c.changed;
   const stale = (changes?.items ?? []).filter((i) => i.stale && !i.under);
   const who = changes?.authors?.length ? changes.authors : draft.authors;
@@ -20,7 +23,7 @@ export function draftBar({ draft, changes, review, onReview, onApply, onDiscard,
     h('div.dz-bar-main',
       h('button.dz-draftname', { type: 'button', 'data-qa': 'draft-name', title: 'Switch draft', 'aria-label': `Draft ${draft.name}. Switch draft`, on: { click: (e) => onPick(e.currentTarget) } }, h('b', draft.name), h('span.dz-caret', '▾')),
       h('span.dz-by.muted.xs', { title: names(who) }, byText(who)),
-      h('span.dz-delta', { 'data-qa': 'draft-delta', title: `${c.added} added, ${c.removed} removed, ${c.changed} changed` },
+      h('span.dz-delta', { 'data-qa': 'draft-delta', title: deltaTitle(c, imported) },
         h('span.a', `+${c.added}`), h('span.r', `−${c.removed}`), h('span.c', `~${c.changed}`)),
       h('span.spacer'),
       h('div.dz-actions',

@@ -48,3 +48,4 @@
 .ext-i { width: 12px; height: 12px; }
 /* inventory rows grouped by subsystem (design environments) */
 table.grid tr.tgrp th { text-align: left; background: var(--surface-2); color: var(--ink-2); font-size: var(--fs-xs); font-weight: 600; padding: 5px var(--s3); border-top: 1px solid var(--line-strong); }
+.fl-tags { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }

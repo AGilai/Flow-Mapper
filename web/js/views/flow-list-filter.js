@@ -49,8 +49,13 @@ export function filterSummary({ subs, comps, subRows, compRows, changed, q }) {
   return parts.join(' · ');
 }
 
-/** The mark of an entry point (design marks), or null. */
-export const markOfPoint = (marks, p) => marks?.markOf?.(`ing:${p.service}/${p.id}`) ?? null;
+/** The mark of an entry point (design marks), or null. An entry of a component that is New (or Removed) has no `ing:` mark of its own (the highest level carries it), so it takes its component's. */
+export function markOfPoint(marks, p) {
+  const own = marks?.markOf?.(`ing:${p.service}/${p.id}`);
+  if (own) return own;
+  const svc = marks?.markOf?.(`svc:${p.service}`);
+  return svc && (svc.mark === 'new' || svc.mark === 'removed') ? { mark: svc.mark } : null;
+}
 
 /** The points that pass every filter. `changed`: null | '1' (New or Changed) | 'all' (also Removed: those are ghosts, listed by `removedPoints`). */
 export function filterPoints(points, { q = '', subs = null, comps = null, changed = null, marks = null, groupOf = new Map() } = {}) {
