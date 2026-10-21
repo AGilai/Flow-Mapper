@@ -22,6 +22,17 @@ Rules for every part:
 - `npm run preview` keeps working.
 - Golden traceHash stays byte-identical: core/trace.ts and the prod samples are untouched, and no trace gains a field.
 
+> **Maintainer override (2026-10-21, night): a component belongs to exactly ONE subsystem.** `alsoIn` (#51) is
+> dropped everywhere in this spec. Ignore every `alsoIn` item below: no field, no read fallback, no roll-up "via
+> also", no form control. Q1 in §13 is void. The rules instead:
+> - **Prevent the second:** a single request (plan import, ops batch, Mermaid import) that gives one component two
+>   different subsystems is refused with 422 `TWO_GROUPS` (it names the component and both paths). A plan entry
+>   carrying `details.alsoIn` is refused the same way, and the message says to pick one.
+> - **Changing it moves it:** a component edit with a new `groupPath` replaces the old one. The edit form shows the
+>   current subsystem and, when changed, the text "Moves <name> from <old> to <new>". The draft lists it as a change
+>   on the component ("subsystem: Network → Platform") and on both `grp:` boxes.
+> - A subsystem key referenced by no component and no settings row is simply absent.
+
 ## 0. Ground rules
 - **Hierarchy.** Env › Subsystem › Domain (later) › Component.
   - A group key is a path (`platform`, later `platform/identity`).
