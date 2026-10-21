@@ -35,6 +35,8 @@ export function normItem(list: string, data: any): unknown {
   switch (list) {
     case 'dto': case 'event_dto': return { content: data?.content };
     case 'schema': case 'flow': return data;
+    case 'subsystem': { const { order: _o, ...rest } = data ?? {}; return rest; }   // reordering is not a design change
+    case 'link': case 'flowrel': return Object.fromEntries(Object.entries(data ?? {}).filter(([, v]) => v !== null && v !== undefined && !(Array.isArray(v) && !v.length)));
     case 'header': return strip(Object.fromEntries(Object.entries(data ?? {}).filter(([k]) => !HEADER_DROP.has(k))));
     case 'functions': case 'step': return strip(data, '', true);
     default: return strip(data);

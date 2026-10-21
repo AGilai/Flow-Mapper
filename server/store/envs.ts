@@ -8,7 +8,7 @@ import { conflict, notFound } from '../errors.ts';
 import { ensureColors } from './colors.ts';
 
 export type EnvKind = 'sealed' | 'design';
-export interface EnvGroup { key: string; label: string }
+export interface EnvGroup { key: string; label: string; icon?: string }
 export interface EnvMeta {
   name: string; kind: EnvKind; source: string | null; copiedAt: string | null; groups: EnvGroup[]; levels: string[];
   createdAt: string; createdBy: string; counts: Record<string, number>;
@@ -74,7 +74,7 @@ export function guardEnv(db: DB, env: string, writer: Writer) {
   if (kind === 'sealed') throw conflict('ENV_SEALED', `environment '${env}' is sealed: only harvesters fill it (ingest, DTOs, schemas). Copy it into a design environment to edit it (POST /api/envs).`);
 }
 
-const TABLES = ['entities', 'snapshots', 'changelog', 'health_history', 'endpoint_dtos', 'event_dtos', 'store_schemas', 'resource_keys', 'resource_keys_meta', 'descriptions', 'baseline_items', 'drafts', 'flow_names', 'flow_links', 'comments'];
+const TABLES = ['entities', 'snapshots', 'changelog', 'health_history', 'endpoint_dtos', 'event_dtos', 'store_schemas', 'resource_keys', 'resource_keys_meta', 'descriptions', 'baseline_items', 'drafts', 'flow_names', 'flow_links', 'comments', 'abstract_links', 'flow_relations'];
 
 /** Delete a design environment with everything in it (bugs stay: they are reports about the app, not map data). */
 export function deleteEnv(db: DB, name: string) {

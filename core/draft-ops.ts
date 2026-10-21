@@ -6,7 +6,8 @@
 
 import { anchorOfRow, parseAnchor, rowOfAnchor } from './anchors.ts';
 import { rowId, rowLabel, type ItemRow } from './item-rows.ts';
-import { rawHash, same } from './diff/normalise.ts';
+import { rawHash, same, stableJson } from './diff/normalise.ts';
+import { topOf } from './subsystems.ts';
 
 export interface DraftOpInput { op: 'upsert' | 'delete'; anchor: string; service?: string; data?: unknown }
 /** Where an op's item was imported from (import ops only): the source environment and its service version then. `batch`: the Mermaid import it came with (0.27.2).
@@ -14,7 +15,8 @@ export interface DraftOpInput { op: 'upsert' | 'delete'; anchor: string; service
 export type OpOrigin = { env: string; version: number | null; batch?: string } | { kind: 'mermaid'; batch: string };
 export interface DraftOp extends DraftOpInput { seq: number; service: string; list: string; key: string; baseHash: string | null; author: string; byAi: boolean; at: string; origin?: OpOrigin | null }
 export type NetOp = DraftOp;
-export interface DraftChange { anchor: string; change: 'added' | 'removed' | 'changed'; label: string; under?: string; authors: string[]; at: string; stale: boolean }
+/** `what`: a component that moved to another subsystem says so ("subsystem: Network → Platform"); its two grp: boxes are listed under it. */
+export interface DraftChange { anchor: string; change: 'added' | 'removed' | 'changed'; label: string; what?: string; under?: string; authors: string[]; at: string; stale: boolean }
 export interface DraftChanges { counts: { added: number; removed: number; changed: number }; items: DraftChange[]; authors: string[] }
 
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -75,8 +77,9 @@ export function overlayRows(rows: ItemRow[], net: NetOp[]): ItemRow[] {
   return [...map.values()];
 }
 
-/** Does the draft's item differ from the environment's? Headers compare whole (group path and details are design content). */
+/** Does the draft's item differ from the environment's? Headers compare whole (group path and details are design content), so do subsystem settings (order included). */
 export function differs(list: string, a: unknown, b: unknown): boolean {
+  if (list === 'subsystem') return stableJson(a) !== stableJson(b);   // the diff ignores `order`, but a reorder is still something the draft writes
   return list === 'header' ? rawHash(a, 'header') !== rawHash(stripKeep(b), 'header') : !same(list, a, b);
 }
 
@@ -101,8 +104,21 @@ export function draftChanges(envRows: ItemRow[], net: NetOp[], all: DraftOp[] = 
     if (!change) continue;
     const own = by.get(id) ?? [op], mine = rowId(op) === id;
     const under = r.list !== 'header' && r.service && svcChange.get(r.service) ? `svc:${r.service}` : undefined;
-    items.push({ anchor: anchorOfRow(r), change, label: rowLabel(r), ...(under ? { under } : {}), authors: [...new Set(own.map((x) => x.author))],
-      at: own[own.length - 1].at, stale: mine && (e ? rawHash(e.data, r.list) : null) !== op.baseHash });
+    const item: DraftChange = { anchor: anchorOfRow(r), change, label: rowLabel(r), ...(under ? { under } : {}), authors: [...new Set(own.map((x) => x.author))],
+      at: own[own.length - 1].at, stale: mine && (e ? rawHash(e.data, r.list) : null) !== op.baseHash };
+    items.push(item);
+    const [from, to] = r.list === 'header' && e && a ? [topOf(e.data?.groupPath), topOf(a.data?.groupPath)] : ['', ''];
+    if (change === 'changed' && from !== to) {   // a component moved: one subsystem each, both boxes change
+      const name = (k: string) => (k ? (after.get(rowId({ service: '', list: 'subsystem', key: k }))?.data?.label ?? k) : 'not set');
+      item.what = `subsystem: ${name(from)} \u2192 ${name(to)}`;
+      for (const k of [from, to]) if (k) items.push({ ...item, anchor: `grp:${k}`, label: name(k), what: from === k ? `${r.service} moved out` : `${r.service} moved in`, under: item.anchor });
+    }
+  }
+  for (const it of [...items]) {   // a moved-into or moved-out subsystem that the draft also adds or edits: one row, with the move merged into its what
+    const own = it.under?.startsWith('svc:') && it.anchor.startsWith('grp:') ? items.find((o) => o !== it && o.anchor === it.anchor && !o.under) : undefined;
+    if (!own) continue;
+    own.what = [own.what, it.what].filter(Boolean).join(' \u00b7 ');
+    items.splice(items.indexOf(it), 1);
   }
   items.sort((x, y) => (x.anchor < y.anchor ? -1 : x.anchor > y.anchor ? 1 : 0));
   const counts = { added: 0, removed: 0, changed: 0 };

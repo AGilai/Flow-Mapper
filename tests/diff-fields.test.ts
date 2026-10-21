@@ -43,7 +43,7 @@ test('D5 reordered keys and changed example values are no field change', () => {
 
 test('D5 event DTO field change rolls up to the producer component with the frame phrase', () => {
   const m = diff(base, evt((c) => { c.quarantineReason = 'x'; }));
-  assert.deepEqual(marksOf(m), { 'evt:UserUpdated': 'changed', 'evt:UserUpdated#quarantineReason': 'new', 'svc:users-svc': 'changed' });
+  assert.deepEqual(marksOf(m), { 'evt:UserUpdated': 'changed', 'evt:UserUpdated#quarantineReason': 'new', 'grp:platform': 'changed', 'svc:users-svc': 'changed' });   // 0.28: and its subsystem
   assert.equal(m.marks['svc:users-svc'].what, 'message UserUpdated: 1 new field');
   assert.equal(m.marks['evt:UserUpdated'].what, '1 new field');
   assert.deepEqual([m.counts.messages.changed, m.counts.fields.new, m.counts.components.changed], [1, 1, 1]);
@@ -51,7 +51,7 @@ test('D5 event DTO field change rolls up to the producer component with the fram
 
 test('D5 endpoint DTO change rolls up to ing: and svc:', () => {
   const m = diff(base, dto((c) => { c.email = 5; }));
-  assert.deepEqual(marksOf(m), { 'dto:users-svc/response/-/in.getUser': 'changed', 'dto:users-svc/response/-/in.getUser#email': 'changed', 'ing:users-svc/in.getUser': 'changed', 'svc:users-svc': 'changed' });
+  assert.deepEqual(marksOf(m), { 'dto:users-svc/response/-/in.getUser': 'changed', 'dto:users-svc/response/-/in.getUser#email': 'changed', 'grp:platform': 'changed', 'ing:users-svc/in.getUser': 'changed', 'svc:users-svc': 'changed' });   // 0.28: and its subsystem
   assert.equal(m.marks['dto:users-svc/response/-/in.getUser#email'].was, 'was string');
   assert.equal(m.marks['ing:users-svc/in.getUser'].what, 'message response: 1 changed field');
   assert.equal(m.marks['svc:users-svc'].what, 'message response of in.getUser: 1 changed field');

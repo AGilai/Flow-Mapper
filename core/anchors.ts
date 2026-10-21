@@ -2,17 +2,19 @@
 // marks, draft ops, import-plan mapping and (later) discussion threads. Fixed: never change it.
 //   svc:<s>   fn:<s>/<id>  ing:<s>/<id>  egr:<s>/<id>  res:<s>/<id>  bind:<s>/<id>   ch:<bindKey>
 //   dto:<s>/<role>/<status or ->/<ingress>   evt:<type>   schema:<source>/<storeKey>   flow:<s>/<ingress>
+//   grp:<path> (a subsystem; the path may hold '/')   link:<id> (an abstract link)   rel:<id> (a flow-to-flow link)
 //   <anchor>#<fieldPath>   (dto, evt, schema only)
 // Service names never contain '/', so `<s>/` splits on the first '/'; the rest is the key, verbatim.
 
 import type { ItemRow } from './item-rows.ts';
 
-export type AnchorKind = 'svc' | 'fn' | 'ing' | 'egr' | 'res' | 'bind' | 'ch' | 'dto' | 'evt' | 'schema' | 'flow';
+export type AnchorKind = 'svc' | 'fn' | 'ing' | 'egr' | 'res' | 'bind' | 'ch' | 'dto' | 'evt' | 'schema' | 'flow' | 'grp' | 'link' | 'rel';
 export interface Parsed { kind: AnchorKind; service?: string; key: string; field?: string }
 
 const ENTITY: Record<string, string> = { fn: 'functions', ing: 'ingress', egr: 'egress', res: 'resources', bind: 'bindings' };
 const PREFIX: Record<string, string> = { functions: 'fn', ingress: 'ing', egress: 'egr', resources: 'res', bindings: 'bind' };
-const KINDS = new Set<string>(['svc', 'fn', 'ing', 'egr', 'res', 'bind', 'ch', 'dto', 'evt', 'schema', 'flow']);
+const KINDS = new Set<string>(['svc', 'fn', 'ing', 'egr', 'res', 'bind', 'ch', 'dto', 'evt', 'schema', 'flow', 'grp', 'link', 'rel']);
+const DESIGN: Record<string, string> = { grp: 'subsystem', link: 'link', rel: 'flowrel' };
 const SOURCES = ['code', 'db', 'manual'];
 const FIELDED = new Set(['dto', 'evt', 'schema']);
 
@@ -39,7 +41,7 @@ export function parseAnchor(a: unknown): Parsed | null {
   const out = (p: Omit<Parsed, 'kind'>): Parsed => ({ kind: k, ...p, ...(field !== undefined ? { field } : {}) });
   if (k === 'svc') return rest.includes('/') ? null : out({ service: rest, key: '' });
   if (k === 'ch') return out({ key: rest });
-  if (k === 'evt') return out({ service: '', key: rest });
+  if (k === 'evt' || k === 'grp' || k === 'link' || k === 'rel') return out({ service: '', key: rest });
   if (k === 'schema') {
     const p = split(rest);
     return p && SOURCES.includes(p[0]) ? out({ service: '', key: `${p[1]}|${p[0]}` }) : null;
@@ -62,6 +64,9 @@ export function anchorOfRow(r: Pick<ItemRow, 'service' | 'list' | 'key'>): strin
     case 'channels': return `ch:${r.key}`;
     case 'event_dto': return `evt:${r.key}`;
     case 'flow': return `flow:${r.service}/${r.key}`;
+    case 'subsystem': return `grp:${r.key}`;
+    case 'link': return `link:${r.key}`;
+    case 'flowrel': return `rel:${r.key}`;
     case 'schema': { const [k, s] = lastBar(r.key); return `schema:${s}/${k}`; }
     case 'dto': { const [rest, status] = lastBar(r.key), [ingress, role] = lastBar(rest); return `dto:${r.service}/${role}/${status || '-'}/${ingress}`; }
     default:
@@ -80,6 +85,7 @@ export function rowOfAnchor(a: string, service?: string): { service: string; lis
     case 'schema': return { service: '', list: 'schema', key: p.key };
     case 'dto': return { service: p.service!, list: 'dto', key: p.key };
     case 'flow': return { service: p.service!, list: 'flow', key: p.key };
+    case 'grp': case 'link': case 'rel': return { service: '', list: DESIGN[p.kind], key: p.key };
     default: return { service: p.service!, list: ENTITY[p.kind], key: p.key };
   }
 }
@@ -94,6 +100,6 @@ export function parentOf(a: string): string | null {
     const item = itemOf(a), i = p.field.lastIndexOf('.');
     return i < 0 ? item : fieldAnchor(item, p.field.slice(0, i).replace(/(\[\])+$/, ''));
   }
-  if (p.kind === 'svc' || p.kind === 'ch' || p.kind === 'evt' || p.kind === 'schema') return null;
+  if (p.kind === 'svc' || p.kind === 'ch' || p.kind === 'evt' || p.kind === 'schema' || p.kind === 'grp' || p.kind === 'link' || p.kind === 'rel') return null;
   return `svc:${p.service}`;
 }

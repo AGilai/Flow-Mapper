@@ -38,3 +38,17 @@ test('rowsToExtras gives the store output shapes (DTOs, event DTOs, schemas) bac
   assert.deepEqual(strip(x.eventDtos), strip(listEventDtos(db, 'prod')));
   assert.deepEqual(strip(x.schemas), strip(listSchemas(db, 'prod')));
 });
+
+test('0.28: subsystem, link and relation rows are in envItemRows and change nothing in the model', () => {
+  const db = openDb(':memory:');
+  for (const m of all(SAMPLES)) ingest(db, m, 'seed');
+  db.prepare("UPDATE envs SET groups = ? WHERE name = 'prod'").run(JSON.stringify([{ key: 'platform', label: 'Platform', icon: 'platform' }, { key: 'edge', label: 'Edge' }]));
+  db.prepare("INSERT INTO abstract_links (env, id, name, from_ref, to_ref, mode, refined_by, updated_at) VALUES ('prod', 'l', 'L', 'grp:edge', 'grp:platform', 'async', '[]', 'now')").run();
+  db.prepare("INSERT INTO flow_relations (env, id, from_service, from_ingress, to_service, to_ingress, type, note, updated_at) VALUES ('prod', 'r1', 'a', 'i', 'b', 'j', 'supersedes', 'n', 'now')").run();
+  const rows = envItemRows(db, 'prod');
+  assert.deepEqual(rows.filter((r) => ['subsystem', 'link', 'flowrel'].includes(r.list)).map((r) => [r.list, r.key, r.data]), [
+    ['subsystem', 'platform', { label: 'Platform', icon: 'platform', order: 0 }], ['subsystem', 'edge', { label: 'Edge', order: 1 }],
+    ['link', 'l', { name: 'L', from: 'grp:edge', to: 'grp:platform', mode: 'async' }],
+    ['flowrel', 'r1', { from: 'flow:a/i', to: 'flow:b/j', type: 'supersedes', note: 'n' }]]);
+  assert.deepEqual(rowsToModel('prod', rows), loadModel(db, 'prod'));
+});

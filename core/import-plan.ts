@@ -4,7 +4,9 @@
 import { checkLinks } from './links.ts';
 import { anchorOfRow } from './anchors.ts';
 import { ENTITY_LISTS, rowId, type ItemRow } from './item-rows.ts';
-import type { DraftOpInput } from './draft-ops.ts';
+import { applyOp, opRow, type DraftOpInput } from './draft-ops.ts';
+import { planGroups, planLinks } from './import-plan-links.ts';
+import { topOf } from './subsystems.ts';
 
 export interface PlanIssue { path: string; message: string; code?: string }
 /** One or more problems with a plan; `code` of an issue is the HTTP error code (PLAN_VERSION, PLAN_ENV, PLAN_EXISTS, PLAN_NO_SERVICE) when it has one. */
@@ -19,7 +21,8 @@ export interface PlanContext {
   /** The version a service had in the source when the design copied it (the baseline), if it did. */
   baselineVersion: (service: string) => number | null | undefined;
 }
-export interface PlannedOps { ops: DraftOpInput[]; warnings: string[]; skipped: { links: number }; questions: { total: number; blocking: string[] } }
+/** `skipped.links` counts the plan's links that were not applied (0.28: it used to count all of them). */
+export interface PlannedOps { ops: DraftOpInput[]; warnings: string[]; skipped: { links: number }; links: { abstract: number; flow: number; skipped: number }; questions: { total: number; blocking: string[] } }
 
 const isObj = (v: unknown): v is Record<string, any> => !!v && typeof v === 'object' && !Array.isArray(v);
 const KEY: Record<string, (e: any) => string> = Object.fromEntries(ENTITY_LISTS.map((l) => [l, (e: any) => (l === 'channels' ? e.bindKey : e.id)]));
@@ -41,15 +44,16 @@ export function planToOps(plan: unknown, rows: ItemRow[], cx: PlanContext): Plan
   if (!isObj(p)) throw new PlanError([{ path: '', message: 'a plan is a JSON object', code: 'INVALID' }]);
   if (p.planVersion !== 1) throw new PlanError([{ path: 'planVersion', message: `planVersion must be 1 (got ${JSON.stringify(p.planVersion)})`, code: 'PLAN_VERSION' }]);
   if (p.environment?.name !== undefined && p.environment.name !== cx.env) err('environment.name', `the plan is for environment '${p.environment.name}', not '${cx.env}'`, 'PLAN_ENV');
-  if (Array.isArray(p.environment?.groups)) {
-    const a = JSON.stringify(p.environment.groups.map((g: any) => g?.key)), b = JSON.stringify(cx.groups.map((g) => g.key));
-    if (a !== b) warnings.push(`the plan's subsystems (${p.environment.groups.map((g: any) => g?.key).join(', ')}) differ from the environment's (${cx.groups.map((g) => g.key).join(', ') || 'none'}); the environment's are kept`);
-  }
   const KNOWN = ['planVersion', 'planId', 'createdAt', 'createdBy', 'sources', 'environment', 'manifests', 'extensions', 'flows', 'dtos', 'schemas', 'links', 'mapping', 'questions'];
   const unknown = Object.keys(p).filter((k) => !KNOWN.includes(k));
   if (unknown.length) warnings.push(`unknown top-level plan field(s) ignored: ${unknown.join(', ')}`);
   const have = new Set(rows.filter((r) => r.list === 'header').map((r) => r.service));
   const headerOf = (s: string) => rows.find((r) => rowId(r) === rowId({ service: s, list: 'header', key: '' }));
+  const planGroup = new Map<string, string>(), planHeader = new Map<string, any>();
+  /** A component has ONE subsystem: `alsoIn` (top level or details) is refused. */
+  const noAlsoIn = (at: string, o: any) => {
+    if (o?.alsoIn !== undefined || o?.details?.alsoIn !== undefined) err(`${at}${o?.alsoIn !== undefined ? '.alsoIn' : '.details.alsoIn'}`, `a component belongs to one subsystem: 'alsoIn' is not supported, pick one (groupPath)`, 'TWO_GROUPS');
+  };
   const add = (list: unknown, name: string) => { if (!Array.isArray(list) && list !== undefined) err(name, `${name} must be a list`); return Array.isArray(list) ? list : []; };
 
   add(p.manifests, 'manifests').forEach((m: any, i: number) => {
@@ -64,6 +68,9 @@ export function planToOps(plan: unknown, rows: ItemRow[], cx: PlanContext): Plan
     if (have.has(name)) return err(`${at}.service.name`, `component '${name}' already exists in the environment or the draft: reclassify it as an extension`, 'PLAN_EXISTS');
     have.add(name);
     const { name: _n, ...header } = m.service;
+    noAlsoIn(`${at}.service`, header);
+    if (header.groupPath) planGroup.set(name, header.groupPath);
+    planHeader.set(name, { kind: 'service', ...header });
     ops.push({ op: 'upsert', anchor: `svc:${name}`, data: { kind: 'service', ...header } });
     for (const l of ENTITY_LISTS) for (const e of add(m[l], `${at}.${l}`)) if (isObj(e)) ops.push(opFor(name, l, KEY[l](e), fixUndecided(l, e, undecided)));
   });
@@ -75,7 +82,13 @@ export function planToOps(plan: unknown, rows: ItemRow[], cx: PlanContext): Plan
     if (x.delete !== undefined) err(`${at}.delete`, 'an extension only adds or replaces items; to remove something, raise a question and edit the draft by hand');
     const v = cx.baselineVersion(x.service);
     if (x.baseVersion !== undefined && v != null && x.baseVersion !== v) warnings.push(`extension of '${x.service}': baseVersion ${x.baseVersion} is not the version the design copied (${v})`);
-    const head = headerOf(x.service)?.data ?? { kind: 'service' };
+    noAlsoIn(at, x);
+    const head = planHeader.get(x.service) ?? headerOf(x.service)?.data ?? { kind: 'service' };
+    if (typeof x.groupPath === 'string' && x.groupPath) {
+      const first = planGroup.get(x.service);
+      if (first !== undefined && topOf(first) !== topOf(x.groupPath)) err(`${at}.groupPath`, `${x.service} is given two subsystems in this plan ('${first}' and '${x.groupPath}'): a component belongs to one, pick one`, 'TWO_GROUPS');
+      else planGroup.set(x.service, x.groupPath);
+    }
     if (x.groupPath !== undefined && x.groupPath !== head.groupPath) {
       const { version: _v, harvestedAt: _h, commit: _c, ...cur } = head;
       ops.push({ op: 'upsert', anchor: `svc:${x.service}`, data: { ...cur, groupPath: x.groupPath } });
@@ -105,8 +118,15 @@ export function planToOps(plan: unknown, rows: ItemRow[], cx: PlanContext): Plan
     ops.push({ op: 'upsert', anchor: `flow:${f.entry.service}/${f.entry.ingress}`, data: Object.fromEntries(Object.entries({ name, description, steps, doc, links }).filter(([, v]) => v !== undefined)) });
   });
 
+  const groups = planGroups(p.environment?.groups, rows);
+  ops.unshift(...groups.ops); warnings.push(...groups.warnings);
+  const after = new Map(rows.map((r) => [rowId(r), r]));
+  for (const o of ops) applyOp(after, { ...opRow(o), op: o.op, data: o.data });
+  const links = planLinks(p.links === undefined ? undefined : add(p.links, 'links'), [...after.values()]);
+  ops.push(...links.ops); warnings.push(...links.warnings);
+
   if (issues.length) throw new PlanError(issues);
   if (undecided.n) warnings.push(`${undecided.n} item(s) used the transitional encoding (transport other + details.transport undecided): stored as transport 'undecided'`);
   const qs = add(p.questions, 'questions').filter(isObj);
-  return { ops, warnings, skipped: { links: add(p.links, 'links').length }, questions: { total: qs.length, blocking: qs.filter((q: any) => q.blocking === true).map((q: any) => String(q.id ?? '?')) } };
+  return { ops, warnings, skipped: { links: links.counts.skipped }, links: links.counts, questions: { total: qs.length, blocking: qs.filter((q: any) => q.blocking === true).map((q: any) => String(q.id ?? '?')) } };
 }

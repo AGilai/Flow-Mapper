@@ -2,11 +2,11 @@
 // the current version) for an existing one, a full manifest at version +1 for one the draft deleted and created again.
 // DTO / event DTO / schema / flow ops are not part of manifests: they go to `side`. A service delete goes to `deletes`.
 
-import { ENTITY_LISTS, rowId, type ItemRow } from './item-rows.ts';
+import { DESIGN_LISTS, ENTITY_LISTS, rowId, type ItemRow } from './item-rows.ts';
 import type { NetOp } from './draft-ops.ts';
 import { stableJson } from './diff/normalise.ts';
 
-const SIDE = new Set(['dto', 'event_dto', 'schema', 'flow']);
+const SIDE = new Set(['dto', 'event_dto', 'schema', 'flow', ...DESIGN_LISTS]);   // DESIGN_LISTS have service '': no manifest is ever built for them
 const VOLATILE = ['version', 'harvestedAt', 'commit'];
 const header = (name: string, data: any) => ({ name, ...Object.fromEntries(Object.entries(data ?? {}).filter(([k]) => !VOLATILE.includes(k))) });
 

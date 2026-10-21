@@ -182,8 +182,8 @@ Harvesters never send `undecided`.
 **Mode unknown**: leave `mode` out; do not guess. **Callee component unknown**: do not write a dangling egress;
 write an abstract link instead.
 
-**Abstract links** (subsystem to subsystem, or component to subsystem, with no endpoints yet; phase 3). They are
-**not** manifest items. Put them in the plan's `links` section, shaped like the planned `abstract_links` table:
+**Abstract links** (subsystem to subsystem, or component to subsystem, with no endpoints yet; applied since 0.28.0). They are
+**not** manifest items. Put them in the plan's `links` section; each becomes a `link:<id>` item of the draft (a row of `abstract_links` once applied):
 
 ```json
 { "id": "usage-metering", "name": "usage metering", "from": "grp:network", "to": "grp:platform",
@@ -192,9 +192,16 @@ write an abstract link instead.
   "doc": { "file": "hld/05-billing.md", "section": "5.1", "confidence": "stated", "quote": "..." } }
 ```
 
-`from` / `to` are anchors: `grp:<groupKey>`, `svc:<component>` or `ing:<component>/<ingressId>`. `transport` is null
-or a transport value. Refine one end to a component when the doc names it; when both ends are endpoints, it is a
-call: move it into the manifests and delete the link.
+`from` is `grp:<groupKey>`, `svc:<component>`, `ing:<component>/<ingressId>` or `egr:<component>/<egressId>` (the flow that makes the call); `to` is `grp:`, `svc:` or `ing:`. A link whose end does not exist, or whose ends are the
+same, is a **warning and is skipped** (`links[i]: ...`), the rest of the plan still imports. `transport` is null or a transport value. The `id` defaults to the slug of `name`.
+Refine one end to a component when the doc names it. **When both ends are endpoints it is a call: refine it, do not delete it** (0.28.0): write the call in the manifests (or extensions) and
+set the link's ends to its egress and endpoint with `refinedBy: [{service, egress}]` (the `refine-link` edit does this: `use` an existing call, or make a new one). A refined link is kept: it
+folds into its roll-up line ("includes: usage metering"), keeps its name, description and `doc`, and shows as `broken` with a problem if the call goes away. A typed link between two flows
+(`{from: "flow:<s>/<ingress>", to: ..., type}`) is a flow relation: skipped with a warning until 0.28.2.
+
+**A component belongs to exactly one subsystem** (0.28.0). Do not give a component two: `details.alsoIn` (or an `alsoIn` field), or two different `groupPath` subsystems for one component in a plan
+(a manifest and an extension), is refused with `422 TWO_GROUPS` and nothing is imported. Pick one; to say it also serves another subsystem, use an abstract link or a description.
+`environment.groups` may carry `icon` (`platform agent network cloud shield database`); keys the design lacks are added as subsystems, a different label for a known key is a warning.
 
 ## 7. The import plan
 
@@ -285,7 +292,7 @@ for event types. `content` is an example or a JSON Schema; partial shapes set `m
 on the endpoint (HARVESTER-GUIDE "DTOs"): a consumer with `events` takes event DTOs only, a cron none.
 **(e2) schemas**: `{key, source: "manual", content}` per new or changed collection.
 
-**(f) links**: abstract links (§6).
+**(f) links**: abstract links (§6). `links[]` -> `link:<id>` ops; a bad one is a warning and is skipped; a flow relation waits for 0.28.2.
 
 **(g) mapping**: every doc section you used, and what came of it. This is the reviewer's main table:
 
@@ -328,7 +335,8 @@ You may also dry-run single manifests: `POST $FLOW/api/ingest?dryRun=1&draft=<sl
 1. A design environment exists (`create_env` with the plan's `environment`: a Components copy of the reused / extended prod components into subsystems). The copied rows are its frozen baseline.
 2. A draft is open, named after the plan (MCP `open_draft`).
 3. `apply_import_plan { env, draft, plan }` turns the plan into whole-item ops, recorded as AI edits: a header op (with `groupPath`) and one op per item for each manifest, one op per item of each extension, `flow:` / `dto:` / `evt:` / `schema:` ops.
-   Links and questions are kept on the draft (`drafts.plan`) and reported (`skipped.links`, `questions.blocking`); a blocking question is shown to the reviewer, not enforced.
+   `environment.groups` the design lacks become `subsystem` ops; `links` become `link:` ops (counted in `links: {abstract, flow, skipped}`; `skipped.links` is only what was not applied). The plan (without manifests) is kept on the draft (`drafts.plan`); blocking questions are reported (`questions.blocking`), shown to the reviewer, not enforced.
+   A draft imported before 0.28 kept its links without applying them: `apply_plan_links { env, draft }` (REST `POST /drafts/<slug>/plan/links`) re-reads them.
 4. Review: marks show New / Changed against the baseline (`get_marks`, or the draft's changes); the mapping table and questions go to the reviewer. Edit the draft with `edit_in_draft` if needed.
 5. `apply_draft` (a person decides): one delta per touched component, a full manifest per new one, in one transaction; DTOs, schemas, flow names and flow descriptions with it. Newer edit wins: whatever changed in the environment since the draft touched it is overwritten and listed.
    Per-step descriptions (`set_description`, step keys from the trace) come after.
@@ -364,7 +372,7 @@ What it does not do: calls inside one component, `rect` blocks, other participan
 - [ ] One full manifest per new component; one extension entry per extended component, whole items only.
 - [ ] Every ingress has a handler function; every step target exists; every flow hop is wired by bind key.
 - [ ] Undecided transports use `transport: "undecided"` + a `tbd:` key on both ends.
-- [ ] Links without endpoints are in `links`, not in manifests.
+- [ ] Links without endpoints are in `links`, not in manifests. Each component has one `groupPath`; no `alsoIn`.
 - [ ] Provenance on every item (`details.doc`, `mapping`, DTO `meta`); confidence `stated` / `inferred`.
 - [ ] Flows have name, description and per-step text in order.
 - [ ] Every doc section appears in `mapping`; every `inferred` decision that matters has a question.

@@ -6,6 +6,7 @@ import { created } from '../http/router.ts';
 import type { Ctx } from '../context.ts';
 import { importIntoDraft, importPreview } from '../store/draft-import.ts';
 import { editDraft } from '../store/draft-edit.ts';
+import { replanLinks } from '../store/draft-plan-links.ts';
 import { callView } from '../../core/call-view.ts';
 import { badRequest, notFound } from '../errors.ts';
 import { refsFor } from '../refs.ts';
@@ -27,6 +28,14 @@ export function registerDraftEdits(r: Router, ctx: Ctx) {
   r.post(`${base}/edits`, async (req) => {
     const b = await req.json();
     const out = editDraft(ctx.db, req.params.env, req.params.slug, b?.edit, { author: b?.author });
+    ctx.changedDraft(req.params.env, req.params.slug);
+    return created(out);
+  });
+
+  /** The links of a kept plan (this draft's, or `from`'s) into this draft: how a draft imported before 0.28 gets its abstract links. */
+  r.post(`${base}/plan/links`, async (req) => {
+    const b = await req.json().catch(() => ({}));
+    const out = replanLinks(ctx.db, req.params.env, req.params.slug, { from: b?.from, author: b?.author });
     ctx.changedDraft(req.params.env, req.params.slug);
     return created(out);
   });

@@ -8,6 +8,10 @@ Add a row here with every fix or feature (newest first). A row without a working
 
 | Version | Bug | What to look at | Link |
 |---|---|---|---|
+| 0.28.0 | — | The subsystem level, API only until 0.28.1: sase-hld with its draft hld-import, rolled up by subsystem (agent → network → platform lines, counts, the two abstract links as `abstract`). | `/api/envs/sase-hld/views/subsystems?draft=hld-import` |
+| 0.28.0 | — | An abstract link with suggestions: `usage-metering` (Network → Platform, async, state `abstract`) lists the existing calls it could be refined into. | `/api/envs/sase-hld/abstract-links/usage-metering?draft=hld-import` |
+| 0.28.0 | — | Subsystems with icons and order; a component belongs to one subsystem (sxdns is only in Network; `alsoIn` is refused with `TWO_GROUPS`). Marks: `grp:agent` is New (whole subsystem), `grp:network` and `grp:platform` are Changed. | `/api/envs/sase-hld/subsystems?draft=hld-import` and `/api/envs/sase-hld/marks?draft=hld-import` |
+| 0.28.0 | — | Deploy step: a draft imported before 0.28 gets its kept plan links with `POST /api/envs/sase-hld/drafts/hld-import/plan/links` (or re-seed on a fresh database). | API only |
 | 0.27.3 | — | Product icons in flow diagrams: `api-gateway` `in.createOrder` (gateway, SNS, SQS, stores), `identity-svc` `in.login` (MongoDB band), `users-svc` `in.getPosture` (Postgres and Redis). | `#/flows?env=prod&tabs=api-gateway/in.createOrder` |
 | 0.27.5 | — | Comments at the bottom of the flow page, under the diagram; collapsed when empty | `#/flows?env=prod&tabs=api-gateway/in.createOrder` |
 | 0.27.4 | — | Mermaid export: open the first `sase-hld` flow, click "Export" on its header, "Copy Mermaid" (toast "Mermaid copied") or "Download .mmd" (`agent-connects-to-pop.mmd`). The same text is the REST route below; on a sealed environment (prod) it works too | `#/flows?env=sase-hld&draft=hld-import&tabs=sase-agent/in.tunnel.open`, `/api/envs/sase-hld/flows/mermaid?service=sase-agent&ingress=in.tunnel.open&draft=hld-import`, `#/flows?env=prod&tabs=api-gateway/in.createOrder` |

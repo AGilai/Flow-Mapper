@@ -10,13 +10,14 @@ import { calleeIndex } from '../core/diff/callee.js';
 import { sourceNow } from '../core/diff/source-now.js';
 import { rawHash } from '../core/diff/normalise.js';
 import { applyOp, draftChanges, netOps, opRow, overlayRows, validateOpShape } from '../core/draft-ops.js';
-import { designIssues } from '../core/design-rules.js';
+import { designIssues, twoGroups } from '../core/design-rules.js';
 import { importBaseline } from '../core/import-baseline.js';
 import { originsOf, referencesOf } from '../core/references.js';
 import { decorateDesignTrace } from '../core/flow-refs.js';
 import { overlayText } from '../core/flow-text.js';
 import { rowsToExtras, rowsToModel, rowId } from '../core/item-rows.js';
 import { createEdits } from './api-local-edits.js';
+import { createSubsystems } from './api-local-subsystems.js';
 
 const fail = (message, status = 409) => { const e = new Error(message); e.status = status; throw e; };
 const now = () => new Date().toISOString();
@@ -77,7 +78,7 @@ export function createDesign(data, baseGraph) {
       if (against === 'source' && !(data.models ?? {})[m.source]) fail(`the source environment '${m.source}' of '${env}' no longer exists: compare against the baseline instead`);
       const now = against === 'source' ? sourceNow(new Map(p.base.map((r) => [r.sourceEnv, data.rows?.[r.sourceEnv] ?? null])), p.base, m.copiedAt) : null;
       return { ...diffEnv(now ? now.rows : p.base, p.cur,
-        { against, draft: slug, source: m.source, baselineAt: m.copiedAt, calleeOf: calleeIndex(p.cur), ...(now ? { vanished: now.vanished } : {}) }), refs: refsOf(env) };
+        { against, draft: slug, source: m.source, baselineAt: m.copiedAt, calleeOf: calleeIndex(p.cur), ...(d ? { prior: new Map(rowsOf(env).filter((r) => r.list === 'header').map((r) => [r.service, String(r.data?.groupPath ?? '')])) } : {}), ...(now ? { vanished: now.vanished } : {}) }), refs: refsOf(env) };
     });
   }
 
@@ -97,7 +98,9 @@ export function createDesign(data, baseGraph) {
       applyOp(rows, op);
       return op;
     });
-    const issues = designIssues(rows, next.flatMap((o, index) => (o.op === 'upsert' ? [{ index, service: o.service, list: o.list, key: o.key }] : [])), (meta(env).groups ?? []).map((g) => g.key));
+    const issues = [...twoGroups(next.map((o, index) => ({ index, op: o.op, service: o.service, list: o.list, data: o.data }))),
+      ...designIssues(rows, next.flatMap((o, index) => (o.op === 'upsert' ? [{ index, service: o.service, list: o.list, key: o.key }] : [])), (meta(env).groups ?? []).map((g) => g.key),
+        next.flatMap((o, index) => (o.op === 'delete' ? [{ index, service: o.service, list: o.list, key: o.key }] : [])))];
     if (issues.length) { const e = new Error(issues[0].message); e.status = 422; e.code = issues[0].code; throw e; }
     const from = d.ops.length ? Math.max(...d.ops.map((o) => o.seq)) + 1 : 1;
     d.ops.push(...next); d.updatedAt = at; bump(env);
@@ -115,6 +118,9 @@ export function createDesign(data, baseGraph) {
 
   const viewGraph = (env) => view(env)?.g ?? baseGraph(env);
   const edits = createEdits({ data, baseGraph, viewGraph, meta, isDesign, find, overlay, append, refsOf, texts, names });
+  /** The rows the next reads are about: the open draft laid over the environment (a sealed one has none bundled: its subsystems come from its metadata). */
+  const rowsNow = (env) => { const d = openDraft(env); return memoed(`${env}|${d?.slug ?? ''}|rows|${d?.ops.length ?? 0}`, () => (d ? overlay(env, d) : rowsOf(env))); };
+  const subs = createSubsystems({ data, meta, isDesign, find, overlay, append, viewGraph, rowsNow, memoed, bump });
 
   const api = {
     marks: async (env, against) => marks(env, against === 'source' ? 'source' : 'baseline'),
@@ -137,6 +143,7 @@ export function createDesign(data, baseGraph) {
     discardDraft: async (env, slug) => { const d = find(env, slug); d.status = 'discarded'; d.closedAt = now(); bump(env); return { discarded: slug }; },
     applyDraft: async () => fail('Apply is not available in the preview: it needs the server.'),
     ...edits.api,
+    ...subs.api,
   };
 
   return {

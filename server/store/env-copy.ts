@@ -10,8 +10,9 @@ import { envCreated } from '../events/emitters.ts';
 import type { DB } from '../db/connection.ts';
 import { tx } from '../db/connection.ts';
 import { badRequest, conflict, invalid, notFound } from '../errors.ts';
+import { SUBSYSTEM_ICONS } from '../../core/subsystems.ts';
 import { getEnv, getEnvRow, type EnvGroup, type EnvMeta } from './envs.ts';
-import { copyAllBaseline, copyDescriptions, copyDtos, copyKeys, copyService, copyShared, type CopyCtx } from './env-copy-rows.ts';
+import { copyAllBaseline, copyDescriptions, copyDesignLists, copyDtos, copyKeys, copyService, copyShared, type CopyCtx } from './env-copy-rows.ts';
 import { copyComments } from './comments.ts';
 import { copySharedChannels } from './env-copy-channels.ts';
 import { ensureColors } from './colors.ts';
@@ -43,6 +44,7 @@ function validate(db: DB, i: CopyInput) {
   for (const g of groups) {
     if (!g || typeof g.key !== 'string' || !PATH.test(g.key) || typeof g.label !== 'string' || !g.label.trim()) throw invalid(`group ${JSON.stringify(g)} needs a key (lowercase, '-' or a path like platform/identity) and a label`);
     if (keys.has(g.key)) throw invalid(`group '${g.key}' is listed twice`);
+    if (g.icon !== undefined && !(SUBSYSTEM_ICONS as readonly string[]).includes(g.icon)) throw invalid(`group '${g.key}': icon must be one of ${SUBSYSTEM_ICONS.join(', ')}`);
     keys.add(g.key);
   }
   const levels = i.levels ?? ['Subsystem', 'Component'];
@@ -63,10 +65,12 @@ export function copyEnv(db: DB, input: CopyInput): EnvMeta {
     const at = new Date().toISOString();
     // A full copy of a design carries its subsystems (unless the request names others).
     const fullOfDesign = mode === 'full' && v.src.kind === 'design';
-    const groups = v.groups.length || !fullOfDesign ? v.groups : JSON.parse(v.src.groups);
+    const groups = (v.groups.length || !fullOfDesign ? v.groups : JSON.parse(v.src.groups)).map((g: EnvGroup) => ({ key: g.key, label: g.label, ...(g.icon ? { icon: g.icon } : {}) }));
+    // The baseline of the subsystems (grp: marks): what the design started with. A full copy of a design keeps that design's.
+    const baseGroups = fullOfDesign ? ((v.src as any).baseline_groups ?? null) : JSON.stringify(groups);
     const levels = input.levels || !fullOfDesign ? v.levels : JSON.parse(v.src.levels);
-    db.prepare('INSERT INTO envs (name, kind, source, copied_at, levels, groups, created_at, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-      .run(name, 'design', source, at, JSON.stringify(levels), JSON.stringify(groups), at, String(input.createdBy ?? 'anonymous').slice(0, 80));
+    db.prepare('INSERT INTO envs (name, kind, source, copied_at, levels, groups, baseline_groups, created_at, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(name, 'design', source, at, JSON.stringify(levels), JSON.stringify(groups), baseGroups, at, String(input.createdBy ?? 'anonymous').slice(0, 80));
     if (mode === 'blank') return getEnv(db, name);
 
     const all = (db.prepare('SELECT service FROM snapshots WHERE env = ? ORDER BY service').all(source) as { service: string }[]).map((r) => r.service);
@@ -90,7 +94,7 @@ export function copyEnv(db: DB, input: CopyInput): EnvMeta {
     if (mode === 'components') copySharedChannels(c, new Set(names));
     copyShared(c, types, stores);
     copyKeys(c, new Set(names));
-    if (mode === 'full') { copyDescriptions(c); copyAllBaseline(c); copyComments(db, source, name); } // only a Full copy carries the discussion
+    if (mode === 'full') { copyDescriptions(c); copyAllBaseline(c); copyComments(db, source, name); if (fullOfDesign) copyDesignLists(c); } // only a Full copy carries the discussion
     ensureColors(db, name, JSON.parse((db.prepare('SELECT colors FROM envs WHERE name = ?').get(source) as { colors: string }).colors || '{}'));
     return getEnv(db, name);
   });

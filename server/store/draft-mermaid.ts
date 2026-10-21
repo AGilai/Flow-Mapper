@@ -33,9 +33,10 @@ function plan(ctx: Ctx, env: string, slug: string, i: MermaidInput) {
   if (i.text.length > MAX_TEXT) throw badRequest(`text is longer than ${MAX_TEXT} characters`);
   if (i.matches !== undefined && (typeof i.matches !== 'object' || i.matches === null || Array.isArray(i.matches))) throw badRequest('matches must be an object: participant id -> component name | {create} | {fromSource} | {client}');
   if (i.groupPath !== undefined && typeof i.groupPath !== 'string') throw badRequest('groupPath must be a string');
-  const env0 = getEnvRow(db, env)!, groups = (JSON.parse(env0.groups) as { key: string }[]).map((g) => g.key);
-  if (i.groupPath && !groups.includes(i.groupPath)) throw new HttpError(422, 'NO_GROUP', `groupPath '${i.groupPath}' is not one of this environment's subsystems (${groups.join(', ') || 'none'})`);
+  const env0 = getEnvRow(db, env)!;
   const envRows = envItemRows(db, env), base = overlayRows(envRows, netOps(loadOps(db, d.id)));
+  const groups = base.filter((r) => r.list === 'subsystem').map((r) => r.key);   // the draft's own subsystems count
+  if (i.groupPath && !groups.includes(i.groupPath)) throw new HttpError(422, 'NO_GROUP', `groupPath '${i.groupPath}' is not one of this environment's subsystems (${groups.join(', ') || 'none'})`);
   const source = env0.source && getEnvRow(db, env0.source) ? env0.source : null;
   const srcRows = source ? cached<ItemRow[]>(`rows:${source}`, [source], () => envItemRows(db, source)) : [];
 
