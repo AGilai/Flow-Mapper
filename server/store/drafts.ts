@@ -61,7 +61,7 @@ export function listDrafts(db: DB, env: string, status: 'open' | 'all' = 'open')
 }
 
 function slugFor(db: DB, env: string, name: string, wanted?: string): string {
-  const taken = (s: string) => !!db.prepare('SELECT 1 FROM drafts WHERE env = ? AND slug = ?').get(env, s);
+  const taken = (s: string) => !!db.prepare("SELECT 1 FROM drafts WHERE env = ? AND slug = ? AND status <> 'discarded'").get(env, s);
   if (wanted !== undefined) {
     if (!SLUG.test(wanted)) throw invalid(`slug '${wanted}' must be lowercase letters, digits and '-' (it is used in links), at most 49 characters`);
     if (taken(wanted)) throw conflict('EXISTS', `draft '${wanted}' already exists in environment '${env}'`);
@@ -78,6 +78,8 @@ export function createDraft(db: DB, env: string, i: { name: string; slug?: strin
   return tx(db, () => {
     guardEnv(db, env, 'draft');
     const slug = slugFor(db, env, i.name, i.slug), at = now();
+    // A discarded draft gives its slug up (#59-style reuse, #56): its row stays for the record under `<slug>~<id>`.
+    db.prepare("UPDATE drafts SET slug = slug || '~' || id WHERE env = ? AND slug = ? AND status = 'discarded'").run(env, slug);
     db.prepare('INSERT INTO drafts (env, slug, name, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)')
       .run(env, slug, i.name.trim().slice(0, 120), String(i.createdBy ?? 'anonymous').slice(0, 80), at, at);
     return draftInfo(db, env, getDraft(db, env, slug));

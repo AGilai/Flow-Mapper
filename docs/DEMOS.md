@@ -8,6 +8,7 @@ Add a row here with every fix or feature (newest first). A row without a working
 
 | Version | Bug | What to look at | Link |
 |---|---|---|---|
+| 0.25.1 | #56 | A discarded draft's slug can be reused (API only): `DELETE /api/envs/sase-hld/drafts/<slug>` then `POST /api/envs/sase-hld/drafts {name, slug}` answers 201 with 0 ops | `/api/envs/sase-hld/drafts?status=all` |
 | 0.25.1 | #59 | An entry with no handler for the event is an empty flow, not a 404: `noHandler: true`, no messages | `/api/envs/prod/trace?service=inventory-svc&ingress=in.orderEvents&event=Nope` |
 | 0.25.1 | #58 | A Components copy with `behaviour: true`: `users-svc` and `auth-svc` come with their functions, so their flows trace (no 404) and the env has no marks | `/api/envs/behaviour-demo/entry-points` (a flow: `/api/envs/behaviour-demo/trace?service=users-svc&ingress=in.getUser`; `/api/envs/behaviour-demo/marks` is empty) |
 | 0.25.0 | | References and partial flows: in `sase-hld` the agent flow's step 3 calls `users-svc` `GET /users/{id}/posture`, a prod endpoint the design copied without its behaviour. The trace marks that message `reference {source: 'prod'}` and lists it in `partial.steps`; the entry point has `partial: 1`; `refs` in the marks list the reference endpoints (UI: 0.26.0) | `/api/envs/sase-hld/trace?service=sase-agent&ingress=in.tunnel.open&draft=hld-import` (also `/api/envs/sase-hld/marks?draft=hld-import`, `/api/envs/sase-hld/entry-points?draft=hld-import`) |
