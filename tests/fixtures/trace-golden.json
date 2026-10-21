@@ -78,5 +78,6 @@
  "stress-gateway/in.startChecked": "158c4b93ca2244",
  "swg-api/in.policyCheck": "183d18eae8696b",
  "sxdns/in.rpcResolve": "16abd59cf063e3",
- "sxdns/in.rpcReverse": "1c9b5eb33dc5e1"
+ "sxdns/in.rpcReverse": "1c9b5eb33dc5e1",
+ "users-svc/in.getPosture": "13ca7424b4c801"
 }

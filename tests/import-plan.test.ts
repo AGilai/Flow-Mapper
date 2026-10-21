@@ -29,7 +29,7 @@ const version = async (s: string) => (await app.call('GET', `${E}/services/${s}`
 test('the demo plan becomes ops and counts; the plan is kept on the draft without its manifests; links are skipped, blocking questions reported', async () => {
   const r = await send(plan());
   assert.equal(r.status, 201, JSON.stringify(r.body));
-  assert.equal(r.body.ops, 14, 'the groupPath of auth-svc is what the copy has: no header op');
+  assert.equal(r.body.ops, 15, '15 = the 14 plus pop-edge egress out.users.posture (0.25.0 posture demo); the groupPath of auth-svc is what the copy has: no header op');
   assert.deepEqual(r.body.counts, { added: 4, removed: 0, changed: 1 }, 'sase-agent, pop-edge, one function and one endpoint on auth-svc; one DTO changed');
   assert.deepEqual(r.body.skipped, { links: 1 });
   assert.deepEqual(r.body.questions, { total: 3, blocking: ['Q3'] });
@@ -103,7 +103,7 @@ test('MCP apply_import_plan: same ops, recorded as an AI edit; dryRun rolls back
   const r = await call({ env: 'sase-hld', draft: slug, plan: plan() });
   assert.equal(r.isError, false, r.content[0].text);
   const ops = (await app.call('GET', `${D}/${slug}`)).body.ops;
-  assert.equal(ops.length, 14); assert.ok(ops.every((o: any) => o.byAi && o.author === 'assistant'));
+  assert.equal(ops.length, 15); assert.ok(ops.every((o: any) => o.byAi && o.author === 'assistant'));
   const bad = await call({ env: 'sase-hld', draft: slug, plan: { ...plan(), planVersion: 9 } });
   assert.equal(bad.isError, true); assert.match(bad.content[0].text, /PLAN_VERSION/);
 });

@@ -67,6 +67,26 @@
           "event": "UserRegistered"
         }
       ]
+    },
+    {
+      "id": "get_posture",
+      "name": "get_posture",
+      "file": "users/posture.py",
+      "line": 12,
+      "steps": [
+        { "seq": 1, "type": "call", "target": "load_devices" },
+        { "seq": 2, "type": "resource", "target": "cache", "operation": "GET posture:{id}", "details": { "keyTemplate": "user:{id}" } },
+        { "seq": 3, "type": "egress", "target": "out.auth.verify", "operation": "POST /verify", "mode": "sync" }
+      ]
+    },
+    {
+      "id": "load_devices",
+      "name": "load_devices",
+      "file": "users/posture.py",
+      "line": 40,
+      "steps": [
+        { "seq": 1, "type": "resource", "target": "usersDb", "operation": "SELECT devices" }
+      ]
     }
   ],
   "ingress": [
@@ -88,6 +108,16 @@
       "details": {
         "method": "GET",
         "path": "/users/{id}/contact"
+      }
+    },
+    {
+      "id": "in.getPosture",
+      "bindKey": "http:GET users-svc/users/{id}/posture",
+      "transport": "http",
+      "handler": "get_posture",
+      "details": {
+        "method": "GET",
+        "path": "/users/{id}/posture"
       }
     }
   ],
@@ -165,6 +195,12 @@
         "UserRegistered",
         "ProfileViewed"
       ]
+    },
+    {
+      "id": "out.auth.verify",
+      "bindKey": "http:POST auth-svc/verify",
+      "transport": "http",
+      "mode": "sync"
     }
   ]
 }
