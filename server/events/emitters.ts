@@ -42,3 +42,10 @@ export function envCreated(db: DB, e: { name: string; source?: string | null; cr
 export function envDeleted(db: DB, name: string) {
   emit(db, { type: 'env.deleted', env: name, summary: `environment ${name} deleted`, data: {} });
 }
+
+const commentEvent = (kind: string, db: DB, c: { env: string; anchor: string; id: number; author: string; text?: string }) =>
+  emit(db, { type: `comment.${kind}`, env: c.env, summary: `${c.author} ${kind} a comment on ${c.anchor.replace(/^flow:/, '')}${c.text ? `: ${clip(c.text.replace(/\s+/g, ' '), 100)}` : ''}`,
+    data: { anchor: c.anchor, id: c.id, author: c.author, ...(c.text !== undefined && { text: clip(c.text, 300) }) } });
+export const commentCreated = (db: DB, c: { env: string; anchor: string; id: number; author: string; text: string }) => commentEvent('created', db, c);
+export const commentEdited = (db: DB, c: { env: string; anchor: string; id: number; author: string; text: string }) => commentEvent('edited', db, c);
+export const commentDeleted = (db: DB, c: { env: string; anchor: string; id: number; author: string }) => commentEvent('deleted', db, c);

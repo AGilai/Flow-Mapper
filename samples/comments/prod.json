@@ -1,0 +1,14 @@
+{
+  "env": "prod",
+  "comments": [
+    { "service": "api-gateway", "ingress": "in.createOrder", "author": "Dana Levi", "ago": 2880,
+      "step": "#step:svc:orders-svc>svc:inventory-svc|http:POST inventory-svc/reservations|http",
+      "body": "<p>Fields the reservation needs from the order, so inventory-svc can hold the stock:</p><table><thead><tr><th>Field</th><th>Source</th><th>Needed</th></tr></thead><tbody><tr><td>sku</td><td>order line</td><td>yes</td></tr><tr><td>quantity</td><td>order line</td><td>yes</td></tr><tr><td>warehouse</td><td>customer profile</td><td>no</td></tr></tbody></table>" },
+    { "service": "api-gateway", "ingress": "in.createOrder", "author": "Asaf G.", "ago": 1440, "edited": true,
+      "step": "#step:svc:orders-svc>svc:payments-svc|http:POST payments-svc/payments/charge|http",
+      "body": "<p><s>payments-svc should cache the risk score for 24 h.</s> Use a <span class=\"cc-coral\"><strong>15 min TTL</strong></span> instead, see the risk check.</p>",
+      "replies": [ { "author": "Dana Levi", "ago": 180, "body": "<p>Agreed. I will update the risk check description.</p>" } ] },
+    { "service": "api-gateway", "ingress": "in.createOrder", "author": "Asaf G.", "ago": 20,
+      "body": "<p>Open questions before we change the flow:</p><ul><li>Should orders-svc reserve stock before it validates the customer?</li><li>Is 15 min OK for the retry path? See <a href=\"https://example.com/checkout-notes\">the checkout notes</a>.</li></ul>" }
+  ]
+}

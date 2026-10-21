@@ -8,7 +8,7 @@ export type Token =
   | { t: 'end'; name: string };
 
 /** Elements whose contents are never text for a reader: dropped with everything inside, up to the matching end tag (or the end of the input). */
-const RAW = new Set(['script', 'style', 'iframe', 'noscript', 'template', 'textarea', 'title', 'xmp', 'noembed', 'noframes', 'object', 'embed', 'applet', 'svg', 'math', 'head', 'xml', 'plaintext']);
+const RAW = new Set(['script', 'style', 'iframe', 'noscript', 'template', 'textarea', 'title', 'xmp', 'noembed', 'noframes', 'object', 'embed', 'applet', 'head', 'xml', 'plaintext']);
 
 const NAMED: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', colon: ':', tab: '\t', newline: '\n' };
 

@@ -12,6 +12,7 @@ import { tx } from '../db/connection.ts';
 import { badRequest, conflict, invalid, notFound } from '../errors.ts';
 import { getEnv, getEnvRow, type EnvGroup, type EnvMeta } from './envs.ts';
 import { copyAllBaseline, copyDescriptions, copyDtos, copyKeys, copyService, copyShared, type CopyCtx } from './env-copy-rows.ts';
+import { copyComments } from './comments.ts';
 import { copySharedChannels } from './env-copy-channels.ts';
 import { ensureColors } from './colors.ts';
 import { writeChangelog } from './snapshots-write.ts';
@@ -89,7 +90,7 @@ export function copyEnv(db: DB, input: CopyInput): EnvMeta {
     if (mode === 'components') copySharedChannels(c, new Set(names));
     copyShared(c, types, stores);
     copyKeys(c, new Set(names));
-    if (mode === 'full') { copyDescriptions(c); copyAllBaseline(c); }
+    if (mode === 'full') { copyDescriptions(c); copyAllBaseline(c); copyComments(db, source, name); } // only a Full copy carries the discussion
     ensureColors(db, name, JSON.parse((db.prepare('SELECT colors FROM envs WHERE name = ?').get(source) as { colors: string }).colors || '{}'));
     return getEnv(db, name);
   });
