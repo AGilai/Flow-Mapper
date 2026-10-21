@@ -44,3 +44,19 @@ test('#63 entryPoints none: copied ingress are not entry points, diff as unchang
   assert.ok(some > 0);
   assert.equal(q("SELECT count(*) AS n FROM entities WHERE env = 'ep-full' AND list = 'ingress' AND json_extract(data, '$.entryPoint') = 0")[0].n, some);
 });
+
+test('#64 the synthetic infra service gets a groupPath: "infra" by default, or infraGroupPath; no marks', async () => {
+  const infra = (env: string) => q("SELECT service, meta FROM snapshots WHERE env = ? AND kind = 'infra'", env);
+  for (const bad of [5, 'Bad Path', '/x']) assert.equal((await create({ name: 'ig-x', source: 'prod', mode: 'components', infraGroupPath: bad, services: pick })).status, 422);
+  assert.equal((await create({ name: 'ig-def', source: 'prod', mode: 'components', services: pick })).status, 201);
+  const d = infra('ig-def');
+  assert.equal(d.length, 1, 'the copy has an infra service');
+  assert.equal(JSON.parse(d[0].meta).groupPath, 'infra');
+  const marks = (await app.call('GET', '/api/envs/ig-def/marks')).body;
+  assert.deepEqual(marks.marks, {}); assert.deepEqual(marks.ghosts, {});
+  const r = await create({ name: 'ig-set', source: 'prod', mode: 'components', groups: [{ key: 'platform', label: 'Platform' }], infraGroupPath: 'platform', services: pick });
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  assert.equal(JSON.parse(infra('ig-set')[0].meta).groupPath, 'platform');
+  assert.equal((await create({ name: 'ig-none', source: 'prod', mode: 'components', infraGroupPath: '', services: pick })).status, 201);
+  assert.equal(JSON.parse(infra('ig-none')[0].meta).groupPath, undefined);
+});

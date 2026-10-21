@@ -5,6 +5,11 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## 0.28.3 (2026-10-21)
+Two Components-copy options from the importer's bugs. Additive; no migration. Details in [API.md](API.md) (`POST /api/envs`) and [DESIGN-IMPORT.md](DESIGN-IMPORT.md).
+- **`entryPoints: "keep" | "none"`** on `POST /api/envs` and MCP `create_env` (#63; default `keep`, today's behaviour). `none` sets `entryPoint: false` on every copied ingress, in the environment and in its baseline, so the copies are not entry points, show no marks and diff as unchanged; ingress added later are unaffected. Works for `components` and `full`; `422` for another value or for `blank`.
+- **`infraGroupPath`** (#64; components mode, default `infra`): the synthetic `<source>-infra` service now has a `groupPath` (it had none), so it is a box in the subsystem view. Validated like any groupPath; it need not exist in `groups` (a derived box). **Behaviour change:** new Components copies carry `groupPath: "infra"` on that service. Existing copies are not migrated: set its `groupPath` with one edit.
+
 ## 0.28.2 (2026-10-21)
 Flow-to-flow relations (#50). Additive; no migration (the table came with 012). Details in [API.md](API.md) "Flow relations" and [DESIGN-IMPORT.md](DESIGN-IMPORT.md).
 - **Plan `links[]` between flows are applied now** (they were skipped with "flow relations land in 0.28.2"): `{from: "flow:<s>/<i>", to: "flow:<s>/<i>", type, note?}` with `type` one of `contradicts`, `variant-of`, `supersedes`, `same-topic` (`variant`, `variant_of`, `same_topic` accepted) becomes the draft item `rel:<id>`. A bad one is a warning and is skipped. The result's `links.flow` counts them, `links.skipped` / `skipped.links` only the ones not applied. **Counts that moved:** a plan with flow relations adds one op each.

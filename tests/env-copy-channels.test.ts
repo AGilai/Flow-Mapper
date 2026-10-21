@@ -19,7 +19,7 @@ test('cp-middleware alone brings its exchange and the bindings between copied it
   assert.equal(r.status, 201, JSON.stringify(r.body));
   const svcs = (await app.call('GET', '/api/envs/cp-only/services')).body;
   assert.deepEqual(svcs.map((s: any) => [s.name, s.kind]).sort(), [['cp-middleware', 'service'], ['prod-infra', 'infra']]);
-  assert.equal(svcs.find((s: any) => s.name === 'prod-infra').groupPath, undefined);
+  assert.equal(svcs.find((s: any) => s.name === 'prod-infra').groupPath, 'infra', 'a Components copy puts it in subsystem infra (0.28.3, #64)');
 
   const chans = q("SELECT key FROM entities WHERE env = 'cp-only' AND service = 'prod-infra' AND list = 'channels'").map((e) => e.key);
   assert.ok(chans.includes('amqp:saferx.EventExchange'), 'the exchange cp-middleware publishes to');
