@@ -310,7 +310,7 @@ each bar in Edit mode (a button, focusable; drag is 2c).
 UI-GUIDE.md §10 gains: "A reference (lock) is neutral: a copied endpoint whose behaviour is in its source. Import into design copies
 one level; what it calls stays a reference. A partial flow says which steps continue into references. Editing a call into a reference
 asks every time." design/AUDIT.md rows for the import panel and forms. DEMOS.md rows: the frame 10 URL above ("click Import into
-design on step 3, then Import 11 items"), and "add a POP component and a call by form": Edit → "+ component" `pop-swg` in Network
+design on step 3, then Import 2 items"), and "add a POP component and a call by form": Edit → "+ component" `pop-swg` in Network
 (POP) → "+ call" under pop-edge's bar → To pop-swg, + New endpoint `socket:tls/pop-swg/apply` → Done; the flow redraws with the new
 call, "in draft" chip. `package.json` → **0.26.0**. After deploy: re-seed samples (no `--bugs`), give the maintainer the links.
 
@@ -353,3 +353,10 @@ order with its label, "Not set"), a Subsystem column, and in design envs rows gr
 filter is in the URL (`subsystem=`). Backend: inventory rows already carry the service; add `groupPath` to rows if
 missing (2a-1 may include it; otherwise 2a-2 adds it). Sealed envs show the select only when any service has a
 groupPath.
+
+## Lead note after 2a-1 (2026-10-21)
+- Import counts are whatever the preview returns. On the Components-copied `sase-hld`, importing `users-svc/in.getPosture`
+  brings 2 items (the functions `get_posture` and `load_devices`). The rest is already in the design and is listed under
+  "Already here". Frame 10's "11 items" is an illustration only. The UI shows `total` from `import_preview`, never a
+  fixed number.
+- An endpoint whose handler was imported reads "imported from <source>" (a function's `origin` counts).
