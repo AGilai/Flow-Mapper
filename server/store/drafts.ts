@@ -11,6 +11,7 @@ import { rowOfAnchor } from '../../core/anchors.ts';
 import { guardEnv } from './envs.ts';
 import { envItemRows } from './item-rows.ts';
 import { prepareOps } from './draft-validate.ts';
+import { assignColorsIn } from './colors.ts';
 
 export interface DraftRow { id: number; env: string; slug: string; name: string; status: 'open' | 'applied' | 'discarded'; plan: string | null; report: string | null; created_by: string; created_at: string; updated_at: string; closed_at: string | null; closed_by: string | null }
 export interface DraftInfo {
@@ -121,6 +122,7 @@ export function appendOps(db: DB, env: string, slug: string, inputs: DraftOpInpu
       if (!first.has(id)) first.set(id, e ? rawHash(e.data, p.list) : null);
       ins.run(d.id, ++seq, p.op, p.anchor, p.service, p.list, p.key, p.data === undefined ? null : JSON.stringify(p.data), first.get(id)!, author, who.byAi ? 1 : 0, at, origin ? JSON.stringify(origin) : null);
     }
+    assignColorsIn(db, env, prepared.filter((p) => p.list === 'header' && p.op === 'upsert').map((p) => ({ name: p.service, kind: p.data?.kind })));
     db.prepare('UPDATE drafts SET updated_at = ? WHERE id = ?').run(at, d.id);
     return { from, to: seq, counts: changesOf(envRows, loadOps(db, d.id)).counts };
   });

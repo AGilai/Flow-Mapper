@@ -8,6 +8,7 @@ import { contractReport } from '../../core/contract.ts';
 import { HttpError, conflict, invalid, notFound } from '../errors.ts';
 import { getSnapshotRow, loadEntities, loadModel, rowToService, type Entities, type Source, type WriteResult } from './snapshots-read.ts';
 import { ensureEnv, guardEnv, type Writer } from './envs.ts';
+import { assignColorsIn } from './colors.ts';
 import { manifestIngested } from '../events/emitters.ts';
 import { assertIntegrity, diff, replaceEntities, upsertSnapshot, writeChangelog } from './snapshots-write.ts';
 import { withDry } from './dry-run.ts';
@@ -102,6 +103,7 @@ function apply(db: DB, manifest: any, source: Source, opts: ApplyOpts): { result
   assertIntegrity(name, after, opts.tolerateExisting ? before : undefined);
   const changes = diff(before, after);
   upsertSnapshot(db, env, header, manifest.version, manifest.harvestedAt, manifest.commit);
+  assignColorsIn(db, env, [{ name, kind: header.kind }]);
   replaceEntities(db, env, name, after);
   const changelogId = writeChangelog(db, env, name, cur?.version ?? null, manifest.version, manifest.kind, source, changes, opts.draftId);
   return { result: { env, service: name, fromVersion: cur?.version ?? null, toVersion: manifest.version, changes, changelogId }, after };

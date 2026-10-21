@@ -5,17 +5,20 @@ import { envDeleted } from '../events/emitters.ts';
 import type { DB } from '../db/connection.ts';
 import { tx } from '../db/connection.ts';
 import { conflict, notFound } from '../errors.ts';
+import { ensureColors } from './colors.ts';
 
 export type EnvKind = 'sealed' | 'design';
 export interface EnvGroup { key: string; label: string }
 export interface EnvMeta {
   name: string; kind: EnvKind; source: string | null; copiedAt: string | null; groups: EnvGroup[]; levels: string[];
   createdAt: string; createdBy: string; counts: Record<string, number>;
+  /** Component colour slots 1..8 ({component: slot}, core/colors.ts). */
+  colors: Record<string, number>;
 }
-interface Row { name: string; kind: EnvKind; source: string | null; copied_at: string | null; groups: string; levels: string; created_at: string; created_by: string }
+interface Row { colors?: string; name: string; kind: EnvKind; source: string | null; copied_at: string | null; groups: string; levels: string; created_at: string; created_by: string }
 const toMeta = (r: Row, counts: Record<string, number> = {}): EnvMeta => ({
   name: r.name, kind: r.kind, source: r.source, copiedAt: r.copied_at, groups: JSON.parse(r.groups), levels: JSON.parse(r.levels),
-  createdAt: r.created_at, createdBy: r.created_by, counts,
+  createdAt: r.created_at, createdBy: r.created_by, counts, colors: JSON.parse(r.colors || '{}'),
 });
 
 /** Names only (GET /api/envs): the envs table plus any env that still has snapshots (a rollout safety net). */
@@ -34,12 +37,13 @@ function countsOf(db: DB, env: string): Record<string, number> {
 }
 
 export function getEnv(db: DB, name: string): EnvMeta {
-  const r = getEnvRow(db, name);
-  if (!r) throw notFound(`environment '${name}'`);
-  return toMeta(r, countsOf(db, name));
+  if (!getEnvRow(db, name)) throw notFound(`environment '${name}'`);
+  ensureColors(db, name);
+  return toMeta(getEnvRow(db, name)!, countsOf(db, name));
 }
 
 export function listEnvMeta(db: DB): EnvMeta[] {
+  for (const r of db.prepare('SELECT name FROM envs').all() as { name: string }[]) ensureColors(db, r.name);
   const rows = new Map((db.prepare('SELECT * FROM envs').all() as unknown as Row[]).map((r) => [r.name, r]));
   const fallback = (n: string): Row => ({ name: n, kind: 'sealed', source: null, copied_at: null, groups: '[]', levels: '["Subsystem","Component"]', created_at: '', created_by: 'anonymous' });
   return listEnvs(db).map((n) => toMeta(rows.get(n) ?? fallback(n), countsOf(db, n)));
