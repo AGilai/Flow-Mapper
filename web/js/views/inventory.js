@@ -17,6 +17,11 @@ import { monoText } from '../format.js';
 import { loadMarks } from '../design/marks-store.js';
 import { statusFilter, filterByStatus, whatColumn, statusOf, anchorOfItem } from './inventory-status.js';
 import { markBadge } from '../components/status-mark.js';
+import { createPanel } from '../components/panel.js';
+import { editing } from '../design/edit-open.js';
+import { openComponentForm } from '../design/forms/component-form.js';
+import { metaOf } from '../env-info.js';
+import { subsystemOptions, inSubsystem, subsystemSelect, subsystemLabel } from './inventory-subsystem.js';
 
 const TYPES = [['', 'All'], ['service', 'Services'], ['channel', 'Topics and queues'], ['event', 'Event types']];
 const RPC = ['rpc', 'RPC commands']; // listed only when the env has RPC commands (0.19.0)
@@ -35,9 +40,11 @@ const TYPE_LABEL = { service: 'Service', channel: 'Channel', store: 'Data store'
 export async function render({ main, query }) {
   const [all, clients, marks] = await Promise.all([api.inventory(state.env), api.clients(state.env), loadMarks()]);
   const design = isDesign();
-  const f = { rpcq: query.get('rpcq') === '1', type: query.get('type') ?? '', kind: query.get('kind') ?? '', team: query.get('team') ?? '', q: query.get('q') ?? '', problems: query.get('problems') === '1', dto: query.get('dto') ?? '', driver: query.get('driver') ?? '', status: design ? query.get('status') ?? '' : '' }; // driver: `<package>@<major>`, `<package>@` when the version is unknown
+  const f = { rpcq: query.get('rpcq') === '1', type: query.get('type') ?? '', kind: query.get('kind') ?? '', team: query.get('team') ?? '', q: query.get('q') ?? '', problems: query.get('problems') === '1', dto: query.get('dto') ?? '', driver: query.get('driver') ?? '', sub: query.get('subsystem') ?? '', status: design ? query.get('status') ?? '' : '' }; // driver: `<package>@<major>`, `<package>@` when the version is unknown
   if (f.type === 'store') f.type = ''; // older links
-  const total = h('span');
+  const total = h('span'), host = h('div.panel-host'), panel = createPanel(host); // the component form opens beside the table
+  const groups = metaOf(state.envMeta, state.env).groups ?? [], subOpts = subsystemOptions(all, groups);
+  if (!subOpts.some(([v]) => v === f.sub)) f.sub = '';
   const hasRpc = all.some((x) => x.type === 'rpc'), hasAmqp = all.some(isAmqp);
   let items = all; // RPC queues are plumbing: hidden unless "Show RPC queues" is on
   const pick1 = () => { items = f.rpcq ? all : all.filter((x) => !x.plumbing); };
@@ -49,11 +56,13 @@ export async function render({ main, query }) {
   const types = [...dbKinds.map((k) => [`store:${k}`, DB[k] ?? k])];
 
   const table = dataTable({
-    rows: [], pageSize: 50, sortKey: 'label', onRow: (x) => go(...openTarget(x)), rowClass: (x) => (x.plumbing ? 'plumb' : statusOf(x, marks) === 'removed' ? 'gone' : ''),
+    rows: [], pageSize: 50, sortKey: 'label', groupBy: design && subOpts.length ? (x) => subsystemLabel(x, groups) : null,
+    groupExtra: editing() ? (label) => h('button.btn.sm', { type: 'button', 'data-qa': 'add-component', style: { marginLeft: 'var(--s3)' }, title: `Add a component to ${label}`, on: { click: () => openComponentForm({ panel, flowsEl: null, groupPath: groups.find((g) => g.label === label)?.key ?? '' }) } }, '+ component') : null, onRow: (x) => go(...openTarget(x)), rowClass: (x) => (x.plumbing ? 'plumb' : statusOf(x, marks) === 'removed' ? 'gone' : ''),
     columns: [
       { key: 'label', label: 'Name', sort: (x) => (f.type === 'amqp' ? `${KRANK[x.kind] ?? 5}${x.label}` : x.label), render: (x) => h('div.name-cell', objectIcon(x.type, x.kind, 22), h('div.stack', { style: { gap: 0 } }, h('span.row.mk-name', h('b', { class: x.type === 'service' ? '' : x.type === 'rpc' || x.plumbing ? 'key nowrap' : 'key' }, x.label), design ? markBadge(marks.markOf(anchorOfItem(x) ?? ''), { store: marks }) : null), x.group && x.group !== x.id ? h('span.xs.muted', x.group) : null)) },
       { key: 'type', label: 'Type', render: (x) => h('span.small.nowrap', TYPE_LABEL[x.type]) },
       { key: 'kind', label: 'Kind', render: (x) => h('span.pill.kind-pill', { class: isAmqp(x) ? (x.type === 'rpc' || /^rpc-/.test(x.kind) ? 'rpc' : 'amqp') : '' }, x.type === 'store' ? objectIcon('store', x.kind, 14) : null, kindLabel(x)) },
+      ...(subOpts.length ? [{ key: 'groupPath', label: 'Subsystem', render: (x) => h('span.small.muted', subsystemLabel(x, groups) ?? '') }] : []),
       { key: 'team', label: 'Team', render: (x) => h('span.small.muted', x.team ?? '') },
       { key: 'size', label: 'Connections', render: (x) => h('span.small', monoText(x.connections)) },
       { key: 'hasDto', label: 'Message DTO', sort: (x) => (x.type === 'event' ? (x.hasDto ? 1 : 0) : null),
@@ -129,7 +138,7 @@ export async function render({ main, query }) {
     const n = f.q.trim().toLowerCase();
     const kind = f.type.startsWith('store:') ? f.type.slice(6) : null;
     drawFold();
-    setQuery({ rpcq: f.rpcq ? 1 : null, type: f.type || null, kind: f.kind || null, team: f.team || null, q: f.q || null, problems: f.problems ? 1 : null, dto: f.type === 'event' && f.dto ? f.dto : null, driver: f.driver || null, status: f.status || null });
+    setQuery({ rpcq: f.rpcq ? 1 : null, type: f.type || null, kind: f.kind || null, team: f.team || null, q: f.q || null, problems: f.problems ? 1 : null, dto: f.type === 'event' && f.dto ? f.dto : null, driver: f.driver || null, status: f.status || null, subsystem: f.sub || null });
     table.el.hidden = !!f.driver;
     svcTable.el.hidden = !f.driver;
     if (f.driver) { // a driver filter lists services (who is on it and why), from the same rows the facet counts
@@ -140,7 +149,7 @@ export async function render({ main, query }) {
       shown.textContent = `${svcs} ${svcs === 1 ? 'service' : 'services'} on ${stores} ${stores === 1 ? 'store' : 'stores'}`;
       return;
     }
-    let rows = items.filter((x) => matches(x, f.type) && (!f.kind || x.kind === f.kind) && (!f.team || x.team === f.team)
+    let rows = items.filter((x) => matches(x, f.type) && (!f.kind || x.kind === f.kind) && (!f.team || x.team === f.team) && inSubsystem(x, f.sub)
       && (!f.problems || x.problems > 0) && (f.type !== 'event' || !f.dto || (f.dto === 'yes') === !!x.hasDto) && (!n || `${x.id} ${x.label} ${x.kind} ${x.team ?? ''} ${x.group ?? ''}`.toLowerCase().includes(n)));
     const byType = rows;
     rows = filterByStatus(byType, f.status, marks);
@@ -154,13 +163,15 @@ export async function render({ main, query }) {
       h('div.search', icon('search'), h('input.input', { type: 'search', placeholder: 'Filter by name, kind, team', value: f.q, 'aria-label': 'Filter inventory',
         on: { input: debounce((e) => { f.q = e.target.value; apply(); }) } })),
       kindSel, dtoSel,
+      subsystemSelect(subOpts, f.sub, (v) => { f.sub = v; apply(); }),
       h('select.select', { 'aria-label': 'Team', on: { change: (e) => { f.team = e.target.value; apply(); } } },
         h('option', { value: '' }, 'All teams'), teams.map((t) => h('option', { value: t, selected: t === f.team }, t)))),
     h('div.filter-bar', seg, facet,
       h('label.check', h('input', { type: 'checkbox', checked: f.problems, on: { change: (e) => { f.problems = e.target.checked; apply(); } } }), 'Only with problems'),
       st ? [h('span.small.muted', 'Status'), st.el] : null,
       h('span.spacer'), shown),
-    h('div.content', fold, h('div.box', table.el, svcTable.el)));
+    host);
+  host.prepend(h('div.content', fold, h('div.box', table.el, svcTable.el)));
   dtoSel.hidden = f.type !== 'event';
   recount();
   fillKinds();

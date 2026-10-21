@@ -4,6 +4,10 @@
 import { h } from '../dom.js';
 import { descDetails } from './flow-head.js';
 import { announce } from './flow-walk.js';
+import { stepCols } from './flow-steps.js';
+import { cmpVar } from '../design/component-colors.js';
+
+const dot = (c) => { const v = c?.kind === 'service' ? cmpVar(c.service, c.serviceKind) : null; return v ? h('span.cdot', { style: { '--cc': v }, 'aria-hidden': 'true' }) : null; };
 
 /**
  * createStepbar({ store, root, onMove(action) }) -> { el, show(step|null, n, total), dispose }
@@ -24,7 +28,8 @@ export function createStepbar({ store, root, onMove }) {
     if (!step) { clear(); shownKey = null; return; }
     count.textContent = `Step ${n} of ${total}`;
     prev.disabled = n <= 1; next.disabled = n >= total;
-    what.replaceChildren(h('span.mono', step.label), h('span.muted', ` ${step.from} → ${step.to}`));
+    const [a, b] = stepCols(step.event);
+    what.replaceChildren(...[h('span.mono', step.label), ' ', dot(a), h('span.muted', `${step.from} → `), dot(b), h('span.muted', step.to)].filter(Boolean));
     live.textContent = announce(n, total, `${step.label}, ${step.from} to ${step.to}`);
     if (!root || shownKey === step.key) return;
     shownKey = step.key; clear();

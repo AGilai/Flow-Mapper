@@ -3,11 +3,13 @@
 
 import { altFrames, stripsByRow, STRIP } from './sequence-alt.js';
 import { arrowEnds, columnGaps, centres, labelWidth, wrapId, clampLines } from './flow-cols.js';
+import { markChips, chipsStack } from './flow-marks-draw.js';
+import { sharedVar } from '../design/component-colors.js';
 import { FOLD_W, COL_NARROW, displayCols, foldGroups, planSqueeze } from './flow-squeeze.js';
 
 export const COL = 138, COL_MIN = 132, PAD = 16, GUTTER = 8, BAR = 12, NEST = 8, CH_HEAD = 116; // CH_HEAD: a topic or queue head is narrower than a service head
 const ROWH = { call: 46, return: 36, pill: 32, mw: 34, store: 46, hop: 48, unresolved: 42, frontier: 32, amqpnote: 26 };
-const rowH = (e) => (e.type === 'hop' && e.marker ? 56 : e.type === 'call' && e.rpc?.chip ? 58 : e.type === 'unresolved' && e.chip ? 56 : ROWH[e.type]); // an RPC's "amqp rpc" chip sits under its arrow
+const rowH = (e) => (e.type === 'hop' && e.marker ? 56 : e.type === 'call' && (e.rpc?.chip || e.msg?.reference) ? 58 : e.type === 'unresolved' && e.chip ? 56 : ROWH[e.type]); // an RPC's "amqp rpc" chip sits under its arrow
 const LINE = { call: 30, return: 22, pill: 16, mw: 17, store: 23, hop: 30, unresolved: 28, frontier: 16, amqpnote: 14 };
 const T_VAR = { http: '--t-http', rpc: '--t-rpc', grpc: '--t-http', eventbridge: '--t-eb', sns: '--t-sns', sqs: '--t-sqs', amqp: '--t-amqp', cron: '--t-cron', socket: '--t-socket', undecided: '--ink-2', res: '--t-res' };
 export const colorOf = (t) => `var(${T_VAR[t] ?? '--ink-2'})`;
@@ -18,7 +20,7 @@ export const markW = (m) => Math.ceil(m.label.length * (m.kind === 'key' ? 6.9 :
 export const FUNNEL = 'M1.5 2h9L7 6.3V10l-2-1V6.3z';
 
 /** layoutLane(lane, fit, sq) -> every measure the drawing needs; `fit`: the width the diagram has (0 = no limit); sq: { keep: [column index] } turns Squeeze on (flow-squeeze.js). */
-export function layoutLane(lane, fit = 0, sq = null) {
+export function layoutLane(lane, fit = 0, sq = null, marks = null, edit = false) {
   const { columns, events, bars } = lane;
   // Each gap between lifelines grows to fit the longest arrow label that crosses it: a label is never cut.
   const idx = new Map(columns.map((c, i) => [c, i]));
@@ -62,13 +64,17 @@ export function layoutLane(lane, fit = 0, sq = null) {
   const frames = altFrames(lane.altMsgs), strips = stripsByRow(frames, lane.altRows);
   const nStrips = (r) => strips.get(r)?.length ?? 0;
   const top = [], ys = [];
-  let y = PAD;
-  events.forEach((e, r) => { top[r] = y; ys[r] = y + nStrips(r) * STRIP + LINE[e.type]; y += nStrips(r) * STRIP + rowH(e); });
+  let y = PAD + 12; // a gap under the sticky heads: the first arrow label never touches them
+  // an arrow too short for its chips beside the step tile ("in draft" + "transport not decided" at 760) stacks them, one per line: the row grows by a line each
+  const stacked = new Set(events.filter((e) => e.type === 'call' && e.msg && chipsStack(markChips(marks, e.msg), Math.abs(colX.get(e.to) - colX.get(e.from)) - 12)));
+  // Edit: room under the last row of each bar for its "+ call" chip, so it never meets the next arrow or label
+  const addRows = new Set(edit ? lane.bars.filter((b) => !b.msg.reference && b.msg.target?.fn).map((b) => b.end) : []);
+  events.forEach((e, r) => { top[r] = y; ys[r] = y + nStrips(r) * STRIP + LINE[e.type]; y += nStrips(r) * STRIP + rowH(e) + (stacked.has(e) ? 19 * (markChips(marks, e.msg).length - 1) : 0) + (addRows.has(r) ? 20 : 0); });
   top[events.length] = y;
   const height = y + PAD;
   const barX = (bar, dir) => (folded.has(idx.get(bar.col)) ? colX.get(bar.col) + (dir < 0 ? 0 : fw) : colX.get(bar.col) + bar.level * NEST + dir * BAR / 2); // in a fold: its edge on that side
-  const groups = foldGroups(columns.length, folded).map((g) => ({ ...g, x: xs[g.from], w: fw, names: g.cols.map((c) => columns[c].service ?? columns[c].label) }));
+  const groups = foldGroups(columns.length, folded).map((g) => ({ ...g, x: xs[g.from], w: fw, names: g.cols.map((c) => columns[c].service ?? columns[c].label), cc: sharedVar(g.cols.map((c) => columns[c])) }));
   const edge = (bar, col, dir) => (bar ? barX(bar, dir) : colX.get(col));
   const headBox = (c) => headW(c, COLW);
-  return { columns, events, bars, idx, folded, groups, plan, sig, foldW: fw, fit, isCh, headW, headBox, xs, COLW, width, height, colX, heads, boxH, HEAD, frames, strips, top, ys, barX, edge };
+  return { columns, events, bars, idx, stacked, folded, groups, plan, sig, foldW: fw, fit, isCh, headW, headBox, xs, COLW, width, height, colX, heads, boxH, HEAD, frames, strips, top, ys, barX, edge };
 }

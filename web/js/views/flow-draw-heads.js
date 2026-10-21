@@ -6,14 +6,21 @@ import { LINE_H, colorOf } from './flow-draw-layout.js';
 import { foldHeads } from './flow-draw-fold.js';
 import { headMarkSvg } from './flow-marks-draw.js';
 import { isDesign } from '../state.js';
+import { cmpVar } from '../design/component-colors.js';
+import { headRefSvg, headRefSub } from './flow-refs-draw.js';
+import { runtimeFor, runtimeSvg } from '../design/service-info.js';
 
-export function drawHead({ columns, heads, boxH, HEAD, width, colX, isCh, headBox, folded, groups, marks }) {
+export function drawHead({ columns, heads, boxH, HEAD, width, colX, isCh, headBox, folded, groups, marks, refs }) {
   return s('svg', { width, height: HEAD, class: 'seq-head', role: 'presentation' }, foldHeads(groups, boxH), columns.map((c, i) => folded.has(i) ? null :
-    s('g', { class: `seq-part k-${c.kind}${c.fan ? ' fan' : ''}`, 'data-p': i, style: isCh(c) || c.transport ? `--mc:${colorOf(c.transport)}` : null, transform: `translate(${colX.get(c) - headBox(c) / 2},8)`, tabindex: c.fan ? 0 : null, role: c.fan ? 'button' : null },
-      s('rect', { width: headBox(c), height: boxH, rx: 8 }), s('rect', { class: 'stripe', width: 4, height: boxH, rx: 2 }), headMarkSvg(marks, c, headBox(c)),
+    s('g', { class: `seq-part k-${c.kind}${c.fan ? ' fan' : ''}${look(c).cls}`, 'data-p': i, style: look(c).style, transform: `translate(${colX.get(c) - headBox(c) / 2},8)`, tabindex: c.fan ? 0 : null, role: c.fan ? 'button' : null },
+      s('rect', { width: headBox(c), height: boxH, rx: 8 }), s('rect', { class: 'stripe', width: 4, height: boxH, rx: 2 }), headMarkSvg(marks, c, headBox(c)), headRefSvg(refs, c, headBox(c)), c.kind === 'service' ? runtimeSvg(runtimeFor(c.service), headBox(c) - (refs?.locked(c) ? 40 : 22), 5) : null,
       heads[i].name.map((t, k) => s('text', { x: 12, y: 18 + k * LINE_H, class: 'name' }, t)),
-      isCh(c) ? headChip(c, heads[i].name.length * LINE_H + 5) : (c.kind === 'unresolved' && isDesign() ? ['not designed yet'] : heads[i].sub).map((t, k) => s('text', { x: 12, y: 18 + heads[i].name.length * LINE_H + 1 + k * 13, class: 'sub' }, t)),
-      s('title', {}, c.folded ? `${c.folded.length} more queues: ${c.folded.map(chName).join(', ')}. Click to show them all.` : c.fan?.open ? `${c.label}. Click to fold the healthy queues again.` : c.label))));
+      isCh(c) ? headChip(c, heads[i].name.length * LINE_H + 5) : (c.kind === 'unresolved' && isDesign() ? ['not designed yet'] : headRefSub(refs, c, heads[i].sub)).map((t, k) => s('text', { x: 12, y: 18 + heads[i].name.length * LINE_H + 1 + k * 13, class: 'sub' }, t)),
+      s('title', {}, c.trigger ? `${c.label}: a client app. Starts when: ${c.trigger}` : c.folded ? `${c.folded.length} more queues: ${c.folded.map(chName).join(', ')}. Click to show them all.` : c.fan?.open ? `${c.label}. Click to fold the healthy queues again.` : c.label))));
+  function look(c) { // the component's colour (a service with a slot), a locked head (a reference), a client app
+    const cc = c.kind === 'service' ? cmpVar(c.service, c.serviceKind) : null, mc = isCh(c) || c.transport ? `--mc:${colorOf(c.transport)}` : null;
+    return { style: [mc, cc ? `--cc:${cc}` : null].filter(Boolean).join(';') || null, cls: `${cc ? ' cmp' : ''}${c.serviceKind === 'client-app' ? ' ca' : ''}${refs?.locked(c) ? ' locked' : ''}` };
+  }
   function headChip(c, y) { // the transport of a topic or queue, as a chip; a big fan-out adds its fold control
     const w = c.sub.length * 6.4 + 12;
     return [s('rect', { class: 'tchip', x: 12, y: y + 4, width: w, height: 16, rx: 4 }), s('text', { class: 'tchipt', x: 18, y: y + 16 }, c.sub),

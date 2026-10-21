@@ -10,8 +10,8 @@ import { subRequest, requestKey } from './flow-sub.js';
 
 const colorOf = (transport) => `var(--t-${String(transport ?? 'sqs').replace('amqp-queue', 'amqp')}, var(--t-res))`;
 
-/** createTabData(env, getOpts) -> { load(key), traceFor(request), clear(), describe(key), peek(key) }; getOpts(): { frontier } */
-export function createTabData(env, getOpts) {
+/** createTabData(env, getOpts, nameOf(service, ingress) -> flow name | '') -> { load(key), traceFor(request), clear(), describe(key), peek(key) }; getOpts(): { frontier } */
+export function createTabData(env, getOpts, nameOf = () => '') {
   const cache = new Map(), done = new Map(), traces = new Map();
   let running = 0;
   const waiting = [];
@@ -29,6 +29,7 @@ export function createTabData(env, getOpts) {
     if (!cache.has(key)) cache.set(key, resolve(key).then((d) => { done.set(key, d); return d; }));
     return cache.get(key);
   };
+  const triggerOf = (p) => api.endpoint(env, p.service, p.ingress).then((e) => e?.ingress?.details?.trigger ?? null, () => null);
   async function resolve(key) {
     const p = parseKey(key);
     if (!p) throw new Error('This tab is not a flow.');
@@ -44,7 +45,8 @@ export function createTabData(env, getOpts) {
     else if (p.kind === 'full') Object.assign(q, { ingress: p.ingress, event: p.event, scope: 'full' });
     else Object.assign(q, { ingress: p.ingress, event: p.event, scope: p.scope });
     const trace = await traceFor(q);
-    return { key, kind: p.kind, originKey: p.origin ?? null, trace, tree: asyncTree(trace.messages), service: p.service, name: p.ingress ?? p.fn, scope: p.kind === 'full' ? 'full' : p.scope,
+    const trigger = p.ingress && trace.participants?.some((x) => x.serviceKind === 'client-app' && x.service === p.service) ? await triggerOf(p) : null; // a client app's head says what starts it
+    return { key, kind: p.kind, trigger, originKey: p.origin ?? null, trace, tree: asyncTree(trace.messages), service: p.service, name: p.ingress ?? p.fn, scope: p.kind === 'full' ? 'full' : p.scope,
       start: p.ingress && (p.kind === 'full' || p.scope === 'full') ? { service: p.service, ingress: p.ingress, event: p.event ?? null, scope: 'full' } : null };
   }
   /** The tab's label parts, from the loaded data or (before it arrives) from the key alone. */
@@ -56,8 +58,9 @@ export function createTabData(env, getOpts) {
       return { kind: 'sub', tn: d?.label ?? '…', title: d?.service ?? p.handler, sub: d ? d.name : '', color: colorOf(t), tip: d ? `${d.label} · ${d.service} · ${d.name} (from ${p.queue.replace(/^[^:]+:/, '')})` : p.handler };
     }
     const name = p.ingress ?? p.fn;
-    return { kind: p.kind, title: p.service, sub: name, color: p.kind === 'full' ? 'var(--accent)' : 'var(--t-http)',
-      tip: p.kind === 'full' ? `Full flow from ${p.service} · ${name}` : `${p.service} · ${name}${p.event ? ` (${p.event})` : ''}`, scope: p.scope };
+    const named = p.kind === 'entry' || p.kind === 'full' ? nameOf(p.service, p.ingress) : ''; // a named flow: its name is the tab title, `service · key` the sub
+    return { kind: p.kind, title: named || p.service, sub: named ? `${p.service} · ${name}` : name, named, color: p.kind === 'full' ? 'var(--accent)' : 'var(--t-http)',
+      tip: p.kind === 'full' ? `Full flow from ${p.service} · ${name}` : `${named ? `${named} · ` : ''}${p.service} · ${name}${p.event ? ` (${p.event})` : ''}`, scope: p.scope };
   }
   return { load, describe, traceFor, peek: (key) => done.get(key) ?? null, clear: () => { cache.clear(); done.clear(); traces.clear(); } };
 }

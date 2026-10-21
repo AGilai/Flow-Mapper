@@ -236,7 +236,7 @@ With `?draft=` they read the overlay. **Removed in 0.25.0: edit a design through
 
 | Path | Returns |
 |---|---|
-| `GET /api/envs/:env/views/system` | nodes, edges (with channels), collapsedEdges (service to service). Each edge lists its `endpoints`; those carry `egress` / `ingress` ids (within the edge's from / to service) and, through a subscription, its event `filter` |
+| `GET /api/envs/:env/views/system` | nodes (a service node carries `runtime` when its header has `details.runtime`, 0.26.0), edges (with channels), collapsedEdges (service to service). Each edge lists its `endpoints`; those carry `egress` / `ingress` ids (within the edge's from / to service) and, through a subscription, its event `filter` |
 | `GET /api/envs/:env/views/service/:service` | ingress with callers, egress with targets, resources, functions. Each egress has `via` (wrapper hops, caller to SDK call, each with a code `link`) and `callSites[]` (`file`, `line`, `function`, `link`, `via`), read from the egress fields or `details.via` / `details.callSites`. A wrapper is display data: never a producer, node or edge. Each ingress has `via` (the hops that resolved its handler, kind `registration` / `bind`; from `via` or `details.handlerVia`), and each function its `unresolved` gaps |
 | `GET /api/envs/:env/entry-points` | where flows start |
 | `GET /api/envs/:env/flows/counts` | per entry point: distinct components its full flow reaches (`total`, `services`, `topics`, `queues`, `buses`, `stores`, `otherChannels`); reachability, no trace; cached per graph |

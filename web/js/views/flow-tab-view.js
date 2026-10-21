@@ -17,6 +17,9 @@ import { flowId } from './flow-sub.js';
 import { removedList } from './flow-removed.js';
 import { servicesOf } from './flow-marks.js';
 import { marksNow } from '../design/marks-store.js';
+import { createPartial } from './flow-partial.js';
+import { nameEditor } from './flow-name.js';
+import { linksRow } from '../components/ext-links.js';
 import { state } from '../state.js';
 
 const tc = (t, label) => h('span.tc', { class: t, title: label }, label);
@@ -34,15 +37,19 @@ export function createTabView(data, host) {
   // Descriptions belong to the flow (service + ingress of its entry point; a sub-flow tab belongs to the flow it came from). A function tab has none.
   const root = host.desc ? host.rootOf(key) : null, services = [...new Set(trace.participants.filter((p) => p.kind === 'service').map((p) => p.label))];
   const generate = (callee) => openGenerate({ env: host.env, root, services, callee, onClose: () => host.desc.refresh(root) });
+  const editing = state.mode === 'edit' && !!state.draft;
+  const editFlow = () => (editing && host.edit && root ? h('button.btn.sm', { type: 'button', 'data-qa': 'edit-flow', on: { click: (e) => { e.preventDefault(); e.stopPropagation(); host.edit.flow(root.service, root.ingress, host.nameOf?.(root.service, root.ingress) ?? '', trace.start?.fn || null); } } }, 'Edit flow') : null);
   const descs = [];
   const label = host.describe(key);
   // The flow's description sits under its title, full width and collapsible (0.20.0); a sub-flow tab keeps its one line.
   const flowBox = root && data.kind !== 'sub' ? descDetails(host.desc, root, null, { cls: 'flowhead', remember: 'flowhead-open', title: 'What this flow is for', onGenerate: () => generate(null),
-    summary: [h('span.fh-t', label.title), label.sub ? h('span.mono.xs.muted', label.sub) : null] }) : null;
+    summary: [root ? nameEditor({ root, name: host.nameOf?.(root.service, root.ingress) ?? '', fallback: label.title }).el : h('span.fh-t', label.title), label.sub ? h('span.mono.xs.muted', label.sub) : null, linksRow(trace.start?.links), editFlow()] }) : null;
   const subLine = root && data.kind === 'sub' ? descLine(host.desc, root, [`${data.service}:${data.name}`, data.service], { onGenerate: () => generate(data.service) }) : null;
   descs.push(flowBox, subLine);
   // The step walk: numbered arrows, the bar and the step's description. Step descriptions belong to the flow, so a sub-flow or function tab walks without them.
-  const walk = createWalkView({ store: host.desc, messages: () => trace.messages, root: data.kind === 'sub' ? null : root, initial: host.initialStep?.(key) ?? null, onStep: (n) => host.setStep?.(key, n), onRestep: (cols) => render?.restep(cols) });
+  const partial = createPartial({ trace, editing, onImport: (anchor, source) => host.importRef?.(anchor, source) });
+  const noHint = trace.noHandler ? h('div.noh-hint', { role: 'note', 'data-qa': 'no-handler' }, `No handler function. This entry point has no behaviour in ${host.env} yet.`) : null; // #59
+  const walk = createWalkView({ store: host.desc, messages: () => trace.messages, root: data.kind === 'sub' ? null : root, initial: host.initialStep?.(key) ?? null, onStep: (n) => host.setStep?.(key, n), onRestep: (cols) => render?.restep(cols), onSteps: (st) => partial.update(st) });
   const tip = root ? createTip(host.desc, root) : null;
   const scroller = h('div.seq-scroll');
   const hint = h('span.seq-hint', 'More to the right. Scroll sideways ›');
@@ -70,11 +77,13 @@ export function createTabView(data, host) {
   }
   const lookInside = (bar, tr) => { inside.open(bar, tr); };
   const flash = (g) => { g?.scrollIntoView({ block: 'center', behavior: 'smooth' }); g?.classList.add('flash'); setTimeout(() => g?.classList.remove('flash'), 1600); };
-  const shared = { host, opts, tip, walk, squeeze: () => opts.squeeze && !sqOff, squeezeOpen: () => { sqOff = true; host.paintChrome?.(); render?.relane(); edge(); walk.reveal(true); }, fit: () => scroller.clientWidth, select, lookInside, flash, traceFor: host.traceFor,
-    openMessage: (m, g, tr) => { // clicking an arrow opens the message panel; one side panel at a time
+  const ed = editing && host.edit ? host.edit : null; // Edit with a draft: heads, arrows and "+ call" open forms (design/edit-open.js)
+  const shared = { host, opts, tip, walk, editHead: ed ? (service) => { ed.head(service); return true; } : null, addCall: ed ? (bar) => ed.addCall(bar.service, bar.msg.target.fn) : null, trigger: () => data.trigger, importRef: (anchor, m) => host.importRef?.(anchor, m?.reference?.source), squeeze: () => opts.squeeze && !sqOff, squeezeOpen: () => { sqOff = true; host.paintChrome?.(); render?.relane(); edge(); walk.reveal(true); }, fit: () => scroller.clientWidth, select, lookInside, flash, traceFor: host.traceFor,
+    openMessage: (m, g, tr) => { // clicking an arrow opens the message panel (in Edit: its form); one side panel at a time
       body.querySelectorAll('.msg.active').forEach((e) => e.classList.remove('active'));
       g.classList.add('active');
       inside.close();
+      if (ed?.arrow(m)) return;
       host.flowsEl.classList.add('mp-open');
       host.panel.open(...messagePanel(m, tr, host.env, 'full', host.openEntry));
     } };
@@ -105,15 +114,15 @@ export function createTabView(data, host) {
   }
 
   function draw() { // options changed (stores, depth): redraw the lane and the lanes of the open cards; their expansion stays
-    if (render) { render.relane(); fill(scroller, head(), render.laneBox, removedList(marksNow(), servicesOf(trace), { draft: state.draft }), render.idxBox); } else {
+    if (render) { render.relane(); fill(scroller, head(), noHint, render.laneBox, removedList(marksNow(), servicesOf(trace), { draft: state.draft }), render.idxBox); } else {
       render = createFlowRender({ trace, tree, key, ancestors: data.start ? [flowId(data.start)] : [] }, shared);
       if (!scroller.clientWidth) render.laneBox.style.visibility = 'hidden'; // drawn before it has a width: show it once laid out to fit
-      fill(scroller, head(), render.laneBox, removedList(marksNow(), servicesOf(trace), { draft: state.draft }), render.idxBox);
+      fill(scroller, head(), noHint, render.laneBox, removedList(marksNow(), servicesOf(trace), { draft: state.draft }), render.idxBox);
     }
     edge(); requestAnimationFrame(edge);
   }
   draw();
-  const el = h('div.flow-tab', h('div.flow-top', flowBox?.el, walk.el), body);
+  const el = h('div.flow-tab', h('div.flow-top', flowBox?.el, walk.el, partial.el), body);
   el.addEventListener('keydown', (ev) => walk.onKey(ev)); // ← → Home End, while focus is in the flow view and not in a text box
   return {
     el, key, data, draw, insideOpen: () => inside.isOpen(), dispose: () => { clearTimeout(resizeTimer); document.removeEventListener('fm:layout', onLayout); inside.dispose(); ro?.disconnect(); tip?.dispose(); descs.forEach((d) => d?.dispose()); walk.dispose(); },

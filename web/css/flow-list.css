@@ -1,0 +1,51 @@
+/* The Flows list (0.26.0): filter groups (Subsystem, Component), "Changed only", names, locks, marks, ↗ links; the flow's name as a title with its pencil. Prefix fg-, fl-. */
+.fl-filters { display: grid; gap: 0; border-bottom: 1px solid var(--line); }
+.fl-filters:empty { display: none; }
+.fg { border-top: 1px solid var(--line); }
+.fg:first-child { border-top: 0; }
+.fg-head { display: flex; align-items: baseline; gap: var(--s2); width: 100%; padding: 7px var(--s3); border: 0; background: transparent; cursor: pointer; text-align: left; color: var(--ink); font: inherit; font-size: var(--fs-sm); }
+.fg-head:hover { background: var(--surface-2); }
+.fg-head:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.fg-caret { color: var(--muted); width: 10px; font-size: 10px; flex: none; }
+.fg-t { font-weight: 600; }
+.fg-sum { margin-left: auto; color: var(--muted); font-size: var(--fs-xs); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.fg-body { padding: 0 var(--s3) var(--s2); max-height: 190px; overflow: auto; }
+.fg-set { border: 0; margin: 0; padding: 0; min-width: 0; }
+.fg-acts { font-size: var(--fs-xs); color: var(--muted); padding: 2px 0 4px; }
+.linkish { border: 0; background: none; padding: 0; color: var(--accent); cursor: pointer; font: inherit; }
+.linkish:hover { text-decoration: underline; }
+.fg-row { display: flex; align-items: center; gap: var(--s2); padding: 2px 0; font-size: var(--fs-sm); cursor: pointer; }
+.fg-row input { margin: 0; }
+.fg-l { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.fg-n { color: var(--muted); font-size: var(--fs-xs); font-variant-numeric: tabular-nums; }
+.fl-changed { display: flex; gap: var(--s3); flex-wrap: wrap; padding: 6px var(--s3); border-bottom: 1px solid var(--line); font-size: var(--fs-sm); }
+.fl-changed .check { font-size: var(--fs-sm); }
+.fl-changed [hidden] { display: none; }
+
+.fl-nm { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 6px; min-width: 0; }
+.fl-nm b { font-weight: 600; overflow-wrap: anywhere; }
+.fl-nm .lock-chip, .entry .lock-chip { height: 18px; }
+.fl-sum { overflow-wrap: anywhere; }
+.fl-ext { display: inline-grid; place-items: center; width: 18px; height: 18px; color: var(--ink-2); cursor: pointer; border-radius: 4px; }
+.fl-ext:hover, .fl-ext:focus-visible { color: var(--accent); background: var(--accent-soft); outline: none; }
+.fl-ext svg { width: 13px; height: 13px; }
+.fl-foot { padding: var(--s2) var(--s3); }
+.entry.is-removed { color: var(--muted); }
+.entry.is-removed .key { text-decoration: line-through; }
+.entry .mark { margin: 0; }
+
+.fl-name { display: inline-flex; align-items: center; gap: var(--s2); min-width: 0; }
+.fl-name .input { height: 30px; font-size: var(--fs-lg); font-weight: 600; min-width: 260px; }
+.fl-pencil { height: 24px; padding: 0 6px; font-size: var(--fs-xs); color: var(--muted); }
+.fl-pencil:hover { color: var(--accent); }
+.ext-chips { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.ext-chip { display: inline-flex; align-items: center; gap: 3px; height: 20px; padding: 0 8px; border-radius: 10px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink-2); font-size: var(--fs-xs); text-decoration: none; }
+.ext-chip:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+.ext-main { font-size: var(--fs-sm); display: inline-flex; align-items: center; gap: 4px; }
+.runtime-glyph { display: inline-grid; place-items: center; width: 18px; height: 18px; color: var(--ink-2); vertical-align: middle; }
+.runtime-glyph svg { width: 14px; height: 14px; }
+.noh-hint { margin: var(--s3) var(--s4); padding: 8px 12px; border: 1px dashed var(--line-strong); border-radius: var(--r-sm); color: var(--muted); font-size: var(--fs-sm); }
+.ext-i { width: 12px; height: 12px; }
+/* inventory rows grouped by subsystem (design environments) */
+table.grid tr.tgrp th { text-align: left; background: var(--surface-2); color: var(--ink-2); font-size: var(--fs-xs); font-weight: 600; padding: 5px var(--s3); border-top: 1px solid var(--line-strong); }
+.fl-tags { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }

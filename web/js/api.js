@@ -19,6 +19,7 @@ async function http(method, path, body, raw) {
     const err = new Error(data?.error?.message ?? `HTTP ${res.status}`);
     err.status = res.status;
     err.details = data?.error?.details;
+    err.code = data?.error?.code;
     throw err;
   }
   return data;
@@ -74,6 +75,12 @@ const remote = {
   undoDraft: (env, slug) => put(env, `/${e(slug)}/ops/last`, 'DELETE'),
   revertDraftItem: (env, slug, anchor) => put(env, `/${e(slug)}/ops${qs({ anchor })}`, 'DELETE'),
   applyDraft: (env, slug, by) => put(env, `/${e(slug)}/apply`, 'POST', { by }),
+  importPreview: (env, slug, i) => http('GET', `/api/envs/${e(env)}/drafts/${e(slug)}/import/preview${qs({ source: i.source, anchor: i.anchor, groupPath: i.groupPath })}`),
+  importIntoDraft: (env, slug, i, author) => put(env, `/${e(slug)}/import`, 'POST', { ...i, author }),
+  designEdit: (env, slug, edit, author) => put(env, `/${e(slug)}/edits`, 'POST', { edit, author }),
+  call: (env, service, egress) => get(`/api/envs/${e(env)}/call${qs({ service, egress })}`),
+  flowNames: (env) => get(`/api/envs/${e(env)}/flow-names`),
+  setFlowName: (env, body) => http('PUT', `/api/envs/${e(env)}/flow-names`, body),
   discardDraft: (env, slug, by) => put(env, `/${e(slug)}${qs({ by })}`, 'DELETE'),
   bugs: (filter = {}) => http('GET', `/api/bugs${qs(filter)}`),
   bugStats: () => http('GET', '/api/bugs/stats'),

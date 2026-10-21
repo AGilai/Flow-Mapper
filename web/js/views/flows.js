@@ -6,7 +6,8 @@ import { loadMarks } from '../design/marks-store.js';
 import { boundaryNote } from './flow-boundary.js';
 import { h, fill } from '../dom.js';
 import { api } from '../api.js';
-import { state } from '../state.js';
+import { state, isDesign } from '../state.js';
+import { metaOf } from '../env-info.js';
 import { setQuery, go } from '../router.js';
 import { pageHead } from '../components/page.js';
 import { createPanel } from '../components/panel.js';
@@ -19,13 +20,16 @@ import { createDescStore } from './flow-desc.js';
 import { swap } from './flow-tabs-anim.js';
 import * as T from './flow-tabs-state.js';
 import { decodeStep, encodeStep } from './flow-walk.js';
+import { setServiceInfo } from '../design/service-info.js';
+import { openImport } from '../design/import-panel.js';
+import { editOpener, editing } from '../design/edit-open.js';
 
 // Squeeze (0.20.1): on by default, remembered per viewer; a click on a fold turns it off for that tab only (flow-tab-view.js).
 const sqStored = () => { try { return localStorage.getItem('flow-mapper.squeeze') !== '0'; } catch { return true; } };
 const sqSave = (on) => { try { localStorage.setItem('flow-mapper.squeeze', on ? '1' : '0'); } catch { /* storage unavailable */ } };
 
 export async function render({ main, query }) {
-  await loadMarks(); // the marks of a design environment (sparks on heads and arrows, the removed list)
+  const marks = await loadMarks(); // the marks of a design environment (sparks on heads and arrows, the removed list; a mark on each entry point)
   const service = query.get('service');
   const opts = { stores: query.get('stores') !== '0', depth: query.get('depth') ?? 'all',
     frontier: query.get('frontier') === '1', squeeze: sqStored() }; // steps the harvester marked as frontier (call trees that reach no sink)
@@ -39,13 +43,19 @@ export async function render({ main, query }) {
     ? (await api.service(state.env, service)).ingress.map((i) => ({ service, id: i.id, bindKey: i.bindKey, transport: i.transport, handler: i.handler, entryPoint: i.entryPoint }))
     : await api.entryPoints(state.env);
   const counts = new Map((await api.flowCounts(state.env).catch(() => [])).map((c) => [`${c.service}:${c.ingress}`, c]));
-  const data = createTabData(state.env, () => opts);
+  const names = new Map((await api.flowNames(state.env).catch(() => [])).map((n) => [`${n.service}/${n.ingress}`, n.name]));
+  points.forEach((p) => { p.name ||= names.get(`${p.service}/${p.id}`) ?? ''; });
+  const nameOf = (s, i) => names.get(`${s}/${i}`) ?? '';
+  const data = createTabData(state.env, () => opts, nameOf);
   const desc = createDescStore(state.env);
 
   const mainPane = h('div.flows-main');
   const rightEl = h('div.flows-right', mainPane); // the message panel is this grid's second column, so it squeezes the diagram
   const panel = createPanel(rightEl, { onClose: () => { flowsEl.classList.remove('mp-open'); views.get(S.active)?.clearMessage(); } });
-  const list = createList({ points, counts, service, onPick: (p) => openEntry({ service: p.service, ingress: p.id }),
+  const svcs = await api.services(state.env).catch(() => []);
+  setServiceInfo(svcs);
+  const groupOf = new Map(svcs.map((s) => [s.name, s.groupPath ?? '']));
+  const list = createList({ points, counts, service, groupOf, groups: metaOf(state.envMeta, state.env).groups ?? [], marks, design: isDesign(), query, onPick: (p) => openEntry({ service: p.service, ingress: p.id }),
     onAll: () => go('/flows', { tabs: S.keys.join(',') || null, tab: S.keys.length > 1 ? S.active : null }),
     onCollapse: (c) => flowsEl.classList.toggle('list-c', c) });
   const flowsEl = h('div.flows', list.el, rightEl);
@@ -68,7 +78,8 @@ export async function render({ main, query }) {
   const sqCheck = h('label.check', { title: 'When the diagram is wider than the window, fold the lifelines the current step does not need. Click a fold to open it.' },
     h('input', { type: 'checkbox', checked: opts.squeeze, on: { change: (e) => { opts.squeeze = e.target.checked; sqSave(opts.squeeze); views.forEach((v, k) => { v.resetSqueeze(); if (k === S.active) v.draw(); else stale.add(k); }); } } }), 'Squeeze');
   const toolbar = h('div.seq-toolbar', seg, check('stores', 'Data stores'), frontierCheck, sqCheck, depth, h('span.spacer'),
-    h('span.xs.muted', 'Double-click a bar, or right-click it, to look inside'), info);
+    h('span.xs.muted', 'Double-click a bar, or right-click it, to look inside'), info,
+    editing() ? h('button.btn.sm', { type: 'button', 'data-qa': 'add-component', title: 'Add a component to the draft', on: { click: () => host.edit.addComponent() } }, '+ component') : null);
 
   // ---- tabs ----
   const strip = createTabStrip({ describe: data.describe, onActivate: (k) => commit(T.activate(S, k)), onClose: (k) => commit(T.closeTab(S, k)),
@@ -90,10 +101,14 @@ export async function render({ main, query }) {
     jumpToLabel: (label) => { const k = S.keys.find((x) => data.peek(x)?.label === label); if (k) commit(T.activate(S, k)); },
     openEntry: (e) => openEntry(e),
     paintChrome: () => paintChrome(),
+    importRef: (anchor, source) => openImport({ panel, flowsEl, anchor, source }),
+    nameOf,
+    edit: null, // set below: the form opener (Edit with a draft)
     initialStep: (k) => (k === stepTab ? stepParam : null),
     setStep: (k, n) => { if (k === S.active) { stepParam = n; persist(); } },
     setFrontier: () => { opts.frontier = true; frontierCheck.querySelector('input').checked = true; persist(); reloadAll(); },
   };
+  if (editing()) host.edit = editOpener(host);
   const openEntry = ({ service: s, ingress, fn, event, scope }) => commit(T.openTab(S, ingress ? T.entryKey(s, ingress, event, scope) : T.fnKey(s, fn, event, scope)));
   function setScope(scope) {
     const to = T.withScope(S.active, scope);
@@ -113,7 +128,7 @@ export async function render({ main, query }) {
       slot.replaceChildren(v.el);
       if (S.active === key) { v.restore(); paintChrome(); }
       strip.render(S);
-    }).catch((err) => { if (slots.get(key) === slot) { slot.replaceChildren(boundaryNote(err) ?? h('div.content', h('div.error-box', err.message))); strip.render(S); } });
+    }).catch((err) => { if (slots.get(key) === slot) { slot.replaceChildren(boundaryNote(err, { editing: state.mode === 'edit' && !!state.draft, onImport: host.importRef }) ?? h('div.content', h('div.error-box', err.message))); strip.render(S); } });
   }
   function drop(key) { views.get(key)?.dispose(); views.delete(key); slots.get(key)?.remove(); slots.delete(key); stale.delete(key); }
 

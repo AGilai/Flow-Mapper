@@ -1,0 +1,29 @@
+/* References (0.26.0): the lock, the note at the end of an arrow, the partial-flow line, the Import panel. Neutral (--ink-2), never --warn. Prefix imp-, ref-. */
+.lock-chip { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 8px 0 6px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line-strong); color: var(--ink-2); font-size: var(--fs-xs); font-weight: 600; white-space: nowrap; }
+.lock-chip svg { width: 12px; height: 12px; stroke-width: 2; }
+.lockg { fill: none; stroke: var(--ink-2); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.seq-part.locked rect:first-child { stroke-dasharray: 4 3; }
+.act.ref { stroke-dasharray: 4 3; fill: var(--surface-2); stroke: var(--ink-2); }
+.act.ref.cmp { fill: color-mix(in srgb, var(--cc) 10%, var(--surface-2)); stroke: color-mix(in srgb, var(--cc) 60%, var(--ink-2)); }
+.ref-note text { font: 500 11px var(--font); fill: var(--ink-2); paint-order: stroke; stroke: var(--halo, var(--paper)); stroke-width: 4px; stroke-linejoin: round; }
+.ref-chip { cursor: pointer; outline: none; }
+.ref-chip rect { fill: var(--surface); stroke: var(--accent); }
+.ref-chip text { font: 600 10.5px var(--font); fill: var(--accent); stroke: none; }
+.ref-chip:hover rect, .ref-chip:focus-visible rect { fill: var(--accent-soft); stroke-width: 1.6; }
+
+.partial { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--s1) var(--s4); padding: 7px var(--s4); border-top: 1px solid var(--line); background: var(--surface-2); color: var(--ink-2); font-size: var(--fs-xs); }
+.partial[hidden] { display: none; }
+.partial b { color: var(--ink); }
+.partial .acts { white-space: nowrap; }
+
+.imp-sec { margin-top: var(--s3); }
+.imp-sec h4, .imp-sec summary { font-size: var(--fs-sm); font-weight: 600; margin: 0 0 var(--s2); cursor: default; }
+.imp-sec summary { cursor: pointer; }
+.imp-list { list-style: none; margin: 0 0 var(--s2); padding: 0; display: grid; gap: 4px; font-size: var(--fs-xs); }
+.imp-ref { display: flex; flex-wrap: wrap; align-items: center; gap: 4px var(--s2); padding: 5px 0; border-top: 1px solid var(--line); }
+.imp-ref .btn { margin-left: auto; }
+.imp-acts { display: flex; gap: var(--s2); flex-wrap: wrap; margin-top: var(--s3); }
+.imp-body .kv { font-size: var(--fs-xs); }
+.imp-body .mono { overflow-wrap: anywhere; }
+.imp-body small { font-size: var(--fs-xs); }
+.rtg { fill: none; stroke: var(--ink-2); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }

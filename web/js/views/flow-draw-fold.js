@@ -13,13 +13,13 @@ const textOf = (e) => (e.type === 'store' ? `${e.verb} ${e.name}` : Array.isArra
 /** The heads of the fold columns, in the head svg. */
 export const foldHeads = (groups, boxH) => groups.map((g, k) => {
   const list = g.names.join(', '), compact = g.w < 90; // compact (a tight room): "⋯ N" only, the title has the rest
-  return s('g', { class: 'sq-fold', 'data-sqfold': k, transform: `translate(${g.x},8)`, tabindex: 0, role: 'button', 'aria-label': `${g.cols.length} folded lifelines: ${list}. Click to open` },
+  return s('g', { class: `sq-fold${g.cc ? ' cmp' : ''}`, style: g.cc ? `--cc:${g.cc}` : null, 'data-sqfold': k, transform: `translate(${g.x},8)`, tabindex: 0, role: 'button', 'aria-label': `${g.cols.length} folded lifelines: ${list}. Click to open` },
     s('rect', { width: g.w, height: boxH, rx: 8 }), s('text', { class: 'fk', x: compact ? 10 : 12, y: 18 }, compact ? `⋯ ${g.cols.length}` : `⋯ ${g.cols.length} folded`), compact ? null : s('text', { class: 'sub', x: 12, y: 33 }, 'click to open'),
     s('title', {}, `${g.cols.length} folded: ${list}\nClick to open`));
 });
 
 /** The shaded column behind the rows of each fold. */
-export const foldBands = (groups, height) => groups.map((g, k) => s('rect', { class: 'sq-band', 'data-sqfold': k, x: g.x, y: 0, width: g.w, height }, s('title', {}, `${g.names.join(', ')}\nClick to open`)));
+export const foldBands = (groups, height) => groups.map((g, k) => s('rect', { class: `sq-band${g.cc ? ' cmp' : ''}`, style: g.cc ? `--cc:${g.cc}` : null, 'data-sqfold': k, x: g.x, y: 0, width: g.w, height }, s('title', {}, `${g.names.join(', ')}\nClick to open`)));
 
 /** Rows touching a fold: one node per event in, one node per event out. */
 export function foldRows(nodes, { events, idx, columns, groups, colX, ys }) {
