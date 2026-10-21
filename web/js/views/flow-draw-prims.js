@@ -38,7 +38,7 @@ export const stop = (end, x2, dir, y0, mc, r) => {
   for (const t of end.tiles) {
     const w = tileW(t.text), bx = dir > 0 ? x : x - w;
     kids.push(s('g', { class: `numtile${t.seen ? ' seen' : ''}${end.bad ? ' bad' : ''}`, 'data-num': t.jump, 'data-own': t.own.join(' '), tabindex: 0, role: 'link', 'aria-label': t.title },
-      s('rect', { x: bx, y: y0 + 2, width: w, height: 18, rx: 4 }), s('text', { x: bx + w / 2, y: y0 + 15, 'text-anchor': 'middle' }, t.text), s('title', {}, t.title)));
+      s('rect', { x: bx, y: y0 + 2, width: w, height: 18, rx: 4 }), s('text', { x: bx + w / 2, y: y0 + 15, 'text-anchor': 'middle' }, s('tspan', { class: 'gl' }, '↓'), `\u2009${t.text}`), s('title', {}, t.title)));
     x += dir * (w + 4);
   }
   return s('g', { class: 'chain-end' }, ...kids);

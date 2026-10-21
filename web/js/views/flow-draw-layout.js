@@ -12,7 +12,8 @@ const LINE = { call: 30, return: 22, pill: 16, mw: 17, store: 23, hop: 30, unres
 const T_VAR = { http: '--t-http', rpc: '--t-rpc', grpc: '--t-http', eventbridge: '--t-eb', sns: '--t-sns', sqs: '--t-sqs', amqp: '--t-amqp', cron: '--t-cron', socket: '--t-socket', undecided: '--ink-2', res: '--t-res' };
 export const colorOf = (t) => `var(${T_VAR[t] ?? '--ink-2'})`;
 export const SUB_CH = 19, LINE_H = 14, TILE_PX = 6.6;
-export const tileW = (t) => Math.max(22, Math.ceil(String(t).length * TILE_PX) + 12);
+// Async jump tiles carry a ↓ glyph before the number ("jump to async flow N below"), so they never read as a step number.
+export const tileW = (t) => Math.max(32, Math.ceil(String(t).length * TILE_PX) + 24);
 export const markW = (m) => Math.ceil(m.label.length * (m.kind === 'key' ? 6.9 : 6.4)) + 30; // an exchange's binding key is mono
 export const FUNNEL = 'M1.5 2h9L7 6.3V10l-2-1V6.3z';
 

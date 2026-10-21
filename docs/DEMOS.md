@@ -8,6 +8,7 @@ Add a row here with every fix or feature (newest first). A row without a working
 
 | Version | Bug | What to look at | Link |
 |---|---|---|---|
+| 0.24.1 | none | Flow steps vs async jumps: step numbers are round pills at the start of an arrow, async jumps are squares with ↓ at the queue end | `#/flows?tabs=api-gateway/in.createOrder&step=10` |
 | 0.24.0 | | Design environments in the UI. Open `sase-hld` with the draft: the strip above the page (design chip, Compared with, Drafts, View | Edit), the draft bar (`+4 −0 ~1`, Review changes, Discard, Apply to sase-hld). The map has a spark on `sase-agent` and `pop-edge` and a ring with "+1 endpoint · +1 function" on `auth-svc` | `#/system?env=sase-hld&draft=hld-import` |
 | 0.24.0 | | Inventory with the New / Changed / Unchanged filter (counts) and a "What changed" column | `#/inventory?env=sase-hld&draft=hld-import&status=new` |
 | 0.24.0 | | Flow "Agent connects to POP": sparks on the new heads, the call into the new `in.token.device` endpoint marked, "transport not decided" on the call to the policy cache (open the tab `sase-agent/in.tunnel.open`) | `#/flows?env=sase-hld&draft=hld-import&mode=edit&tabs=sase-agent/in.tunnel.open` |

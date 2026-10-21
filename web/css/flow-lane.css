@@ -67,6 +67,8 @@
 .numtile { cursor: pointer; outline: none; }
 .numtile rect { fill: var(--surface-2); stroke: var(--line-strong); }
 .numtile text { font: 700 10.5px var(--mono); fill: var(--ink-2); }
+.numtile .gl { font-family: var(--font); font-weight: 600; fill: var(--muted); }
+.numtile:hover .gl, .numtile.hl .gl, .numtile:focus-visible .gl { fill: var(--accent); }
 .numtile.seen rect { fill: var(--surface); stroke: var(--ink-2); stroke-dasharray: 4 2.5; }
 .numtile.seen text { fill: var(--ink-2); }
 .numtile.bad rect { stroke: var(--bad); }

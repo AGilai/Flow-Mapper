@@ -1,6 +1,6 @@
 // Step tiles and the halo of the current step, drawn over a lane (0.20.0) from the geometry renderLane returns: x per lifeline, y per row.
 // A tile sits at the start of its arrow; the current one is solid, and a halo in the arrow's transport colour surrounds that arrow.
-// Not the async number tiles (.numtile at the end of a queue arrow): other class, other place, never the same spot.
+// Not the async number tiles (.numtile at the end of a queue arrow, square with a ↓): steps are round pills, so the two never look alike.
 
 import { s } from '../dom.js';
 import { colorOf, NEST, BAR } from './flow-draw-layout.js';
@@ -28,7 +28,7 @@ export function drawStepTiles(res, built, steps, onPick) {
     const sp = arrowSpan(st, { columns: built.columns, geometry: res.geometry }), w = tw(st.n), cx = sp.x1 + sp.dir * (w / 2 + 3), y = res.geometry.y[st.row];
     spans.set(st.n, sp);
     const t = s('g', { class: 'steptile', 'data-step': st.n },
-      s('rect', { x: cx - w / 2, y: y - 6, width: w, height: H, rx: 4 }), s('text', { x: cx, y: y + 6, 'text-anchor': 'middle' }, st.n), s('title', {}, `Step ${st.n}: ${st.label}`));
+      s('rect', { x: cx - w / 2, y: y - 6, width: w, height: H, rx: H / 2 }), s('text', { x: cx, y: y + 6, 'text-anchor': 'middle' }, st.n), s('title', {}, `Step ${st.n}: ${st.label}`));
     t.addEventListener('click', (ev) => { ev.stopPropagation(); onPick(st.n); });
     tiles.set(st.n, t);
     return t;
