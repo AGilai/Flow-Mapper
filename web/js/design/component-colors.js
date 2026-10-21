@@ -1,9 +1,8 @@
 // Component colours (UI-GUIDE section 8): slot 1..8 per component from `GET /api/envs/meta` `colors`, drawn with `--cmp-<slot>`.
 // A component, never a transport or a status. Client apps and infra have no slot: neutral (externals and data stores are not components of the meta).
-// 0.28.1: inside one flow two components on one slot are told apart (`laneSlots`, core/colors.ts declash): the later one takes the next free slot for that flow only.
+// 0.28.1: inside one flow two components on one slot are told apart (lane-slots.js, core/colors.ts declash); a lane column then carries its flow slot `c.slot`, which `colVar` prefers.
 
 import { state } from '../state.js';
-import { declash } from '../../core/colors.js';
 
 const NEUTRAL = new Set(['client-app', 'infra']);
 
@@ -12,11 +11,6 @@ export function slotOf(meta, env, service, kind) {
   if (!service || NEUTRAL.has(kind)) return null;
   const slot = meta?.find?.((m) => m.name === env)?.colors?.[service];
   return slot >= 1 && slot <= 8 ? slot : null;
-}
-
-/** The slots of the service columns of one lane, in column order, de-clashed for this flow: Map<service, slot>. The stored colours are not changed. */
-export function laneSlots(columns, meta = state.envMeta, env = state.env) {
-  return declash(columns.filter((c) => c.kind === 'service').map((c) => ({ name: c.service, slot: slotOf(meta, env, c.service, c.serviceKind) })));
 }
 
 /** The CSS colour of a component in the current environment (`var(--cmp-3)`), or null for neutral. `slot`: this flow's de-clashed slot, when known. */

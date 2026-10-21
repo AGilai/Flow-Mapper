@@ -17,7 +17,7 @@ import { marksNow } from '../design/marks-store.js';
 import { createRefs } from './flow-refs-draw.js';
 import { state } from '../state.js';
 import { groupLane } from './flow-group.js';
-import { laneSlots } from '../design/component-colors.js';
+import { laneSlots } from '../design/lane-slots.js';
 
 /**
  * createFlowRender({ trace, tree, key, ancestors, sticky }, sh) -> { laneBox, idxBox, drawLane(), relane(), expandAll(budget), index() }

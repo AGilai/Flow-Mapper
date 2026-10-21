@@ -121,6 +121,13 @@ marked **[C:name]** use a shared component (listed at the end). The rules are in
 3. **Removed items are listed, not drawn.** A call the draft removed shows in the list under the flow diagram, not faded in place (it is not in the trace of the draft). Revisit with the edit forms (2a).
 4. **The strip adds two rows above every page** of a design environment (design chip and switches, then the draft bar). At 760px the buttons wrap; the review panel scrolls inside 52% of the height.
 
+## Subsystem level, 0.28.1 (frames 2, 3, 12c)
+- **Map, subsystem level** (`#/system?level=subsystems`): checked at 1440 and 760, both themes. Three boxes keep one row (the stage scrolls below about 770px); more than three stack by width. Known gap: with 26 boxes (the mock) lines between boxes in different grid rows cross; "Rolled-up calls" off shows only the links.
+- **Map, component level**: regions replace the team districts; a region's head is the click target for Inventory (the rest of the region still closes the panel).
+- **Link panel** (`design/link-panel.js`): the Refine grid, the suggestions (at most 3) and "Make it a call…". 380px at 1440; full width at 760. View mode is read-only.
+- **Settings page** (`#/envs/<name>/settings`): the table stacks into labelled rows at 760.
+- **Flow bands**: a band narrower than its label clips with an ellipsis (the title has it all); a Squeeze fold of one subsystem joins its band, a mixed fold has none; a topic, queue or store between two components of one subsystem splits its band.
+
 ## Shared components (build once, use everywhere)
 | Component | What it is | Used by |
 |---|---|---|

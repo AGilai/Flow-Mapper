@@ -6,6 +6,8 @@ import { levelOf, levelParam, showLevelControl, levelLabels } from '../web/js/vi
 // @ts-ignore
 import { createSubsystems } from '../web/js/design/subsystems-store.js';
 // @ts-ignore
+import { kindWord, groupChanges } from '../web/js/design/changes-group.js';
+// @ts-ignore
 import { movesText } from '../web/js/design/forms/component-form.js';
 
 test('the default level is the component level; level=subsystems is honoured only where the environment has subsystems', () => {
@@ -43,4 +45,11 @@ test('the subsystems store: one subsystem per component, "" for none, labels wit
 
 test('a component edit that changes the subsystem says what moves', () => {
   assert.equal(movesText('sxdns', 'Network (POP)', 'Platform'), 'Moves sxdns from Network (POP) to Platform');
+});
+
+test('Review changes names the new kinds of item and keeps a subsystem box under the component that moved', () => {
+  assert.equal(kindWord('grp:network'), 'subsystem');
+  assert.equal(kindWord('link:usage-metering'), 'abstract link');
+  const g = groupChanges([{ anchor: 'svc:sxdns', change: 'changed', label: 'sxdns', what: 'subsystem: Network → Platform' }, { anchor: 'grp:platform', change: 'changed', label: 'Platform', under: 'svc:sxdns' }]);
+  assert.deepEqual(g.map((x: any) => [x.service, x.items.length]), [['sxdns', 2]]);
 });

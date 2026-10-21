@@ -56,7 +56,7 @@ export function drawSubsystems({ L, map, marks, opts, selected = null, scale = 1
     const g = s('g', { class: `ru-g${selected === l.id ? ' sel' : ''}`, 'data-id': l.id, tabindex: 0, role: 'button', 'aria-label': `${label}, ${l.from} to ${l.to}. Press Enter to list the calls` },
       hit, selected === l.id ? s('path', { class: 'ru-halo', d: r.d, style: `stroke:${t === 'ink' ? 'var(--ink-2)' : tvar(t)}` }) : null,
       s('path', { class: `ru ${l.mode === 'async' ? 'async' : 'sync'}${l.transport === 'many' ? ' many' : ''}`, d: r.d, style: `stroke:${t === 'ink' ? 'var(--ink-2)' : tvar(t)};stroke-width:${thickness(l.count)}`, 'marker-end': `url(#ah-${t})` }),
-      s('text', { class: 'ru-l', x: r.lx, y: r.ly, 'text-anchor': 'middle' }, label), markGlyph(mk, r.lx + label.length * W / 2 + 3, r.ly - 10), l.links?.length ? s('text', { class: 'ru-l ru-inc', x: r.lx, y: r.ly + 10, 'text-anchor': 'middle' }, `includes ${l.links.length} link${l.links.length === 1 ? '' : 's'}`) : null);
+      s('text', { class: 'ru-l', x: r.lx, y: r.ly, 'text-anchor': r.anchor ?? 'middle' }, label), markGlyph(mk, r.anchor ? r.lx + label.length * W + 3 : r.lx + label.length * W / 2 + 3, r.ly - 10), l.links?.length ? s('text', { class: 'ru-l ru-inc', x: r.lx, y: r.ly + 10, 'text-anchor': r.anchor ?? 'middle' }, `includes ${l.links.length} link${l.links.length === 1 ? '' : 's'}`) : null);
     return press(g, () => onLine(l));
   });
   const abs = links.map((v) => {
@@ -66,8 +66,8 @@ export function drawSubsystems({ L, map, marks, opts, selected = null, scale = 1
     const g = s('g', { class: `abs-g${sel ? ' sel' : ''}`, 'data-link': v.id, tabindex: 0, role: 'button', 'aria-label': `Abstract link ${v.name}, ${v.state}. Press Enter for details` },
       s('path', { class: 'ru-hit', d: r.d }), sel ? s('path', { class: 'ru-halo ink', d: r.d }) : null, s('path', { class: 'abs', d: r.d }),
       s('circle', { class: 'abs-end', cx: r.from[0], cy: r.from[1], r: 5 }), s('circle', { class: 'abs-end', cx: r.to[0], cy: r.to[1], r: 5 }),
-      s('text', { class: 'ru-l', x: r.lx, y: r.ly, 'text-anchor': 'middle' }, name, s('title', {}, v.name)), markGlyph(m, r.lx + name.length * W / 2 + 3, r.ly - 10),
-      chip(r.lx, r.ly + 5, v.state, v.state === 'broken' ? 'broken' : v.state === 'abstract' ? '' : 'part'));
+      s('text', { class: 'ru-l', x: r.lx, y: r.ly, 'text-anchor': r.anchor ?? 'middle' }, name, s('title', {}, v.name)), markGlyph(m, r.anchor ? r.lx + name.length * W + 3 : r.lx + name.length * W / 2 + 3, r.ly - 10),
+      chip(r.anchor ? r.lx + 24 : r.lx, r.ly + 5, v.state, v.state === 'broken' ? 'broken' : v.state === 'abstract' ? '' : 'part'));
     return press(g, () => onLink(v));
   });
   const el = s('svg', { class: 'ss-svg', width: Math.round(L.width * scale), height: Math.round(L.height * scale), viewBox: `0 0 ${L.width} ${L.height}`, role: 'group', 'aria-label': `Subsystem level: ${map.boxes.length} subsystems, ${lines.length} rolled-up lines, ${links.length} abstract links` }, defs, boxes, rolls, abs);

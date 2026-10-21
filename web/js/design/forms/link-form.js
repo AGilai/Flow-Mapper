@@ -26,7 +26,7 @@ export function linkEdit(v) {
 /** One end's two selects: the subsystem, then "Whole subsystem" or one of its components. Returns { el, get() } (value read at Done). */
 function endSelects(subs, end) {
   const subSel = select(subs.list().map((s) => [s.key, s.label]), end?.subsystem ?? subs.list()[0]?.key ?? ''), svcSel = select([], '');
-  const paint = (value) => { const s = subs.info(subSel.value); fill(svcSel, h('option', { value: '' }, 'Whole subsystem'), (s?.components ?? []).map((c) => h('option', { value: c.name }, c.name))); svcSel.value = value ?? ''; };
+  const paint = (value) => { const s = subs.info(subSel.value); fill(svcSel, h('option', { value: '' }, 'Whole'), (s?.components ?? []).map((c) => h('option', { value: c.name }, c.name))); svcSel.value = value ?? ''; };
   paint(end?.service);
   subSel.addEventListener('change', () => paint(''));
   return { el: h('div.f-pair', subSel, svcSel), get: () => ({ sub: subSel.value, svc: svcSel.value, keep: end && end.level === 'endpoint' ? end.anchor : null, keepSvc: end?.service ?? '' }), focus: () => subSel };

@@ -28,6 +28,7 @@ test('gridFor: 4 columns when wide, fewer when narrow, never more than the boxes
   assert.equal(gridFor(1500, 26).cols, 4);
   assert.equal(gridFor(1500, 2).cols, 2);
   assert.equal(gridFor(400, 6).cols, 1);
+  assert.deepEqual(gridFor(400, 3), { cols: 3, scale: 0.78 }, 'three boxes stay in one row and the stage scrolls');
   const g = gridFor(840, 3);
   assert.equal(g.cols, 3, 'three boxes keep their row by shrinking a little');
   assert.ok(g.scale < 1 && g.scale >= 0.78);

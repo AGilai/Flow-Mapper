@@ -5,9 +5,13 @@ export const BOX_W = 232, GAP_X = 128, GAP_Y = 72, HEAD_H = 80, ROW_H = 20, MAX_
 
 const MIN_SCALE = 0.78;
 const needed = (c) => PAD * 2 + c * BOX_W + (c - 1) * GAP_X;
-/** { cols, scale } for `width` px: as many columns as fit (1 to 4, never more than `count` boxes), the drawing shrinking to 78% to keep one more column. */
+/**
+ * { cols, scale } for `width` px: as many columns as fit (1 to 4, never more than `count` boxes), the drawing shrinking to 78% to keep one more column.
+ * Up to three boxes stay in one row whatever the width (the stage scrolls): stacked, the calls between them would have no room for their labels.
+ */
 export function gridFor(width, count = 4) {
-  for (let c = Math.min(4, Math.max(1, count)); c > 1; c--) if (needed(c) * MIN_SCALE <= width) return { cols: c, scale: Math.min(1, width / needed(c)) };
+  if (count <= 3) return { cols: Math.max(1, count), scale: Math.max(MIN_SCALE, Math.min(1, width / needed(Math.max(1, count)))) };
+  for (let c = Math.min(4, count); c > 1; c--) if (needed(c) * MIN_SCALE <= width) return { cols: c, scale: Math.min(1, width / needed(c)) };
   return { cols: 1, scale: 1 };
 }
 
@@ -29,7 +33,7 @@ export function layoutBoxes(boxes, { cols = 4 } = {}) {
     out.set(b.key, { key: b.key, x, y, w: BOX_W, h: heights[row], col, row, more: Math.max(0, b.components.length - MAX_ROWS),
       rows: b.components.slice(0, MAX_ROWS).map((c, k) => ({ name: c.name, y: y + HEAD_H + k * ROW_H + 14 })) });
   });
-  const width = PAD * 2 + n * BOX_W + (n - 1) * GAP_X, rowBottom = tops.map((t, r) => t + heights[r]);
+  const width = PAD * 2 + n * BOX_W + (n - 1) * GAP_X + (n === 1 ? 110 : 0), rowBottom = tops.map((t, r) => t + heights[r]);
   return { boxes: out, width, height: rowBottom[rowBottom.length - 1] + PAD + 90, rowBottom };
 }
 
@@ -57,7 +61,7 @@ export function collapseLines(lines, max = MAX_LINES) {
  * are joined underneath the row, so a line never crosses a box. L: layoutBoxes().
  */
 export function routeItems(items, L) {
-  const pairs = new Map(), low = new Map(), out = new Map();
+  const pairs = new Map(), low = new Map(), gutter = new Map(), out = new Map();
   for (const it of items) { const k = [it.from, it.to].sort().join('\u0000'); pairs.set(k, [...(pairs.get(k) ?? []), it]); }
   for (const g of pairs.values()) {
     g.forEach((it, i) => {
@@ -71,9 +75,15 @@ export function routeItems(items, L) {
         out.set(it.id, { d: `M${xa} ${ya} V${yl} H${xb} V${yb}`, from: [xa, ya], to: [xb, yb], lx: (xa + xb) / 2, ly: yl - 6 });
         return;
       }
+      if (dc === 0 && Math.abs(dr) > 1) { // not neighbours in a column: round the right side
+        const gl = gutter.get(A.col) ?? 0; gutter.set(A.col, gl + 1);
+        const gx = A.x + A.w + 26 + gl * 18, ya = A.y + 44 + off, yb = B.y + 44 + off;
+        out.set(it.id, { d: `M${A.x + A.w} ${ya} H${gx} V${yb} H${B.x + B.w}`, from: [A.x + A.w, ya], to: [B.x + B.w, yb], lx: gx + 6, ly: (ya + yb) / 2, anchor: 'start' });
+        return;
+      }
       if (dc === 0) { // one above the other
         const down = dr > 0, x = A.x + A.w / 2 + off, ya = down ? A.y + A.h : A.y, yb = down ? B.y : B.y + B.h;
-        out.set(it.id, { d: `M${x} ${ya} V${yb}`, from: [x, ya], to: [x, yb], lx: x + 6, ly: (ya + yb) / 2 });
+        out.set(it.id, { d: `M${x} ${ya} V${yb}`, from: [x, ya], to: [x, yb], lx: x + 8, ly: (ya + yb) / 2, anchor: 'start' });
         return;
       }
       const right = dc > 0, xa = right ? A.x + A.w : A.x, xb = right ? B.x : B.x + B.w;
