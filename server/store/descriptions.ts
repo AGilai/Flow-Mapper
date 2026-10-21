@@ -5,7 +5,7 @@ import type { DB } from '../db/connection.ts';
 import type { GraphIndex } from '../../core/graph-index.ts';
 import { badRequest, notFound } from '../errors.ts';
 import { trace } from '../../core/trace.ts';
-import { flowDescriptions, traceHash, HASH_TRACE, calleeService, type DescRow, type FlowDescriptions } from '../../core/description.ts';
+import { flowDescriptions, traceHash, HASH_TRACE, calleeService, isStepKey, hasStep, type DescRow, type FlowDescriptions } from '../../core/description.ts';
 
 const MAX_TEXT = 4000;
 interface Row { callee: string; source: 'human' | 'ai'; text: string; author: string | null; model: string | null; trace_hash: string | null; updated_at: string }
@@ -39,7 +39,7 @@ function check(g: GraphIndex, env: string, service: unknown, ingress: unknown, c
   if (text.length > MAX_TEXT) throw badRequest(`text is longer than ${MAX_TEXT} characters`);
   const t = flowTrace(g, env, service, ingress);
   const c = (callee ?? '') as string;
-  if (c && !g.model.services.some((s) => s.name === calleeService(c))) throw badRequest(`callee '${c}' is not a service in env '${env}'`);
+  if (c && isStepKey(c)) { if (!hasStep(t, c)) throw badRequest(`step '${c}' is not in the flow ${service} / ${ingress}`); } else if (c && !g.model.services.some((s) => s.name === calleeService(c))) throw badRequest(`callee '${c}' is not a service in env '${env}'`);
   return { t, callee: c };
 }
 
