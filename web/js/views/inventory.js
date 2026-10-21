@@ -15,7 +15,8 @@ import { driverCounts, driversOn } from '../../core/clients.js';
 import { MODE, breakable } from '../components/clients-table.js';
 import { monoText } from '../format.js';
 import { loadMarks } from '../design/marks-store.js';
-import { statusFilter, filterByStatus, whatColumn, statusOf } from './inventory-status.js';
+import { statusFilter, filterByStatus, whatColumn, statusOf, anchorOfItem } from './inventory-status.js';
+import { markBadge } from '../components/status-mark.js';
 
 const TYPES = [['', 'All'], ['service', 'Services'], ['channel', 'Topics and queues'], ['event', 'Event types']];
 const RPC = ['rpc', 'RPC commands']; // listed only when the env has RPC commands (0.19.0)
@@ -50,7 +51,7 @@ export async function render({ main, query }) {
   const table = dataTable({
     rows: [], pageSize: 50, sortKey: 'label', onRow: (x) => go(...openTarget(x)), rowClass: (x) => (x.plumbing ? 'plumb' : statusOf(x, marks) === 'removed' ? 'gone' : ''),
     columns: [
-      { key: 'label', label: 'Name', sort: (x) => (f.type === 'amqp' ? `${KRANK[x.kind] ?? 5}${x.label}` : x.label), render: (x) => h('div.name-cell', objectIcon(x.type, x.kind, 22), h('div.stack', { style: { gap: 0 } }, h('b', { class: x.type === 'service' ? '' : x.type === 'rpc' || x.plumbing ? 'key nowrap' : 'key' }, x.label), x.group && x.group !== x.id ? h('span.xs.muted', x.group) : null)) },
+      { key: 'label', label: 'Name', sort: (x) => (f.type === 'amqp' ? `${KRANK[x.kind] ?? 5}${x.label}` : x.label), render: (x) => h('div.name-cell', objectIcon(x.type, x.kind, 22), h('div.stack', { style: { gap: 0 } }, h('span.row.mk-name', h('b', { class: x.type === 'service' ? '' : x.type === 'rpc' || x.plumbing ? 'key nowrap' : 'key' }, x.label), design ? markBadge(marks.markOf(anchorOfItem(x) ?? ''), { store: marks }) : null), x.group && x.group !== x.id ? h('span.xs.muted', x.group) : null)) },
       { key: 'type', label: 'Type', render: (x) => h('span.small.nowrap', TYPE_LABEL[x.type]) },
       { key: 'kind', label: 'Kind', render: (x) => h('span.pill.kind-pill', { class: isAmqp(x) ? (x.type === 'rpc' || /^rpc-/.test(x.kind) ? 'rpc' : 'amqp') : '' }, x.type === 'store' ? objectIcon('store', x.kind, 14) : null, kindLabel(x)) },
       { key: 'team', label: 'Team', render: (x) => h('span.small.muted', x.team ?? '') },

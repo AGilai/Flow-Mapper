@@ -7,7 +7,7 @@ import { svgChip } from './flow-draw-prims.js';
 /** Head of a lifeline: marks = laneMarks(store) | null, c = the column, w = the head width. */
 export const headMarkSvg = (marks, c, w) => {
   const r = marks?.head(c);
-  return r ? sparkSvg(w - 11, 9, r.info.mark) : null;
+  return r ? sparkSvg(w - 2, 3, r.info.mark, 12) : null; // on the corner, clear of the name
 };
 
 const chipW = (t) => Math.ceil(t.length * 6.1) + 16;
@@ -17,6 +17,6 @@ export function arrowMarkSvg(marks, msg, x1, x2, y0) {
   const r = marks?.arrow(msg), dir = Math.sign(x2 - x1) || 1;
   const chips = [r?.inDraft ? ['in draft', 'draft'] : null, msg.transport === 'undecided' ? ['transport not decided', 'tbd'] : null].filter(Boolean);
   let x = (x1 + x2) / 2 - (chips.reduce((n, [t]) => n + chipW(t) + 4, -4)) / 2;
-  return [r ? sparkSvg(x2 - dir * 16, y0 - 12, r.info.mark, 11) : null,
+  return [r ? sparkSvg(x2 - dir * 16, y0 + 11, r.info.mark, 11) : null,
     ...chips.map(([t, v]) => { const el = svgChip(t, x + chipW(t) / 2, y0, v); x += chipW(t) + 4; return el; })];
 }

@@ -9,7 +9,7 @@ import { nodeAt, edgeAt } from './graph-hit.js';
 import { iconImage } from '../components/object-icon.js';
 import { createMarkLayer } from './graph-marks.js';
 
-export function createCanvasGraph(host, { onSelect, onHover, marks = null } = {}) {
+export function createCanvasGraph(host, { onSelect, onHover, marks = null, padBottom = 60 } = {}) {
   const markLayer = marks ? createMarkLayer(marks) : null;
   const canvas = document.createElement('canvas');
   canvas.className = 'graph-canvas';
@@ -24,7 +24,7 @@ export function createCanvasGraph(host, { onSelect, onHover, marks = null } = {}
   let k = 1, tx = 0, ty = 0, w = 0, hgt = 0, dpr = 1;
   let theme = readTheme();
   let raf = 0;
-  let pendingFit = null;
+  let pendingFit = null, autoFit = false, fitIds; // autoFit: still where Fit put it, so a resize (the filter bar wrapping) fits again
   let hoverSet = null; // neighbours of the hovered node, shown while hovering
 
   const toScreen = (p) => [p.x * k + tx, p.y * k + ty];
@@ -42,7 +42,7 @@ export function createCanvasGraph(host, { onSelect, onHover, marks = null } = {}
     w = r.width; hgt = r.height;
     canvas.width = Math.max(1, w * dpr); canvas.height = Math.max(1, hgt * dpr);
     canvas.style.width = `${w}px`; canvas.style.height = `${hgt}px`;
-    if (pendingFit && w) { const f = pendingFit; pendingFit = null; fit(f.ids); }
+    if (pendingFit && w) { const f = pendingFit; pendingFit = null; fit(f.ids); } else if (autoFit && w) fit(fitIds);
     schedule();
   }
   const ro = new ResizeObserver(resize);
@@ -94,7 +94,7 @@ export function createCanvasGraph(host, { onSelect, onHover, marks = null } = {}
     if (drag) {
       const dx = ev.offsetX - drag.x, dy = ev.offsetY - drag.y;
       if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
-      tx = drag.tx + dx; ty = drag.ty + dy;
+      tx = drag.tx + dx; ty = drag.ty + dy; autoFit = false;
       schedule();
       return;
     }
@@ -123,19 +123,20 @@ export function createCanvasGraph(host, { onSelect, onHover, marks = null } = {}
   function pinchDist() { const p = [...pointers.values()]; return p.length === 2 ? Math.hypot(p[0][0] - p[1][0], p[0][1] - p[1][1]) : 0; }
   function zoomAt(sx, sy, f) {
     const nk = Math.max(0.08, Math.min(6, k * f));
-    tx = sx - ((sx - tx) * nk) / k; ty = sy - ((sy - ty) * nk) / k; k = nk;
+    tx = sx - ((sx - tx) * nk) / k; ty = sy - ((sy - ty) * nk) / k; k = nk; autoFit = false;
     schedule();
   }
 
   function fit(ids) {
+    fitIds = ids; autoFit = true;
     const pts = (ids ? [...ids] : nodes.filter((n) => isVis(n.id)).map((n) => n.id)).map((id) => pos.get(id)).filter(Boolean);
     if (!w) { pendingFit = { ids }; return; }
     if (!pts.length) return;
     const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
     const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
     const pad = 60;
-    k = Math.min(2.2, Math.min((w - pad * 2) / Math.max(1, maxX - minX), (hgt - pad * 2) / Math.max(1, maxY - minY)));
-    tx = w / 2 - ((minX + maxX) / 2) * k; ty = hgt / 2 - ((minY + maxY) / 2) * k;
+    k = Math.min(2.2, Math.min((w - pad * 2) / Math.max(1, maxX - minX), (hgt - pad - padBottom) / Math.max(1, maxY - minY)));
+    tx = w / 2 - ((minX + maxX) / 2) * k; ty = (hgt - padBottom + pad) / 2 - ((minY + maxY) / 2) * k;
     schedule();
   }
 
@@ -166,7 +167,7 @@ export function createCanvasGraph(host, { onSelect, onHover, marks = null } = {}
     setHighlight(set) { highlight = set; schedule(); },
     select(id) { selected = id; schedule(); },
     fit,
-    zoomTo(id) { const p = pos.get(id); if (!p) return; k = Math.max(k, 1.6); tx = w / 2 - p.x * k; ty = hgt / 2 - p.y * k; schedule(); },
+    zoomTo(id) { const p = pos.get(id); if (!p) return; autoFit = false; k = Math.max(k, 1.6); tx = w / 2 - p.x * k; ty = hgt / 2 - p.y * k; schedule(); },
     zoomBy(f) { zoomAt(w / 2, hgt / 2, f); },
     degreeOf: (id) => degree.get(id) ?? 0,
     dispose() { ro.disconnect(); mq.removeEventListener('change', onTheme); cancelAnimationFrame(raf); },

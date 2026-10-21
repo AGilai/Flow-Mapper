@@ -2,7 +2,7 @@
 // Rows are inventory items; the anchor of one is svc:<name> (service), ch:<bind key> (channel), evt:<type> (event type); other kinds carry no mark.
 
 import { h } from '../dom.js';
-import { markBadge, wasText } from '../components/status-mark.js';
+import { wasText } from '../components/status-mark.js';
 
 /** The anchor that carries an inventory item's mark, or null. */
 export function anchorOfItem(x) {
@@ -41,12 +41,12 @@ export function statusFilter(value, onPick) {
   return { el, update };
 }
 
-/** The "What changed" column: the mark, and its words (`+1 endpoint`), for new / changed rows. */
+/** The "What changed" column: the words of the mark (`+1 endpoint`, `was string`) for changed rows. The badge itself sits by the name (status next to its subject). */
 export function whatColumn(marks) {
   return { key: 'what', label: 'What changed', sort: (x) => ({ new: 0, changed: 1, removed: 2 })[statusOf(x, marks)] ?? 3,
     render: (x) => {
       const info = marks.markOf(anchorOfItem(x) ?? '');
-      if (!info) return h('span.muted', '');
-      return h('div.mk-cell', markBadge(info, { store: marks }), wasText(info) ? h('span.mk-what', wasText(info)) : null);
+      if (!info) return null;
+      return wasText(info) ? h('span.mk-what', wasText(info)) : null;
     } };
 }

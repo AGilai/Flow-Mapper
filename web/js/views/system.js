@@ -60,7 +60,7 @@ export async function render({ main, query }) {
     content);
 
   const graph = createCanvasGraph(stage, {
-    marks,
+    marks, padBottom: marks.empty ? 60 : 120, // the legend has more lines in a design
     onSelect: (hit) => {
       if (!hit) { panel.close(); return; }
       if (hit.type === 'node') selectNode(hit.item.id);
