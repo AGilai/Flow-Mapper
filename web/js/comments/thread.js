@@ -9,7 +9,8 @@ import { flowAnchor } from '../../core/comments.js';
 import { commentItem } from './comment.js';
 import { createComposer } from './composer.js';
 import { userAvatar } from '../users/avatar.js';
-import { myName, me, watchUsers } from '../users/directory.js';
+import { myName, me, watchUsers, loadUsers } from '../users/directory.js';
+import { refreshChips } from '../users/chips.js';
 import { startsOpen, relTime, fullDate, visibleThread } from './pure.js';
 import { prefill, stripTables, eventParts } from '../action-items/pure.js';
 import { sanitize, plainText } from '../../core/rich-text.js';
@@ -56,18 +57,20 @@ export function createComments({ env, root, walk, store, onCount }) {
   const mark = () => { addAi.hidden = !!store.items.length || !!store.draft || !loaded || !store.loaded; list.querySelectorAll('.cm[data-id]').forEach((c) => c.classList.toggle('hl', Number(c.dataset.id) === store.draft?.commentId)); };
 
   const drawMe = () => { const m = tail.querySelector('.cm-me'); if (m) m.replaceChildren(me() ? userAvatar(me()) : userAvatar({ name: '?' })); };
-  const offUsers = watchUsers(drawMe);
+  const offUsers = watchUsers(() => { drawMe(); refreshChips(el); }); // a rename, a merge or the first load of the users: avatars and chips follow
+  loadUsers().catch(() => {});
+  const people = () => { const ids = []; const walkc = (c) => { if (c.authorId && !ids.includes(c.authorId)) ids.push(c.authorId); (c.replies ?? []).forEach(walkc); }; thread.comments.forEach(walkc); return ids; };
 
   function draw() {
     items.forEach((i) => i.dispose()); items = [];
-    const x = (top) => ({ me: author, step: stepOf, jump: (n) => walk.go(n), top, api: api_ });
+    const x = (top) => ({ people, step: stepOf, jump: (n) => walk.go(n), top, api: api_ });
     const vis = visibleThread(thread, showResolved), hiddenN = thread.resolvedThreads ?? 0;
     const nodes = vis.comments.map((c) => {
       const it = commentItem(c, x(true)); items.push(it);
       const rep = c.replies.flatMap((r) => { const ri = commentItem(r, x(false)); items.push(ri); return [ri.el, ...events(r.id)]; });
       let rc = null;
       if (replying === c.id && !c.deleted) {
-        rc = createComposer({ mode: 'reply', onSubmit: async ({ html, name }) => { await api.addComment(env, { anchor, parentId: c.id, author: name, body: html }); replying = null; await refresh(true); }, onCancel: () => { replying = null; draw(); } });
+        rc = createComposer({ mode: 'reply', people, onSubmit: async ({ html, name }) => { await api.addComment(env, { anchor, parentId: c.id, author: name, body: html }); replying = null; await refresh(true); }, onCancel: () => { replying = null; draw(); } });
         items.push(rc);
       }
       return h('div.cm-thread', it.el, ...events(c.id), rep.length || rc ? h('div.cm-reply', rep, rc?.el) : null);
@@ -79,7 +82,7 @@ export function createComments({ env, root, walk, store, onCount }) {
     showBtn.hidden = !hiddenN; showBtn.setAttribute('aria-pressed', String(showResolved)); showBtn.textContent = `${showResolved ? 'Hide' : 'Show'} resolved (${hiddenN})`;
     hint.textContent = vis.count ? `${plural(top, 'comment')}${replies ? ` and ${plural(replies, 'reply')}` : ''}, oldest first` : loaded ? '· Add' : '';
     if (!composer) {
-      composer = createComposer({ mode: 'new', step: stepNow, onSubmit: async ({ html, step, name }) => { await api.addComment(env, { anchor, step, author: name, body: html }); await refresh(true); } });
+      composer = createComposer({ mode: 'new', people, step: stepNow, onSubmit: async ({ html, step, name }) => { await api.addComment(env, { anchor, step, author: name, body: html }); await refresh(true); } });
       tail.replaceChildren(h('div.cm-compose', h('span.cm-me'), composer.el)); drawMe();
     }
     mark();

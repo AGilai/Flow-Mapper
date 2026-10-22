@@ -16,6 +16,9 @@ import { commentCreated, commentEdited, commentDeleted } from '../events/emitter
 import { type R, toRow, out, forbidden, getRow, checkEnv, bodyOf } from './comments-rows.ts';
 import { identify, type Caller } from '../identity.ts';
 import { nameIndex } from './users.ts';
+import { resolveMentions, syncMentions, markSeen } from './mentions.ts';
+
+const bodyIn = (db: DB, b: unknown) => bodyOf(typeof b === 'string' ? resolveMentions(db, b) : b); // `@{Name}` becomes `@[id]` before the sanitizer sees it
 import { parseImport, findExternal, applyImported, reimport, takenBy, type ImportFields } from './comments-import.ts';
 import { resolveComment } from './comments-import.ts';
 export { resolveComment };
@@ -47,7 +50,7 @@ export type Written = ReturnType<typeof out> & { updated?: true };
 export function addComment(db: DB, g: GraphIndex, env: string, i: NewComment): Written {
   checkEnv(db, env);
   const { service, ingress } = flowOf(i?.anchor);
-  const body = bodyOf(i.body), x = parseImport(i);
+  const body = bodyIn(db, i.body), x = parseImport(i);
   const who = identify(db, { userId: i.authorId, name: i.author, source: x.externalSource, externalId: x.authorExternalId }), author = who.name;
   const t = flowTrace(g, env, service, ingress);
   const step = i.step ?? null;
@@ -65,10 +68,11 @@ export function addComment(db: DB, g: GraphIndex, env: string, i: NewComment): W
     parent = p.parent_id ?? p.id; // one level only: a reply to a reply belongs to the top comment
   }
   if (x.resolved === true && (parent !== null || old?.parent_id != null)) throw badRequest('a reply cannot be resolved on its own: resolve its top comment');
-  if (old) return { ...out(reimport(db, env, old, x, { author, authorId: who.id, body, step })), updated: true };
+  if (old) { const row = reimport(db, env, old, x, { author, authorId: who.id, body, step }); syncMentions(db, row.id, row.body, row.author_id); return { ...out(row), updated: true }; }
   const at = x.createdAt ?? new Date().toISOString();
   const id = Number(db.prepare('INSERT INTO comments (env, anchor, step, parent_id, author, author_id, body, created_at, external_id, external_source, author_external_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
     .run(env, i.anchor, step, parent, author, who.id, body, at, x.externalId, x.externalSource, x.authorExternalId).lastInsertRowid);
+  syncMentions(db, id, body, who.id);
   commentCreated(db, { env, anchor: i.anchor, id, author, text: plainText(body) });
   if (parent === null) applyImported(db, env, id, x, author);
   return out(getRow(db, id));
@@ -85,8 +89,9 @@ function mine(db: DB, env: string, id: number, who: Caller): R {
 const caller = (db: DB, i: { author?: unknown; authorId?: string | null }) => identify(db, { userId: i.authorId, name: i.author }, false);
 
 export function editComment(db: DB, env: string, id: number, i: { author?: string; authorId?: string | null; body: string }) {
-  const r = mine(db, env, id, caller(db, i ?? {})), body = bodyOf(i.body);
+  const r = mine(db, env, id, caller(db, i ?? {})), body = bodyIn(db, i.body);
   db.prepare('UPDATE comments SET body = ?, edited_at = ? WHERE id = ?').run(body, new Date().toISOString(), r.id);
+  syncMentions(db, r.id, body, r.author_id);
   commentEdited(db, { env, anchor: r.anchor, id: r.id, author: r.author, text: plainText(body) });
   return out(getRow(db, r.id));
 }
@@ -103,7 +108,9 @@ export function copyComments(db: DB, from: string, to: string): Map<number, numb
   const ids = new Map<number, number>();
   const ins = db.prepare('INSERT INTO comments (env, anchor, step, parent_id, author, author_id, body, created_at, edited_at, deleted_at, external_id, external_source, author_external_id, resolved_at, resolved_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
   tx(db, () => { for (const r of db.prepare('SELECT * FROM comments WHERE env = ? ORDER BY id').all(from) as unknown as R[]) {
-    ids.set(r.id, Number(ins.run(to, r.anchor, r.step, r.parent_id == null ? null : ids.get(r.parent_id) ?? null, r.author, r.author_id, r.body, r.created_at, r.edited_at, r.deleted_at, r.external_id, r.external_source, r.author_external_id, r.resolved_at, r.resolved_by).lastInsertRowid));
+    const nid = Number(ins.run(to, r.anchor, r.step, r.parent_id == null ? null : ids.get(r.parent_id) ?? null, r.author, r.author_id, r.body, r.created_at, r.edited_at, r.deleted_at, r.external_id, r.external_source, r.author_external_id, r.resolved_at, r.resolved_by).lastInsertRowid);
+    ids.set(r.id, nid);
+    if (!r.deleted_at) { syncMentions(db, nid, r.body, r.author_id); for (const u of (db.prepare('SELECT user_id FROM comment_mentions WHERE comment_id = ?').all(nid) as unknown as { user_id: string }[])) markSeen(db, u.user_id, [nid]); } // a copy's mentions are not news
   } });
   return ids;
 }

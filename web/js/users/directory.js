@@ -3,16 +3,18 @@
 import { api } from '../api.js';
 import { currentId, onMe, setMyId } from './me.js';
 
-let list = [], loaded = null;
+let list = [], loaded = null, done = false;
 const subs = new Set();
 const emit = () => subs.forEach((f) => f());
 
 /** Load (or reload with `force`) the list. */
 export function loadUsers(force = false) {
-  if (!loaded || force) loaded = api.users().then((r) => { list = r.users; if (currentId() && !list.some((u) => u.id === currentId())) setMyId(null); emit(); return list; }).catch((e) => { loaded = null; throw e; });
+  if (!loaded || force) loaded = api.users().then((r) => { list = r.users; done = true; if (currentId() && !list.some((u) => u.id === currentId())) setMyId(null); emit(); return list; }).catch((e) => { loaded = null; throw e; });
   return loaded;
 }
 export const users = () => list;
+/** Has the list arrived (so an id that is not in it is truly unknown)? */
+export const isLoaded = () => done;
 export const userById = (id) => list.find((u) => u.id === id) ?? null;
 /** The signed-in user, or null (nobody signed in, or the list is not loaded yet). */
 export const me = () => (currentId() ? userById(currentId()) : null);

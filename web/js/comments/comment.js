@@ -8,10 +8,11 @@ import { createComposer } from './composer.js';
 import { userAvatar } from '../users/avatar.js';
 import { ensureUser } from '../users/signin.js';
 import { isMe } from '../users/directory.js';
+import { renderChips } from '../users/chips.js';
 import { relTime, fullDate as full } from './pure.js';
 
 /** The body element: sanitized HTML, set once. */
-export const bodyEl = (html) => h('div.cm-body', { html: sanitize(html) });
+export const bodyEl = (html) => renderChips(h('div.cm-body', { html: sanitize(html) })); // 0.31.0: `@[id]` tokens become chips
 
 /**
  * commentItem(node, x) -> { el, dispose }
@@ -49,7 +50,7 @@ export function commentItem(node, x) {
     try { const u = await ensureUser('Sign in to resolve. There are no passwords yet: picking a user only labels what you do.'); await x.api.resolve(node.id, !node.resolved, u.name); } catch (er) { if (!er.cancelled) act.replaceChildren(h('span.cm-err', er.message)); }
   }
   function edit() {
-    const c = createComposer({ mode: 'edit', html: node.body, onSubmit: async ({ html }) => { await x.api.edit(node.id, html); }, onCancel: () => { c.dispose(); el.classList.remove('cm-editing'); show(); } });
+    const c = createComposer({ mode: 'edit', html: node.body, people: x.people, onSubmit: async ({ html }) => { await x.api.edit(node.id, html); }, onCancel: () => { c.dispose(); el.classList.remove('cm-editing'); show(); } });
     parts.push(c);
     el.classList.add('cm-editing');
     head.querySelector('.cm-act')?.remove(); // while it is edited the actions are in the editor

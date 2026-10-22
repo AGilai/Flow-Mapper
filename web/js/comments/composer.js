@@ -6,13 +6,13 @@ import { h } from '../dom.js';
 import { createEditor } from './rte.js';
 import { createToolbar } from './rte-toolbar.js';
 import { ensureUser } from '../users/signin.js';
-import { myName } from '../users/directory.js';
+import { myName, watchUsers } from '../users/directory.js';
 
 /**
  * createComposer({ mode, html, step, onSubmit({ html, step, name, user }), onCancel }) -> { el, refreshStep(), focus(), dispose() }
  * step: () => { n, key } | null, the walk's current step (for "Attach to step N"). onSubmit may throw: the message is shown and the text stays.
  */
-export function createComposer({ mode = 'new', html = '', step = () => null, onSubmit, onCancel }) {
+export function createComposer({ mode = 'new', html = '', step = () => null, people, onSubmit, onCancel }) {
   const edit = mode === 'edit', quiet = mode === 'new';
   let open = !quiet, busy = false, attach = true, ed = null, tb = null;
   const el = h(`div.cm-composer.${mode}`);
@@ -54,7 +54,7 @@ export function createComposer({ mode = 'new', html = '', step = () => null, onS
         h('div.cm-hint.cm-as', myName() ? ['Commenting as ', h('b', myName())] : 'You sign in when you post.'));
       return;
     }
-    ed = createEditor({ html, label: edit ? 'Edit comment' : 'Comment', placeholder: edit ? '' : 'Write a comment…', onSubmit: submit, onEscape: () => { if (!tb.closeMenu()) close(); }, onChange: sync });
+    ed = createEditor({ html, label: edit ? 'Edit comment' : 'Comment', placeholder: edit ? '' : 'Write a comment…', onSubmit: submit, onEscape: () => { if (!tb.closeMenu()) close(); }, onChange: sync, people });
     tb = createToolbar(ed);
     const wrap = h('div.rte-wrap', tb.el, ed.el, foot);
     wrap.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !e.defaultPrevented) { e.preventDefault(); if (!tb.closeMenu()) close(); } });
@@ -62,6 +62,8 @@ export function createComposer({ mode = 'new', html = '', step = () => null, onS
     el.replaceChildren(who, wrap, err);
     syncStep(); sync();
   }
+  let seen = false;
+  const off = watchUsers(() => { if (el.isConnected) { seen = true; if (!open) draw(); else drawWho(); } else if (seen) off(); }); // "Commenting as X" follows a switch of user
   draw();
   return { el, refreshStep: syncStep, focus: () => ed?.focus?.(), dispose };
 }
