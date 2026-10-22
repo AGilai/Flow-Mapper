@@ -29,7 +29,7 @@ import { bindingKeyOf, splitAmqpKey } from './amqp.ts';
 import { routeInfo, routeKey, rpcOf, rpcServed, withServer, type AmqpRoute, type RpcInfo } from './amqp-route.ts';
 import { deferHelpers } from './trace-defer.ts';
 import { fanOutOrder } from './trace-order.ts';
-import { altIndex, armChain, covers, enterStep, newBook, NO_ARMS, withDecisions, type ArmState } from './alternatives.ts';
+import { withAltDecisions } from './alt-decisions.ts'; import { altIndex, armChain, covers, enterStep, newBook, NO_ARMS, withDecisions, type ArmState } from './alternatives.ts';
 
 export type { Participant, Message, HopFilter, Trace, TraceOptions } from './trace-types.ts';
 import type { Message, Participant, HopFilter, Trace, TraceOptions } from './trace-types.ts';
@@ -328,7 +328,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
     if (e?.source && !(`egress:${m.service}:${e.id}` in code)) code[`egress:${m.service}:${e.id}`] = codeLink(g.services.get(m.service!)!, e.source);
   }
   const out: Trace = { code, start: { service: root, ingress: ing?.id, fn: fnId, event: start.event }, scope, participants: deliveryOrder([...participants.values()], messages), messages, truncated };
-  return altIx && book.places.size ? withDecisions(altIx, book, out) : out;
+  return withAltDecisions(altIx && book.places.size ? withDecisions(altIx, book, out) : out); // 0.38.2: alt frames are decisions too
 }
 
 /** The wire protocol of a socket ingress (`details.protocol`: tls, tcp or ws); tcp when the harvester gave none. */

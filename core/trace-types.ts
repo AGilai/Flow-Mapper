@@ -61,7 +61,7 @@ export interface HopFilter { id: string; service: string; from: string; events?:
 export interface DbGroup { count: number; collections: string[]; access: 'read' | 'write' | 'read_write' | 'unknown'; members: string[] }
 /** 0.37.0: one either/or decision of a flow. `name` is `llm_name` when there is one, else the template name (`template_name`). `parent`: the arm of another decision it sits in. `lock`: every place that reaches it fixes the same arm (`at` = the first fixing step, `<service>:<fn>#<seq>`); `lock_places` when only some places fix it. */
 export interface Decision {
-  group_id: string; name?: string; template_name?: string; llm_name?: string | null; depends_on?: 'data' | 'message'; guard?: { text?: string; file?: string; line?: number };
+  group_id: string; /** 0.38.2: 'alt' on a decision made from an alt frame (altGroup, file:line or design frame); its arms are `b1..bN`. */ from?: 'alt'; name?: string; template_name?: string; llm_name?: string | null; depends_on?: 'data' | 'message'; guard?: { text?: string; file?: string; line?: number };
   parent?: { group_id: string; arm: string }; lock?: { arm: string; at: string; source?: { file?: string; line?: number }; literal?: unknown }; lock_places?: { fixed: number; of: number };
   arms: { arm: string; label?: string; guard_text?: string; steps: { min: number; max: number } }[];
   /** On a view: what is in force, an arm name or 'both'. */

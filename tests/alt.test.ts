@@ -97,10 +97,10 @@ test('API and MCP trace_flow return alt; the schema accepts altGroup and rejects
   const man = readSample('account-lambda-erase-controller.json');
   const r = await app.call('POST', '/api/ingest', { manifests: [man] });
   assert.equal(r.status, 201, JSON.stringify(r.body));
-  const q = '/api/envs/prod/trace?detail=full&service=account-lambda-erase-controller&ingress=in.advanceErase&scope=intra';
+  const q = '/api/envs/prod/trace?detail=full&service=account-lambda-erase-controller&ingress=in.advanceErase&scope=intra&choose=*:both';
   const api = (await app.call('GET', q)).body;
   assert.deepEqual(api.messages.filter((m: any) => m.alt).map((m: any) => [m.alt.branch, m.alt.of]), [[1, 4], [2, 4], [3, 4], [4, 4], [4, 4]]);
-  const res = await app.call('POST', '/mcp', { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'trace_flow', arguments: { detail: 'full', env: 'prod', service: 'account-lambda-erase-controller', ingress: 'in.advanceErase', scope: 'intra' } } });
+  const res = await app.call('POST', '/mcp', { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'trace_flow', arguments: { detail: 'full', choose: { '*': 'both' }, env: 'prod', service: 'account-lambda-erase-controller', ingress: 'in.advanceErase', scope: 'intra' } } });
   const mcp = JSON.parse(res.body.result.content[0].text);
   assert.equal(mcp.messages.filter((m: any) => m.alt).length, 5);
   const bad = structuredClone(man); bad.version = 9;
