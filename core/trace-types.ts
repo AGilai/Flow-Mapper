@@ -1,5 +1,6 @@
 // The shapes of a trace (moved out of trace.ts in 0.37.0, #82; trace.ts re-exports them).
 
+import type { CanFail, OnlyWhen } from './step-marks.ts';
 import type { Alt } from './alt.ts';
 import type { SourceLink } from './endpoint-info.ts';
 import type { LinkedHop } from './via.ts';
@@ -49,6 +50,8 @@ export interface Message {
   rpc?: RpcInfo;                                             // an RPC over AMQP (0.18.0; bind key `amqp-rpc:{command}`, transport amqp, mode sync): the command and the AMQP details both sides declared
   arms?: string[];                                           // 0.37.0 (#82): the either/or arms this message sits in, outermost first, each `<group_id>:<arm>` (split at the first ':'). Absent when none
   key?: string;                                              // 0.37.0: the stable step key (core/description.ts stepKeys) over the canonical trace; stamped when the trace has decisions and on every view that drops messages
+  canFail?: CanFail[];                                       // 0.38.1 (#82): the step succeeds but can fail (`details.can_fail`): when, error, source. On a DB-group row: the members' entries together
+  onlyWhen?: OnlyWhen;                                       // 0.38.1: the step is in the only arm that leads to a flow (`details.only_when`): the guard. On a DB-group row: the members' guards
   dbGroup?: DbGroup;                                         // 0.37.1: a run of consecutive DB operations of one store folded into this one row (viewOf); `label` reads `DB: 3 ops (users, devices)`
   filter?: HopFilter;                                        // on a hop that goes through a subscription, rule or binding (topic -> queue, bus -> target, exchange -> queue): what it declares
 }

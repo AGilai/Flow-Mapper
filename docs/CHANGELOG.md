@@ -5,6 +5,12 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased: #82 comment 225, the Loader's rule change (step markers)
+The Loader now exports `alternatives` only where BOTH arms lead to a flow. Two step markers under `details` (no schema change):
+- `details.can_fail: [{when, error, source: {file, line}}]` on a step that succeeds but can fail; `details.only_when: {guard, source}` on each step of the arm that remains.
+- **API (additive).** `GET /api/envs/:env/trace` and MCP `trace_flow` return them on the message as `canFail` and `onlyWhen`; a DB-group row carries its members' entries together. The Mermaid export writes each as a `Note over` line.
+- **UI.** A small "can fail: <error>" tag next to the step label ("can fail (2)" for several; the tooltip lists when, error and file:line), and "only when <guard>" under the arrow, once per run of consecutive steps with the same guard, with a thin gutter line across the run. Both are in the step details panel, in External and Full, and on a DB-group row. No dropdowns.
+
 ## 0.38.0 (2026-10-22): #82 part 3, the scenario UI
 **UI.** The Flows page draws the new views. Defaults: External, and every either/or decision on its first arm.
 - A decision is a divider row in the diagram with an inline dropdown of its arms and "Both"; a nested one has its own divider (indented, only while its parent arm is drawn); a locked one shows its reason and file:line (locks never go into a link). The flow header row has a "Scenario (N)" chip (accent while anything differs from the defaults) that opens a popover with every decision and "Reset to defaults", and a small External | Full switch (remembered per viewer). With "Both" the arms follow one another (a caption and a 3 px gutter marker per arm) and the step bar reads "6-7 messages per path". A service lifeline has a plain "⊕ internal" control that loads that service's internal calls (`open=`); Full loads all. DB operations are one "DB: N ops (collections)" row; a click opens them (`dbOpen=`).

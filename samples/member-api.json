@@ -295,6 +295,121 @@
           "target": "member.invite"
         }
       ]
+    },
+    {
+      "id": "updateProfile",
+      "name": "PATCH /members/profile",
+      "file": "routes/profile.js",
+      "line": 20,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "membersDb",
+          "operation": "find by id",
+          "details": {
+            "can_fail": [
+              {
+                "when": "no member has this id",
+                "error": "404 member not found",
+                "source": {
+                  "file": "routes/profile.js",
+                  "line": 24
+                }
+              },
+              {
+                "when": "the database call times out",
+                "error": "503 database unavailable",
+                "source": {
+                  "file": "routes/profile.js",
+                  "line": 24
+                }
+              }
+            ]
+          }
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "member.auditRead"
+        },
+        {
+          "seq": 3,
+          "type": "call",
+          "target": "verifyEmail",
+          "details": {
+            "only_when": {
+              "guard": "the email changed",
+              "source": {
+                "file": "routes/profile.js",
+                "line": 41
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "verifyEmail",
+      "name": "verify a changed email",
+      "file": "lib/profile.js",
+      "line": 10,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "membersDb",
+          "operation": "update",
+          "details": {
+            "only_when": {
+              "guard": "the email changed",
+              "source": {
+                "file": "lib/profile.js",
+                "line": 12
+              }
+            },
+            "can_fail": [
+              {
+                "when": "another member has this email",
+                "error": "409 email already taken",
+                "source": {
+                  "file": "lib/profile.js",
+                  "line": 14
+                }
+              }
+            ]
+          }
+        },
+        {
+          "seq": 2,
+          "type": "resource",
+          "target": "membersDb",
+          "operation": "insert",
+          "details": {
+            "only_when": {
+              "guard": "the email changed",
+              "source": {
+                "file": "lib/profile.js",
+                "line": 18
+              }
+            }
+          }
+        },
+        {
+          "seq": 3,
+          "type": "egress",
+          "target": "member.emailChanged",
+          "details": {
+            "only_when": {
+              "guard": "the email changed",
+              "source": {
+                "file": "lib/profile.js",
+                "line": 22
+              }
+            }
+          }
+        }
+      ]
     }
   ],
   "ingress": [
@@ -319,6 +434,17 @@
         "method": "POST",
         "path": "/members/register-idp"
       }
+    },
+    {
+      "id": "in.updateProfile",
+      "bindKey": "http:PATCH member-api/members/profile",
+      "transport": "http",
+      "handler": "updateProfile",
+      "entryPoint": true,
+      "details": {
+        "method": "PATCH",
+        "path": "/members/profile"
+      }
     }
   ],
   "egress": [
@@ -340,6 +466,26 @@
       "details": {
         "method": "POST",
         "path": "/invite"
+      }
+    },
+    {
+      "id": "member.auditRead",
+      "bindKey": "http:POST member-notifier/audit-read",
+      "transport": "http",
+      "mode": "sync",
+      "details": {
+        "method": "POST",
+        "path": "/audit-read"
+      }
+    },
+    {
+      "id": "member.emailChanged",
+      "bindKey": "http:POST member-notifier/email-changed",
+      "transport": "http",
+      "mode": "sync",
+      "details": {
+        "method": "POST",
+        "path": "/email-changed"
       }
     }
   ],

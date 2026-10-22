@@ -4,6 +4,7 @@
 import { altFrames, stripsByRow, STRIP } from './sequence-alt.js';
 import { arrowEnds, columnGaps, centres, labelWidth, wrapId, clampLines } from './flow-cols.js';
 import { markChips, chipsStack } from './flow-marks-draw.js';
+import { markerRuns, failNeed } from './flow-markers-draw.js';
 import { sharedVar } from '../design/component-colors.js';
 import { bandsOf } from './flow-stores-pure.js';
 import { subBands, SHARED } from './flow-bands.js';
@@ -41,7 +42,7 @@ export function layoutLane(lane, fit = 0, sq = null, marks = null, edit = false,
   const spans = events.flatMap((e) => {
     const ends = e.type === 'hop' ? [e.from, e.to] : arrowEnds(e);
     if (!ends) return [];
-    const a = idx.get(ends[0]), b = idx.get(ends[1]), out = e.type === 'hop' ? hopSpans(e) : [{ a, b, need: Math.max(labelWidth(e.label), detailPx(e)) + 8 + BAR + 2 * NEST }];
+    const a = idx.get(ends[0]), b = idx.get(ends[1]), out = e.type === 'hop' ? hopSpans(e) : [{ a, b, need: Math.max(labelWidth(e.label) + failNeed(e.msg), detailPx(e)) + 8 + BAR + 2 * NEST }];
     if (e.end) { const n = b + (Math.sign(b - a) || 1); if (n >= 0 && n < columns.length) out.push({ a: b, b: n, need: endW(e) + 14 }); }
     return out;
   });
@@ -75,15 +76,16 @@ export function layoutLane(lane, fit = 0, sq = null, marks = null, edit = false,
   const top = [], ys = [];
   let y = PAD + 12; // a gap under the sticky heads: the first arrow label never touches them
   // an arrow too short for its chips beside the step tile ("in draft" + "transport not decided" at 760) stacks them, one per line: the row grows by a line each
-  const stacked = new Set(events.filter((e) => e.type === 'call' && e.msg && chipsStack(markChips(marks, e.msg, th), Math.abs(colX.get(e.to) - colX.get(e.from)) - 12)));
+  const runs = markerRuns(events), chipsOf = (e) => markChips(marks, e.msg, th, runs.byMsg.get(e.msg)?.first);
+  const stacked = new Set(events.filter((e) => e.type === 'call' && e.msg && chipsStack(chipsOf(e), Math.abs(colX.get(e.to) - colX.get(e.from)) - 12)));
   // Edit: room under the last row of each bar for its "+ call" chip, so it never meets the next arrow or label
   const addRows = new Set(edit ? lane.bars.filter((b) => !b.msg.reference && b.msg.target?.fn).map((b) => b.end) : []);
-  events.forEach((e, r) => { const dp = det?.parts.get(e), up = dp?.extraUp ?? 0; top[r] = y; ys[r] = y + nStrips(r) * STRIP + up + (e.type === 'decision' && e.kind === 'caption' ? 14 : LINE[e.type]); y += nStrips(r) * STRIP + up + (dp?.extraDown ?? 0) + rowH(e) + (stacked.has(e) ? 19 * (markChips(marks, e.msg, th).length - 1) : 0) + (addRows.has(r) ? 20 : 0); });
+  events.forEach((e, r) => { const dp = det?.parts.get(e), up = dp?.extraUp ?? 0; top[r] = y; ys[r] = y + nStrips(r) * STRIP + up + (e.type === 'decision' && e.kind === 'caption' ? 14 : LINE[e.type]); y += nStrips(r) * STRIP + up + (dp?.extraDown ?? 0) + rowH(e) + (stacked.has(e) ? 19 * (chipsOf(e).length - 1) : 0) + (addRows.has(r) ? 20 : 0); });
   top[events.length] = y;
   const height = y + PAD;
   const barX = (bar, dir) => (folded.has(idx.get(bar.col)) ? colX.get(bar.col) + (dir < 0 ? 0 : fw) : colX.get(bar.col) + bar.level * NEST + dir * BAR / 2); // in a fold: its edge on that side
   const groups = foldGroups(columns.length, folded).map((g) => ({ ...g, x: xs[g.from], w: fw, names: g.cols.map((c) => columns[c].service ?? columns[c].label), cc: sharedVar(g.cols.map((c) => columns[c])) }));
   const edge = (bar, col, dir) => (bar ? barX(bar, dir) : colX.get(col));
   const headBox = (c) => headW(c, COLW);
-  return { th, internal: lane.internal ?? null, columns, events, bars, idx, stacked, folded, groups, plan, sig, foldW: fw, fit, isCh, headW, headBox, xs, COLW, width, height, colX, heads, boxH, HEAD, bandH, bands, frames, strips, top, ys, barX, edge };
+  return { th, runs, internal: lane.internal ?? null, columns, events, bars, idx, stacked, folded, groups, plan, sig, foldW: fw, fit, isCh, headW, headBox, xs, COLW, width, height, colX, heads, boxH, HEAD, bandH, bands, frames, strips, top, ys, barX, edge };
 }

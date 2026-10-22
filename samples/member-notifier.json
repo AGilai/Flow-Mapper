@@ -44,6 +44,34 @@
           "operation": "send invitation"
         }
       ]
+    },
+    {
+      "id": "emailChanged",
+      "name": "send email-change notice",
+      "file": "mail.js",
+      "line": 35,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "kind": "leaf",
+          "operation": "send email-change notice"
+        }
+      ]
+    },
+    {
+      "id": "auditRead",
+      "name": "record a profile read",
+      "file": "mail.js",
+      "line": 45,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "kind": "leaf",
+          "operation": "record a profile read"
+        }
+      ]
     }
   ],
   "ingress": [
@@ -67,6 +95,28 @@
       "details": {
         "method": "POST",
         "path": "/invite"
+      }
+    },
+    {
+      "id": "in.auditRead",
+      "bindKey": "http:POST member-notifier/audit-read",
+      "transport": "http",
+      "handler": "auditRead",
+      "entryPoint": false,
+      "details": {
+        "method": "POST",
+        "path": "/audit-read"
+      }
+    },
+    {
+      "id": "in.emailChanged",
+      "bindKey": "http:POST member-notifier/email-changed",
+      "transport": "http",
+      "handler": "emailChanged",
+      "entryPoint": false,
+      "details": {
+        "method": "POST",
+        "path": "/email-changed"
       }
     }
   ]

@@ -13,6 +13,7 @@ import type { Links } from './links.ts';
 import type { Alt } from './alt.ts';
 import type { Message, Participant, Trace } from './trace.ts';
 import type { Decision } from './trace-types.ts';
+import { canFailLine, onlyWhenLine } from './step-markers.ts';
 import { rangeBlocks, type RangeNote } from './mermaid-ranges.ts';
 
 export interface MermaidOpts { name?: string; description?: string; descriptions?: FlowDescriptions | null; links?: Links | null; ranges?: RangeNote[] /* 0.34.0: step-range comments, as rect + Note (core/mermaid-ranges.ts) */ }
@@ -34,6 +35,8 @@ function framesOf(m: Message, both: Map<string, Decision> = new Map()): Frame[] 
 }
 
 const RESERVED = new Set(['end', 'box', 'rect', 'loop', 'alt', 'else', 'opt', 'par', 'and', 'break', 'critical', 'option', 'note', 'participant', 'actor', 'title', 'activate', 'deactivate', 'autonumber', 'create', 'destroy', 'links', 'link']);
+/** 0.38.1 (#82): a step's markers as `Note over` lines: `can fail: ...` and `only when <guard>`. */
+const markerNotes = (m: Message, over: string): string[] => [...(m.canFail?.length ? [`Note over ${over}: ${esc(canFailLine(m.canFail))}`] : []), ...(m.onlyWhen ? [`Note over ${over}: ${esc(onlyWhenLine(m.onlyWhen))}`] : [])];
 export const esc = (s: string) => s.replace(/\s+/g, ' ').trim().replace(/[#;]/g, (c) => `#${c.charCodeAt(0)};`).replace(/%%/g, '%#37;');   // `%%` would start a comment: written as an entity too
 
 /** `http:POST orders-svc/orders` is written `POST /orders`; anything else as the trace labels it. */
@@ -113,6 +116,7 @@ export function exportMermaid(t: Pick<Trace, 'start' | 'participants' | 'message
       if (m.self) { if (m.real) out.push(`%% real: ${esc(m.real)}`); out.push(`${a}->>${a}: ${esc(m.label)}`); out.push(...(rb?.after.get(pos) ?? [])); continue; }
       const over = [...new Set((m.over ?? []).map((o) => idByLabel.get(o)).filter((x): x is string => !!x))];
       out.push(`Note over ${over.length ? over.join(',') : a}: ${esc(m.label)}`);
+      out.push(...markerNotes(m, over.length ? over.join(',') : a));
       out.push(...(rb?.after.get(pos) ?? []));
       continue;
     }
@@ -122,6 +126,7 @@ export function exportMermaid(t: Pick<Trace, 'start' | 'participants' | 'message
     if (title) out.push(`Note over ${a === b ? a : `${a},${b}`}: ${esc(messageLabel(m))}`);
     const note = lineText(opts.descriptions?.callees[key])?.text ?? m.note;
     if (note) out.push(`Note over ${a === b ? a : `${a},${b}`}: ${esc(note)}`);
+    out.push(...markerNotes(m, a === b ? a : `${a},${b}`));
     out.push(...(rb?.after.get(pos) ?? []));
     if (m.mode !== 'async' && m.from !== m.to && ['service', 'client', 'function'].includes(kind.get(m.to) ?? '')) open.push({ from: m.from, to: m.to, depth: m.depth, response: m.returns?.label });
   }
