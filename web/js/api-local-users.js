@@ -18,6 +18,7 @@ export function createUsers(data) {
     u.color = colorSlot(u.id); list().push(u); return u;
   };
   return {
+    user: async (id) => structuredClone(get(id)),
     users: async () => ({ users: list().map((u) => ({ ...structuredClone(u), counts: counts(u.id) })) }),
     createUser: async (b) => {
       const n = name(b?.name), m = matchUser(list(), { name: n });

@@ -26,6 +26,7 @@ import { registerComments } from './routes/comments.ts';
 import { registerActionItems } from './routes/action-items.ts';
 import { registerFlowRelations } from './routes/flow-relations.ts';
 import { registerUsers } from './routes/users.ts';
+import { registerMentions } from './routes/mentions.ts';
 import { registerSubsystems } from './routes/subsystems.ts';
 import { getDraft } from './store/drafts.ts';
 import { registerMcpHttp } from './mcp/http.ts';
@@ -71,6 +72,7 @@ export function createApp(opts: AppOptions): { server: Server; ctx: Ctx; router:
   registerComments(router, ctx);
   registerActionItems(router, ctx);
   registerUsers(router, ctx);
+  registerMentions(router, ctx);
   registerSubsystems(router, ctx);
   registerFlowRelations(router, ctx);
   registerMarks(router, ctx);

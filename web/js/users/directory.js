@@ -9,7 +9,9 @@ const emit = () => subs.forEach((f) => f());
 
 /** Load (or reload with `force`) the list. */
 export function loadUsers(force = false) {
-  if (!loaded || force) loaded = api.users().then((r) => { list = r.users; done = true; if (currentId() && !list.some((u) => u.id === currentId())) setMyId(null); emit(); return list; }).catch((e) => { loaded = null; throw e; });
+  if (!loaded || force) loaded = api.users().then((r) => { list = r.users; done = true; if (currentId() && !list.some((u) => u.id === currentId())) { // merged away (from another browser): follow it, else sign out
+      const gone = currentId(); api.user(gone).then((u) => setMyId(list.some((x) => x.id === u.id) ? u.id : null)).catch(() => setMyId(null)); }
+    emit(); return list; }).catch((e) => { loaded = null; throw e; });
   return loaded;
 }
 export const users = () => list;

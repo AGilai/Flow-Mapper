@@ -42,7 +42,7 @@ export function commentItem(node, x) {
       if (mine) act.append(link('Edit', edit, '', 'cm-edit'), link('Delete', ask, 'd', 'cm-del'));
     }
     head.replaceChildren(...(node.deleted ? [h('span.cm-gone', 'Comment deleted'), time]
-      : [h('b', node.author), mine ? h('span.you', 'you') : null, time, node.externalSource ? h('span.imp', { title: `Imported from ${node.externalSource}${node.externalId ? `, id ${node.externalId}` : ''}` }, 'imported') : null, node.editedAt ? h('span.ed', { title: `Edited ${full(node.editedAt)}` }, 'edited') : null, pill(), act]).filter(Boolean));
+      : [h('b', node.author), mine ? h('span.you', 'you') : null, time, x.fresh?.(node.id) ? h('span.cm-new', { 'data-qa': 'cm-new' }, h('span.dot', { 'aria-hidden': 'true' }), 'new') : null, node.externalSource ? h('span.imp', { title: `Imported from ${node.externalSource}${node.externalId ? `, id ${node.externalId}` : ''}` }, 'imported') : null, node.editedAt ? h('span.ed', { title: `Edited ${full(node.editedAt)}` }, 'edited') : null, pill(), act]).filter(Boolean));
     body.replaceChildren(...(node.deleted ? [] : [bodyEl(node.body), x.top && node.resolved ? h('div.cm-resolved', { 'data-qa': 'cm-resolved' }, `Resolved${node.resolvedBy ? ` by ${node.resolvedBy}` : ''} \u00b7 `, h('span', { title: full(node.resolvedAt) }, relTime(node.resolvedAt))) : null].filter(Boolean)));
   }
   /** Resolve or reopen as the signed-in user (the sign-in opens first when nobody is). */

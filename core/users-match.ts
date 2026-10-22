@@ -51,3 +51,21 @@ export function filterUsers<T extends { name: string }>(users: readonly T[], q: 
   if (!ws.length) return [...users];
   return users.filter((u) => { const k = nameKey(u.name); return ws.every((w) => k.includes(w)); });
 }
+
+const words = (n: string) => nameKey(n).replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter(Boolean);
+/**
+ * Do two names look like the same person ("Asaf G." and "Asaf Gilai", "Noa B." and "Noa Barak")? Same first word, and the last words share
+ * their first letter (or one name is just the first word). Only a hint on the Users page: nothing merges by itself.
+ */
+export function looksLike(a: string, b: string): boolean {
+  const x = words(a), y = words(b);
+  if (!x.length || !y.length || x[0] !== y[0] || nameKey(a) === nameKey(b)) return false;
+  if (x.length === 1 || y.length === 1) return true;
+  return x[x.length - 1][0] === y[y.length - 1][0];
+}
+/** For every user, another live user whose name looks like theirs (the first found), or nothing. */
+export function lookalikes(users: readonly User[]): Map<string, User> {
+  const out = new Map<string, User>();
+  for (const u of users) { const o = users.find((x) => x.id !== u.id && looksLike(u.name, x.name)); if (o) out.set(u.id, o); }
+  return out;
+}

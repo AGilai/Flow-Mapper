@@ -1,7 +1,7 @@
 // Users registry (0.31.0): matching, the API, X-Flow-User, author matching for REST clients, rename and merge.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { matchUser, colorSlot, initials, filterUsers, type User } from '../core/users-match.ts';
+import { matchUser, colorSlot, initials, filterUsers, looksLike, lookalikes, type User } from '../core/users-match.ts';
 import { startApp, sampleManifests } from './helpers.ts';
 
 const U = (id: string, name: string, extra: Partial<User> = {}): User => ({ id, name, color: colorSlot(id), createdAt: 't', lastSeenAt: null, aliases: [], externalIds: [], ...extra });
@@ -105,4 +105,15 @@ test('MCP: list_users; writes without an author are by Assistant', async () => {
     const t = await call('list_comments', { env: 'prod', service: f.service, ingress: f.ingress });
     assert.equal(t.comments[0].author, 'Assistant'); assert.equal(t.comments[0].authorId, l.users[0].id);
   } finally { await app.close(); }
+});
+
+test('looksLike: the same person written two ways, never two different people', () => {
+  assert.equal(looksLike('Asaf G.', 'Asaf Gilai'), true);
+  assert.equal(looksLike('Noa B.', 'Noa Barak'), true);
+  assert.equal(looksLike('Noa', 'Noa Barak'), true);
+  assert.equal(looksLike('Dana Levi', 'Dana Cohen'), false);
+  assert.equal(looksLike('Dana Levi', 'dana  levi'), false); // the same name is not a look-alike: names are unique
+  assert.equal(looksLike('Ron', 'Dana Levi'), false);
+  const m = lookalikes([U('u_1', 'Asaf G.'), U('u_2', 'Asaf Gilai'), U('u_3', 'Ron')]);
+  assert.equal(m.get('u_1')?.id, 'u_2'); assert.equal(m.get('u_2')?.id, 'u_1'); assert.equal(m.has('u_3'), false);
 });

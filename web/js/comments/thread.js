@@ -11,7 +11,8 @@ import { createComposer } from './composer.js';
 import { userAvatar } from '../users/avatar.js';
 import { myName, me, watchUsers, loadUsers } from '../users/directory.js';
 import { refreshChips } from '../users/chips.js';
-import { startsOpen, relTime, fullDate, visibleThread } from './pure.js';
+import { startsOpen, relTime, fullDate, visibleThread, mentionedOnly, countMentions } from './pure.js';
+import { announceSeen } from '../users/unread.js';
 import { prefill, stripTables, eventParts } from '../action-items/pure.js';
 import { sanitize, plainText } from '../../core/rich-text.js';
 
@@ -27,15 +28,18 @@ const plural = (n, w) => `${n} ${n === 1 ? w : w === 'reply' ? 'replies' : `${w}
  */
 export function createComments({ env, root, walk, store, onCount }) {
   const anchor = flowAnchor(root.service, root.ingress);
-  let thread = { count: 0, resolvedThreads: 0, comments: [] }, showResolved = false, items = [], composer = null, replying = null, loaded = false, seq = 0, own = false, flash = 0;
+  let thread = { count: 0, resolvedThreads: 0, comments: [] }, showResolved = false, items = [], composer = null, replying = null, loaded = false, seq = 0, own = false, flash = 0, mineOnly = false, considered = false;
+  const fresh = new Set(); // comment ids that mention me and were unread when this thread opened: they carry a "new" mark until the page is left
   const title = h('span.cm-t', 'Comments'), count = h('span.muted.sm', '(0)'), hint = h('span.cm-hint.cm-sum');
   const list = h('div.cm-list'), tail = h('div.cm-tail');
   const addAi = h('button.abtn', { type: 'button', 'data-qa': 'cm-add-action', on: { click: (e) => { e.preventDefault(); store.startNew(); } } }, '+ Action item');
   // 0.29.2: resolved threads are hidden until the viewer asks (not remembered: a new visit starts with the open discussions)
   const showBtn = h('button.abtn.cm-showres', { type: 'button', 'data-qa': 'cm-show-resolved', 'aria-pressed': 'false', on: { click: (e) => { e.preventDefault(); showResolved = !showResolved; draw(); } } });
-  const el = h('details.cm-sec', { open: false, 'data-qa': 'comments' }, h('summary', title, count, hint, showBtn, addAi), list, tail);
+  // 0.31.0: only the threads that mention the signed-in user
+  const meBtn = h('button.abtn.cm-mentioned', { type: 'button', 'data-qa': 'cm-mentioned', 'aria-pressed': 'false', hidden: true, on: { click: (e) => { e.preventDefault(); mineOnly = !mineOnly; draw(); } } });
+  const el = h('details.cm-sec', { open: false, 'data-qa': 'comments' }, h('summary', title, count, hint, showBtn, meBtn, addAi), list, tail);
   let auto = false; // the toggle the first load makes itself is not the viewer's choice
-  el.addEventListener('toggle', () => { if (auto) { auto = false; return; } if (visibleThread(thread, showResolved).count) write(el.open); });
+  el.addEventListener('toggle', () => { consider(); if (auto) { auto = false; return; } if (visibleThread(thread, showResolved).count) write(el.open); });
 
   const stepOf = (key) => { const s = walk.steps().find((x) => x.key === key); return s ? { n: s.n } : null; };
   const stepNow = () => { const s = walk.picked() ? walk.steps()[walk.current() - 1] : null; return s ? { n: s.n, key: s.key } : null; };
@@ -57,14 +61,17 @@ export function createComments({ env, root, walk, store, onCount }) {
   const mark = () => { addAi.hidden = !!store.items.length || !!store.draft || !loaded || !store.loaded; list.querySelectorAll('.cm[data-id]').forEach((c) => c.classList.toggle('hl', Number(c.dataset.id) === store.draft?.commentId)); };
 
   const drawMe = () => { const m = tail.querySelector('.cm-me'); if (m) m.replaceChildren(me() ? userAvatar(me()) : userAvatar({ name: '?' })); };
-  const offUsers = watchUsers(() => { drawMe(); refreshChips(el); }); // a rename, a merge or the first load of the users: avatars and chips follow
+  const offUsers = watchUsers(() => { drawMe(); refreshChips(el); consider(); }); // a rename, a merge or the first load of the users: avatars and chips follow
   loadUsers().catch(() => {});
   const people = () => { const ids = []; const walkc = (c) => { if (c.authorId && !ids.includes(c.authorId)) ids.push(c.authorId); (c.replies ?? []).forEach(walkc); }; thread.comments.forEach(walkc); return ids; };
 
   function draw() {
     items.forEach((i) => i.dispose()); items = [];
-    const x = (top) => ({ people, step: stepOf, jump: (n) => walk.go(n), top, api: api_ });
-    const vis = visibleThread(thread, showResolved), hiddenN = thread.resolvedThreads ?? 0;
+    const x = (top) => ({ people, fresh: (id) => fresh.has(id), step: stepOf, jump: (n) => walk.go(n), top, api: api_ });
+    const u = me(), mineN = u ? countMentions(thread, u.id) : 0;
+    if (!mineN) mineOnly = false;
+    const vis = mineOnly && u ? mentionedOnly(visibleThread(thread, showResolved), u.id) : visibleThread(thread, showResolved), hiddenN = thread.resolvedThreads ?? 0;
+    meBtn.hidden = !mineN; meBtn.setAttribute('aria-pressed', String(mineOnly)); meBtn.textContent = `@ Mentioned me (${mineN})`;
     const nodes = vis.comments.map((c) => {
       const it = commentItem(c, x(true)); items.push(it);
       const rep = c.replies.flatMap((r) => { const ri = commentItem(r, x(false)); items.push(ri); return [ri.el, ...events(r.id)]; });
@@ -89,6 +96,18 @@ export function createComments({ env, root, walk, store, onCount }) {
     const r = replying !== null ? list.querySelector('.cm-composer.reply') : null; r?.querySelector('[data-qa=rte]')?.focus();
   }
 
+  /** The first time the thread is open and loaded: the mentions of me that are unread get a "new" mark, and are marked seen after 2 seconds on screen. */
+  async function consider() {
+    const u = me();
+    if (considered || !el.open || !loaded || !u) return;
+    considered = true;
+    const r = await api.mentions({ user: u.id, unread: true, env, anchor }).catch(() => null);
+    if (!r?.mentions.length) return;
+    r.mentions.forEach((m) => fresh.add(m.commentId));
+    if (!busy()) draw();
+    setTimeout(async () => { if (!el.isConnected) return; await api.seenMentions(u.id, r.mentions.map((m) => m.commentId)).catch(() => {}); announceSeen(); }, 2000);
+  }
+
   /** Load the thread. While a reply or an edit is open the list is left as it is (its text must not be lost); `force` redraws anyway (the person's own save or post). */
   async function refresh(force = false) {
     const mine = ++seq;
@@ -99,6 +118,7 @@ export function createComments({ env, root, walk, store, onCount }) {
       if (!loaded) { const open = startsOpen({ count: visibleThread(t, false).count, remembered: read(), stepKey: walk.picked() ? walk.steps()[walk.current() - 1]?.key : null, comments: t.comments }); if (open !== el.open) { auto = true; el.open = open; } }
       loaded = true;
       if (force || !busy()) draw();
+      consider();
       onCount?.(t.count);
     } catch (e) {
       if (mine === seq && !loaded) { loaded = true; list.replaceChildren(h('div.cm-empty', `Comments could not be loaded: ${e.message}`)); list.hidden = false; }

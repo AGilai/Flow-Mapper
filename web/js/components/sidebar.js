@@ -16,8 +16,10 @@ const LINKS = [
   { path: '/system', label: 'System map', icon: 'system' },
   { path: '/inventory', label: 'Inventory', icon: 'services', also: ['/services', '/stores', '/channels', '/events'] },
   { path: '/flows', label: 'Flows', icon: 'flow' },
+  { path: '/mentions', label: 'Mentions', icon: 'at' },
   { path: '/health', label: 'Link health', icon: 'health' },
   { path: '/bugs', label: 'Bugs', icon: 'bug' },
+  { path: '/users', label: 'Users', icon: 'user' },
 ];
 
 export function renderRail(rail, activePath, counts = {}) {

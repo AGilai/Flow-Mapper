@@ -19,6 +19,9 @@ const cmtBadge = (n) => (n ? h('span.fl-cm', { title: `${n} comment${n === 1 ? '
 /** The open action items of a flow (0.29.0): a small tick-box icon and the number, nothing at 0. */
 const actBadge = (n) => (n ? h('span.fl-ai', { title: `${n} open action item${n === 1 ? '' : 's'}`, 'aria-label': `${n} open action item${n === 1 ? '' : 's'}`, 'data-qa': 'act-badge' }, icon('action'), String(n)) : null);
 
+/** Unread @mentions of the signed-in user in a flow (0.31.0): "@ 2 new", a dot and the word, never colour alone. */
+const mnBadge = (n) => (n ? h('span.fl-mn', { title: `${n} unread mention${n === 1 ? '' : 's'} of you`, 'aria-label': `${n} unread mention${n === 1 ? '' : 's'} of you`, 'data-qa': 'mention-badge' }, h('span.dot', { 'aria-hidden': 'true' }), `@ ${n} new`) : null);
+
 /** The relation badge (0.28.2): two arrows and the number of related flows; the tooltip says which. Nothing when the flow has none. */
 const relBadge = (c) => (relTotal(c) ? h('span.fl-rel', { title: relTitle(c), 'aria-label': relTitle(c), 'data-qa': 'rel-badge' }, h('span', { 'aria-hidden': 'true' }, '⇄'), String(relTotal(c))) : null);
 
@@ -34,8 +37,8 @@ export function extLink(links) {
 const markTip = (info, marks) => [markTitle(info, marks), info.what].filter(Boolean).join(': ');
 
 /** entryRow(p, { marks, counts, onPick, design }) -> the row element. */
-export function entryRow(p, { marks, counts, cmts = {}, acts = {}, relBy = new Map(), onPick, design }) {
-  const cm = [cmtBadge(cmts[`flow:${p.service}/${p.id}`]), actBadge(acts[`flow:${p.service}/${p.id}`]), relBadge(relBy.get(`${p.service}/${p.id}`))];
+export function entryRow(p, { marks, counts, cmts = {}, acts = {}, ments = {}, relBy = new Map(), onPick, design }) {
+  const cm = [cmtBadge(cmts[`flow:${p.service}/${p.id}`]), actBadge(acts[`flow:${p.service}/${p.id}`]), mnBadge(ments[`flow:${p.service}/${p.id}`]), relBadge(relBy.get(`${p.service}/${p.id}`))];
   const info = design ? markOfPoint(marks, p) : null, rest = splitKey(p.bindKey).rest, lock = p.reference || p.partial ? lockChip({ source: p.reference?.source ?? null }, { short: true, text: p.reference ? null : 'partial', title: p.reference ? 'This entry point is a reference: its behaviour is in another environment.' : `This flow runs into ${p.partial} reference${p.partial === 1 ? '' : 's'}.` }) : null;
   return h('a.entry', { href: href('/flows', { service: p.service, ingress: p.id }), 'data-key': entryKey(p.service, p.id), on: { click: (e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button) return; e.preventDefault(); onPick(p); } } },
     p.name ? h('span.fl-nm', extLink(p.flowLinks?.main ? p.flowLinks : p.links), h('b', p.name), lock || info ? h('span.fl-tags', lock, info ? markBadge(info, { store: marks, short: true, title: markTip(info, marks) }) : null) : null) : null,
