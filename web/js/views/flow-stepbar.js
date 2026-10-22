@@ -47,9 +47,10 @@ export function createStepbar({ store, root, onMove, onEdit, sb = () => 'tad', r
 
   function show(step, n, total) {
     el.hidden = !step && !(total > 0); // step 0 (none selected): the bar shows "Step 0 of N" with Next only
-    if (!step) { last = null; shownKey = null; count.textContent = `Step 0 of ${total}`; prev.disabled = true; next.disabled = false; detail.replaceChildren(); detail.hidden = true; bar.classList.add('plain'); live.textContent = ''; return; }
+    if (!step) { last = null; shownKey = null; count.textContent = `Step 0 of ${total}`; prev.disabled = true; next.disabled = false; detail.replaceChildren(); detail.hidden = true; bar.classList.add('plain'); live.textContent = ''; if (edit) edit.style.display = 'none'; return; }
+    if (edit) edit.style.display = '';
     count.textContent = `Step ${n} of ${total}`;
-    prev.disabled = n <= 1; next.disabled = n >= total;
+    prev.disabled = n < 1; next.disabled = n >= total;
     if (shownKey !== step.key) expanded = false;
     shownKey = step.key; last = { step, n, total };
     paint();
