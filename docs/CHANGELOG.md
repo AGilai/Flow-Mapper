@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased
+## 0.38.2 (2026-10-22)
 UI only (#82 follow-ups from QA of 0.38.1):
 - **A reload keeps the link.** `env=` stays in the URL (a page in view mode with no draft used to lose it, since 0.24.0), and the active tab's `ch=` is no longer erased while the tab loads (it broke on 0.38.0 too). `detail=` and `open=` stay as before. A shared link shows the same view.
 - **Edit mode of a design draft** writes `ch=` against its own default (All): only real choices appear; a first arm picked there is written, so it survives a reload.
