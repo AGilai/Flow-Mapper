@@ -136,7 +136,7 @@ export const api = {
   mermaid: async (env, service, ingress) => {
     const t = trace(g(env), { service, ingress }, HASH_TRACE) ?? fail('flow not found'), text = D.texts(env).get(`${service}/${ingress}`);
     const ranges = (await api.comments(env, `flow:${service}/${ingress}`)).comments.filter((c) => c.steps && !c.resolved && !c.deleted).map((c) => ({ ...c.steps, text: plainText(c.body).split('\n')[0] })); // 0.34.0: open comments on a range of steps
-    return exportMermaid(t, { name: text?.name, description: text?.description, descriptions: await api.descriptions(env, service, ingress), ranges });
+    return exportMermaid(t, { name: text?.name, description: text?.description, links: text?.links, descriptions: await api.descriptions(env, service, ingress), ranges });
   },
   mermaidPreview: async () => fail('Importing Mermaid is not available in the preview: it needs the server.'),
   mermaidImport: async () => fail('Importing Mermaid is not available in the preview: it needs the server.'),

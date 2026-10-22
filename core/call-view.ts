@@ -7,7 +7,7 @@ import type { EnvRefs, RefEndpoint } from './references.ts';
 
 export interface CallView {
   egress: { service: string; id: string; bindKey: string; transport: string; mode?: string };
-  steps: { fn: string; seq: number; operation?: string; mark?: 'new' | 'changed' }[];
+  steps: { fn: string; seq: number; operation?: string; mark?: 'new' | 'changed'; returns?: { label: string; detail?: string } }[];
   targets: { service: string; ingress: string; bindKey: string; reference?: RefEndpoint }[];
 }
 
@@ -15,7 +15,7 @@ export function callView(g: GraphIndex, refs: EnvRefs, service: string, egressId
   const e = g.egress.get(sid(service, egressId));
   if (!e) return null;
   const steps = g.model.functions.filter((f) => f.service === service).flatMap((f) => f.steps
-    .filter((s) => s.type === 'egress' && s.target === egressId).map((s) => ({ fn: f.id, seq: s.seq, ...(s.operation ? { operation: s.operation } : {}), ...(s.mark ? { mark: s.mark } : {}) })));
+    .filter((s) => s.type === 'egress' && s.target === egressId).map((s) => ({ fn: f.id, seq: s.seq, ...(s.operation ? { operation: s.operation } : {}), ...(s.mark ? { mark: s.mark } : {}), ...(s.returns ? { returns: s.returns } : {}) })));
   const targets = downstreamIngress(g, { type: 'egress', service, id: egressId }).map(({ ingress: i }) => {
     const reference = refs.endpoints[`ing:${i.service}/${i.id}`];
     return { service: i.service, ingress: i.id, bindKey: i.bindKey, ...(reference ? { reference } : {}) };

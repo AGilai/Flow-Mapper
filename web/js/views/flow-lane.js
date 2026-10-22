@@ -89,7 +89,7 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
   };
   const close = (b) => {
     endMw(b);
-    if (b.sync && b.caller) push({ type: 'return', bar: b, to: b.caller, label: b.rpc ? b.rpc.reply : 'return' });
+    if (b.sync && b.caller) push({ type: 'return', bar: b, to: b.caller, label: b.rpc ? b.rpc.reply : b.msg.returns?.label ?? 'return', returns: b.msg.returns ?? null });
     b.end = events.length - 1;
   };
   const open = (m, caller, parent, service, col, sync, rpc = null) => {

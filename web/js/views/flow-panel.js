@@ -109,6 +109,7 @@ function codeCard(m, trace) {
   if (m.assumed?.length) rows.push(assumedBlock(m.assumed));
   if (m.unknown?.length) rows.push(h('div.ep-pad.stack', { style: { gap: '2px' } }, h('span.ep-label', 'Not reported'), h('span.small.muted', m.unknown.map((u) => `${u.field}: unknown (${u.reason})`).join(' · '))));
   if (m.note) rows.push(h('p.ep-note.ep-pad', m.note));
+  if (m.returns?.label) rows.push(h('div.ep-pad.stack', { style: { gap: '2px' }, 'data-qa': 'step-returns' }, h('span.ep-label', 'Returns'), h('b', m.returns.label), m.returns.detail ? h('p.ep-note', { style: { whiteSpace: 'pre-wrap' } }, m.returns.detail) : null));   // #81
   if (m.changed) rows.push(h('p.ep-note.ep-pad', `${m.mark === 'new' ? 'New' : 'Changed'}: ${m.changed}`));
   if (m.eventFrom) rows.push(h('p.ep-note.ep-pad', m.eventFrom.boundAt
     ? `Event from caller ${m.eventFrom.boundAt}: bind ${m.eventFrom.name}=${m.event}`

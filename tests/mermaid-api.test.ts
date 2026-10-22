@@ -69,15 +69,18 @@ test('import: one batch of ops, the flow is there with its name, notes, http and
   const t = (await app.call('GET', `/api/envs/hld/trace?service=users-svc&ingress=${r.body.flow.ingress}&draft=${d}`)).body;
   assert.equal(t.start.name, 'Agent connects');
   const calls = t.messages.filter((m: any) => m.kind === 'egress').map((m: any) => `${m.from}>${m.to}|${m.note ?? ''}`);
-  assert.ok(calls.some((c: string) => c.startsWith('svc:users-svc>svc:auth-svc|verifies the token')), JSON.stringify(calls));
+  assert.ok(calls.some((c: string) => c.startsWith('svc:users-svc>svc:auth-svc')), JSON.stringify(calls));
+  assert.ok(t.messages.some((m: any) => m.kind === 'leaf' && m.label === 'verifies the token' && m.over?.join() === 'users-svc,auth-svc'), 'the note is a step spanning both');
+  assert.ok(t.messages.some((m: any) => m.kind === 'egress' && m.to === 'svc:auth-svc' && m.returns?.label === 'ok'), 'the return is the response of the call');
   assert.ok(calls.some((c: string) => c.startsWith('svc:users-svc>svc:policy-engine')));
-  assert.ok(calls.some((c: string) => c.endsWith('|[alt: allowed] how risky')), JSON.stringify(calls));
+  assert.ok(calls.some((c: string) => c.endsWith('|how risky')), JSON.stringify(calls));
+  assert.ok(t.messages.some((m: any) => m.note === 'how risky' && m.alt?.condition === 'allowed'), 'the alt is a group of the step');
   const header = stored.find((o) => o.anchor === 'svc:policy-engine');
   assert.equal(header.data.groupPath, 'platform'); assert.equal(header.data.kind, 'service');
   const again = await imp(d, { text: TEXT, groupPath: 'platform' });
   assert.equal(again.status, 201);
   assert.deepEqual([again.body.batch, again.body.added], [null, 0], 'nothing new: no batch');
-  assert.deepEqual(again.body.counts, { components: 0, endpoints: 0, calls: 0, notes: 0, reused: 3 });
+  assert.deepEqual(again.body.counts, { components: 0, endpoints: 0, calls: 0, notes: 0, reused: 4 });
   assert.equal((await ops('hld', d)).length, stored.length);
   // a stronger text over it adds only the new call
   const more = await imp(d, { text: TEXT + '\nU->>A: POST /refresh', groupPath: 'platform' });

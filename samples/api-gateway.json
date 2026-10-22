@@ -39,7 +39,8 @@
         {
           "seq": 1,
           "type": "egress",
-          "target": "orders.get"
+          "target": "orders.get",
+          "returns": { "label": "200 order JSON", "detail": "The order with its items as stored. 404 when the id is unknown; 503 when the order store does not answer." }
         }
       ]
     },

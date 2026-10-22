@@ -131,6 +131,8 @@ Optional on any step: `condition` (it only happens if…), `loop: true`, `mode: 
 `source` of ingress and egress). The trace's side panel shows it as a code link "Called at".
 Every `target` must exist in the same manifest, or the manifest is rejected, except for the two cases below.
 
+**Returns** (`returns`, 0.33.2): a step of a sync call may say what comes back: `"returns": {"label": "200 order JSON", "detail": "404 when the id is unknown"}`. The label (1 to 80 characters, one line of plain text) is drawn on the dashed return arrow, which says `return` without it; the detail (plain text, up to 500) shows in the step panel. Design calls have no return text of their own, so a design says it here.
+
 **Alternatives** (`altGroup`): when only one of several steps happens per call (the event type is picked
 inside the function from a static map, a `switch`, an if/else chain), mark them as alternatives. Give the
 steps the same `altGroup` string (any name, unique within the function) and a `condition` each:

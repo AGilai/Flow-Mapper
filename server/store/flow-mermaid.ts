@@ -17,5 +17,5 @@ export function flowMermaid(ctx: Ctx, env: string, draft: string | null, service
   const t = trace(g, { service, ingress }, HASH_TRACE) ?? (() => { throw notFound(`ingress '${ingress}' of service '${service}' in env '${env}'`); })();
   const text = reader.flowText(service, ingress);
   const ranges = listThread(ctx.db, env, flowAnchor(service, ingress)).comments.filter((c) => c.steps && !c.resolved && !c.deleted).map((c) => ({ ...c.steps!, text: plainText(c.body).split('\n')[0] })); // 0.34.0: open comments on a range of steps
-  return exportMermaid(t, { name: text?.name, description: text?.description, descriptions: describeFlow(ctx.db, g, env, service, ingress), ranges });
+  return exportMermaid(t, { name: text?.name, description: text?.description, links: text?.links, descriptions: describeFlow(ctx.db, g, env, service, ingress), ranges });
 }

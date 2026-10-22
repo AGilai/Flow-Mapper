@@ -2,7 +2,7 @@
 // draft's overlay. Throws EditError {code, message, field?}.
 
 import type { DraftOpInput } from './draft-ops.ts';
-import { callOps, deleteCallOps } from './edit-calls.ts';
+import { callOps, deleteCallOps, leafOps } from './edit-calls.ts';
 import { componentOps, deleteOps, dtoOps, endpointOps, flowOps } from './edit-forms.ts';
 import { functionOps } from './edit-links.ts';
 import { relationOps } from './edit-relations.ts';
@@ -19,6 +19,7 @@ export function designEditOps(edit: DesignEdit, rows: ItemRow[]): DraftOpInput[]
     case 'component': return componentOps(edit, x);
     case 'endpoint': return endpointOps(edit, x);
     case 'call': return callOps(edit, x);
+    case 'leaf': return leafOps(edit, x);
     case 'delete-call': return deleteCallOps(edit, x);
     case 'flow': return flowOps(edit, x);
     case 'function': return functionOps(edit, x);
@@ -28,7 +29,7 @@ export function designEditOps(edit: DesignEdit, rows: ItemRow[]): DraftOpInput[]
     case 'refine-link': return refineOps(edit, rows, x);
     case 'flow-relation': return relationOps(edit, rows);
     case 'delete': return deleteOps(edit, rows, x);
-    default: throw new EditError('INVALID', `edit.kind must be one of component, endpoint, function, call, delete-call, flow, dto, event-dto, subsystem, abstract-link, refine-link, flow-relation, delete`, 'kind');
+    default: throw new EditError('INVALID', `edit.kind must be one of component, endpoint, function, call, leaf, delete-call, flow, dto, event-dto, subsystem, abstract-link, refine-link, flow-relation, delete`, 'kind');
   }
 }
 
