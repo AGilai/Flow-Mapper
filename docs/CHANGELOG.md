@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased (0.38.0, #82 part 3: the scenario UI)
+## 0.38.0 (2026-10-22): #82 part 3, the scenario UI
 **UI.** The Flows page draws the new views. Defaults: External, and every either/or decision on its first arm.
 - A decision is a divider row in the diagram with an inline dropdown of its arms and "Both"; a nested one has its own divider (indented, only while its parent arm is drawn); a locked one shows its reason and file:line (locks never go into a link). The flow header row has a "Scenario (N)" chip (accent while anything differs from the defaults) that opens a popover with every decision and "Reset to defaults", and a small External | Full switch (remembered per viewer). With "Both" the arms follow one another (a caption and a 3 px gutter marker per arm) and the step bar reads "6-7 messages per path". A service lifeline has a plain "⊕ internal" control that loads that service's internal calls (`open=`); Full loads all. DB operations are one "DB: N ops (collections)" row; a click opens them (`dbOpen=`).
 - Links (active tab only): `ch=<first 8 characters of group_id>:<arm>,...` for the choices that differ from the default (longer on a clash), `detail=full`, `open=svc,svc:fn`. An old link opens the default view. An unknown group or arm in `ch=` is dropped with a toast.
