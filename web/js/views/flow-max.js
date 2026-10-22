@@ -17,7 +17,7 @@ export function createMax({ onChange } = {}) {
   /** Mark the tabs and open every section (a tab built while maximized calls this too); leaving closes the ones it opened. */
   function sync() {
     document.querySelectorAll('.flow-tab').forEach((t) => (on ? t.setAttribute('data-max', '') : t.removeAttribute('data-max')));
-    if (on) { const c = [...document.querySelectorAll('.flow-tab .cm-sec:not([open])')]; c.forEach((d) => { d.open = true; }); shut.push(...c); }
+    if (on) { const c = [...document.querySelectorAll('.flow-tab details.cm-sec:not([open])')]; c.forEach((d) => { d.open = true; }); shut.push(...c); }
     else { shut.forEach((d) => { if (d.isConnected) d.open = false; }); shut = []; }
   }
 

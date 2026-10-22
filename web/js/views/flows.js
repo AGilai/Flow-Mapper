@@ -32,8 +32,8 @@ import { loadSubsystems } from '../design/subsystems-store.js';
 import { relCounts } from './flow-relations-pure.js';
 import { createMax } from './flow-max.js';
 import { maxFromQuery } from './flow-max-pure.js';
-import { decodeBar, decodeArrows, encodeBar, encodeArrows, decodeHl, encodeHl, arrowsDefault, BAR_DEFAULT } from './step-details-pure.js';
-import { createStepMenu, stored, storedHl } from './step-details-menu.js';
+import { decodeBar, decodeArrows, encodeBar, encodeArrows, decodeHl, encodeHl, decodeCb, encodeCb, arrowsDefault, BAR_DEFAULT } from './step-details-pure.js';
+import { createStepMenu, stored, storedHl, storedCb } from './step-details-menu.js';
 import { decodeZoom, encodeZoom, percentOf } from './flow-zoom-pure.js';
 import { createZoomControl } from './flow-zoom.js';
 import { decodeHints, encodeHints } from './flow-hints-pure.js';
@@ -45,7 +45,7 @@ export async function render({ main, query }) {
   const subs = await loadSubsystems(); // the subsystem of each component: bands and grouping over a flow's heads
   const opts = { stores: query.get('stores') !== '0', depth: query.get('depth') ?? 'all',
     frontier: query.get('frontier') === '1', squeeze: sqStored(), bands: bandStored(),
-    sb: decodeBar(query) ?? stored('bar', BAR_DEFAULT), sd: decodeArrows(query, arrowsDefault(isDesign())) ?? stored('arrows', arrowsDefault(isDesign())), th: decodeHints(query, isDesign()), hl: decodeHl(query) ?? storedHl() }; // step details (0.30.0): what the step bar and the arrows show; // steps the harvester marked as frontier (call trees that reach no sink)
+    sb: decodeBar(query) ?? stored('bar', BAR_DEFAULT), sd: decodeArrows(query, arrowsDefault(isDesign())) ?? stored('arrows', arrowsDefault(isDesign())), th: decodeHints(query, isDesign()), hl: decodeHl(query) ?? storedHl(), cb: decodeCb(query) ?? storedCb() ?? isDesign() }; // step details (0.30.0): what the step bar and the arrows show; // steps the harvester marked as frontier (call trees that reach no sink)
   let S = T.decodeUrl(query);
   const urlCount = T.urlKeys(query).length; // a link with more tabs than the cap is trimmed (toast below)
   let stepParam = decodeStep(query); // `step=`: the walk's step in the active tab; a link opens on it (0.20.0)
@@ -103,9 +103,9 @@ export async function render({ main, query }) {
   const thCheck = h('label.check', { title: 'Show the words "transport not decided" on arrows. Off: a small icon (the words are in its tooltip and in the step bar).' },
     h('input', { type: 'checkbox', 'data-qa': 'transport-hints', checked: opts.th, on: { change: (e) => { opts.th = e.target.checked; persist(); views.forEach((v, k) => (k === S.active ? v.draw() : stale.add(k))); } } }), 'Transport hints');
   const zctl = createZoomControl({ onZoom: (v) => views.get(S.active)?.setZoom(v) });
-  const stepMenu = createStepMenu({ bar: opts.sb, arrows: opts.sd, hl: opts.hl, dflt: arrowsDefault(isDesign()), onChange: ({ bar, arrows, hl }) => {
-    const arrowsMoved = arrows !== opts.sd; opts.sb = bar; opts.sd = arrows; opts.hl = hl; persist();
-    views.forEach((v, k) => { v.refreshBar(); v.refreshHl(); if (arrowsMoved) { if (k === S.active) v.draw(); else stale.add(k); } });
+  const stepMenu = createStepMenu({ bar: opts.sb, arrows: opts.sd, hl: opts.hl, cb: opts.cb, dflt: arrowsDefault(isDesign()), onChange: ({ bar, arrows, hl, cb }) => {
+    const arrowsMoved = arrows !== opts.sd; opts.sb = bar; opts.sd = arrows; opts.hl = hl; opts.cb = cb; persist();
+    views.forEach((v, k) => { v.refreshBar(); v.refreshHl(); v.refreshBrackets(); if (arrowsMoved) { if (k === S.active) v.draw(); else stale.add(k); } });
   } });
   const toolbar = h('div.seq-toolbar', seg, bandsCheck, check('stores', 'Data stores'), frontierCheck, sqCheck, thCheck, depth, stepMenu.el, zctl.el, h('span.spacer'),
     h('span.xs.muted', 'Double-click a bar, or right-click it, to look inside'), info,
@@ -120,7 +120,7 @@ export async function render({ main, query }) {
   mainPane.append(toolbar, strip.el, empty);
 
   function persist() {
-    setQuery({ ...T.encodeUrl(S), ...(S.keys.length ? { service: null } : {}), stores: opts.stores ? null : '0', queues: null, depth: opts.depth === 'all' ? null : opts.depth, frontier: opts.frontier ? '1' : null, sb: encodeBar(opts.sb), sd: encodeArrows(opts.sd, arrowsDefault(isDesign())), th: encodeHints(opts.th, isDesign()), hl: encodeHl(opts.hl), zoom: encodeZoom(zooms.get(S.active)), step: encodeStep(stepParam) });
+    setQuery({ ...T.encodeUrl(S), ...(S.keys.length ? { service: null } : {}), stores: opts.stores ? null : '0', queues: null, depth: opts.depth === 'all' ? null : opts.depth, frontier: opts.frontier ? '1' : null, sb: encodeBar(opts.sb), sd: encodeArrows(opts.sd, arrowsDefault(isDesign())), th: encodeHints(opts.th, isDesign()), hl: encodeHl(opts.hl), cb: encodeCb(opts.cb, isDesign()), zoom: encodeZoom(zooms.get(S.active)), step: encodeStep(stepParam) });
   }
   const max = createMax({ onChange: () => views.get(S.active)?.el.scrollTo?.(0, 0) });
   const host = {

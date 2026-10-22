@@ -28,6 +28,10 @@ export const encodeArrows = (set, dflt = ARROWS_DEFAULT) => (set === dflt ? null
 export const decodeHl = (query) => { const v = query.get('hl'); return v == null ? null : v !== '0'; };
 export const encodeHl = (on) => (on ? null : '0');
 
+/** 0.34.0: "Comment brackets". `cb=1` / `cb=0` is explicit; absent = null (the viewer's remembered choice, else on in a design environment and off in a harvested one). The URL carries it only when it differs from that default. */
+export const decodeCb = (query) => { const v = query.get('cb'); return v === '1' ? true : v === '0' ? false : null; };
+export const encodeCb = (on, dflt) => (on === dflt ? null : on ? '1' : '0');
+
 const words = (set) => (set === 'tad' ? '3' : [...set].map((c) => NAMES[c]).join(' + '));
 /** The toolbar button text: "Step details: bar 3 · arrows API". */
 export const summary = (bar, arrows) => `Step details: bar ${bar === '' ? 'stepper only' : words(bar)} · arrows ${words(arrows)}`;

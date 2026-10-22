@@ -27,9 +27,7 @@ body.is-max .flow-tab > .flow-body { flex: none; min-height: 260px; display: blo
 body.is-max .flow-body > .seq-wrap { display: block; }
 body.is-max .seq-scroll { overflow-y: visible; }
 body.is-max details.flowhead, body.is-max .rel-sec, body.is-max .flow-bottom { max-width: 1100px; width: 100%; margin-left: auto; margin-right: auto; box-sizing: border-box; }
-body.is-max .flow-bottom { max-height: none; overflow: visible; padding-right: var(--s4); background: transparent; border-top: 1px solid var(--line); }
-body.is-max .flow-bottom:not(:has(.cm-sec[open])) { overflow: visible; }
-body.is-max .flow-bottom .cm-sec:not([open]) > summary { cursor: pointer; }
+body.is-max .flow-bottom { max-height: none; background: transparent; border-top: 1px solid var(--line); } /* the rest is in flow-pane.css */
 @media (max-width: 760px) {
   .max-exit .lbl { display: none; } .max-exit { padding: 0 10px; }
   body.is-max .max-bar { padding: 10px 110px 10px var(--s3); }

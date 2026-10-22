@@ -20,7 +20,7 @@ export function decodeStep(query) {
 export function walkAction(e) {
   const t = e.target;
   if (t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable)) return null;
-  if (t?.classList?.contains('seq-scroll') || t?.closest?.('.fi')) return null; // a scroller the viewer is scrolling, or the drill-down panel: the arrows are theirs
+  if (t?.classList?.contains('seq-scroll') || t?.closest?.('.fi') || t?.closest?.('.flow-bottom, .fp-split')) return null; // a scroller the viewer is scrolling, or the drill-down panel: the arrows are theirs; so are the pane (its tabs use ← →) and its border
   if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return null;
   return { ArrowLeft: 'prev', ArrowRight: 'next', Home: 'first', End: 'last' }[e.key] ?? null;
 }

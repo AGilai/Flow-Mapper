@@ -1,0 +1,11 @@
+{
+  "env": "prod",
+  "notes": [
+    { "service": "api-gateway", "ingress": "in.createOrder", "author": "Dana Levi", "ago": 120,
+      "versions": [
+        { "author": "Dana Levi", "ago": 4320, "body": "<h2>Purpose</h2><p>Turns a basket into a confirmed order.</p><h2>How it works</h2><p>The storefront calls the gateway (<span data-step=\"1\">step 1</span>), which creates the order in orders-svc (<span data-step=\"2\">step 2</span>).</p>" },
+        { "author": "Asaf G.", "ago": 1440, "body": "<h2>Purpose</h2><p>Turns a basket into a confirmed order: stock is held, payment authorized, and one <code>OrderPlaced</code> event published.</p><h2>How it works</h2><p>The storefront calls the gateway (<span data-step=\"1\">step 1</span>), which creates the order in orders-svc (<span data-step=\"2\">step 2</span>).</p><h2>Decisions</h2><ul><li>Reservations expire after 10 min.</li></ul>" }
+      ],
+      "body": "<h2>Purpose</h2><p>Turns a basket into a confirmed order: stock is held, payment authorized, and one <code>OrderPlaced</code> event published for fulfilment.</p><h2>How it works</h2><p>The storefront calls the gateway (<span data-step=\"1\">step 1</span>), which creates the order in orders-svc (<span data-step=\"2\">step 2</span>). Then the order is checked and charged (<span data-step=\"3-6\">steps 3–6</span>).</p><h3>Failure behaviour</h3><table><thead><tr><th>Failure</th><th>Behaviour</th><th>Step</th></tr></thead><tbody><tr><td>The customer is unknown</td><td>The order is refused, nothing is held</td><td><span data-step=\"4\">step 4</span></td></tr><tr><td>Payment is declined</td><td>The order stays, status <code>payment_failed</code></td><td><span data-step=\"6\">step 6</span></td></tr></tbody></table><h2>Decisions</h2><ul><li>Reservations expire after <b>15 min</b>, agreed with @{Dana Levi} on Oct 20.</li><li>The 201 returns the reservation id so payments can release the hold.</li></ul><h2>Open questions</h2><ul><li>Should a partial order be allowed for the optional warehouse? See <span data-step=\"5\">step 5</span>.</li></ul>" }
+  ]
+}

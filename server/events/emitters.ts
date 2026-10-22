@@ -54,6 +54,12 @@ export const commentEdited = (db: DB, c: { env: string; anchor: string; id: numb
 export const commentResolved = (db: DB, c: { env: string; anchor: string; id: number; author: string; resolved: boolean }) => commentEvent(c.resolved ? 'resolved' : 'reopened', db, c);
 export const commentDeleted = (db: DB, c: { env: string; anchor: string; id: number; author: string }) => commentEvent('deleted', db, c);
 
+/** A flow's Notes were saved (0.34.0): `version` is the new one; `restoredFrom` when it was a restore. */
+export function notesUpdated(db: DB, n: { env: string; anchor: string; version: number; author: string; restoredFrom: number | null; text: string }) {
+  emit(db, { type: 'notes.updated', env: n.env, summary: `${n.author} ${n.restoredFrom != null ? `restored version ${n.restoredFrom} of` : 'saved'} the notes of ${n.anchor.replace(/^flow:/, '')} (version ${n.version})`,
+    data: { anchor: n.anchor, version: n.version, author: n.author, ...(n.restoredFrom != null && { restoredFrom: n.restoredFrom }), text: clip(n.text, 300) } });
+}
+
 export function actionItemChanged(db: DB, kind: 'created' | 'updated' | 'deleted', a: { env: string; anchor: string; id: number; number: number; status: string; actor: string }) {
   emit(db, { type: `action_item.${kind}`, env: a.env, summary: `${a.actor} ${kind} action #${a.number} on ${a.anchor.replace(/^flow:/, '')} (${a.status})`, data: { anchor: a.anchor, id: a.id, number: a.number, status: a.status, actor: a.actor } });
 }

@@ -18,15 +18,17 @@ const textToHtml = (t) => plain(t, esc);
  * createEditor({ html, label, placeholder, onSubmit, onEscape, onChange, people }) ->
  *   { el, focus(end), getHtml(), setHtml(html), isEmpty(), exec(fn), inside(node), range(), mention, dispose() }
  * 0.32.0: `@[id]` tokens are drawn as chips (not editable text) and written back as tokens; `people()` lists the user ids already in the thread (the "@" picker shows them first).
+ * notes: true is a flow's Notes (headings h2 / h3 and step chips `<span data-step>`, kept as atomic, not editable chips).
  * getHtml() is sanitized and trimmed ('' when there is no text); setHtml() sanitizes first. onChange fires on input and on a move of the caret.
  */
-export function createEditor({ html = '', label = 'Comment', placeholder = '', onSubmit, onEscape, onChange, people } = {}) {
+export function createEditor({ html = '', label = 'Comment', placeholder = '', onSubmit, onEscape, onChange, people, notes = false } = {}) {
+  const clean = (x) => sanitize(x, { notes }); // a flow's Notes (0.34.0) also keep headings and step chips, which are not editable text
   const el = h('div.rte-area', { contentEditable: 'true', role: 'textbox', 'aria-multiline': 'true', 'aria-label': label, spellcheck: true, 'data-ph': placeholder, 'data-qa': 'rte' });
   let saved = null;
   const inside = (n) => !!n && el.contains(n);
   const range = () => { const s = getSelection(); return s && s.rangeCount && inside(s.anchorNode) ? s.getRangeAt(0) : null; };
   const isEmpty = () => !plainText(el.innerHTML) && !el.querySelector('table');
-  const note = () => { el.classList.toggle('is-empty', isEmpty()); onChange?.(); };
+  const note = () => { if (notes) el.querySelectorAll('span[data-step]').forEach((c) => c.setAttribute('contenteditable', 'false')); el.classList.toggle('is-empty', isEmpty()); onChange?.(); };
   const keep = () => { const r = range(); if (r) { saved = r.cloneRange(); onChange?.(); } };
   document.addEventListener('selectionchange', keep);
 
@@ -38,11 +40,11 @@ export function createEditor({ html = '', label = 'Comment', placeholder = '', o
     keep(); note();
   }
   function insertHtml(clean) { exec(() => { if (clean) document.execCommand('insertHTML', false, clean); }); }
-  function setHtml(v) { el.innerHTML = sanitize(v || ''); renderChips(el, { editable: true }); saved = null; note(); }
+  function setHtml(v) { el.innerHTML = clean(v || ''); renderChips(el, { editable: true }); saved = null; note(); }
   function getHtml() {
     const c = chipsToTokens(el.cloneNode(true));
     c.querySelectorAll('span').forEach((s) => { if (!s.textContent.replace(ZW, '') && !s.querySelector('br')) s.remove(); }); // a colour chosen and not used
-    const out = sanitize(c.innerHTML.replace(ZW, '')).replace(/(?:<p><br><\/p>)+$/, '');
+    const out = clean(c.innerHTML.replace(ZW, '')).replace(/(?:<p><br><\/p>)+$/, '');
     return plainText(out) || /<table/.test(out) ? out : '';
   }
 
@@ -50,7 +52,7 @@ export function createEditor({ html = '', label = 'Comment', placeholder = '', o
   el.addEventListener('paste', (e) => { // only what the sanitizer lets through: formatting from Word, Confluence or a page comes across, fonts and colours do not
     e.preventDefault();
     const cd = e.clipboardData, text = cd?.getData('text/plain') ?? '';
-    insertHtml((cd?.getData('text/html') ? sanitize(cd.getData('text/html')) : '') || textToHtml(text));
+    insertHtml((cd?.getData('text/html') ? clean(cd.getData('text/html')) : '') || textToHtml(text));
   });
   el.addEventListener('drop', (e) => { e.preventDefault(); const t = e.dataTransfer?.getData('text/plain'); if (t) insertHtml(textToHtml(t)); });
   el.addEventListener('keydown', (e) => {

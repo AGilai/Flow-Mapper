@@ -7,8 +7,9 @@
 
 import { lineText, titleOf, stepKeys, type FlowDescriptions } from './description.ts';
 import type { Message, Participant, Trace } from './trace.ts';
+import { rangeBlocks, type RangeNote } from './mermaid-ranges.ts';
 
-export interface MermaidOpts { name?: string; description?: string; descriptions?: FlowDescriptions | null }
+export interface MermaidOpts { name?: string; description?: string; descriptions?: FlowDescriptions | null; ranges?: RangeNote[] /* 0.34.0: step-range comments, as rect + Note (core/mermaid-ranges.ts) */ }
 
 const RESERVED = new Set(['end', 'box', 'rect', 'loop', 'alt', 'else', 'opt', 'par', 'and', 'break', 'critical', 'option', 'note', 'participant', 'actor', 'title', 'activate', 'deactivate', 'autonumber', 'create', 'destroy', 'links', 'link']);
 export const esc = (s: string) => s.replace(/\s+/g, ' ').trim().replace(/[#;]/g, (c) => `#${c.charCodeAt(0)};`).replace(/%%/g, '%#37;');   // `%%` would start a comment: written as an entity too
@@ -27,7 +28,7 @@ function labelOf(p: Participant): string {
 export function exportMermaid(t: Pick<Trace, 'start' | 'participants' | 'messages'>, opts: MermaidOpts = {}): string {
   const name = (opts.name ?? (t.start as { name?: string }).name ?? '').trim();
   const keys = stepKeys(t.messages);
-  const kept = t.messages.map((m, i) => ({ m, key: keys[i] })).filter(({ m }) => !m.internal && m.kind !== 'frontier');
+  const kept = t.messages.map((m, i) => ({ m, key: keys[i], index: i })).filter(({ m }) => !m.internal && m.kind !== 'frontier');
   const used = new Set(kept.flatMap(({ m }) => [m.from, m.to]));
   const parts = t.participants.filter((p) => used.has(p.id));
   const ids = new Map<string, string>(), taken = new Set<string>();
@@ -50,18 +51,21 @@ export function exportMermaid(t: Pick<Trace, 'start' | 'participants' | 'message
   const open: { from: string; to: string; depth: number }[] = [];
   const close = (depth: number) => { while (open.length && open[open.length - 1].depth >= depth) { const o = open.pop()!; out.push(`${ids.get(o.to)}-->>${ids.get(o.from)}: return`); } };
   const openAt = new Map<number, number>(); // #73: deferred work (`of`) returns to the frame its async call started in, whatever its depth says
-  for (const { m, key } of kept) {
+  const rb = opts.ranges?.length ? rangeBlocks(keys, kept.map((k) => ({ index: k.index, a: ids.get(k.m.from)!, b: ids.get(k.m.to)! })), parts.map((p) => ids.get(p.id)!), opts.ranges.map((r) => ({ ...r, text: esc(r.text) }))) : null; // 0.34.0
+  for (const [pos, { m, key }] of kept.entries()) {
     const back = m.of === undefined ? undefined : openAt.get(m.of);
     if (back !== undefined) while (open.length > back) { const o = open.pop()!; out.push(`${ids.get(o.to)}-->>${ids.get(o.from)}: return`); }
     close(m.depth);
     if (m.n !== undefined) openAt.set(m.n, open.length);
     const a = ids.get(m.from)!, b = ids.get(m.to)!;
-    if (m.kind === 'leaf') { out.push(`Note over ${a}: ${esc(m.label)}`); continue; }   // a step that ends the tree (its own operation): a note on the lifeline, not an arrow
+    out.push(...(rb?.before.get(pos) ?? []));
+    if (m.kind === 'leaf') { out.push(`Note over ${a}: ${esc(m.label)}`, ...(rb?.after.get(pos) ?? [])); continue; }   // a step that ends the tree (its own operation): a note on the lifeline, not an arrow
     const title = titleOf(opts.descriptions?.callees[key]).trim(); // 0.30.0: a step title is the message text, and the API moves into a note
     out.push(`${a}${m.mode === 'async' ? '-)' : '->>'}${b}: ${esc(title || messageLabel(m)) || '(call)'}`);
     if (title) out.push(`Note over ${a === b ? a : `${a},${b}`}: ${esc(messageLabel(m))}`);
     const note = lineText(opts.descriptions?.callees[key])?.text ?? m.note;
     if (note) out.push(`Note over ${a === b ? a : `${a},${b}`}: ${esc(note)}`);
+    out.push(...(rb?.after.get(pos) ?? []));
     if (m.mode !== 'async' && m.from !== m.to && ['service', 'client', 'function'].includes(kind.get(m.to) ?? '')) open.push({ from: m.from, to: m.to, depth: m.depth });
   }
   close(-1);

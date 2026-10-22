@@ -1,0 +1,35 @@
+/* Comment brackets (0.34.0). Mockup: design/mockups/frames/frame-20.html (20e-20h). Tokens only. Brackets are the accent; yellow is only the band (--step-hl).
+   The gutter is a zero-size sticky element before the lane; the lane has --cb-w of padding while the layer is on (60 px, 44 px at 760). */
+
+.flow-lane { position: relative; }
+.flow-lane.cb-on { padding-left: var(--cb-w, 60px); }
+.cb-gutter { position: sticky; left: 0; width: 0; height: 0; margin-left: calc(-1 * var(--cb-w, 60px)); z-index: 4; pointer-events: none; }
+.cb-gutter > * { pointer-events: auto; position: absolute; }
+.cb-band { left: 0; background: var(--step-hl); z-index: 0; pointer-events: none !important; }
+
+.cb-bk { width: 14px; padding: 0; border: 0; background: transparent; cursor: pointer; z-index: 2; }
+.cb-bk > i { position: absolute; left: 4px; top: 0; bottom: 0; width: 6px; border: 2px solid var(--accent); border-right: 0; border-radius: 3px 0 0 3px; }
+.cb-bk:hover > i, .cb-bk:focus-visible > i { border-width: 3px; width: 7px; }
+.cb-bk:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; border-radius: 3px; }
+.cb-bub { display: inline-flex; align-items: center; gap: 2px; min-width: 20px; height: 15px; padding: 0 4px; justify-content: center; border-radius: 4px; border: 1.5px solid var(--accent); background: var(--surface); color: var(--accent); font: 700 9.5px/1 var(--font); z-index: 3; cursor: pointer; }
+.cb-bub svg { width: 10px; height: 10px; fill: none; stroke: currentColor; stroke-width: 2; }
+.cb-bk:hover + .cb-bub, .cb-bub:hover, .cb-bk:focus-visible + .cb-bub { background: var(--accent); color: var(--surface); }
+.cb-more { height: 15px; padding: 0 5px; border: 0; border-radius: 8px; background: var(--ink); color: var(--surface); font: 700 9.5px/15px var(--font); cursor: pointer; z-index: 3; }
+.cb-more:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+
+/* choosing a range */
+.cb-sel { left: 2px; width: 10px; border: 2px dashed var(--accent); border-right: 0; border-radius: 3px 0 0 3px; background: color-mix(in srgb, var(--accent) 10%, transparent); z-index: 2; pointer-events: none !important; }
+.cb-sel > i { position: absolute; left: -6px; width: 10px; height: 10px; border-radius: 50%; background: var(--surface); border: 2px solid var(--accent); }
+.cb-sel > i:first-child { top: -6px; } .cb-sel > i:last-child { bottom: -6px; }
+.cb-pop { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-md); box-shadow: var(--shadow-panel); font-size: var(--fs-sm); color: var(--ink); z-index: 6; white-space: nowrap; }
+.cb-chip { display: inline-flex; align-items: center; height: 18px; padding: 0 7px; border-radius: 9px; border: 1px solid color-mix(in srgb, var(--new-ink) 50%, var(--line-strong)); background: color-mix(in srgb, var(--step-hl) 70%, var(--surface)); font: 600 10.5px var(--font); }
+.cb-x { appearance: none; border: 0; background: none; color: var(--muted); cursor: pointer; padding: 2px 4px; border-radius: 4px; font-size: 11px; }
+.cb-x:hover { color: var(--ink); background: var(--surface-2); }
+.cb-x:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.flow-lane.cb-on { cursor: default; }
+
+/* the pill of a comment on a range of steps (comment.js): the band's colour, so it reads as the thing it lights up */
+.spill.rng { border-color: color-mix(in srgb, var(--new-ink) 50%, var(--line-strong)); background: color-mix(in srgb, var(--step-hl) 70%, var(--surface)); color: var(--ink); }
+button.spill.rng:hover { background: var(--step-hl); }
+
+@media (max-width: 760px) { .cb-pop { flex-wrap: wrap; max-width: 220px; white-space: normal; } }

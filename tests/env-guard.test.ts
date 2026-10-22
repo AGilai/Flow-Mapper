@@ -64,7 +64,7 @@ const DRAFT: Record<string, (e: string, slug: string) => Req> = {
 };
 
 /** Not map data, or not guarded by kind on purpose: annotations (bugs, descriptions), environment management, the MCP transport (its tools are checked below). */
-const EXEMPT = new Set(['PUT /api/envs/:env/descriptions', 'POST /api/bugs', 'PATCH /api/bugs/:id', 'POST /api/users', 'PATCH /api/users/:id', 'POST /api/users/:id/merge', 'POST /api/mentions/seen', 'POST /api/bugs/:id/comments', 'POST /api/bugs/:id/attachments', 'PUT /api/envs/:env/flow-names', 'POST /api/envs/:env/comments', 'PATCH /api/envs/:env/comments/:id', 'DELETE /api/envs/:env/comments/:id', 'POST /api/envs/:env/action-items', 'PATCH /api/envs/:env/action-items/:id', 'DELETE /api/envs/:env/action-items/:id',
+const EXEMPT = new Set(['PUT /api/envs/:env/descriptions', 'POST /api/bugs', 'PATCH /api/bugs/:id', 'POST /api/users', 'PATCH /api/users/:id', 'POST /api/users/:id/merge', 'POST /api/mentions/seen', 'POST /api/bugs/:id/comments', 'POST /api/bugs/:id/attachments', 'PUT /api/envs/:env/flow-names', 'POST /api/envs/:env/comments', 'PUT /api/envs/:env/notes', 'POST /api/envs/:env/notes/restore', 'PATCH /api/envs/:env/comments/:id', 'DELETE /api/envs/:env/comments/:id', 'POST /api/envs/:env/action-items', 'PATCH /api/envs/:env/action-items/:id', 'DELETE /api/envs/:env/action-items/:id',
   // 0.28: sealed subsystem settings (a design refuses with 409 USE_DRAFT: it never writes one) and level names are annotations
   'PUT /api/envs/:env/subsystems', 'PUT /api/envs/:env/levels', 'PUT /api/envs/:env/color',
   'POST /api/envs', 'DELETE /api/envs/:env', 'POST /mcp']);
@@ -135,7 +135,7 @@ test('dry runs are allowed into a design env (nothing is written) and still vali
 
 // MCP tools: read tools are listed so a new tool must be classified too.
 const MCP_READ = new Set(['search', 'list_services', 'get_service', 'list_entry_points', 'trace_flow', 'find_paths', 'link_health', 'changelog', 'get_endpoint_info', 'event_types',
-  'inventory', 'get_store', 'list_clients', 'get_resource_keys', 'get_channel', 'get_exchange', 'list_bugs', 'get_bug', 'list_envs', 'list_drafts', 'draft_changes', 'get_marks', 'import_preview', 'get_call', 'get_flow_names', 'list_comments', 'list_action_items', 'list_users', 'list_open_questions', 'list_mentions', 'export_mermaid',
+  'inventory', 'get_store', 'list_clients', 'get_resource_keys', 'get_channel', 'get_exchange', 'list_bugs', 'get_bug', 'list_envs', 'list_drafts', 'draft_changes', 'get_marks', 'import_preview', 'get_call', 'get_flow_names', 'list_comments', 'get_notes', 'list_action_items', 'list_users', 'list_open_questions', 'list_mentions', 'export_mermaid',
   'get_subsystems', 'get_subsystem_map', 'list_abstract_links', 'suggest_refinements', 'list_flow_relations', 'list_open_questions']);
 const MCP_HARVESTER: Record<string, (e: string, manifest: any) => any> = {
   ingest_manifest: (e, m) => ({ manifest: { ...m, env: e, version: 999 } }),
@@ -153,7 +153,7 @@ const MCP_DRAFT: Record<string, (e: string, slug: string) => any> = {
   apply_plan_links: (env, draft) => ({ env, draft }),
   import_mermaid: (env, draft) => ({ env, draft, text: 'sequenceDiagram\nA->>B: x' }),
 };
-const MCP_EXEMPT = new Set(['set_description', 'set_flow_name', 'report_bug', 'update_bug', 'create_env', 'add_comment', 'resolve_comment', 'add_action_item', 'update_action_item', 'set_subsystem_settings', 'set_levels', 'set_env_color']);
+const MCP_EXEMPT = new Set(['set_description', 'set_flow_name', 'report_bug', 'update_bug', 'create_env', 'add_comment', 'resolve_comment', 'set_notes', 'add_action_item', 'update_action_item', 'set_subsystem_settings', 'set_levels', 'set_env_color']);
 
 const mcp = async (name: string, args: any) => {
   const r = await app.call('POST', '/mcp', { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } });
