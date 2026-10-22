@@ -4,6 +4,7 @@
 import type { DraftOpInput } from './draft-ops.ts';
 import { endpointBuild } from './edit-forms.ts';
 import { EditError, renumber, setField, slug, unique, type CallEdit, type DeleteCallEdit, type Idx } from './edit-kit.ts';
+import { STEP_MARKS } from './step-marks.ts';
 import type { Mode, Transport } from './types.ts';
 
 const up = (anchor: string, data: unknown): DraftOpInput => ({ op: 'upsert', anchor, data });
@@ -57,6 +58,8 @@ export function callOps(e: CallEdit, x: Idx): DraftOpInput[] {
   const step: Record<string, any> = { ...(old ?? {}), type: 'egress', target: egressId };
   if (e.mode !== undefined || !old) step.mode = e.mode; if (step.mode === undefined) delete step.mode;
   for (const k of ['operation', 'condition', 'event', 'note'] as const) setField(step, k, e[k]);
+  if (e.mark !== undefined && e.mark !== null && !STEP_MARKS.includes(e.mark)) throw new EditError('INVALID', `mark is 'new', 'changed' or null`, 'mark');
+  setField(step, 'mark', e.mark);
   let next: any[];
   if (old) next = steps.map((s) => (s === old ? step : s));
   else {

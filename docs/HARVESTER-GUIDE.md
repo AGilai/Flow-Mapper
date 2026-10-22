@@ -157,6 +157,13 @@ several it spans from the leftmost to the rightmost of them (a folded lifeline: 
 note's text is the step's `operation` and `note` (`order served · the cache and the database agree`); names the flow
 does not draw are ignored, and none left puts the note under the component that runs the step. The trace message carries `over`.
 
+**Step marks** (`mark`, 0.32.1, #75): `"mark": "new"` or `"mark": "changed"` on a step says the design adds or changes
+that step. The flow view draws it like the component and flow marks: a coloured band along the arrow and the mark's
+icon at its tip. The free text `details.changed` (a string) stays the tooltip and is shown in the step panel. A flow
+that runs a marked step counts as changed: a design's Flows list ticks it under "Changed only" (`marked: n` on its entry
+point, design environments only). The trace message carries `mark` and `changed`. It works in any environment; the
+diff against the baseline is unaffected.
+
 **Per-caller event types** (`bind`, `eventFrom`): when a publish sits in a shared function and its event type is
 a parameter, each caller passes its own constant, and one `event` on the step would be wrong for all but one
 of them. Put the value on the call and read it at the publish:

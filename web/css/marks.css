@@ -54,6 +54,10 @@ h3 .mark, .sect-title .mark { margin-left: var(--s2); }
 .spark.new path { fill: var(--new); stroke: var(--new-ink); stroke-width: .9; stroke-linejoin: round; }
 .spark.chg path { fill: var(--new-ink); }
 .spark { animation: mark-twinkle .9s ease-out 1; transform-box: fill-box; transform-origin: center; }
+/* A marked step (0.32.1, #75): a soft band behind its arrow in the mark's colour; the mark icon sits at the arrow tip as for components and flows. */
+.stepband { pointer-events: none; }
+.stepband rect { fill: color-mix(in srgb, var(--new) 22%, transparent); }
+.stepband.chg rect { fill: color-mix(in srgb, var(--new-ink) 13%, transparent); stroke: color-mix(in srgb, var(--new-ink) 40%, transparent); stroke-dasharray: 4 3; }
 .chip-b rect { fill: var(--surface-2); stroke: var(--line-strong); }
 .chip-b text { fill: var(--ink-2); font: 600 10.5px var(--font); }
 .chip-b.draft rect { fill: color-mix(in srgb, var(--draft) 10%, var(--surface)); stroke: var(--draft); }

@@ -54,6 +54,7 @@ RabbitMQ pages (0.19.0): the exchange page data (publishers, bindings, callouts,
 | `neighbours.ts` | one-hop neighbours of picked services (direct and through channels, each with a reason) and what a component brings into a Components copy (0.21.0) |
 | `channels-for.ts` | the channels and bindings a Components copy must bring so it is self-contained (used, routed to, between copied items); the server copies with it and the page counts with it |
 | `resource-owner.ts` | 0.30.1: `resourceOwner(g, bindKey)`, the component that declares a store (first non-infra declarer); `owner` on a resource-step message; the flow view puts the store in that subsystem's band (`flow-bands.js` `memberOf`, `placeStores`, `SHARED`) |
+| (0.32.1, #75) `flow-counts.ts` `markedReached` | per entry point, how many marked steps (`step.mark`) its flow runs, on `componentSets` (the ids `m:<service>:<fn>#<seq>`, skipped by the counts); `decorateEntries` puts it on the entry as `marked` (design environments), the Flows list takes it as Changed (`web/js/views/flow-list-filter.js` `markOfPoint`); the arrow band is `flow-marks.js` `arrowMark` (the step's own flag) and `flow-marks-draw.js` `stepBand` |
 | `reach.ts` | reverse reachability: entry points whose flows run a function |
 | `channels.ts` | topic/queue/bus view: publishers, subscriptions, consumers, events |
 | `hub.ts` | the compact hub views: edge markers, per-queue outcomes, problem-first order and fold, the event page's consumers |

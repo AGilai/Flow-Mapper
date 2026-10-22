@@ -8,7 +8,9 @@ export const headAnchor = (col) => (col?.kind === 'service' && col.service ? `sv
 
 /** { anchor, info } of the arrow of a trace message, or null. */
 export function arrowMark(store, m) {
-  if (!store || !m) return null;
+  if (!m) return null;
+  if (m.mark) return { anchor: `step:${m.service}/${m.fn}#${m.seq}`, info: { mark: m.mark, ...(m.changed ? { what: m.changed } : {}) }, step: true }; // 0.32.1 (#75): the step's own flag, whatever the diff says
+  if (!store) return null;
   if (m.service && m.egress) {
     const anchor = `egr:${m.service}/${m.egress}`, info = store.markOf(anchor);
     if (info) return { anchor, info };
@@ -20,13 +22,16 @@ export function arrowMark(store, m) {
   return null;
 }
 
-/** The marks adapter the lane drawing asks: null when there is nothing to draw. */
+/** Without a marks store (a harvested environment, an empty design) a step's own flag is still drawn. */
+export const stepMarksOnly = { store: null, head: () => null, arrow: (m) => { const r = arrowMark(null, m); return r ? { ...r, inDraft: false } : null; } };
+
+/** The marks adapter the lane drawing asks. */
 export function laneMarks(store) {
   if (!store || store.empty) return null;
   return {
     store,
     head: (col) => { const a = headAnchor(col), info = a && store.markOf(a); return info && info.mark !== 'removed' ? { anchor: a, info, inDraft: !!store.inDraft?.(a) } : null; },
-    arrow: (m) => { const r = arrowMark(store, m); return r && r.info.mark !== 'removed' ? { ...r, inDraft: !!store.inDraft?.(r.anchor) } : null; },
+    arrow: (m) => { const r = arrowMark(store, m); return r && r.info.mark !== 'removed' ? { ...r, inDraft: !r.step && !!store.inDraft?.(r.anchor) } : null; },
   };
 }
 

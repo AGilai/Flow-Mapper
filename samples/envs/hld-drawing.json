@@ -1,0 +1,16 @@
+{
+  "name": "hld-drawing",
+  "source": "prod",
+  "mode": "components",
+  "behaviour": true,
+  "entryPoints": "keep",
+  "groups": [
+    { "key": "edge", "label": "Edge" },
+    { "key": "orders", "label": "Orders" }
+  ],
+  "services": [
+    { "name": "api-gateway", "groupPath": "edge" },
+    { "name": "orders-svc", "groupPath": "orders" }
+  ],
+  "createdBy": "seed"
+}

@@ -5,6 +5,10 @@ import { sparkSvg } from '../components/status-mark.js';
 import { s } from '../dom.js';
 import { svgChip } from './flow-draw-prims.js';
 
+/** The band of a marked step: a soft coloured strip behind its arrow (new = --new, changed = --new-ink), the step's `details.changed` text in its tooltip. */
+export const stepBand = (info, x1, x2, y0) => s('g', { class: `stepband ${info.mark === 'changed' ? 'chg' : 'new'}` },
+  s('rect', { x: Math.min(x1, x2), y: y0 - 17, width: Math.abs(x2 - x1), height: 25, rx: 3 }), s('title', {}, `${info.mark === 'changed' ? 'Changed' : 'New'} step${info.what ? `: ${info.what}` : ''}`));
+
 /** Head of a lifeline: marks = laneMarks(store) | null, c = the column, w = the head width. */
 export const headMarkSvg = (marks, c, w) => {
   const r = marks?.head(c);
@@ -31,9 +35,10 @@ export const chipsStack = (chips, span) => chips.length > 1 && chips.reduce((n, 
 /** Under an arrow, at its tail (after the step tile): the chips side by side, so the return label in the middle stays clear; stacked when `stack`. */
 export function arrowMarkSvg(marks, msg, x1, x2, y0, stack = false, th = true) {
   const r = marks?.arrow(msg), dir = Math.sign(x2 - x1) || 1, chips = markChips(marks, msg, th);
+  const band = r?.step ? stepBand(r.info, x1, x2, y0) : null; // 0.32.1 (#75): a marked step also gets a coloured band along its arrow
   const total = chips.reduce((n, c) => n + widthOf(c) + 4, -4);
   let x = dir > 0 ? x1 + 28 : x1 - 28 - (stack ? 0 : total), k = 0;
-  return [r ? sparkSvg(x2 - dir * 16, y0 + 11, r.info.mark, 11) : null,
+  return [band, r ? sparkSvg(x2 - dir * 16, y0 + 11, r.info.mark, 11) : null,
     ...chips.map((c) => {
       const w = widthOf(c), cx = stack ? (dir > 0 ? x + w / 2 : x1 - 28 - w / 2) : x + w / 2, y = stack ? y0 + 19 * k++ : y0;
       if (!stack) x += w + 4;

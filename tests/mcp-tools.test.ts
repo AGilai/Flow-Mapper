@@ -13,7 +13,7 @@ import { TOOLS } from '../server/mcp/tools.ts';
 // 0.25.2: link_health takes assumed / basis; get_service, get_endpoint_info, trace_flow, get_resource_keys say assumed values are defaults
 // 0.25.0: upsert_entity and delete_entity removed; import_preview, import_into_draft, edit_design, get_call, get_flow_names, set_flow_name added; descriptions of list_entry_points, trace_flow, edit_in_draft changed
 const NAMES = 'search,list_services,get_service,list_entry_points,trace_flow,set_description,find_paths,link_health,changelog,ingest_manifest,get_endpoint_info,load_dtos,event_types,inventory,get_store,list_clients,get_resource_keys,get_channel,get_exchange,load_schemas,list_bugs,get_bug,report_bug,update_bug,list_envs,create_env,open_draft,list_drafts,draft_changes,edit_in_draft,apply_draft,discard_draft,get_marks,apply_import_plan,import_preview,import_into_draft,edit_design,get_call,get_flow_names,set_flow_name,list_comments,add_comment,resolve_comment,get_subsystems,get_subsystem_map,list_abstract_links,suggest_refinements,apply_plan_links,list_flow_relations,set_subsystem_settings,set_levels,export_mermaid,import_mermaid,list_action_items,add_action_item,update_action_item';
-const HASH = 'e01677e2f6de2aa469fc7b7f31c1e00ce60c7366711134d7ddaeea2e9fcfb843';
+const HASH = '891b030faa85734be05896a4955bbdd9256f5bd39eabab1d4a51afa7f3114de6';
 
 test('MCP tool list is stable', () => {
   assert.equal(TOOLS.map((t) => t.name).join(','), NAMES);

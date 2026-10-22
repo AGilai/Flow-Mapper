@@ -88,7 +88,7 @@ function codeCard(m, trace) {
   const at = (service, fn) => trace.code?.[`${service}:${fn}`] ?? null;
   const rows = [];
   if (m.kind !== 'entry' && m.service && m.fn) {
-    const step = [m.seq ? `step ${m.seq}` : null, m.condition ? `only if ${m.condition}` : null, m.alt ? `alternative ${m.alt.branch} of ${m.alt.of}` : null, m.loop ? 'in a loop' : null].filter(Boolean).join(', ');
+    const step = [m.seq ? `step ${m.seq}` : null, m.condition ? `only if ${m.condition}` : null, m.alt ? `alternative ${m.alt.branch} of ${m.alt.of}` : null, m.loop ? 'in a loop' : null, m.mark ? `${m.mark} step` : null].filter(Boolean).join(', ');
     rows.push(codeRow('Called from', m.service, m.fn, at(m.service, m.fn), step || null));
   }
   if (m.calls) rows.push(codeRow('Calls', m.service, m.calls, at(m.service, m.calls)));
@@ -109,6 +109,7 @@ function codeCard(m, trace) {
   if (m.assumed?.length) rows.push(assumedBlock(m.assumed));
   if (m.unknown?.length) rows.push(h('div.ep-pad.stack', { style: { gap: '2px' } }, h('span.ep-label', 'Not reported'), h('span.small.muted', m.unknown.map((u) => `${u.field}: unknown (${u.reason})`).join(' · '))));
   if (m.note) rows.push(h('p.ep-note.ep-pad', m.note));
+  if (m.changed) rows.push(h('p.ep-note.ep-pad', `${m.mark === 'new' ? 'New' : 'Changed'}: ${m.changed}`));
   if (m.eventFrom) rows.push(h('p.ep-note.ep-pad', m.eventFrom.boundAt
     ? `Event from caller ${m.eventFrom.boundAt}: bind ${m.eventFrom.name}=${m.event}`
     : `Event type is the caller's "${m.eventFrom.name}", but no caller on this path binds it, so the publish is treated as naming no event.`));
