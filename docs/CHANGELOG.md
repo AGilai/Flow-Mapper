@@ -5,6 +5,10 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## 0.32.1 (2026-10-22)
+HLD flow drawing (bugs #72, #74, #75, #76 of corev5-importer). Additive; no migration; the MCP tool list hash moves (`edit_design`'s `call` form takes `mark`).
+- **#72 nested frames (`groups` on a step).** A step can list the frames it sits in, outermost first: `"groups": [{"id": "each", "kind": "loop", "condition": "for each item"}, {"id": "pay", "condition": "card"}]`. `kind` is `alt` (default), `opt`, `loop`, `par`, `critical` or `break`; steps with the same `id` are in one frame, the same `condition` in one section. The flow view draws the frames inside each other (inset per level, every frame's tab and condition visible) and the "Inside the service" panel nests the blocks. The trace message's `alt` keeps `{group, branch, of}` for the innermost frame and gains `kind`, `condition` and `parent` (the enclosing frame). `altGroup` / `condition` work as before; `groups` wins for a step that has it. The schema takes `groups`; `maxMessages` counts a nested frame toward its parent's branch.
+
 ## 0.31.1 (2026-10-22)
 UI only: a small pencil on every editable item (service header, Docs, About and each section, endpoint and flow rows, Inventory rows and subsystem headers, the map and flow panels) opens the same form the diagram uses; in View mode it first picks or starts a draft. Harvested environments keep only the flow and step description pencils. Also (#69 follow-up): Fit now enlarges a short flow to fill the panel, up to 200%.
 

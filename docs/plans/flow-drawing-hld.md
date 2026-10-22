@@ -1,8 +1,8 @@
-# Flow drawing for HLD flows (#72, #74, #75, #76 → 0.31.2; #71 Mermaid import → 0.31.3): build spec
+# Flow drawing for HLD flows (#72, #74, #75, #76 → 0.32.1; #71 Mermaid import → 0.32.2): build spec
 
 From corev5-importer bugs #71–#76, triaged by the QA TL (decisions quoted), with the lead's decisions marked.
 
-## 0.31.2: flow drawing
+## 0.32.1: flow drawing (built)
 - **#72 nested groups.** Groups (alt / opt / loop / par / critical / break) nest. The model keeps each group's
   `parent` (core: the step group structure in the trace), and the flow view draws nested frames inside each other
   (inset per level, the label of each frame visible) instead of flattening to the innermost one. Squeeze/fold keeps
@@ -19,7 +19,7 @@ From corev5-importer bugs #71–#76, triaged by the QA TL (decisions quoted), wi
   (`sd` default per env kind: design → `t` with API fallback, harvested → `a`); the viewer can still choose. The URL
   keeps `sd=` omitted at the env kind's default.
 
-## 0.31.3: Mermaid import (#71), on top of 0.31.2
+## 0.32.2: Mermaid import (#71), on top of 0.32.1
 - Return arrows (`-->>`) become the response label of the call they answer, not separate steps.
 - Self-messages become internal steps of that participant.
 - Notes become step notes; `Note over A,B` spans both (#74).
@@ -34,4 +34,4 @@ From corev5-importer bugs #71–#76, triaged by the QA TL (decisions quoted), wi
 Pure tests: nesting model and frame geometry, note span geometry, mark on steps (+ Changed only), label choice per env
 kind, parser corpus for every #71 construct, round trip. A sample HLD flow in sase-hld (or a new `samples/mermaid/` file
 imported in the demo) showing nested alt in loop, a spanning note, changed steps and titles. CHANGELOG (importer-facing:
-`mark`, directives), DEMOS, versions 0.31.2 and 0.31.3.
+`mark`, directives), DEMOS, versions 0.32.1 and 0.32.2.

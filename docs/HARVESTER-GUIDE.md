@@ -141,6 +141,15 @@ and a dashed line between sections; the trace marks each message `alt: {group, b
 more. A group needs two different conditions. Counts and `maxMessages` treat the branches as alternatives,
 not as a sequence. Steps without `altGroup` or a shared `source` are drawn in sequence with an "if …" tag, as before.
 
+**Nested frames** (`groups`, 0.32.1, #72): a step lists the frames it sits in, outermost first, so frames nest inside one
+function (an alt inside a loop): `"groups": [{"id": "each", "kind": "loop", "condition": "for each item"}, {"id": "pay",
+"condition": "card"}]`. `id` is unique within the function and steps with the same id are in one frame; `kind` is `alt`
+(default), `opt`, `loop`, `par`, `critical` or `break` and is the word on the frame's tab; `condition` names the section
+of the frame this step is in (steps with the same condition share a section; none = the frame's only section). A frame
+needs no second branch, so a `loop` or `opt` is one section. `groups` replaces `altGroup` and the `condition`-inference
+for that step; steps without it work as before. The trace message's `alt` keeps `{group, branch, of}` for the innermost
+frame and adds `kind` (when not `alt`), `condition` and `parent` (the enclosing frame, the same shape).
+
 **Per-caller event types** (`bind`, `eventFrom`): when a publish sits in a shared function and its event type is
 a parameter, each caller passes its own constant, and one `event` on the step would be wrong for all but one
 of them. Put the value on the call and read it at the publish:
