@@ -18,7 +18,7 @@ import { flowId } from './flow-sub.js';
 import { removedList } from './flow-removed.js';
 import { servicesOf } from './flow-marks.js';
 import { marksNow } from '../design/marks-store.js';
-import { foreignNote } from './flow-xenv-ui.js';
+import { foreignNote, maxReadOnly } from './flow-xenv-ui.js';
 import { createPartial } from './flow-partial.js';
 import { nameEditor } from './flow-name.js';
 import { createComments } from '../comments/thread.js';
@@ -188,7 +188,7 @@ export function createTabView(data, host) {
   const back = host.backOf?.(key) ?? null; // a sub-flow: the way back to the flow it was opened from (also in the maximized bar)
   const backBtn = (cls) => back ? h(`button.btn.sm.back-main${cls}`, { type: 'button', 'data-qa': 'back-to-main', title: `Back to ${back.label}${back.step ? ` (step ${back.step})` : ''}`, on: { click: () => host.goBack(key) } }, h('span', { 'aria-hidden': 'true' }, '←'), ` Back to ${back.label}`) : null;
   const backBar = back ? h('div.backbar', backBtn(''), h('span.backtrail.xs.muted', `${back.label} › ${label.title}${label.sub ? ` · ${label.sub}` : ''}`)) : null;
-  const maxBar = paintEnv(h('div.max-bar', backBtn('.in-max'), envChip(host.env), h('span.fh-t', (root && host.nameOf?.(root.service, root.ingress)) || label.title), label.sub ? h('span.mono.xs.muted', label.sub) : null, zctl.el), host.env); // shown only while maximized (flow-max.css)
+  const maxBar = paintEnv(h('div.max-bar', backBtn('.in-max'), envChip(host.env), host.readOnly ? maxReadOnly(host.env, host.switchEnv) : null, h('span.fh-t', (root && host.nameOf?.(root.service, root.ingress)) || label.title), label.sub ? h('span.mono.xs.muted', label.sub) : null, zctl.el), host.env); // shown only while maximized (flow-max.css)
   if (comments) { pane = createPane({ panels: { notes, comments, actions }, diagram: body }); for (const [id, d] of Object.entries(counts)) pane.setCount(id, d); }
   const xnote = host.readOnly ? foreignNote(host.env, host.design, host.switchEnv) : null; // "Viewing <env>. Switch to it to edit."
   const el = h('div.flow-tab', maxBar, backBar, xnote, h('div.flow-top', flowBox?.el, related?.el, walk.el, partial.el), body, pane?.splitter, pane?.el); // the pane sits under the diagram (0.27.5); the border between them is a drag handle (0.34.0)
@@ -207,7 +207,7 @@ export function createTabView(data, host) {
   return {
     el, key, data, draw, insideOpen: () => inside.isOpen(), dispose: () => { unWheel(); clearTimeout(resizeTimer); document.removeEventListener('fm:layout', onLayout); inside.dispose(); ro?.disconnect(); roStick?.disconnect(); tip?.dispose(); descs.forEach((d) => d?.dispose()); comments?.dispose(); actions?.dispose(); notes?.dispose(); brackets?.dispose(); unBr?.(); pane?.dispose(); items?.dispose(); related?.dispose(); walk.dispose(); unDesc?.(); },
     refreshBar: () => walk.refreshBar(), refreshHl: () => walk.refreshHl(), refreshBrackets: () => brackets?.refresh(),
-    step: () => (walk.picked() ? walk.current() : null), goStep: (n) => walk.go(n), // the step the viewer is on (when they chose one) / put the walk on a step
+    step: () => (walk.picked() ? walk.current() || null : null), goStep: (n) => walk.go(n), // the step the viewer is on (when they chose one) / put the walk on a step
     steps: () => walk.steps(), // the steps of the lane (n, from, to, label, transport): the info pane's "In this flow"
     setZoom, zoomScale: () => factor, zoomValue: () => zoomV,
     squeezeOff: () => sqOff, resetSqueeze: () => { sqOff = false; },

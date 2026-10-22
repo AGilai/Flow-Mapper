@@ -49,8 +49,12 @@ export function debounce(fn, ms = 150) {
   return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
 }
 
+const shown = new Map(); // text -> { el, timer }: the toasts on screen
+/** A short message at the bottom. The same text while it is still showing does not stack: the one on screen stays and its timer restarts. */
 export function toast(msg, ms = 2600) {
-  const el = h('div.toast', { role: 'status' }, msg);
+  const old = shown.get(msg);
+  if (old?.el.isConnected) { clearTimeout(old.timer); old.timer = setTimeout(() => { old.el.remove(); shown.delete(msg); }, ms); return; }
+  const el = h('div.toast', { role: 'status' }, msg), t = { el, timer: setTimeout(() => { el.remove(); shown.delete(msg); }, ms) };
+  shown.set(msg, t);
   document.body.append(el);
-  setTimeout(() => el.remove(), ms);
 }
