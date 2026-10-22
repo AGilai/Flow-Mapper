@@ -18,7 +18,7 @@ export type CallEdit = {
 };
 export type DeleteCallEdit = { kind: 'delete-call'; service: string; fn: string; seq: number };
 export type DesignEdit =
-  | { kind: 'component'; name: string; serviceKind: 'service' | 'gateway' | 'lambda' | 'infra' | 'client-app'; groupPath?: string; team?: string; description?: string; links?: Links | null; runtime?: 'k8s-pod' | 'k8s-deployment' | 'k8s-daemonset' | 'k8s-operator' | 'k8s-job' | null }
+  | { kind: 'component'; name: string; serviceKind: 'service' | 'gateway' | 'lambda' | 'infra' | 'client-app'; groupPath?: string; team?: string; description?: string; about?: string; links?: Links | null; runtime?: 'k8s-pod' | 'k8s-deployment' | 'k8s-daemonset' | 'k8s-operator' | 'k8s-job' | null }
   | { kind: 'function'; service: string; id: string; links?: Links | null }
   | ({ kind: 'endpoint' } & EndpointEdit)
   | CallEdit
@@ -26,7 +26,7 @@ export type DesignEdit =
   | { kind: 'flow'; service: string; ingress: string; name?: string; description?: string; links?: Links | null; entryPoint?: boolean | null; order?: { fn: string; seqs: number[] } }
   | { kind: 'dto'; service: string; ingress: string; role: 'request' | 'response'; status?: string; content: unknown }
   | { kind: 'event-dto'; type: string; content: unknown }
-  | { kind: 'subsystem'; key: string; label?: string; icon?: SubsystemIcon | null; order?: number }
+  | { kind: 'subsystem'; key: string; label?: string; icon?: SubsystemIcon | null; order?: number; about?: string | null }
   | { kind: 'abstract-link'; id?: string; name: string; from: string; to: string; mode?: Mode | null; transport?: Transport | null; description?: string; refinedBy?: null }
   | { kind: 'refine-link'; id: string; from?: string; to?: string; use?: { service: string; egress: string }; call?: Omit<CallEdit, 'kind'> }
   | { kind: 'flow-relation'; id?: string; from: { service: string; ingress: string }; to: { service: string; ingress: string }; type: string; note?: string }

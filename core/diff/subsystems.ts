@@ -57,7 +57,7 @@ export function subsystemMarks(base: Side, cur: Side, marks: Map<string, MarkInf
     const b = base.rows.get(rowId({ service: '', list: 'subsystem', key })), c = cur.rows.get(rowId({ service: '', list: 'subsystem', key }));
     if (b && c) {
       const x = normItem('subsystem', b.data) as any, y = normItem('subsystem', c.data) as any;
-      for (const f of ['label', 'icon']) if (stableJson(x?.[f]) !== stableJson(y?.[f])) parts.push(f);
+      for (const f of ['label', 'icon', 'about']) if (stableJson(x?.[f]) !== stableJson(y?.[f])) parts.push(f);
     }
     const what = joinWhat(parts);
     if (what) marks.set(anchor, { mark: 'changed', what, ...(raw?.was ? { was: raw.was } : {}) });

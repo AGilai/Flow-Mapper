@@ -213,7 +213,7 @@ folds into its roll-up line ("includes: usage metering"), keeps its name, descri
 
 **A component belongs to exactly one subsystem** (0.28.0). Do not give a component two: `details.alsoIn` (or an `alsoIn` field), or two different `groupPath` subsystems for one component in a plan
 (a manifest and an extension), is refused with `422 TWO_GROUPS` and nothing is imported. Pick one; to say it also serves another subsystem, use an abstract link or a description.
-`environment.groups` may carry `icon` (`platform agent network cloud shield database`); keys the design lacks are added as subsystems, a different label for a known key is a warning.
+`environment.groups` may carry `about` (0.30.2: Markdown-lite, at most 20 000 characters; for a subsystem the design already has, the plan's text replaces the stored one, the label is kept; `manifests[].service.about` and `extensions[].about` do the same for a component's header, `''` clears) and `icon` (`platform agent network cloud shield database`); keys the design lacks are added as subsystems, a different label for a known key is a warning.
 
 ## 7. The import plan
 

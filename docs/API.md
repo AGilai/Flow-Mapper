@@ -201,6 +201,7 @@ MCP: `import_preview {env, draft, source, anchor, groupPath?}` (read) and `impor
 - `{kind: 'delete-call', service, fn, seq}`: the step goes, and its egress when nothing else of the component uses it.
 - `{kind: 'flow', service, ingress, name?, description?, links?, entryPoint? (true | false | null), order?: {fn, seqs}}`: the flow's name and description (a `flow:` op; `''` clears the name), the endpoint's entry-point flag, the order of one function's steps (`seqs` lists every step number once, else `BAD_ORDER`).
 - `{kind: 'dto', service, ingress, role, status?, content}`, `{kind: 'event-dto', type, content}`, `{kind: 'delete', anchor}` (`svc:`, `ing:` with its DTOs and flow text, `dto:`, `evt:`, and from 0.28.0 `grp:`, `link:`, `rel:`).
+- 0.30.2 `about?` (Markdown-lite, at most 20 000 characters, `''` clears) on `{kind: 'component'}` and `about?` (`''` or `null` clears) on `{kind: 'subsystem'}`; a longer text is `422 INVALID`, `field: 'about'`. The manifest's `service.about` and the groups' `about` are read back with the header and the subsystems.
 - 0.28.0 `{kind: 'subsystem', key, label?, icon?, order?}`: the settings of a subsystem (`grp:<key>`). The key never changes (the label is the rename); a new key needs a label (`INVALID`, field `label`); `icon: null` clears it; `order: n` moves it to position n and writes only the rows whose position changes.
 - 0.28.0 `{kind: 'abstract-link', id?, name, from, to, mode?, transport?, description?, refinedBy?: null}`: an abstract link (`link:<id>`; the id defaults to the slug of the name, made unique). An existing link keeps its `doc` and `refinedBy`; `refinedBy: null` puts it back at subsystem level.
 - 0.28.2 `{kind: 'flow-relation', from: {service, ingress}, to: {service, ingress}, type, note?, id?}`: a typed relation between two flows (`rel:<id>`; see "Flow relations"). `id` is the relation being changed: a new type or end moves it (the old row is deleted). Errors `BAD_TYPE` (field `type`), `NO_FLOW` (`from` / `to`), `SAME_FLOW`, `NO_ITEM`. `{kind: 'delete', anchor: 'rel:<id>'}` removes one; deleting a component or an endpoint also deletes the relations that name it, in the same request.
@@ -270,11 +271,11 @@ Abstract links are design content: written through drafts in design environments
 
 | Method | Path | Body / query -> result |
 |---|---|---|
-| GET | `/api/envs/:env/subsystems` | `{levels, subsystems: [{key, label, icon, order, derived, components: [{name, kind}]}], notSet: [component]}` (settings in order, then derived ones alphabetically) |
+| GET | `/api/envs/:env/subsystems` | `{levels, subsystems: [{key, label, icon, about?, order, derived, components: [{name, kind}]}], notSet: [component]}` (settings in order, then derived ones alphabetically) |
 | GET | `/api/envs/:env/views/subsystems` | `SubsystemMap`: `{boxes, lines, abstract, notSet}` (below) |
 | GET | `/api/envs/:env/abstract-links?subsystem=` | `AbstractView[]`; `subsystem` keeps links with an end in it |
 | GET | `/api/envs/:env/abstract-links/:id` | `AbstractView & {suggestions}`; `404` for an unknown id |
-| PUT | `/api/envs/:env/subsystems` | sealed only: `{subsystems: [{key, label, icon?}]}` in display order -> `{subsystems}`; a design is `409 USE_DRAFT` (edit it through a draft); `422` for a bad key, label (1..80), icon or a duplicate. Unknown keys are allowed: they label future groupPaths |
+| PUT | `/api/envs/:env/subsystems` | sealed only: `{subsystems: [{key, label, icon?, about?}]}` in display order (`about` left out keeps the stored text, `''` / `null` clears it) -> `{subsystems}`; a design is `409 USE_DRAFT` (edit it through a draft); `422` for a bad key, label (1..80), icon or a duplicate. Unknown keys are allowed: they label future groupPaths |
 | PUT | `/api/envs/:env/levels` | `{levels: [..]}` (1..4 names of at most 40 characters, outermost first) on any environment -> `{levels}`; `422` otherwise |
 | POST | `/api/envs/:env/drafts/:slug/plan/links` | see Draft routes |
 

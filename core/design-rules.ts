@@ -8,6 +8,7 @@
 
 import { rowId, type ItemRow } from './item-rows.ts';
 import { checkLink } from './abstract-links.ts';
+import { aboutProblem } from './markdown-lite.ts';
 import { SUBSYSTEM_ICONS, SUBSYSTEM_KEY, topOf } from './subsystems.ts';
 
 export const SERVICE_KINDS = ['service', 'gateway', 'lambda', 'infra', 'client-app'] as const;
@@ -37,6 +38,8 @@ export function designIssues(after: Map<string, ItemRow>, touched: { index: numb
       if (g !== undefined && g !== '' && !keys.has(g) && !keys.has(topOf(g))) out.push({ index: t.index, code: 'NO_GROUP', message: `groupPath '${g}' of ${t.service} is not one of the environment's subsystems (${[...keys].join(', ') || 'none'})` });
     } else if (t.list === 'subsystem') {
       if (!SUBSYSTEM_KEY.test(t.key)) out.push({ index: t.index, code: 'BAD_KEY', message: `subsystem key '${t.key}' must be lowercase letters, digits and '-' (a path like platform/identity is allowed)` });
+      const about = aboutProblem(row.data?.about);
+      if (about) out.push({ index: t.index, code: 'BAD_ABOUT', message: `subsystem '${t.key}': ${about}` });
       const icon = row.data?.icon;
       if (icon !== undefined && !(SUBSYSTEM_ICONS as readonly string[]).includes(icon)) out.push({ index: t.index, code: 'BAD_ICON', message: `icon '${icon}' of subsystem '${t.key}' must be one of ${SUBSYSTEM_ICONS.join(', ')}` });
     } else if (t.list === 'link') {

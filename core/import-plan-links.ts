@@ -10,6 +10,7 @@ import { parseAnchor } from './anchors.ts';
 import { checkRelation, normType, REL_TYPES, relationItem } from './flow-relations.ts';
 import type { ItemRow } from './item-rows.ts';
 import { SUBSYSTEM_ICONS, SUBSYSTEM_KEY, subsystemRows } from './subsystems.ts';
+import { aboutProblem } from './markdown-lite.ts';
 
 const isObj = (v: unknown): v is Record<string, any> => !!v && typeof v === 'object' && !Array.isArray(v);
 const slugName = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 63).replace(/-+$/, '');
@@ -23,10 +24,16 @@ export function planGroups(groups: unknown, rows: ItemRow[]): { ops: DraftOpInpu
   for (const g of groups) {
     if (!isObj(g) || typeof g.key !== 'string' || !SUBSYSTEM_KEY.test(g.key) || typeof g.label !== 'string' || !g.label.trim()) { warnings.push(`environment.groups: ${JSON.stringify(g)} needs a key and a label: skipped`); continue; }
     const known = have.get(g.key);
-    if (known) { if (known.label !== g.label.trim()) warnings.push(`the plan labels subsystem '${g.key}' '${g.label}', the environment '${known.label}': the environment's is kept`); continue; }
+    const about = typeof g.about === 'string' ? g.about : undefined, badAbout = about !== undefined && aboutProblem(about);
+    if (badAbout) warnings.push(`subsystem '${g.key}': ${badAbout}: left out`);
+    if (known) {
+      if (known.label !== g.label.trim()) warnings.push(`the plan labels subsystem '${g.key}' '${g.label}', the environment '${known.label}': the environment's is kept`);
+      if (about && !badAbout && about !== known.about) { ops.push({ op: 'upsert', anchor: `grp:${g.key}`, data: { ...known, about } }); have.set(g.key, { ...known, about }); }   // the plan's about updates the known subsystem's (a re-import is idempotent)
+      continue;
+    }
     const icon = (SUBSYSTEM_ICONS as readonly string[]).includes(g.icon) ? g.icon : undefined;
     if (g.icon !== undefined && !icon) warnings.push(`subsystem '${g.key}': icon '${g.icon}' is not one of ${SUBSYSTEM_ICONS.join(', ')}: left out`);
-    ops.push({ op: 'upsert', anchor: `grp:${g.key}`, data: { label: g.label.trim().slice(0, 80), ...(icon ? { icon } : {}), order: order++ } });
+    ops.push({ op: 'upsert', anchor: `grp:${g.key}`, data: { label: g.label.trim().slice(0, 80), ...(icon ? { icon } : {}), ...(about && !badAbout ? { about } : {}), order: order++ } });
     have.set(g.key, { label: g.label.trim() });
   }
   return { ops, warnings };

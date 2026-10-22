@@ -21,6 +21,7 @@ import { lockChip } from '../components/lock.js';
 import { linksRow, runtimeGlyph, runtimeOf } from '../components/ext-links.js';
 import { openImport } from '../design/import-panel.js';
 import { editing } from '../design/edit-open.js';
+import { aboutBlock } from '../components/about.js';
 
 export async function render({ main, params, query }) {
   const name = params.name;
@@ -66,7 +67,7 @@ export async function render({ main, params, query }) {
       h('button.btn', { type: 'button', on: { click: (e) => openBugDialog(e.currentTarget) } }, icon('bug'), 'Report a bug'),
       h('a.btn.primary', { href: href('/flows', { service: name }) }, icon('flow'), 'Trace a flow')),
     host);
-  host.prepend(h('div.content', h('div.page-grid', h('div.svc-head', meta, figures), h('div', tabs, body))));
+  host.prepend(h('div.content', h('div.page-grid', h('div.svc-head', meta, aboutBlock(s.about), figures), h('div', tabs, body))));
   show(tab);
   if (query.get('ep')) showEndpoint(query.get('ep'));
 }

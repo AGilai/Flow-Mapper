@@ -37,10 +37,10 @@ export function envItemRows(db: DB, env: string): ItemRow[] {
   return out;
 }
 
-/** `envs.groups` / `envs.baseline_groups` ([{key, label, icon?}] in display order) as `subsystem` rows. */
+/** `envs.groups` / `envs.baseline_groups` ([{key, label, icon?, about?}] in display order) as `subsystem` rows. */
 export function subsystemRowsOf(json: string | null): ItemRow[] {
   if (!json) return [];
-  return (JSON.parse(json) as { key: string; label: string; icon?: string }[]).map((g, i) => ({ service: '', list: 'subsystem', key: g.key, data: { label: g.label, ...(g.icon ? { icon: g.icon } : {}), order: i } }));
+  return (JSON.parse(json) as { key: string; label: string; icon?: string; about?: string }[]).map((g, i) => ({ service: '', list: 'subsystem', key: g.key, data: { label: g.label, ...(g.icon ? { icon: g.icon } : {}), ...(g.about ? { about: g.about } : {}), order: i } }));
 }
 
 export interface BaselineRow extends ItemRow { sourceEnv: string; sourceVersion: number | null; takenAt: string }

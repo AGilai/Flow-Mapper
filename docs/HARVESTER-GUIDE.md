@@ -86,7 +86,7 @@ the version you last sent was accepted.
   "kind": "full",
   "env": "prod",
   "service": { "name": "orders-svc", "kind": "service", "team": "checkout", "groupPath": "platform",
-               "repo": "github.com/acme/orders-svc", "language": "typescript", "description": "Order lifecycle" },
+               "repo": "github.com/acme/orders-svc", "language": "typescript", "description": "Order lifecycle", "about": "## Capabilities\n- Owns the order lifecycle" },
   "version": 12,
   "harvestedAt": "2026-10-19T08:00:00Z",
   "commit": "fb390dc",
@@ -95,6 +95,8 @@ the version you last sent was accepted.
 ```
 
 `service.name`: lowercase letters, digits and `-`, the same name other services use to call it.
+
+`service.about` (0.30.2, optional): a rich description of the component, Markdown-lite, at most 20 000 characters (`##` headings, `**bold**`, `*italic*`, `~~strike~~`, `` `code` ``, `- ` / `1. ` lists, `[text](https://...)`; no HTML). Sections by convention: `## Capabilities`, `## Motivation`, `## Roles and responsibilities`, `## Owners`, `## Open questions`. Do not repeat status, doc `links` or related flows. It is shown in the component's panel and diffs like any header field. Leave it out when the code has nothing to say: harvested data is the source of truth, so do not generate prose from guesses.
 
 Two optional service fields (0.21.0): `groupPath` is the subsystem the service belongs to (`platform`, later `platform/identity`; lowercase path segments). Most harvesters leave it out; design environments set it. `kind: "client-app"` is for a device or browser application that calls services (an agent, a mobile app): send its egress and no ingress.
 

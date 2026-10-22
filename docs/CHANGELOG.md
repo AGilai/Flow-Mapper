@@ -11,6 +11,15 @@ UI only (#70): on a flow arrow, "transport not decided" is a small icon (its wor
 ## 0.30.3 (2026-10-22)
 UI only (#69): the flow diagram zooms: a "- [100%] + Fit Reset" control in the flow toolbar (and in the bar of a maximized flow), Ctrl/Cmd + wheel and pinch around the pointer; per tab, `zoom=` in the URL (25 to 400, or `fit`; left out at 100).
 
+## 0.30.2 (2026-10-22)
+**`about`: a rich description per component and per subsystem** (bug #68, the data part; the dedicated info pane is a later, separate UI). Additive; no migration (it lives in the service header JSON and in `envs.groups` JSON).
+- **Manifest (harvesters and importers):** optional **`service.about`**, a string of at most 20 000 characters, next to `description`. Markdown-lite: `##` / `###` headings, paragraphs, `**bold**`, `*italic*`, `~~strike~~`, `` `code` ``, fenced code, `- ` and `1. ` lists, `[text](https://...)` links. No HTML (it is shown as text) and only `http(s)` links. By convention the sections `## Capabilities`, `## Motivation`, `## Roles and responsibilities`, `## Owners`, `## Open questions`; nothing enforces them. Status, doc links (`links`) and related flows already have their fields: do not repeat them in `about`. A changed `about` is a Changed mark on the component, like any header field. Over the limit or not a string: `422` from ingest.
+- **Import plan:** `manifests[].service.about`; `extensions[].about` sets or replaces it on an existing component (`''` clears); `environment.groups[].about` (and `groups[]` of the plan) sets a subsystem's text. For a group the design already has, the plan's `about` replaces the stored one (a re-import is idempotent); its label is still kept. A too long group text is a warning and is left out.
+- **Design edits (REST `edits`, MCP `edit_design`):** `{kind:'component', ..., about?}` and `{kind:'subsystem', key, about?}`; `''` (component) or `''` / `null` (subsystem) clears it, leaving it out keeps it. A text over 20 000 characters is `422 INVALID` with `field: 'about'`.
+- **Subsystem lists:** `PUT /api/envs/:env/subsystems` (sealed), MCP `set_subsystem_settings` and `create_env` / `POST /api/envs` `groups[]` take `about` per group; a list item that leaves `about` out keeps the stored text, `''` or `null` clears it.
+- **Reads:** `about` comes back wherever the header or the groups do: `get_service` / `GET /services/:name` (`service.about`), the system graph node, `GET .../subsystems` and `get_subsystems` (`subsystems[].about`), the subsystem map boxes, `GET /api/envs` (`groups[].about`).
+- **UI:** an "About" block (folded after about 12 lines, "Show all") in the component page and map panel and in the subsystem panel; in a design draft the component form has an About field with Write / Preview, and the subsystem panel has "Edit".
+
 ## 0.30.1 (2026-10-22)
 UI only (#67): in the flow view with Group by subsystem, a data store is drawn inside the subsystem band of the component that declares it (its collections too); a store with no owner in a subsystem goes to a "Shared" band at the end. Resource-step trace messages carry an additive `owner` (the declaring component).
 

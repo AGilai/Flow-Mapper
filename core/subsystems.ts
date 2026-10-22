@@ -9,9 +9,10 @@ export const SUBSYSTEM_ICONS = ['platform', 'agent', 'network', 'cloud', 'shield
 export type SubsystemIcon = typeof SUBSYSTEM_ICONS[number];
 /** Same pattern as the manifest's groupPath and the environment's groups. */
 export const SUBSYSTEM_KEY = /^[a-z0-9][a-z0-9-]*(\/[a-z0-9][a-z0-9-]*)*$/;
-export interface SubsystemRowData { label: string; icon?: SubsystemIcon; order: number }
+export interface SubsystemRowData { label: string; icon?: SubsystemIcon; order: number; about?: string }
 export interface SubsystemInfo {
   key: string; label: string; icon: SubsystemIcon | null; order: number;
+  about?: string;                                     // Markdown-lite (0.30.2)
   derived: boolean;                                   // no settings row: a groupPath names it
   components: { name: string; kind: string }[];
 }
@@ -33,7 +34,7 @@ export function subsystemsOf(subRows: ItemRow[], services: Pick<Service, 'name' 
   const members = new Map<string, { name: string; kind: string }[]>();
   for (const s of services) { const t = topOf(s.groupPath); if (t) members.set(t, [...(members.get(t) ?? []), { name: s.name, kind: s.kind }]); }
   const out: SubsystemInfo[] = set.map((r, i) => ({
-    key: r.key, label: String(r.data?.label ?? r.key), icon: SUBSYSTEM_ICONS.includes(r.data?.icon) ? r.data.icon : null, order: i, derived: false,
+    key: r.key, label: String(r.data?.label ?? r.key), icon: SUBSYSTEM_ICONS.includes(r.data?.icon) ? r.data.icon : null, order: i, derived: false, ...(typeof r.data?.about === 'string' && r.data.about ? { about: r.data.about } : {}),
     components: (members.get(r.key) ?? []).sort(byName),
   }));
   const have = new Set(out.map((s) => s.key));
