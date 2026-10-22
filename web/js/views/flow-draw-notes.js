@@ -1,4 +1,4 @@
-// A note on the lifelines (0.32.1, #74): a leaf step that names `over` draws as a box. Over one component it sits under that lifeline;
+// A note on the lifelines (0.32.2, #74): a leaf step that names `over` draws as a box. Over one component it sits under that lifeline;
 // over several it spans from the leftmost to the rightmost of them (a folded lifeline: out to the edge of its fold column).
 // The geometry is pure (noteBox); noteSvg draws it. Row type `note` (flow-lane.js): { msg, bar, cols: [column], text }.
 

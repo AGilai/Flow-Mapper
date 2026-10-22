@@ -55,13 +55,13 @@ export function filterSummary({ subs, comps, subRows, compRows, changed, q, rel 
   return parts.join(' · ');
 }
 
-/** The mark of an entry point (design marks), or null (0.32.1: else Changed when its flow runs a step marked new / changed). An entry of a component that is New (or Removed) has no `ing:` mark of its own (the highest level carries it), so it takes its component's. */
+/** The mark of an entry point (design marks), or null (0.32.2: else Changed when its flow runs a step marked new / changed). An entry of a component that is New (or Removed) has no `ing:` mark of its own (the highest level carries it), so it takes its component's. */
 export function markOfPoint(marks, p) {
   const own = marks?.markOf?.(`ing:${p.service}/${p.id}`);
   if (own) return own;
   const svc = marks?.markOf?.(`svc:${p.service}`);
   if (svc && (svc.mark === 'new' || svc.mark === 'removed')) return { mark: svc.mark };
-  return p.marked ? { mark: 'changed', what: `${p.marked} marked ${p.marked === 1 ? 'step' : 'steps'}` } : null;   // 0.32.1 (#75): a flow that runs a marked step is changed
+  return p.marked ? { mark: 'changed', what: `${p.marked} marked ${p.marked === 1 ? 'step' : 'steps'}` } : null;   // 0.32.2 (#75): a flow that runs a marked step is changed
 }
 
 /** The points that pass every filter. `changed`: null | '1' (New or Changed) | 'all' (also Removed: those are ghosts, listed by `removedPoints`). */

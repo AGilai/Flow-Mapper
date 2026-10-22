@@ -9,7 +9,7 @@ export const headAnchor = (col) => (col?.kind === 'service' && col.service ? `sv
 /** { anchor, info } of the arrow of a trace message, or null. */
 export function arrowMark(store, m) {
   if (!m) return null;
-  if (m.mark) return { anchor: `step:${m.service}/${m.fn}#${m.seq}`, info: { mark: m.mark, ...(m.changed ? { what: m.changed } : {}) }, step: true }; // 0.32.1 (#75): the step's own flag, whatever the diff says
+  if (m.mark) return { anchor: `step:${m.service}/${m.fn}#${m.seq}`, info: { mark: m.mark, ...(m.changed ? { what: m.changed } : {}) }, step: true }; // 0.32.2 (#75): the step's own flag, whatever the diff says
   if (!store) return null;
   if (m.service && m.egress) {
     const anchor = `egr:${m.service}/${m.egress}`, info = store.markOf(anchor);

@@ -14,6 +14,10 @@
       "body": "<p>Should the gateway reject orders with more than 50 lines before they reach orders-svc?</p>",
       "replies": [ { "author": "Asaf G.", "ago": 5600, "body": "<p>Yes, a 400 at the gateway. Done in the validation step.</p>" } ] },
     { "service": "api-gateway", "ingress": "in.createOrder", "author": "Noa Barak", "ago": 12960, "externalId": "conf-48213", "externalSource": "confluence", "authorExternalId": "noa.barak",
-      "body": "<p>Imported from the Confluence review of the checkout page: the customer lookup should say what happens when the profile is missing.</p>" }
+      "body": "<p>Imported from the Confluence review of the checkout page: the customer lookup should say what happens when the profile is missing.</p>" },
+    { "service": "api-gateway", "ingress": "in.createOrder", "author": "Noa Barak", "ago": 2000, "externalId": "conf-48214", "externalSource": "confluence", "authorExternalId": "noa.barak",
+      "body": "<p>@{Asaf G.} could you confirm that the 15 min TTL is what we agreed on? cc @{Dana Levi}</p>" },
+    { "service": "api-gateway", "ingress": "in.createOrder", "author": "Dana Levi", "ago": 45,
+      "body": "<p>@{Asaf G.} does the audit trail need the device id? I would add it to the order event.</p>" }
   ]
 }

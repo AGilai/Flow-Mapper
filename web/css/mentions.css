@@ -1,0 +1,22 @@
+/* @mentions (0.32.0, frame 18): chips in a comment, the "@" picker, the chip's card, the Mentions page and badges. Tokens only. */
+.u-chip { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 10px; font: 600 var(--fs-sm)/1 var(--font); background: color-mix(in srgb, var(--accent) 11%, var(--surface)); color: var(--accent); white-space: nowrap; vertical-align: 1px; cursor: pointer; user-select: all; }
+.u-chip:hover { background: color-mix(in srgb, var(--accent) 18%, var(--surface)); }
+.u-chip:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.u-chip.me { background: var(--accent); color: var(--surface); }
+.u-chip.gone { background: transparent; border: 1px dashed var(--line-strong); color: var(--ink-2); font-style: italic; font-weight: 500; cursor: default; }
+.u-chip.pending { opacity: .6; }
+.rte-area .u-chip { cursor: default; user-select: none; }
+.u-card { position: fixed; z-index: 60; width: 260px; display: flex; gap: 10px; align-items: center; background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-md); box-shadow: var(--shadow-panel); padding: 10px 12px; }
+.u-card b { display: block; font-weight: 600; } .u-card small { display: block; color: var(--muted); font-size: var(--fs-xs); }
+
+/* the picker under the caret (frame 18a) */
+.u-pick { position: fixed; z-index: 60; background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-md); box-shadow: var(--shadow-panel); padding: 4px; font-size: var(--fs-sm); color: var(--ink); max-height: 260px; overflow-y: auto; }
+.u-pick h5 { margin: 6px 8px 3px; font-size: 10.5px; letter-spacing: .02em; text-transform: uppercase; font-weight: 600; color: var(--muted); }
+.u-pk { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 4px 8px; border-radius: 5px; cursor: pointer; }
+.u-pk.on { background: var(--accent-soft); }
+.u-pk b { font-weight: 500; } .u-pk b em { font-style: normal; font-weight: 700; color: var(--accent); } .u-pk small { color: var(--muted); font-size: var(--fs-xs); }
+.u-pk.new { border-top: 1px solid var(--line); border-radius: 0 0 5px 5px; margin-top: 4px; padding-top: 7px; color: var(--ink-2); }
+.u-pk .plus { width: 22px; height: 22px; border-radius: 50%; border: 1.5px dashed var(--line-strong); display: grid; place-items: center; color: var(--ink-2); font-weight: 700; }
+.u-keys { padding: 5px 8px 3px; font-size: 10.5px; color: var(--muted); border-top: 1px solid var(--line); margin-top: 3px; }
+.u-keys kbd { font: 600 10px var(--mono); border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 3px; padding: 0 3px; color: var(--ink-2); background: var(--surface-2); }
+@media (max-width: 760px) { .u-pick { max-width: calc(100vw - 16px); } }

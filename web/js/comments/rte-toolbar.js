@@ -26,6 +26,7 @@ export function createToolbar(ed) {
   const colour = btn('.col', 'Text colour', ['A', bar], () => toggleMenu(colour, colourMenu), { 'aria-haspopup': 'true', 'aria-expanded': 'false' });
   const ul = btn('', 'Bulleted list', icon('ul'), cmd('insertUnorderedList'), { 'aria-pressed': 'false' });
   const ol = btn('', 'Numbered list', icon('ol'), cmd('insertOrderedList'), { 'aria-pressed': 'false' });
+  const mention = btn('.wide', 'Mention someone (@)', [icon('at'), h('span', 'Mention')], () => { closeMenu(); ed.mention.open(); });
   const link = btn('.tb-late', 'Link', icon('link'), () => toggleMenu(link, linkMenu), { 'aria-haspopup': 'true', 'aria-expanded': 'false' });
   const tbl = btn('.wide.tb-late', 'Insert a table, 3 by 3', [icon('table'), h('span', '3×3')], () => doTable());
   const doTable = () => { closeMenu(); ed.exec((r) => insertTable(ed.el, r)); update(); }; // inside a table the new one goes after it
@@ -35,7 +36,7 @@ export function createToolbar(ed) {
   const tg = h('span.tbgroup.tb-late', { hidden: true, role: 'group', 'aria-label': 'Table' }, h('span.lb', 'Table'), group);
   const more = btn('.tb-more', 'More', icon('more'), () => toggleMenu(more, moreMenu), { 'aria-haspopup': 'true', 'aria-expanded': 'false' });
   const sep = (cls = '') => h(`span.tbsep${cls}`, { 'aria-hidden': 'true' });
-  el.append(bold, italic, strike, colour, sep(), ul, ol, sep('.tb-late'), link, tbl, tg, more);
+  el.append(bold, italic, strike, colour, sep(), ul, ol, sep('.tb-late'), mention, link, tbl, tg, more);
   const buttons = () => [...el.querySelectorAll(':scope > button, :scope > .tbgroup > button')].filter((b) => b.offsetParent !== null);
   el.addEventListener('keydown', (e) => { // arrow keys move along the bar (roving focus)
     if (e.target.closest('.cmenu, .omenu') || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;

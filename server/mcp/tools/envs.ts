@@ -13,7 +13,7 @@ export const listEnvsTool: Tool = {
 export const createEnvTool: Tool = {
   name: 'create_env', description: "Create a design environment by copying another one. mode: 'blank' (nothing copied), 'components' (the listed services with their endpoints, calls, channels, stores, DTOs and schemas; no functions or flows unless behaviour is true) or 'full' (everything of the source, flows included). groups are the subsystems in order [{key, label, about?}]; each listed service may name its groupPath (one of the group keys).",
   inputSchema: obj({
-    name: { type: 'string', description: 'Lowercase letters, digits and -' }, source: { type: 'string', description: 'The environment to copy from (any kind)' },
+    name: { type: 'string', description: 'Lowercase letters, digits and -' }, source: { type: 'string', description: "The environment to copy from (any kind). Required for 'components' and 'full'; not needed (ignored) for 'blank'" },
     mode: { enum: ['blank', 'components', 'full'] },
     groups: { type: 'array', items: obj({ key: { type: 'string' }, label: { type: 'string' }, about: { type: 'string', description: 'Markdown-lite description of the subsystem, at most 20000 characters' } }, ['key', 'label']) },
     levels: { type: 'array', items: { type: 'string' } },
@@ -21,6 +21,6 @@ export const createEnvTool: Tool = {
     entryPoints: { enum: ['keep', 'none'], description: "components / full: 'none' marks every copied ingress entryPoint:false (not listed as an entry point, no marks). Default 'none' for components (#65), 'keep' for full" },
     infraGroupPath: { type: 'string', description: "components mode: subsystem of the synthetic <source>-infra service. Default 'infra'; it need not be one of the groups" },
     services: { type: 'array', items: obj({ name: { type: 'string' }, groupPath: { type: 'string' } }, ['name']) },
-  }, ['name', 'source', 'mode']),
+  }, ['name', 'mode']),
   run: (c, a) => { const e = copyEnv(c.db, { ...a, createdBy: 'mcp' }); c.changed(e.name); return e; },
 };

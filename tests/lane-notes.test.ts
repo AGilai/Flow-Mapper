@@ -1,4 +1,4 @@
-// Notes over several lifelines (#74, 0.32.1): the lane row and the box geometry.
+// Notes over several lifelines (#74, 0.32.2): the lane row and the box geometry.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

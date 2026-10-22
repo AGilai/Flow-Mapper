@@ -32,3 +32,14 @@ export function visibleThread(thread, show) {
   const comments = show ? thread.comments : thread.comments.filter((c) => !c.resolved);
   return { comments, count: comments.reduce((n, c) => n + (c.deleted ? 0 : 1) + c.replies.length, 0) };
 }
+
+/** Does a comment body carry the `@[id]` token of this user? (no imports here: the token format is core/mentions.ts) */
+export const mentionsUser = (body, id) => !!id && String(body ?? '').includes(`@[${id}]`);
+/** The "Mentioned me" view: only the top threads where the comment or one of its replies mentions the user (`vis` is what visibleThread answered). */
+export function mentionedOnly(vis, id) {
+  const hit = (c) => !c.deleted && mentionsUser(c.body, id);
+  const comments = vis.comments.filter((c) => hit(c) || c.replies.some(hit));
+  return { comments, count: comments.reduce((n, c) => n + (c.deleted ? 0 : 1) + c.replies.length, 0) };
+}
+/** How many live comments (replies included) in a thread mention the user. */
+export const countMentions = (thread, id) => thread.comments.reduce((n, c) => n + (!c.deleted && mentionsUser(c.body, id) ? 1 : 0) + c.replies.filter((r) => mentionsUser(r.body, id)).length, 0);

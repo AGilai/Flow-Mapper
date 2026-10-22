@@ -144,7 +144,7 @@ test('C7 errors: taken name, bad names, bad mode, unknown source, unknown compon
   assert.equal((await create({ ...ok, name: 'blank-1' })).body.error.code, 'EXISTS');
   for (const name of ['', 'a/b', 'a b', 'A', '%41', 'meta', 'x'.repeat(70)]) assert.equal((await create({ ...ok, name })).status, 422, `name '${name}'`);
   assert.equal((await create({ ...ok, name: 'e1', mode: 'linked' })).status, 422);
-  assert.equal((await create({ ...ok, name: 'e1', source: 'nope' })).status, 404);
+  assert.equal((await create({ ...ok, name: 'e1', source: 'nope', mode: 'full' })).status, 404);
   assert.equal((await create({ name: 'e1', source: 'prod', mode: 'components', services: [{ name: 'nope-svc' }] })).status, 404);
   assert.equal((await create({ name: 'e1', source: 'prod', mode: 'components', services: [] })).status, 422);
   assert.equal((await create({ name: 'e1', source: 'prod', mode: 'components', groups: [{ key: 'a', label: 'A' }], services: [{ name: 'orders-svc', groupPath: 'zz' }] })).status, 422);

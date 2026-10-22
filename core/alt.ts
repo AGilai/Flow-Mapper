@@ -6,7 +6,7 @@
 
 import type { GroupKind, Step } from './types.ts';
 
-/** `kind` only when not `alt`; `condition` only on a step with `groups` (the branch it names); `parent`: the enclosing frame (0.32.1, #72). */
+/** `kind` only when not `alt`; `condition` only on a step with `groups` (the branch it names); `parent`: the enclosing frame (0.32.2, #72). */
 export interface Alt { group: string; branch: number; of: number; kind?: GroupKind; condition?: string; parent?: Alt }
 
 /** `alt` of every step of a function that belongs to a group, by seq. `steps` are in seq order. */

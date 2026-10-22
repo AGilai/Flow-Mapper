@@ -141,7 +141,7 @@ and a dashed line between sections; the trace marks each message `alt: {group, b
 more. A group needs two different conditions. Counts and `maxMessages` treat the branches as alternatives,
 not as a sequence. Steps without `altGroup` or a shared `source` are drawn in sequence with an "if …" tag, as before.
 
-**Nested frames** (`groups`, 0.32.1, #72): a step lists the frames it sits in, outermost first, so frames nest inside one
+**Nested frames** (`groups`, 0.32.2, #72): a step lists the frames it sits in, outermost first, so frames nest inside one
 function (an alt inside a loop): `"groups": [{"id": "each", "kind": "loop", "condition": "for each item"}, {"id": "pay",
 "condition": "card"}]`. `id` is unique within the function and steps with the same id are in one frame; `kind` is `alt`
 (default), `opt`, `loop`, `par`, `critical` or `break` and is the word on the frame's tab; `condition` names the section
@@ -150,14 +150,14 @@ needs no second branch, so a `loop` or `opt` is one section. `groups` replaces `
 for that step; steps without it work as before. The trace message's `alt` keeps `{group, branch, of}` for the innermost
 frame and adds `kind` (when not `alt`), `condition` and `parent` (the enclosing frame, the same shape).
 
-**Notes over lifelines** (`over`, 0.32.1, #74): a classified leaf step (`kind: "leaf"`, no target) is a note on its component and
+**Notes over lifelines** (`over`, 0.32.2, #74): a classified leaf step (`kind: "leaf"`, no target) is a note on its component and
 is not drawn by default. Give it `over`, a list of components (or data stores, by their instance or database name:
 `cache-main`, `orders-db`), and the flow view draws the note as a box: over one name it sits under that lifeline, over
 several it spans from the leftmost to the rightmost of them (a folded lifeline: out to the edge of its fold column). The
 note's text is the step's `operation` and `note` (`order served · the cache and the database agree`); names the flow
 does not draw are ignored, and none left puts the note under the component that runs the step. The trace message carries `over`.
 
-**Step marks** (`mark`, 0.32.1, #75): `"mark": "new"` or `"mark": "changed"` on a step says the design adds or changes
+**Step marks** (`mark`, 0.32.2, #75): `"mark": "new"` or `"mark": "changed"` on a step says the design adds or changes
 that step. The flow view draws it like the component and flow marks: a coloured band along the arrow and the mark's
 icon at its tip. The free text `details.changed` (a string) stays the tooltip and is shown in the step panel. A flow
 that runs a marked step counts as changed: a design's Flows list ticks it under "Changed only" (`marked: n` on its entry

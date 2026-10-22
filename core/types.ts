@@ -58,11 +58,11 @@ export interface Step {
   condition?: string;
   /** Steps of this function with the same `altGroup` are mutually exclusive alternatives, one branch per condition. */
   altGroup?: string;
-  /** 0.32.1 (#72): the frames this step sits in, outermost first (nesting inside one function). Replaces `altGroup` / `condition` for the grouping of this step. */
+  /** 0.32.2 (#72): the frames this step sits in, outermost first (nesting inside one function). Replaces `altGroup` / `condition` for the grouping of this step. */
   groups?: StepGroup[];
-  /** 0.32.1 (#75): a step the design adds (`new`) or changes (`changed`); drawn as a band on its arrow; `details.changed` stays the tooltip. */
+  /** 0.32.2 (#75): a step the design adds (`new`) or changes (`changed`); drawn as a band on its arrow; `details.changed` stays the tooltip. */
   mark?: 'new' | 'changed';
-  /** 0.32.1 (#74): on a leaf step, the components (or data stores) its note spans (leftmost to rightmost). */
+  /** 0.32.2 (#74): on a leaf step, the components (or data stores) its note spans (leftmost to rightmost). */
   over?: string[];
   loop?: boolean;
   note?: string;

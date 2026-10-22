@@ -234,7 +234,7 @@
 .rpcchip.bad text { fill: var(--bad, var(--t-broken)); }
 .rpcglyph { font: 11px var(--mono); fill: var(--mc); }
 .msg.broken .arr .label { fill: var(--bad, var(--t-broken)); }
-/* A note over one or several lifelines (0.32.1, #74) */
+/* A note over one or several lifelines (0.32.2, #74) */
 .lnote rect { fill: color-mix(in srgb, var(--new) 14%, var(--surface)); stroke: color-mix(in srgb, var(--new-ink) 45%, transparent); }
 .lnote text { font: 11.5px var(--font); fill: var(--ink); }
 .amqpnote text { font: 11px var(--font); fill: var(--muted); paint-order: stroke; stroke: var(--halo, var(--paper)); stroke-width: 5px; stroke-linejoin: round; }

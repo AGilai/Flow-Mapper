@@ -6,7 +6,7 @@ import { s } from '../dom.js';
 
 export const STRIP = 20; // height of the strip that carries a section's condition
 
-/** The frames a message sits in at its own depth, outermost first (`alt.parent` links, 0.32.1). */
+/** The frames a message sits in at its own depth, outermost first (`alt.parent` links, 0.32.2). */
 export const chainOf = (alt) => { const out = []; for (let a = alt; a; a = a.parent) out.unshift(a); return out; };
 
 /** Frames of the visible messages: { group, kind, depth, level, first, last, strips: [{ at: message index, cond }] } in order of appearance, an outer frame before the frames inside it.

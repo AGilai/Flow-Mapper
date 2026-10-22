@@ -73,7 +73,7 @@ let app: Awaited<ReturnType<typeof startApp>>;
 before(async () => { app = await startApp(); });
 after(() => app.close());
 
-test('the schema accepts mark, groups and over (0.32.1), and refuses a bad mark, kind or an empty group id', async () => {
+test('the schema accepts mark, groups and over (0.32.2), and refuses a bad mark, kind or an empty group id', async () => {
   const man = readSample('orders-svc.json');
   const place = (m: any) => m.functions.find((f: any) => f.id === 'OrderService.place');
   const ok = await app.call('POST', '/api/ingest?dryRun=1', { manifests: [{ ...man, version: 90 }] });

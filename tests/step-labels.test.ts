@@ -1,4 +1,4 @@
-// Step labels (#76, 0.32.1): the Arrows default per environment kind, and no raw tbd: key on an arrow.
+// Step labels (#76, 0.32.2): the Arrows default per environment kind, and no raw tbd: key on an arrow.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

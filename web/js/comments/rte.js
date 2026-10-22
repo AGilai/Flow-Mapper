@@ -7,16 +7,20 @@ import { sanitize, esc } from '../../core/rich-text.js';
 import { plainText } from '../../core/rich-text-text.js';
 import { cellOf, onTab } from './rte-table.js';
 import { textToHtml as plain } from './pure.js';
+import { attachMention } from './rte-mention.js';
+import { renderChips, chipsToTokens, refreshChips } from '../users/chips.js';
+import { watchUsers } from '../users/directory.js';
 
 const ZW = /​/g;
 const textToHtml = (t) => plain(t, esc);
 
 /**
- * createEditor({ html, label, placeholder, onSubmit, onEscape, onChange }) ->
- *   { el, focus(end), getHtml(), setHtml(html), isEmpty(), exec(fn), inside(node), range(), dispose() }
+ * createEditor({ html, label, placeholder, onSubmit, onEscape, onChange, people }) ->
+ *   { el, focus(end), getHtml(), setHtml(html), isEmpty(), exec(fn), inside(node), range(), mention, dispose() }
+ * 0.32.0: `@[id]` tokens are drawn as chips (not editable text) and written back as tokens; `people()` lists the user ids already in the thread (the "@" picker shows them first).
  * getHtml() is sanitized and trimmed ('' when there is no text); setHtml() sanitizes first. onChange fires on input and on a move of the caret.
  */
-export function createEditor({ html = '', label = 'Comment', placeholder = '', onSubmit, onEscape, onChange } = {}) {
+export function createEditor({ html = '', label = 'Comment', placeholder = '', onSubmit, onEscape, onChange, people } = {}) {
   const el = h('div.rte-area', { contentEditable: 'true', role: 'textbox', 'aria-multiline': 'true', 'aria-label': label, spellcheck: true, 'data-ph': placeholder, 'data-qa': 'rte' });
   let saved = null;
   const inside = (n) => !!n && el.contains(n);
@@ -34,9 +38,9 @@ export function createEditor({ html = '', label = 'Comment', placeholder = '', o
     keep(); note();
   }
   function insertHtml(clean) { exec(() => { if (clean) document.execCommand('insertHTML', false, clean); }); }
-  function setHtml(v) { el.innerHTML = sanitize(v || ''); saved = null; note(); }
+  function setHtml(v) { el.innerHTML = sanitize(v || ''); renderChips(el, { editable: true }); saved = null; note(); }
   function getHtml() {
-    const c = el.cloneNode(true);
+    const c = chipsToTokens(el.cloneNode(true));
     c.querySelectorAll('span').forEach((s) => { if (!s.textContent.replace(ZW, '') && !s.querySelector('br')) s.remove(); }); // a colour chosen and not used
     const out = sanitize(c.innerHTML.replace(ZW, '')).replace(/(?:<p><br><\/p>)+$/, '');
     return plainText(out) || /<table/.test(out) ? out : '';
@@ -56,9 +60,12 @@ export function createEditor({ html = '', label = 'Comment', placeholder = '', o
   });
   try { document.execCommand('defaultParagraphSeparator', false, 'p'); document.execCommand('styleWithCSS', false, false); } catch { /* the browser decides */ }
   if (html) setHtml(html); else note();
-  return {
+  const off = watchUsers(() => refreshChips(el));
+  const api = {
     el, inside, range, exec, isEmpty, getHtml, setHtml,
     focus(end = true) { el.focus({ preventScroll: false }); if (end) { const r = document.createRange(); r.selectNodeContents(el); r.collapse(false); const s = getSelection(); s.removeAllRanges(); s.addRange(r); keep(); } },
-    dispose: () => document.removeEventListener('selectionchange', keep),
+    dispose: () => { document.removeEventListener('selectionchange', keep); off(); api.mention.dispose(); },
   };
+  api.mention = attachMention(api, { people });
+  return api;
 }

@@ -1,4 +1,4 @@
-# Users and @mentions (#66 part 2, 0.31.0): build spec
+# Users and @mentions (#66 part 2, 0.32.0): build spec
 
 Design: Frame 18 in design/mockups/design-env.html (18a–18g), approved by the maintainer on 2026-10-22 with the
 lead's proposals: a global Mentions page in the left menu; avatars later (initials + colour now); mentions in every env
@@ -39,7 +39,7 @@ action items, imports (`authorExternalId` + `externalSource`), MCP ("Assistant" 
 Migration on a copy of the live DB; matching cases; mention token round trip and sanitizer; unread/seen incl. merge;
 rename updates chips; merge re-points everything; MCP; Full copy keeps author_id/owner_id (users are global, not per
 env). Samples: 3 users, one with a Confluence id, two mentions in prod comments. CHANGELOG (importer: authorExternalId
-now creates/links users; mention token format), DEMOS rows, version 0.31.0.
+now creates/links users; mention token format), DEMOS rows, version 0.32.0.
 
 ## Maintainer amendment (2026-10-22): sign-in instead of name prompts
 "Why does the platform need to collect my name? My name is the user I am logged in with. For now pick from the users

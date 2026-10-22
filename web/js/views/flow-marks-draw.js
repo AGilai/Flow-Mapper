@@ -35,7 +35,7 @@ export const chipsStack = (chips, span) => chips.length > 1 && chips.reduce((n, 
 /** Under an arrow, at its tail (after the step tile): the chips side by side, so the return label in the middle stays clear; stacked when `stack`. */
 export function arrowMarkSvg(marks, msg, x1, x2, y0, stack = false, th = true) {
   const r = marks?.arrow(msg), dir = Math.sign(x2 - x1) || 1, chips = markChips(marks, msg, th);
-  const band = r?.step ? stepBand(r.info, x1, x2, y0) : null; // 0.32.1 (#75): a marked step also gets a coloured band along its arrow
+  const band = r?.step ? stepBand(r.info, x1, x2, y0) : null; // 0.32.2 (#75): a marked step also gets a coloured band along its arrow
   const total = chips.reduce((n, c) => n + widthOf(c) + 4, -4);
   let x = dir > 0 ? x1 + 28 : x1 - 28 - (stack ? 0 : total), k = 0;
   return [band, r ? sparkSvg(x2 - dir * 16, y0 + 11, r.info.mark, 11) : null,

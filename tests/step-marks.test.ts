@@ -1,4 +1,4 @@
-// Step marks (#75, 0.32.1): the flag on a step, Changed only, the band on the arrow, the design edit; and the 0.32.1 demo flow.
+// Step marks (#75, 0.32.2): the flag on a step, Changed only, the band on the arrow, the design edit; and the 0.32.2 demo flow.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

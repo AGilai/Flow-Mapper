@@ -1,4 +1,4 @@
-// Step marks (0.32.1, #75): a step flagged `mark: "new" | "changed"` by a design (manifest step, plan, design edit, MCP). Pure.
+// Step marks (0.32.2, #75): a step flagged `mark: "new" | "changed"` by a design (manifest step, plan, design edit, MCP). Pure.
 // The trace message carries it (and the free text `details.changed` as the tooltip); an entry point whose flow runs a marked step counts as changed ("Changed only", `markedReached` in flow-counts.ts).
 
 import type { Step } from './types.ts';

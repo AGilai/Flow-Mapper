@@ -8,6 +8,7 @@ import { badRequest } from '../errors.ts';
 import { created } from '../http/router.ts';
 import * as comments from '../store/comments.ts';
 import { out } from '../store/comments-rows.ts';
+import { headerUser } from '../identity.ts';
 
 const id = (s: string) => { const n = Number(s); if (!Number.isInteger(n) || n < 1) throw badRequest('comment id must be a positive integer'); return n; };
 
@@ -22,7 +23,7 @@ export function registerComments(r: Router, ctx: Ctx) {
     const b = await req.json();
     // 0.29.2: an importer's fields ride along; a re-import of a known (externalSource, externalId) updates it and answers 200 with `updated: true`
     const row = comments.addComment(ctx.db, ctx.graphOf(req), req.params.env, {
-      anchor: b?.anchor, step: b?.step, parentId: b?.parentId, author: b?.author, body: b?.body, createdAt: b?.createdAt, externalId: b?.externalId, externalSource: b?.externalSource,
+      anchor: b?.anchor, step: b?.step, parentId: b?.parentId, author: b?.author, authorId: headerUser(req.headers), body: b?.body, createdAt: b?.createdAt, externalId: b?.externalId, externalSource: b?.externalSource,
       authorExternalId: b?.authorExternalId, parentExternalId: b?.parentExternalId, resolved: b?.resolved, resolvedBy: b?.resolvedBy, resolvedAt: b?.resolvedAt });
     return row.updated ? row : created(row);
   });
@@ -30,9 +31,9 @@ export function registerComments(r: Router, ctx: Ctx) {
     const b = await req.json();
     if (b?.resolved !== undefined) { // resolve / reopen: anyone, with an `actor`; not combined with a body edit (that stays author-only)
       if (b.body !== undefined) throw badRequest('resolve or edit in separate requests');
-      return out(comments.resolveComment(ctx.db, req.params.env, id(req.params.id), b));
+      return out(comments.resolveComment(ctx.db, req.params.env, id(req.params.id), { ...b, userId: headerUser(req.headers) }));
     }
-    return comments.editComment(ctx.db, req.params.env, id(req.params.id), { author: b?.author, body: b?.body });
+    return comments.editComment(ctx.db, req.params.env, id(req.params.id), { author: b?.author, authorId: headerUser(req.headers), body: b?.body });
   });
-  r.delete('/api/envs/:env/comments/:id', (req) => comments.deleteComment(ctx.db, req.params.env, id(req.params.id), req.query.get('author')));
+  r.delete('/api/envs/:env/comments/:id', (req) => comments.deleteComment(ctx.db, req.params.env, id(req.params.id), req.query.get('author'), headerUser(req.headers)));
 }

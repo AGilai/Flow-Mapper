@@ -27,7 +27,7 @@ export function mountDesignStrip(main) {
   const el = h('div.dz', { 'data-qa': 'design-strip' },
     h('div.dz-row1',
       h('span.dz-chip', { title: `${state.env} is a design environment: a copy you can change in drafts` }, 'design'),
-      h('span.mk-meta', `from ${meta.source ?? '?'}${when ? ', ' + when : ''}`),
+      h('span.mk-meta', `${meta.source ? `from ${meta.source}` : 'blank'}${when ? ', ' + when : ''}`),
       compareSwitch(meta, sourceGone),
       h('span.spacer'), picker,
       modeToggle({ onNeedDraft: (a) => openDraftPicker(a, { edit: true, drafts }) })),

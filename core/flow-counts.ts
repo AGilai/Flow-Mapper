@@ -161,7 +161,7 @@ export function describeCount(c: FlowCount): string {
     .filter(Boolean).join(', ');
 }
 
-/** 0.32.1 (#75): `${service}:${ingress}` of an entry point -> how many marked steps (step-marks.ts) its flow runs; entries with none are absent. */
+/** 0.32.2 (#75): `${service}:${ingress}` of an entry point -> how many marked steps (step-marks.ts) its flow runs; entries with none are absent. */
 export function markedReached(g: GraphIndex): Map<string, number> {
   const hit = markedDone.get(g);
   if (hit) return hit;
