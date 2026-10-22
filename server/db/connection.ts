@@ -15,6 +15,8 @@ export function openDb(path: string): DB {
   const db = new DatabaseSync(path);
   db.exec('PRAGMA busy_timeout = 5000; PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
   migrate(db, path);
+  // Statistics for the query planner (perf F11): analyse what is missing once at open (0x10002 = also tables never analysed); the server then runs a plain PRAGMA optimize hourly.
+  if (path !== ':memory:') db.exec('PRAGMA optimize=0x10002');
   return db;
 }
 
