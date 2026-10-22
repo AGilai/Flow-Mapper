@@ -38,6 +38,7 @@ UI / agent ── GET /api/envs/:env/... ─► server/routes/queries.ts ─► 
 | `system-graph.ts` | nodes/edges for the system map (with and without channels) |
 | `service-view.ts` | one service's ingress/egress/resources with peers |
 | `trace.ts`, `trace-defer.ts`, `trace-order.ts` | ordered flow from an ingress or function (intra or full). 0.32.4 (#73): an async call's work runs after the caller's remaining steps (`trace-defer.ts`); the work carries `of` = the `n` of the message that started it, and the views (`flow-scan.js`, `flow-lane.js`) read the tags, not depth; `trace-order.ts` is the fan-out lifeline order |
+| `trace-types.ts`, `alternatives.ts`, `trace-counts.ts` | 0.37.0 (#82): `trace-types.ts` holds the trace shapes (Message, Trace, Decision; `trace.ts` re-exports them). `alternatives.ts` is the either/or walk: `altIndex(g)` (groups, step id -> arms; memoised per GraphIndex), `enterStep` (the arm path a step runs under, the `fixes` in force, an excluded arm is skipped), `withDecisions` (`decisions` and the stable `key`s, stamped once on the canonical trace); `trace-counts.ts` the min-max ranges (`rangeOf`). Steps are `<service>:<fn>#<seq>`; `docs/plans/alternatives.md` is the plan |
 | `paths.ts` | service-to-service paths |
 | `health.ts` | link-health report |
 | `search.ts` | text search |

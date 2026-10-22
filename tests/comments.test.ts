@@ -12,7 +12,7 @@ let app: Awaited<ReturnType<typeof startDesign>>;
 let step: string;
 before(async () => {
   app = await startDesign();
-  const t = (await app.call('GET', '/api/envs/prod/trace?service=api-gateway&ingress=in.createOrder&scope=full&maxMessages=2000')).body;
+  const t = (await app.call('GET', '/api/envs/prod/trace?detail=full&service=api-gateway&ingress=in.createOrder&scope=full&maxMessages=2000')).body;
   step = stepKeys(t.messages)[2];
   const c = await app.call('POST', '/api/envs', { name: 'dsn', source: 'prod', mode: 'full' }); // a design with every flow of prod
   assert.equal(c.status, 201, JSON.stringify(c.body));

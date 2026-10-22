@@ -70,7 +70,7 @@ test('the draft view shows the overlay: new component, trace of the new flow, en
   assert.ok(!(await get('inventory', false)).some((x: any) => x.id === 'pop'));
   const t = await get('trace?service=pop&ingress=in.open');
   assert.ok(t.messages.some((m: any) => m.from === 'svc:pop' && m.to.includes('auth-svc')), 'the flow of the new endpoint traces into auth-svc');
-  assert.equal((await app.call('GET', '/api/envs/hld/trace?service=pop&ingress=in.open')).status, 404);
+  assert.equal((await app.call('GET', '/api/envs/hld/trace?detail=full&service=pop&ingress=in.open')).status, 404);
   const info = await get('endpoints/pop/in.open');
   assert.deepEqual(info.dtos?.request?.content ?? info.slots?.find((s: any) => s.role === 'request')?.dto?.content, { device: 'x' });
   assert.deepEqual((await get('events/PopOpened')).dto.content, { id: 'x' });
@@ -84,7 +84,7 @@ test('the draft view shows the overlay: new component, trace of the new flow, en
 test('a draft read never invalidates or rebuilds the environment\'s cache entry', async () => {
   const g1 = app.ctx.graph('hld');
   await app.call('GET', '/api/envs/hld/inventory?draft=reads');
-  await app.call('GET', '/api/envs/hld/trace?service=pop&ingress=in.open&draft=reads');
+  await app.call('GET', '/api/envs/hld/trace?detail=full&service=pop&ingress=in.open&draft=reads');
   assert.equal(app.ctx.graph('hld'), g1, 'same graph object');
   const v1 = app.ctx.view('hld', 'reads').g;
   assert.equal(app.ctx.view('hld', 'reads').g, v1, 'the draft graph is cached too');

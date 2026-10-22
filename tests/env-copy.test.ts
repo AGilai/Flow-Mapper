@@ -220,7 +220,7 @@ test('#58 components with behaviour: functions come too, same trace as the sourc
   }
   assert.ok(same > 0, 'a copied entry point traces exactly like the source');
   const e0 = eps[0];
-  assert.equal((await app.call('GET', `/api/envs/beh-1/trace?service=${e0.service}&ingress=${e0.id}`)).status, 200);
+  assert.equal((await app.call('GET', `/api/envs/beh-1/trace?detail=full&service=${e0.service}&ingress=${e0.id}`)).status, 200);
   const m = (await app.call('GET', '/api/envs/beh-1/marks')).body;
   assert.deepEqual(m.marks, {}); assert.deepEqual(m.ghosts, {});
   assert.deepEqual(m.refs?.endpoints ?? {}, {}, 'a copied endpoint with its behaviour is not a reference');

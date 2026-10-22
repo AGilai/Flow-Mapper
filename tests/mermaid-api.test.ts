@@ -66,7 +66,7 @@ test('import: one batch of ops, the flow is there with its name, notes, http and
   const stored = await ops('hld', d);
   assert.equal(stored.length, r.body.added);
   assert.ok(stored.every((o) => o.origin?.kind === 'mermaid' && o.origin.batch === r.body.batch && o.author === 'tester'));
-  const t = (await app.call('GET', `/api/envs/hld/trace?service=users-svc&ingress=${r.body.flow.ingress}&draft=${d}`)).body;
+  const t = (await app.call('GET', `/api/envs/hld/trace?detail=full&service=users-svc&ingress=${r.body.flow.ingress}&draft=${d}`)).body;
   assert.equal(t.start.name, 'Agent connects');
   const calls = t.messages.filter((m: any) => m.kind === 'egress').map((m: any) => `${m.from}>${m.to}|${m.note ?? ''}`);
   assert.ok(calls.some((c: string) => c.startsWith('svc:users-svc>svc:auth-svc')), JSON.stringify(calls));

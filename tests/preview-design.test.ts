@@ -106,7 +106,7 @@ test('13 marks carry the same refs; the trace and the call are decorated like th
   design.readAs('sase-hld', 'hld-import');
   const { trace } = await import(pathToFileURL(join(out, 'core/trace.js')).href);
   const g = design.g('sase-hld'), t = trace(g, { service: 'sase-agent', ingress: 'in.tunnel.open' }, { scope: 'full', maxDepth: 25, maxMessages: 500 });
-  assert.deepEqual(json(design.traceOut('sase-hld', t, g)), await srv('GET', '/api/envs/sase-hld/trace?service=sase-agent&ingress=in.tunnel.open&draft=hld-import'));
+  assert.deepEqual(json(design.traceOut('sase-hld', t, g)), await srv('GET', '/api/envs/sase-hld/trace?detail=full&service=sase-agent&ingress=in.tunnel.open&draft=hld-import'));
   assert.equal(design.traceOut('sase-hld', t, g).partial.steps.length, 1);
   assert.deepEqual(json(await design.api.call('sase-hld', 'pop-edge', 'out.users.posture')), await srv('GET', '/api/envs/sase-hld/call?service=pop-edge&egress=out.users.posture&draft=hld-import'));
   assert.equal(design.traceOut('prod', trace(design.g('prod'), { service: 'users-svc', ingress: 'in.getPosture' }, { scope: 'full' }), design.g('prod')).partial, undefined, 'a sealed environment: nothing added');

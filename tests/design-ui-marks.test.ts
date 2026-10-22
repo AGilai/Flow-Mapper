@@ -48,7 +48,7 @@ test('on the demo draft: the new component head carries the spark, its own calls
     await app.call('POST', '/api/ingest', { manifests: all(SAMPLES) });
     seedEnvRecipes(app.ctx, join(SAMPLES, 'envs'));
     const m = store(...((b: any) => [b.marks, b.ghosts, { counts: b.counts }])((await app.call('GET', '/api/envs/sase-hld/marks?draft=hld-import')).body));
-    const t = (await app.call('GET', '/api/envs/sase-hld/trace?service=sase-agent&ingress=in.tunnel.open&draft=hld-import')).body;
+    const t = (await app.call('GET', '/api/envs/sase-hld/trace?detail=full&service=sase-agent&ingress=in.tunnel.open&draft=hld-import')).body;
     assert.equal(m.markOf('svc:sase-agent').mark, 'new');
     const marked = t.messages.map((x: any) => arrowMark(m, x)).filter(Boolean).map((r: any) => r.anchor);
     assert.deepEqual(marked, ['ing:auth-svc/in.token.device'], 'only the call into the new endpoint of auth-svc; the calls of the new components carry none (their heads do)');
@@ -56,9 +56,9 @@ test('on the demo draft: the new component head carries the spark, its own calls
     assert.deepEqual(servicesOf(t).filter((s: string) => lm.head({ kind: 'service', service: s })?.info.mark === 'new'), ['sase-agent', 'pop-edge']);
     assert.equal(lm.head({ kind: 'service', service: 'auth-svc' }).info.mark, 'changed');
     assert.ok(t.messages.some((x: any) => x.operation === 'POST /token' && x.label.includes('http:POST auth-svc/token')), 'a call carries its own words apart from the key in the label');
-    const nh = await app.call('GET', '/api/envs/sase-hld/trace?service=users-svc&ingress=in.getUser');
+    const nh = await app.call('GET', '/api/envs/sase-hld/trace?detail=full&service=users-svc&ingress=in.getUser');
     assert.equal(nh.status, 409); assert.equal(nh.body.error.code, 'NO_HANDLER'); assert.equal(nh.body.error.details.source, 'prod');
-    assert.equal((await app.call('GET', '/api/envs/sase-hld/trace?service=users-svc&ingress=nope')).status, 404);
+    assert.equal((await app.call('GET', '/api/envs/sase-hld/trace?detail=full&service=users-svc&ingress=nope')).status, 404);
   } finally { await app.close(); }
 });
 

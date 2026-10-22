@@ -45,10 +45,10 @@ test('API and MCP trace return the fan-out fields', async () => {
   try {
     const r = await app.call('POST', '/api/ingest', { manifests: sampleManifests() });
     assert.equal(r.status, 201, JSON.stringify(r.body));
-    const api = (await app.call('GET', '/api/envs/prod/trace?service=api-gateway&ingress=in.createOrder')).body;
+    const api = (await app.call('GET', '/api/envs/prod/trace?detail=full&service=api-gateway&ingress=in.createOrder')).body;
     assert.equal(api.messages.filter((m: any) => m.deliveries === 3).length, 1);
     assert.deepEqual(api.messages.filter((m: any) => m.delivery).map((m: any) => m.delivery), [1, 1, 2, 2, 3, 3]);
-    const mcp = JSON.parse((await app.call('POST', '/mcp', { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'trace_flow', arguments: { env: 'prod', service: 'api-gateway', ingress: 'in.createOrder' } } })).body.result.content[0].text);
+    const mcp = JSON.parse((await app.call('POST', '/mcp', { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'trace_flow', arguments: { detail: 'full', env: 'prod', service: 'api-gateway', ingress: 'in.createOrder' } } })).body.result.content[0].text);
     assert.equal(mcp.messages.filter((m: any) => m.delivery).length, 6);
   } finally { app.close(); }
 });

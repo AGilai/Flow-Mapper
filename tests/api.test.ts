@@ -97,7 +97,7 @@ test('views: system, service, trace, paths, search, entry points', async () => {
   assert.ok(sys.body.nodes.length > 10 && sys.body.edges.length > 10);
   const sv = await app.call('GET', '/api/envs/prod/views/service/orders-svc');
   assert.ok(sv.body.ingress.find((i: any) => i.id === 'in.create').callers.some((c: any) => c.service === 'api-gateway'));
-  const tr = await app.call('GET', '/api/envs/prod/trace?service=api-gateway&ingress=in.createOrder&scope=full');
+  const tr = await app.call('GET', '/api/envs/prod/trace?detail=full&service=api-gateway&ingress=in.createOrder&scope=full');
   assert.equal(tr.status, 200);
   assert.ok(tr.body.messages.length > 10);
   const p = await app.call('GET', '/api/envs/prod/paths?from=api-gateway&to=notifications-svc');
@@ -106,7 +106,7 @@ test('views: system, service, trace, paths, search, entry points', async () => {
   assert.ok(s.body.some((h: any) => h.type === 'channel'));
   const ep = await app.call('GET', '/api/envs/prod/entry-points');
   assert.ok(ep.body.some((e: any) => e.service === 'api-gateway'));
-  assert.equal((await app.call('GET', '/api/envs/prod/trace?service=nope&fn=x')).status, 404);
+  assert.equal((await app.call('GET', '/api/envs/prod/trace?detail=full&service=nope&fn=x')).status, 404);
 });
 
 test('bugs: report, prioritize, workflow, logs, comments', async () => {
@@ -154,7 +154,7 @@ test('MCP over HTTP: initialize, list tools, call tools', async () => {
   const tools = await app.call('POST', '/mcp', { jsonrpc: '2.0', id: 2, method: 'tools/list' });
   const names = tools.body.result.tools.map((t: any) => t.name);
   for (const n of ['search', 'trace_flow', 'link_health', 'report_bug', 'update_bug', 'edit_design']) assert.ok(names.includes(n), n);
-  const call = await app.call('POST', '/mcp', { jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'trace_flow', arguments: { env: 'prod', service: 'orders-svc', ingress: 'in.create', scope: 'intra' } } });
+  const call = await app.call('POST', '/mcp', { jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'trace_flow', arguments: { detail: 'full', env: 'prod', service: 'orders-svc', ingress: 'in.create', scope: 'intra' } } });
   assert.equal(call.body.result.isError, false);
   assert.ok(JSON.parse(call.body.result.content[0].text).messages.length > 3);
   const err = await app.call('POST', '/mcp', { jsonrpc: '2.0', id: 4, method: 'tools/call', params: { name: 'get_service', arguments: { env: 'prod', service: 'ghost' } } });

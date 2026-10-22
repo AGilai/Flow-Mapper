@@ -65,7 +65,7 @@ test('a wrapper is never a producer, node or edge: each service publishes once',
 });
 
 test('trace messages carry via on the egress call, once', async () => {
-  const t = (await app.call('GET', '/api/envs/e/trace?service=wrapped&fn=f&scope=full')).body;
+  const t = (await app.call('GET', '/api/envs/e/trace?detail=full&service=wrapped&fn=f&scope=full')).body;
   const withVia = t.messages.filter((m: any) => m.via);
   assert.equal(withVia.length, 1);
   assert.equal(viaLabel(withVia[0].via), 'SNSManager.publish');

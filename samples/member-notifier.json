@@ -1,0 +1,73 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "version": 1,
+  "harvestedAt": "2026-10-22T09:00:00Z",
+  "commit": "b82b82b",
+  "service": {
+    "name": "member-notifier",
+    "kind": "service",
+    "team": "identity",
+    "repo": "github.com/acme/member-notifier",
+    "language": "javascript",
+    "description": "Sends the mails of the member demo (#82)",
+    "tags": [
+      "demo"
+    ]
+  },
+  "functions": [
+    {
+      "id": "welcome",
+      "name": "send welcome mail",
+      "file": "mail.js",
+      "line": 5,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "kind": "leaf",
+          "operation": "send welcome mail"
+        }
+      ]
+    },
+    {
+      "id": "invite",
+      "name": "send invitation",
+      "file": "mail.js",
+      "line": 20,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "kind": "leaf",
+          "operation": "send invitation"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.welcome",
+      "bindKey": "http:POST member-notifier/welcome",
+      "transport": "http",
+      "handler": "welcome",
+      "entryPoint": false,
+      "details": {
+        "method": "POST",
+        "path": "/welcome"
+      }
+    },
+    {
+      "id": "in.invite",
+      "bindKey": "http:POST member-notifier/invite",
+      "transport": "http",
+      "handler": "invite",
+      "entryPoint": false,
+      "details": {
+        "method": "POST",
+        "path": "/invite"
+      }
+    }
+  ]
+}

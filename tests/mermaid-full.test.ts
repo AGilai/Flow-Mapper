@@ -19,7 +19,7 @@ after(() => app.close());
 const draft = async (env: string) => (await app.call('POST', `/api/envs/${env}/drafts`, { name: 'full' })).body.slug as string;
 const imp = (env: string, slug: string, text: string, path = '/mermaid') => app.call('POST', `/api/envs/${env}/drafts/${slug}${path}`, { text, groupPath: 'platform' });
 const exp = async (env: string, slug: string, f: { service: string; ingress: string }) => (await app.call('GET', `/api/envs/${env}/flows/mermaid?service=${f.service}&ingress=${f.ingress}&draft=${slug}`)).body as string;
-const traceOf = async (env: string, slug: string, f: { service: string; ingress: string }) => (await app.call('GET', `/api/envs/${env}/trace?service=${f.service}&ingress=${f.ingress}&draft=${slug}`)).body;
+const traceOf = async (env: string, slug: string, f: { service: string; ingress: string }) => (await app.call('GET', `/api/envs/${env}/trace?detail=full&service=${f.service}&ingress=${f.ingress}&draft=${slug}`)).body;
 
 test('parser: the sample gives frames, marks, notes, returns, links and directives', () => {
   const p = parseMermaid(SAMPLE);

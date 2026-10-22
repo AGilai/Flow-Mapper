@@ -31,13 +31,13 @@ test('schema: alternatives valid, invalid, and an old manifest stays valid', () 
 let app: Awaited<ReturnType<typeof startApp>>;
 before(async () => { app = await startApp(); });
 after(() => app.close());
-const trace = async () => (await app.call('GET', '/api/envs/prod/trace?service=api-gateway&ingress=in.getOrder')).body.messages as any[];
+const trace = async () => (await app.call('GET', '/api/envs/prod/trace?detail=full&service=api-gateway&ingress=in.getOrder')).body.messages as any[];
 
 test('API: ingest then trace returns alternatives verbatim with the step id; absent when the step has none', async () => {
   assert.equal((await app.call('POST', '/api/ingest', withAlt([ALT]))).status, 201);
   const msgs = await trace(); const m = msgs.find((x) => x.alternatives);
   assert.deepEqual(m.alternatives, [ALT]); assert.ok(!('fixes' in m)); assert.equal(m.stepId, 'api-gateway:routeGetOrder#1');
-  const plain = (await app.call('GET', '/api/envs/prod/trace?service=api-gateway&ingress=in.createOrder')).body.messages as any[];
+  const plain = (await app.call('GET', '/api/envs/prod/trace?detail=full&service=api-gateway&ingress=in.createOrder')).body.messages as any[];
   assert.ok(plain.every((x) => !('alternatives' in x) || x.service === 'api-gateway'));
   assert.ok(msgs.some((x) => !('alternatives' in x) && !('stepId' in x)));
   assert.equal((await app.call('POST', '/api/ingest', { ...withAlt([{ group_id: 'g' }]), version: 99 })).status, 422);
@@ -59,7 +59,7 @@ test('API: details.alternatives is read the same way; the top-level field wins',
 });
 
 test('MCP trace_flow returns alternatives and stepId', async () => {
-  const r = await app.call('POST', '/mcp', { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'trace_flow', arguments: { env: 'prod', service: 'api-gateway', ingress: 'in.getOrder' } } });
+  const r = await app.call('POST', '/mcp', { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'trace_flow', arguments: { detail: 'full', env: 'prod', service: 'api-gateway', ingress: 'in.getOrder' } } });
   const out = JSON.parse(r.body.result.content[0].text);
   const m = out.messages.find((x: any) => x.alternatives);
   assert.equal(m.alternatives[0].group_id, 'top'); assert.deepEqual(m.fixes, FIX); assert.equal(m.stepId, 'api-gateway:routeGetOrder#1');

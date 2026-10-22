@@ -90,9 +90,9 @@ test('the middleware call is a real edge on the system map, in the service view 
 });
 
 test('API and MCP trace_flow include the middleware', async () => {
-  const api = (await app.call('GET', '/api/envs/prod/trace?service=reports-api&ingress=in.getReport')).body;
+  const api = (await app.call('GET', '/api/envs/prod/trace?detail=full&service=reports-api&ingress=in.getReport')).body;
   assert.ok(api.messages.some((m: any) => m.middleware?.fn === 'authenticate'));
-  const res = await app.call('POST', '/mcp', { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'trace_flow', arguments: { env: 'prod', service: 'reports-api', ingress: 'in.getReport' } } });
+  const res = await app.call('POST', '/mcp', { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'trace_flow', arguments: { detail: 'full', env: 'prod', service: 'reports-api', ingress: 'in.getReport' } } });
   const out = JSON.parse(res.body.result.content[0].text);
   assert.ok(out.messages.some((m: any) => m.middleware?.fn === 'authenticate' && m.egress === 'auth.verify'));
   assert.equal(out.messages[0].middlewareChain.length, 2);
