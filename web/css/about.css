@@ -4,6 +4,7 @@
 .about-body.open { max-height: none; }
 .about-body.folded::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 2.4em; background: linear-gradient(transparent, var(--panel, var(--paper))); pointer-events: none; }
 .about-more { justify-self: start; }
+.about-more[hidden] { display: none; }
 .about-body p, .about-prev p { margin: 0 0 .6em; }
 .about-body p > strong:only-child, .about-prev p > strong:only-child { display: block; margin-top: .5em; color: var(--ink); font-size: 1.04em; }
 .about-body ul, .about-body ol, .about-prev ul, .about-prev ol { margin: 0 0 .6em; padding-left: 1.4em; }
