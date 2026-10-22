@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased
+## 0.37.1 and 0.37.0 (2026-10-22, shipped together)
 **#82 part 2, A (0.37.0): arms and locks in the trace.** `GET /api/envs/:env/trace` and MCP `trace_flow` add, only for a flow that reaches an `alternatives` group (every other trace is byte-identical, tested against a golden file):
 - `arms` on a message: the either/or arms it sits in, outermost first, each `"<group_id>:<arm>"` (split at the first `:`). An arm's step brings its whole subtree (callees, deliveries, async work). Nested groups: a message in an arm of a group that sits in an arm of another carries both.
 - `decisions` on the trace, one per group reached, first seen first: `{group_id, name, template_name, llm_name, depends_on, guard, parent?: {group_id, arm}, lock?: {arm, at, source?, literal?}, lock_places?: {fixed, of}, arms: [{arm, label, guard_text, steps: {min, max}}]}`. `name` is `llm_name` when there is one. `steps` is what the arm shows as a range (a nested undecided group adds its smallest and largest arm, never the sum).
