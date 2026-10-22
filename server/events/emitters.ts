@@ -1,7 +1,7 @@
 // The one place per event kind that builds a push event's payload. Called by the store layer after the write committed.
 
 import type { DB } from '../db/connection.ts';
-import { emit } from './bus.ts';
+import { emit, emitMany, type Draft } from './bus.ts';
 
 const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + '…' : s);
 
@@ -28,13 +28,33 @@ export function bugPatched(db: DB, cur: any, after: any, patchKeys: string[]) {
   if (fields.length) emit(db, { type: 'bug.updated', ...base, summary: `#${cur.id} updated: ${fields.join(', ')}`, data: { fields } });
 }
 
-export function manifestIngested(db: DB, r: { env: string; service: string; fromVersion: unknown; toVersion: unknown; changes: unknown }, m: any, source: string) {
-  const producer = (JSON.stringify(m).match(/"producer":"([^"]*)"/) ?? [])[1] ?? null;
+/** The first string `producer` in the manifest, in the order JSON.stringify writes it (what `/"producer":"([^"]*)"/` found in the serialised manifest), without serialising it. */
+export function producerOf(m: unknown): string | null {
+  const walk = (v: unknown): string | null => {
+    if (Array.isArray(v)) { for (const x of v) { const r = walk(x); if (r !== null) return r; } return null; }
+    if (v && typeof v === 'object') {
+      for (const [k, x] of Object.entries(v)) {
+        if (k === 'producer' && typeof x === 'string') return JSON.stringify(x).slice(1).split('"')[0];
+        const r = walk(x);
+        if (r !== null) return r;
+      }
+    }
+    return null;
+  };
+  return walk(m);
+}
+
+type Ingested = { env: string; service: string; fromVersion: unknown; toVersion: unknown; changes: unknown };
+function manifestEvent(r: Ingested, m: any, source: string): Draft {
+  const producer = producerOf(m);
   const n = (o: any) => Object.values(o ?? {}).reduce((a: number, l: any) => a + l.length, 0);
   const counts = { added: n((r.changes as any).added), changed: n((r.changes as any).changed), removed: n((r.changes as any).removed) };
-  emit(db, { type: 'manifest.ingested', env: r.env, summary: `${r.service} ${r.fromVersion ?? 'new'} -> ${r.toVersion} (${m.kind}) in ${r.env}`,
-    data: { service: r.service, version: r.toVersion, fromVersion: r.fromVersion, kind: m.kind, producer, source, changes: counts } });
+  return { type: 'manifest.ingested', env: r.env, summary: `${r.service} ${r.fromVersion ?? 'new'} -> ${r.toVersion} (${m.kind}) in ${r.env}`,
+    data: { service: r.service, version: r.toVersion, fromVersion: r.fromVersion, kind: m.kind, producer, source, changes: counts } };
 }
+export const manifestIngested = (db: DB, r: Ingested, m: any, source: string) => emit(db, manifestEvent(r, m, source));
+/** A batch: one transaction for all its events (perf batch 3, F12). */
+export const manifestsIngested = (db: DB, rs: Ingested[], ms: any[], source: string) => emitMany(db, rs.map((r, i) => manifestEvent(r, ms[i], source)));
 
 export function envCreated(db: DB, e: { name: string; source?: string | null; createdBy?: string }) {
   emit(db, { type: 'env.created', env: e.name, summary: `environment ${e.name} created${e.source ? ` from ${e.source}` : ''}`, data: { source: e.source ?? null, createdBy: e.createdBy ?? null } });

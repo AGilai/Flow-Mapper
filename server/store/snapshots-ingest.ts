@@ -10,7 +10,7 @@ import { HttpError, conflict, invalid, notFound } from '../errors.ts';
 import { getSnapshotRow, loadEntities, loadModel, rowToService, type Entities, type Source, type WriteResult } from './snapshots-read.ts';
 import { ensureEnv, guardEnv, type Writer } from './envs.ts';
 import { assignColorsIn } from './colors.ts';
-import { manifestIngested } from '../events/emitters.ts';
+import { manifestsIngested } from '../events/emitters.ts';
 import { assertIntegrity, diff, replaceEntities, upsertSnapshot, writeChangelog } from './snapshots-write.ts';
 import { withDry } from './dry-run.ts';
 
@@ -43,7 +43,7 @@ export function ingestBatch(db: DB, manifests: any[], source: Source = 'api', { 
     prelude?.();
     return ingestIn(db, manifests, source, { writer: dryRun ? 'dry' : 'harvester', graphs: dryRun ? undefined : graphs });
   });
-  if (!dryRun) results.forEach((r, i) => manifestIngested(db, r, manifests[i], source)); // after the commit
+  if (!dryRun) manifestsIngested(db, results, manifests, source); // after the commit, all events in one transaction
   return results;
 }
 

@@ -4,6 +4,7 @@
 // Emitting never throws into the write that caused it: the write has already committed.
 
 import type { DB } from '../db/connection.ts';
+import { tx } from '../db/connection.ts';
 
 export interface PushEvent {
   id: number; type: string; at: string; env?: string; bugId?: number; reporter?: string; summary: string; data: Record<string, unknown>;
@@ -67,6 +68,38 @@ export class Bus {
     }
   }
 
+  /**
+   * Several events from one write (a batch of manifests): one transaction (one WAL commit instead of two per event), one prune at the end. The same ids,
+   * rows, ring and subscriber calls as emitting them one by one (a later prune covers the earlier ones: both thresholds only grow); the subscribers run
+   * after the commit, in order. If the batch cannot be recorded in one go it falls back to one by one.
+   */
+  emitMany(ds: Draft[]): (PushEvent | null)[] {
+    if (ds.length < 2) return ds.map((d) => this.emit(d));
+    const made: PushEvent[] = [];
+    try {
+      tx(this.db, () => {
+        const ins = this.db.prepare('INSERT INTO events (type, at, env, bug_id, reporter, summary, data) VALUES (?, ?, ?, ?, ?, ?, ?)');
+        for (const d of ds) {
+          const at = new Date().toISOString();
+          const id = Number(ins.run(d.type, at, d.env ?? null, d.bugId ?? null, d.reporter ?? null, d.summary, JSON.stringify(d.data ?? {})).lastInsertRowid);
+          made.push({ id, type: d.type, at, ...(d.env !== undefined && { env: d.env }), ...(d.bugId !== undefined && { bugId: d.bugId }),
+            ...(d.reporter !== undefined && { reporter: d.reporter }), summary: d.summary, data: d.data ?? {} });
+        }
+        const last = made[made.length - 1];
+        this.prune(last.id, last.at);
+      });
+    } catch (err) {
+      console.error('flow-mapper: could not record the batch of events in one transaction, recording one by one', err);
+      return ds.map((d) => this.emit(d));
+    }
+    for (const e of made) {
+      this.ring.push(e);
+      if (this.ring.length > RING_SIZE) this.ring.shift();
+    }
+    for (const e of made) for (const fn of [...this.subs]) { try { fn(e); } catch (err) { console.error('event subscriber failed', err); } }
+    return made;
+  }
+
   private prune(id: number, at: string) {
     this.db.prepare('DELETE FROM events WHERE id <= ? OR at < ?').run(id - KEEP_ROWS, new Date(Date.parse(at) - KEEP_MS).toISOString());
   }
@@ -102,6 +135,7 @@ export function busFor(db: DB): Bus {
 }
 /** Emit on the bus of `db`. Call after the write's transaction has committed. */
 export const emit = (db: DB, d: Draft) => busFor(db).emit(d);
+export const emitMany = (db: DB, ds: Draft[]) => busFor(db).emitMany(ds);
 
 /** Once at startup: record `version.deployed` when the version differs from the last recorded one. */
 export function announceVersion(db: DB, version: string) {
