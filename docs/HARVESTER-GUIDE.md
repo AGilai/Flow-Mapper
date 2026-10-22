@@ -150,6 +150,13 @@ needs no second branch, so a `loop` or `opt` is one section. `groups` replaces `
 for that step; steps without it work as before. The trace message's `alt` keeps `{group, branch, of}` for the innermost
 frame and adds `kind` (when not `alt`), `condition` and `parent` (the enclosing frame, the same shape).
 
+**Notes over lifelines** (`over`, 0.32.1, #74): a classified leaf step (`kind: "leaf"`, no target) is a note on its component and
+is not drawn by default. Give it `over`, a list of components (or data stores, by their instance or database name:
+`cache-main`, `orders-db`), and the flow view draws the note as a box: over one name it sits under that lifeline, over
+several it spans from the leftmost to the rightmost of them (a folded lifeline: out to the edge of its fold column). The
+note's text is the step's `operation` and `note` (`order served · the cache and the database agree`); names the flow
+does not draw are ignored, and none left puts the note under the component that runs the step. The trace message carries `over`.
+
 **Per-caller event types** (`bind`, `eventFrom`): when a publish sits in a shared function and its event type is
 a parameter, each caller passes its own constant, and one `event` on the step would be wrong for all but one
 of them. Put the value on the call and read it at the publish:
