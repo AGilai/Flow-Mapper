@@ -70,12 +70,12 @@ test('MCP trace_flow: external by default, detail full, choose as an object, ope
   assert.equal(bad.body.result.isError, true);
 });
 
-test('the page: api.trace asks for the full trace and both arms, so nothing it draws changes', async () => {
+test('the page (0.38.0): a tab asks for detail=full, choose=*:both, group=0 and gets the canonical trace; it chooses in the browser', async () => {
   const c = canonical();
-  const t = await api.trace('prod', { service: 'member-api', ingress: 'in.register', scope: 'full', maxMessages: 500 });
+  const t = await api.trace('prod', { service: 'member-api', ingress: 'in.register', scope: 'full', maxMessages: 500, detail: 'full', choose: '*:both', group: '0' });
   assert.deepEqual(shape(t.messages), shape(c.messages));
   assert.equal(t.detail, 'full');
-  const o = await api.trace('prod', { service: 'orders-svc', ingress: 'in.create', scope: 'full' });
+  const o = await api.trace('prod', { service: 'orders-svc', ingress: 'in.create', scope: 'full', detail: 'full', choose: '*:both', group: '0' });
   const plain = trace(buildIndex(sampleModel()), { service: 'orders-svc', ingress: 'in.create' }, { scope: 'full', maxMessages: 500 })!;
   assert.deepEqual(shape(o.messages), shape(plain.messages), 'a flow without alternatives: what trace() gives');
   assert.deepEqual(Object.keys(o).sort(), Object.keys(plain).sort(), 'and no new field on the trace');

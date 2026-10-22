@@ -30,7 +30,7 @@ export function subRequest(row, { frontier = false } = {}) {
 }
 
 /** One key per distinct trace request: service, ingress, event, frontier. */
-export const requestKey = (q) => [q.service, q.ingress ?? q.fn ?? '', q.event ?? '', q.scope ?? 'full', q.frontier ? 'f' : ''].join('|');
+export const requestKey = (q) => [q.service, q.ingress ?? q.fn ?? '', q.event ?? '', q.scope ?? 'full', q.frontier ? 'f' : '', q.detail ?? '', q.open ?? '', q.choose ?? '', q.group ?? ''].join('|'); // 0.38.0: a view of the same flow is another request
 
 /** A flow's identity without options: service, ingress, event. A row whose flow is one of its ancestors loops back. */
 export const flowId = (q) => `${q.service}|${q.ingress ?? ''}|${q.event ?? ''}`;

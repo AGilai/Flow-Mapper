@@ -21,6 +21,12 @@
       "body": "<p>@{Asaf G.} does the audit trail need the device id? I would add it to the order event.</p>" },
     { "service": "api-gateway", "ingress": "in.createOrder", "author": "Dana Levi", "ago": 300,
       "steps": { "from": "#step:svc:orders-svc>svc:inventory-svc|http:POST inventory-svc/reservations|http", "to": "#step:svc:orders-svc>svc:payments-svc|http:POST payments-svc/payments/charge|http" },
-      "body": "<p>Stock is held first and payment is charged second: if the charge is declined the hold must be released. Retry the reservation 3 times with backoff before giving up.</p>" }
+      "body": "<p>Stock is held first and payment is charged second: if the charge is declined the hold must be released. Retry the reservation 3 times with backoff before giving up.</p>" },
+    { "service": "member-api", "ingress": "in.register", "author": "Dana Levi", "ago": 120,
+      "step": "#step:svc:member-api>svc:member-notifier|http:POST member-notifier/welcome|http http:POST member-notifier/welcome",
+      "body": "<p>The welcome mail goes out only for a brand-new user: it sits on the no (new user) arm, so it is not in the default scenario.</p>" },
+    { "service": "member-api", "ingress": "in.register", "author": "Asaf G.", "ago": 60,
+      "step": "#step:svc:member-api>svc:member-api|link the existing user| link the existing user",
+      "body": "<p>Linking runs inside member-api: it appears under the service's internal calls (Full, or open the service).</p>" }
   ]
 }

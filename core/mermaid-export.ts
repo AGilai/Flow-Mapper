@@ -46,7 +46,7 @@ function labelOf(p: Participant): string {
 
 export function exportMermaid(t: Pick<Trace, 'start' | 'participants' | 'messages'>, opts: MermaidOpts = {}): string {
   const name = (opts.name ?? (t.start as { name?: string }).name ?? '').trim();
-  const keys = stepKeys(t.messages);
+  const keys = t.messages.every((m) => m.key) ? t.messages.map((m) => m.key!) : stepKeys(t.messages);   // 0.38.0: a view of the trace keeps the canonical keys (a `~2` is counted over every arm and every internal call), so descriptions still find their step
   const kept = t.messages.map((m, i) => ({ m, key: keys[i], index: i })).filter(({ m }) => !m.internal && m.kind !== 'frontier');
   const used = new Set(kept.flatMap(({ m }) => [m.from, m.to]));
   for (const { m } of kept) for (const o of m.over ?? []) for (const p of t.participants) if (labelOf(p) === o) used.add(p.id);   // a note spans lifelines even where no arrow touches them
