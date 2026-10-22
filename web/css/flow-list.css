@@ -65,4 +65,5 @@ table.grid tr.tgrp th { text-align: left; background: var(--surface-2); color: v
 .entry-tab:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
 .entry-tab.is-open { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
 .entry-tab[aria-disabled='true'] { color: var(--muted); border-style: dashed; background: none; cursor: not-allowed; }
+@media (pointer: coarse) { .entry-tab::after { content: ''; position: absolute; left: -6px; right: -6px; top: 50%; height: 44px; transform: translateY(-50%); } } /* a >=44px tall hit area; the pill keeps its size */
 @media (pointer: coarse), (max-width: 760px) { .entry-tab { height: 28px; padding: 0 12px; top: 4px; } .entry-r > a.entry { padding-right: 64px; } .entry-r > a.entry > :nth-child(n+2) { margin-right: -56px; } }

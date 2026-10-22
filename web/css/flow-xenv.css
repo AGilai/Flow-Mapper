@@ -13,3 +13,6 @@ body.is-max .xenv-note { display: none; }
 
 .xenv-gone { max-width: 460px; margin: var(--s6) auto; padding: var(--s4) var(--s5); border: 1px dashed var(--line-strong); border-radius: var(--r-sm); background: var(--surface); }
 .xenv-gone p { color: var(--muted); margin: var(--s2) 0 var(--s3); }
+body.is-max .max-bar .max-ro { flex: none; font-size: var(--fs-xs); color: var(--muted); white-space: nowrap; } /* Unreleased: the read-only note, compact, since the full line is hidden here */
+.max-ro-sw { font: inherit; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; }
+.max-ro-sw:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
