@@ -23,7 +23,7 @@ export function createExpanded({ onCollapse = null, onClose = null, onShowOnMap 
     const goQ = () => acc.reveal('q');
     const collapseBtn = h('button.pane-ib.b', { type: 'button', 'data-qa': 'pane-collapse', title: 'Back to the drawer (Esc)', on: { click: () => collapse() } }, icon('unmax'), 'Collapse', h('kbd', 'Esc'));
     const onMap = h('button.btn.sm', { type: 'button', 'data-qa': 'pane-onmap', on: { click: () => { collapse(false); onShowOnMap?.(spec.target); } } }, 'Show on map');
-    const top = h('div.pane-x-top', spec.tile(), h('div.pane-x-title', h('h3', { class: spec.mono ? 'mono' : '' }, spec.title), h('div.crumb', [state.env, ...(spec.crumb ?? [])].filter(Boolean).join(' · '))),
+    const top = h('div.pane-x-top', spec.tile(), h('div.pane-x-title', h('h3', { class: spec.mono ? 'mono' : '' }, spec.title), h('div.crumb', [spec.env ?? state.env, ...(spec.crumb ?? [])].filter(Boolean).join(' · '))),
       h('div.pane-marks', spec.marks?.(goQ) ?? [], spec.inDraft ? h('span.st.new', 'in draft') : null),
       h('div.sp', onMap, collapseBtn, h('button.pane-ib', { type: 'button', 'aria-label': 'Close details', title: 'Close details', on: { click: () => { collapse(false); onClose?.(); } } }, icon('close'))));
     const bar = h('div.pane-x-bar', h('span', 'Expand all / Collapse all:'), h('button.btn.sm', { type: 'button', 'data-qa': 'acc-all', on: { click: () => acc.all(true) } }, 'Expand all'),

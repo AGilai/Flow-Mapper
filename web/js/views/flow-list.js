@@ -7,7 +7,7 @@ import { icon } from '../icons.js';
 import { href, setQuery } from '../router.js';
 import { KEYS, SLIDE_MS, isNarrow, readCollapsed, writeCollapsed, toggleLabel, stripLabel } from '../collapse.js';
 import { createGroup } from './flow-list-groups.js';
-import { TAB_CAP } from './flow-tabs-state.js';
+import { TAB_CAP, qual } from './flow-tabs-state.js';
 import { entryRow, removedRow } from './flow-list-rows.js';
 import { parseRel, relOptions } from './flow-relations-pure.js';
 import { startGroup, encodeGroup, saveGroup, flatOrder } from './flow-list-groupby.js';
@@ -78,11 +78,11 @@ export function createList({ env = '', points: allPoints, counts, cmts = {}, act
     marked = m;
     if (collapsed) word.textContent = stripLabel({ service, active: m.active, count: points.length, summary: summary() });
     const base = (k) => (k ?? '').replace(/(~[^!]*)?(!(intra|full))?$/, '');
-    const open = new Set(m.keys.map(base)), cur = base(m.active);
+    const open = new Set(m.keys.map(base)), cur = base(m.active), mine = (k) => (env ? qual(env, k) : k); // tabs hold qualified keys: a row is open only in ITS env (a prod tab never marks the same-named design row)
     const full = m.keys.length >= TAB_CAP;
     body.querySelectorAll('.entry-r').forEach((r) => {
-      const a = r.querySelector('a.entry'), b = r.querySelector('.entry-tab'), on = open.has(a.dataset.key);
-      a.setAttribute('aria-current', String(a.dataset.key === cur)); a.classList.toggle('has-tab', on);
+      const a = r.querySelector('a.entry'), b = r.querySelector('.entry-tab'), on = open.has(mine(a.dataset.key));
+      a.setAttribute('aria-current', String(mine(a.dataset.key) === cur)); a.classList.toggle('has-tab', on);
       b.classList.toggle('is-open', on); b.setAttribute('aria-disabled', String(full && !on));
       b.title = on ? 'Already open: go to its tab' : full ? `${TAB_CAP} tabs open: close one to open another` : 'Open in a new tab';
     });

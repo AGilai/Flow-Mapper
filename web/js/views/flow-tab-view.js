@@ -18,6 +18,7 @@ import { flowId } from './flow-sub.js';
 import { removedList } from './flow-removed.js';
 import { servicesOf } from './flow-marks.js';
 import { marksNow } from '../design/marks-store.js';
+import { foreignNote } from './flow-xenv-ui.js';
 import { createPartial } from './flow-partial.js';
 import { nameEditor } from './flow-name.js';
 import { createComments } from '../comments/thread.js';
@@ -43,7 +44,7 @@ const kindOf = (key) => String(key).split(':')[0].replace('amqp-queue', 'amqp');
 
 /**
  * createTabView(data, host, active) -> { el, key, draw(), save(), restore(), refreshDots(), insideOpen(), clearMessage(), dispose() }
- * host: { env, opts, panel, flowsEl, traceFor(request), describe(key), openTab(key), openSub(row, origin), openFull(row, origin), openMany(rows, origin),
+ * host: { env (this tab's: tabs of different envs sit side by side), marks (its marks), desc (its description store), nameOf, traceFor, readOnly (a tab of another env), switchEnv(), opts, panel, flowsEl, traceFor(request), describe(key), openTab(key), openSub(row, origin), openFull(row, origin), openMany(rows, origin),
  *         openEntry(spec), isOpen(row, origin), setFrontier(), isActive(key), desc (the description store), rootOf(key) -> {service, ingress} | null }
  */
 export function createTabView(data, host) {
@@ -54,15 +55,16 @@ export function createTabView(data, host) {
   // Descriptions belong to the flow (service + ingress of its entry point; a sub-flow tab belongs to the flow it came from). A function tab has none.
   const root = host.desc ? host.rootOf(key) : null, services = [...new Set(trace.participants.filter((p) => p.kind === 'service').map((p) => p.label))];
   const generate = (callee) => openGenerate({ env: host.env, root, services, callee, onClose: () => host.desc.refresh(root) });
-  const editing = state.mode === 'edit' && !!state.draft;
+  const marks = () => host.marks ?? marksNow(); // the marks of this tab's env
+  const editing = !host.readOnly && state.mode === 'edit' && !!state.draft; // a tab of another env never edits (the draft is the page env's)
   const flowPen = () => (!editing && root ? host.pen?.button('panel-flow', 'flow', { form: 'flow', service: root.service, ingress: root.ingress, name: host.nameOf?.(root.service, root.ingress) ?? '' }) : null); // View mode (0.31.1): the same form, through the draft step
   const editFlow = () => (editing && host.edit && root ? h('button.btn.sm', { type: 'button', 'data-qa': 'edit-flow', on: { click: (e) => { e.preventDefault(); e.stopPropagation(); host.edit.flow(root.service, root.ingress, host.nameOf?.(root.service, root.ingress) ?? '', trace.start?.fn || null); } } }, 'Edit flow') : flowPen());
   const descs = [];
   const label = host.describe(key);
   // The flow's description sits under its title, full width and collapsible (0.20.0); a sub-flow tab keeps its one line.
   const flowBox = root && data.kind !== 'sub' ? descDetails(host.desc, root, null, { cls: 'flowhead', remember: 'flowhead-open', title: 'What this flow is for', onGenerate: () => generate(null), pen: host.pen,
-    summary: [root ? nameEditor({ root, name: host.nameOf?.(root.service, root.ingress) ?? '', fallback: label.title }).el : h('span.fh-t', label.title), label.sub ? h('span.mono.xs.muted', label.sub) : null, linksRow(trace.start?.links), editFlow(), editing ? importButton() : null,
-      exportButton({ ...root, name: host.nameOf?.(root.service, root.ingress) || label.title }), host.max?.button()] }) : null;
+    summary: [root ? nameEditor({ root, name: host.nameOf?.(root.service, root.ingress) ?? '', fallback: label.title, readOnly: host.readOnly }).el : h('span.fh-t', label.title), label.sub ? h('span.mono.xs.muted', label.sub) : null, linksRow(trace.start?.links), editFlow(), editing ? importButton() : null,
+      exportButton({ ...root, env: host.env, name: host.nameOf?.(root.service, root.ingress) || label.title }), host.max?.button()] }) : null;
   const related = root && data.kind !== 'sub' ? createRelations({ host, root, editing }) : null; // 0.28.2: typed links to other flows, under the description
   const subLine = root && data.kind === 'sub' ? descLine(host.desc, root, [`${data.service}:${data.name}`, data.service], { onGenerate: () => generate(data.service) }) : null;
   descs.push(flowBox, subLine);
@@ -72,7 +74,7 @@ export function createTabView(data, host) {
   const partial = createPartial({ trace, editing, onImport: (anchor, source) => host.importRef?.(anchor, source) });
   const noHint = trace.noHandler ? h('div.noh-hint', { role: 'note', 'data-qa': 'no-handler' }, `No handler function. This entry point has no behaviour in ${host.env} yet.`) : null; // #59
   let brackets = null; // comment brackets in the left gutter (0.34.0): made once the walk and the comments exist
-  const walk = createWalkView({ store: host.desc, messages: () => trace.messages, root: data.kind === 'sub' ? null : root, initial: host.initialStep?.(key) ?? null, sb: () => opts.sb, hl: () => opts.hl, zoom: () => factor, onStep: (n) => host.setStep?.(key, n), onRestep: (cols) => render?.restep(cols), onSteps: (st) => partial.update(st), onPick: (n, ev) => brackets?.pick(n, ev) });
+  const walk = createWalkView({ store: host.desc, messages: () => trace.messages, root: data.kind === 'sub' ? null : root, initial: host.initialStep?.(key) ?? null, sb: () => opts.sb, hl: () => opts.hl, zoom: () => factor, readOnly: host.readOnly, onStep: (n) => host.setStep?.(key, n), onRestep: (cols) => render?.restep(cols), onSteps: (st) => partial.update(st), onPick: (n, ev) => brackets?.pick(n, ev) });
   const stepRoot = data.kind === 'sub' ? null : root, sdet = createStepDetails({ store: host.desc, root: stepRoot, opts }); // 0.30.0: title / description on the arrows (opts.sd)
   const unDesc = stepRoot ? host.desc.watch(stepRoot, () => { if (render && opts.sd !== 'a') draw(); }) : null; // a saved or loaded step text redraws the lane when the arrows show it
   const tip = root ? createTip(host.desc, root) : null;
@@ -146,7 +148,7 @@ export function createTabView(data, host) {
       inside.close();
       if (ed?.arrow(m)) return;
       host.flowsEl.classList.add('mp-open');
-      host.panel.open(...messagePanel(m, tr, host.env, 'full', host.openEntry));
+      host.panel.open(...messagePanel(m, tr, host.env, 'full', host.openEntry, marks()));
     } };
 
   function openPublish(pub, g, tr) { // the shared trunk of a fan-out: the publish, then its deliveries (each opens its own arrow)
@@ -155,7 +157,7 @@ export function createTabView(data, host) {
     inside.close();
     host.flowsEl.classList.add('mp-open');
     const events = g.closest('svg')?.__events ?? [];
-    host.panel.open(...publishPanel(pub, (d) => { const k = events.indexOf(d.hop), el = k >= 0 ? g.closest('svg').querySelector(`[data-e="${k}"]`) : g; shared.openMessage(d.msg, el ?? g, tr); }));
+    host.panel.open(...publishPanel(pub, (d) => { const k = events.indexOf(d.hop), el = k >= 0 ? g.closest('svg').querySelector(`[data-e="${k}"]`) : g; shared.openMessage(d.msg, el ?? g, tr); }, host.env));
   }
   shared.openPublish = openPublish;
 
@@ -175,10 +177,10 @@ export function createTabView(data, host) {
   }
 
   function draw() { // options changed (stores, depth): redraw the lane and the lanes of the open cards; their expansion stays
-    if (render) { render.relane(); fill(scroller, head(), noHint, render.laneBox, removedList(marksNow(), servicesOf(trace), { draft: state.draft }), render.idxBox); } else {
+    if (render) { render.relane(); fill(scroller, head(), noHint, render.laneBox, removedList(marks(), servicesOf(trace), { draft: host.readOnly ? null : state.draft, env: host.env }), render.idxBox); } else {
       render = createFlowRender({ trace, tree, key, ancestors: data.start ? [flowId(data.start)] : [] }, shared);
       if (!scroller.clientWidth) render.laneBox.style.visibility = 'hidden'; // drawn before it has a width: show it once laid out to fit
-      fill(scroller, head(), noHint, render.laneBox, removedList(marksNow(), servicesOf(trace), { draft: state.draft }), render.idxBox);
+      fill(scroller, head(), noHint, render.laneBox, removedList(marks(), servicesOf(trace), { draft: host.readOnly ? null : state.draft, env: host.env }), render.idxBox);
     }
     recompute(); requestAnimationFrame(edge);
   }
@@ -188,7 +190,8 @@ export function createTabView(data, host) {
   const backBar = back ? h('div.backbar', backBtn(''), h('span.backtrail.xs.muted', `${back.label} › ${label.title}${label.sub ? ` · ${label.sub}` : ''}`)) : null;
   const maxBar = paintEnv(h('div.max-bar', backBtn('.in-max'), envChip(host.env), h('span.fh-t', (root && host.nameOf?.(root.service, root.ingress)) || label.title), label.sub ? h('span.mono.xs.muted', label.sub) : null, zctl.el), host.env); // shown only while maximized (flow-max.css)
   if (comments) { pane = createPane({ panels: { notes, comments, actions }, diagram: body }); for (const [id, d] of Object.entries(counts)) pane.setCount(id, d); }
-  const el = h('div.flow-tab', maxBar, backBar, h('div.flow-top', flowBox?.el, related?.el, walk.el, partial.el), body, pane?.splitter, pane?.el); // the pane sits under the diagram (0.27.5); the border between them is a drag handle (0.34.0)
+  const xnote = host.readOnly ? foreignNote(host.env, host.design, host.switchEnv) : null; // "Viewing <env>. Switch to it to edit."
+  const el = h('div.flow-tab', maxBar, backBar, xnote, h('div.flow-top', flowBox?.el, related?.el, walk.el, partial.el), body, pane?.splitter, pane?.el); // the pane sits under the diagram (0.27.5); the border between them is a drag handle (0.34.0)
   // maximized, the pane's tab row sticks under the title bar and the step bar, whatever height the step bar has (its description wraps): --max-stick is their height
   const stick = () => el.style.setProperty('--max-stick', `${maxBar.offsetHeight + (el.querySelector('.stepbar')?.offsetHeight ?? 0)}px`);
   const roStick = typeof ResizeObserver === 'function' ? new ResizeObserver(stick) : null;

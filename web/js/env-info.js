@@ -69,3 +69,15 @@ export function envSlotOf(list, name) {
 }
 /** CSS custom properties of an env's colour: `--ec` (bar, border, swatch), `--ei` (chip text). */
 export const envVars = (list, name) => { const n = envSlotOf(list, name); return { '--ec': `var(--env-${n})`, '--ei': `var(--env-${n}-ink)` }; };
+
+/** The short chip text of each env name on the tab strip (0.36.0): up to 6 characters. Names that would read the same keep 5 and take a number
+ *  (`design-a`, `design-b` -> `design`, `desig2`); the order of `names` does not matter. -> Map name -> label */
+export function chipLabels(names) {
+  const out = new Map(), used = new Set(), cut = (n, k) => n.slice(0, k).replace(/-+$/, '');
+  for (const n of [...new Set(names)].sort()) {
+    let l = cut(n, 6);
+    for (let i = 2; used.has(l); i++) l = cut(n, i > 9 ? 4 : 5) + i;
+    used.add(l); out.set(n, l);
+  }
+  return out;
+}

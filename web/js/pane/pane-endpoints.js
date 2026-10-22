@@ -27,8 +27,8 @@ function disclosure(head, detail) {
 
 const callers = (i) => (i.callers?.length ? h('span', 'Called by ', i.callers.map((c, n) => [n ? ', ' : '', h('b', c.service)])) : h('span.muted', i.orphan ? 'Nobody calls it.' : 'No known callers.'));
 
-async function ingressDetail(service, i) {
-  const info = await api.endpoint(state.env, service, i.id).catch(() => null);
+async function ingressDetail(service, i, env = state.env) {
+  const info = await api.endpoint(env, service, i.id).catch(() => null);
   const slots = (info?.slots ?? []).filter((s) => s.dto?.content != null);
   return [
     info?.handler ? h('span', 'Handler ', h('code', info.handler.name ?? info.handler.id), info.handler.file ? h('span.muted', ` ${info.handler.file}${info.handler.line ? `:${info.handler.line}` : ''}`) : null) : null,
@@ -41,9 +41,9 @@ async function ingressDetail(service, i) {
 const egressDetail = (e) => [h('span', e.targets?.length ? ['Reaches ', e.targets.map((t, n) => [n ? ', ' : '', h('b', t.service)])] : 'Reaches nothing known.'), e.dangling ? h('span.pane-bad', 'No endpoint matches this call.') : null];
 
 /** The rows of the Endpoints body for a service view (`GET /views/service/:name`). */
-export function endpointRows(view, service) {
+export function endpointRows(view, service, env = state.env) {
   const ing = view?.ingress ?? [], eg = view?.egress ?? [];
   if (!ing.length && !eg.length) return h('p.pane-none', 'No endpoints.');
   const row = (dir, label, transport, detail) => disclosure([h('span.pane-dir', dir), h('b', label), h('span.r', transport ? chip(transport) : null)], detail);
-  return h('div.pane-eps', ing.map((i) => row('in', ingressLabel(i), i.transport, () => ingressDetail(service, i))), eg.map((e) => row('out', egressLabel(e), e.transport, () => egressDetail(e))));
+  return h('div.pane-eps', ing.map((i) => row('in', ingressLabel(i), i.transport, () => ingressDetail(service, i, env))), eg.map((e) => row('out', egressLabel(e), e.transport, () => egressDetail(e))));
 }

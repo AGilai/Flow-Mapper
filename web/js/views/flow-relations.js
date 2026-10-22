@@ -23,6 +23,7 @@ export function createRelations({ host, root, editing }) {
   if (!root || !isDesign(host.env)) return null;
   const el = h('section.rel-sec', { 'data-qa': 'related-flows', hidden: true, 'aria-label': 'Related flows' });
   let views = [], only = REL_TYPES.includes(host.relType) ? host.relType : null, more = false, gone = false; // `only`: the type chip, kept in the URL as relType=
+  const marks = () => host.marks ?? marksNow(); // the marks of the flow's own environment
   const nameOf = (f) => host.nameOf?.(f.service, f.ingress) || `${f.service} · ${f.ingress}`;
 
   async function remove(v) {
@@ -32,12 +33,12 @@ export function createRelations({ host, root, editing }) {
     } catch (err) { toast(err.message); }
   }
   function row(v) {
-    const info = marksNow()?.markOf?.(`rel:${v.id}`), key = `${v.other.service} · ${v.other.ingress}`, name = host.nameOf?.(v.other.service, v.other.ingress);
+    const info = marks()?.markOf?.(`rel:${v.id}`), key = `${v.other.service} · ${v.other.ingress}`, name = host.nameOf?.(v.other.service, v.other.ingress);
     return h('li.rel-row', { 'data-qa': 'relation', 'data-type': v.type },
       h('span.rel-ty', { title: TYPE_LABEL[v.type] }, v.phrase),
       h('a.rel-name', { href: '#', title: `Open ${key}`, on: { click: (e) => { e.preventDefault(); (host.openFlow ?? host.openEntry)({ service: v.other.service, ingress: v.other.ingress }); } } }, name || key),
       name ? h('span.mono.xs.muted.rel-key', key) : null,
-      info ? markBadge(info, { store: marksNow(), short: true }) : null,
+      info ? markBadge(info, { store: marks(), short: true }) : null,
       editing && host.edit ? h('span.rel-acts',
         h('button.linkish', { type: 'button', 'data-qa': 'relation-edit', on: { click: () => host.edit.relation({ here: root, view: v }) } }, 'Edit'),
         h('button.linkish', { type: 'button', 'data-qa': 'relation-remove', 'aria-label': `Remove the relation with ${name || key}`, on: { click: () => remove(v) } }, 'Remove')) : null,

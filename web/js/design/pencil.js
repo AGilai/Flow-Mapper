@@ -48,8 +48,12 @@ async function chooseDraft(anchor, target) {
     { label: 'Start another draft', icon: 'plus', onSelect: () => startDraft(target) }]);
 }
 
-/** pencils(host) -> { button(item, thing, target, extra?), note(thing, fn), about(owner, target), hint(), resume() }. host = { panel, flowsEl? }. */
+/** What a tab of another environment gets (0.36.0): no pencils, no hint, nothing to resume. It is read only; switch to its environment to edit. */
+const NONE = { button: () => null, note: () => null, about: () => null, hint: () => null, resume: () => {} };
+
+/** pencils(host) -> { button(item, thing, target, extra?), note(thing, fn), about(owner, target), hint(), resume() }. host = { panel, flowsEl?, readOnly? }. */
 export function pencils(host) {
+  if (host.readOnly) return NONE;
   const design = isDesign();
   return {
     /** The pencil of `item` ('header', 'endpoint', ... see pencil-pure.js), labelled "Edit <thing>"; null where the environment gives none. `text`: a text button ("Edit") instead of the bare pencil; `glyph`: another icon (the entry-point row's flow button wears the flow icon, so it is told from the endpoint pencil). */

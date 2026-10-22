@@ -23,12 +23,12 @@ export function createSubsystems(p = EMPTY) {
 
 const cache = new Map();
 onMarks(() => cache.clear());
-const keyOf = () => `${state.env}|${state.draft ?? ''}`;
+const keyOf = (env) => `${env}|${env === state.env ? state.draft ?? '' : ''}`; // the open draft belongs to the page's env only
 
-/** The subsystems store for the current env and draft. */
-export async function loadSubsystems() {
-  const key = keyOf();
-  if (!cache.has(key)) cache.set(key, api.subsystems(state.env).then(createSubsystems, () => createSubsystems()));
+/** The subsystems store for the current env and draft, or (given another env, 0.36.0) that env's committed state. */
+export async function loadSubsystems(env = state.env) {
+  const key = keyOf(env);
+  if (!cache.has(key)) cache.set(key, api.subsystems(env).then(createSubsystems, () => createSubsystems()));
   return cache.get(key);
 }
 export const invalidateSubsystems = () => cache.clear();

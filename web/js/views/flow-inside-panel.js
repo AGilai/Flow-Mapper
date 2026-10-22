@@ -8,7 +8,7 @@ import { href } from '../router.js';
 import { chip } from '../format.js';
 import { idParts } from './flow-async.js';
 import { insideBar } from './flow-inside.js';
-import { servicePath } from './inventory-links.js';
+import { servicePath, envQuery } from './inventory-links.js';
 
 const wrapId = (t) => idParts(t).flatMap((x, i) => (i ? [h('wbr'), x] : [x]));
 const codeLoc = (c) => (c?.file ? `${c.file}${c.line ? ':' + c.line : ''}` : null);
@@ -40,7 +40,7 @@ export function createInside(host, { env, onClose, onOpen, onStep, isActive, des
     const info = insideBar(bar, trace);
     const entry = info.entry;
     const from = trace.participants.find((p) => p.id === entry.from);
-    const all = h('a.fi-all', { href: href(servicePath(bar.service)) }, `All functions of ${bar.service} ›`);
+    const all = h('a.fi-all', { href: href(servicePath(bar.service), envQuery(env)) }, `All functions of ${bar.service} ›`);
     descBox?.dispose(); descBox = desc?.(bar) ?? null; // the bar's description, under the header
     fill(el,
       h('header.fi-head', h('div.grow', h('h2.fi-title', `Inside `, ...wrapId(bar.service)),

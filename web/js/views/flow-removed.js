@@ -3,6 +3,7 @@
 
 import { h } from '../dom.js';
 import { href } from '../router.js';
+import { envQuery } from './inventory-links.js';
 
 /** The title of the list (pure): which wording fits what the marks compare with. */
 export function removedTitle(marks, n, draft) {
@@ -14,10 +15,10 @@ export function removedTitle(marks, n, draft) {
 /** The ghosts of calls (`egr:`) whose caller is one of `services`. */
 export const removedCalls = (marks, services) => services.flatMap((s) => marks.ghostsUnder(`egr:${s}/`));
 
-/** removedList(marks, services, { draft }) -> the box, or null when nothing was removed. */
-export function removedList(marks, services, { draft = null } = {}) {
+/** removedList(marks, services, { draft, env }) -> the box, or null when nothing was removed. `env`: the flow's environment, for the links. */
+export function removedList(marks, services, { draft = null, env = null } = {}) {
   const gone = removedCalls(marks, services);
   if (!gone.length) return null;
   return h('section.mk-removed', { 'data-qa': 'removed-list' }, h('h3', removedTitle(marks, gone.length, draft)),
-    h('ul', gone.map((g) => h('li', g.service ? [h('a', { href: href(`/services/${encodeURIComponent(g.service)}`) }, g.service), ' calls '] : null, h('code.key', g.label)))));
+    h('ul', gone.map((g) => h('li', g.service ? [h('a', { href: href(`/services/${encodeURIComponent(g.service)}`, envQuery(env)) }, g.service), ' calls '] : null, h('code.key', g.label)))));
 }

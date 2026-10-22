@@ -25,13 +25,13 @@ const calm = () => { try { return matchMedia('(prefers-reduced-motion: reduce)')
 
 /** createWalkView({ store, root, messages, initial, onStep(n), onRestep(cols) }) -> { el, decorate(res, built), endsOf(built), hit(event), onKey(ev), move(action), current(), dispose }
  *  onSteps(steps): the numbering of the lane just drawn (the partial-flow line reads it). onRestep(cols): the viewer moved to a step whose lifelines are the columns `cols` (Squeeze folds again for it). endsOf(built): the columns of the current step, before the lane is drawn. */
-export function createWalkView({ store, root, messages = () => null, initial = null, sb = () => 'tad', hl = () => true, zoom = () => 1, onStep, onRestep, onSteps, onPick }) {
+export function createWalkView({ store, root, messages = () => null, initial = null, sb = () => 'tad', hl = () => true, zoom = () => 1, onStep, onRestep, onSteps, onPick, readOnly = false }) {
   let steps = [], built = null, tiles = null, cur = initial ?? 1, curKey = null, jumpOnDraw = initial != null, rng = null; // rng: the range band (0.34.0), kept across a redraw
   let picked = initial != null; // a step the viewer chose (a click, a key, a link with step=): the comments' "Attach to step N" only offers one then
   const watchers = new Set(); // the comments section reads the steps and the current one (0.27.0)
-  const bar = createStepbar({ store, root, sb, onMove: (a) => move(a), onEdit: (anchor) => edit(steps[cur - 1], anchor) });
+  const bar = createStepbar({ store, root, sb, readOnly, onMove: (a) => move(a), onEdit: (anchor) => edit(steps[cur - 1], anchor) });
   /** The step editor (0.30.0) for a step, hanging under `anchor` (the bar, or the step's row). */
-  function edit(st, anchor = bar.bar) { if (root && st) openStepEditor({ store, root, key: st.key, n: st.n, label: st.label, anchor }); }
+  function edit(st, anchor = bar.bar) { if (root && st && !readOnly) openStepEditor({ store, root, key: st.key, n: st.n, label: st.label, anchor }); }
 
   function go(n, { scroll = true, user = true } = {}) {
     cur = clampStep(n, steps.length);
@@ -51,8 +51,8 @@ export function createWalkView({ store, root, messages = () => null, initial = n
     built = lane;
     steps = stepsOf(built, stepKeys, messages());
     onSteps?.(steps);
-    tiles = steps.length ? drawStepTiles(res, built, steps, (n, ev) => { if (!onPick?.(n, ev)) go(n); }, root ? (n) => { go(n, { scroll: false }); edit(steps[n - 1], tiles?.rowEl(n)); } : null, hl) : null;
-    if (root && steps.length) res.body.addEventListener('contextmenu', (ev) => { // right-click an arrow: Edit step description…
+    tiles = steps.length ? drawStepTiles(res, built, steps, (n, ev) => { if (!onPick?.(n, ev)) go(n); }, root && !readOnly ? (n) => { go(n, { scroll: false }); edit(steps[n - 1], tiles?.rowEl(n)); } : null, hl) : null;
+    if (root && !readOnly && steps.length) res.body.addEventListener('contextmenu', (ev) => { // right-click an arrow: Edit step description…
       const g = ev.target.closest?.('.msg[data-e]'), st = g && !ev.defaultPrevented ? stepAtRow(steps, Number(g.getAttribute('data-e'))) : null;
       if (!st) return;
       ev.preventDefault(); go(st.n, { scroll: false });

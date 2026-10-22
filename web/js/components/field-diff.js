@@ -16,8 +16,7 @@ export const schemaAnchor = (source, key) => `schema:${source}/${key}`;
  * fieldDiff(content, anchor) -> null (not a design / no marks loaded) or { head, rows }. `rows` only when a field of this item is marked:
  * then the view is the marked table. `head` is the sentence, or "No field changed since the baseline." for an unmarked existing item.
  */
-export function fieldDiff(content, anchor) {
-  const marks = marksNow();
+export function fieldDiff(content, anchor, marks = marksNow()) {
   if (!anchor || !marks.baselineAt) return null; // not a design environment (or no marks loaded)
   const fm = marks.fieldMarks(anchor), item = marks.markOf(anchor);
   if (item?.mark === 'new') return null; // a new item: its fields carry no marks

@@ -13,11 +13,11 @@ export function slotOf(meta, env, service, kind) {
   return slot >= 1 && slot <= 8 ? slot : null;
 }
 
-/** The CSS colour of a component in the current environment (`var(--cmp-3)`), or null for neutral. `slot`: this flow's de-clashed slot, when known. */
-export const cmpVar = (service, kind, slot = null) => { const n = slot ?? slotOf(state.envMeta, state.env, service, kind); return n ? `var(--cmp-${n})` : null; };
+/** The CSS colour of a component in an environment (`var(--cmp-3)`; the current one unless `env` is given), or null for neutral. `slot`: this flow's de-clashed slot, when known. */
+export const cmpVar = (service, kind, slot = null, env = state.env) => { const n = slot ?? slotOf(state.envMeta, env, service, kind); return n ? `var(--cmp-${n})` : null; };
 
-/** The colour of a lane column (a service with a slot): its flow slot `c.slot` (set by flow-render) or the stored one. */
-export const colVar = (c) => (c?.kind === 'service' ? cmpVar(c.service, c.serviceKind, c.slot) : null);
+/** The colour of a lane column (a service with a slot): its flow slot `c.slot` (set by flow-render) or the stored one, in the column's environment `c.env` (a tab of another env). */
+export const colVar = (c) => (c?.kind === 'service' ? cmpVar(c.service, c.serviceKind, c.slot, c.env ?? state.env) : null);
 
 /** The one colour a set of lifeline columns share (a Squeeze fold of one component), else null. */
 export function sharedVar(cols) {
