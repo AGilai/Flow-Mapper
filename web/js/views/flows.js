@@ -21,6 +21,7 @@ import { createDescStore } from './flow-desc.js';
 import { swap } from './flow-tabs-anim.js';
 import * as T from './flow-tabs-state.js';
 import { decodeStep, encodeStep } from './flow-walk.js';
+import { createBack } from './flow-back.js';
 import { setServiceInfo } from '../design/service-info.js';
 import { openImport } from '../design/import-panel.js';
 import { editOpener, editing } from '../design/edit-open.js';
@@ -128,12 +129,13 @@ export async function render({ main, query }) {
   const host = {
     env: state.env, opts, subs, panel, flowsEl, traceFor: data.traceFor, describe: data.describe, desc, rootOf: (k) => T.flowRoot(k), isActive: (k) => S.active === k,
     openTab: (key, o) => commit(T.openTab(S, key, o)),
-    openSub: (row, origin) => commit(T.openTab(S, T.subKey(row, origin))),
-    openFull: (row, origin) => commit(T.openTab(S, T.fullKey(row.service, row.ingress, origin, row.event))),
-    openMany: (rows, origin) => { const keys = rows.map((r) => T.subKey(r, origin)); commit(keys.reduce((s, k) => T.openTab(s, k, { activate: false }), S), { to: keys[0] }); },
+    openSub: (row, origin) => back.drill(T.subKey(row, origin)),
+    openFull: (row, origin) => back.drill(T.fullKey(row.service, row.ingress, origin, row.event)),
+    openMany: (rows, origin) => { const keys = rows.map((r) => T.subKey(r, origin)); keys.forEach((k) => back.note(k, origin)); commit(keys.reduce((s, k) => T.openTab(s, k, { activate: false }), S), { to: keys[0] }); },
+    backOf: (k) => back.backOf(k), goBack: (k) => back.goBack(k),
     isOpen: (row, origin) => S.keys.includes(T.subKey(row, origin)),
     jumpToLabel: (label) => { const k = S.keys.find((x) => data.peek(x)?.label === label); if (k) commit(T.activate(S, k)); },
-    openEntry: (e) => openEntry(e),
+    openEntry: (e) => back.drill(entryOf(e)), openFlow: (e) => openEntry(e), // openEntry: a zoom-in or "open the async flow" (a sub-flow of the active tab); openFlow: a plain jump
     paintChrome: () => paintChrome(),
     importRef: (anchor, source) => openImport({ panel, flowsEl, anchor, source }),
     zoomOf: (k) => zooms.get(k) ?? 100,
@@ -141,7 +143,7 @@ export async function render({ main, query }) {
     setZoom: (k, v) => { zooms.set(k, v); if (k === S.active) { persist(); paintZoom(); } },
     nameOf, relType: query.get('relType'), max,
     edit: null, // set below: the form opener (Edit with a draft)
-    initialStep: (k) => (k === stepTab ? stepParam : null),
+    initialStep: (k) => (back.stepFor(k) ?? (k === stepTab ? stepParam : null)),
     setStep: (k, n) => { if (k === S.active) { stepParam = n; persist(); } },
     setFrontier: () => { opts.frontier = true; frontierCheck.querySelector('input').checked = true; persist(); reloadAll(); },
   };
@@ -152,7 +154,10 @@ export async function render({ main, query }) {
   host.openPane = (target) => pane.show(target);
   host.pane = pane;
   toolbar.after(...[host.pen.hint()].filter(Boolean));
-  const openEntry = ({ service: s, ingress, fn, event, scope }) => commit(T.openTab(S, ingress ? T.entryKey(s, ingress, event, scope) : T.fnKey(s, fn, event, scope)));
+  const entryOf = ({ service: s, ingress, fn, event, scope }) => (ingress ? T.entryKey(s, ingress, event, scope) : T.fnKey(s, fn, event, scope));
+  const openEntry = (e) => commit(T.openTab(S, entryOf(e)));
+  const back = createBack({ active: () => S.active, has: (k) => S.keys.includes(k), step: () => stepParam, view: (k) => views.get(k), open: (k) => commit(T.openTab(S, k)), persist, setStep: (n) => { stepParam = n; },
+    label: (k) => { const r = T.flowRoot(k), o = data.describe(k); return (r && nameOf(r.service, r.ingress)) || (o.tn ? `${o.tn} · ${o.title}` : `${o.title} · ${o.sub}`); } });
   function setScope(scope) {
     const to = T.withScope(S.active, scope);
     if (to !== S.active) { if (zooms.has(S.active)) zooms.set(to, zooms.get(S.active)); commit(T.rekey(S, S.active, to)); } // the zoom goes with the tab
@@ -200,10 +205,11 @@ export async function render({ main, query }) {
     for (const k of [...slots.keys()]) if (!S.keys.includes(k)) drop(k);
     S.keys.forEach(ensure);
     if (!S.keys.length && max.isOn()) max.set(false); // the last tab closed while maximized: nothing left to fill the window
+    if (prev !== S.active) stepParam = null; // the step belongs to the tab it was set in: not in the URL of another
     persist(); strip.render(S);
     const my = ++token, act = S.active, v = views.get(act);
     if (v && stale.delete(act)) v.draw();
-    if (prev !== act) { stepParam = null; panel.close(); flowsEl.classList.toggle('fi-open', !!v?.insideOpen()); }
+    if (prev !== act) { panel.close(); flowsEl.classList.toggle('fi-open', !!v?.insideOpen()); }
     paintChrome();
     if (prev !== act && act) {
       await swap(slots.get(prev) ?? null, slots.get(act), { opening: added.length === 1 && added[0] === act && S.keys.length > 1, tabEl: strip.tabEl(act) });

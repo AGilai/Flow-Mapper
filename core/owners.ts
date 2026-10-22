@@ -5,6 +5,8 @@
 export const MAX_OWNERS = 20;
 /** A user id as the registry makes them (`u_` and 8 hex digits). */
 export const USER_ID = /^u_[0-9a-f]{8}$/;
+/** A string that reads as a user id (`u_` and no spaces, whatever follows): an owner like that is looked up as an id and never becomes a new user's name. */
+export const LOOKS_LIKE_ID = /^u_\S+$/;
 
 /** What a writer may send for one owner: a user id, a name, or an object with a name and / or an external id. */
 export type OwnerEntry = string | { name?: string; externalSource?: string; externalId?: string };
@@ -30,7 +32,7 @@ export function ownerProbe(e: unknown): OwnerProbe | string {
   if (typeof e === 'string') {
     const t = e.trim();
     if (!t || t.length > 80) return 'an owner is a name of 1 to 80 characters';
-    return USER_ID.test(t) ? { id: t } : { name: t };
+    return LOOKS_LIKE_ID.test(t) ? { id: t } : { name: t };
   }
   if (e && typeof e === 'object' && !Array.isArray(e)) {
     const o = e as Record<string, unknown>, str = (k: string) => (typeof o[k] === 'string' && (o[k] as string).trim() ? (o[k] as string).trim() : undefined);
