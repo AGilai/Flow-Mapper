@@ -18,7 +18,8 @@ const mq = (q) => (typeof matchMedia === 'function' ? matchMedia(q) : { matches:
  */
 export function createPane({ panels, diagram, hasNotes = false }) {
   const ids = TABS.filter((t) => panels[t]);
-  let cur = initialTab({ param: paneParam(parseHash().query), comment: parseHash().query.has('comment'), remembered: read(), hasNotes, available: ids });
+  const q = parseHash().query, chosen0 = !!(paneParam(q) || q.has('comment') || read());
+  let cur = initialTab({ param: paneParam(q), comment: q.has('comment'), remembered: read(), hasNotes, available: ids }), chosen = chosen0; // chosen: the URL or the viewer decided; else the default follows whether the flow has notes
   const counts = {}, compactQ = mq('(max-width: 680px)');
   const tabBtn = {}, countEl = {}, panelEl = {};
   const list = h('div.pane-tablist', { role: 'tablist', 'aria-label': 'Flow notes, comments and action items' });
@@ -83,18 +84,19 @@ export function createPane({ panels, diagram, hasNotes = false }) {
     if (!panels[id]) return;
     const changed = id !== cur;
     cur = id; split.expand(); paint();
-    if (user) { write(id); if (changed || paneParam(parseHash().query) !== id) setQuery({ pane: id }); }
+    if (user) { chosen = true; write(id); if (changed || paneParam(parseHash().query) !== id) setQuery({ pane: id }); }
     panels[id].onShow?.();
     return changed;
   }
+  /** Replace the right of the tab row (Notes edit: Save / Cancel); null brings "+ Add ▾" back. */
+  function setTools(node) { tools.replaceChildren(node ?? addGroup); }
   compactQ.addEventListener?.('change', paint);
   paint();
   return {
     el, splitter: split.el, tab: () => cur, show, shown: (id) => id === cur && !split.collapsed(), refit: () => split.apply(), tabs,
-    hub: (id) => ({ shown: () => id === cur && !split.collapsed(), reveal: () => show(id), set: (d) => { counts[id] = d; paint(); } }),
+    hub: (id) => ({ shown: () => id === cur && !split.collapsed(), reveal: () => show(id), set: (d) => { counts[id] = d; paint(); }, tools: (n) => setTools(n), loaded: (has) => { if (!chosen && has && panels.notes && cur !== 'notes') show('notes'); } }),
     setCount: (id, d) => { counts[id] = d; paint(); },
-    /** Replace the right of the tab row (Notes edit: Save / Cancel); null brings "+ Add ▾" back. */
-    setTools: (node) => { tools.replaceChildren(node ?? addGroup); },
+    setTools,
     dispose: () => { compactQ.removeEventListener?.('change', paint); document.removeEventListener('click', closeMenu); },
   };
 }

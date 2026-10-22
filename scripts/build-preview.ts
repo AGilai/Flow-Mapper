@@ -16,6 +16,7 @@ import * as schemas from '../server/store/schemas.ts';
 import * as descriptions from '../server/store/descriptions.ts';
 import * as keys from '../server/store/keys.ts';
 import * as comments from '../server/store/comments.ts';
+import * as notes from '../server/store/notes.ts';
 import * as actionItems from '../server/store/action-items-io.ts';
 import { listUsers } from '../server/store/users.ts';
 import { seedEnvRecipes } from './seed-envs.ts';
@@ -43,6 +44,7 @@ seedBugs(ctx, 'prod');
 for (const f of read(join(samples, 'dtos'))) dtos.loadDtos(ctx.db, f.env, f.dtos);
 for (const f of read(join(samples, 'descriptions'))) descriptions.loadDescriptions(ctx.db, ctx.graph(f.env), f.env, f.descriptions);
 for (const f of read(join(samples, 'comments'))) comments.loadComments(ctx.db, ctx.graph(f.env), f.env, f.comments);
+for (const f of read(join(samples, 'notes'))) notes.loadNotes(ctx.db, ctx.graph(f.env), f.env, f.notes);
 for (const f of read(join(samples, 'action-items'))) actionItems.loadActionItems(ctx.db, ctx.graph(f.env), f.env, f.items);
 for (const f of read(join(samples, 'keys'))) for (const i of f.instances) keys.putKeys(ctx.db, ctx.graph(f.env), f.env, i.instance, { keys: i.keys, producer: i.producer });
 for (const f of read(join(samples, 'schemas'))) {
@@ -63,6 +65,7 @@ const data = {
   eventDtos: Object.fromEntries(store.listEnvs(ctx.db).map((env) => [env, dtos.listEventDtos(ctx.db, env)])),
   descriptions: Object.fromEntries(store.listEnvs(ctx.db).map((env) => [env, descriptions.allRows(ctx.db, env)])),
   comments: Object.fromEntries(store.listEnvs(ctx.db).map((env) => [env, comments.allRows(ctx.db, env)])),
+  notes: Object.fromEntries(store.listEnvs(ctx.db).map((env) => [env, notes.allNotes(ctx.db, env).map((r) => ({ anchor: r.anchor, version: r.version, body: r.body, author: r.author, authorId: r.author_id, restoredFrom: r.restored_from, createdAt: r.created_at }))])),
   users: listUsers(ctx.db),
   actionItems: Object.fromEntries(store.listEnvs(ctx.db).map((env) => [env, actionItems.allRows(ctx.db, env)])),
   keys: Object.fromEntries(store.listEnvs(ctx.db).map((env) => [env, keys.allForPreview(ctx.db, env)])),

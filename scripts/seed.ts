@@ -14,6 +14,7 @@ import { loadDtos } from '../server/store/dtos.ts';
 import { loadSchemas } from '../server/store/schemas.ts';
 import { loadDescriptions } from '../server/store/descriptions.ts';
 import { loadComments } from '../server/store/comments.ts';
+import { loadNotes } from '../server/store/notes.ts';
 import { loadActionItems } from '../server/store/action-items-io.ts';
 import { listFlowNames, putFlowName } from '../server/store/flow-names.ts';
 import { putKeys } from '../server/store/keys.ts';
@@ -57,6 +58,9 @@ if (mockIdx < 0) {
   }
   for (const f of readDir(join(import.meta.dirname, '../samples/comments'))) {
     console.log(`loaded ${loadComments(ctx.db, ctx.graph(f.env), f.env, f.comments, (m) => console.warn(m))} comments into ${f.env}`);
+  }
+  for (const f of readDir(join(import.meta.dirname, '../samples/notes'))) {
+    console.log(`loaded ${loadNotes(ctx.db, ctx.graph(f.env), f.env, f.notes, (m) => console.warn(m))} note versions into ${f.env}`);
   }
   for (const f of readDir(join(import.meta.dirname, '../samples/action-items'))) {
     console.log(`loaded ${loadActionItems(ctx.db, ctx.graph(f.env), f.env, f.items, (m) => console.warn(m))} action items into ${f.env}`);

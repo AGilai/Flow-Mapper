@@ -2,6 +2,7 @@
 // environment). Matching is core/users-match.ts. No delete: a merge folds a user into another (re-points everything, keeps an alias).
 // Spec: docs/plans/users-mentions.md. Identity is naive (see server/identity.ts).
 
+import { repointNotes } from './notes-mentions.ts';
 import { repointOwnerIds } from './owners-merge.ts';
 import { randomBytes } from 'node:crypto';
 import type { DB } from '../db/connection.ts';
@@ -116,6 +117,7 @@ export function mergeUser(db: DB, from: string, into: string, by = 'unknown'): U
     db.prepare('INSERT INTO user_aliases (user_id, alias) VALUES (?, ?)').run(b.id, a.name);
     db.prepare('UPDATE users SET merged_into = ? WHERE id = ?').run(b.id, a.id);
     repointOwnerIds(db, a.id, b.id);   // owners and About mentions of the merged id (0.33.0)
+    repointNotes(db, a.id, b.id);      // mentions and authors in Notes (0.34.0)
   });
   emit(db, { type: 'user.merged', summary: `${by} merged user ${a.name} into ${b.name}`, data: { from: a.id, into: b.id, by } });
   return getUser(db, b.id);

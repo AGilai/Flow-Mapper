@@ -22,6 +22,7 @@ import { createPartial } from './flow-partial.js';
 import { nameEditor } from './flow-name.js';
 import { createComments } from '../comments/thread.js';
 import { createPane } from '../flow-pane/pane.js';
+import { createNotes } from '../notes/view.js';
 import { createActionItems } from '../action-items/section.js';
 import { createItemStore } from '../action-items/store.js';
 import { flowAnchor } from '../../core/comments.js';
@@ -72,9 +73,11 @@ export function createTabView(data, host) {
   // Action items (0.29.0): a section above Comments; they share a store ("Make action item", the events under a comment)
   const items = root && data.kind !== 'sub' ? createItemStore({ env: host.env, anchor: flowAnchor(root.service, root.ingress) }) : null;
   let pane = null; const counts = {}; // 0.34.0: Comments and Action items are tabs of the bottom pane; their hubs bind late (the pane needs the diagram element)
-  const hub = (id) => ({ shown: () => !!pane && pane.shown(id), reveal: () => pane?.show(id), set: (d) => { counts[id] = d; pane?.setCount(id, d); } });
+  const hub = (id) => ({ shown: () => !!pane && pane.shown(id), reveal: () => pane?.show(id), set: (d) => { counts[id] = d; pane?.setCount(id, d); }, tools: (n) => pane?.setTools(n), loaded: (has) => pane?.hub(id).loaded(has) });
   const actions = items ? createActionItems({ store: items, walk, pane: hub('actions') }) : null;
   comments = items ? createComments({ env: host.env, root, walk, store: items, pane: hub('comments') }) : null;
+  const gotoStep = (ref) => { const go = () => walk.go(ref.from); if (host.max?.isOn()) { host.max.set(false); requestAnimationFrame(go); } else go(); }; // a step chip in Notes: leave Maximize, scroll to the step and select it
+  const notes = items ? createNotes({ env: host.env, root, walk, pane: hub('notes'), onStep: gotoStep }) : null;
   items?.refresh();
   const scroller = h('div.seq-scroll');
   const hint = h('span.seq-hint', 'More to the right. Scroll sideways ›');
@@ -173,11 +176,11 @@ export function createTabView(data, host) {
   }
   draw();
   const maxBar = h('div.max-bar', h('span.fh-t', (root && host.nameOf?.(root.service, root.ingress)) || label.title), label.sub ? h('span.mono.xs.muted', label.sub) : null, zctl.el); // shown only while maximized (flow-max.css)
-  if (comments) { pane = createPane({ panels: { comments, actions }, diagram: body }); for (const [id, d] of Object.entries(counts)) pane.setCount(id, d); }
+  if (comments) { pane = createPane({ panels: { notes, comments, actions }, diagram: body }); for (const [id, d] of Object.entries(counts)) pane.setCount(id, d); }
   const el = h('div.flow-tab', maxBar, h('div.flow-top', flowBox?.el, related?.el, walk.el, partial.el), body, pane?.splitter, pane?.el); // the pane sits under the diagram (0.27.5); the border between them is a drag handle (0.34.0)
   el.addEventListener('keydown', (ev) => walk.onKey(ev)); // ← → Home End, while focus is in the flow view and not in a text box
   return {
-    el, key, data, draw, insideOpen: () => inside.isOpen(), dispose: () => { unWheel(); clearTimeout(resizeTimer); document.removeEventListener('fm:layout', onLayout); inside.dispose(); ro?.disconnect(); tip?.dispose(); descs.forEach((d) => d?.dispose()); comments?.dispose(); actions?.dispose(); pane?.dispose(); items?.dispose(); related?.dispose(); walk.dispose(); unDesc?.(); },
+    el, key, data, draw, insideOpen: () => inside.isOpen(), dispose: () => { unWheel(); clearTimeout(resizeTimer); document.removeEventListener('fm:layout', onLayout); inside.dispose(); ro?.disconnect(); tip?.dispose(); descs.forEach((d) => d?.dispose()); comments?.dispose(); actions?.dispose(); notes?.dispose(); pane?.dispose(); items?.dispose(); related?.dispose(); walk.dispose(); unDesc?.(); },
     refreshBar: () => walk.refreshBar(), refreshHl: () => walk.refreshHl(),
     steps: () => walk.steps(), // the steps of the lane (n, from, to, label, transport): the info pane's "In this flow"
     setZoom, zoomScale: () => factor, zoomValue: () => zoomV,

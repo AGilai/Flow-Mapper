@@ -27,6 +27,7 @@ import { exportMermaid } from '../core/mermaid-export.js';
 import { envApi } from './api-local-envs.js';
 import { createDesign } from './api-local-design.js';
 import { createComments } from './api-local-comments.js';
+import { createNotes } from './api-local-notes.js';
 import { createUsers } from './api-local-users.js';
 import { createMentions } from './api-local-mentions.js';
 import { createActionItems } from './api-local-action-items.js';
@@ -75,6 +76,7 @@ export const api = {
   ...U,
   ...createMentions(data),
   ...createComments(data, g, U),
+  ...createNotes(data, g, U),
   ...createActionItems(data, g, U),
   ...D.api,
   services: async (env) => {
