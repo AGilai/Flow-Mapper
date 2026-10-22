@@ -1,0 +1,96 @@
+/* Action items under each flow (0.29.0). Mockup: design/mockups/design-env.html, frame 15 (15a-15g). Tokens only; light and dark come from them.
+   The section is a .cm-sec like Comments (comments.css), so the header, the fold arrow and the focus ring are shared. */
+
+.flow-bottom > .cm-sec:first-child { border-top: 0; }
+.abtn { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); background: var(--surface); color: var(--accent); font: 500 var(--fs-xs) var(--font); white-space: nowrap; cursor: pointer; }
+.abtn:hover { background: var(--accent-soft); }
+.abtn:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.abtn[hidden] { display: none; }
+.cm-sec > summary .abtn { margin-left: auto; }
+.cm-sec > summary .abtn ~ .abtn { margin-left: 0; }
+.cm-sec > summary:has(.abtn:not([hidden])) .cm-sum { margin-left: 0; }
+.ai-sec[hidden] { display: none; }
+.cm-head .mkai, .cm-act .mkai { color: var(--accent); }
+.cm-act .lnk.mkai { color: var(--accent); }
+
+.ai-t { margin-top: var(--s2); border: 1px solid var(--line); border-radius: var(--r-sm); font-size: var(--fs-sm); max-width: 110ch; }
+.ai-r { display: grid; grid-template-columns: 34px 110px minmax(0, 1fr) 112px 92px 74px; gap: var(--s3); align-items: baseline; padding: 7px var(--s3); border-top: 1px solid var(--line); position: relative; }
+.ai-r:first-child { border-top: 0; }
+.ai-r.h { background: var(--surface-2); color: var(--muted); font-size: var(--fs-xs); font-weight: 600; padding: 5px var(--s3); border-radius: var(--r-sm) var(--r-sm) 0 0; }
+.ai-r:last-child { border-radius: 0 0 var(--r-sm) var(--r-sm); }
+.ai-n { font: 500 var(--fs-xs) var(--mono); color: var(--muted); }
+.ai-o { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ai-d { overflow-wrap: anywhere; white-space: pre-wrap; }
+.ai-d small { display: flex; gap: 6px; align-items: center; font-size: var(--fs-xs); color: var(--muted); margin-top: 2px; white-space: normal; }
+.ai-d .bl { color: var(--accent); white-space: normal; }
+.ai-d .bl.gone-src { color: var(--muted); }
+.ai-d .bl .lnk { background: none; border: 0; padding: 0; font: inherit; color: var(--accent); cursor: pointer; }
+.ai-d .bl .lnk:hover { text-decoration: underline; }
+.ai-by { font-size: 10.5px; color: var(--muted); border: 1px solid var(--line-strong); border-radius: 8px; padding: 0 5px; }
+.ai-due { font-size: var(--fs-xs); color: var(--ink-2); white-space: nowrap; }
+.ai-due.late { color: var(--warn); font-weight: 600; }
+.ai-act { display: flex; gap: 10px; justify-content: flex-end; font-size: var(--fs-xs); visibility: hidden; }
+.ai-act .lnk { background: none; border: 0; padding: 2px 0; font: inherit; color: var(--accent); cursor: pointer; border-radius: 3px; }
+.ai-act .lnk.d { color: var(--ink-2); }
+.ai-act .lnk:hover { text-decoration: underline; }
+.ai-act.asking { grid-column: 3 / -1; justify-content: flex-start; flex-wrap: wrap; }
+.ai-r:hover > .ai-act, .ai-r:focus-within > .ai-act, .ai-act.asking { visibility: visible; }
+.ai-r:hover:not(.h):not(.edit) { background: var(--accent-soft); }
+.ai-r.hl { background: var(--accent-soft); outline: 2px solid var(--accent); outline-offset: -2px; }
+.ai-r.closed .ai-d, .ai-r.closed .ai-o { color: var(--muted); }
+.ai-st { display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 8px; border-radius: 10px; border: 1px solid var(--line-strong); font: 600 var(--fs-xs) var(--font); white-space: nowrap; width: max-content; }
+.ai-st::before { content: ''; width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid currentColor; }
+.ai-st.open { color: var(--ink-2); }
+.ai-st.prog { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); } .ai-st.prog::before { background: linear-gradient(90deg, currentColor 50%, transparent 50%); }
+.ai-st.done { color: var(--ok); border-color: var(--ok); background: color-mix(in srgb, var(--ok) 10%, var(--surface)); } .ai-st.done::before { background: currentColor; }
+.ai-st.drop { color: var(--muted); background: var(--surface-2); text-decoration: line-through; } .ai-st.drop::before { border-style: dashed; }
+.ai-fold { margin-top: 6px; font: inherit; font-size: var(--fs-xs); color: var(--accent); background: none; border: 0; padding: 2px 0; cursor: pointer; border-radius: 3px; }
+.ai-fold[hidden] { display: none; }
+.ai-fold:hover { text-decoration: underline; }
+
+/* the editing row */
+.ai-r.edit { background: var(--accent-soft); align-items: start; padding: var(--s3); border-top: 1px solid var(--accent); }
+.ai-in { box-sizing: border-box; border: 1px solid var(--line-strong); border-radius: var(--r-sm); background: var(--surface); height: 28px; padding: 0 8px; font: 400 var(--fs-sm) var(--font); color: var(--ink); min-width: 0; }
+.ai-r.edit input.ai-in:not(.ai-date) { width: 100%; }
+.ai-in:focus { outline: 2px solid var(--focus); outline-offset: -1px; border-color: var(--focus); }
+.ai-in::placeholder { color: var(--muted); }
+.ai-in.ta { display: block; width: 100%; height: auto; min-height: 56px; line-height: 1.45; padding: 4px 8px; resize: vertical; }
+.ai-sug { position: absolute; left: 0; top: 30px; z-index: 2; min-width: 150px; background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-sm); box-shadow: var(--shadow-panel); padding: 3px; font-size: var(--fs-sm); }
+.ai-sug[hidden] { display: none; }
+.ai-sug div { padding: 3px 8px; border-radius: 4px; cursor: pointer; } .ai-sug div.on, .ai-sug div:hover { background: var(--accent-soft); } .ai-sug small { color: var(--muted); font-size: var(--fs-xs); margin-left: 6px; }
+.ai-meta { display: flex; gap: var(--s2); align-items: center; margin-top: 6px; flex-wrap: wrap; font-size: var(--fs-xs); color: var(--muted); }
+.ai-meta .ai-in { height: 24px; font-size: var(--fs-xs); }
+.ai-meta .ai-sel { width: 112px; }
+.ai-meta .ai-date { width: 140px; }
+.ai-meta .lnk { background: none; border: 0; padding: 0; font: inherit; color: var(--accent); cursor: pointer; }
+.ai-meta .lnk:hover { text-decoration: underline; }
+.ai-keys { margin-top: 6px; display: flex; gap: var(--s2); align-items: center; font-size: var(--fs-xs); color: var(--muted); flex-wrap: wrap; }
+.ai-keys .btn { height: 26px; font-size: var(--fs-xs); }
+.ai-as { display: inline-flex; gap: 6px; align-items: center; margin-left: auto; }
+.ai-as .ai-in { width: 160px; height: 26px; }
+
+/* events under a comment, and the comment being made into an item */
+.ai-ev { display: flex; gap: 8px; align-items: baseline; font-size: var(--fs-xs); color: var(--muted); padding-left: 40px; }
+.ai-ev::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--line-strong); align-self: center; flex: none; }
+.ai-ev b { color: var(--ink-2); font-weight: 600; }
+.ai-ev .lnk { background: none; border: 0; padding: 0; font: inherit; color: var(--accent); cursor: pointer; }
+.ai-ev .lnk:hover { text-decoration: underline; }
+.cm.hl .cm-body, .cm.flash .cm-body { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 4px; }
+
+/* the Flows list: open action items after the comment count */
+.fl-ai { display: inline-flex; align-items: center; gap: 3px; margin-left: 8px; font-size: var(--fs-xs); color: var(--ink-2); vertical-align: middle; }
+.fl-ai svg { width: 13px; height: 13px; }
+
+@media (hover: none) { .ai-act { visibility: visible; } }
+@media (max-width: 760px) { /* frame 15f: the table becomes stacked cards */
+  .ai-t { border: 0; display: grid; gap: var(--s2); }
+  .ai-r.h { display: none; }
+  .ai-r { grid-template-columns: auto minmax(0, 1fr) auto; border: 1px solid var(--line); border-radius: var(--r-sm); row-gap: 4px; }
+  .ai-r > :nth-child(1) { grid-area: 1 / 1; } .ai-r > :nth-child(2) { grid-area: 1 / 2; } .ai-r > :nth-child(5) { grid-area: 1 / 3; justify-self: end; }
+  .ai-r > :nth-child(3) { grid-area: 2 / 1 / 3 / -1; } .ai-r > :nth-child(4) { grid-area: 3 / 1 / 4 / 3; } .ai-r > :nth-child(6) { visibility: visible; grid-area: 3 / 3; }
+  .ai-act.asking { grid-column: 1 / -1; }
+  .ai-r.edit { grid-template-columns: 1fr; }
+  .ai-r.edit > * { grid-area: auto; }
+  .ai-ev { padding-left: 18px; }
+  .ai-as { margin-left: 0; }
+}

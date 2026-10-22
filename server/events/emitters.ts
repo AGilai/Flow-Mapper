@@ -49,3 +49,7 @@ const commentEvent = (kind: string, db: DB, c: { env: string; anchor: string; id
 export const commentCreated = (db: DB, c: { env: string; anchor: string; id: number; author: string; text: string }) => commentEvent('created', db, c);
 export const commentEdited = (db: DB, c: { env: string; anchor: string; id: number; author: string; text: string }) => commentEvent('edited', db, c);
 export const commentDeleted = (db: DB, c: { env: string; anchor: string; id: number; author: string }) => commentEvent('deleted', db, c);
+
+export function actionItemChanged(db: DB, kind: 'created' | 'updated' | 'deleted', a: { env: string; anchor: string; id: number; number: number; status: string; actor: string }) {
+  emit(db, { type: `action_item.${kind}`, env: a.env, summary: `${a.actor} ${kind} action #${a.number} on ${a.anchor.replace(/^flow:/, '')} (${a.status})`, data: { anchor: a.anchor, id: a.id, number: a.number, status: a.status, actor: a.actor } });
+}

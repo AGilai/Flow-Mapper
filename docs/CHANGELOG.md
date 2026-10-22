@@ -5,6 +5,15 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## 0.29.0 (2026-10-22)
+Action items under each flow: owner, description, status and due date, linked to comments. Additive; migration `013_action_items.sql` (two new tables, nothing existing is touched; the database is backed up to `<db>.pre-013.bak` first). Details in [API.md](API.md) "Action items under a flow".
+- **REST:** `GET /api/envs/:env/action-items?anchor=flow:<s>/<i>[&draft=]` -> `{items, events, next}`; `GET .../action-items/counts` -> `{anchor: openCount}`; `POST` `{anchor, owner, description, status?, due?, step?, commentId?, actor}`; `PATCH .../:id` `{actor, owner?, description?, status?, due? (null clears), step? (null clears)}`; `DELETE .../:id?actor=`. Status is `open | progress | done | dropped`; `due` is `YYYY-MM-DD`. Numbers (`#1`, `#2`...) are per flow and never reused.
+- **Rules:** anyone edits any field (the `actor` is kept in `updatedBy`); only the creator deletes (`403 NOT_CREATOR`). Validation errors are `400 VALIDATION`. Any environment takes them, sealed ones too, and `?draft=` works like comments.
+- **Events (`GET /api/events`):** `action_item.created`, `action_item.updated`, `action_item.deleted`, each with `env` and `data {anchor, id, number, status, actor}`.
+- **MCP:** `list_action_items {env, service, ingress, draft?}`, `add_action_item {env, service, ingress, owner, description, author, status?, due?, step?, commentId?, draft?}`, `update_action_item {env, id, author, owner?, description?, status?, due?, step?}`. What MCP writes has `source: "ai"` (a "by AI" chip in the UI). The tool list hash moved (three tools added).
+- **Copy:** a Full copy carries items, their events and the comment links; Blank and Components copies do not.
+- UI: an "Action items (3 open · 5)" section above Comments, "+ Action item" and "Make action item" on comments, events under a comment, and an open-actions badge per entry in the Flows list. The static preview shows them.
+
 ## 0.28.3 (2026-10-21)
 Two Components-copy options from the importer's bugs. Additive; no migration. Details in [API.md](API.md) (`POST /api/envs`) and [DESIGN-IMPORT.md](DESIGN-IMPORT.md).
 - **`entryPoints: "keep" | "none"`** on `POST /api/envs` and MCP `create_env` (#63; default `keep`, today's behaviour). `none` sets `entryPoint: false` on every copied ingress, in the environment and in its baseline, so the copies are not entry points, show no marks and diff as unchanged; ingress added later are unaffected. Works for `components` and `full`; `422` for another value or for `blank`.

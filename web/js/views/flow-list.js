@@ -13,7 +13,7 @@ import { parseSel, encodeSel, subsystemRows, componentRows, filterPoints, remove
 const LIST_CAP = 300;
 
 /** createList({ points, counts, cmts = {} (comments per `flow:<service>/<ingress>`), service, groupOf, groups, marks, design, query, onPick(point), onAll(), onCollapse(collapsed) }) -> { el, mark({ keys, active }), collapsed() } */
-export function createList({ points, counts, cmts = {}, relBy = new Map(), service, groupOf = new Map(), groups = [], marks = null, design = false, query = new URLSearchParams(), onPick, onAll, onCollapse }) {
+export function createList({ points, counts, cmts = {}, acts = {}, relBy = new Map(), service, groupOf = new Map(), groups = [], marks = null, design = false, query = new URLSearchParams(), onPick, onAll, onCollapse }) {
   const body = h('div.flows-scroll');
   const filter = h('input.input', { type: 'search', placeholder: service ? 'Filter ingress' : 'Filter entry points', 'aria-label': 'Filter starting points' });
   let marked = { keys: [], active: null }, collapsed = readCollapsed(KEYS.list, undefined, isNarrow()); // narrow viewport: starts collapsed unless a choice was saved
@@ -55,7 +55,7 @@ export function createList({ points, counts, cmts = {}, relBy = new Map(), servi
     for (const p of xs.slice(0, LIST_CAP)) { if (!groupsMap.has(p.service)) groupsMap.set(p.service, []); groupsMap.get(p.service).push(p); }
     fill(body,
       service ? h('a.small', { href: href('/flows'), style: { padding: '0 var(--s2)' }, on: { click: (e) => { e.preventDefault(); onAll(); } } }, 'Show all entry points') : null,
-      [...groupsMap].map(([svc, ps]) => [h('h3', svc), ps.map((p) => entryRow(p, { marks, counts, cmts, relBy, onPick, design }))]),
+      [...groupsMap].map(([svc, ps]) => [h('h3', svc), ps.map((p) => entryRow(p, { marks, counts, cmts, acts, relBy, onPick, design }))]),
       gone.length ? [h('h3', 'Removed'), gone.map((g) => removedRow(g, marks))] : null,
       xs.length > LIST_CAP ? h('p.xs.muted', { style: { padding: 'var(--s2)' } }, `${xs.length - LIST_CAP} more. Type to narrow the list.`) : null,
       !xs.length && !gone.length ? h('p.small.muted', { style: { padding: 'var(--s2)' } }, 'No starting points match.') : null,

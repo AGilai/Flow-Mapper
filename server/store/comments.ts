@@ -98,12 +98,13 @@ export function deleteComment(db: DB, env: string, id: number, author: unknown):
 }
 
 /** A Full copy keeps the discussion: authors, times and the reply structure (new ids). Soft-deleted rows come too, empty, so replies keep their parent. */
-export function copyComments(db: DB, from: string, to: string) {
+export function copyComments(db: DB, from: string, to: string): Map<number, number> {
   const ids = new Map<number, number>();
   const ins = db.prepare('INSERT INTO comments (env, anchor, step, parent_id, author, body, created_at, edited_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
   tx(db, () => { for (const r of db.prepare('SELECT * FROM comments WHERE env = ? ORDER BY id').all(from) as unknown as R[]) {
     ids.set(r.id, Number(ins.run(to, r.anchor, r.step, r.parent_id == null ? null : ids.get(r.parent_id) ?? null, r.author, r.body, r.created_at, r.edited_at, r.deleted_at).lastInsertRowid));
   } });
+  return ids;
 }
 
 /** Every row of an env, for the static preview build. */

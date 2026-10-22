@@ -9,7 +9,7 @@ import { initials } from './pure.js';
 
 const KEY = 'flow-mapper.reporter'; // shared with the bug dialog: the name is asked once for both
 export const remembered = () => { try { return localStorage.getItem(KEY) ?? ''; } catch { return ''; } };
-const remember = (n) => { try { localStorage.setItem(KEY, n); } catch { /* storage unavailable */ } };
+export const remember = (n) => { try { localStorage.setItem(KEY, n); } catch { /* storage unavailable */ } };
 export const avatar = (name) => h('div.av', { 'aria-hidden': 'true', title: name ?? '' }, initials(name));
 
 /**
