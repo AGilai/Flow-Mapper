@@ -30,7 +30,7 @@ export function createScenarioUi({ scen, st, srcUrl = () => null }) {
   function fill() {
     const ds = view?.decisions ?? [], lv = levelOf(ds), none = !changedCount(scen.decisions(), st.chosen, scen.editAll());
     pop.replaceChildren(h('div.scn-h', h('b', 'Scenario'), h('span.muted', `${ds.length} ${ds.length === 1 ? 'decision affects' : 'decisions affect'} this flow`)), h('div.scn-list', ds.map((d) => row(d, lv.get(d.group_id) ?? 0))),
-      h('div.scn-f', h('button.lnk', { type: 'button', 'data-qa': 'scenario-reset', disabled: none, on: { click: () => scen.reset() } }, 'Reset to defaults'), h('span.xs.muted', 'Defaults: first arm of each decision')));
+      h('div.scn-f', h('button.lnk', { type: 'button', 'data-qa': 'scenario-reset', disabled: none, on: { click: () => scen.reset() } }, 'Reset to defaults'), h('span.xs.muted', scen.editAll() ? 'Defaults: all branches while editing' : 'Defaults: first arm of each decision')));
   }
   function place() {
     const r = chip.getBoundingClientRect();
