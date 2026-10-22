@@ -86,4 +86,5 @@
 /* Component page header (#80): the doc links sit on their own wrapping row under the description, at every width */
 .page-head .head-links { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s2) var(--s3); margin-top: var(--s2); }
 .page-head .head-links:empty { display: none; }
-.page-head h1 .row { min-width: 0; }
+.page-head h1 .row { min-width: 0; flex-wrap: wrap; row-gap: 2px; } /* a name never shares its line with a badge by squeezing: the badge wraps below instead */
+.page-head h1 .row > .titled { max-width: 100%; overflow-wrap: anywhere; }
