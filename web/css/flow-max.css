@@ -16,7 +16,7 @@ body.is-max .rail, body.is-max .page-head, body.is-max .flows-list, body.is-max 
 body.is-max .app, body.is-max .app.rail-c, body.is-max .flows, body.is-max .flows.list-c { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
 body.is-max .flow-tab { overflow-y: auto; background: var(--paper); scroll-padding-top: 96px; }
 body.is-max .flow-top { display: contents; }
-body.is-max .flow-tab > * { flex: none; }
+body.is-max .flow-tab > *, body.is-max .flow-top > details.flowhead, body.is-max .flow-top > .rel-sec { flex: none; min-height: auto; overflow: visible; } /* the description and relations scroll inside .flow-top only when it is a box (flow-walk.css) */
 body.is-max .max-bar { display: flex; align-items: baseline; gap: var(--s3); order: -3; position: sticky; top: 0; z-index: 5; padding: 12px 200px 12px var(--s5); background: var(--surface); border-bottom: 1px solid var(--line); box-shadow: inset 0 3px 0 var(--ec, transparent); } /* the env colour, since the tab strip is hidden here */
 body.is-max .max-bar .fh-t { font-weight: 650; }
 body.is-max .flowhead > summary > :first-child:not(.btn) { display: none; } /* the title is in the sticky bar */

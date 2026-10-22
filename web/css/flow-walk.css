@@ -2,7 +2,10 @@
    Mockup: design/mockups/design-env.html, frame 9. Names are prefixed (flow-, step-) so they never meet the older .st / .who / .dbox / .numtile. */
 
 .flow-tab { flex: 1; min-height: 0; display: flex; flex-direction: column; min-width: 0; }
-.flow-top { flex: 0 1 auto; min-height: 96px; max-height: 48vh; overflow-y: auto; background: var(--surface); border-bottom: 1px solid var(--line); }
+.flow-top { flex: 0 1 auto; min-height: 96px; max-height: 48vh; display: flex; flex-direction: column; overflow: hidden; background: var(--surface); border-bottom: 1px solid var(--line); }
+/* the description and the relations scroll inside the box; the step bar and the partial line never do,, so the bar is never pushed out of sight */
+.flow-top > details.flowhead, .flow-top > .rel-sec { flex: 0 1 auto; min-height: 0; overflow-y: auto; }
+.flow-top > .stepwalk, .flow-top > :not(details.flowhead):not(.rel-sec) { flex: none; }
 .flow-top:empty { display: none; }
 .flow-tab > .flow-body { min-height: 260px; } /* the diagram keeps room; the panes above and below scroll instead */
 

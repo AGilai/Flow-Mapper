@@ -5,6 +5,9 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+- UI: the step bar is always visible. On the first load of a flow the open Human description could push the bar out of the scrolling header, behind the diagram; now the description scrolls inside the header and the bar stays put (also maximized).
+
 ## 0.36.2 (2026-10-22)
 - The step walker starts at step 0 (no step selected): a flow, tab or sub-flow opened without `step=` shows no highlighted step and the bar reads "Step 0 of N". Next goes to step 1, Previous from step 1 returns to 0 (no `step=` in the URL). An explicit `step=N` still selects that step.
 - A tab of another environment, maximized, shows "read-only · Switch" next to the env chip (the full note is hidden there).
