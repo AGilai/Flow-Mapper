@@ -8,11 +8,11 @@ import { putDraftSubsystems, putLevels, putSealedSubsystems } from '../../store/
 import { getEnvRow } from '../../store/envs.ts';
 import { type Tool, env, obj, envOf, draftArg } from './common.ts';
 
-const list = { type: 'array', items: obj({ key: { type: 'string' }, label: { type: 'string' }, icon: { type: ['string', 'null'], enum: ['platform', 'agent', 'network', 'cloud', 'shield', 'database', null] } }, ['key', 'label']) };
+const list = { type: 'array', items: obj({ key: { type: 'string' }, label: { type: 'string' }, icon: { type: ['string', 'null'], enum: ['platform', 'agent', 'network', 'cloud', 'shield', 'database', null] }, about: { type: ['string', 'null'], description: "Markdown-lite description, at most 20000 characters; left out keeps it, '' or null clears" } }, ['key', 'label']) };
 
 export const getSubsystemsTool: Tool = {
   name: 'get_subsystems',
-  description: "The subsystems of an environment: {levels, subsystems: [{key, label, icon, order, derived, components}], notSet}. A subsystem is the first segment of a component's groupPath; a component belongs to exactly one. `derived`: no settings row, a groupPath names it. draft: read the environment as that open draft would leave it. Read only.",
+  description: "The subsystems of an environment: {levels, subsystems: [{key, label, icon, about?, order, derived, components}], notSet}. A subsystem is the first segment of a component's groupPath; a component belongs to exactly one. `derived`: no settings row, a groupPath names it. draft: read the environment as that open draft would leave it. Read only.",
   inputSchema: obj({ env, draft: draftArg }),
   run: (c, a) => subsystemsFor(c, envOf(a), a.draft || null),
 };
@@ -52,7 +52,7 @@ export const applyPlanLinksTool: Tool = {
 
 export const setSubsystemSettingsTool: Tool = {
   name: 'set_subsystem_settings',
-  description: "Set the label, icon (platform, agent, network, cloud, shield, database) and order of subsystems: `subsystems` is the list in display order. A sealed environment takes it at once (an annotation, like set_description). A design needs `draft`: the changes become subsystem ops of that open draft (nothing is deleted; subsystems you leave out stay after the listed ones). Recorded as an AI edit in a draft.",
+  description: "Set the label, icon (platform, agent, network, cloud, shield, database), about (Markdown-lite description) and order of subsystems: `subsystems` is the list in display order. A sealed environment takes it at once (an annotation, like set_description). A design needs `draft`: the changes become subsystem ops of that open draft (nothing is deleted; subsystems you leave out stay after the listed ones). Recorded as an AI edit in a draft.",
   inputSchema: obj({ env, subsystems: list, draft: draftArg }, ['subsystems']),
   run: (c, a) => {
     const e = envOf(a);

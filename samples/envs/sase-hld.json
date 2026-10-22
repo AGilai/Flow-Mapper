@@ -5,7 +5,7 @@
   "entryPoints": "keep",
   "groups": [
     { "key": "agent", "label": "Agent", "icon": "agent" },
-    { "key": "network", "label": "Network (POP)", "icon": "network" },
+    { "key": "network", "label": "Network (POP)", "icon": "network", "about": "## Capabilities\n- Terminates agent tunnels at the **POP** and enforces policy on the traffic.\n- Resolves names (`sxdns`) and proxies web traffic (`swg-api`).\n\n## Motivation\nPolicy has to be enforced close to the user. The POP is the only part of the product that runs in every region.\n\n## Owners\n- Team **network**.\n\n## Open questions\n- Which POP components may call the platform directly, and which go through the gateway?\n" },
     { "key": "platform", "label": "Platform", "icon": "platform" }
   ],
   "services": [

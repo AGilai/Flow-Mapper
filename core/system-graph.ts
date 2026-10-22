@@ -17,6 +17,7 @@ export interface GraphNode {
   svcKind?: string;            // service kind (service | gateway | lambda), for icons
   service?: string;
   team?: string;
+  about?: string;              // Markdown-lite (0.30.2)
   tags?: string[];
   functions?: string[];        // for name/function filtering
   transports?: string[];
@@ -59,7 +60,7 @@ export function systemGraph(g: GraphIndex): SystemGraph {
     const of = <T extends { service: string }>(xs: T[]) => xs.filter((x) => x.service === s.name);
     const ins = of(g.model.ingress), outs = of(g.model.egress);
     nodes.set(svcNode(s.name), {
-      id: svcNode(s.name), kind: s.kind === 'lambda' || s.kind === 'client-app' ? 'service' : s.kind, svcKind: s.kind, label: s.name, sub: s.team, service: s.name, team: s.team, tags: s.tags, ...(s.details?.runtime ? { runtime: String(s.details.runtime) } : {}), // runtime: the Kubernetes mark on the map (0.26.0, #49)
+      id: svcNode(s.name), kind: s.kind === 'lambda' || s.kind === 'client-app' ? 'service' : s.kind, svcKind: s.kind, label: s.name, sub: s.team, service: s.name, team: s.team, tags: s.tags, ...(s.about ? { about: s.about } : {}), ...(s.details?.runtime ? { runtime: String(s.details.runtime) } : {}), // runtime: the Kubernetes mark on the map (0.26.0, #49)
       functions: of(g.model.functions).map((f) => f.name),
       transports: [...new Set([...ins, ...outs].map((x) => x.transport))],
       stats: {

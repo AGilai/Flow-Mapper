@@ -9,6 +9,7 @@
     "repo": "github.com/acme/orders-svc",
     "language": "typescript",
     "description": "Order lifecycle",
+    "about": "## Capabilities\n- Creates an order from a checkout request and keeps its **lifecycle**: `created`, `paid`, `shipped`, `cancelled`.\n- Publishes `OrderPlaced` when payment is confirmed; billing and inventory react to it.\n- Answers order status queries for the storefront and for support.\n\n## Motivation\nCheckout used to write orders from three places. One owner of the lifecycle makes the state machine testable and gives support a single source. See the [design note](https://example.com/docs/orders-lifecycle).\n\n## Roles and responsibilities\n1. Owns the `orders` collection and its schema.\n2. Validates the cart total against the catalog price at the moment of order creation.\n3. Never talks to the payment provider: *billing-api* does.\n\n## Owners\n- Team **checkout**, on call through the checkout rota.\n\n## Open questions\n- Should a cancelled order keep its reserved stock for 15 minutes? ~~Decided: no.~~ Open again after the warehouse review.\n",
     "tags": [
       "core"
     ]

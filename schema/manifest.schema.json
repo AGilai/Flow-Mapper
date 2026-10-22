@@ -207,6 +207,7 @@
         "repo": { "type": "string" },
         "language": { "type": "string" },
         "description": { "type": "string" },
+        "about": { "type": "string", "maxLength": 20000, "description": "Optional (0.30.2). A rich description of the component in Markdown-lite (## headings, **bold**, *italic*, ~~strike~~, `code`, lists, [text](https://...) links; no HTML). By convention sections: ## Capabilities, ## Motivation, ## Roles and responsibilities, ## Owners, ## Open questions. Shown in the component panel; diffs like any header field." },
         "tags": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
         "groupPath": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*(/[a-z0-9][a-z0-9-]*)*$", "description": "Optional. The subsystem the service belongs to, as a path: \"platform\", later \"platform/identity\". Harvesters may leave it out; design environments set it." },
         "links": { "$ref": "#/$defs/links" },

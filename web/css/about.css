@@ -1,0 +1,20 @@
+/* About (0.30.2): the rendered Markdown-lite of a component or a subsystem, and the editor's text + preview. */
+.about { display: grid; gap: var(--s2); min-width: 0; }
+.about-body { font-size: var(--fs-sm); color: var(--ink); max-width: 80ch; overflow-wrap: anywhere; line-height: 1.5; max-height: 18em; overflow: hidden; position: relative; }
+.about-body.open { max-height: none; }
+.about-body.folded::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 2.4em; background: linear-gradient(transparent, var(--panel, var(--paper))); pointer-events: none; }
+.about-more { justify-self: start; }
+.about-body p, .about-prev p { margin: 0 0 .6em; }
+.about-body p > strong:only-child, .about-prev p > strong:only-child { display: block; margin-top: .5em; color: var(--ink); font-size: 1.04em; }
+.about-body ul, .about-body ol, .about-prev ul, .about-prev ol { margin: 0 0 .6em; padding-left: 1.4em; }
+.about-body code, .about-prev code { font-family: var(--mono); font-size: .92em; background: var(--surface-2); padding: 0 .3em; border-radius: 3px; }
+.about-body pre, .about-prev pre { font-family: var(--mono); font-size: var(--fs-xs); background: var(--surface-2); padding: var(--s2); border-radius: var(--r-sm); overflow-x: auto; margin: 0 0 .6em; }
+.about-body a, .about-prev a { color: var(--accent); }
+/* the editor field: Write | Preview */
+.about-ed { display: grid; gap: 4px; min-width: 0; }
+.about-tabs { display: flex; gap: var(--s1); align-items: center; }
+.about-tabs button[aria-pressed="true"] { background: var(--accent-soft); border-color: transparent; }
+.about-ed .textarea { min-height: 160px; font-family: var(--mono); font-size: var(--fs-xs); }
+.about-ed .textarea[hidden], .about-prev[hidden] { display: none; }
+.about-prev { border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--s2) var(--s3); min-height: 160px; font-size: var(--fs-sm); background: var(--surface); line-height: 1.5; overflow-wrap: anywhere; }
+.about-count { margin-left: auto; font-size: var(--fs-xs); color: var(--muted); }

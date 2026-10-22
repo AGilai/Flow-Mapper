@@ -7,6 +7,7 @@ import { ENTITY_LISTS, rowId, type ItemRow } from './item-rows.ts';
 import { applyOp, opRow, type DraftOpInput } from './draft-ops.ts';
 import { planGroups, planLinks } from './import-plan-links.ts';
 import { topOf } from './subsystems.ts';
+import { aboutProblem } from './markdown-lite.ts';
 
 export interface PlanIssue { path: string; message: string; code?: string }
 /** One or more problems with a plan; `code` of an issue is the HTTP error code (PLAN_VERSION, PLAN_ENV, PLAN_EXISTS, PLAN_NO_SERVICE) when it has one. */
@@ -77,7 +78,7 @@ export function planToOps(plan: unknown, rows: ItemRow[], cx: PlanContext): Plan
 
   add(p.extensions, 'extensions').forEach((x: any, i: number) => {
     const at = `extensions[${i}]`;
-    if (!isObj(x) || typeof x.service !== 'string') return err(at, 'an extension is {service, upsert, baseVersion?, groupPath?}');
+    if (!isObj(x) || typeof x.service !== 'string') return err(at, 'an extension is {service, upsert, baseVersion?, groupPath?, about?}');
     if (!have.has(x.service)) return err(`${at}.service`, `component '${x.service}' is not in the environment or the draft: copy it (environment.services) or write a manifest for it`, 'PLAN_NO_SERVICE');
     if (x.delete !== undefined) err(`${at}.delete`, 'an extension only adds or replaces items; to remove something, raise a question and edit the draft by hand');
     const v = cx.baselineVersion(x.service);
@@ -89,9 +90,14 @@ export function planToOps(plan: unknown, rows: ItemRow[], cx: PlanContext): Plan
       if (first !== undefined && topOf(first) !== topOf(x.groupPath)) err(`${at}.groupPath`, `${x.service} is given two subsystems in this plan ('${first}' and '${x.groupPath}'): a component belongs to one, pick one`, 'TWO_GROUPS');
       else planGroup.set(x.service, x.groupPath);
     }
-    if (x.groupPath !== undefined && x.groupPath !== head.groupPath) {
+    const badAbout = x.about === undefined ? null : typeof x.about === 'string' ? aboutProblem(x.about) : 'about must be a string (Markdown)';
+    if (badAbout) err(`${at}.about`, badAbout);
+    const aboutChanged = !badAbout && x.about !== undefined && (x.about || undefined) !== head.about;
+    if ((x.groupPath !== undefined && x.groupPath !== head.groupPath) || aboutChanged) {   // the header: groupPath and about (0.30.2); '' clears about
       const { version: _v, harvestedAt: _h, commit: _c, ...cur } = head;
-      ops.push({ op: 'upsert', anchor: `svc:${x.service}`, data: { ...cur, groupPath: x.groupPath } });
+      const next = { ...cur, ...(x.groupPath !== undefined ? { groupPath: x.groupPath } : {}) } as Record<string, unknown>;
+      if (aboutChanged) { if (x.about) next.about = x.about; else delete next.about; }
+      ops.push({ op: 'upsert', anchor: `svc:${x.service}`, data: next });
     }
     for (const [l, items] of Object.entries(x.upsert ?? {})) {
       if (!(ENTITY_LISTS as readonly string[]).includes(l)) { err(`${at}.upsert.${l}`, `unknown list '${l}' (one of ${ENTITY_LISTS.join(', ')})`); continue; }

@@ -9,6 +9,7 @@ import { dtoSlots } from '../../core/endpoint-info.ts';
 import { stores } from '../../core/stores.ts';
 import { designIssues, SERVICE_KINDS, twoGroups } from '../../core/design-rules.ts';
 import { checkLinks } from '../../core/links.ts';
+import { aboutProblem } from '../../core/markdown-lite.ts';
 import { relationItem } from '../../core/flow-relations.ts';
 import { HttpError } from '../errors.ts';
 import { isList, keyOf, validateEntity, validateServiceHeader, type ListName } from '../schema.ts';
@@ -74,6 +75,7 @@ function check(map: Map<string, ItemRow>, i: DraftOpInput): PreparedOp {
   } else if (r.list === 'subsystem') {
     if (!isObj(data) || typeof data.label !== 'string' || !data.label.trim() || data.label.length > 80) bad('a subsystem item is {label (1 to 80 characters), icon?, order?}');
     if (data.order !== undefined && (!Number.isInteger(data.order) || data.order < 0)) bad('order must be a position, 0 or more');
+    { const a = aboutProblem(data.about); if (a) bad(`subsystem ${a}`); }
   } else if (r.list === 'link') {
     if (!isObj(data)) bad('a link item is {name, from, to, mode?, transport?, description?, refinedBy?}');
   } else if (r.list === 'flowrel') {
