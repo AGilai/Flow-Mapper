@@ -10,7 +10,7 @@ import { subsystemsOf, type SubsystemInfo } from '../core/subsystems.ts';
 import { notFound } from './errors.ts';
 import { designRows } from './design-rows.ts';
 import { checkFresh, memoGet, memoSet } from './graph-cache.ts';
-import { getEnv } from './store/envs.ts';
+import { requireEnv } from './store/envs.ts';
 import { getDraft } from './store/drafts.ts';
 
 interface Loaded { subRows: ItemRow[]; linkRows: ItemRow[] }
@@ -19,7 +19,7 @@ const pick = (rows: ItemRow[]): Loaded => ({ subRows: rows.filter((r) => r.list 
 /** The subsystem and link rows of the environment, with the draft laid over them if given (memoised, so the roll-up memo keeps hitting). */
 function loaded(ctx: Ctx, env: string, draft: string | null): Loaded {
   checkFresh(ctx.db);
-  getEnv(ctx.db, env);
+  requireEnv(ctx.db, env);
   if (draft) getDraft(ctx.db, env, draft);
   const key = `${env}|${draft ?? ''}|sub-rows`;
   return memoGet<Loaded>(key) ?? memoSet(key, pick(designRows(ctx, env, draft).cur), [env]);
@@ -28,7 +28,7 @@ function loaded(ctx: Ctx, env: string, draft: string | null): Loaded {
 export function subsystemsFor(ctx: Ctx, env: string, draft: string | null): { levels: string[]; subsystems: SubsystemInfo[]; notSet: string[] } {
   const { subRows } = loaded(ctx, env, draft);
   const g = ctx.view(env, draft).g;
-  return { levels: getEnv(ctx.db, env).levels, subsystems: subsystemsOf(subRows, g.model.services), notSet: g.model.services.filter((s) => !s.groupPath).map((s) => s.name).sort() };
+  return { levels: requireEnv(ctx.db, env).levels, subsystems: subsystemsOf(subRows, g.model.services), notSet: g.model.services.filter((s) => !s.groupPath).map((s) => s.name).sort() };
 }
 
 export function subsystemMapFor(ctx: Ctx, env: string, draft: string | null): SubsystemMap {

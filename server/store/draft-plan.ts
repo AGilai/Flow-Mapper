@@ -6,7 +6,7 @@ import type { DB } from '../db/connection.ts';
 import { HttpError, badRequest } from '../errors.ts';
 import { PlanError, planToOps, type PlannedOps } from '../../core/import-plan.ts';
 import { validateManifest } from '../schema.ts';
-import { getEnv, guardEnv } from './envs.ts';
+import { requireEnv, guardEnv } from './envs.ts';
 import { appendOps, draftView } from './drafts.ts';
 import { applyDraftIn } from './draft-apply.ts';
 import { baselineRows } from './item-rows.ts';
@@ -22,7 +22,7 @@ export function ingestPlan(db: DB, env: string, slug: string, plan: unknown, who
     const base = new Map(baselineRows(db, env).filter((r) => r.list === 'header').map((r) => [r.service, r.sourceVersion]));
     let planned: PlannedOps;
     try {
-      planned = planToOps(resolvePlanOwners(db, plan), rows, { env, groups: getEnv(db, env).groups, baselineVersion: (s) => base.get(s), validateManifest: (m) => validateManifest(m) });
+      planned = planToOps(resolvePlanOwners(db, plan), rows, { env, groups: requireEnv(db, env).groups, baselineVersion: (s) => base.get(s), validateManifest: (m) => validateManifest(m) });
     } catch (e) {
       if (!(e instanceof PlanError)) throw e;
       e.issues.sort((a, b) => Number(b.code === 'TWO_GROUPS') - Number(a.code === 'TWO_GROUPS'));

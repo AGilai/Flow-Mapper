@@ -6,7 +6,7 @@ import { created } from '../http/router.ts';
 import type { Ctx } from '../context.ts';
 import { carryRows, neighbours } from '../../core/neighbours.ts';
 import { copyEnv } from '../store/env-copy.ts';
-import { deleteEnv, getEnv, listEnvMeta } from '../store/envs.ts';
+import { deleteEnv, getEnv, listEnvMeta, requireEnv } from '../store/envs.ts';
 import { setEnvColor } from '../store/env-color.ts';
 import { loadModel } from '../store/snapshots-read.ts';
 
@@ -37,7 +37,7 @@ export function registerEnvs(r: Router, ctx: Ctx) {
 
   /** The components of an environment with what each would bring into a Components copy. */
   r.get('/api/envs/:env/components', (req) => {
-    getEnv(db, req.params.env);
+    requireEnv(db, req.params.env);
     if (!req.query.get('draft')) return carryRows(loadModel(db, req.params.env), dtoCounts(ctx, req.params.env));
     const counts: Record<string, number> = {};
     for (const d of ctx.readerOf(req).listDtos()) counts[d.service] = (counts[d.service] ?? 0) + 1;
@@ -45,7 +45,7 @@ export function registerEnvs(r: Router, ctx: Ctx) {
   });
 
   r.get('/api/envs/:env/neighbours', (req) => {
-    getEnv(db, req.params.env);
+    requireEnv(db, req.params.env);
     return neighbours(ctx.graphOf(req), (req.query.get('services') ?? '').split(',').map((s) => s.trim()).filter(Boolean));
   });
 

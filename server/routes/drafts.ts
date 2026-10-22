@@ -8,7 +8,7 @@ import { badRequest } from '../errors.ts';
 import * as drafts from '../store/drafts.ts';
 import { runApply } from '../store/draft-apply.ts';
 import { ingestPlan } from '../store/draft-plan.ts';
-import { getEnv } from '../store/envs.ts';
+import { requireEnv } from '../store/envs.ts';
 import { envItemRows } from '../store/item-rows.ts';
 
 export const flag = (q: URLSearchParams, k: string) => ['1', 'true'].includes(q.get(k) ?? '');
@@ -16,7 +16,7 @@ export const flag = (q: URLSearchParams, k: string) => ['1', 'true'].includes(q.
 export function registerDrafts(r: Router, ctx: Ctx) {
   const { db } = ctx;
   const base = '/api/envs/:env/drafts';
-  r.get(base, (req) => { getEnv(db, req.params.env); return drafts.listDrafts(db, req.params.env, req.query.get('status') === 'all' ? 'all' : 'open'); });
+  r.get(base, (req) => { requireEnv(db, req.params.env); return drafts.listDrafts(db, req.params.env, req.query.get('status') === 'all' ? 'all' : 'open'); });
   r.post(base, async (req) => {
     const b = await req.json();
     return created(drafts.createDraft(db, req.params.env, { name: b?.name, slug: b?.slug, createdBy: b?.createdBy }));
