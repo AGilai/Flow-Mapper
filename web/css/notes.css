@@ -50,7 +50,7 @@
 .nt-sm { width: 250px; }
 .nt-sr { display: flex; gap: 6px; align-items: center; }
 .nt-sr .input { width: 100px; }
-.pane-btns { display: inline-flex; gap: 8px; }
+.fp-btns { display: inline-flex; gap: 8px; }
 
 /* history */
 .nt-back { appearance: none; background: none; border: 0; padding: 0; margin-bottom: var(--s3); font: 500 var(--fs-sm) var(--font); color: var(--accent); cursor: pointer; }
@@ -73,8 +73,8 @@
 .nt-blk.add { background: color-mix(in srgb, var(--ok) 12%, var(--surface)); border-left-color: var(--ok); }
 .nt-blk h2, .nt-blk h3 { margin: 4px 0; }
 
-body.is-max .nt-doc h2, body.is-max .nt-doc h3 { scroll-margin-top: 150px; }
-body.is-max .nt-ol { top: 150px; }
+body.is-max .nt-doc h2, body.is-max .nt-doc h3 { scroll-margin-top: calc(var(--max-stick, 96px) + 56px); }
+body.is-max .nt-ol { top: calc(var(--max-stick, 96px) + 56px); }
 @media (max-width: 760px) {
   .nt { padding: var(--s3); }
   .nt-hcols { grid-template-columns: minmax(0, 1fr); }

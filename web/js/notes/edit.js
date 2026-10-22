@@ -76,6 +76,6 @@ export function createNotesEditor({ env, anchor, doc, template = false, walk, pa
   const saveBtn = h('button.btn.sm.primary', { type: 'button', 'data-qa': 'nt-save', on: { click: () => save() } }, 'Save');
   const cancelBtn = h('button.btn.sm', { type: 'button', 'data-qa': 'nt-cancel', on: { click: () => cancel() } }, 'Cancel');
   const sync = () => { saveBtn.disabled = busy; cancelBtn.disabled = busy; };
-  pane.tools(h('span.pane-btns', cancelBtn, saveBtn));
+  pane.tools(h('span.fp-btns', cancelBtn, saveBtn));
   return { el, focus: () => ed.focus(false), dirty, dispose: () => { clearTimeout(timer); nt.dispose(); tb.dispose(); ed.dispose(); pane.tools(null); } };
 }

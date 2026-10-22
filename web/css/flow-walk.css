@@ -2,7 +2,7 @@
    Mockup: design/mockups/design-env.html, frame 9. Names are prefixed (flow-, step-) so they never meet the older .st / .who / .dbox / .numtile. */
 
 .flow-tab { flex: 1; min-height: 0; display: flex; flex-direction: column; min-width: 0; }
-.flow-top { flex: none; max-height: 48vh; overflow-y: auto; background: var(--surface); border-bottom: 1px solid var(--line); }
+.flow-top { flex: 0 1 auto; min-height: 96px; max-height: 48vh; overflow-y: auto; background: var(--surface); border-bottom: 1px solid var(--line); }
 .flow-top:empty { display: none; }
 .flow-tab > .flow-body { min-height: 260px; } /* the diagram keeps room; the panes above and below scroll instead */
 

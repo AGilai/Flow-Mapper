@@ -6,11 +6,15 @@ export interface CommentRow {
   body: string; createdAt: string; editedAt: string | null; deletedAt: string | null;
   /** 0.29.2 (importers): the comment's id in the system it came from, who wrote it there, and the resolved state (kept on the top comment; replies follow it). */
   externalId: string | null; externalSource: string | null; authorExternalId: string | null; resolvedAt: string | null; resolvedBy: string | null;
+  /** 0.34.0: a comment on a range of 2+ steps (step keys, `from` before `to`); `step` is then null. */
+  stepsFrom?: string | null; stepsTo?: string | null;
 }
 /** One comment as the list returns it. A deleted one that still has replies has `deleted: true`, no author and an empty body. */
 export interface CommentNode {
   id: number; step: string | null; author: string | null; authorId?: string | null; body: string; createdAt: string; editedAt: string | null; deleted: boolean; replies: CommentNode[];
   externalId: string | null; externalSource: string | null; authorExternalId: string | null; resolved: boolean; resolvedBy: string | null; resolvedAt: string | null;
+  /** 0.34.0: `{ from, to }` step keys of a comment on a range of steps, else null. */
+  steps: { from: string; to: string } | null;
 }
 /** `count` is every live comment (replies and resolved threads included); `resolvedThreads` is the live top comments that are resolved. */
 export interface Thread { anchor: string; count: number; resolvedThreads: number; comments: CommentNode[] }
@@ -32,8 +36,8 @@ export function parseFlowAnchor(anchor: unknown): { service: string; ingress: st
 const node = (r: CommentRow, replies: CommentNode[], top: CommentRow = r): CommentNode => {
   const res = { resolved: !!top.resolvedAt, resolvedBy: top.resolvedBy, resolvedAt: top.resolvedAt };
   return r.deletedAt
-    ? { id: r.id, step: null, author: null, body: '', createdAt: r.createdAt, editedAt: null, deleted: true, replies, externalId: null, externalSource: null, authorExternalId: null, ...res }
-    : { id: r.id, step: r.step, author: r.author, authorId: r.authorId ?? null, body: r.body, createdAt: r.createdAt, editedAt: r.editedAt, deleted: false, replies, externalId: r.externalId, externalSource: r.externalSource, authorExternalId: r.authorExternalId, ...res };
+    ? { id: r.id, step: null, steps: null, author: null, body: '', createdAt: r.createdAt, editedAt: null, deleted: true, replies, externalId: null, externalSource: null, authorExternalId: null, ...res }
+    : { id: r.id, step: r.step, steps: r.stepsFrom && r.stepsTo ? { from: r.stepsFrom, to: r.stepsTo } : null, author: r.author, authorId: r.authorId ?? null, body: r.body, createdAt: r.createdAt, editedAt: r.editedAt, deleted: false, replies, externalId: r.externalId, externalSource: r.externalSource, authorExternalId: r.authorExternalId, ...res };
 };
 
 /** The thread of one anchor from its rows (any order). `count` is the live comments, replies included. */

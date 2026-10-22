@@ -25,8 +25,8 @@ const calm = () => { try { return matchMedia('(prefers-reduced-motion: reduce)')
 
 /** createWalkView({ store, root, messages, initial, onStep(n), onRestep(cols) }) -> { el, decorate(res, built), endsOf(built), hit(event), onKey(ev), move(action), current(), dispose }
  *  onSteps(steps): the numbering of the lane just drawn (the partial-flow line reads it). onRestep(cols): the viewer moved to a step whose lifelines are the columns `cols` (Squeeze folds again for it). endsOf(built): the columns of the current step, before the lane is drawn. */
-export function createWalkView({ store, root, messages = () => null, initial = null, sb = () => 'tad', hl = () => true, zoom = () => 1, onStep, onRestep, onSteps }) {
-  let steps = [], built = null, tiles = null, cur = initial ?? 1, curKey = null, jumpOnDraw = initial != null;
+export function createWalkView({ store, root, messages = () => null, initial = null, sb = () => 'tad', hl = () => true, zoom = () => 1, onStep, onRestep, onSteps, onPick }) {
+  let steps = [], built = null, tiles = null, cur = initial ?? 1, curKey = null, jumpOnDraw = initial != null, rng = null; // rng: the range band (0.34.0), kept across a redraw
   let picked = initial != null; // a step the viewer chose (a click, a key, a link with step=): the comments' "Attach to step N" only offers one then
   const watchers = new Set(); // the comments section reads the steps and the current one (0.27.0)
   const bar = createStepbar({ store, root, sb, onMove: (a) => move(a), onEdit: (anchor) => edit(steps[cur - 1], anchor) });
@@ -51,13 +51,14 @@ export function createWalkView({ store, root, messages = () => null, initial = n
     built = lane;
     steps = stepsOf(built, stepKeys, messages());
     onSteps?.(steps);
-    tiles = steps.length ? drawStepTiles(res, built, steps, (n) => go(n), root ? (n) => { go(n, { scroll: false }); edit(steps[n - 1], tiles?.rowEl(n)); } : null, hl) : null;
+    tiles = steps.length ? drawStepTiles(res, built, steps, (n, ev) => { if (!onPick?.(n, ev)) go(n); }, root ? (n) => { go(n, { scroll: false }); edit(steps[n - 1], tiles?.rowEl(n)); } : null, hl) : null;
     if (root && steps.length) res.body.addEventListener('contextmenu', (ev) => { // right-click an arrow: Edit step description…
       const g = ev.target.closest?.('.msg[data-e]'), st = g && !ev.defaultPrevented ? stepAtRow(steps, Number(g.getAttribute('data-e'))) : null;
       if (!st) return;
       ev.preventDefault(); go(st.n, { scroll: false });
       openMenu(ev.clientX, ev.clientY, `Step ${st.n}`, [{ label: 'Edit step description…', icon: 'edit', hint: 'Title and description of this step (E)', onSelect: () => edit(st, g) }]);
     });
+    tiles?.setRange(rng?.[0] ?? null, rng?.[1] ?? null);
     const keep = steps.find((s) => s.key === curKey);
     go(keep ? keep.n : cur, { scroll: false, user: false });
     if (jumpOnDraw) requestAnimationFrame(() => requestAnimationFrame(() => reveal(tiles, cur, 'auto', null, zoom()))); // a link opened on a step: the lane is not attached yet
@@ -71,7 +72,9 @@ export function createWalkView({ store, root, messages = () => null, initial = n
     el: bar.el, decorate, endsOf, refreshBar: () => bar.refresh(), refreshHl: () => tiles?.setCurrent(cur),
     /** A double-click on a step's text on its arrow, by key. */
     editKey(key) { const st = steps.find((x) => x.key === key); if (st) { go(st.n, { scroll: false }); edit(st, tiles?.rowEl(st.n)); } },
-    steps: () => steps, picked: () => picked, go: (n) => go(n), watch: (f) => { watchers.add(f); return () => watchers.delete(f); },
+    steps: () => steps, picked: () => picked, rowSpan: (n) => tiles?.rowSpan(n) ?? null,
+    /** The band over a range of steps (a hovered or chosen bracket); hlRange(null) takes it away. */
+    hlRange: (from, to) => { rng = from == null ? null : [from, to]; tiles?.setRange(from, to); }, go: (n) => go(n), watch: (f) => { watchers.add(f); return () => watchers.delete(f); },
     /** Scroll the current step into view and (focus) put focus on its arrow: a fold the viewer had focused was just redrawn away. */
     reveal(focus = false) { reveal(tiles, cur, 'auto', bar.el, zoom()); if (focus) (tiles?.rowEl(cur) ?? null)?.focus({ preventScroll: true }); }, move, current: () => cur,
     hit(event) { const st = stepAtRow(steps, event.row); if (st) go(st.n, { scroll: false }); }, // a click on an arrow: the walk jumps to it

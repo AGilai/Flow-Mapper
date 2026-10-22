@@ -2,7 +2,7 @@
 // (the sanitizer, the thread builder). The bundled rows come from the build (`data.comments[env]`); what the viewer posts is lost on reload.
 
 import { trace } from '../core/trace.js';
-import { HASH_TRACE, isStepKey, hasStep } from '../core/description.js';
+import { HASH_TRACE, isStepKey, hasStep, stepKeys } from '../core/description.js';
 import { buildThread, parseFlowAnchor, MAX_AUTHOR, cleanName } from '../core/comments.js';
 import { sanitize, tooLong, plainText } from '../core/rich-text.js';
 
@@ -24,13 +24,21 @@ export function createComments(data, g, U) {
       const t = trace(g(env), { service: f.service, ingress: f.ingress }, HASH_TRACE) ?? fail(`flow ${f.service} / ${f.ingress} not found`, 404);
       const step = i.step ?? null;
       if (step !== null && (!isStepKey(step) || !hasStep(t, step))) fail(`step '${step}' is not in the flow`, 400);
+      let steps = null; // 0.34.0: a range of 2+ steps (keys, from before to), instead of a step; top comments only
+      if (i.steps != null) {
+        const keys = stepKeys(t.messages), a2 = keys.indexOf(i.steps?.from), b2 = keys.indexOf(i.steps?.to);
+        if (step !== null || i.parentId != null) fail('give step or steps, not both, and not on a reply', 400);
+        if (a2 < 0 || b2 < 0) fail('steps must be { from, to }: two step keys of the flow', 400);
+        if (a2 >= b2) fail('steps.from must come before steps.to in the flow (a range is 2 or more steps)', 400);
+        steps = { from: i.steps.from, to: i.steps.to };
+      }
       let parentId = null;
       if (i.parentId != null) {
         const p = rows(env).find((x) => x.id === Number(i.parentId) && x.anchor === i.anchor) ?? fail(`comment ${i.parentId} not found`, 404);
         if (p.deletedAt) fail('the comment you reply to was deleted', 422);
         parentId = p.parentId ?? p.id;
       }
-      const r = { id: Math.max(0, ...rows(env).map((x) => x.id)) + 1, anchor: i.anchor, step, parentId, author: a, authorId: U.userFor(null, a).id, body: b, createdAt: new Date().toISOString(), editedAt: null, deletedAt: null, externalId: null, externalSource: null, authorExternalId: null, resolvedAt: null, resolvedBy: null };
+      const r = { id: Math.max(0, ...rows(env).map((x) => x.id)) + 1, anchor: i.anchor, step, stepsFrom: steps?.from ?? null, stepsTo: steps?.to ?? null, parentId, author: a, authorId: U.userFor(null, a).id, body: b, createdAt: new Date().toISOString(), editedAt: null, deletedAt: null, externalId: null, externalSource: null, authorExternalId: null, resolvedAt: null, resolvedBy: null };
       rows(env).push(r);
       return structuredClone(r);
     },

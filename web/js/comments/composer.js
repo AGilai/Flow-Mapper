@@ -9,12 +9,13 @@ import { ensureUser } from '../users/signin.js';
 import { myName, watchUsers } from '../users/directory.js';
 
 /**
- * createComposer({ mode, html, step, onSubmit({ html, step, name, user }), onCancel }) -> { el, refreshStep(), focus(), dispose() }
+ * createComposer({ mode, html, step, onSubmit({ html, step, steps, name, user }), onCancel }) -> { el, refreshStep(), setRange(r), focus(), dispose() }
+ * setRange({ from, to, a, b } | null) (0.34.0): a range of steps (keys from / to, numbers a / b) to attach, "Attach to steps 4-9"; the switch detaches it, and a post uses `steps` instead of `step`.
  * step: () => { n, key } | null, the walk's current step (for "Attach to step N"). onSubmit may throw: the message is shown and the text stays.
  */
 export function createComposer({ mode = 'new', html = '', step = () => null, people, onSubmit, onCancel }) {
   const edit = mode === 'edit', quiet = mode === 'new';
-  let open = !quiet, busy = false, attach = true, ed = null, tb = null;
+  let open = !quiet, busy = false, attach = true, ed = null, tb = null, rng = null;
   const el = h(`div.cm-composer.${mode}`);
   const err = h('div.cm-err', { role: 'alert' });
 
@@ -30,6 +31,7 @@ export function createComposer({ mode = 'new', html = '', step = () => null, peo
   const cancel = h('button.btn.sm', { type: 'button', 'data-qa': 'cm-cancel', on: { click: () => close() } }, 'Cancel');
   const foot = h('div.rte-foot', tog, h('span.sp', h('span.cm-hint.keys', `Ctrl/Cmd + Enter to ${edit ? 'save' : 'post'}`), cancel, post));
   function syncStep() {
+    if (rng && mode === 'new') { tog.hidden = false; tog.setAttribute('aria-checked', String(attach)); tog.classList.toggle('on', attach); tog.querySelector('.tl').textContent = `Attach to steps ${rng.a}\u2013${rng.b}`; return; }
     const s = quiet || mode === 'new' ? step() : null;
     tog.hidden = !s;
     if (s) { tog.setAttribute('aria-checked', String(attach)); tog.classList.toggle('on', attach); tog.querySelector('.tl').textContent = `Attach to step ${s.n}`; }
@@ -40,9 +42,9 @@ export function createComposer({ mode = 'new', html = '', step = () => null, peo
     if (post.disabled) return;
     const body = ed.getHtml();
     if (!body) return;
-    const s = mode === 'new' && attach ? step() : null;
+    const s = mode === 'new' && attach && !rng ? step() : null, steps = mode === 'new' && attach && rng ? { from: rng.from, to: rng.to } : null;
     busy = true; err.textContent = ''; sync();
-    try { const user = edit ? null : await ensureUser('Sign in to post. There are no passwords yet: picking a user only labels what you write.'); await onSubmit({ html: body, step: s?.key ?? null, name: user?.name ?? myName(), user }); busy = false; drawWho(); if (quiet) { dispose(); open = false; draw(); } } catch (e) { busy = false; err.textContent = e.cancelled ? '' : e.message || 'Could not save the comment.'; sync(); }
+    try { const user = edit ? null : await ensureUser('Sign in to post. There are no passwords yet: picking a user only labels what you write.'); await onSubmit({ html: body, step: s?.key ?? null, steps, name: user?.name ?? myName(), user }); if (steps) { rng = null; attach = true; } busy = false; drawWho(); if (quiet) { dispose(); open = false; draw(); } } catch (e) { busy = false; err.textContent = e.cancelled ? '' : e.message || 'Could not save the comment.'; sync(); }
   }
   function close() { if (busy) return; if (quiet) { dispose(); open = false; draw(); const b = el.querySelector('.cm-quiet'); b?.focus(); } else onCancel?.(); }
   function dispose() { tb?.dispose(); ed?.dispose(); ed = tb = null; }
@@ -65,5 +67,5 @@ export function createComposer({ mode = 'new', html = '', step = () => null, peo
   let seen = false;
   const off = watchUsers(() => { if (el.isConnected) { seen = true; if (!open) draw(); else drawWho(); } else if (seen) off(); }); // "Commenting as X" follows a switch of user
   draw();
-  return { el, refreshStep: syncStep, focus: () => { if (!open) { open = true; draw(); } ed?.focus?.(); }, dispose };
+  return { el, refreshStep: syncStep, setRange: (r) => { rng = r; attach = true; syncStep(); }, focus: () => { if (!open) { open = true; draw(); } ed?.focus?.(); }, dispose };
 }

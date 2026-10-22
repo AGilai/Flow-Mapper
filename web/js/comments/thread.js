@@ -11,7 +11,7 @@ import { createComposer } from './composer.js';
 import { userAvatar } from '../users/avatar.js';
 import { myName, me, watchUsers, loadUsers } from '../users/directory.js';
 import { refreshChips } from '../users/chips.js';
-import { parseHash } from '../router.js';
+import { parseHash, setQuery } from '../router.js';
 import { commentParam, locateComment, startsOpen, relTime, fullDate, visibleThread, mentionedOnly, countMentions } from './pure.js';
 import { announceSeen } from '../users/unread.js';
 import { prefill, stripTables, eventParts } from '../action-items/pure.js';
@@ -28,8 +28,9 @@ const plural = (n, w) => `${n} ${n === 1 ? w : w === 'reply' ? 'replies' : `${w}
  * pane (0.34.0): the tab pane's hub ({ shown(), reveal(), set(data) }); the thread is then a tab panel (no summary, no fold) and the label is the tab's.
  * walk: the tab's step walk ({ steps(), current(), picked(), go(n), watch(fn) }): the pills, "Attach to step N" and the jump.
  */
-export function createComments({ env, root, walk, store, onCount, pane = null }) {
+export function createComments({ env, root, walk, store, onCount, onThread, pane = null }) {
   const anchor = flowAnchor(root.service, root.ingress);
+  let wantRange = null;
   let thread = { count: 0, resolvedThreads: 0, comments: [] }, showResolved = false, items = [], composer = null, replying = null, loaded = false, seq = 0, own = false, flash = 0, wait = 0, hl = 0, t0 = 0, mineOnly = false, considered = false, target = commentParam(parseHash().query); // target: `comment=<id>` of the URL, until it was shown
   const fresh = new Set(); // comment ids that mention me and were unread when this thread opened: they carry a "new" mark until the page is left
   const title = h('span.cm-t', 'Comments'), count = h('span.muted.sm', '(0)'), hint = h('span.cm-hint.cm-sum');
@@ -70,7 +71,7 @@ export function createComments({ env, root, walk, store, onCount, pane = null })
 
   function draw() {
     items.forEach((i) => i.dispose()); items = [];
-    const x = (top) => ({ people, fresh: (id) => fresh.has(id), step: stepOf, jump: (n) => walk.go(n), top, api: api_ });
+    const x = (top) => ({ people, fresh: (id) => fresh.has(id), step: stepOf, jump: (n) => walk.go(n), top, api: api_, range: (r) => (r.kind === 'range' ? { on: () => walk.hlRange(r.from, r.to), off: () => walk.hlRange(null) } : null), rangeGo: (r) => walk.go(r.from) });
     const u = me(), mineN = u ? countMentions(thread, u.id) : 0;
     if (!mineN) mineOnly = false;
     const vis = mineOnly && u ? mentionedOnly(visibleThread(thread, showResolved), u.id) : visibleThread(thread, showResolved), hiddenN = thread.resolvedThreads ?? 0;
@@ -92,10 +93,11 @@ export function createComments({ env, root, walk, store, onCount, pane = null })
     showBtn.hidden = !hiddenN; showBtn.setAttribute('aria-pressed', String(showResolved)); showBtn.textContent = `${showResolved ? 'Hide' : 'Show'} resolved (${hiddenN})`;
     hint.textContent = vis.count ? `${plural(top, 'comment')}${replies ? ` and ${plural(replies, 'reply')}` : ''}, oldest first` : loaded ? '· Add' : '';
     if (!composer) {
-      composer = createComposer({ mode: 'new', people, step: stepNow, onSubmit: async ({ html, step, name }) => { await api.addComment(env, { anchor, step, author: name, body: html }); await refresh(true); } });
+      composer = createComposer({ mode: 'new', people, step: stepNow, onSubmit: async ({ html, step, steps, name }) => { await api.addComment(env, { anchor, step, ...(steps && { steps }), author: name, body: html }); if (steps) setQuery({ steps: null }); await refresh(true); } });
       tail.replaceChildren(h('div.cm-compose', h('span.cm-me'), composer.el)); drawMe();
     }
     mark(); showTarget();
+    if (wantRange) { const [a, b] = wantRange; wantRange = null; startRange(a, b); }
     const r = replying !== null ? list.querySelector('.cm-composer.reply') : null; r?.querySelector('[data-qa=rte]')?.focus();
   }
 
@@ -131,7 +133,7 @@ export function createComments({ env, root, walk, store, onCount, pane = null })
     try {
       const t = await api.comments(env, anchor);
       if (mine !== seq) return;
-      thread = t; own = true; store.setComments(t.comments); own = false;
+      thread = t; own = true; store.setComments(t.comments); own = false; onThread?.(t.comments);
       if (!loaded && !pane) { const open = startsOpen({ count: visibleThread(t, false).count, remembered: read(), stepKey: walk.picked() ? walk.steps()[walk.current() - 1]?.key : null, comments: t.comments }); if (open !== el.open) { auto = true; el.open = open; } }
       loaded = true;
       if (target != null) { const at = locateComment(t, target); if (at) { if (at.resolved) showResolved = true; reveal(); force = true; } }
@@ -160,5 +162,12 @@ export function createComments({ env, root, walk, store, onCount, pane = null })
   refresh(true);
   /** The Add button of the tab row: show the tab and put the cursor in the composer. */
   const add = () => { reveal(); composer?.focus?.(); };
-  return { el, refresh, add, onShow: () => { consider(); showTarget(); }, dispose: () => { off(); offUsers(); clearTimeout(flash); clearTimeout(wait); clearTimeout(hl); window.removeEventListener('focus', onFocus); document.removeEventListener('visibilitychange', onFocus); unwatch(); items.forEach((i) => i.dispose()); composer?.dispose(); } };
+  /** "Comment on steps 4-9": show the tab, attach the range to the composer and put the cursor there (the URL carries `steps=4-9`). */
+  const startRange = (a, b) => {
+    const st = walk.steps(), from = st[a - 1]?.key, to = st[b - 1]?.key;
+    if (!from || !to) return;
+    if (!composer) { wantRange = [a, b]; reveal(); return; } // the thread is still loading: the composer takes it when it exists
+    reveal(); composer.setRange({ from, to, a, b }); composer?.focus?.(); setQuery({ steps: `${a}-${b}`, pane: 'comments' });
+  };
+  return { el, refresh, add, startRange, onShow: () => { consider(); showTarget(); }, dispose: () => { off(); offUsers(); clearTimeout(flash); clearTimeout(wait); clearTimeout(hl); window.removeEventListener('focus', onFocus); document.removeEventListener('visibilitychange', onFocus); unwatch(); items.forEach((i) => i.dispose()); composer?.dispose(); } };
 }

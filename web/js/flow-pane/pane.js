@@ -22,24 +22,24 @@ export function createPane({ panels, diagram, hasNotes = false }) {
   let cur = initialTab({ param: paneParam(q), comment: q.has('comment'), remembered: read(), hasNotes, available: ids }), chosen = chosen0; // chosen: the URL or the viewer decided; else the default follows whether the flow has notes
   const counts = {}, compactQ = mq('(max-width: 680px)');
   const tabBtn = {}, countEl = {}, panelEl = {};
-  const list = h('div.pane-tablist', { role: 'tablist', 'aria-label': 'Flow notes, comments and action items' });
-  const sel = h('select.pane-sel', { 'aria-label': 'Pane', 'data-qa': 'pane-select', on: { change: () => show(sel.value, { user: true }) } });
+  const list = h('div.fp-tablist', { role: 'tablist', 'aria-label': 'Flow notes, comments and action items' });
+  const sel = h('select.fp-sel', { 'aria-label': 'Pane', 'data-qa': 'pane-select', on: { change: () => show(sel.value, { user: true }) } });
   for (const id of ids) {
     countEl[id] = h('small');
-    tabBtn[id] = h('button.pane-tab', { type: 'button', role: 'tab', id: `pane-tab-${id}`, 'data-qa': `pane-tab-${id}`, on: { click: () => show(id, { user: true }), keydown: (e) => onKey(e, id) } }, h('span', TAB_NAMES[id]), countEl[id]);
+    tabBtn[id] = h('button.fp-tab', { type: 'button', role: 'tab', id: `fp-tab-${id}`, 'data-qa': `pane-tab-${id}`, on: { click: () => show(id, { user: true }), keydown: (e) => onKey(e, id) } }, h('span', TAB_NAMES[id]), countEl[id]);
     sel.append(h('option', { value: id }, TAB_NAMES[id]));
     list.append(tabBtn[id]);
   }
-  const primary = h('button.pane-addb', { type: 'button', 'data-qa': 'pane-add', on: { click: () => doAdd(cur) } });
-  const more = h('button.pane-addm', { type: 'button', 'aria-haspopup': 'menu', 'aria-expanded': 'false', 'aria-label': 'Add a comment or an action item', 'data-qa': 'pane-add-menu', on: { click: (e) => { e.stopPropagation(); toggleMenu(); } } }, '▾');
-  const menu = h('div.pane-menu', { role: 'menu', hidden: true });
-  for (const [id, label] of [['comments', 'Comment'], ['actions', 'Action item']]) if (panels[id]) menu.append(h('button.pane-mi', { type: 'button', role: 'menuitem', 'data-id': id, on: { click: () => { closeMenu(); doAdd(id); } } }, h('i'), h('b', label)));
-  const addGroup = h('div.pane-add', primary, more, menu);
-  const fold = h('button.pane-fold', { type: 'button', 'data-qa': 'pane-fold', on: { click: () => { split.toggle(); paint(); } } }, '▾');
-  const tools = h('span.pane-tools', addGroup);
-  const tabs = h('div.pane-tabs', list, sel, h('span.pane-sp'), tools, fold);
-  const body = h('div.pane-body');
-  for (const id of ids) { panelEl[id] = h('div.pane-panel', { role: 'tabpanel', 'aria-labelledby': `pane-tab-${id}`, hidden: true }, panels[id].el); body.append(panelEl[id]); }
+  const primary = h('button.fp-addb', { type: 'button', 'data-qa': 'pane-add', on: { click: () => doAdd(cur) } });
+  const more = h('button.fp-addm', { type: 'button', 'aria-haspopup': 'menu', 'aria-expanded': 'false', 'aria-label': 'Add a comment or an action item', 'data-qa': 'pane-add-menu', on: { click: (e) => { e.stopPropagation(); toggleMenu(); } } }, '▾');
+  const menu = h('div.fp-menu', { role: 'menu', hidden: true });
+  for (const [id, label] of [['comments', 'Comment'], ['actions', 'Action item']]) if (panels[id]) menu.append(h('button.fp-mi', { type: 'button', role: 'menuitem', 'data-id': id, on: { click: () => { closeMenu(); doAdd(id); } } }, h('i'), h('b', label)));
+  const addGroup = h('div.fp-add', primary, more, menu);
+  const fold = h('button.fp-fold', { type: 'button', 'data-qa': 'pane-fold', on: { click: () => { split.toggle(); paint(); } } }, '▾');
+  const tools = h('span.fp-tools', addGroup);
+  const tabs = h('div.fp-tabs', list, sel, h('span.fp-sp'), tools, fold);
+  const body = h('div.fp-body');
+  for (const id of ids) { panelEl[id] = h('div.fp-panel', { role: 'tabpanel', 'aria-labelledby': `fp-tab-${id}`, hidden: true }, panels[id].el); body.append(panelEl[id]); }
   const el = h('div.flow-bottom', { 'data-qa': 'pane' }, tabs, body);
   const split = createSplitter({ pane: el, tabs, diagram });
 
@@ -55,11 +55,11 @@ export function createPane({ panels, diagram, hasNotes = false }) {
   const closeMenu = () => { menu.hidden = true; more.setAttribute('aria-expanded', 'false'); document.removeEventListener('click', closeMenu); };
   function toggleMenu() {
     if (!menu.hidden) return closeMenu();
-    menu.querySelectorAll('.pane-mi').forEach((b) => { const on = b.dataset.id === cur; b.classList.toggle('on', on); b.querySelector('i').textContent = on ? '✓' : ''; });
+    menu.querySelectorAll('.fp-mi').forEach((b) => { const on = b.dataset.id === cur; b.classList.toggle('on', on); b.querySelector('i').textContent = on ? '✓' : ''; });
     menu.classList.toggle('up', tabs.getBoundingClientRect().bottom + 110 > innerHeight);
     menu.hidden = false; more.setAttribute('aria-expanded', 'true');
     setTimeout(() => document.addEventListener('click', closeMenu), 0);
-    menu.querySelector('.pane-mi')?.focus();
+    menu.querySelector('.fp-mi')?.focus();
   }
   menu.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.stopPropagation(); closeMenu(); more.focus(); } });
 
@@ -73,17 +73,17 @@ export function createPane({ panels, diagram, hasNotes = false }) {
       sel.options[ids.indexOf(id)].textContent = `${TAB_NAMES[id]}${t ? ` ${t}` : ''}`;
       panelEl[id].hidden = !on;
     }
-    sel.value = cur;
+    sel.value = cur; el.dataset.tab = cur; // maximized, the Notes tab is the whole page (flow-pane.css)
     primary.textContent = primaryLabel(cur, compact);
     primary.hidden = cur !== 'notes' && !panels[cur]?.add;
     fold.setAttribute('aria-label', split.collapsed() ? 'Expand the pane' : 'Collapse the pane to its tab row');
     fold.setAttribute('aria-expanded', String(!split.collapsed()));
     fold.classList.toggle('up', split.collapsed());
   }
-  function show(id, { user = false } = {}) {
+  function show(id, { user = false, quiet = false } = {}) { // quiet: the default tab following the flow's notes; it never opens a pane the viewer folded
     if (!panels[id]) return;
     const changed = id !== cur;
-    cur = id; split.expand(); paint();
+    cur = id; if (!quiet) split.expand(); paint();
     if (user) { chosen = true; write(id); if (changed || paneParam(parseHash().query) !== id) setQuery({ pane: id }); }
     panels[id].onShow?.();
     return changed;
@@ -94,7 +94,7 @@ export function createPane({ panels, diagram, hasNotes = false }) {
   paint();
   return {
     el, splitter: split.el, tab: () => cur, show, shown: (id) => id === cur && !split.collapsed(), refit: () => split.apply(), tabs,
-    hub: (id) => ({ shown: () => id === cur && !split.collapsed(), reveal: () => show(id), set: (d) => { counts[id] = d; paint(); }, tools: (n) => setTools(n), loaded: (has) => { if (!chosen && has && panels.notes && cur !== 'notes') show('notes'); } }),
+    hub: (id) => ({ shown: () => id === cur && !split.collapsed(), reveal: () => show(id), set: (d) => { counts[id] = d; paint(); }, tools: (n) => setTools(n), loaded: (has) => { if (!chosen && has && panels.notes && cur !== 'notes') show('notes', { quiet: true }); } }),
     setCount: (id, d) => { counts[id] = d; paint(); },
     setTools,
     dispose: () => { compactQ.removeEventListener?.('change', paint); document.removeEventListener('click', closeMenu); },

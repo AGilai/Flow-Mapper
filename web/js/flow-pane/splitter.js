@@ -13,7 +13,7 @@ const layout = () => document.dispatchEvent(new CustomEvent('fm:layout'));
 /** createSplitter({ pane, tabs, diagram }) -> { el, apply(), collapsed(), expand(min), toggle() }; pane: the .flow-bottom, tabs: its tab row, diagram: the .flow-body */
 export function createSplitter({ pane, tabs, diagram }) {
   let height = heightOf(get(KEY_H)), collapsed = get(KEY_C) === '1', laid = 0;
-  const el = h('div.pane-split', { role: 'separator', tabindex: 0, 'aria-orientation': 'horizontal', 'aria-label': 'Resize the diagram and the pane', title: 'Drag to resize, double-click to reset', 'data-qa': 'pane-split' });
+  const el = h('div.fp-split', { role: 'separator', tabindex: 0, 'aria-orientation': 'horizontal', 'aria-label': 'Resize the diagram and the pane', title: 'Drag to resize, double-click to reset', 'data-qa': 'pane-split' });
   const minH = () => tabs.offsetHeight + 1;
   const maxH = () => {
     const p = pane.parentElement;
@@ -40,9 +40,9 @@ export function createSplitter({ pane, tabs, diagram }) {
     e.preventDefault();
     const y0 = e.clientY, h0 = collapsed ? minH() : pane.offsetHeight;
     el.setPointerCapture?.(e.pointerId);
-    document.body.classList.add('pane-dragging'); el.classList.add('drag');
+    document.body.classList.add('fp-dragging'); el.classList.add('drag');
     const move = (ev) => set(dragHeight({ start: h0, dy: ev.clientY - y0, min: minH(), max: maxH() }));
-    const up = () => { el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up); document.body.classList.remove('pane-dragging'); el.classList.remove('drag'); save(); apply(); layout(); };
+    const up = () => { el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up); document.body.classList.remove('fp-dragging'); el.classList.remove('drag'); save(); apply(); layout(); };
     el.addEventListener('pointermove', move); el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
   });
   el.addEventListener('keydown', (e) => {

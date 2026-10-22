@@ -23,7 +23,7 @@ export function registerComments(r: Router, ctx: Ctx) {
     const b = await req.json();
     // 0.29.2: an importer's fields ride along; a re-import of a known (externalSource, externalId) updates it and answers 200 with `updated: true`
     const row = comments.addComment(ctx.db, ctx.graphOf(req), req.params.env, {
-      anchor: b?.anchor, step: b?.step, parentId: b?.parentId, author: b?.author, authorId: headerUser(req.headers), body: b?.body, createdAt: b?.createdAt, externalId: b?.externalId, externalSource: b?.externalSource,
+      anchor: b?.anchor, step: b?.step, steps: b?.steps, parentId: b?.parentId, author: b?.author, authorId: headerUser(req.headers), body: b?.body, createdAt: b?.createdAt, externalId: b?.externalId, externalSource: b?.externalSource,
       authorExternalId: b?.authorExternalId, parentExternalId: b?.parentExternalId, resolved: b?.resolved, resolvedBy: b?.resolvedBy, resolvedAt: b?.resolvedAt });
     return row.updated ? row : created(row);
   });

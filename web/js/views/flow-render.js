@@ -53,7 +53,7 @@ export function createFlowRender({ trace, tree, key, ancestors = [], sticky = tr
     lane = renderLane(built, { ...handlers, marks: laneMarks(marksNow()) ?? stepMarksOnly, edit: sh.addCall ? { onAddCall: sh.addCall, onAddInBand: sh.addInBand } : null, refs: createRefs(trace, { editing: state.mode === 'edit' && !!state.draft, onImport: sh.importRef }), sticky, squeeze: sq, onSqueeze: sh.squeezeOpen, details: depth ? null : sh.details?.(built) ?? null, onEditStep: sh.editStep, zoom: sh.zoom?.() ?? 1, hints: opts.th ?? true, fit: Math.max(0, (sh.fit?.() ?? 0) - (depth ? 40 + depth * 28 : 0)) });
     if (!depth) sh.walk?.decorate(lane, built); // numbered steps are the top lane's only (0.20.0)
     laneBox.replaceChildren(lane.el);
-    if (!depth) sh.afterLane?.(); // Fit measures the new lane (flow-tab-view.js)
+    if (!depth) sh.afterLane?.(laneBox); // Fit measures the new lane (flow-tab-view.js); the comment brackets go back in front of it
   }
   /** The walk moved to a step with these columns: redraw only when that folds the lane differently. Focus stays on the same arrow. */
   function restep(cols) {

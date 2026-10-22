@@ -18,6 +18,9 @@
     { "service": "api-gateway", "ingress": "in.createOrder", "author": "Noa Barak", "ago": 2000, "externalId": "conf-48214", "externalSource": "confluence", "authorExternalId": "noa.barak",
       "body": "<p>@{Asaf G.} could you confirm that the 15 min TTL is what we agreed on? cc @{Dana Levi}</p>" },
     { "service": "api-gateway", "ingress": "in.createOrder", "author": "Dana Levi", "ago": 45,
-      "body": "<p>@{Asaf G.} does the audit trail need the device id? I would add it to the order event.</p>" }
+      "body": "<p>@{Asaf G.} does the audit trail need the device id? I would add it to the order event.</p>" },
+    { "service": "api-gateway", "ingress": "in.createOrder", "author": "Dana Levi", "ago": 300,
+      "steps": { "from": "#step:svc:orders-svc>svc:inventory-svc|http:POST inventory-svc/reservations|http", "to": "#step:svc:orders-svc>svc:payments-svc|http:POST payments-svc/payments/charge|http" },
+      "body": "<p>Stock is held first and payment is charged second: if the charge is declined the hold must be released. Retry the reservation 3 times with backoff before giving up.</p>" }
   ]
 }

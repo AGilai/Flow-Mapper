@@ -24,6 +24,7 @@ import { eventView } from '../core/events.js';
 import { eventFlow } from '../core/event-flow.js';
 import { flowDescriptions, HASH_TRACE } from '../core/description.js';
 import { exportMermaid } from '../core/mermaid-export.js';
+import { plainText } from '../core/rich-text-text.js';
 import { envApi } from './api-local-envs.js';
 import { createDesign } from './api-local-design.js';
 import { createComments } from './api-local-comments.js';
@@ -134,7 +135,8 @@ export const api = {
   /** A flow as Mermaid text (export works in the preview; import needs the server). */
   mermaid: async (env, service, ingress) => {
     const t = trace(g(env), { service, ingress }, HASH_TRACE) ?? fail('flow not found'), text = D.texts(env).get(`${service}/${ingress}`);
-    return exportMermaid(t, { name: text?.name, description: text?.description, descriptions: await api.descriptions(env, service, ingress) });
+    const ranges = (await api.comments(env, `flow:${service}/${ingress}`)).comments.filter((c) => c.steps && !c.resolved && !c.deleted).map((c) => ({ ...c.steps, text: plainText(c.body).split('\n')[0] })); // 0.34.0: open comments on a range of steps
+    return exportMermaid(t, { name: text?.name, description: text?.description, descriptions: await api.descriptions(env, service, ingress), ranges });
   },
   mermaidPreview: async () => fail('Importing Mermaid is not available in the preview: it needs the server.'),
   mermaidImport: async () => fail('Importing Mermaid is not available in the preview: it needs the server.'),
