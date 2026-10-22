@@ -10,7 +10,7 @@ export const TEXT_X = 32; // x of a head's text when the head has an icon before
 
 /** The [type, kind] of the icon a lifeline head shows, or null. A service shows one only when it is a lambda or a gateway. */
 export function headIconOf(c) {
-  const [type, kind] = c.kind === 'resource' ? ['store', c.storeKind] : c.kind === 'channel' ? ['channel', CH_KIND[c.transport] ?? c.transport] : c.kind === 'service' ? ['service', c.serviceKind ?? kindFor(c.service)] : [];
+  const [type, kind] = c.kind === 'resource' ? ['store', c.storeKind] : c.kind === 'channel' ? ['channel', CH_KIND[c.transport] ?? c.transport] : c.kind === 'service' ? ['service', c.serviceKind ?? kindFor(c.service, c.env)] : [];
   return type && iconFile(type, kind) ? [type, kind] : null;
 }
 

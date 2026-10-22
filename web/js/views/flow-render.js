@@ -26,6 +26,7 @@ import { laneSlots } from '../design/lane-slots.js';
  */
 export function createFlowRender({ trace, tree, key, ancestors = [], sticky = true, depth = 0 }, sh) {
   const { host, opts } = sh, mwOpen = new Set(), fanOpen = new Set(); // fanOpen: topics whose queues are all drawn
+  const marks = () => host.marks ?? marksNow(); // the marks of the flow's own environment (a tab of another env has its own, 0.36.0)
   const laneBox = h('div.flow-lane'), idxBox = h('div.flow-idx');
   let lane = null, index = null;
   const maxDepth = () => (opts.depth === 'all' ? Infinity : Number(opts.depth));
@@ -48,9 +49,9 @@ export function createFlowRender({ trace, tree, key, ancestors = [], sticky = tr
     const lo = laneOpts();
     const msgs = trace.messages.filter((m) => m.depth <= lo.maxDepth);
     const built = buildLane(msgs, { mwOpen, fanOpen, numbers: deliveryNumbers(tree), stores: lo.stores, scope: 'full', participants: trace.participants, trigger: depth ? null : sh.trigger?.() ?? null });
-    groupLane(built, host.subs, opts.bands, marksNow(), laneSlots); // 0.28.1: the components of one subsystem together and the bands over them; a colour per flow (before Squeeze, the walk and the drawing see the columns)
+    groupLane(built, host.subs, opts.bands, marks(), (cols) => laneSlots(cols, undefined, host.env), host.env); // 0.28.1: the components of one subsystem together and the bands over them; a colour per flow (before Squeeze, the walk and the drawing see the columns)
     const sq = sh.squeeze?.() ? { keep: (!depth && sh.walk?.endsOf(built)) || firstStepCols(built) } : null; // Squeeze: the current step's lifelines (a card: its first step's)
-    lane = renderLane(built, { ...handlers, marks: laneMarks(marksNow()) ?? stepMarksOnly, edit: sh.addCall ? { onAddCall: sh.addCall, onAddInBand: sh.addInBand } : null, refs: createRefs(trace, { editing: state.mode === 'edit' && !!state.draft, onImport: sh.importRef }), sticky, squeeze: sq, onSqueeze: sh.squeezeOpen, details: depth ? null : sh.details?.(built) ?? null, onEditStep: sh.editStep, zoom: sh.zoom?.() ?? 1, hints: opts.th ?? true, fit: Math.max(0, (sh.fit?.() ?? 0) - (depth ? 40 + depth * 28 : 0)) });
+    lane = renderLane(built, { ...handlers, marks: laneMarks(marks()) ?? stepMarksOnly, edit: sh.addCall ? { onAddCall: sh.addCall, onAddInBand: sh.addInBand } : null, refs: createRefs(trace, { editing: !host.readOnly && state.mode === 'edit' && !!state.draft, onImport: sh.importRef }), sticky, squeeze: sq, onSqueeze: sh.squeezeOpen, details: depth ? null : sh.details?.(built) ?? null, onEditStep: sh.editStep, zoom: sh.zoom?.() ?? 1, hints: opts.th ?? true, fit: Math.max(0, (sh.fit?.() ?? 0) - (depth ? 40 + depth * 28 : 0)) });
     if (!depth) sh.walk?.decorate(lane, built); // numbered steps are the top lane's only (0.20.0)
     laneBox.replaceChildren(lane.el);
     if (!depth) sh.afterLane?.(laneBox); // Fit measures the new lane (flow-tab-view.js); the comment brackets go back in front of it

@@ -42,7 +42,8 @@ const qs = (o) => {
   return p.toString() ? '?' + p : '';
 };
 
-/** Reads of the current design environment as the open draft would leave it: `draft=<slug>` on every GET under /api/envs/<env>/ (not the draft routes). */
+/** Reads of the current design environment as the open draft would leave it: `draft=<slug>` on every GET under /api/envs/<env>/ (not the draft routes).
+ *  The draft belongs to `env` (the page's): a read of another environment's path (a flow tab of another env, 0.36.0) never carries it. */
 export function withDraft(path, draft = state.draft, env = state.env) {
   if (!draft || !path.startsWith(`/api/envs/${e(env)}/`) || /\/drafts(\/|\?|$)/.test(path)) return path;
   return path + (path.includes('?') ? '&' : '?') + `draft=${e(draft)}`;

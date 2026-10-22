@@ -52,7 +52,7 @@ export function createPane(panel, host = {}) {
 
   // ---- content ----
   const ctxFor = (target) => ({
-    pen: host.pen, ...(host.ctx?.(target) ?? {}),
+    pen: host.pen, env: target.env, ...(host.ctx?.(target) ?? {}),
     onSub: (key) => show({ kind: 'subsystem', key }, { push: true }), onComponent: (name) => show({ kind: 'component', name }, { push: true }),
   });
   // ---- expanded (frame 19h): the same item as a full-screen page; `expanded=1` in the URL ----

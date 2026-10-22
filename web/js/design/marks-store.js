@@ -43,9 +43,21 @@ export const marksNow = () => current;
 const keyOf = () => `${state.env}|${state.draft ?? ''}|${state.compare}|${state.draft && state.mode === 'edit' ? 'e' : ''}`;
 const changesOf = () => (state.draft && state.mode === 'edit' ? api.draftChanges(state.env, state.draft).then((c) => c.items, () => []) : Promise.resolve([]));
 
-/** The marks store for the current env, draft and compare. Never throws: a failed load reads as no marks (the page still renders).
+/** The marks of a design env that is not the page's (a tab of another env, 0.36.0): its committed state against its source (the baseline when it has none), no draft. Does not change `marksNow`. */
+async function loadForeign(env) {
+  if (!isDesign(env)) return createMarks();
+  const key = `${env}|foreign`;
+  if (!cache.has(key)) {
+    const against = state.envMeta.find((m) => m.name === env)?.source ? 'source' : 'baseline';
+    cache.set(key, api.marks(env, against).catch(() => (against === 'source' ? api.marks(env, 'baseline').catch(() => null) : null)).then((p) => createMarks(p ?? EMPTY)));
+  }
+  return cache.get(key);
+}
+
+/** The marks store for the current env, draft and compare (or, given another env, that env's committed state). Never throws: a failed load reads as no marks (the page still renders).
  *  Comparing with a source that is gone falls back to the baseline. */
-export async function loadMarks() {
+export async function loadMarks(env = state.env) {
+  if (env !== state.env) return loadForeign(env);
   if (!isDesign()) return (current = createMarks());
   const key = keyOf();
   if (!cache.has(key)) {

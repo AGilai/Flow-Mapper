@@ -2,6 +2,7 @@
 
 import { h } from '../dom.js';
 import { href } from '../router.js';
+import { envQuery } from '../views/inventory-links.js';
 import { icon } from '../icons.js';
 import { safeUrl } from '../components/ext-links.js';
 
@@ -27,12 +28,12 @@ export function endpointText(ingress = [], egress = []) {
 }
 
 export const flowName = (e) => e.name || `${e.service} ${e.id}`;
-export const flowHref = (e) => href('/flows', { tabs: `${e.service}/${e.id}` });
+export const flowHref = (e, env = null) => href('/flows', envQuery(env, { tabs: `${e.service}/${e.id}` })); // env: the flow's, when it is not the page's
 
 /** The Flows list: a row per entry point (name, the new / changed mark, its endpoint); `mark(e)` gives the mark node; `hit(e)` tints a row (the flow the pane was opened from). */
-export function flowsList(entries, { mark = () => null, hit = () => false, max = 8, onAll = null } = {}) {
+export function flowsList(entries, { mark = () => null, hit = () => false, max = 8, onAll = null, env = null } = {}) {
   if (!entries.length) return h('p.pane-none', 'No flow runs through it.');
-  const row = (e) => h('a.pane-row', { href: flowHref(e), class: hit(e) ? 'hit' : '', 'data-qa': 'pane-flow' }, h('b', flowName(e)), h('span.r', mark(e)), h('small', e.summary || `${e.service} · ${e.bindKey ?? e.id}`));
+  const row = (e) => h('a.pane-row', { href: flowHref(e, env), class: hit(e) ? 'hit' : '', 'data-qa': 'pane-flow' }, h('b', flowName(e)), h('span.r', mark(e)), h('small', e.summary || `${e.service} · ${e.bindKey ?? e.id}`));
   const shown = entries.slice(0, max);
   return h('div.pane-list', shown.map(row), entries.length > max ? h('button.pane-all', { type: 'button', on: { click: (ev) => { ev.currentTarget.replaceWith(...entries.slice(max).map(row)); onAll?.(); } } }, `Show all ${entries.length}`) : null);
 }

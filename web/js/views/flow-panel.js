@@ -18,7 +18,7 @@ import { viaChip } from '../components/via-chip.js';
 import { stepFields } from '../components/step-fields.js';
 import { asyncFlowOf, isChannel } from './flow-scan.js';
 import { filterMarker, hopLabel, chType, exchangeOf } from './flow-chain.js';
-import { eventLink, serviceLink, storeLink } from './inventory-links.js';
+import { eventLink, serviceLink, storeLink, envQuery } from './inventory-links.js';
 import { splitStore, opLabel } from './flow-stores-pure.js';
 import { isRpc, rpcCommand } from './flow-amqp.js';
 import { rpcCard, rpcMissing, routingRows } from './flow-panel-amqp.js';
@@ -26,21 +26,21 @@ import { rpcCard, rpcMissing, routingRows } from './flow-panel-amqp.js';
 const KIND = { entry: 'Entry', call: 'Function call', egress: 'Call', deliver: 'Delivery from queue', resource: 'Data store access', leaf: 'Leaf step (classified by the harvester)', frontier: 'Frontier steps (folded)' };
 
 /** Returns [head, ...content] for panel.open(). */
-export function messagePanel(m, trace, env, scope = 'full', openEntry = null) {
+export function messagePanel(m, trace, env, scope = 'full', openEntry = null, marks) { // marks: the marks of `env` (a tab of another env passes its own; the field marks of the DTO read them)
   const flow = asyncFlowOf(m);
   const p = (id) => trace.participants.find((x) => x.id === id);
   const rpc = isRpc(m), kind = rpc ? (m.kind === 'entry' ? 'Entry (RPC over AMQP)' : 'RPC call over AMQP') : m.kind === 'egress' && m.mode === 'async' ? 'Publish / async call' : KIND[m.kind];
   const head = h('div.ep-head',
     h('div.ep-title', m.transport && m.transport !== 'res' ? (rpc ? chip('rpc', 'amqp rpc') : chip(m.transport)) : null, h('span.ep-target', kind)),
-    h('div.ep-sub', h('span.key', rpc ? rpcCommand(m) : m.label), m.event ? eventLink(m.event) : null));
+    h('div.ep-sub', h('span.key', rpc ? rpcCommand(m) : m.label), m.event ? eventLink(m.event, env) : null));
 
   const dto = h('div.stack', { style: { gap: 'var(--s3)' } }, h('p.small.muted', 'Loading…'));
-  loadDto(m, env).then((cards) => fill(dto, cards)).catch((err) => fill(dto, h('p.small.muted', err.message)));
+  loadDto(m, env, marks).then((cards) => fill(dto, cards)).catch((err) => fill(dto, h('p.small.muted', err.message)));
 
   return [head,
     flow ? h('div.ep-pad', openEntry ? h('button.btn', { type: 'button', on: { click: () => openEntry({ service: flow.service, ingress: flow.ingress, scope }) } }, 'Open the async flow in a tab') : h('a.btn', { href: href('/flows', { service: flow.service, ingress: flow.ingress, scope }) }, 'Open the async flow'), h('span.xs.muted', ` ${flow.service} · ${flow.ingress}`)) : null,
     m.gap ? gapCard(m.gap) : null,
-    codeCard(m, trace),
+    codeCard(m, trace, env),
     rpcCard(m),
     m.gap ? null : dto,
     m.broken && m.rpc ? rpcMissing(m) : m.unhandled ? section('Why it is broken', null, h('p.small', `${m.event} reaches this consumer, but none of its event handlers matches it. It will fail or go to the dead-letter queue.`))
@@ -57,7 +57,7 @@ export function messagePanel(m, trace, env, scope = 'full', openEntry = null) {
       h('dt', 'Step'), h('dd', String(trace.messages.indexOf(m) + 1)),
       h('dt', 'Depth'), h('dd', String(m.depth)),
       ...(m.delivery ? [h('dt', 'Delivery'), h('dd', `${m.depth}.${m.delivery}`)] : []),
-      ...(m.matched?.length ? [h('dt', 'Delivered as'), h('dd', m.matched.map((t) => eventLink(t)), h('span.xs.muted', ' the publish names no event; these types of it pass the subscription filter'))] : []),
+      ...(m.matched?.length ? [h('dt', 'Delivered as'), h('dd', m.matched.map((t) => eventLink(t, env)), h('span.xs.muted', ' the publish names no event; these types of it pass the subscription filter'))] : []),
       ...(m.deliveries ? [h('dt', 'Deliveries'), h('dd', `fans out to ${m.deliveries}`)] : []))];
 }
 
@@ -84,7 +84,7 @@ function gapCard(u) {
 
 // ---- code: caller and callee ----
 
-function codeCard(m, trace) {
+function codeCard(m, trace, env) {
   const at = (service, fn) => trace.code?.[`${service}:${fn}`] ?? null;
   const rows = [];
   if (m.kind !== 'entry' && m.service && m.fn) {
@@ -99,7 +99,7 @@ function codeCard(m, trace) {
   if (callSite) rows.push(codeRow('Call site', m.service, m.egress, callSite));
   if (m.via?.length) rows.push(h('div.ep-pad.stack', { style: { gap: 'var(--s1)' } }, h('span.ep-label', 'Goes through'), viaChip(m.via)));
   if (m.handlerVia?.length) rows.push(h('div.ep-pad.stack', { style: { gap: 'var(--s1)' } }, h('span.ep-label', 'Handler resolved through'), viaChip(m.handlerVia)));
-  if (m.store) rows.push(h('div.ep-pad.stack', { style: { gap: '2px' } }, h('span.ep-label', 'Data store'), storeLink(m.store)));
+  if (m.store) rows.push(h('div.ep-pad.stack', { style: { gap: '2px' } }, h('span.ep-label', 'Data store'), storeLink(m.store, m.store, env)));
   if (m.kind === 'resource') { // 0.27.1: the operation as harvested and the collection this arrow touches (a folded store lifeline names none)
     const { collection, store, kind } = splitStore(m), acc = { write: 'write', read: 'read', read_write: 'read and write' }[m.access] ?? 'access not reported';
     rows.push(h('div.ep-pad.stack', { style: { gap: '2px' } }, h('span.ep-label', collection ? 'Collection' : 'Store'), h('span.mono', collection ?? store), h('span.small.muted', `${kind} · ${store}`)),
@@ -130,27 +130,27 @@ function codeRow(label, service, fn, source, sub = null) {
 const card = (label, meta, ...content) => h('section.ep-card', h('header', h('h3', label), meta ? h('span.ep-meta', meta) : null), ...content);
 const emptyDto = (text, hint) => h('div.ep-empty', h('p', text), hint ? h('code.key', hint) : null);
 
-async function loadDto(m, env) {
+async function loadDto(m, env, marks) {
   if (m.event) {
     const t = await api.eventType(env, m.event);
     return [card(`Message · ${m.event}`, t.dto ? `updated ${ago(t.dto.updatedAt)}` : null,
-      t.dto ? [dtoSource(t.dto), jsonView(t.dto.content, eventAnchor(m.event))] : emptyDto('No message DTO for this event type yet.', `PUT /api/envs/${env}/event-dtos/${m.event}`))];
+      t.dto ? [dtoSource(t.dto), jsonView(t.dto.content, eventAnchor(m.event), marks)] : emptyDto('No message DTO for this event type yet.', `PUT /api/envs/${env}/event-dtos/${m.event}`))];
   }
   if (m.gap) return [];
   if (m.target && !m.unhandled) {
     const info = await api.endpoint(env, m.target.service, m.target.ingress);
     if (info.events.length) {
       return [h('p.small.muted', 'This consumer takes typed events; this call carries no event type. ',
-        h('a', { href: href(`/services/${encodeURIComponent(m.target.service)}`, { ep: m.target.ingress }) }, 'See its event types'))];
+        h('a', { href: href(`/services/${encodeURIComponent(m.target.service)}`, envQuery(env, { ep: m.target.ingress })) }, 'See its event types'))];
     }
     return [...info.slots.map((s) => card(s.label, s.dto ? `updated ${ago(s.dto.updatedAt)}` : null,
-      s.dto ? [dtoSource(s.dto), jsonView(s.dto.content, dtoAnchor(m.target.service, s.role, s.status, m.target.ingress))] : emptyDto(`No ${s.label.toLowerCase()} loaded yet.`, `PUT /api/envs/${env}/dtos/${m.target.service}/${s.role}/${m.target.ingress}`))),
+      s.dto ? [dtoSource(s.dto), jsonView(s.dto.content, dtoAnchor(m.target.service, s.role, s.status, m.target.ingress), marks)] : emptyDto(`No ${s.label.toLowerCase()} loaded yet.`, `PUT /api/envs/${env}/dtos/${m.target.service}/${s.role}/${m.target.ingress}`))),
       info.note ? h('p.ep-note', info.note) : null];
   }
   if (m.store) {
     const st = await api.store(env, m.store);
     return st.schemas.length
-      ? st.schemas.map((s) => card(`Schema · from ${s.source}`, `updated ${ago(s.updatedAt)}`, jsonView(s.content, schemaAnchor(s.source, m.store))))
+      ? st.schemas.map((s) => card(`Schema · from ${s.source}`, `updated ${ago(s.updatedAt)}`, jsonView(s.content, schemaAnchor(s.source, m.store), marks)))
       : [card('Schema', null, emptyDto('No schema for this data store yet.', `PUT /api/envs/${env}/schemas/code/${m.store}`))];
   }
   return [];

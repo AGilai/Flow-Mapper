@@ -1,6 +1,6 @@
 // The info pane of a component (0.33.0, frame 19a): header, Overview facts, About, Flows through it, Connections (today's panel content).
 // `componentSpec(name, ctx)` loads what it needs and returns the spec `pane-frame.js` draws and `pane-expanded.js` lays out as rows.
-// ctx: { pen, system?: { node, edges, byId }, onSub(key), onComponent(name), fromFlow? }.
+// ctx: { pen, env?, system?: { node, edges, byId }, onSub(key), onComponent(name), fromFlow? }. `env`: the environment of the component (a flow tab of another env, 0.36.0); default the page's.
 
 import { h } from '../dom.js';
 import { api } from '../api.js';
@@ -9,6 +9,7 @@ import { state, isDesign } from '../state.js';
 import { loadMarks } from '../design/marks-store.js';
 import { loadSubsystems } from '../design/subsystems-store.js';
 import { cmpVar } from '../design/component-colors.js';
+import { envQuery } from '../views/inventory-links.js';
 import { markBadge } from '../components/status-mark.js';
 import { subIcon } from '../icons.js';
 import { connectionSections } from '../views/system-panel.js';
@@ -28,19 +29,20 @@ export const tile = (color) => h('span.pane-tile', { style: { '--c': color ?? 'v
 /** The system data for the Connections list: the page's own when it has it, else the environment's (component level, no channels). */
 export async function systemFor(name, ctx) {
   if (ctx.system?.node) return ctx.system;
-  const data = await api.system(state.env).catch(() => null);
+  const data = await api.system(ctx.env ?? state.env).catch(() => null);
   if (!data) return null;
   const byId = new Map(data.nodes.map((n) => [n.id, n]));
   return { node: byId.get(`svc:${name}`) ?? null, edges: data.collapsedEdges ?? [], byId };
 }
 
 export async function componentSpec(name, ctx) {
-  const [view, subs, marks, flows, sys] = await Promise.all([api.service(state.env, name).catch(() => null), loadSubsystems(), loadMarks(), api.flowsThrough(state.env, [name]).catch(() => []), systemFor(name, ctx)]);
+  const env = ctx.env ?? state.env;
+  const [view, subs, marks, flows, sys] = await Promise.all([api.service(env, name).catch(() => null), loadSubsystems(env), loadMarks(env), api.flowsThrough(env, [name]).catch(() => []), systemFor(name, ctx)]);
   const svc = view?.service ?? {}, node = sys?.node ?? null, kind = svc.kind ?? node?.svcKind ?? 'service';
-  const about = await loadAbout(svc.about ?? node?.about), subKey = subs.subOf(name), design = isDesign();
+  const about = await loadAbout(svc.about ?? node?.about), subKey = subs.subOf(name), design = isDesign(env);
   const aboutPen = ctx.pen?.about(name, { form: 'component', service: name }) ?? null;
   const mk = marks.markOf(`svc:${name}`), ep = endpointText(view?.ingress, view?.egress);
-  const target = { kind: 'component', name }, open = href(`/services/${encodeURIComponent(name)}`), owners = Array.isArray(svc.owners) ? svc.owners : [];
+  const target = { kind: 'component', name }, open = href(`/services/${encodeURIComponent(name)}`, envQuery(env)), owners = Array.isArray(svc.owners) ? svc.owners : [];
   const ownerPen = () => ctx.pen?.button('owners', `${name} owners`, { form: 'component', service: name, at: 'owners' }) ?? null;
 
   const subLink = () => (subKey ? h('button.pane-sub-link', { type: 'button', 'data-qa': 'pane-sub', on: { click: () => ctx.onSub?.(subKey) } }, subIcon(subs.info(subKey)?.icon, 14), subs.labelOf(subKey)) : subs.has ? 'Not set' : null);
@@ -49,24 +51,24 @@ export async function componentSpec(name, ctx) {
     ['Endpoints', ep.total ? [`${ep.total} `, h('small', `· ${ep.text} `), h('a.pane-more', { href: open }, 'Open service')] : h('a.pane-more', { href: open }, 'Open service')],
     ['Owners', owners.length || design ? ownersValue(owners, ownerPen()) : null], ['Docs', docLinks(svc.links)],
   ])];
-  const flowsBody = () => flowsList(flows, { mark: (e) => markBadge(markOfPoint(marks, e), { store: marks }), hit: (e) => ctx.fromFlow && e.service === ctx.fromFlow.service && e.id === ctx.fromFlow.ingress });
+  const flowsBody = () => flowsList(flows, { env, mark: (e) => markBadge(markOfPoint(marks, e), { store: marks }), hit: (e) => ctx.fromFlow && e.service === ctx.fromFlow.service && e.id === ctx.fromFlow.ingress });
   const conn = sys?.node ? connectionSections(sys.node, sys.edges, sys.byId) : [];
   const nConn = sys?.node ? sys.edges.filter((e) => e.from === sys.node.id || e.to === sys.node.id).length : 0;
   const connBody = () => (conn.length ? connectionSections(sys.node, sys.edges, sys.byId) : h('p.pane-none', 'No connections on the map.'));
 
   const spec = {
-    kind: 'component', key: `svc:${name}`, target, title: name, mono: true, tile: () => tile(cmpVar(name, kind)), sub: [KIND[kind] ?? kind, subKey ? subs.labelOf(subKey) : null],
+    kind: 'component', key: `svc:${name}`, target, title: name, mono: true, tile: () => tile(cmpVar(name, kind, null, env)), sub: [KIND[kind] ?? kind, subKey ? subs.labelOf(subKey) : null],
     marks: (goQuestions) => [markBadge(mk, { store: marks }), questionsButton(about.questions, goQuestions)], questions: about.questions,
     sections: {
       overview: block('overview', '', {}, overview()), about: aboutSection(about, { pen: aboutPen, design }),
-      flows: block('flows', 'Flows through it', { count: flows.length, right: h('a', { href: href('/flows', { service: name }) }, 'Trace flows') }, flowsBody()),
+      flows: block('flows', 'Flows through it', { count: flows.length, right: h('a', { href: href('/flows', envQuery(env, { service: name })) }, 'Trace flows') }, flowsBody()),
       connections: block('connections', 'Connections', { count: nConn }, connBody()),
     },
     lead: [inFlowBlock(ctx.fromFlow, name)].filter(Boolean), counts: { flows: flows.length, connections: nConn },
     about, owners, edit: () => ctx.pen?.button('panel-component', name, { form: 'component', service: name }, { text: 'Edit' }) ?? null,
-    crumb: ['System map', subKey ? subs.labelOf(subKey) : null], svc, inDraft: marks.inDraft(`svc:${name}`), mark: mk,
+    env, crumb: ['System map', subKey ? subs.labelOf(subKey) : null], svc, inDraft: marks.inDraft(`svc:${name}`), mark: mk,
   };
-  spec.expanded = () => componentRows(spec, { about, aboutPen, design, flows, flowsBody, overview, connections: () => ({ nodes: sys?.node ? neighbours(sys) : [], count: nConn }), view, ctx, marks });
+  spec.expanded = () => componentRows(spec, { about, aboutPen, design, flows, flowsBody, overview, connections: () => ({ nodes: sys?.node ? neighbours(sys) : [], count: nConn }), view, ctx, marks, env });
   return spec;
 }
 

@@ -9,7 +9,7 @@ export const enterIcon = () => svg(ENTER);
 const svg = (d) => h('svg', { viewBox: '0 0 16 16', html: `<path d="${d}"/>`, 'aria-hidden': 'true' });
 
 /**
- * createTabStrip({ describe(key), envVars() -> {--ec, --ei} (the env colour: bar and border), onActivate(key), onClose(key), onCloseOthers(key), onCloseAll() })
+ * createTabStrip({ describe(key), chip(key) -> short env text | null (shown only while the open tabs span 2+ envs), envVars(key) -> {--ec, --ei} (the env colour of that tab: bar and border), onActivate(key), onClose(key), onCloseOthers(key), onCloseAll() })
  *   -> { el, render(state), tabEl(key), focusActive() }
  */
 export function createTabStrip(cb) {
@@ -21,14 +21,16 @@ export function createTabStrip(cb) {
   const el = h('div.ftabs', prev, scroll, next, menuBtn);
   let pop = null, drawPop = null;
 
-  // --tc is the transport hue (glyph, .tn); --ec is the env colour (top bar, border). Step 2 gives each tab its own env.
+  // --tc is the transport hue (glyph, .tn); --ec is the env colour (top bar, border) of the tab's own env (0.36.0).
+  const envChip = (key) => (cb.chip?.(key) ? h('span.tenv', { title: `Environment ${cb.chip(key)}` }, cb.chip(key)) : null);
   const withColor = (el, c, key) => { el.style.setProperty('--tc', c); for (const [k, v] of Object.entries(cb.envVars?.(key) ?? {})) el.style.setProperty(k, v); return el; };
   const label = (d) => [h('b', d.title), d.sub ? h('i', { title: d.sub }, `· ${d.sub}`) : null];
   const tabFor = (key) => {
     const d = cb.describe(key), on = key === state.active;
-    const t = h('div.tab', { role: 'tab', tabIndex: on ? 0 : -1, 'aria-selected': String(on), title: d.tip, class: `${on ? 'on' : ''} ${d.kind}`, 'data-key': key,
+    const t = h('div.tab', { role: 'tab', tabIndex: on ? 0 : -1, 'aria-selected': String(on), title: d.tip, class: `${on ? 'on' : ''} ${d.kind}${d.gone ? ' gone' : ''}`, 'data-key': key,
       on: { click: (e) => { if (!e.target.closest('.x')) cb.onActivate(key); }, auxclick: (e) => { if (e.button === 1) { e.preventDefault(); cb.onClose(key); } }, mousedown: (e) => { if (e.button === 1) e.preventDefault(); } } },
       d.tn ? h('span.tn', d.tn) : svg(d.kind === 'full' ? FULL : ENTER),
+      envChip(key),
       h('span.tl', label(d)),
       h('button.x', { type: 'button', tabIndex: -1, 'aria-label': `Close ${d.title}`, title: 'Close (Alt+W)', on: { click: (e) => { e.stopPropagation(); cb.onClose(key); } } }, svg(X)));
     return withColor(t, d.color, key);
@@ -67,7 +69,7 @@ export function createTabStrip(cb) {
       const q = filter.value.trim().toLowerCase();
       fill(list, state.keys.map((k) => ({ k, d: cb.describe(k) })).filter(({ d }) => !q || `${d.tn ?? ''} ${d.title} ${d.sub}`.toLowerCase().includes(q)).map(({ k, d }) =>
         withColor(h('div.ctx-item.tabrow', { role: 'option', 'aria-selected': String(k === state.active), class: k === state.active ? 'on' : '' },
-          h('button.tabrow-b', { type: 'button', on: { click: () => { closeMenu(); cb.onActivate(k); } } }, d.tn ? h('span.tn', d.tn) : svg(d.kind === 'full' ? FULL : ENTER), h('span.tl', label(d))),
+          h('button.tabrow-b', { type: 'button', on: { click: () => { closeMenu(); cb.onActivate(k); } } }, d.tn ? h('span.tn', d.tn) : svg(d.kind === 'full' ? FULL : ENTER), envChip(k), h('span.tl', label(d))),
           h('button.x', { type: 'button', 'aria-label': `Close ${d.title}`, on: { click: () => { cb.onClose(k); if (!state.keys.length) closeMenu(); } } }, svg(X))), d.color, k)));
       if (!list.children.length) list.append(h('p.xs.muted', { style: { padding: '6px 10px' } }, 'No open flow matches.'));
 

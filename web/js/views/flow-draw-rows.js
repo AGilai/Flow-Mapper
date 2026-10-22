@@ -32,7 +32,7 @@ export function drawRows({ events, colX, ys, barX, edge, marks, refs, stacked, f
     }
     if (e.type === 'unresolved') {
       const x1 = barX(owner, 1), x2 = colX.get(e.col) - 8;
-      const gap = isDesign(); // in a design a missing target is not a fault: neutral, no cross
+      const gap = isDesign(e.col?.env); // in a design a missing target is not a fault: neutral, no cross
       return g('broken', arrow(x1, x2, y0, { dashed: true, label: lab(e.label), color: gap ? 'var(--ink-2)' : 'var(--t-broken)', cross: !gap }), e.chip ? rpcChip(e.chip, (x1 + x2) / 2, y0, 'var(--t-broken)', true) : arrowMarkSvg(null, e.msg, x1, x2, y0, false, th), hit(x1, x2), s('title', {}, e.msg.label));
     }
     if (e.type === 'hop') { // one arrow through the topic: its colour changes exactly on the topic lifeline; the event type reads like a REST path

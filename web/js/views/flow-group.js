@@ -5,12 +5,13 @@
 import { groupColumns } from './flow-bands.js';
 
 /** groupLane(built, subs, on, marks, slotsOf): `subs` = the subsystems store (design/subsystems-store.js); `on`: the "Group by subsystem" check; `marks`: the marks store (a New subsystem gets a spark);
- *  `slotsOf(columns)` -> Map service -> slot (component-colors.js laneSlots, the de-clash). */
-export function groupLane(built, subs, on, marks, slotsOf = null) {
+ *  `slotsOf(columns)` -> Map service -> slot (component-colors.js laneSlots, the de-clash). `env`: the environment of the flow; each column carries it (`c.env`), so colours and icons are read from it, not from the page's. */
+export function groupLane(built, subs, on, marks, slotsOf = null, env = null) {
   if (on && subs?.assigned) {
     built.columns = groupColumns(built.columns, subs.subOf);
     built.group = { subOf: subs.subOf, info: subs.info, markOf: (key) => marks?.markOf(`grp:${key}`)?.mark ?? null };
   }
+  if (env != null) for (const c of built.columns) c.env = env;
   const slots = slotsOf?.(built.columns);
   if (slots) for (const c of built.columns) if (c.kind === 'service') c.slot = slots.get(c.service) ?? null;
   return built;

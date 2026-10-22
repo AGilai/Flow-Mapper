@@ -1,0 +1,15 @@
+/* Tabs of different environments side by side (0.36.0): the env chip on a tab, the read-only note of a tab of another env, the "unavailable" tab.
+   --ec / --ei come from paintEnv() or the strip (env-color.css); chrome only, never inside a diagram. */
+
+.tab .tenv, .tabrow .tenv { flex: none; font: 600 10px var(--mono); letter-spacing: .05em; text-transform: uppercase; line-height: 1.5; padding: 0 5px; border-radius: 4px;
+  color: var(--ei, var(--ink-2)); background: color-mix(in srgb, var(--ec, var(--muted)) 16%, var(--surface)); border: 1px solid color-mix(in srgb, var(--ec, var(--muted)) 38%, transparent); }
+.tab.gone .tl b { font-style: italic; text-decoration: line-through; text-decoration-thickness: 1px; }
+
+.xenv-note { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s2) var(--s3); padding: 6px var(--s4); font-size: var(--fs-sm); color: var(--ink);
+  background: color-mix(in srgb, var(--ec, var(--muted)) 9%, var(--surface)); border-bottom: 1px solid var(--line); border-left: 3px solid var(--ec, var(--line-strong)); }
+.xenv-note .xn-s { color: var(--muted); font-size: var(--fs-xs); }
+.xenv-note .grow { flex: 1; }
+body.is-max .xenv-note { display: none; }
+
+.xenv-gone { max-width: 460px; margin: var(--s6) auto; padding: var(--s4) var(--s5); border: 1px dashed var(--line-strong); border-radius: var(--r-sm); background: var(--surface); }
+.xenv-gone p { color: var(--muted); margin: var(--s2) 0 var(--s3); }

@@ -10,11 +10,11 @@ const brk = (t) => String(t).split(/(?<=[.\-_/:{}])/).flatMap((x, i) => (i ? [h(
 const kv = (k, v) => (v == null || v === '' ? [] : [h('dt', k), h('dd', v)]);
 
 /** Returns [head, ...content] for panel.open(). `open(delivery)` shows that delivery's own panel. */
-export function publishPanel(pub, open) {
+export function publishPanel(pub, open, env = null) {
   const ex = pub.exchange, topicKind = ex ? 'Exchange' : chType(pub.topic) === 'eventbridge' ? 'Bus' : 'Topic';
   const topic = ex ?? chName(pub.topic);
   const head = h('div.ep-title', chip(chType(pub.topic)), h('span.ep-target', 'Publish, fans out'));
-  const sub = h('div.ep-sub', h('span.key', topic), pub.event ? eventLink(pub.event) : null);
+  const sub = h('div.ep-sub', h('span.key', topic), pub.event ? eventLink(pub.event, env) : null);
   const n = pub.deliveries.length;
   return [h('div.ep-head', head, sub),
     h('dl.kv', ...kv(pub.event ? 'Event type' : 'Event', pub.event ?? pub.label), ...kv(topicKind, h('span.key', brk(topic))), ...kv('Routing key', pub.routingKey), ...kv('Deliveries', `${n} ${n === 1 ? 'queue' : 'queues'}`)),

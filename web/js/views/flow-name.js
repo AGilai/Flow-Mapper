@@ -14,9 +14,10 @@ export const nameTarget = (s = state, design = isDesign(s.env, s.envMeta)) => (d
 /** The words shown as a flow's title: its name, else its entry key (pure). */
 export const flowTitle = (name, entryKey) => (name && name.trim() ? name.trim() : entryKey);
 
-/** nameEditor({ root: {service, ingress}, name, fallback }) -> { el }: the title text and its pencil. */
-export function nameEditor({ root, name = '', fallback }) {
+/** nameEditor({ root: {service, ingress}, name, fallback, readOnly }) -> { el }: the title text and its pencil (none for a tab of another environment). */
+export function nameEditor({ root, name = '', fallback, readOnly = false }) {
   const title = h('span.fh-t', { 'data-qa': 'flow-title' }, flowTitle(name, fallback));
+  if (readOnly) return { el: h('span.fl-name', title) };
   const pencil = h('button.btn.ghost.fl-pencil', { type: 'button', 'data-qa': 'rename-flow', title: name ? 'Rename this flow' : 'Name this flow', 'aria-label': name ? 'Rename this flow' : 'Name this flow',
     on: { click: (e) => { e.preventDefault(); e.stopPropagation(); edit(); } } }, name ? '✎' : 'Name this flow');
   const el = h('span.fl-name', title, pencil);

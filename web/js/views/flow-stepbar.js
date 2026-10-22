@@ -14,24 +14,24 @@ const dot = (c) => { const v = colVar(c); return v ? h('span.cdot', { style: { '
  * createStepbar({ store, root, onMove(action), onEdit(anchor), sb() }) -> { el, show(step|null, n, total), refresh(), dispose }
  * root: { service, ingress } the step texts belong to, or null (a function tab: the API line only, no editing). sb(): the letters shown in the bar.
  */
-export function createStepbar({ store, root, onMove, onEdit, sb = () => 'tad' }) {
+export function createStepbar({ store, root, onMove, onEdit, sb = () => 'tad', readOnly = false }) { // readOnly: a tab of another environment shows the step texts without the way to edit them
   const btn = (action, glyph, label) => h('button.stepnav', { type: 'button', 'aria-label': label, title: label, on: { click: () => onMove(action) } }, glyph);
   const prev = btn('prev', '‹', 'Previous step'), next = btn('next', '›', 'Next step');
   const count = h('span.stepcnt'), live = h('div.sr-only', { role: 'status', 'aria-live': 'polite' });
   const detail = h('div.sb-det', { 'data-qa': 'step-detail' });
-  const edit = root ? h('button.btn.sm.sb-edit', { type: 'button', 'data-qa': 'edit-step', title: 'Edit this step (E)', on: { click: () => onEdit?.(bar) } }, 'Edit step') : null;
+  const edit = root && !readOnly ? h('button.btn.sm.sb-edit', { type: 'button', 'data-qa': 'edit-step', title: 'Edit this step (E)', on: { click: () => onEdit?.(bar) } }, 'Edit step') : null;
   const bar = h('div.stepbar', { role: 'group', 'aria-label': 'Step walk' }, h('div.sb-nav', prev, count, next), detail, edit, live);
   const el = h('div.stepwalk', { hidden: true }, bar);
   let last = null, data = null, expanded = false, shownKey = null;
   const unwatch = root ? store.watch(root, (d) => { data = d; if (last) paint(); }) : () => {};
-  if (root) detail.addEventListener('dblclick', (e) => { if (!e.target.closest('a, button')) { getSelection()?.removeAllRanges(); onEdit?.(bar); } });
+  if (root && !readOnly) detail.addEventListener('dblclick', (e) => { if (!e.target.closest('a, button')) { getSelection()?.removeAllRanges(); onEdit?.(bar); } });
 
   function paint() {
     const { step, n } = last, set = sb(), t = stepText(data, step.key), [a, b] = stepCols(step.event), parts = [];
     if (set.includes('t') && t.title) parts.push(h('div.sb-t', { title: t.title }, t.title));
     if (set.includes('a')) parts.push(h('div.sb-a', h('span.mono.sb-api', { title: step.event?.msg?.label }, step.label), h('span.sb-rt', dot(a), h('span.muted', `${step.from} → `), dot(b), h('span.muted', step.to)), step.transport === 'undecided' ? h('span.sb-tbd', { 'data-qa': 'step-tbd', title: 'The design has not decided how this call travels' }, 'transport not decided') : null));
     if (set.includes('d') && root) {
-      if (!t.desc) parts.push(h('div.sb-x.add', h('a', { href: '#', 'data-qa': 'add-description', on: { click: (e) => { e.preventDefault(); onEdit?.(bar); } } }, 'Add a description')));
+      if (!t.desc && !readOnly) parts.push(h('div.sb-x.add', h('a', { href: '#', 'data-qa': 'add-description', on: { click: (e) => { e.preventDefault(); onEdit?.(bar); } } }, 'Add a description')));
       else {
         const tx = h('span.tx', { title: expanded ? null : t.desc }, t.who === 'ai' ? h('span.sb-ai', { title: 'Written by an AI tool through MCP' }, 'AI') : null, t.desc), more = h('a.sb-more', { href: '#', hidden: true, on: { click: (e) => { e.preventDefault(); expanded = !expanded; paint(); } } }, expanded ? 'less' : '… more');
         parts.push(h('div.sb-x', { class: expanded ? 'open' : '' }, tx, ' ', more));

@@ -7,8 +7,8 @@ import { schemaTable } from './schema-table.js';
 import { fieldDiff } from './field-diff.js';
 
 /** `anchor`: the item's anchor in a design environment (dto:, evt:, schema:): its fields then show their New / Changed / Removed marks. */
-export function jsonView(value, anchor = null) {
-  const diff = fieldDiff(value, anchor);
+export function jsonView(value, anchor = null, marks) { // marks: the marks of the item's environment (default: the page's)
+  const diff = fieldDiff(value, anchor, marks);
   const tree = h('div.json', node(value, null, 0));
   const setAll = (open) => tree.querySelectorAll('details').forEach((d) => { d.open = open; });
   const copy = async () => {
