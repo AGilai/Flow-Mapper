@@ -222,6 +222,16 @@ whether the zero is normal for this kind of object.
 - **A thread is a list in date order** with the composer at the end: avatar initials, name, a "you" tag (the name remembered on this browser equals the author, the same naive rule as drafts), relative time with the full date as the tooltip, "edited", a step pill that jumps the walk (plain "step (gone)" when the step no longer exists). One level of replies, indented with a rule. Delete asks in the line itself, never in a browser dialog. The section collapses like the description and remembers it per viewer.
 - **Attach to a step only when the viewer chose one.** Step 1 is always "current"; the toggle is offered once the viewer has moved or clicked a step, and is on then.
 
+### Zoom of the flow diagram (0.30.3)
+
+- One compact control, "- [100%] + Fit Reset", in the flow toolbar after Step details, and in the top bar of a maximized flow. The % is a text box (25 to 400, Enter applies, a bad entry goes back). Fit shows pressed while it holds. Zoom scales the SVG (viewBox), never a raster, so text stays crisp; the lifeline heads scale with the body.
+- Zoom is per tab and in the URL (`zoom=`, `fit` allowed, 100 left out). Ctrl/Cmd + wheel and pinch zoom around the pointer.
+
+### Transport hints (0.30.4)
+
+- An undecided transport on an arrow is a small hollow diamond (the size of the New / Changed mark, `--ink-2`, shape first, never colour alone). Its words, "transport not decided", are its tooltip and a line in the step bar. Decided transports keep their compact label.
+- The toolbar toggle "Transport hints" (`th=0|1`, left out at the default) shows the full text label. Default: off in a design environment, on elsewhere.
+
 ## Floating bug button and env dropdown (0.24.2)
 
 `components/bug-dialog.js` mounts one round "Report a bug" button on every screen (hidden on `#/bugs/new`). It opens `components/bug-form.js`, the same form as the page, in a modal dialog so the page underneath is untouched; it moves left of an open right-hand panel. Keep the bottom-right corner of the viewport free of controls that matter. The rail's environment picker is a dropdown of the active environment (`components/env-picker.js`).

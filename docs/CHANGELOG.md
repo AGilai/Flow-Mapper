@@ -5,6 +5,12 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## 0.30.4 (2026-10-22)
+UI only (#70): on a flow arrow, "transport not decided" is a small icon (its words in the tooltip and in the step bar); the new toolbar toggle "Transport hints" (`th=0|1` in the URL, left out at the default) shows the full label again. Default: off in a design environment, on elsewhere. Decided transports keep their compact label.
+
+## 0.30.3 (2026-10-22)
+UI only (#69): the flow diagram zooms: a "- [100%] + Fit Reset" control in the flow toolbar (and in the bar of a maximized flow), Ctrl/Cmd + wheel and pinch around the pointer; per tab, `zoom=` in the URL (25 to 400, or `fit`; left out at 100).
+
 ## 0.30.2 (2026-10-22)
 **`about`: a rich description per component and per subsystem** (bug #68, the data part; the dedicated info pane is a later, separate UI). Additive; no migration (it lives in the service header JSON and in `envs.groups` JSON).
 - **Manifest (harvesters and importers):** optional **`service.about`**, a string of at most 20 000 characters, next to `description`. Markdown-lite: `##` / `###` headings, paragraphs, `**bold**`, `*italic*`, `~~strike~~`, `` `code` ``, fenced code, `- ` and `1. ` lists, `[text](https://...)` links. No HTML (it is shown as text) and only `http(s)` links. By convention the sections `## Capabilities`, `## Motivation`, `## Roles and responsibilities`, `## Owners`, `## Open questions`; nothing enforces them. Status, doc links (`links`) and related flows already have their fields: do not repeat them in `about`. A changed `about` is a Changed mark on the component, like any header field. Over the limit or not a string: `422` from ingest.
