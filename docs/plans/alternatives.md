@@ -216,3 +216,11 @@ Steps 1–3 change no drawing for flows without lambdas or alternatives when `de
    - The scraper names them by `file:line`.
    - Drop the lambda folding step (0.37.0 as planned) and the `details.callback` ask. They hide with the other internal calls in External.
    - The build steps renumber: 0.37.0 arms in the trace and locks, 0.37.1 views (external/full lazy, choose, DB grouping, counts), 0.38.0 scenario UI after frame 21 is approved.
+
+## Lead decisions on frame 21's open points (the maintainer may override)
+- **Long decision names:** clip them, with the full text on hover. The Loader may later send a short label; if one arrives, show it.
+- **Step numbers:** a step keeps its row number in "Both", and the bar reads "6–7 steps per path". Numbering does not restart inside an arm.
+- **"Not in this scenario · Show":** this switches the decision to the arm that contains the step, not to Both.
+- **Links:** locks never go into the URL, because they come from the data.
+- **Flows without decisions:** no chip, and the header is unchanged apart from the small External | Full switch.
+- **"⊕ internal":** shown on lifeline hover or focus, and always visible on touch.
