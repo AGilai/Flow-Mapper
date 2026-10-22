@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased
+## 0.36.0 (2026-10-22)
 - UI only (env colours, step 2): flow tabs of different environments sit side by side. In a link a tab key may start with its environment, `tabs=a/b,sase-hld|c/d&tab=sase-hld|c/d`; a key without one is the `env=` environment, so every old link reads as before, and the page leaves the prefix off for tabs of its own environment. A name with `|` in it is written `%7C`. Choosing another environment in the picker keeps the open tabs. A tab of another environment is read only (no pencils or forms; comments, notes and action items stay) and says so; each tab shows a short chip with its environment name while the open tabs span two or more. A tab whose environment does not exist shows "unavailable". No API, schema or MCP change.
 
 ## 0.35.0 (2026-10-22)
