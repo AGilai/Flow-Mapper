@@ -3,7 +3,7 @@
 import { h, clear, fill } from './dom.js';
 import { api } from './api.js';
 import { route, start, parseHash } from './router.js';
-import { state, onEnvChange, setEnv, designFromQuery, designQuery, isDesign } from './state.js';
+import { state, onEnvChange, setEnv, designFromQuery, designQuery, isDesign, pageEnv } from './state.js';
 import { setQuery } from './router.js';
 import { mountDesignStrip } from './design/design-strip.js';
 import { renderRail } from './components/sidebar.js';
@@ -74,7 +74,7 @@ async function boot() {
     const d = designFromQuery(named ? new URLSearchParams([...loc.query, ['env', params.name]]) : loc.query);
     if (d.env !== state.env) setEnv(d.env, true);
     Object.assign(state, { mode: d.mode, draft: d.draft, compare: d.compare });
-    setQuery({ ...designQuery(), ...(loc.query.get('env') === state.env ? { env: state.env } : {}) }); // a link that names its environment keeps `env=` through a reload (it was dropped for a view-mode, no-draft page since 0.24.0)
+    setQuery({ ...designQuery(), ...(loc.query.get('env') === state.env ? { env: state.env } : {}), ...(pageEnv(r.parts, state.env) ? { env: state.env } : {}) }); // an env-specific page always carries `env=` (a link opens on the sender's env); a link that names its env keeps it on any page
     document.documentElement.classList.toggle('is-design', isDesign());
     refreshQuestions(); // the rail's "Questions (n)" of a design environment
     refreshRail();
