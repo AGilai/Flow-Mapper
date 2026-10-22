@@ -12,6 +12,7 @@ import { getEnvRow, guardEnv } from './envs.ts';
 import { envRowsOf, changesNow, rebase } from './env-rows-cache.ts';
 import { prepareOps } from './draft-validate.ts';
 import { assignColorsIn } from './colors.ts';
+import { sinceWrite } from './write-memo.ts';
 
 export interface DraftRow { id: number; env: string; slug: string; name: string; status: 'open' | 'applied' | 'discarded'; plan: string | null; report: string | null; created_by: string; created_at: string; updated_at: string; closed_at: string | null; closed_by: string | null }
 export interface DraftInfo {
@@ -43,23 +44,23 @@ export function draftView(db: DB, env: string, slug: string) {
 }
 
 export function changesOf(envRows: ItemRow[], ops: DraftOp[]): DraftChanges { return draftChanges(envRows, netOps(ops), ops); }
+/** The changes of an open draft against its environment, kept until the next write (an op, an ingest, anything): the list, the info and /changes ask for the same thing. */
+export const changesFor = (db: DB, env: string, d: DraftRow): DraftChanges => sinceWrite(db, `draft-changes|${env}|${d.id}`, () => changesOf(envRowsOf(db, env), loadOps(db, d.id)));
 
-/** `envRows` is read only when it is needed: an open draft with ops (a draft with none changes nothing, so a new draft costs no read of the environment). */
-function info(db: DB, d: DraftRow, envRows: () => ItemRow[]): DraftInfo {
+/** The changes are computed only when needed: an open draft with ops (a draft with none changes nothing, so a new draft costs no read of the environment). */
+function info(db: DB, env: string, d: DraftRow): DraftInfo {
   const ops = loadOps(db, d.id);
   const closed = d.status !== 'open' && d.report ? JSON.parse(d.report).counts : null;
   return {
     id: d.id, slug: d.slug, name: d.name, status: d.status, createdBy: d.created_by, createdAt: d.created_at, updatedAt: d.updated_at, closedAt: d.closed_at,
-    ops: ops.length, authors: [...new Set(ops.map((o) => o.author))], counts: closed ?? (d.status === 'open' ? changesOf(ops.length ? envRows() : [], ops).counts : { added: 0, removed: 0, changed: 0 }),
+    ops: ops.length, authors: [...new Set(ops.map((o) => o.author))], counts: closed ?? (d.status === 'open' ? (ops.length ? changesFor(db, env, d).counts : changesOf([], ops).counts) : { added: 0, removed: 0, changed: 0 }),
   };
 }
-export const draftInfo = (db: DB, env: string, d: DraftRow): DraftInfo => info(db, d, () => envRowsOf(db, env));
+export const draftInfo = (db: DB, env: string, d: DraftRow): DraftInfo => info(db, env, d);
 
 export function listDrafts(db: DB, env: string, status: 'open' | 'all' = 'open'): DraftInfo[] {
   const rows = db.prepare(`SELECT * FROM drafts WHERE env = ? ${status === 'open' ? "AND status = 'open'" : ''} ORDER BY id`).all(env) as unknown as DraftRow[];
-  let envRows: ItemRow[] | null = null;
-  const get = () => (envRows ??= envRowsOf(db, env));
-  return rows.map((r) => info(db, r, get));
+  return rows.map((r) => info(db, env, r));
 }
 
 function slugFor(db: DB, env: string, name: string, wanted?: string): string {
