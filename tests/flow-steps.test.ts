@@ -10,7 +10,7 @@ import { buildLane } from '../web/js/views/flow-lane.js';
 // @ts-ignore
 import { stepsOf, stepAtRow, stepByKey, isStep } from '../web/js/views/flow-steps.js';
 // @ts-ignore
-import { clampStep, moveStep, encodeStep, decodeStep, walkAction, announce } from '../web/js/views/flow-walk.js';
+import { clampStep, moveStep, focusAfter, encodeStep, decodeStep, walkAction, announce } from '../web/js/views/flow-walk.js';
 // @ts-ignore
 import { keyAction } from '../web/js/views/flow-tabs-state.js';
 
@@ -110,6 +110,12 @@ test('walk state: clamp, move without wrap, first and last', () => {
   assert.equal(moveStep(0, 5, 'next'), 1); assert.equal(moveStep(1, 5, 'prev'), 0); assert.equal(moveStep(0, 5, 'prev'), 0); assert.equal(moveStep(0, 0, 'next'), 0);
   assert.equal(moveStep(0, 5, 'first'), 1); assert.equal(moveStep(0, 5, 'last'), 5); assert.equal(moveStep(5, 5, 'next'), 5); assert.equal(moveStep(2, 5, 'next'), 3);
   assert.equal(moveStep(3, 5, 'first'), 1); assert.equal(moveStep(3, 5, 'last'), 5);
+});
+
+test('walk focus: a button that goes disabled hands focus to the other one', () => {
+  assert.equal(focusAfter('prev', 0, 5), 'next'); assert.equal(focusAfter('next', 5, 5), 'prev');
+  assert.equal(focusAfter('prev', 1, 5), null); assert.equal(focusAfter('next', 4, 5), null); assert.equal(focusAfter(null, 0, 5), null);
+  assert.equal(focusAfter('next', 1, 1), 'prev'); assert.equal(focusAfter('prev', 0, 0), null); assert.equal(focusAfter('next', 0, 0), null);
 });
 
 test('walk URL: step= round trip, junk ignored', () => {

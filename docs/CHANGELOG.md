@@ -16,6 +16,10 @@ in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.m
 - `GET /api/envs/:env/flows/mermaid` takes `detail`, `choose`, `open`, `dbOpen`, `group` like the trace API and exports that view; without any of them it exports the full trace as before. The page's Export writes the view the tab shows. Step keys of an export are the canonical keys.
 - Callers: `web/js/api.js` no longer sends `detail=full&choose=*:both` by default; a tab asks for `choose=*:both&group=0` and `detail` / `open` itself and chooses in the browser (`viewOf`), so choosing an arm needs no request.
 
+## 0.37.2 (2026-10-22)
+- UI: the step bar is always visible. On the first load of a flow the open Human description could push the bar out of the scrolling header, behind the diagram; now the description scrolls inside the header and the bar stays put (also maximized).
+- UI: after Previous to step 0 (or Next at the last step) by mouse, focus moves to the other walker button, so the arrow keys, Home and End keep working.
+
 ## 0.37.1 and 0.37.0 (2026-10-22, shipped together)
 **#82 part 2, A (0.37.0): arms and locks in the trace.** `GET /api/envs/:env/trace` and MCP `trace_flow` add, only for a flow that reaches an `alternatives` group (every other trace is byte-identical, tested against a golden file):
 - `arms` on a message: the either/or arms it sits in, outermost first, each `"<group_id>:<arm>"` (split at the first `:`). An arm's step brings its whole subtree (callees, deliveries, async work). Nested groups: a message in an arm of a group that sits in an arm of another carries both.
