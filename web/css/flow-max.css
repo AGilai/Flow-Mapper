@@ -1,0 +1,37 @@
+/* Maximize a flow (0.29.1, frame 16). body.is-max hides the chrome; the active .flow-tab becomes one scrolling column. Tokens only. */
+.max-bar { display: none; }
+.max-btn { display: inline-grid; place-items: center; width: 28px; height: 28px; padding: 0; flex: none; order: 99; } /* last in the summary row: the right end, after Export */
+.flowhead > summary .fh-src { order: 98; }
+.max-btn svg { width: 15px; height: 15px; }
+.max-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+
+.max-exit { position: fixed; top: 14px; right: 18px; z-index: 44; display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px 0 12px; border: 0; border-radius: 17px; cursor: pointer;
+  background: var(--ink); color: var(--paper); font: 600 var(--fs-sm) var(--font); box-shadow: var(--shadow-panel); transition: opacity .25s; }
+.max-exit svg { width: 15px; height: 15px; }
+.max-exit kbd { font: 500 var(--fs-xs) var(--mono); opacity: .7; border: 1px solid currentColor; border-radius: 4px; padding: 0 4px; }
+.max-exit.dim:not(:hover):not(:focus-visible) { opacity: .55; }
+.max-exit:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+body.is-max .rail, body.is-max .page-head, body.is-max .flows-list, body.is-max .seq-toolbar, body.is-max .ftabs, body.is-max .resizer { display: none; }
+body.is-max .app, body.is-max .app.rail-c, body.is-max .flows, body.is-max .flows.list-c { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+body.is-max .flow-tab { overflow-y: auto; background: var(--paper); scroll-padding-top: 96px; }
+body.is-max .flow-top { display: contents; }
+body.is-max .flow-tab > * { flex: none; }
+body.is-max .max-bar { display: flex; align-items: baseline; gap: var(--s3); order: -3; position: sticky; top: 0; z-index: 5; padding: 12px 200px 12px var(--s5); background: var(--surface); border-bottom: 1px solid var(--line); }
+body.is-max .max-bar .fh-t { font-weight: 650; }
+body.is-max .flowhead > summary > :first-child:not(.btn) { display: none; } /* the title is in the sticky bar */
+body.is-max .max-btn { display: none; }
+body.is-max .stepwalk:not([hidden]) { display: contents; }
+body.is-max .stepbar { order: -2; position: sticky; top: 49px; z-index: 4; background: var(--surface); }
+body.is-max .flow-tab > .flow-body { flex: none; min-height: 260px; display: block; }
+body.is-max .flow-body > .seq-wrap { display: block; }
+body.is-max .seq-scroll { overflow-y: visible; }
+body.is-max details.flowhead, body.is-max .rel-sec, body.is-max .flow-bottom { max-width: 1100px; width: 100%; margin-left: auto; margin-right: auto; box-sizing: border-box; }
+body.is-max .flow-bottom { max-height: none; overflow: visible; padding-right: var(--s4); background: transparent; border-top: 1px solid var(--line); }
+body.is-max .flow-bottom:not(:has(.cm-sec[open])) { overflow: visible; }
+body.is-max .flow-bottom .cm-sec:not([open]) > summary { cursor: pointer; }
+@media (max-width: 760px) {
+  .max-exit .lbl { display: none; } .max-exit { padding: 0 10px; }
+  body.is-max .max-bar { padding: 10px 110px 10px var(--s3); }
+  body.is-max .stepbar { top: 45px; }
+}

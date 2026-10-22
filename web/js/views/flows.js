@@ -25,6 +25,8 @@ import { openImport } from '../design/import-panel.js';
 import { editOpener, editing } from '../design/edit-open.js';
 import { loadSubsystems } from '../design/subsystems-store.js';
 import { relCounts } from './flow-relations-pure.js';
+import { createMax } from './flow-max.js';
+import { maxFromQuery } from './flow-max-pure.js';
 
 // Squeeze (0.20.1): on by default, remembered per viewer; a click on a fold turns it off for that tab only (flow-tab-view.js).
 const sqStored = () => { try { return localStorage.getItem('flow-mapper.squeeze') !== '0'; } catch { return true; } };
@@ -102,6 +104,7 @@ export async function render({ main, query }) {
   function persist() {
     setQuery({ ...T.encodeUrl(S), ...(S.keys.length ? { service: null } : {}), stores: opts.stores ? null : '0', queues: null, depth: opts.depth === 'all' ? null : opts.depth, frontier: opts.frontier ? '1' : null, step: encodeStep(stepParam) });
   }
+  const max = createMax({ onChange: () => views.get(S.active)?.el.scrollTo?.(0, 0) });
   const host = {
     env: state.env, opts, subs, panel, flowsEl, traceFor: data.traceFor, describe: data.describe, desc, rootOf: (k) => T.flowRoot(k), isActive: (k) => S.active === k,
     openTab: (key, o) => commit(T.openTab(S, key, o)),
@@ -113,7 +116,7 @@ export async function render({ main, query }) {
     openEntry: (e) => openEntry(e),
     paintChrome: () => paintChrome(),
     importRef: (anchor, source) => openImport({ panel, flowsEl, anchor, source }),
-    nameOf, relType: query.get('relType'),
+    nameOf, relType: query.get('relType'), max,
     edit: null, // set below: the form opener (Edit with a draft)
     initialStep: (k) => (k === stepTab ? stepParam : null),
     setStep: (k, n) => { if (k === S.active) { stepParam = n; persist(); } },
@@ -137,6 +140,7 @@ export async function render({ main, query }) {
       const v = createTabView(d, host);
       views.set(key, v);
       slot.replaceChildren(v.el);
+      if (max.isOn()) max.sync();
       if (S.active === key) { v.restore(); paintChrome(); }
       strip.render(S);
     }).catch((err) => { if (slots.get(key) === slot) { slot.replaceChildren(boundaryNote(err, { editing: state.mode === 'edit' && !!state.draft, onImport: host.importRef }) ?? h('div.content', h('div.error-box', err.message))); strip.render(S); } });
@@ -194,5 +198,6 @@ export async function render({ main, query }) {
   slots.get(S.active)?.removeAttribute('hidden');
   strip.render(S); paintChrome();
   if (S.keys.length) persist(); // old single-flow links become tabs=
-  return { dispose: () => { disposed = true; removeEventListener('keydown', onKey); strip.closeMenu(); panel.dispose(); views.forEach((v) => v.dispose()); } };
+  if (maxFromQuery(query) && S.keys.length) max.set(true, { fullscreen: false, url: false }); // a link or reload opens maximized (window-filling only)
+  return { dispose: () => { disposed = true; removeEventListener('keydown', onKey); max.dispose(); strip.closeMenu(); panel.dispose(); views.forEach((v) => v.dispose()); } };
 }
