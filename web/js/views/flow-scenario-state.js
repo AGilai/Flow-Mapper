@@ -18,6 +18,7 @@ export function createScenarios(query, activeKey, stored) {
   return {
     of,
     initial: (key) => { const s = of(key); return { detail: s.detail, open: [...s.open] }; },
-    query: (key) => { const s = key ? map.get(key) : null; return !s ? { ch: null, detail: null, open: null } : { ...scenarioQuery(s.decisions, s), ...(s.resolved ? {} : { ch: s.rawCh || null }) }; },
+    query: (key) => { const s = key ? (map.get(key) ?? (key === activeKey ? of(key) : null)) : null; // the active tab's own state exists from the start: its `ch=` is kept until its decisions are known (it was erased while the tab loaded)
+      return !s ? { ch: null, detail: null, open: null } : { ...scenarioQuery(s.decisions, s), ...(s.resolved ? {} : { ch: s.rawCh || null }) }; },
   };
 }

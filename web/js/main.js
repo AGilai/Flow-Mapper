@@ -74,7 +74,7 @@ async function boot() {
     const d = designFromQuery(named ? new URLSearchParams([...loc.query, ['env', params.name]]) : loc.query);
     if (d.env !== state.env) setEnv(d.env, true);
     Object.assign(state, { mode: d.mode, draft: d.draft, compare: d.compare });
-    setQuery(designQuery());
+    setQuery({ ...designQuery(), ...(loc.query.get('env') === state.env ? { env: state.env } : {}) }); // a link that names its environment keeps `env=` through a reload (it was dropped for a view-mode, no-draft page since 0.24.0)
     document.documentElement.classList.toggle('is-design', isDesign());
     refreshQuestions(); // the rail's "Questions (n)" of a design environment
     refreshRail();

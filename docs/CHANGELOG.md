@@ -13,6 +13,12 @@ Performance batch 1 (docs/plans/perf-review.md). No API or schema change; the re
 - **Migration 019** (`019_perf_indexes.sql`): nine plain / partial `CREATE INDEX` statements (entities by env and list, snapshots, changelog, open comments and action items, author and owner, bug links); no table rebuild, about 5% more file size. The server runs `PRAGMA optimize=0x10002` when it opens a file database and a plain `PRAGMA optimize` hourly. A database upgrades in place and is backed up to `<db>.pre-019.bak`.
 - **F10.** `findUser` reads one user row with its aliases and external ids instead of the whole registry; `listUsers` groups aliases and ids in maps (no per-user filter). Same results.
 
+## 0.38.2 (2026-10-22)
+UI only (#82 follow-ups from QA of 0.38.1):
+- **A reload keeps the link.** `env=` stays in the URL (a page in view mode with no draft used to lose it, since 0.24.0), and the active tab's `ch=` is no longer erased while the tab loads (it broke on 0.38.0 too). `detail=` and `open=` stay as before. A shared link shows the same view.
+- **Edit mode of a design draft** writes `ch=` against its own default (All): only real choices appear; a first arm picked there is written, so it survives a reload.
+- The Scenario popover footer reads "Defaults: all branches while editing" in edit mode.
+
 ## 0.38.1 (2026-10-22)
 The Loader now exports `alternatives` only where BOTH arms lead to a flow. Two step markers under `details` (no schema change):
 - `details.can_fail: [{when, error, source: {file, line}}]` on a step that succeeds but can fail; `details.only_when: {guard, source}` on each step of the arm that remains.

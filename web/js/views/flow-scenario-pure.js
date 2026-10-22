@@ -35,13 +35,13 @@ export function offeredSet(decisions, chosen) {
 }
 
 /** The choices that remain once everything that is the default, locked, unknown or not offered is dropped (a nested choice is forgotten with its parent arm). */
-export function prune(decisions, chosen) {
+export function prune(decisions, chosen, edit = false) { // `edit`: edit mode of a design draft, where every decision starts on All: the explicit choices stay, the first arm too (it is not the default there)
   let cur = new Map(chosen);
   for (let pass = 0; pass < 6; pass++) { // a nested choice depends on its parent's, so repeat until it settles
     const off = offeredSet(decisions, cur), next = new Map();
     for (const d of decisions) {
       const a = cur.get(d.group_id);
-      if (a && !d.lock && off.has(d.group_id) && a !== d.arms[0]?.arm && (a === 'both' || d.arms.some((x) => x.arm === a))) next.set(d.group_id, a);
+      if (a && !d.lock && off.has(d.group_id) && (edit || a !== d.arms[0]?.arm) && (a === 'both' || d.arms.some((x) => x.arm === a))) next.set(d.group_id, a);
     }
     if (next.size === cur.size && [...next].every(([k, v]) => cur.get(k) === v)) return next;
     cur = next;
@@ -50,10 +50,10 @@ export function prune(decisions, chosen) {
 }
 
 /** The new choices after the viewer picked `arm` of `group` (`arm` may be 'both'). */
-export function setChoice(decisions, chosen, group, arm) {
+export function setChoice(decisions, chosen, group, arm, edit = false) {
   const next = new Map(chosen);
   next.set(group, arm);
-  return prune(decisions, next);
+  return prune(decisions, next, edit);
 }
 
 /** Edit mode of a design draft: every decision not seen yet (`seeded`) starts on All unless it is locked or already chosen, so editing never hides a branch.
@@ -64,11 +64,11 @@ export function seedAll(decisions, chosen, seeded, on) {
 }
 
 /** How many decisions differ from the defaults. */
-export const changedCount = (decisions, chosen) => prune(decisions, chosen).size;
+export const changedCount = (decisions, chosen, edit = false) => [...prune(decisions, chosen, edit).values()].filter((a) => !edit || a !== 'both').length; // edit mode: All is the default
 
 /** `ch=` : `<id8>:<arm>,...` for the choices that differ from the default, else null. Arm names are percent-encoded (`,` and `:` are the separators). */
-export function encodeChoose(decisions, chosen) {
-  const ids = shortIds(decisions), c = prune(decisions, chosen);
+export function encodeChoose(decisions, chosen, edit = false) {
+  const ids = shortIds(decisions), c = new Map([...prune(decisions, chosen, edit)].filter(([, a]) => !edit || a !== 'both')); // edit mode: All is the default, not written
   const list = decisions.filter((d) => c.has(d.group_id)).map((d) => `${ids.get(d.group_id)}:${encodeURIComponent(c.get(d.group_id))}`);
   return list.length ? list.join(',') : null;
 }
@@ -84,21 +84,21 @@ export function decodeChoose(text) {
 }
 
 /** Decoded `ch=` against the flow's decisions -> { chosen (valid, differing ones), dropped (entries that matched no decision or arm) }. */
-export function applyChoose(decisions, decoded) {
+export function applyChoose(decisions, decoded, edit = false) {
   const raw = new Map();
   let dropped = 0;
   for (const { id8, arm } of decoded) {
     const d = decisions.find((x) => flat(x.group_id).startsWith(id8)), ok = d && (arm === 'both' || d.arms.some((a) => a.arm === arm));
     if (ok) raw.set(d.group_id, arm); else dropped++;
   }
-  return { chosen: prune(decisions, raw), dropped };
+  return { chosen: prune(decisions, raw, edit), dropped };
 }
 
 /** The `choose` object of the request / of `viewOf` (explicit choices only; the rest follows the first arm). */
 export const chooseObject = (chosen) => Object.fromEntries(chosen);
 
 /** Everything the page puts in the URL for a tab's scenario: { ch, detail, open } (null = no param). */
-export const scenarioQuery = (decisions, s) => ({ ch: encodeChoose(decisions, s.chosen), detail: s.detail === 'full' ? 'full' : null, open: s.open.size && s.detail !== 'full' ? [...s.open].join(',') : null }); // Full has everything loaded: no `open=`
+export const scenarioQuery = (decisions, s) => ({ ch: encodeChoose(decisions, s.chosen, !!s.edit), detail: s.detail === 'full' ? 'full' : null, open: s.open.size && s.detail !== 'full' ? [...s.open].join(',') : null }); // Full has everything loaded: no `open=`
 
 /** `ch`, `detail`, `open` of a URL query (URLSearchParams) -> { decoded, detail, open: Set }. */
 export function readQuery(query) {
@@ -130,11 +130,11 @@ export function hiddenByArm(decisions, chosen, canon, key) {
 }
 
 /** "Show" for a step on a hidden arm: the choices that put every group on its path on the step's arm (null: a lock forbids it). */
-export function showChoices(decisions, chosen, hidden) {
+export function showChoices(decisions, chosen, hidden, edit = false) {
   if (!hidden || hidden.locked) return null;
   let next = new Map(chosen);
   for (const [g, a] of hidden.path) next.set(g, a);
-  return prune(decisions, next);
+  return prune(decisions, next, edit);
 }
 
 /** The key of a step -> the visible step that stands for it (a collapsed DB group stands for its members). */
