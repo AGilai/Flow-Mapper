@@ -1,0 +1,19 @@
+{
+  "name": "store-bands",
+  "source": "prod",
+  "mode": "components",
+  "behaviour": true,
+  "entryPoints": "keep",
+  "groups": [
+    { "key": "orders", "label": "Orders" },
+    { "key": "catalog", "label": "Catalog" },
+    { "key": "stock", "label": "Stock" }
+  ],
+  "services": [
+    { "name": "api-gateway" },
+    { "name": "orders-svc", "groupPath": "orders" },
+    { "name": "catalog-svc", "groupPath": "catalog" },
+    { "name": "inventory-svc", "groupPath": "stock" }
+  ],
+  "createdBy": "seed"
+}

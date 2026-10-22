@@ -16,6 +16,9 @@ export const assumedOn = (st: Step) => {
   const a = (st.assumed ?? []).filter((x) => assumedField(x)).map((x) => ({ field: assumedField(x).replace(/^details\./, ''), value: x.value, basis: x.basis, reason: x.reason }));
   return a.length ? { assumed: a } : {};
 };
+import type { GraphIndex } from './graph-index.ts';
+import { resourceOwner } from './resource-owner.ts';
 
 /** A resource step's driver and access (0.27.1), as `storeKind` and `access` on its message: the flow drawing's line weight and head wording. */
-export const storeOn = (st: Step, r?: Resource) => ({ storeKind: r?.kind, access: accessOf(st) });
+/** 0.30.1: and `owner`, the component that declares the store (resource-owner.ts), for the flow view's subsystem band. */
+export const storeOn = (st: Step, r?: Resource, g?: GraphIndex) => ({ storeKind: r?.kind, access: accessOf(st), owner: r && g ? resourceOwner(g, r.bindKey) ?? r.service : undefined });

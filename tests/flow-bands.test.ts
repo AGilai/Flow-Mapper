@@ -10,7 +10,7 @@ import { createSubsystems } from '../web/js/design/subsystems-store.js';
 
 const svc = (service: string) => ({ id: `svc:${service}`, kind: 'service', service, label: service });
 const ch = (id: string) => ({ id, kind: 'channel', label: id });
-const store = (id: string) => ({ id, kind: 'resource', label: id });
+const store = (id: string, owner: string | null = null) => ({ id, kind: 'resource', label: id, owner });
 const SUB: Record<string, string> = { agent: 'a', 'pop-edge': 'n', 'pop-swg': 'n', auth: 'p', users: 'p', cfg: 'p' };
 const subOf = (s: string) => SUB[s] ?? '';
 const names = (cols: any[]) => cols.map((c) => c.service ?? c.id);
@@ -21,9 +21,9 @@ test('groupColumns: the caller stays first, a subsystem comes together in the or
   assert.deepEqual(names(cols), ['agent', 'auth', 'pop-edge', 'users', 'pop-swg', 'cfg'], 'the input is not changed');
 });
 
-test('groupColumns: a component with no subsystem, a topic, a queue and a store keep their place', () => {
-  const cols = [svc('agent'), svc('auth'), ch('sns:t'), svc('loose'), svc('pop-edge'), store('res:x'), svc('users'), svc('pop-swg')];
-  assert.deepEqual(names(groupColumns(cols, subOf)), ['agent', 'auth', 'sns:t', 'loose', 'users', 'res:x', 'pop-edge', 'pop-swg']);
+test('groupColumns: a component with no subsystem, a topic and a queue keep their place', () => {
+  const cols = [svc('agent'), svc('auth'), ch('sns:t'), svc('loose'), svc('pop-edge'), svc('users'), svc('pop-swg')];
+  assert.deepEqual(names(groupColumns(cols, subOf)), ['agent', 'auth', 'sns:t', 'loose', 'users', 'pop-edge', 'pop-swg']);
 });
 
 test('groupColumns: already together, or nothing to group, changes nothing', () => {
@@ -66,4 +66,32 @@ test('step keys do not depend on the column order: a step is its event, not its 
   const before = events.map((e) => e.key);
   groupColumns(cols, subOf);
   assert.deepEqual(events.map((e) => e.key), before);
+});
+
+// #67 (0.30.1): a data store is drawn in the band of the subsystem of the component that owns it.
+test('groupColumns: a store goes right after its owner subsystem, whatever component of another subsystem uses it', () => {
+  const cols = [svc('agent'), svc('auth'), svc('pop-edge'), store('res:tpm', 'agent'), store('res:users-db', 'users'), svc('users')];
+  assert.deepEqual(names(groupColumns(cols, subOf)), ['agent', 'res:tpm', 'auth', 'users', 'res:users-db', 'pop-edge']);
+});
+
+test('groupColumns: a store with no owner, or an owner in no subsystem, goes to the end of the components (the Shared band); collections of one store stay together', () => {
+  const cols = [svc('agent'), store('res:a/x'), store('res:b', 'loose'), svc('pop-edge'), store('res:a/y'), store('res:c', 'auth'), svc('auth'), ch('t')];
+  assert.deepEqual(names(groupColumns(cols, subOf)), ['agent', 'pop-edge', 'auth', 'res:c', 'res:a/x', 'res:b', 'res:a/y', 't']); // Shared keeps the stores' order
+});
+
+test('groupColumns: a store whose owner subsystem has no component in the flow still gets that subsystem band, before Shared', () => {
+  const cols = [svc('agent'), store('res:s'), store('res:p', 'cfg')];
+  assert.deepEqual(names(groupColumns(cols, subOf)), ['agent', 'res:p', 'res:s']);
+  assert.deepEqual(subBands(groupColumns(cols, subOf), new Set(), subOf).map((b: any) => b.key), ['a', 'p', '~shared']);
+});
+
+test('subBands: a store is a member of its owner band; Shared is its own band, a topic between ends the run', () => {
+  const cols = [svc('agent'), store('res:tpm', 'agent'), svc('auth'), store('res:db', 'users'), store('res:cache'), ch('t')];
+  assert.deepEqual(subBands(cols, new Set(), subOf), [{ key: 'a', from: 0, to: 1 }, { key: 'p', from: 2, to: 3 }, { key: '~shared', from: 4, to: 4 }]);
+});
+
+test('groupLane: collection lifelines of a folded store follow the owner too', () => {
+  const subs = createSubsystems({ subsystems: [{ key: 'a', label: 'A', components: [{ name: 'agent' }] }, { key: 'p', label: 'P', components: [{ name: 'auth' }] }] });
+  const lane: any = { columns: [svc('agent'), svc('auth'), { ...store('res:db/x', 'agent'), group: 'db' }, { ...store('res:db/y', 'agent'), group: 'db' }], events: [] };
+  assert.deepEqual(names(groupLane(lane, subs, true, null).columns), ['agent', 'res:db/x', 'res:db/y', 'auth']);
 });

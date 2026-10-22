@@ -53,6 +53,7 @@ UI / agent ── GET /api/envs/:env/... ─► server/routes/queries.ts ─► 
 RabbitMQ pages (0.19.0): the exchange page data (publishers, bindings, callouts, the tester's `routesTo`), the inventory rows (exchanges, queues, folded RPC plumbing, RPC commands), the callers of an RPC command for the endpoint panel |
 | `neighbours.ts` | one-hop neighbours of picked services (direct and through channels, each with a reason) and what a component brings into a Components copy (0.21.0) |
 | `channels-for.ts` | the channels and bindings a Components copy must bring so it is self-contained (used, routed to, between copied items); the server copies with it and the page counts with it |
+| `resource-owner.ts` | 0.30.1: `resourceOwner(g, bindKey)`, the component that declares a store (first non-infra declarer); `owner` on a resource-step message; the flow view puts the store in that subsystem's band (`flow-bands.js` `memberOf`, `placeStores`, `SHARED`) |
 | `reach.ts` | reverse reachability: entry points whose flows run a function |
 | `channels.ts` | topic/queue/bus view: publishers, subscriptions, consumers, events |
 | `hub.ts` | the compact hub views: edge markers, per-queue outcomes, problem-first order and fold, the event page's consumers |

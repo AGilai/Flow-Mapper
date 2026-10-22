@@ -34,7 +34,7 @@ export function foldedStores(msgs, max = MAX_COLLECTION_LIFELINES) {
 /** The lifeline of a message's store: one per collection, or one per store when it folds. `folds`: foldedStores(...). */
 export function storeColumn(m, folds) {
   const { group, store, kind, collection } = splitStore(m), n = folds.get(group);
-  const base = { kind: 'resource', transport: 'res', group, store, storeKind: kind };
+  const base = { kind: 'resource', transport: 'res', group, store, storeKind: kind, owner: m.owner ?? null }; // owner: the declaring component, for the subsystem band (flow-bands.js)
   return n ? { ...base, id: `res:${group}`, label: `${store} (${n} collections)`, sub: `${kind} · name on each arrow`, stack: true, collections: n }
     : { ...base, id: `res:${group}/${collection ?? ''}`, label: collection ?? store, sub: `${store} · ${kind}`, collection };
 }

@@ -35,7 +35,7 @@ export const drawBands = (bands, { colX, headBox, columns, groups = [], onAdd = 
 /** A subsystem band: icon (none: the name only), label, the New spark, and in Edit a "+" at its end. */
 function subBand(b, x, y, w, onAdd) {
   const ic = b.icon ? subIcon(b.icon, 16) : null, left = ic ? 28 : 10, isNew = b.mark === 'new';
-  const add = onAdd && w >= 90 ? s('g', { class: 'band-add', 'data-qa': 'band-add', 'data-key': b.key, transform: `translate(${w - 20} 2)`, tabindex: 0, role: 'button', 'aria-label': `Add a component to ${b.label}` },
+  const add = onAdd && b.key !== '~shared' && w >= 90 ? s('g', { class: 'band-add', 'data-qa': 'band-add', 'data-key': b.key, transform: `translate(${w - 20} 2)`, tabindex: 0, role: 'button', 'aria-label': `Add a component to ${b.label}` },
     s('rect', { width: 18, height: 18, rx: 4 }), s('path', { d: 'M9 5v8M5 9h8' }), s('title', {}, `Add a component to ${b.label}`)) : null;
   const room = Math.floor((w - left - (isNew ? 22 : 8) - (add ? 22 : 0)) / 6.8), shown = clip(b.label, Math.max(room, 1));
   if (ic) { ic.setAttribute('x', 8); ic.setAttribute('y', 3); }
