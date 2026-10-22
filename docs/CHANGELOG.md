@@ -5,6 +5,10 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+Performance batch 1 (docs/plans/perf-review.md). No API or schema change; the resolved graph is identical.
+- **F1.** `resolve()` looks exact bind keys up in maps and scans only glob / amqp-topic items (`core/resolve-lookup.ts`): a 1,000-service graph builds in about 1.5 to 3 s instead of 85 to 156 s. `tests/resolve-equal.test.ts` compares it with the old resolver (`tests/resolve-reference.ts`).
+
 ## 0.38.1 (2026-10-22)
 The Loader now exports `alternatives` only where BOTH arms lead to a flow. Two step markers under `details` (no schema change):
 - `details.can_fail: [{when, error, source: {file, line}}]` on a step that succeeds but can fail; `details.only_when: {guard, source}` on each step of the arm that remains.
