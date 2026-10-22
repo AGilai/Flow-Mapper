@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased
+## 0.35.0 (2026-10-22)
 - **Environment colours (migration 018).** Every environment has a colour slot 1..10 (Teal, Orange, Violet, Rose, Green, Brown, Steel, Plum, Pine, Navy; `core/env-colors.ts`). `GET /api/envs/meta` and `GET /api/envs/:env/meta` return `color` (always resolved 1..10) and `colorAuto` (nobody chose it: NULL in `envs.color`, the slot follows creation order). New: `PUT /api/envs/:env/color {color: 1..10 | null}` on any environment (`422` otherwise; event `env.updated`), MCP `set_env_color`, and `list_envs` returns `color`, `colorName`, `colorAuto`. A new environment (ingest or copy) takes the lowest free slot; a copy never inherits its source's. Existing environments get a stored slot by creation order. Harvesters need no change.
 - UI: the flow tabs' top bar, the picker, the Flows list header and the maximized bar carry the env colour; the transport hue moved to the tab's glyph and number. Environment settings has a Colour section.
 
