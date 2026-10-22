@@ -43,7 +43,7 @@ export interface Message {
   possible?: boolean;                                        // delivered only if the publisher's event is one of its candidates (the step names no event)
   seq?: number;                                              // step number in the calling function
   target?: { service: string; ingress: string; fn?: string }; // ingress reached, and the handler that runs
-  store?: string; storeKind?: string; owner?: string; // owner (0.30.1): the component that declares the store, for the flow view's subsystem band; access?: 'read' | 'write' | 'read_write' | 'unknown'; // resource steps: data-store key; its driver (`mongodb`); read / write from the step's `access`, else its operation (0.27.1, the drawing's line weight)
+  store?: string; storeKind?: string; owner?: string; access?: 'read' | 'write' | 'read_write' | 'unknown'; // resource steps (owner, 0.30.1: the component that declares the store, for the flow view's subsystem band): data-store key; its driver (`mongodb`); read / write from the step's `access`, else its operation (0.27.1, the drawing's line weight)
   fields?: StepField[];                                      // fields a resource step touches (role, path, operator, inDdl)
   calls?: string;                                            // function called, for call steps (same service)
   egress?: string;                                           // egress id, for calls out (its call site is in `code`)
