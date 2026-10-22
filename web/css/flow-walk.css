@@ -12,6 +12,7 @@
 /* both boxes are <details>: the summary is the control, the text box sits under it */
 details.flowhead, details.stepdesc { padding: var(--s2) var(--s4); }
 details.flowhead { padding-top: var(--s3); }
+.flow-top > details.flowhead { padding-top: 0; } .flow-top > details.flowhead > summary { padding-top: var(--s3); } /* the box scrolls now, so the top space lives in the sticky summary: text never shows above it */
 details.stepdesc { border-top: 1px solid var(--line); padding-bottom: var(--s3); }
 details.flowhead > summary, details.stepdesc > summary { cursor: pointer; list-style: none; display: flex; align-items: baseline; gap: var(--s3); flex-wrap: wrap; border-radius: var(--r-sm); }
 details.flowhead > summary::-webkit-details-marker, details.stepdesc > summary::-webkit-details-marker { display: none; }
