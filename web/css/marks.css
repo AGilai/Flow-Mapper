@@ -59,6 +59,10 @@ h3 .mark, .sect-title .mark { margin-left: var(--s2); }
 .chip-b.draft rect { fill: color-mix(in srgb, var(--draft) 10%, var(--surface)); stroke: var(--draft); }
 .chip-b.draft text { fill: var(--draft); }
 .chip-b.tbd rect { fill: var(--surface-2); stroke: var(--ink-2); }
+/* Transport not decided as an icon (Transport hints off, 0.30.4): a hollow diamond, the size of the new / changed mark. */
+.chip-b.tbd-i .hit { fill: transparent; stroke: none; }
+.chip-b.tbd-i path { fill: var(--surface-2); stroke: var(--ink-2); stroke-width: 1.5; stroke-linejoin: round; }
+.chip-b.tbd-i:hover path { fill: var(--ink-2); }
 
 @keyframes mark-twinkle { 0% { transform: scale(.4) rotate(-30deg); opacity: 0; } 55% { transform: scale(1.25) rotate(8deg); opacity: 1; } 100% { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .spark, .mark.new .mark-glyph { animation: none !important; } }

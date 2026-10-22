@@ -24,15 +24,15 @@ import { sizeSvg } from './flow-zoom.js';
  * handlers: onMessage(msg, g, event, trunk), onBar(bar, 'select'?) (double-click, pill: look inside; click: select),
  * onBarMenu(bar, x, y), onParticipant(p, x, y), onNum(jump) (a number tile at a queue), onNumHover(own labels, on), onFan(topic) (fold or unfold a big fan-out).
  * `selected`: bar id drawn highlighted. Returns { el, body, events, bars, geometry, mark(label, on) } (mark: highlight the tiles of a list row).
- * zoom: the scale (1 = 100%) the SVGs are drawn at (0.30.3).
+ * zoom: the scale (1 = 100%) the SVGs are drawn at (0.30.3); hints: an undecided transport keeps its text label (else a small icon, 0.30.4).
  * edit: { onAddCall(bar) } in Edit with a draft: a "+ call" under each bar (flow-add-call.js). marks: laneMarks(store) (flow-marks.js): sparks on heads and arrows of a design environment. refs: createRefs(trace, ...) (flow-refs-draw.js): locks on heads, the note and Import chip at an arrow into a reference.
  * details: { parts, text } (flow-step-details.js): the step's title and description drawn on its arrow; onEditStep(key, n) a double-click on one of those lines.
  * squeeze: { keep: [column index] } folds lifelines when the lane is wider than `fit` (flow-squeeze.js); onSqueeze(): a fold column was clicked.
  * geometry: { x: centre x per lifeline (a folded one: its fold's left edge; folded + groups say which), plan(keep) -> the fold set for another step, y: baseline y per row, top: top y per row (plus the bottom), width, height, headHeight, colWidth }
  * for features that draw on the lane (step numbers, squeeze, editing).
  */
-export function renderLane(lane, { marks = null, refs = null, edit = null, onMessage, onBar, onBarMenu, onParticipant, onNum, onNumHover, onFan, onMw, onBarTip, onSqueeze, selected = null, sticky = true, fit = 0, squeeze = null, details = null, onEditStep = null, zoom = 1 } = {}) {
-  const c = layoutLane(lane, fit, squeeze, marks, !!edit, details), { columns, events, bars, width, top, ys, frames, strips } = c, height = c.height
+export function renderLane(lane, { marks = null, refs = null, edit = null, onMessage, onBar, onBarMenu, onParticipant, onNum, onNumHover, onFan, onMw, onBarTip, onSqueeze, selected = null, sticky = true, fit = 0, squeeze = null, details = null, onEditStep = null, zoom = 1, hints = true } = {}) {
+  const c = layoutLane(lane, fit, squeeze, marks, !!edit, details, hints), { columns, events, bars, width, top, ys, frames, strips } = c, height = c.height
   const head = drawHead({ ...c, marks, refs, edit });
   const drawn = foldRows(drawRows({ ...c, marks, refs, noApi: details ? new Set([...details.parts].filter(([, p]) => !p.api).map(([e]) => e)) : null }), c);
   const { rects, segs } = drawBars(c, { selected, onBarTip });

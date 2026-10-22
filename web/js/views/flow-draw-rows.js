@@ -10,7 +10,7 @@ import { isDesign } from '../state.js';
 import { refNoteSvg } from './flow-refs-draw.js';
 
 /** drawRows(layout) -> one element per event, in order. */
-export function drawRows({ events, colX, ys, barX, edge, marks, refs, stacked, folded, idx, noApi = null }) {
+export function drawRows({ events, colX, ys, barX, edge, marks, refs, stacked, folded, idx, noApi = null, th = true }) {
   return events.map((e, r) => {
     const y0 = ys[r], lab = (v) => (noApi?.has(e) ? null : v); // step details: an arrow that shows title / description only has no API label
     const g = (cls, ...kids) => s('g', { class: `msg ${cls}`, 'data-e': r, tabindex: e.msg ? 0 : null, role: e.msg ? 'button' : null }, ...kids);
@@ -22,7 +22,7 @@ export function drawRows({ events, colX, ys, barX, edge, marks, refs, stacked, f
       const dir = Math.sign(colX.get(e.to) - colX.get(e.from)) || 1;
       const x1 = edge(e.fromBar, e.from, dir), x2 = e.bar ? barX(e.bar, -dir) : colX.get(e.to);
       const mc = colorOf(e.tr ?? e.msg.transport);
-      return g(e.rpc ? 'rpc' : '', arrow(x1, x2, y0, { label: lab(e.label), color: mc, dashed: e.msg.mode === 'async' && !e.bar }), e.rpc?.chip ? rpcChip('amqp rpc', (x1 + x2) / 2, y0, mc) : null, e.rpc?.glyph ? s('text', { class: 'rpcglyph', x: Math.min(x1, x2) + 4, y: y0 - 5, style: `--mc:${mc}` }, '⇄') : null, hit(x1, x2), ...arrowMarkSvg(marks, e.msg, x1, x2, y0, stacked?.has(e)), e.bar ? refNoteSvg(refs, e, barX(e.bar, 1), y0) : null, s('title', {}, e.rpc ? `${e.label} (RPC over AMQP)` : e.msg.label));
+      return g(e.rpc ? 'rpc' : '', arrow(x1, x2, y0, { label: lab(e.label), color: mc, dashed: e.msg.mode === 'async' && !e.bar }), e.rpc?.chip ? rpcChip('amqp rpc', (x1 + x2) / 2, y0, mc) : null, e.rpc?.glyph ? s('text', { class: 'rpcglyph', x: Math.min(x1, x2) + 4, y: y0 - 5, style: `--mc:${mc}` }, '⇄') : null, hit(x1, x2), ...arrowMarkSvg(marks, e.msg, x1, x2, y0, stacked?.has(e), th), e.bar ? refNoteSvg(refs, e, barX(e.bar, 1), y0) : null, s('title', {}, e.rpc ? `${e.label} (RPC over AMQP)` : e.msg.label));
     }
     if (e.type === 'return') {
       const dir = Math.sign(colX.get(e.to) - colX.get(e.bar.col)) || 1;
@@ -32,7 +32,7 @@ export function drawRows({ events, colX, ys, barX, edge, marks, refs, stacked, f
     if (e.type === 'unresolved') {
       const x1 = barX(owner, 1), x2 = colX.get(e.col) - 8;
       const gap = isDesign(); // in a design a missing target is not a fault: neutral, no cross
-      return g('broken', arrow(x1, x2, y0, { dashed: true, label: lab(e.label), color: gap ? 'var(--ink-2)' : 'var(--t-broken)', cross: !gap }), e.chip ? rpcChip(e.chip, (x1 + x2) / 2, y0, 'var(--t-broken)', true) : arrowMarkSvg(null, e.msg, x1, x2, y0), hit(x1, x2), s('title', {}, e.msg.label));
+      return g('broken', arrow(x1, x2, y0, { dashed: true, label: lab(e.label), color: gap ? 'var(--ink-2)' : 'var(--t-broken)', cross: !gap }), e.chip ? rpcChip(e.chip, (x1 + x2) / 2, y0, 'var(--t-broken)', true) : arrowMarkSvg(null, e.msg, x1, x2, y0, false, th), hit(x1, x2), s('title', {}, e.msg.label));
     }
     if (e.type === 'hop') { // one arrow through the topic: its colour changes exactly on the topic lifeline; the event type reads like a REST path
       const x1 = edge(e.fromBar, e.from, 1), x2 = colX.get(e.to), tx = e.via ? colX.get(e.via) : e.fork ? colX.get(e.from) : null, mc = colorOf(e.transport), tc = colorOf(e.trunkTransport), hl = e.sub ? [e.label, e.sub] : e.label;
@@ -54,7 +54,7 @@ export function drawRows({ events, colX, ys, barX, edge, marks, refs, stacked, f
       return g(`store${e.write ? ' write' : ''}`, arrow(x1, x2, y0, { label: lab(e.label), color: mc }),
         s('rect', { class: 'sbar', x: bx, y: y0 - 5, width: BAR, height: e.write ? 16 : 28, rx: 2 }),
         e.write ? null : s('g', { class: 'sret' }, arrow(bx, x1, y0 + 17, { dashed: true, open: true, color: mc, bare: false })),
-        hit(x1, x2), ...arrowMarkSvg(marks, e.msg, x1, x2, y0, stacked?.has(e)), s('title', {}, `${e.msg.label}\n${e.msg.store ?? ''}${e.write ? '\nwrite' : ''}`));
+        hit(x1, x2), ...arrowMarkSvg(marks, e.msg, x1, x2, y0, stacked?.has(e), th), s('title', {}, `${e.msg.label}\n${e.msg.store ?? ''}${e.write ? '\nwrite' : ''}`));
     }
     if (e.type === 'frontier') {
       const x0 = barX(e.bar, 1);
