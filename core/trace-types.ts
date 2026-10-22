@@ -74,7 +74,7 @@ export interface Trace {
   /** 0.37.0: the either/or decisions the flow reaches, in first-seen order. Absent when there are none. */
   decisions?: Decision[];
   /** 0.37.1, on a view only (viewOf): what was applied. */
-  detail?: 'external' | 'full'; choose?: Record<string, string>; warnings?: string[]; counts?: { messages: { min: number; max: number }; steps: { min: number; max: number } };
+  detail?: 'external' | 'full'; choose?: Record<string, string>; warnings?: string[]; counts?: { messages: { min: number; max: number } };
 }
 
 export interface TraceOptions { scope?: 'intra' | 'full'; maxDepth?: number; maxMessages?: number; expand?: string[];

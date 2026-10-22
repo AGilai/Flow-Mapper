@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { TOOLS } from '../server/mcp/tools.ts';
 
+// 0.37.1: trace_flow takes detail, choose, open, dbOpen; its description explains decisions, counts and the external default
 // 0.34.x: set_env_color added; list_envs returns color, colorName, colorAuto
 // 0.33.0: list_open_questions added; edit_design (component, subsystem), set_subsystem_settings and create_env groups take owners; list_mentions also returns the about mentions
 // 0.32.0: list_users, list_mentions added; add_comment, resolve_comment, add_action_item, update_action_item take no required author (default Assistant)
@@ -17,7 +18,7 @@ import { TOOLS } from '../server/mcp/tools.ts';
 // 0.25.2: link_health takes assumed / basis; get_service, get_endpoint_info, trace_flow, get_resource_keys say assumed values are defaults
 // 0.25.0: upsert_entity and delete_entity removed; import_preview, import_into_draft, edit_design, get_call, get_flow_names, set_flow_name added; descriptions of list_entry_points, trace_flow, edit_in_draft changed
 const NAMES = 'search,list_services,get_service,list_entry_points,trace_flow,set_description,find_paths,link_health,changelog,ingest_manifest,get_endpoint_info,load_dtos,event_types,inventory,get_store,list_clients,get_resource_keys,get_channel,get_exchange,load_schemas,list_bugs,get_bug,report_bug,update_bug,list_envs,create_env,set_env_color,open_draft,list_drafts,draft_changes,edit_in_draft,apply_draft,discard_draft,get_marks,apply_import_plan,import_preview,import_into_draft,edit_design,get_call,get_flow_names,set_flow_name,list_comments,add_comment,resolve_comment,get_notes,set_notes,get_subsystems,get_subsystem_map,list_abstract_links,suggest_refinements,apply_plan_links,list_flow_relations,set_subsystem_settings,set_levels,export_mermaid,import_mermaid,list_action_items,add_action_item,update_action_item,list_users,list_mentions,list_open_questions';
-const HASH = '4b8670f8121f42a9da576c17090444ebac1ff6b4103071a3612654766ee637c0';   // 0.36.1 (#82): trace_flow description (alternatives, stepId)
+const HASH = 'ac9b4176e1b067ea956ee958234e866c357abc4f09652737f02c547eb21ed808';   // 0.37.1 (#82): trace_flow takes detail (default external), choose, open, dbOpen; description says how
 
 test('MCP tool list is stable', () => {
   assert.equal(TOOLS.map((t) => t.name).join(','), NAMES);

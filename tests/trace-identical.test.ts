@@ -11,6 +11,7 @@ import { SAMPLES } from './helpers.ts';
 import { buildIndex } from '../core/graph-index.ts';
 import { entryPoints, trace } from '../core/trace.ts';
 import { HASH_TRACE } from '../core/description.ts';
+import { viewOf } from '../core/trace-view.ts';
 import { openDb } from '../server/db/connection.ts';
 import { ingest } from '../server/store/snapshots-ingest.ts';
 import { loadModel } from '../server/store/snapshots-read.ts';
@@ -33,4 +34,11 @@ test('traces without alternatives are byte-identical to the recorded ones', () =
   assert.ok(Object.keys(golden).length > 50);
   for (const k of Object.keys(now)) if (k in golden) assert.equal(now[k], golden[k], k);
   for (const k of Object.keys(golden)) assert.ok(k in now, `${k} still has no alternatives`);
+});
+
+test('viewOf full with every decision on both leaves such a trace untouched (the page asks for exactly this)', () => {
+  for (const { t } of traces()) {
+    assert.equal(viewOf(t!, { detail: 'full', choose: new Map([['*', 'both']]) }), t);
+    assert.equal(viewOf(t!, { detail: 'full' }), t);
+  }
 });
