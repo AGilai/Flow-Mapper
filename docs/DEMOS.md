@@ -8,6 +8,7 @@ Add a row here with every fix or feature (newest first). A row without a working
 
 | Version | Bug | What to look at | Link |
 |---|---|---|---|
+| 0.28.4 | #65 | Design Flows list shows named flows only; tick "All endpoints" for every endpoint: `#/flows?env=sase-hld` and `#/flows?env=sase-hld&endpoints=all`. A Components copy now has no copied entry points unless `entryPoints: 'keep'`. | UI + API |
 | 0.28.3 | #63 | Components copy without entry points: `POST /api/envs {mode: 'components', entryPoints: 'none', ...}`; the copy lists 0 copied entry points and no marks. | API only |
 | 0.28.3 | #64 | The `<source>-infra` service of a Components copy sits in subsystem `infra` (or `infraGroupPath`): `POST /api/envs {mode: 'components', infraGroupPath: 'platform', ...}`. | API only |
 | 0.28.2 | #50 | Flow relations: the flow "Agent connects to POP" shows "Related flows (1)": same topic as `auth-svc · in.token.device`, with its note, from the plan's `links[]`. Edit mode: "+ relation", Edit and Remove on each row (pick how the flows relate, search the other flow, add a note). The Flows list has a "Related flows" filter and a ⇄ badge per flow. | `#/flows?env=sase-hld&draft=hld-import&tabs=sase-agent/in.tunnel.open` |

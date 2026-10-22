@@ -5,6 +5,12 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## 0.28.4 (2026-10-22)
+Flows list in design environments, from #65. No migration.
+- **Breaking (default flip):** a Components copy (`POST /api/envs {mode: "components"}`, MCP `create_env`) now defaults to `entryPoints: "none"`: copied ingress get `entryPoint: false` and are not entry points. Pass `entryPoints: "keep"` for the 0.28.3 behaviour. Full copies still default to `keep`. Existing environments are unchanged. `create_env`'s description changed (the tool list hash moved).
+- UI: in a design environment the Flows list shows flows only (an entry point with a flow name, a description or `entryPoint: true`). "All endpoints" lists every endpoint as before and is kept in the URL (`endpoints=all`). A component's own list and harvested environments are unchanged.
+- "Changed only" compares against the baseline, so a copied item equal to the baseline is not marked. This could not be reproduced on a fresh copy, an import or a `behaviour: true` copy; if you still see copies marked as changed, add to #65 how the environment was made.
+
 ## 0.28.3 (2026-10-21)
 Two Components-copy options from the importer's bugs. Additive; no migration. Details in [API.md](API.md) (`POST /api/envs`) and [DESIGN-IMPORT.md](DESIGN-IMPORT.md).
 - **`entryPoints: "keep" | "none"`** on `POST /api/envs` and MCP `create_env` (#63; default `keep`, today's behaviour). `none` sets `entryPoint: false` on every copied ingress, in the environment and in its baseline, so the copies are not entry points, show no marks and diff as unchanged; ingress added later are unaffected. Works for `components` and `full`; `422` for another value or for `blank`.

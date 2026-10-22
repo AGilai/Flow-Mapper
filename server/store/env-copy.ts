@@ -101,7 +101,7 @@ export function copyEnv(db: DB, input: CopyInput): EnvMeta {
     if (mode === 'components') copySharedChannels(c, new Set(names), input.infraGroupPath ?? 'infra');
     copyShared(c, types, stores);
     copyKeys(c, new Set(names));
-    if (input.entryPoints === 'none') clearEntryPoints(c);
+    if ((input.entryPoints ?? (mode === 'components' ? 'none' : 'keep')) === 'none') clearEntryPoints(c); // #65: a Components copy lists no copied entry points unless 'keep'
     if (mode === 'full') { copyDescriptions(c); copyAllBaseline(c); copyComments(db, source, name); if (fullOfDesign) copyDesignLists(c); } // only a Full copy carries the discussion
     ensureColors(db, name, JSON.parse((db.prepare('SELECT colors FROM envs WHERE name = ?').get(source) as { colors: string }).colors || '{}'));
     return getEnv(db, name);

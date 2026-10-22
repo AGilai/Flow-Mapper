@@ -2,6 +2,7 @@
   "name": "sase-hld",
   "source": "prod",
   "mode": "components",
+  "entryPoints": "keep",
   "groups": [
     { "key": "agent", "label": "Agent", "icon": "agent" },
     { "key": "network", "label": "Network (POP)", "icon": "network" },

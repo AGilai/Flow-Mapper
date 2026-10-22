@@ -199,7 +199,7 @@ test('MCP create_env and list_envs', async () => {
 
 test('#58 components with behaviour: functions come too, same trace as the source, no marks, no references', async () => {
   assert.equal((await create({ name: 'beh-x', source: 'prod', mode: 'components', behaviour: 'yes', services: [{ name: 'orders-svc' }] })).status, 422);
-  const r = await create({ name: 'beh-1', source: 'prod', mode: 'components', behaviour: true, services: PICK.map((name) => ({ name })) });
+  const r = await create({ name: 'beh-1', source: 'prod', mode: 'components', behaviour: true, entryPoints: 'keep', services: PICK.map((name) => ({ name })) });
   assert.equal(r.status, 201, JSON.stringify(r.body));
   const fns = (env: string) => q("SELECT service, key, data FROM entities WHERE env = ? AND list = 'functions' AND service IN ('orders-svc','users-svc','payments-svc') ORDER BY 1, 2", env);
   assert.ok(fns('prod').length > 0);
