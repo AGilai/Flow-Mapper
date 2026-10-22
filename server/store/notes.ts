@@ -18,6 +18,7 @@ import { checkEnv } from './comments-rows.ts';
 import { identify } from '../identity.ts';
 import { nameIndex } from './users.ts';
 import { resolveMentions } from './mentions.ts';
+import { sinceWrite } from './write-memo.ts';
 
 interface R { env: string; anchor: string; version: number; body: string; author: string; author_id: string | null; restored_from: number | null; created_at: string }
 const HISTORY = 30;
@@ -90,8 +91,10 @@ export function allNotes(db: DB, env: string): R[] { return db.prepare('SELECT *
 /** The flows of an env that have notes with content: `{anchor: version}` (for the Flows list and the default tab). */
 export function notesIndex(db: DB, env: string): Record<string, number> {
   checkEnv(db, env);
-  const rows = db.prepare('SELECT n.anchor, n.version, n.body FROM flow_notes n WHERE n.env = ? AND n.version = (SELECT MAX(version) FROM flow_notes WHERE env = n.env AND anchor = n.anchor)').all(env) as unknown as R[];
-  return Object.fromEntries(rows.filter((r) => plainText(r.body)).map((r) => [r.anchor, r.version]));
+  return sinceWrite(db, `notes-index|${env}`, () => { // the text check of every flow's latest version runs once between writes (F6)
+    const rows = db.prepare('SELECT n.anchor, n.version, n.body FROM flow_notes n WHERE n.env = ? AND n.version = (SELECT MAX(version) FROM flow_notes WHERE env = n.env AND anchor = n.anchor)').all(env) as unknown as R[];
+    return Object.fromEntries(rows.filter((r) => plainText(r.body)).map((r) => [r.anchor, r.version]));
+  });
 }
 
 export interface SampleNotes { service: string; ingress: string; author: string; body: string; ago?: number; versions?: { author: string; body: string; ago?: number }[] }
