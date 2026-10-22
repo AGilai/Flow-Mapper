@@ -42,7 +42,8 @@ export function drawStepTiles(res, built, steps, onPick, onEdit = null, hl = () 
     return grp;
   }));
   res.body.append(g);
-  const defs = res.body.querySelector('defs'); if (defs) defs.after(band); else res.body.prepend(band);
+  // after the column fills (fold bands) so the yellow reads as one band across the row, before frames, lifelines, arrows and text
+  const under = [...res.body.querySelectorAll(':scope > .sq-band')].pop() ?? res.body.querySelector(':scope > defs'); if (under) under.after(band); else res.body.prepend(band);
   let cur = 0;
   return {
     setCurrent(n) {
