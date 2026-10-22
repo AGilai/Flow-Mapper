@@ -18,7 +18,7 @@ export function createComments(data, g) {
   };
   return {
     comments: async (env, anchor) => { if (!parseFlowAnchor(anchor)) fail("anchor must be 'flow:<service>/<ingress>'", 400); return buildThread(anchor, rows(env).filter((r) => r.anchor === anchor)); },
-    commentCounts: async (env) => { const o = {}; for (const r of rows(env)) if (!r.deletedAt) o[r.anchor] = (o[r.anchor] ?? 0) + 1; return o; },
+    commentCounts: async (env) => { const o = {}; for (const r of rows(env)) if (!r.deletedAt && r.parentId == null && !r.resolvedAt) o[r.anchor] = (o[r.anchor] ?? 0) + 1; return o; },
     addComment: async (env, i) => {
       const f = parseFlowAnchor(i?.anchor) ?? fail("anchor must be 'flow:<service>/<ingress>'", 400), a = author(i.author), b = body(i.body);
       const t = trace(g(env), { service: f.service, ingress: f.ingress }, HASH_TRACE) ?? fail(`flow ${f.service} / ${f.ingress} not found`, 404);
@@ -30,11 +30,17 @@ export function createComments(data, g) {
         if (p.deletedAt) fail('the comment you reply to was deleted', 422);
         parentId = p.parentId ?? p.id;
       }
-      const r = { id: Math.max(0, ...rows(env).map((x) => x.id)) + 1, anchor: i.anchor, step, parentId, author: a, body: b, createdAt: new Date().toISOString(), editedAt: null, deletedAt: null };
+      const r = { id: Math.max(0, ...rows(env).map((x) => x.id)) + 1, anchor: i.anchor, step, parentId, author: a, body: b, createdAt: new Date().toISOString(), editedAt: null, deletedAt: null, externalId: null, externalSource: null, authorExternalId: null, resolvedAt: null, resolvedBy: null };
       rows(env).push(r);
       return structuredClone(r);
     },
     editComment: async (env, id, i) => { const r = mine(env, id, i?.author); r.body = body(i.body); r.editedAt = new Date().toISOString(); return structuredClone(r); },
+    resolveComment: async (env, id, i) => { // anyone, top comments only (the server's rule); the replies follow the thread
+      const r = rows(env).find((x) => x.id === Number(id) && !x.deletedAt) ?? fail(`comment ${id} not found`, 404), by = author(i?.actor);
+      if (r.parentId != null) fail('a reply cannot be resolved on its own: resolve its top comment', 400);
+      r.resolvedAt = i.resolved ? new Date().toISOString() : null; r.resolvedBy = i.resolved ? by : null;
+      return { ...structuredClone(r), resolved: !!r.resolvedAt };
+    },
     deleteComment: async (env, id, a) => { const r = mine(env, id, a); r.deletedAt = new Date().toISOString(); r.body = ''; return { deleted: r.id }; },
   };
 }

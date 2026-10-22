@@ -6,7 +6,7 @@ import { esc } from '../core/rich-text.ts';
 // @ts-ignore plain JS module shared with the browser
 import { relTime, initials, addressOf, textToHtml, startsOpen } from '../web/js/comments/pure.js';
 
-const row = (id: number, o: Partial<CommentRow> = {}): CommentRow => ({ id, anchor: 'flow:s/i', step: null, parentId: null, author: 'a', body: `<p>${id}</p>`, createdAt: `2026-10-21T10:0${id}:00.000Z`, editedAt: null, deletedAt: null, ...o });
+const row = (id: number, o: Partial<CommentRow> = {}): CommentRow => ({ id, anchor: 'flow:s/i', step: null, parentId: null, author: 'a', body: `<p>${id}</p>`, createdAt: `2026-10-21T10:0${id}:00.000Z`, editedAt: null, deletedAt: null, externalId: null, externalSource: null, authorExternalId: null, resolvedAt: null, resolvedBy: null, ...o });
 
 test('anchors: flow:<service>/<ingress> round trips; the ingress may hold dots and slashes', () => {
   assert.equal(flowAnchor('api-gateway', 'in.createOrder'), 'flow:api-gateway/in.createOrder');

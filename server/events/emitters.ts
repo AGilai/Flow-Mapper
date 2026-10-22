@@ -48,6 +48,7 @@ const commentEvent = (kind: string, db: DB, c: { env: string; anchor: string; id
     data: { anchor: c.anchor, id: c.id, author: c.author, ...(c.text !== undefined && { text: clip(c.text, 300) }) } });
 export const commentCreated = (db: DB, c: { env: string; anchor: string; id: number; author: string; text: string }) => commentEvent('created', db, c);
 export const commentEdited = (db: DB, c: { env: string; anchor: string; id: number; author: string; text: string }) => commentEvent('edited', db, c);
+export const commentResolved = (db: DB, c: { env: string; anchor: string; id: number; author: string; resolved: boolean }) => commentEvent(c.resolved ? 'resolved' : 'reopened', db, c);
 export const commentDeleted = (db: DB, c: { env: string; anchor: string; id: number; author: string }) => commentEvent('deleted', db, c);
 
 export function actionItemChanged(db: DB, kind: 'created' | 'updated' | 'deleted', a: { env: string; anchor: string; id: number; number: number; status: string; actor: string }) {

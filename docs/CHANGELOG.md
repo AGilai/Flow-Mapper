@@ -12,6 +12,17 @@ Step details: a step (one arrow of a flow) can carry a short **title** next to i
 - **Mermaid export:** a step with a title writes the title as the message text and the API (`POST /path`) into a `Note over` line.
 - **UI:** the Step bar shows the step's title, API and description (`sb=`); the toolbar control "Step details" also puts title / description on the arrows (`sd=`; default API only); a step editor (button, pencil, right-click, key E).
 
+## 0.29.2 (2026-10-22)
+Comment importers (bug #66, first part): your own ids and times on comments, an idempotent re-import, and resolved threads. Additive; migration `014_comments_import.sql` (five new columns on `comments` and a partial unique index; the database is backed up to `<db>.pre-014.bak` first). Details in [API.md](API.md) "Comments under a flow". The users registry and @mention chips are not part of this: a mention stays plain `@Name` text.
+- **`POST /api/envs/:env/comments` takes:** `createdAt` (ISO 8601, kept as that instant, stored as UTC; `400` if not a time or more than 5 minutes ahead), `externalSource` + `externalId` (both or neither, at most 200 characters each), `authorExternalId`, `parentExternalId` (instead of `parentId`; looked up by `externalSource` + that id in the same env, so send parents first; unknown is `400`), `resolved` (true/false) with `resolvedBy` / `resolvedAt`.
+- **Re-import:** posting the same (`externalSource`, `externalId`) again **updates** that comment (body, author, step, `createdAt`, `authorExternalId`; `resolved` only when you send it) and answers **`200` with `updated: true`**; a new comment is **`201`** (**breaking** only if your client checked for exactly `200` on create: creating comments answered `200` before). It never duplicates. The same pair under a different flow is `409 EXTERNAL_ID_TAKEN`. A comment someone deleted comes back on re-import. `parentExternalId` of a reply is not re-parented.
+- **Resolve:** `PATCH /api/envs/:env/comments/:id {actor, resolved: true|false}`: anyone may resolve or reopen a thread (top comment; a reply is `400`, its thread decides). Body edits stay author-only and cannot be sent in the same request. Reads return `externalId`, `externalSource`, `authorExternalId`, `resolved`, `resolvedBy`, `resolvedAt` per comment (replies show their thread's state), and the thread has `resolvedThreads`.
+- **Counts changed:** `GET .../comments/counts` is now the number of **open top threads** per flow (resolved threads and replies are not counted).
+- **Events:** `comment.resolved` and `comment.reopened` (once per change).
+- **MCP:** `add_comment` takes the same fields (and returns `updated: true` on a re-import); new `resolve_comment {env, id, author, resolved}`; `list_comments` returns the new fields.
+- **Copy:** a Full copy carries the importer ids and the resolved state.
+- UI: "Resolve" / "Reopen" on a thread; resolved threads are hidden behind "Show resolved (n)"; an imported comment shows its given time and a small "imported" hint (tooltip: source and id).
+
 ## 0.29.1 (2026-10-22)
 UI only: a Maximize button (key F) on every flow header fills the window with the flow, its action items and comments; `max=1` in the URL opens it that way.
 

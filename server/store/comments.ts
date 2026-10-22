@@ -8,33 +8,17 @@ import { tx } from '../db/connection.ts';
 import type { GraphIndex } from '../../core/graph-index.ts';
 import { trace } from '../../core/trace.ts';
 import { HASH_TRACE, isStepKey, hasStep } from '../../core/description.ts';
-import { buildThread, parseFlowAnchor, flowAnchor, MAX_AUTHOR, cleanName, type CommentRow, type Thread } from '../../core/comments.ts';
-import { sanitize, tooLong } from '../../core/rich-text.ts';
+import { buildThread, parseFlowAnchor, flowAnchor, type CommentRow, type Thread } from '../../core/comments.ts';
+import { sanitize } from '../../core/rich-text.ts';
 import { plainText } from '../../core/rich-text-text.ts';
 import { HttpError, badRequest, invalid, notFound } from '../errors.ts';
-import { getEnvRow } from './envs.ts';
 import { commentCreated, commentEdited, commentDeleted } from '../events/emitters.ts';
+import { type R, toRow, out, forbidden, getRow, checkEnv, authorOf, bodyOf } from './comments-rows.ts';
+import { parseImport, findExternal, applyImported, reimport, takenBy, type ImportFields } from './comments-import.ts';
+import { resolveComment } from './comments-import.ts';
+export { resolveComment };
 
-interface R { id: number; env: string; anchor: string; step: string | null; parent_id: number | null; author: string; body: string; created_at: string; edited_at: string | null; deleted_at: string | null }
-const toRow = (r: R): CommentRow => ({ id: r.id, anchor: r.anchor, step: r.step, parentId: r.parent_id, author: r.author, body: r.body, createdAt: r.created_at, editedAt: r.edited_at, deletedAt: r.deleted_at });
-const forbidden = (m: string) => new HttpError(403, 'FORBIDDEN', m);
-
-function checkEnv(db: DB, env: string) { if (!getEnvRow(db, env)) throw notFound(`environment '${env}'`); }
 function flowOf(anchor: unknown) { const f = parseFlowAnchor(anchor); if (!f) throw badRequest("anchor must be 'flow:<service>/<ingress>'"); return f; }
-function authorOf(a: unknown) {
-  const n = typeof a === 'string' ? cleanName(a) : '';
-  if (!n) throw badRequest('author is required');
-  if (n.length > MAX_AUTHOR) throw badRequest(`author is longer than ${MAX_AUTHOR} characters`);
-  return n;
-}
-function bodyOf(b: unknown) {
-  if (typeof b !== 'string') throw badRequest('body is required');
-  const body = sanitize(b);
-  if (!plainText(body)) throw invalid('the comment is empty');
-  const long = tooLong(body);
-  if (long) throw invalid(long);
-  return body;
-}
 
 /** The flow's trace (the graph may be a draft's), 404 when the environment has no such flow. */
 function flowTrace(g: GraphIndex, env: string, service: string, ingress: string) {
@@ -47,32 +31,42 @@ export function listThread(db: DB, env: string, anchor: string): Thread {
   return buildThread(anchor, (db.prepare('SELECT * FROM comments WHERE env = ? AND anchor = ?').all(env, anchor) as unknown as R[]).map((r) => ({ ...toRow(r), body: sanitize(r.body) })));
 }
 
-/** Live comment counts per anchor, for the Flows list: `{anchor: n}` (anchors with none are absent). */
+/** Open discussions per anchor, for the Flows list: `{anchor: n}`, live top comments that are not resolved (anchors with none are absent). */
 export function counts(db: DB, env: string): Record<string, number> {
   checkEnv(db, env);
-  return Object.fromEntries((db.prepare('SELECT anchor, COUNT(*) AS n FROM comments WHERE env = ? AND deleted_at IS NULL GROUP BY anchor').all(env) as unknown as { anchor: string; n: number }[]).map((r) => [r.anchor, r.n]));
+  return Object.fromEntries((db.prepare('SELECT anchor, COUNT(*) AS n FROM comments WHERE env = ? AND deleted_at IS NULL AND parent_id IS NULL AND resolved_at IS NULL GROUP BY anchor').all(env) as unknown as { anchor: string; n: number }[]).map((r) => [r.anchor, r.n]));
 }
 
-export interface NewComment { anchor: string; step?: string | null; parentId?: number | null; author: string; body: string }
+export interface NewComment extends ImportFields { anchor: string; step?: string | null; parentId?: number | null; author: string; body: string }
+export type Written = ReturnType<typeof out> & { updated?: true };
 
-export function addComment(db: DB, g: GraphIndex, env: string, i: NewComment): CommentRow {
+export function addComment(db: DB, g: GraphIndex, env: string, i: NewComment): Written {
   checkEnv(db, env);
   const { service, ingress } = flowOf(i?.anchor);
-  const author = authorOf(i.author), body = bodyOf(i.body);
+  const author = authorOf(i.author), body = bodyOf(i.body), x = parseImport(i);
   const t = flowTrace(g, env, service, ingress);
   const step = i.step ?? null;
   if (step !== null && (typeof step !== 'string' || !isStepKey(step) || !hasStep(t, step))) throw badRequest(`step '${step}' is not in the flow ${service} / ${ingress}`);
+  if (i.parentId != null && x.parentExternalId !== null) throw badRequest('give parentId or parentExternalId, not both');
+  const old = x.externalId !== null ? findExternal(db, env, x.externalSource!, x.externalId) : undefined;
+  if (old && old.anchor !== i.anchor) throw takenBy(old.anchor);
   let parent: number | null = null;
-  if (i.parentId != null) {
-    const p = db.prepare('SELECT * FROM comments WHERE id = ? AND env = ? AND anchor = ?').get(Number(i.parentId), env, i.anchor) as unknown as R | undefined;
+  if (i.parentId != null || x.parentExternalId !== null) {
+    const p = (i.parentId != null ? db.prepare('SELECT * FROM comments WHERE id = ? AND env = ? AND anchor = ?').get(Number(i.parentId), env, i.anchor) : findExternal(db, env, x.externalSource!, x.parentExternalId!)) as unknown as R | undefined;
+    if (!p && i.parentId == null) throw badRequest(`parentExternalId '${x.parentExternalId}' is not a comment of source '${x.externalSource}' in env '${env}'`);
     if (!p) throw notFound(`comment ${i.parentId} under ${i.anchor}`);
+    if (p.anchor !== i.anchor) throw badRequest(`parentExternalId '${x.parentExternalId}' belongs to a comment under another flow`);
     if (p.deleted_at) throw invalid('the comment you reply to was deleted');
     parent = p.parent_id ?? p.id; // one level only: a reply to a reply belongs to the top comment
   }
-  const at = new Date().toISOString();
-  const id = Number(db.prepare('INSERT INTO comments (env, anchor, step, parent_id, author, body, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)').run(env, i.anchor, step, parent, author, body, at).lastInsertRowid);
+  if (x.resolved === true && (parent !== null || old?.parent_id != null)) throw badRequest('a reply cannot be resolved on its own: resolve its top comment');
+  if (old) return { ...out(reimport(db, env, old, x, { author, body, step })), updated: true };
+  const at = x.createdAt ?? new Date().toISOString();
+  const id = Number(db.prepare('INSERT INTO comments (env, anchor, step, parent_id, author, body, created_at, external_id, external_source, author_external_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    .run(env, i.anchor, step, parent, author, body, at, x.externalId, x.externalSource, x.authorExternalId).lastInsertRowid);
   commentCreated(db, { env, anchor: i.anchor, id, author, text: plainText(body) });
-  return toRow(db.prepare('SELECT * FROM comments WHERE id = ?').get(id) as unknown as R);
+  if (parent === null) applyImported(db, env, id, x, author);
+  return out(getRow(db, id));
 }
 
 function mine(db: DB, env: string, id: number, author: unknown): R {
@@ -83,11 +77,11 @@ function mine(db: DB, env: string, id: number, author: unknown): R {
   return r;
 }
 
-export function editComment(db: DB, env: string, id: number, i: { author: string; body: string }): CommentRow {
+export function editComment(db: DB, env: string, id: number, i: { author: string; body: string }) {
   const r = mine(db, env, id, i?.author), body = bodyOf(i.body);
   db.prepare('UPDATE comments SET body = ?, edited_at = ? WHERE id = ?').run(body, new Date().toISOString(), r.id);
   commentEdited(db, { env, anchor: r.anchor, id: r.id, author: r.author, text: plainText(body) });
-  return toRow(db.prepare('SELECT * FROM comments WHERE id = ?').get(r.id) as unknown as R);
+  return out(getRow(db, r.id));
 }
 
 export function deleteComment(db: DB, env: string, id: number, author: unknown): { deleted: number } {
@@ -97,12 +91,12 @@ export function deleteComment(db: DB, env: string, id: number, author: unknown):
   return { deleted: r.id };
 }
 
-/** A Full copy keeps the discussion: authors, times and the reply structure (new ids). Soft-deleted rows come too, empty, so replies keep their parent. */
+/** A Full copy keeps the discussion: authors, times, the importer's ids, the resolved state and the reply structure (new ids). Soft-deleted rows come too, empty, so replies keep their parent. */
 export function copyComments(db: DB, from: string, to: string): Map<number, number> {
   const ids = new Map<number, number>();
-  const ins = db.prepare('INSERT INTO comments (env, anchor, step, parent_id, author, body, created_at, edited_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+  const ins = db.prepare('INSERT INTO comments (env, anchor, step, parent_id, author, body, created_at, edited_at, deleted_at, external_id, external_source, author_external_id, resolved_at, resolved_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
   tx(db, () => { for (const r of db.prepare('SELECT * FROM comments WHERE env = ? ORDER BY id').all(from) as unknown as R[]) {
-    ids.set(r.id, Number(ins.run(to, r.anchor, r.step, r.parent_id == null ? null : ids.get(r.parent_id) ?? null, r.author, r.body, r.created_at, r.edited_at, r.deleted_at).lastInsertRowid));
+    ids.set(r.id, Number(ins.run(to, r.anchor, r.step, r.parent_id == null ? null : ids.get(r.parent_id) ?? null, r.author, r.body, r.created_at, r.edited_at, r.deleted_at, r.external_id, r.external_source, r.author_external_id, r.resolved_at, r.resolved_by).lastInsertRowid));
   } });
   return ids;
 }
@@ -111,7 +105,7 @@ export function copyComments(db: DB, from: string, to: string): Map<number, numb
 export const allRows = (db: DB, env: string): CommentRow[] => (db.prepare('SELECT * FROM comments WHERE env = ? ORDER BY id').all(env) as unknown as R[]).map(toRow);
 
 /** `ago` is minutes before the seed ran, so the demo always reads "2 days ago" and not a fixed date. */
-export interface SampleComment { service: string; ingress: string; step?: string; author: string; body: string; ago?: number; edited?: boolean; replies?: { author: string; body: string; ago?: number }[] }
+export interface SampleComment { service: string; ingress: string; step?: string; author: string; body: string; ago?: number; edited?: boolean; externalId?: string; externalSource?: string; authorExternalId?: string; resolved?: boolean; resolvedBy?: string; replies?: { author: string; body: string; ago?: number }[] }
 const when = (ago?: number) => (ago == null ? null : new Date(Date.now() - ago * 60000).toISOString());
 
 /** Seed data (samples/comments/*.json). Seeding twice adds nothing: a flow that already has a comment with the same author and body is skipped. */
@@ -122,9 +116,10 @@ export function loadComments(db: DB, g: GraphIndex, env: string, list: SampleCom
       const anchor = flowAnchor(c.service, c.ingress);
       const have = listThread(db, env, anchor).comments;
       if (have.some((x) => x.author === c.author && x.body === sanitize(c.body))) continue;
-      const row = addComment(db, g, env, { anchor, step: c.step ?? null, author: c.author, body: c.body });
+      const row = addComment(db, g, env, { anchor, step: c.step ?? null, author: c.author, body: c.body, externalId: c.externalId, externalSource: c.externalSource, authorExternalId: c.authorExternalId });
       db.prepare('UPDATE comments SET created_at = COALESCE(?, created_at), edited_at = ? WHERE id = ?').run(when(c.ago), c.edited ? when(Math.max(0, (c.ago ?? 0) - 30)) ?? row.createdAt : null, row.id);
       n++;
+      if (c.resolved) { resolveComment(db, env, row.id, { actor: c.resolvedBy ?? c.author, resolved: true }); db.prepare('UPDATE comments SET resolved_at = ? WHERE id = ?').run(when(Math.max(0, (c.ago ?? 0) - 120)) ?? new Date().toISOString(), row.id); }
       for (const r of c.replies ?? []) { const x = addComment(db, g, env, { anchor, parentId: row.id, author: r.author, body: r.body }); db.prepare('UPDATE comments SET created_at = COALESCE(?, created_at) WHERE id = ?').run(when(r.ago), x.id); n++; }
     } catch (e) {
       if (!(e instanceof HttpError)) throw e;

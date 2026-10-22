@@ -4,11 +4,13 @@
 import { flowAnchor, type CommentNode } from '../../../core/comments.ts';
 import { commentHtml } from '../../../core/rich-text-md.ts';
 import { plainText } from '../../../core/rich-text-text.ts';
-import { addComment, listThread } from '../../store/comments.ts';
+import { addComment, listThread, resolveComment } from '../../store/comments.ts';
+import { out as rowOut } from '../../store/comments-rows.ts';
 import { type Tool, env, obj, envOf, draftArg } from './common.ts';
 
 const out = (n: CommentNode, parentId: number | null = null): unknown => ({
   id: n.id, parentId, author: n.author, deleted: n.deleted, step: n.step, createdAt: n.createdAt, editedAt: n.editedAt,
+  externalId: n.externalId, externalSource: n.externalSource, authorExternalId: n.authorExternalId, resolved: n.resolved, resolvedBy: n.resolvedBy, resolvedAt: n.resolvedAt,
   text: plainText(n.body), html: n.body, replies: n.replies.map((r) => out(r, n.id)),
 });
 
@@ -27,10 +29,19 @@ export const listCommentsTool: Tool = {
 
 export const addCommentTool: Tool = {
   name: 'add_comment',
-  description: "Add a comment (or a reply with parentId) under a flow. body: plain text with Markdown-lite (**bold**, ~~strike~~, '- ' lists, blank line = new paragraph), or HTML from this subset: p br b strong i em s u ul ol li a(http/https href) table thead tbody tr th td span(class cc-coral|cc-ochre|cc-sage|cc-cyan|cc-sky|cc-violet) code pre blockquote; anything else is removed. step: a step key (#step:...) from the flow's trace to attach it to a step. author: your name (at most 80 characters). Works in any environment. draft: an open draft, for a flow that exists only there.",
-  inputSchema: obj({ env, service: { type: 'string' }, ingress: { type: 'string', description: 'Ingress id of the flow entry' }, author: { type: 'string' }, body: { type: 'string' }, step: { type: 'string' }, parentId: { type: 'integer' }, draft: draftArg }, ['service', 'ingress', 'author', 'body']),
+  description: "Add a comment (or a reply with parentId) under a flow. body: plain text with Markdown-lite (**bold**, ~~strike~~, '- ' lists, blank line = new paragraph), or HTML from this subset: p br b strong i em s u ul ol li a(http/https href) table thead tbody tr th td span(class cc-coral|cc-ochre|cc-sage|cc-cyan|cc-sky|cc-violet) code pre blockquote; anything else is removed. step: a step key (#step:...) from the flow's trace to attach it to a step. author: your name (at most 80 characters). Works in any environment. draft: an open draft, for a flow that exists only there. Importers: createdAt (ISO 8601, not in the future) keeps the original time; externalSource + externalId (both or neither, at most 200 characters each) make the call idempotent: the same pair again updates that comment and returns updated: true; authorExternalId; parentExternalId replies to the comment of that externalSource and id; resolved (with resolvedBy, resolvedAt) sets the thread's state (top comments only).",
+  inputSchema: obj({ env, service: { type: 'string' }, ingress: { type: 'string', description: 'Ingress id of the flow entry' }, author: { type: 'string' }, body: { type: 'string' }, step: { type: 'string' }, parentId: { type: 'integer' }, draft: draftArg,
+    createdAt: { type: 'string' }, externalId: { type: 'string' }, externalSource: { type: 'string' }, authorExternalId: { type: 'string' }, parentExternalId: { type: 'string' }, resolved: { type: 'boolean' }, resolvedBy: { type: 'string' }, resolvedAt: { type: 'string' } }, ['service', 'ingress', 'author', 'body']),
   run: (c, a) => {
-    const e = envOf(a), row = addComment(c.db, c.view(e, a.draft || null).g, e, { anchor: flowAnchor(a.service, a.ingress), step: a.step ?? null, parentId: a.parentId ?? null, author: a.author, body: commentHtml(a.body) });
-    return { id: row.id, parentId: row.parentId, anchor: row.anchor, createdAt: row.createdAt, html: row.body };
+    const e = envOf(a), row = addComment(c.db, c.view(e, a.draft || null).g, e, { anchor: flowAnchor(a.service, a.ingress), step: a.step ?? null, parentId: a.parentId ?? null, author: a.author, body: commentHtml(a.body),
+      createdAt: a.createdAt, externalId: a.externalId, externalSource: a.externalSource, authorExternalId: a.authorExternalId, parentExternalId: a.parentExternalId, resolved: a.resolved, resolvedBy: a.resolvedBy, resolvedAt: a.resolvedAt });
+    return { id: row.id, parentId: row.parentId, anchor: row.anchor, createdAt: row.createdAt, html: row.body, externalId: row.externalId, externalSource: row.externalSource, resolved: row.resolved, ...(row.updated && { updated: true }) };
   },
+};
+
+export const resolveCommentTool: Tool = {
+  name: 'resolve_comment',
+  description: "Resolve or reopen a discussion: id is a top comment (a reply cannot be resolved alone; its thread follows). resolved: true or false. author: your name. Anyone may resolve or reopen. Resolved threads are hidden in the UI behind \"Show resolved\" and not counted in the Flows list. Works in any environment.",
+  inputSchema: obj({ env, id: { type: 'integer' }, author: { type: 'string' }, resolved: { type: 'boolean' } }, ['id', 'author', 'resolved']),
+  run: (c, a) => { const r = rowOut(resolveComment(c.db, envOf(a), a.id, { actor: a.author, resolved: a.resolved })); return { id: r.id, resolved: r.resolved, resolvedBy: r.resolvedBy, resolvedAt: r.resolvedAt }; },
 };
