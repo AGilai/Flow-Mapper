@@ -19,7 +19,11 @@ export function createMentions(data) {
       const name = (id) => (data.users ?? []).find((u) => u.id === id)?.name ?? 'unknown user', token = `@[${user}]`;   // 0.33.0: mentions in the About of a component (a subsystem's about is not bundled)
       const about = q.unread || q.anchor ? [] : Object.entries(data.models ?? {}).flatMap(([env, m]) => (q.env && q.env !== env ? [] : (m.services ?? []).filter((s) => typeof s.about === 'string' && s.about.includes(token))
         .map((s) => ({ env, kind: 'component', id: s.name, label: s.name, text: (s.about.split('\n').find((l) => l.includes(token)) ?? '').replace(/^\s*(#{1,6}|[-*]|\d+[.)])\s+/, '').replace(/@\[([A-Za-z0-9_-]{1,40})\]/g, (_x, id) => `@${name(id)}`).replace(/[*_~`]/g, '').trim().slice(0, 200) }))));
-      return { user, unread: list.filter((m) => m.unread).length, mentions: list, about };
+      const notes = q.unread || q.anchor ? [] : Object.entries(data.notes ?? {}).flatMap(([env, rows]) => (q.env && q.env !== env ? [] : [...new Set(rows.map((r) => r.anchor))].flatMap((anchor) => { // 0.34.0: the current Notes of a flow that mention the user
+        const cur = rows.filter((r) => r.anchor === anchor).sort((a, b) => b.version - a.version)[0], f = parseFlowAnchor(anchor);
+        return f && cur.body.includes(token) ? [{ env, anchor, service: f.service, ingress: f.ingress, label: `${f.service} \u00b7 ${f.ingress}`, text: plainText(sanitize(cur.body, { notes: true })).split('\n').find((l) => l.includes(token))?.replace(/@\[([A-Za-z0-9_-]{1,40})\]/g, (_x, id) => `@${name(id)}`).trim().slice(0, 200) ?? '' }] : [];
+      })));
+      return { user, unread: list.filter((m) => m.unread).length, mentions: list, about, notes };
     },
     seenMentions: async (user, ids) => { known(user); let n = 0; for (const id of ids ?? []) if (!seen.has(`${user}:${id}`)) { seen.add(`${user}:${id}`); n++; } return { marked: n }; },
     mentionCounts: async (env, user) => { known(user); const o = {}; for (const { env: e, r } of mentioning(user)) if (e === env && !seen.has(`${user}:${r.id}`) && r.authorId !== user) o[r.anchor] = (o[r.anchor] ?? 0) + 1; return o; },

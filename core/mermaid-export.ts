@@ -12,8 +12,9 @@ import { lineText, titleOf, stepKeys, type FlowDescriptions } from './descriptio
 import type { Links } from './links.ts';
 import type { Alt } from './alt.ts';
 import type { Message, Participant, Trace } from './trace.ts';
+import { rangeBlocks, type RangeNote } from './mermaid-ranges.ts';
 
-export interface MermaidOpts { name?: string; description?: string; descriptions?: FlowDescriptions | null; links?: Links | null }
+export interface MermaidOpts { name?: string; description?: string; descriptions?: FlowDescriptions | null; links?: Links | null; ranges?: RangeNote[] /* 0.34.0: step-range comments, as rect + Note (core/mermaid-ranges.ts) */ }
 
 const BRANCH = { par: 'and', critical: 'option' } as Record<string, string>;
 interface Frame { key: string; open: string; kind: string; cond: string; depth: number }
@@ -46,7 +47,7 @@ function labelOf(p: Participant): string {
 export function exportMermaid(t: Pick<Trace, 'start' | 'participants' | 'messages'>, opts: MermaidOpts = {}): string {
   const name = (opts.name ?? (t.start as { name?: string }).name ?? '').trim();
   const keys = stepKeys(t.messages);
-  const kept = t.messages.map((m, i) => ({ m, key: keys[i] })).filter(({ m }) => !m.internal && m.kind !== 'frontier');
+  const kept = t.messages.map((m, i) => ({ m, key: keys[i], index: i })).filter(({ m }) => !m.internal && m.kind !== 'frontier');
   const used = new Set(kept.flatMap(({ m }) => [m.from, m.to]));
   for (const { m } of kept) for (const o of m.over ?? []) for (const p of t.participants) if (labelOf(p) === o) used.add(p.id);   // a note spans lifelines even where no arrow touches them
   const parts = t.participants.filter((p) => used.has(p.id));
@@ -86,17 +87,20 @@ export function exportMermaid(t: Pick<Trace, 'start' | 'participants' | 'message
     for (let i = k - base; i < want.length; i++) { out.push(want[i].open); stack.push(want[i]); }
   };
   const openAt = new Map<number, number>(); // #73: deferred work (`of`) returns to the frame its async call started in, whatever its depth says
-  for (const { m, key } of kept) {
+  const rb = opts.ranges?.length ? rangeBlocks(keys, kept.map((k) => ({ index: k.index, a: ids.get(k.m.from)!, b: ids.get(k.m.to)! })), parts.map((p) => ids.get(p.id)!), opts.ranges.map((r) => ({ ...r, text: esc(r.text) }))) : null; // 0.34.0
+  for (const [pos, { m, key }] of kept.entries()) {
     const back = m.of === undefined ? undefined : openAt.get(m.of);
     if (back !== undefined) while (open.length > back) ret(open.pop()!);
     close(m.depth);
     frames(framesOf(m), m.depth);
     if (m.n !== undefined) openAt.set(m.n, open.length);
     const a = ids.get(m.from)!, b = ids.get(m.to)!;
+    out.push(...(rb?.before.get(pos) ?? []));
     if (m.kind === 'leaf') {   // a step that ends the tree: a note over the lifelines it spans (`over`), or an internal step (a self-message), not an arrow between two
-      if (m.self) { if (m.real) out.push(`%% real: ${esc(m.real)}`); out.push(`${a}->>${a}: ${esc(m.label)}`); continue; }
+      if (m.self) { if (m.real) out.push(`%% real: ${esc(m.real)}`); out.push(`${a}->>${a}: ${esc(m.label)}`); out.push(...(rb?.after.get(pos) ?? [])); continue; }
       const over = [...new Set((m.over ?? []).map((o) => idByLabel.get(o)).filter((x): x is string => !!x))];
       out.push(`Note over ${over.length ? over.join(',') : a}: ${esc(m.label)}`);
+      out.push(...(rb?.after.get(pos) ?? []));
       continue;
     }
     const title = titleOf(opts.descriptions?.callees[key]).trim(); // 0.30.0: a step title is the message text, and the API moves into a note
@@ -105,6 +109,7 @@ export function exportMermaid(t: Pick<Trace, 'start' | 'participants' | 'message
     if (title) out.push(`Note over ${a === b ? a : `${a},${b}`}: ${esc(messageLabel(m))}`);
     const note = lineText(opts.descriptions?.callees[key])?.text ?? m.note;
     if (note) out.push(`Note over ${a === b ? a : `${a},${b}`}: ${esc(note)}`);
+    out.push(...(rb?.after.get(pos) ?? []));
     if (m.mode !== 'async' && m.from !== m.to && ['service', 'client', 'function'].includes(kind.get(m.to) ?? '')) open.push({ from: m.from, to: m.to, depth: m.depth, response: m.returns?.label });
   }
   close(-1);

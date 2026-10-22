@@ -19,6 +19,7 @@ import { nameIndex } from './users.ts';
 import { resolveMentions, syncMentions, markSeen } from './mentions.ts';
 
 const bodyIn = (db: DB, b: unknown) => bodyOf(typeof b === 'string' ? resolveMentions(db, b) : b); // `@{Name}` becomes `@[id]` before the sanitizer sees it
+import { checkRange } from './comments-range.ts';
 import { parseImport, findExternal, applyImported, reimport, takenBy, type ImportFields } from './comments-import.ts';
 import { resolveComment } from './comments-import.ts';
 export { resolveComment };
@@ -44,7 +45,7 @@ export function counts(db: DB, env: string): Record<string, number> {
 }
 
 /** `author` (a name) or `authorId` (a user id, from X-Flow-User) says who writes; with neither the call is refused. */
-export interface NewComment extends ImportFields { anchor: string; step?: string | null; parentId?: number | null; author?: string; authorId?: string | null; body: string }
+export interface NewComment extends ImportFields { anchor: string; step?: string | null; steps?: { from: string; to: string } | null; parentId?: number | null; author?: string; authorId?: string | null; body: string }
 export type Written = ReturnType<typeof out> & { updated?: true };
 
 export function addComment(db: DB, g: GraphIndex, env: string, i: NewComment): Written {
@@ -55,6 +56,7 @@ export function addComment(db: DB, g: GraphIndex, env: string, i: NewComment): W
   const t = flowTrace(g, env, service, ingress);
   const step = i.step ?? null;
   if (step !== null && (typeof step !== 'string' || !isStepKey(step) || !hasStep(t, step))) throw badRequest(`step '${step}' is not in the flow ${service} / ${ingress}`);
+  const range = checkRange(i.steps, step, i.parentId != null || x.parentExternalId !== null, t, `${service} / ${ingress}`); // 0.34.0
   if (i.parentId != null && x.parentExternalId !== null) throw badRequest('give parentId or parentExternalId, not both');
   const old = x.externalId !== null ? findExternal(db, env, x.externalSource!, x.externalId) : undefined;
   if (old && old.anchor !== i.anchor) throw takenBy(old.anchor);
@@ -70,8 +72,8 @@ export function addComment(db: DB, g: GraphIndex, env: string, i: NewComment): W
   if (x.resolved === true && (parent !== null || old?.parent_id != null)) throw badRequest('a reply cannot be resolved on its own: resolve its top comment');
   if (old) { const row = reimport(db, env, old, x, { author, authorId: who.id, body, step }); syncMentions(db, row.id, row.body, row.author_id); return { ...out(row), updated: true }; }
   const at = x.createdAt ?? new Date().toISOString();
-  const id = Number(db.prepare('INSERT INTO comments (env, anchor, step, parent_id, author, author_id, body, created_at, external_id, external_source, author_external_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-    .run(env, i.anchor, step, parent, author, who.id, body, at, x.externalId, x.externalSource, x.authorExternalId).lastInsertRowid);
+  const id = Number(db.prepare('INSERT INTO comments (env, anchor, step, parent_id, author, author_id, body, created_at, external_id, external_source, author_external_id, steps_from, steps_to) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    .run(env, i.anchor, step, parent, author, who.id, body, at, x.externalId, x.externalSource, x.authorExternalId, range?.from ?? null, range?.to ?? null).lastInsertRowid);
   syncMentions(db, id, body, who.id);
   commentCreated(db, { env, anchor: i.anchor, id, author, text: plainText(body) });
   if (parent === null) applyImported(db, env, id, x, author);
@@ -106,9 +108,9 @@ export function deleteComment(db: DB, env: string, id: number, author: unknown, 
 /** A Full copy keeps the discussion: authors, times, the importer's ids, the resolved state and the reply structure (new ids). Soft-deleted rows come too, empty, so replies keep their parent. */
 export function copyComments(db: DB, from: string, to: string): Map<number, number> {
   const ids = new Map<number, number>();
-  const ins = db.prepare('INSERT INTO comments (env, anchor, step, parent_id, author, author_id, body, created_at, edited_at, deleted_at, external_id, external_source, author_external_id, resolved_at, resolved_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+  const ins = db.prepare('INSERT INTO comments (env, anchor, step, parent_id, author, author_id, body, created_at, edited_at, deleted_at, external_id, external_source, author_external_id, resolved_at, resolved_by, steps_from, steps_to) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
   tx(db, () => { for (const r of db.prepare('SELECT * FROM comments WHERE env = ? ORDER BY id').all(from) as unknown as R[]) {
-    const nid = Number(ins.run(to, r.anchor, r.step, r.parent_id == null ? null : ids.get(r.parent_id) ?? null, r.author, r.author_id, r.body, r.created_at, r.edited_at, r.deleted_at, r.external_id, r.external_source, r.author_external_id, r.resolved_at, r.resolved_by).lastInsertRowid);
+    const nid = Number(ins.run(to, r.anchor, r.step, r.parent_id == null ? null : ids.get(r.parent_id) ?? null, r.author, r.author_id, r.body, r.created_at, r.edited_at, r.deleted_at, r.external_id, r.external_source, r.author_external_id, r.resolved_at, r.resolved_by, r.steps_from, r.steps_to).lastInsertRowid);
     ids.set(r.id, nid);
     if (!r.deleted_at) { syncMentions(db, nid, r.body, r.author_id); for (const u of (db.prepare('SELECT user_id FROM comment_mentions WHERE comment_id = ?').all(nid) as unknown as { user_id: string }[])) markSeen(db, u.user_id, [nid]); } // a copy's mentions are not news
   } });
@@ -119,7 +121,7 @@ export function copyComments(db: DB, from: string, to: string): Map<number, numb
 export const allRows = (db: DB, env: string): CommentRow[] => (db.prepare('SELECT * FROM comments WHERE env = ? ORDER BY id').all(env) as unknown as R[]).map(toRow);
 
 /** `ago` is minutes before the seed ran, so the demo always reads "2 days ago" and not a fixed date. */
-export interface SampleComment { service: string; ingress: string; step?: string; author: string; body: string; ago?: number; edited?: boolean; externalId?: string; externalSource?: string; authorExternalId?: string; resolved?: boolean; resolvedBy?: string; replies?: { author: string; body: string; ago?: number }[] }
+export interface SampleComment { service: string; ingress: string; step?: string; steps?: { from: string; to: string }; author: string; body: string; ago?: number; edited?: boolean; externalId?: string; externalSource?: string; authorExternalId?: string; resolved?: boolean; resolvedBy?: string; replies?: { author: string; body: string; ago?: number }[] }
 const when = (ago?: number) => (ago == null ? null : new Date(Date.now() - ago * 60000).toISOString());
 
 /** Seed data (samples/comments/*.json). Seeding twice adds nothing: a flow that already has a comment with the same author and body is skipped. */
@@ -130,7 +132,7 @@ export function loadComments(db: DB, g: GraphIndex, env: string, list: SampleCom
       const anchor = flowAnchor(c.service, c.ingress);
       const have = listThread(db, env, anchor).comments;
       if (have.some((x) => x.author === c.author && x.body === sanitize(resolveMentions(db, c.body)))) continue; // @{Name} in a sample is resolved to the user's token first
-      const row = addComment(db, g, env, { anchor, step: c.step ?? null, author: c.author, body: c.body, externalId: c.externalId, externalSource: c.externalSource, authorExternalId: c.authorExternalId });
+      const row = addComment(db, g, env, { anchor, step: c.step ?? null, steps: c.steps ?? null, author: c.author, body: c.body, externalId: c.externalId, externalSource: c.externalSource, authorExternalId: c.authorExternalId });
       db.prepare('UPDATE comments SET created_at = COALESCE(?, created_at), edited_at = ? WHERE id = ?').run(when(c.ago), c.edited ? when(Math.max(0, (c.ago ?? 0) - 30)) ?? row.createdAt : null, row.id);
       n++;
       if (c.resolved) { resolveComment(db, env, row.id, { actor: c.resolvedBy ?? c.author, resolved: true }); db.prepare('UPDATE comments SET resolved_at = ? WHERE id = ?').run(when(Math.max(0, (c.ago ?? 0) - 120)) ?? new Date().toISOString(), row.id); }

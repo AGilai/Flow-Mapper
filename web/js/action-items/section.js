@@ -15,15 +15,18 @@ const write = (v) => { try { localStorage.setItem(OPEN, v ? '1' : '0'); } catch 
 
 /**
  * createActionItems({ store, walk }) -> { el, dispose() }
+ * pane (0.34.0): the tab pane's hub ({ shown(), reveal(), set(data) }); the items are then a tab panel with an empty state (no summary, no fold).
  * walk: the tab's step walk ({ steps(), current(), picked(), go(n), watch(fn) }).
  */
-export function createActionItems({ store, walk }) {
+export function createActionItems({ store, walk, pane = null }) {
   const title = h('span.cm-t', 'Action items'), count = h('span.muted.sm', ''), add = h('button.abtn', { type: 'button', 'data-qa': 'ai-add', on: { click: (e) => { e.preventDefault(); if (!store.draft) store.startNew(); else focusEditor(); } } }, '+ Add');
   const table = h('div.ai-t'), fold = h('button.ai-fold', { type: 'button', 'data-qa': 'ai-fold', on: { click: () => { showClosed = !showClosed; draw(); } } });
-  const el = h('details.cm-sec.ai-sec', { open: read(), hidden: true, 'data-qa': 'action-items' }, h('summary', title, count, add), table, fold);
+  const empty = h('div.cm-empty', { 'data-qa': 'ai-empty', hidden: true }, 'No action items for this flow. Add one with + Add action item.');
+  const el = pane ? h('div.cm-sec.ai-sec.ai-pane', { 'data-qa': 'action-items' }, empty, table, fold) : h('details.cm-sec.ai-sec', { open: read(), hidden: true, 'data-qa': 'action-items' }, h('summary', title, count, add), table, fold);
   let showClosed = false, editing = null, hl = 0, editor = null, draftRef = null;
   const editors = new Map(); // item id -> its open editor: a redraw (a refresh, a focus) keeps what was typed
-  el.addEventListener('toggle', () => write(el.open));
+  if (!pane) el.addEventListener('toggle', () => write(el.open));
+  const reveal = () => { if (pane) pane.reveal(); else if (!el.open) el.open = true; };
 
   const stepNow = () => { const s = walk.picked() ? walk.steps()[walk.current() - 1] : null; return s ? { n: s.n, key: s.key } : null; };
   const stepOf = (key) => { const s = walk.steps().find((x) => x.key === key); return s ? { n: s.n } : null; };
@@ -34,8 +37,9 @@ export function createActionItems({ store, walk }) {
 
   function draw() {
     const items = store.items, d = store.draft;
-    el.hidden = !items.length && !d;
-    if (el.hidden) { editors.clear(); editor = null; draftRef = null; return; }
+    const none = !items.length && !d;
+    if (pane) { empty.hidden = !none; table.hidden = none; fold.hidden = none; pane.set({ open: items.filter((i) => isOpen(i.status)).length + (d ? 1 : 0), all: items.length + (d ? 1 : 0) }); } else el.hidden = none;
+    if (none) { editors.clear(); editor = null; draftRef = null; return; }
     const open = items.filter((i) => isOpen(i.status)).length + (d ? 1 : 0), all = items.length + (d ? 1 : 0);
     count.textContent = items.length || !d ? `(${open} open · ${all})` : '(1 open)';
     add.style.opacity = d ? '.5' : '';
@@ -47,7 +51,7 @@ export function createActionItems({ store, walk }) {
     });
     for (const id of [...editors.keys()]) if (id !== editing) editors.delete(id);
     if (d) {
-      if (draftRef !== d) { draftRef = d; editor = createEditor({ item: null, number: store.next, prefill: d, names: names(), stepNow, stepOf, onCancel: () => { editor = null; draftRef = null; store.cancelNew(); }, onSave: async (b) => { await store.add({ owner: b.owner, description: b.description, status: b.status, due: b.due, step: b.step, commentId: d.commentId ?? null, actor: b.name }); editor = null; draftRef = null; } }); setTimeout(() => editor?.focus(), 0); }
+      if (draftRef !== d) { draftRef = d; editor = createEditor({ item: null, number: store.next, prefill: d, names: names(), stepNow, stepOf, onCancel: () => { editor = null; draftRef = null; store.cancelNew(); }, onSave: async (b) => { await store.add({ owner: b.owner, description: b.description, status: b.status, due: b.due, step: b.step, commentId: d.commentId ?? null, actor: b.name }); editor = null; draftRef = null; } }); reveal(); setTimeout(() => editor?.focus(), 0); }
       rows.push(editor.el);
     } else { editor = null; draftRef = null; }
     table.replaceChildren(h('div.ai-r.h', h('span', '#'), h('span', 'Owner'), h('span', 'Description'), h('span', 'Due'), h('span', 'Status'), h('span')), ...rows);
@@ -58,7 +62,7 @@ export function createActionItems({ store, walk }) {
   }
 
   function goTo(number) { // "#4" in the thread: open the section, unfold, scroll to the row and outline it
-    if (!el.open) el.open = true;
+    reveal();
     const it = store.items.find((i) => i.number === number);
     if (it && !isOpen(it.status) && !showClosed) { showClosed = true; draw(); }
     const row = table.querySelector(`.ai-r[data-number="${number}"]`);
@@ -69,8 +73,9 @@ export function createActionItems({ store, walk }) {
   const off = store.on(() => { if (store.focusing != null) goTo(store.focusing); else draw(); });
   const unwatch = walk.watch(() => { // a step moved: the editors' step pill; the rows' pills when the walk's steps changed
     editors.forEach((e) => e.refreshStep?.()); editor?.refreshStep?.();
-    if (editing == null && !store.draft && !el.hidden && !table.querySelector('.cm-ask')) draw();
+    if (editing == null && !store.draft && (pane || !el.hidden) && !table.querySelector('.cm-ask')) draw();
   });
   draw();
-  return { el, dispose: () => { off(); unwatch(); clearTimeout(hl); } };
+  const addNew = () => { reveal(); if (!store.draft) store.startNew(); else focusEditor(); };
+  return { el, add: addNew, dispose: () => { off(); unwatch(); clearTimeout(hl); } };
 }

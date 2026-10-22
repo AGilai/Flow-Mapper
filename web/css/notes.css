@@ -1,0 +1,83 @@
+/* A flow's Notes (0.34.0). Mockup: design/mockups/frames/frame-20.html (20a-20c). Tokens only; light and dark come from them. */
+
+.nt { padding: var(--s4); min-height: 120px; }
+.nt-meta { display: flex; align-items: baseline; gap: var(--s3); flex-wrap: wrap; font-size: var(--fs-xs); color: var(--muted); margin-bottom: var(--s3); max-width: 84ch; }
+.nt-meta b { color: var(--ink-2); font-weight: 600; }
+.nt-meta .abtn { margin-left: auto; }
+.nt-wrap { display: flex; gap: var(--s6); align-items: flex-start; }
+.nt-doc { flex: 1 1 auto; min-width: 0; max-width: 84ch; font-size: 14.5px; line-height: 1.6; }
+.nt-doc h2, .rte-area h2 { font: 700 18px/1.3 var(--font); margin: 18px 0 6px; color: var(--ink); }
+.nt-doc h3, .rte-area h3 { font: 600 14.5px/1.35 var(--font); margin: 14px 0 4px; color: var(--ink); }
+.nt-doc > :first-child, .rte-area > :first-child { margin-top: 0; }
+.nt-doc h2, .nt-doc h3 { scroll-margin-top: 8px; }
+.nt-doc li { margin: 2px 0; }
+
+/* a step chip: a link-coloured pill that jumps to the step; one that is gone is plain dashed text */
+.nt-sc, .rte-area span[data-step] { display: inline-flex; align-items: center; height: 18px; padding: 0 7px; margin: 0 1px; border-radius: 9px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--accent); font: 600 12px/1 var(--font); white-space: nowrap; vertical-align: 1px; }
+.nt-sc { cursor: pointer; }
+.nt-sc:hover { background: var(--accent-soft); }
+.nt-sc:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.nt-sc.gone { color: var(--muted); border-style: dashed; font-weight: 500; cursor: default; background: transparent; }
+.rte-area span[data-step] { cursor: default; user-select: all; }
+
+/* the outline: only on wide windows (1280 px; 1360 while the rail is open), sticky inside the scrolling pane */
+.nt-ol { display: none; flex: 0 0 190px; position: sticky; top: var(--s2); align-self: flex-start; font-size: var(--fs-sm); border-left: 1px solid var(--line); padding-left: var(--s3); }
+.nt-ol h5 { margin: 0 0 6px; font-size: 10.5px; letter-spacing: .03em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.nt-ol-i { display: block; width: 100%; text-align: left; background: none; border: 0; border-radius: 4px; padding: 3px 6px; margin-left: -6px; font: inherit; color: var(--ink-2); cursor: pointer; overflow-wrap: anywhere; }
+.nt-ol-i.s { padding-left: 16px; font-size: var(--fs-xs); }
+.nt-ol-i:hover { background: var(--surface-2); color: var(--ink); }
+.nt-ol-i.on { color: var(--accent); font-weight: 600; }
+.nt-ol-i:focus-visible { outline: 2px solid var(--focus); outline-offset: 0; }
+@media (min-width: 1360px) { .nt-ol { display: block; } }
+@media (min-width: 1280px) { .app.rail-c .nt-ol, body.is-max .nt-ol { display: block; } }
+
+.nt-empty { text-align: center; padding: var(--s6) var(--s3); color: var(--ink-2); font-size: var(--fs-sm); border: 1px dashed var(--line-strong); border-radius: var(--r-sm); max-width: 84ch; }
+.nt-eb { display: inline-flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; justify-content: center; }
+.nt-tp { margin-top: 8px; }
+
+/* edit mode */
+.nt-edit { max-width: 100ch; }
+.nt-ehint { margin-bottom: 8px; }
+.nt-ehint .lnk { background: none; border: 0; padding: 0; font: inherit; color: var(--accent); cursor: pointer; text-decoration: underline; }
+.nt-wrap.rte-wrap { display: block; }
+.nt-edit .rte-area { min-height: 220px; font-size: 14.5px; }
+.nt-edit .rte-area p[data-ph]:has(> br:only-child)::before { content: attr(data-ph); color: var(--muted); pointer-events: none; }
+.nt-draft { margin-left: auto; font-size: var(--fs-xs); color: var(--muted); align-self: center; padding-right: 6px; }
+.nt-bar { display: flex; gap: var(--s3); align-items: center; flex-wrap: wrap; margin-top: var(--s3); padding: 8px 12px; border: 1px solid var(--line-strong); border-left: 3px solid var(--accent); border-radius: var(--r-sm); background: var(--surface-2); font-size: var(--fs-sm); }
+.nt-bar[hidden] { display: none; }
+.nt-hm { width: 150px; }
+.nt-mk { display: inline-block; width: 14px; color: var(--accent); font-weight: 700; }
+.nt-sm { width: 250px; }
+.nt-sr { display: flex; gap: 6px; align-items: center; }
+.nt-sr .input { width: 100px; }
+.fp-btns { display: inline-flex; gap: 8px; }
+
+/* history */
+.nt-back { appearance: none; background: none; border: 0; padding: 0; margin-bottom: var(--s3); font: 500 var(--fs-sm) var(--font); color: var(--accent); cursor: pointer; }
+.nt-back:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.nt-hcols { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: var(--s5); align-items: start; }
+.nt-hl { display: grid; gap: 2px; border: 1px solid var(--line); border-radius: var(--r-sm); padding: 4px; }
+.nt-hv { appearance: none; text-align: left; background: none; border: 0; border-radius: 5px; padding: 6px 8px; display: grid; gap: 1px; cursor: pointer; font: inherit; font-size: var(--fs-sm); color: var(--ink); }
+.nt-hv:hover, .nt-hv.on { background: var(--accent-soft); }
+.nt-hv:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.nt-cur { justify-self: start; font-size: 10.5px; color: var(--accent); border: 1px solid var(--accent); border-radius: 8px; padding: 0 5px; }
+.nt-older { padding: 6px 8px; }
+.nt-th { display: flex; gap: 10px 12px; align-items: center; flex-wrap: wrap; margin-bottom: 6px; }
+.nt-th h3 { font: 700 var(--fs-lg)/1.3 var(--font); flex: 1 1 220px; min-width: 0; margin: 0; }
+.nt-tg { display: inline-flex; gap: 4px; }
+.nt-tg .abtn[aria-pressed='true'] { background: var(--accent-soft); }
+.nt-diff { margin-top: var(--s3); max-width: 84ch; display: grid; gap: 4px; }
+.nt-blk { padding: 2px 10px; border-radius: 4px; border-left: 3px solid transparent; }
+.nt-blk.same { color: var(--ink-2); }
+.nt-blk.del { background: color-mix(in srgb, var(--t-broken) 12%, var(--surface)); border-left-color: var(--t-broken); text-decoration: line-through; color: var(--ink-2); }
+.nt-blk.add { background: color-mix(in srgb, var(--ok) 12%, var(--surface)); border-left-color: var(--ok); }
+.nt-blk h2, .nt-blk h3 { margin: 4px 0; }
+
+body.is-max .nt-doc h2, body.is-max .nt-doc h3 { scroll-margin-top: calc(var(--max-stick, 96px) + 56px); }
+body.is-max .nt-ol { top: calc(var(--max-stick, 96px) + 56px); }
+@media (max-width: 760px) {
+  .nt { padding: var(--s3); }
+  .nt-hcols { grid-template-columns: minmax(0, 1fr); }
+  .nt-ol { display: none !important; }
+}
+.nt-edit .rte-tb { position: sticky; top: 0; z-index: 2; } /* the toolbar stays in reach in a long document */

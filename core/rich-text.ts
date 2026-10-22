@@ -8,6 +8,7 @@ import type { Token } from './rich-text-tokens.ts';
 export { plainText } from './rich-text-text.ts';
 
 export const MAX_BODY = 20000; // characters, after sanitizing
+export const MAX_NOTES = 100000; // the same for a flow's Notes (0.34.0)
 export const MAX_DEPTH = 20, MAX_ROWS = 50, MAX_COLS = 20, MAX_SPAN = 20;
 const MAX_INPUT = 400000; // what is read at all; the rest is ignored
 const MAX_STACK = 60;
@@ -16,7 +17,11 @@ export const PALETTE = ['cc-coral', 'cc-ochre', 'cc-sage', 'cc-cyan', 'cc-sky', 
 const ALLOWED = new Set(['p', 'br', 'b', 'strong', 'i', 'em', 's', 'del', 'strike', 'u', 'ul', 'ol', 'li', 'a', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'span', 'code', 'pre', 'blockquote']);
 /** Containers that paste brings (Word, Confluence, web pages) become paragraphs, so their line breaks survive. */
 const AS_P = new Set(['div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']);
-const BLOCK = new Set(['p', 'ul', 'ol', 'table', 'blockquote', 'pre']);
+const BLOCK = new Set(['p', 'ul', 'ol', 'table', 'blockquote', 'pre', 'h2', 'h3']);
+const HEADING = new Set(['h2', 'h3']);
+const isHead = (n: string) => /^h[1-6]$/.test(n);
+/** A step chip's `data-step`: "4" or "4-9" (a range runs forward), as written back; null when it is neither. */
+const stepAttr = (v: string | undefined) => { const m = /^\s*(\d{1,4})(?:\s*[-\u2013]\s*(\d{1,4}))?\s*$/.exec(v ?? ''); if (!m) return null; const a = Number(m[1]), b = m[2] ? Number(m[2]) : a; return a > 0 && b >= a ? (b > a ? `${a}-${b}` : `${a}`) : null; };
 const INLINE = new Set(['b', 'strong', 'i', 'em', 's', 'del', 'strike', 'u', 'span', 'a', 'code']);
 const FOSTER = new Set(['table', 'thead', 'tbody', 'tr', 'ul', 'ol']); // elements whose only children are their own parts: text and other tags in them are dropped
 const CHILD: Record<string, string[]> = { table: ['thead', 'tbody', 'tr'], thead: ['tr'], tbody: ['tr'], tr: ['td', 'th'], ul: ['li'], ol: ['li'] };
@@ -37,10 +42,15 @@ export function safeHref(raw: string | undefined): string | null {
 
 const span = (v: string | undefined) => { const n = Math.floor(Number(v)); return n >= 2 && n <= MAX_SPAN ? n : 0; }; // 1 is the default and is not written
 
+export interface SanitizeOptions { notes?: boolean }
 interface Open { name: string; emit: boolean; skip: boolean; at: number } // at: where in the output its start tag ended
 
-/** sanitize(html): the allowed subset only. Text is escaped, other markup is dropped; the result is not longer than MAX_BODY's check says (see `tooLong`). */
-export function sanitize(html: string): string {
+/**
+ * sanitize(html): the allowed subset only. Text is escaped, other markup is dropped; the result is not longer than MAX_BODY's check says (see `tooLong`).
+ * `{ notes: true }` (a flow's Notes, 0.34.0) also keeps headings (h1, h2 -> h2; h3 to h6 -> h3) and the step chip `<span data-step="4">` (digits only, or "4-9"); in a comment they stay paragraphs and a bare span stays nothing.
+ */
+export function sanitize(html: string, opts: SanitizeOptions = {}): string {
+  const notes = !!opts.notes;
   if (typeof html !== 'string' || !html) return '';
   const toks: Token[] = tokenize(html.length > MAX_INPUT ? html.slice(0, MAX_INPUT) : html);
   let out = '';
@@ -48,7 +58,7 @@ export function sanitize(html: string): string {
   let skipping = 0, emitted = 0, rows = 0, cols = 0;
 
   const top = () => st[st.length - 1]?.name;
-  const pop = () => { const o = st.pop()!; if (o.emit) { if (o.name === 'p' && out.length === o.at) out = out.slice(0, out.lastIndexOf('<p>')); else out += `</${o.name}>`; emitted--; } if (o.skip) skipping--; if (o.name === 'tr') cols = 0; };
+  const pop = () => { const o = st.pop()!; if (o.emit) { if ((o.name === 'p' || HEADING.has(o.name)) && out.length === o.at) out = out.slice(0, out.lastIndexOf(`<${o.name}>`)); else out += `</${o.name}>`; emitted--; } if (o.skip) skipping--; if (o.name === 'tr') cols = 0; };
   /** Pop through the nearest open `names` element, unless a `barrier` element comes first. */
   const popThrough = (names: string[], barrier: string[]) => {
     for (let k = st.length - 1; k >= 0; k--) {
@@ -59,8 +69,8 @@ export function sanitize(html: string): string {
   const push = (name: string, emit: boolean, skip = false) => { st.push({ name, emit, skip, at: out.length }); if (emit) emitted++; if (skip) skipping++; };
 
   function start(name: string, attrs: Record<string, string>) {
-    if (AS_P.has(name)) name = 'p';
-    if (!ALLOWED.has(name)) return;
+    if (notes && isHead(name)) name = name <= 'h2' ? 'h2' : 'h3'; else if (AS_P.has(name)) name = 'p';
+    if (!ALLOWED.has(name) && !(notes && HEADING.has(name))) return;
     if (name === 'br') { if (!skipping && !FOSTER.has(top() ?? '')) out += '<br>'; return; }
     if (st.length >= MAX_STACK) return;
     // Implied ends and parents, as a browser would read them: li closes li, td closes td, a block closes an open p.
@@ -68,7 +78,7 @@ export function sanitize(html: string): string {
     else if (name === 'td' || name === 'th') popThrough(['td', 'th'], ['tr', 'table']);
     else if (name === 'tr') popThrough(['tr'], ['table']);
     else if (name === 'thead' || name === 'tbody') popThrough(['thead', 'tbody'], ['table']);
-    else if (BLOCK.has(name)) popThrough(['p'], ['li', 'td', 'th', 'blockquote', 'table', 'ul', 'ol']);
+    else if (BLOCK.has(name) && !(name === 'p' && HEADING.has(top() ?? ''))) popThrough(['p', 'h2', 'h3'], ['li', 'td', 'th', 'blockquote', 'table', 'ul', 'ol']);
     const parent = top();
     if (parent && FOSTER.has(parent) && !CHILD[parent].includes(name)) return;
     if ((name === 'td' || name === 'th') && parent !== 'tr') return;
@@ -79,14 +89,15 @@ export function sanitize(html: string): string {
     if (name === 'tr') cols = 0;
     if ((name === 'td' || name === 'th') && ++cols > MAX_COLS) skip = true;
     let emit = !skipping && !skip && emitted < MAX_DEPTH;
+    if (name === 'p' && HEADING.has(parent ?? '')) emit = false; // a paragraph inside a heading is just its text
     if (name === 'a') {
       const href = safeHref(attrs.href);
       emit = emit && !!href && !st.some((o) => o.name === 'a' && o.emit); // links do not nest
       if (emit) extra = ` href="${escAttr(href!)}" rel="noopener noreferrer" target="_blank"`;
     } else if (name === 'span') {
-      const c = (attrs.class ?? '').split(/\s+/).find((x) => PALETTE.includes(x));
-      emit = emit && !!c; // a span with no palette colour is nothing: its contents stay
-      if (emit) extra = ` class="${c}"`;
+      const c = (attrs.class ?? '').split(/\s+/).find((x) => PALETTE.includes(x)), ds = notes ? stepAttr(attrs['data-step']) : null;
+      emit = emit && (!!c || !!ds); // a span with no palette colour (and no step) is nothing: its contents stay
+      if (emit) extra = ds ? ` data-step="${ds}"` : ` class="${c}"`;
     } else if (name === 'td' || name === 'th') {
       const cs = span(attrs.colspan), rs = span(attrs.rowspan);
       extra = (cs ? ` colspan="${cs}"` : '') + (rs ? ` rowspan="${rs}"` : '');
@@ -96,11 +107,11 @@ export function sanitize(html: string): string {
   }
 
   function end(name: string) {
-    if (AS_P.has(name)) name = 'p';
-    if (!ALLOWED.has(name) || name === 'br') return;
+    if (notes && isHead(name)) name = name <= 'h2' ? 'h2' : 'h3'; else if (AS_P.has(name)) name = 'p';
+    if ((!ALLOWED.has(name) && !(notes && HEADING.has(name))) || name === 'br') return;
     // an end tag closes the nearest open element of its name, and what is open inside it; with no such element it is ignored.
     // It never reaches out of the cell, item or table it is in (a stray </b> in a cell does not close a <b> outside the table).
-    const stops = name === 'li' ? ['ul', 'ol'] : name === 'td' || name === 'th' ? ['tr', 'table'] : name === 'tr' ? ['table'] : INLINE.has(name) ? ['td', 'th', 'li', 'blockquote', 'table', 'tr'] : [];
+    const stops = name === 'li' ? ['ul', 'ol'] : name === 'td' || name === 'th' ? ['tr', 'table'] : name === 'tr' ? ['table'] : INLINE.has(name) || HEADING.has(name) ? ['td', 'th', 'li', 'blockquote', 'table', 'tr'] : [];
     for (let k = st.length - 1; k >= 0; k--) {
       if (st[k].name === name) { while (st.length > k) pop(); return; }
       if (stops.includes(st[k].name)) return;
@@ -121,3 +132,5 @@ export function sanitize(html: string): string {
 
 /** The reason a sanitized body cannot be stored, or null. */
 export const tooLong = (body: string) => (body.length > MAX_BODY ? `the comment is longer than ${MAX_BODY} characters` : null);
+/** The same for a flow's Notes. */
+export const notesTooLong = (body: string) => (body.length > MAX_NOTES ? `the notes are longer than ${MAX_NOTES} characters` : null);
