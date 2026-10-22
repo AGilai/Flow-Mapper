@@ -5,12 +5,14 @@
 //   chosen:    Map group_id -> arm | 'both', ONLY the choices that differ from the default (the first arm). A lock is data, never a choice, never in the URL.
 
 /** Prefix of a group id used in the URL: the first 8 characters, longer when two ids of this flow would clash. */
+const flat = (id) => id.replace(/[:,%]/g, '_'); // 0.38.2: an alt group id is `<fn>:<altGroup>`: the URL prefix never holds the separators
 export function shortIds(decisions) {
   const out = new Map();
   for (const d of decisions) {
     let n = 8;
-    while (n < d.group_id.length && decisions.some((o) => o !== d && o.group_id.slice(0, n) === d.group_id.slice(0, n))) n++;
-    out.set(d.group_id, d.group_id.slice(0, n));
+    const id = flat(d.group_id);
+    while (n < id.length && decisions.some((o) => o !== d && flat(o.group_id).slice(0, n) === id.slice(0, n))) n++;
+    out.set(d.group_id, id.slice(0, n));
   }
   return out;
 }
@@ -54,6 +56,13 @@ export function setChoice(decisions, chosen, group, arm) {
   return prune(decisions, next);
 }
 
+/** Edit mode of a design draft: every decision not seen yet (`seeded`) starts on All unless it is locked or already chosen, so editing never hides a branch.
+ *  Off edit mode the seeded ones that still say All go back to the default. Mutates `chosen` and `seeded`. */
+export function seedAll(decisions, chosen, seeded, on) {
+  if (on) { for (const d of decisions) if (!d.lock && !seeded.has(d.group_id)) { seeded.add(d.group_id); if (!chosen.has(d.group_id)) chosen.set(d.group_id, 'both'); } }
+  else if (seeded.size) { for (const g of seeded) if (chosen.get(g) === 'both') chosen.delete(g); seeded.clear(); }
+}
+
 /** How many decisions differ from the defaults. */
 export const changedCount = (decisions, chosen) => prune(decisions, chosen).size;
 
@@ -79,7 +88,7 @@ export function applyChoose(decisions, decoded) {
   const raw = new Map();
   let dropped = 0;
   for (const { id8, arm } of decoded) {
-    const d = decisions.find((x) => x.group_id.startsWith(id8)), ok = d && (arm === 'both' || d.arms.some((a) => a.arm === arm));
+    const d = decisions.find((x) => flat(x.group_id).startsWith(id8)), ok = d && (arm === 'both' || d.arms.some((a) => a.arm === arm));
     if (ok) raw.set(d.group_id, arm); else dropped++;
   }
   return { chosen: prune(decisions, raw), dropped };
@@ -114,7 +123,7 @@ export function stepsText(counts, per = false) {
 export function hiddenByArm(decisions, chosen, canon, key) {
   const m = canon.find((x) => x.key === key);
   if (!m) return null;
-  const path = (m.arms ?? []).map((e) => { const i = e.indexOf(':'); return [e.slice(0, i), e.slice(i + 1)]; });
+  const path = (m.arms ?? []).map((e) => { const i = /:(?:b\d+|both)$/.test(e) ? e.lastIndexOf(':') : e.indexOf(':'); return [e.slice(0, i), e.slice(i + 1)]; });
   const by = new Map(decisions.map((d) => [d.group_id, d]));
   const off = path.filter(([g, a]) => { const d = by.get(g); const cur = d && armIn(d, chosen); return d && cur !== 'both' && cur !== a; });
   return off.length ? { path, locked: off.some(([g]) => by.get(g).lock) } : null;

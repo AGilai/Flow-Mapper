@@ -29,7 +29,8 @@ export function groupDbOps<T extends { m: Message; i: number }>(items: T[], dbOp
     const ms = run.map((x) => x.m), collections = [...new Set(ms.map(collectionOf))];
     const { fields: _f, operation: _o, unknown: _u, assumed: _a, returns: _r, ...rest } = first.m;
     const dbGroup: DbGroup = { count: ms.length, collections, access: access(ms), members: ms.map((m) => m.key ?? '') };
-    out.push({ ...first, m: { ...rest, label: `DB: ${ms.length} ops (${collections.join(', ')})`, access: dbGroup.access, dbGroup } });
+    const fails = ms.flatMap((m) => m.canFail ?? []), guards = [...new Set(ms.flatMap((m) => (m.onlyWhen ? [m.onlyWhen.guard] : [])))], gm = ms.find((m) => m.onlyWhen)?.onlyWhen; // 0.38.1: the members' markers, together
+    out.push({ ...first, m: { ...rest, ...(fails.length ? { canFail: fails } : {}), ...(gm ? { onlyWhen: { ...gm, guard: guards.join('; ') } } : {}), label: `DB: ${ms.length} ops (${collections.join(', ')})`, access: dbGroup.access, dbGroup } });
     k = end - 1;
   }
   return out;

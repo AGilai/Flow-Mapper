@@ -1,5 +1,6 @@
 // The shapes of a trace (moved out of trace.ts in 0.37.0, #82; trace.ts re-exports them).
 
+import type { CanFail, OnlyWhen } from './step-marks.ts';
 import type { Alt } from './alt.ts';
 import type { SourceLink } from './endpoint-info.ts';
 import type { LinkedHop } from './via.ts';
@@ -49,6 +50,8 @@ export interface Message {
   rpc?: RpcInfo;                                             // an RPC over AMQP (0.18.0; bind key `amqp-rpc:{command}`, transport amqp, mode sync): the command and the AMQP details both sides declared
   arms?: string[];                                           // 0.37.0 (#82): the either/or arms this message sits in, outermost first, each `<group_id>:<arm>` (split at the first ':'). Absent when none
   key?: string;                                              // 0.37.0: the stable step key (core/description.ts stepKeys) over the canonical trace; stamped when the trace has decisions and on every view that drops messages
+  canFail?: CanFail[];                                       // 0.38.1 (#82): the step succeeds but can fail (`details.can_fail`): when, error, source. On a DB-group row: the members' entries together
+  onlyWhen?: OnlyWhen;                                       // 0.38.1: the step is in the only arm that leads to a flow (`details.only_when`): the guard. On a DB-group row: the members' guards
   dbGroup?: DbGroup;                                         // 0.37.1: a run of consecutive DB operations of one store folded into this one row (viewOf); `label` reads `DB: 3 ops (users, devices)`
   filter?: HopFilter;                                        // on a hop that goes through a subscription, rule or binding (topic -> queue, bus -> target, exchange -> queue): what it declares
 }
@@ -58,7 +61,7 @@ export interface HopFilter { id: string; service: string; from: string; events?:
 export interface DbGroup { count: number; collections: string[]; access: 'read' | 'write' | 'read_write' | 'unknown'; members: string[] }
 /** 0.37.0: one either/or decision of a flow. `name` is `llm_name` when there is one, else the template name (`template_name`). `parent`: the arm of another decision it sits in. `lock`: every place that reaches it fixes the same arm (`at` = the first fixing step, `<service>:<fn>#<seq>`); `lock_places` when only some places fix it. */
 export interface Decision {
-  group_id: string; name?: string; template_name?: string; llm_name?: string | null; depends_on?: 'data' | 'message'; guard?: { text?: string; file?: string; line?: number };
+  group_id: string; /** 0.38.2: 'alt' on a decision made from an alt frame (altGroup, file:line or design frame); its arms are `b1..bN`. */ from?: 'alt'; name?: string; template_name?: string; llm_name?: string | null; depends_on?: 'data' | 'message'; guard?: { text?: string; file?: string; line?: number };
   parent?: { group_id: string; arm: string }; lock?: { arm: string; at: string; source?: { file?: string; line?: number }; literal?: unknown }; lock_places?: { fixed: number; of: number };
   arms: { arm: string; label?: string; guard_text?: string; steps: { min: number; max: number } }[];
   /** On a view: what is in force, an arm name or 'both'. */

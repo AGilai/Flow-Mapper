@@ -92,3 +92,10 @@ h3 .mark, .sect-title .mark { margin-left: var(--s2); }
 /* a design page with the review panel open scrolls rather than crushing the map */
 .is-design .main { overflow-y: auto; }
 .is-design .content.flush { min-height: 340px; }
+/* 0.38.1 (#82): the step markers. "can fail" is a warn-edged tag by the label; "only when" a neutral chip under the arrow with a thin gutter line across its run. */
+.chip-b.cf rect { fill: color-mix(in srgb, var(--warn) 12%, var(--surface)); stroke: var(--warn); }
+.chip-b.cf text { fill: var(--ink); }
+.chip-b.ow rect { fill: var(--surface); stroke: var(--line-strong); stroke-dasharray: 3 2; }
+.chip-b.ow text { font-style: italic; }
+.owline { stroke: var(--ink-2); stroke-width: 1.5; stroke-linecap: round; opacity: .7; }
+.owline:hover { opacity: 1; stroke-width: 2.5; }

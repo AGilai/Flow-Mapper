@@ -21,7 +21,7 @@ export function armSelect(d, onChoose, { id = null } = {}) {
   if (d.lock) return h('span.dec-sel.lock', { tabindex: 0, role: 'note', title: `${lockReason(d)} ${srcText(d.lock.source)}`.trim(), 'aria-label': `Fixed to ${armLabel(d, d.lock.arm)}. ${lockReason(d)}` }, icon('lock'), h('span.v', armLabel(d, d.lock.arm)));
   const differs = (d.chosen ?? d.arms[0]?.arm) !== d.arms[0]?.arm;
   const sel = h('select.dec-sel', { id, 'data-g': d.group_id, 'aria-label': `${d.name}: which arm`, class: differs ? 'set' : '', title: d.name, on: { change: (ev) => onChoose(d.group_id, ev.target.value) } },
-    d.arms.map((a) => h('option', { value: a.arm, selected: d.chosen === a.arm }, a.label ?? a.arm)), h('option', { value: 'both', selected: d.chosen === 'both' }, 'Both (either / or)'));
+    d.arms.map((a) => h('option', { value: a.arm, selected: d.chosen === a.arm }, a.label ?? a.arm)), h('option', { value: 'both', selected: d.chosen === 'both' }, d.arms.length > 2 ? 'All (either / or)' : 'Both (either / or)')); // 0.38.2: a 4-way branch reads All
   return sel;
 }
 

@@ -19,6 +19,7 @@ import { storeLegend } from './flow-draw-bands.js';
 import { detailTexts } from './flow-draw-details.js';
 import { sizeSvg } from './flow-zoom.js';
 import { armSpans } from './flow-decision-rows.js';
+import { gutterLines } from './flow-markers-draw.js';
 import { armMarks } from './flow-decision-draw.js';
 
 /**
@@ -43,6 +44,7 @@ export function renderLane(lane, { marks = null, refs = null, edit = null, onMes
     foldBands(c.groups, height), // the fold columns' fills come first: the current-step band (flow-step-tiles.js) goes right after them, under the frames
     drawFrames(frames, lane.altRows, strips, (r) => top[r], (r) => top[r + 1], width, GUTTER),
     events.some((e) => e.type === 'decision') ? armMarks(armSpans(events), top) : null,
+    gutterLines(c.runs.lines, top),
     drawLifelines(c), rects, segs, drawn, details ? detailTexts(c, details, onEditStep) : null, edit ? addCallChips(c, edit) : null);
   sizeSvg(head, width, c.HEAD, zoom); sizeSvg(body, width, height, zoom); // the vector box of each SVG: zoom only changes its size (flow-zoom.js)
   const mark = wireEvents(head, body, c, { onMessage, onBar, onBarMenu, onParticipant, onNum, onNumHover, onFan, onMw, onBarTip, onSqueeze, onBand, onInternal, onDb });

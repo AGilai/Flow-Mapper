@@ -21,6 +21,7 @@ import { filterMarker, hopLabel, chType, exchangeOf } from './flow-chain.js';
 import { eventLink, serviceLink, storeLink, envQuery } from './inventory-links.js';
 import { splitStore, opLabel } from './flow-stores-pure.js';
 import { isRpc, rpcCommand } from './flow-amqp.js';
+import { markersCard } from './flow-markers-draw.js';
 import { rpcCard, rpcMissing, routingRows } from './flow-panel-amqp.js';
 
 const KIND = { entry: 'Entry', call: 'Function call', egress: 'Call', deliver: 'Delivery from queue', resource: 'Data store access', leaf: 'Leaf step (classified by the harvester)', frontier: 'Frontier steps (folded)' };
@@ -41,6 +42,7 @@ export function messagePanel(m, trace, env, scope = 'full', openEntry = null, ma
     flow ? h('div.ep-pad', openEntry ? h('button.btn', { type: 'button', on: { click: () => openEntry({ service: flow.service, ingress: flow.ingress, scope }) } }, 'Open the async flow in a tab') : h('a.btn', { href: href('/flows', { service: flow.service, ingress: flow.ingress, scope }) }, 'Open the async flow'), h('span.xs.muted', ` ${flow.service} · ${flow.ingress}`)) : null,
     m.gap ? gapCard(m.gap) : null,
     codeCard(m, trace, env),
+    markersCard(m),
     rpcCard(m),
     m.gap ? null : dto,
     m.broken && m.rpc ? rpcMissing(m) : m.unhandled ? section('Why it is broken', null, h('p.small', `${m.event} reaches this consumer, but none of its event handlers matches it. It will fail or go to the dead-letter queue.`))

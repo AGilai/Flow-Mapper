@@ -3,6 +3,7 @@
 
 import type { GraphIndex } from './graph-index.ts';
 import { altIndex } from './alternatives.ts';
+import { altGroups, type Alt } from './alt.ts';
 import { entryPointsReaching } from './reach.ts';
 import { trace } from './trace.ts';
 import { viewOf } from './trace-view.ts';
@@ -10,6 +11,7 @@ import { viewOf } from './trace-view.ts';
 /** `steps`: what the list counts (External, first arm of each decision); `both`: the range per path with Both chosen everywhere; `full`: every internal call too (first arms). */
 export interface FlowDecisions { decisions: number; steps: number; both: { min: number; max: number }; full: number }
 
+const chainOf = (a: Alt): Alt[] => (a.parent ? [...chainOf(a.parent), a] : [a]);
 const memo = new WeakMap<GraphIndex, Map<string, FlowDecisions>>();
 
 /** `${service}:${ingress}` -> its decisions; entry points that reach none are absent. */
@@ -19,12 +21,13 @@ export function flowDecisions(g: GraphIndex): Map<string, FlowDecisions> {
   const out = new Map<string, FlowDecisions>();
   memo.set(g, out);
   const ix = altIndex(g);
-  if (!ix) return out;
   const fns = new Map<string, { service: string; fn: string }>();
-  for (const grp of ix.groups.values()) for (const id of grp.hosts) {
+  for (const grp of ix?.groups.values() ?? []) for (const id of grp.hosts) {
     const c = id.indexOf(':'), h = id.lastIndexOf('#');
     if (c > 0 && h > c) fns.set(id.slice(0, h), { service: id.slice(0, c), fn: id.slice(c + 1, h) });
   }
+  for (const f of g.fns.values()) if (f.steps.some((s) => s.altGroup || s.condition || s.groups?.length) && [...altGroups(f.steps, f.id).values()].some((a) => chainOf(a).some((x) => !x.kind || x.kind === 'alt'))) fns.set(`${f.service}:${f.id}`, { service: f.service, fn: f.id }); // 0.38.2: functions with an alt frame
+  if (!fns.size) return out;
   for (const e of entryPointsReaching(g, [...fns.values()], 5000)) {
     const t = trace(g, { service: e.service, ingress: e.ingress }, { scope: 'full', maxMessages: 800 });
     if (!t?.decisions?.length) continue;

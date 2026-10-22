@@ -16,6 +16,7 @@ import { decisionCounts, rangeOf, type Chosen } from './trace-counts.ts';
 import { groupDbOps } from './trace-db-group.ts';
 import { renumber } from './trace-renumber.ts';
 import { splitArm } from './alternatives.ts';
+import { dropFrames } from './alt-decisions.ts';
 
 export interface ViewOptions { choose?: ReadonlyMap<string, string> | Record<string, string>; detail?: 'external' | 'full'; open?: string[]; dbOpen?: string[]; group?: boolean }
 type Item = { m: Message; i: number };
@@ -63,7 +64,8 @@ export function viewOf(t: Trace, opts: ViewOptions = {}): Trace {
   const shown = decisions.filter(offered);
   const kept = grouped.filter(({ m }) => (m.arms ?? []).every((e) => { const [g, a] = splitArm(e), c = eff.get(g); return !c || c === 'both' || c === a; }));
 
-  const messages = renumber(kept, t.messages);
+  const altOff = new Set(decisions.filter((d) => d.from === 'alt' && eff.get(d.group_id) !== 'both').map((d) => d.group_id)); // 0.38.2: a branch on one arm draws no alt frame
+  const messages = renumber(kept, t.messages).map((m) => (m.alt && altOff.size ? (({ alt: _a, ...r }) => { const a = dropFrames(m.alt, altOff); return a ? { ...r, alt: a } : r; })(m) : m));
   const used = new Set(messages.flatMap((m) => [m.from, m.to]));
   const chosen: Chosen = new Map(shown.map((d) => [d.group_id, eff.get(d.group_id)!]));
   const locks: Chosen = new Map(decisions.flatMap((d) => (d.lock ? [[d.group_id, d.lock.arm] as const] : [])));

@@ -11,8 +11,10 @@
 import { lineText, titleOf, stepKeys, type FlowDescriptions } from './description.ts';
 import type { Links } from './links.ts';
 import type { Alt } from './alt.ts';
+import { splitArm } from './alternatives.ts';
 import type { Message, Participant, Trace } from './trace.ts';
 import type { Decision } from './trace-types.ts';
+import { canFailLine, onlyWhenLine } from './step-markers.ts';
 import { rangeBlocks, type RangeNote } from './mermaid-ranges.ts';
 
 export interface MermaidOpts { name?: string; description?: string; descriptions?: FlowDescriptions | null; links?: Links | null; ranges?: RangeNote[] /* 0.34.0: step-range comments, as rect + Note (core/mermaid-ranges.ts) */ }
@@ -23,17 +25,22 @@ interface Frame { key: string; open: string; kind: string; cond: string; depth: 
 function framesOf(m: Message, both: Map<string, Decision> = new Map()): Frame[] {   // a frame covers its own messages and the calls below them (the view draws it so)
   const chain: Alt[] = [];
   for (let a: Alt | undefined = m.alt; a; a = a.parent) chain.unshift(a);
+  const frame = (d: Decision, arm: string): Frame => ({ key: `arms:${d.group_id}`, kind: 'alt', cond: d.arms.find((x) => x.arm === arm)?.label ?? arm, open: `alt ${esc(d.name || d.group_id)}`, depth: Infinity });   // Infinity: a decision frame covers its arm's whole subtree, never skipped as "opened by a step above"
+  const inAlt = new Map<string, Frame>();   // 0.38.1: a decision made from an alt frame sits where that frame sits in the chain (a loop around it stays outside)
   const arms: Frame[] = (m.arms ?? []).flatMap((e) => {   // 0.38.0: a decision shown with "Both" is an `alt <decision>` / `else <arm>` frame around its arms (the chosen ones are not frames: the view has only that arm)
-    const i = e.indexOf(':'), d = both.get(e.slice(0, i)), arm = e.slice(i + 1);
-    return d ? [{ key: `arms:${d.group_id}`, kind: 'alt', cond: d.arms.find((x) => x.arm === arm)?.label ?? arm, open: `alt ${esc(d.name || d.group_id)}`, depth: Infinity }] : [];   // Infinity: a decision frame covers its arm's whole subtree, never skipped as "opened by a step above"
+    const [g, arm] = splitArm(e), d = both.get(g);
+    if (d?.from === 'alt') { inAlt.set(g, frame(d, arm)); return []; }
+    return d ? [frame(d, arm)] : [];
   });
-  const out = arms.concat(chain.map((a) => ({ key: a.group, kind: a.kind ?? 'alt', cond: a.condition ?? '', open: `${a.kind ?? 'alt'}${a.condition ? ` ${esc(a.condition)}` : ''}`, depth: m.depth })));
+  const out = arms.concat(chain.map((a) => inAlt.get(a.group) ?? ({ key: a.group, kind: a.kind ?? 'alt', cond: a.condition ?? '', open: `${a.kind ?? 'alt'}${a.condition ? ` ${esc(a.condition)}` : ''}`, depth: m.depth })));
   if (m.mark === 'changed') out.push({ key: 'rect', kind: 'rect', cond: '', open: 'rect rgb(255, 244, 214)', depth: m.depth });
   if (m.mark === 'new') out.push({ key: 'rect-new', kind: 'rect', cond: '', open: 'rect rgb(214, 245, 214)', depth: m.depth });   // #71: green reads back as new
   return out;
 }
 
 const RESERVED = new Set(['end', 'box', 'rect', 'loop', 'alt', 'else', 'opt', 'par', 'and', 'break', 'critical', 'option', 'note', 'participant', 'actor', 'title', 'activate', 'deactivate', 'autonumber', 'create', 'destroy', 'links', 'link']);
+/** 0.38.1 (#82): a step's markers as `Note over` lines: `can fail: ...` and `only when <guard>`. */
+const markerNotes = (m: Message, over: string): string[] => [...(m.canFail?.length ? [`Note over ${over}: ${esc(canFailLine(m.canFail))}`] : []), ...(m.onlyWhen ? [`Note over ${over}: ${esc(onlyWhenLine(m.onlyWhen))}`] : [])];
 export const esc = (s: string) => s.replace(/\s+/g, ' ').trim().replace(/[#;]/g, (c) => `#${c.charCodeAt(0)};`).replace(/%%/g, '%#37;');   // `%%` would start a comment: written as an entity too
 
 /** `http:POST orders-svc/orders` is written `POST /orders`; anything else as the trace labels it. */
@@ -113,6 +120,7 @@ export function exportMermaid(t: Pick<Trace, 'start' | 'participants' | 'message
       if (m.self) { if (m.real) out.push(`%% real: ${esc(m.real)}`); out.push(`${a}->>${a}: ${esc(m.label)}`); out.push(...(rb?.after.get(pos) ?? [])); continue; }
       const over = [...new Set((m.over ?? []).map((o) => idByLabel.get(o)).filter((x): x is string => !!x))];
       out.push(`Note over ${over.length ? over.join(',') : a}: ${esc(m.label)}`);
+      out.push(...markerNotes(m, over.length ? over.join(',') : a));
       out.push(...(rb?.after.get(pos) ?? []));
       continue;
     }
@@ -122,6 +130,7 @@ export function exportMermaid(t: Pick<Trace, 'start' | 'participants' | 'message
     if (title) out.push(`Note over ${a === b ? a : `${a},${b}`}: ${esc(messageLabel(m))}`);
     const note = lineText(opts.descriptions?.callees[key])?.text ?? m.note;
     if (note) out.push(`Note over ${a === b ? a : `${a},${b}`}: ${esc(note)}`);
+    out.push(...markerNotes(m, a === b ? a : `${a},${b}`));
     out.push(...(rb?.after.get(pos) ?? []));
     if (m.mode !== 'async' && m.from !== m.to && ['service', 'client', 'function'].includes(kind.get(m.to) ?? '')) open.push({ from: m.from, to: m.to, depth: m.depth, response: m.returns?.label });
   }
