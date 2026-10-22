@@ -22,10 +22,10 @@ test('asyncFlowOf: only deliveries that reach a handled consumer ingress', () =>
   assert.equal(asyncFlowOf({ kind: 'deliver' }), null);
 });
 
-test('scanLane: a publish owns the hops out of its channel and everything deeper; the lane continues after it', () => {
+test('scanLane: a publish owns the hops out of its channel and its consumers\' work (by tag, #73); the lane continues around it', () => {
   const t = create();
   const { lane, publishes } = scanLane(t.messages);
-  const asyncIdx = new Set(publishes.flatMap((p: any) => Array.from({ length: p.end - p.i }, (_, k) => p.i + 1 + k)));
+  const asyncIdx = new Set(publishes.flatMap((p: any) => p.members.slice(1)));
   assert.ok(publishes.length >= 3);
   for (const i of lane) assert.ok(!asyncIdx.has(i), `message ${i + 1} is in the lane and in a region`);
   assert.equal(lane.length + asyncIdx.size, t.messages.length);

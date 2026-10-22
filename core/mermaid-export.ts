@@ -49,8 +49,12 @@ export function exportMermaid(t: Pick<Trace, 'start' | 'participants' | 'message
 
   const open: { from: string; to: string; depth: number }[] = [];
   const close = (depth: number) => { while (open.length && open[open.length - 1].depth >= depth) { const o = open.pop()!; out.push(`${ids.get(o.to)}-->>${ids.get(o.from)}: return`); } };
+  const openAt = new Map<number, number>(); // #73: deferred work (`of`) returns to the frame its async call started in, whatever its depth says
   for (const { m, key } of kept) {
+    const back = m.of === undefined ? undefined : openAt.get(m.of);
+    if (back !== undefined) while (open.length > back) { const o = open.pop()!; out.push(`${ids.get(o.to)}-->>${ids.get(o.from)}: return`); }
     close(m.depth);
+    if (m.n !== undefined) openAt.set(m.n, open.length);
     const a = ids.get(m.from)!, b = ids.get(m.to)!;
     if (m.kind === 'leaf') { out.push(`Note over ${a}: ${esc(m.label)}`); continue; }   // a step that ends the tree (its own operation): a note on the lifeline, not an arrow
     const title = titleOf(opts.descriptions?.callees[key]).trim(); // 0.30.0: a step title is the message text, and the API moves into a note
