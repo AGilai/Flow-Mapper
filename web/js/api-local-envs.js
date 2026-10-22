@@ -12,6 +12,7 @@ export function envApi(data, g) {
       return carryRows(data.models[env] ?? fail(`environment '${env}' not found`, 404), dtos);
     },
     neighbours: async (env, services) => neighbours(g(env), services),
+    putEnvColor: async () => fail('Choosing an environment colour is not available in the preview: it needs the server.'),
     createEnv: async () => fail('Creating an environment is not available in the preview: it needs the server.'),
   };
 }

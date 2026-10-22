@@ -8,8 +8,9 @@ import { state, setEnv } from '../state.js';
 import { envLine, metaOf, canDeleteEnv } from '../env-info.js';
 import { isPreview } from '../api.js';
 import { deleteEnvDialog } from './env-delete.js';
+import { envDot, paintEnv } from './env-chip.js';
 
-const rowBody = (name) => [h('b', name), h('small', envLine(metaOf(state.envMeta, name)))];
+const rowBody = (name) => [envDot(name), h('b', name), h('small', envLine(metaOf(state.envMeta, name)))];
 
 let refocus = false; // a pick re-renders the rail: put focus back on the new trigger
 
@@ -17,6 +18,7 @@ export function envPicker() {
   let pop = null;
   const trigger = h('button.env-trigger', { type: 'button', 'aria-haspopup': 'listbox', 'aria-expanded': 'false', title: `Environment ${state.env}: ${envLine(metaOf(state.envMeta, state.env))}`, on: { click: () => (pop ? close(true) : open()) } },
     h('span.env-cur', ...rowBody(state.env)), icon('chev'));
+  paintEnv(trigger, state.env); // the left border in the env colour
   const wrap = h('div.env-pick', trigger);
   if (refocus) { refocus = false; requestAnimationFrame(() => trigger.focus()); }
 
@@ -41,7 +43,7 @@ export function envPicker() {
   const open = () => {
     const opts = state.envs.map((name) => {
       const on = name === state.env;
-      return h('button.env-opt', { type: 'button', role: 'option', 'aria-selected': String(on), tabindex: on ? 0 : -1, title: `${name}: ${envLine(metaOf(state.envMeta, name))}`,
+      return h('button.env-opt', { type: 'button', role: 'option', 'data-env': name, 'aria-selected': String(on), tabindex: on ? 0 : -1, title: `${name}: ${envLine(metaOf(state.envMeta, name))}`,
         on: { click: () => { close(false); if (!on) { refocus = true; setEnv(name); } else trigger.focus(); } } }, rowBody(name));
     });
     const list = h('div.env-list', { role: 'listbox', 'aria-label': 'Environment' }, opts);

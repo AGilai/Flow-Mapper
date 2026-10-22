@@ -5,7 +5,7 @@ import { traceFlowTool, setDescriptionTool, eventTypesTool, getEndpointInfoTool,
 import { ingestManifestTool } from './write.ts';
 import { getStoreTool, listClientsTool, getResourceKeysTool, loadSchemasTool, loadDtosTool } from './stores.ts';
 import { listBugsTool, getBugTool, reportBugTool, updateBugTool } from './bugs.ts';
-import { listEnvsTool, createEnvTool } from './envs.ts';
+import { listEnvsTool, createEnvTool, setEnvColorTool } from './envs.ts';
 import { openDraftTool, listDraftsTool, draftChangesTool, editInDraftTool, applyDraftTool, discardDraftTool } from './drafts.ts';
 import { getMarksTool, applyImportPlanTool } from './design.ts';
 import { importPreviewTool, importIntoDraftTool } from './import.ts';
@@ -47,6 +47,7 @@ export const TOOLS: Tool[] = [
   updateBugTool,
   listEnvsTool,
   createEnvTool,
+  setEnvColorTool,
   openDraftTool,
   listDraftsTool,
   draftChangesTool,

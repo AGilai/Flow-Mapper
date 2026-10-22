@@ -9,8 +9,8 @@
   font-size: var(--fs-sm); cursor: pointer; position: relative; flex: none; }
 /* Active vs inactive (0.33.3): the active tab joins the pane (same fill, no bottom line, 1 px taller), a full top bar and a heavier label; the rest recede. */
 .tab { background: color-mix(in srgb, var(--surface) 40%, var(--surface-2)); color: var(--ink-2);
-  box-shadow: inset 0 2px 0 color-mix(in srgb, var(--tc, var(--t-http)) 40%, transparent); }
-.tab:hover { background: var(--surface); color: var(--ink); box-shadow: inset 0 2px 0 var(--tc, var(--t-http)); }
+  box-shadow: inset 0 2px 0 color-mix(in srgb, var(--ec, var(--line-strong)) 40%, transparent); }
+.tab:hover { background: var(--surface); color: var(--ink); box-shadow: inset 0 2px 0 var(--ec, var(--line-strong)); }
 .tab:hover .tl b { color: var(--ink); }
 .tab:focus-visible { outline: 2px solid var(--focus); outline-offset: -3px; z-index: 1; }
 .tab svg { width: 14px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; }
@@ -18,14 +18,14 @@
 .tab .tl b { font-weight: 500; color: var(--ink-2); flex: 0 0 auto; white-space: nowrap; }
 .tab .tl i { font-style: normal; color: var(--muted); font-size: var(--fs-xs); min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .tab.entry, .tab.fn, .tab.full { max-width: 320px; }
-.tn { font: 700 10.5px var(--mono); padding: 1px 5px; border-radius: 4px; background: var(--surface-2); color: var(--ink-2); flex: none; }
-.tab.on .tn { background: var(--accent-soft); color: var(--accent); }
-.tab.full .tn, .tab.full svg { color: var(--accent); }
+/* 0.34.x: the top bar is the ENV colour (--ec); the transport hue (--tc) lives on the glyph and the sub-flow number, where it still tells http from queue */
+.tn { font: 700 10.5px var(--mono); padding: 1px 5px; border-radius: 4px; background: color-mix(in srgb, var(--tc, var(--muted)) 14%, var(--surface-2)); color: color-mix(in srgb, var(--tc, var(--ink-2)) 70%, var(--ink)); flex: none; }
+.tab > svg, .tabrow-b > svg { stroke: var(--tc, currentColor); }
 .tab .x { margin-left: auto; width: 22px; height: 22px; border-radius: 5px; display: grid; place-items: center; flex: none; color: var(--muted); border: 0; background: none; cursor: pointer; padding: 0; }
 .tab .x svg { width: 11px; height: 11px; }
 .tab .x:hover { background: var(--surface-2); color: var(--ink); }
 .tab.on, .tab.on:hover { background: var(--paper); color: var(--ink); height: 37px; margin-bottom: -1px; border-color: var(--line-strong); border-bottom: 0;
-  box-shadow: inset 0 3px 0 var(--tc, var(--t-http)), 0 1px 0 var(--paper); } /* the last shadow hides the strip line under the tab */
+  box-shadow: inset 0 3px 0 var(--ec, var(--line-strong)), 0 1px 0 var(--paper); } /* the last shadow hides the strip line under the tab */
 .tab.on .tl b { font-weight: 700; color: var(--ink); }
 .tab.on .x { color: var(--ink-2); }
 .tab:not(.on) .x { opacity: .7; } .tab:hover .x, .tab .x:focus-visible { opacity: 1; }
@@ -41,7 +41,7 @@
 .tabpop-s { padding: var(--s2); border-bottom: 1px solid var(--line); }
 .tabpop-s .input { width: 100%; }
 .tabpop-list { max-height: 320px; overflow-y: auto; padding: 4px 0; }
-.tabpop .tabrow { display: flex; align-items: center; gap: 4px; padding: 0 6px 0 0; border-left: 3px solid var(--tc, var(--t-http)); }
+.tabpop .tabrow { display: flex; align-items: center; gap: 4px; padding: 0 6px 0 0; border-left: 3px solid var(--ec, var(--line-strong)); }
 .tabpop .tabrow.on { background: var(--accent-soft); }
 .tabpop .tabrow-b { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; border: 0; background: none; font: inherit; font-size: var(--fs-sm); color: var(--ink); text-align: left; padding: 6px 8px; cursor: pointer; }
 .tabpop .tabrow-b:hover { background: color-mix(in srgb, var(--accent) 7%, transparent); }

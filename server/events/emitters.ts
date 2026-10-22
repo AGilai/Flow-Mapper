@@ -39,6 +39,9 @@ export function manifestIngested(db: DB, r: { env: string; service: string; from
 export function envCreated(db: DB, e: { name: string; source?: string | null; createdBy?: string }) {
   emit(db, { type: 'env.created', env: e.name, summary: `environment ${e.name} created${e.source ? ` from ${e.source}` : ''}`, data: { source: e.source ?? null, createdBy: e.createdBy ?? null } });
 }
+export function envUpdated(db: DB, name: string, what: string) {
+  emit(db, { type: 'env.updated', env: name, summary: `environment ${name}: ${what} changed`, data: { what } });
+}
 export function envDeleted(db: DB, name: string) {
   emit(db, { type: 'env.deleted', env: name, summary: `environment ${name} deleted`, data: {} });
 }

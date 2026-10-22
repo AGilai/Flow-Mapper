@@ -10,7 +10,9 @@
 .env-trigger:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
 .env-trigger svg { flex: none; width: 14px; height: 14px; margin-left: auto; transform: rotate(-90deg); color: var(--muted); }
 .env-trigger[aria-expanded='true'] svg { transform: rotate(90deg); }
-.env-cur { display: grid; gap: 1px; min-width: 0; }
+.env-cur { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: var(--s2); row-gap: 1px; align-items: center; min-width: 0; }
+.env-cur > .env-dot, .env-opt > .env-dot { grid-row: 1 / span 2; }
+.env-trigger { border-left: 3px solid var(--ec, var(--line-strong)); }
 .env-cur b, .env-opt b { font: 600 12.5px var(--mono); color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .env-cur small, .env-opt small { font-size: var(--fs-xs); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .env-pop {
@@ -19,7 +21,7 @@
 }
 .env-list { display: grid; gap: 2px; }
 .env-opt {
-  display: grid; gap: 1px; width: 100%; text-align: left; padding: 6px var(--s2); border: 1px solid transparent; border-radius: var(--r-sm);
+  display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: var(--s2); row-gap: 1px; align-items: center; width: 100%; text-align: left; padding: 6px var(--s2); border: 1px solid transparent; border-radius: var(--r-sm);
   background: transparent; color: var(--ink-2); cursor: pointer; font: inherit;
 }
 .env-opt:hover { background: var(--surface-2); text-decoration: none; }
