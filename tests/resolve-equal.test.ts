@@ -37,7 +37,7 @@ test('indexed resolve equals the reference on random keys, patterns and ties', (
   const word = () => ['a', 'b', 'c', 'x.y', 'x.z'][rnd(5)];
   const keyOf = () => `amqp:ex${rnd(2)}/${word()}.${word()}`;
   const plainKey = () => `http:GET ${word()}/${word()}`;
-  const patOf = (k: string) => (rnd(2) ? k : k.replace(/\.[^./]+$/, '.*').replace(/\/[^/]+$/, rnd(2) ? '/**' : '/*'));
+  const patOf = (k: string) => (rnd(2) ? k : rnd(3) ? k.replace(/\.[^./]+$/, '.*').replace(/\/[^/]+$/, rnd(2) ? '/**' : '/*') : k.replace(/\/[^/]+$/, rnd(2) ? '/#' : '/*.#'));
   const modeOf = () => ['exact', 'glob', 'amqp-topic', undefined][rnd(4)];
   let links = 0, ambiguous = 0, unbound = 0;
   for (let round = 0; round < 60; round++) {
