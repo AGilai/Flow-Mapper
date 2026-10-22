@@ -31,8 +31,8 @@ test('scanLane: a publish owns the hops out of its channel and its consumers\' w
   assert.equal(lane.length + asyncIdx.size, t.messages.length);
   const fan = publishes.find((p: any) => t.messages[p.i].deliveries);
   assert.equal(fan.delivers.length, t.messages[fan.i].deliveries);
-  // the lane messages after the fan-out are the sync ones again (orders-svc continues)
-  assert.ok(lane.some((i: number) => i > fan.end));
+  // the caller continues after the deliveries (its steps sit before the consumers' work, #73)
+  assert.ok(lane.some((i: number) => i > fan.hopEnd));
 });
 
 test('subflowRanges: each delivery of a fan-out gets its own consumer subtree', () => {

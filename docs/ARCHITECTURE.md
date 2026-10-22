@@ -37,7 +37,7 @@ UI / agent ── GET /api/envs/:env/... ─► server/routes/queries.ts ─► 
 | `graph-index.ts` | lookup maps + adjacency over a resolved model; up/downstream walks |
 | `system-graph.ts` | nodes/edges for the system map (with and without channels) |
 | `service-view.ts` | one service's ingress/egress/resources with peers |
-| `trace.ts` | ordered flow from an ingress or function (intra or full) |
+| `trace.ts`, `trace-defer.ts`, `trace-order.ts` | ordered flow from an ingress or function (intra or full). 0.32.4 (#73): an async call's work runs after the caller's remaining steps (`trace-defer.ts`); the work carries `of` = the `n` of the message that started it, and the views (`flow-scan.js`, `flow-lane.js`) read the tags, not depth; `trace-order.ts` is the fan-out lifeline order |
 | `paths.ts` | service-to-service paths |
 | `health.ts` | link-health report |
 | `search.ts` | text search |
