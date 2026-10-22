@@ -12,8 +12,17 @@ import { ENV_COLORS } from '../../core/env-colors.js';
 export function colorSection(env, onSaved) {
   const meta = state.envMeta.find((m) => m.name === env), cur = envSlotOf(state.envMeta, env), auto = meta?.colorAuto === true;
   const others = (slot) => state.envMeta.filter((m) => m.name !== env && envSlotOf(state.envMeta, m.name) === slot).map((m) => m.name);
+  /** The page draws again after a save, a moment later: once a new radio for the choice exists, put the keyboard on it so the arrow keys go on. */
+  async function refocus(old, color) {
+    for (let i = 0; i < 40; i++) {
+      const el = document.querySelector(`[data-qa="env-color-${color ?? 'auto'}"]`);
+      if (el && el !== old) { el.focus(); return; }
+      await new Promise((r) => setTimeout(r, 50));
+    }
+  }
   async function save(color) {
-    try { await api.putEnvColor(env, color); toast(color === null ? 'Colour: automatic' : `Colour: ${ENV_COLORS[color - 1]}`); await onSaved(); } catch (err) { toast(err.message, 5000); }
+    const old = document.activeElement;
+    try { await api.putEnvColor(env, color); toast(color === null ? 'Colour: automatic' : `Colour: ${ENV_COLORS[color - 1]}`); await onSaved(); refocus(old, color); } catch (err) { toast(err.message, 5000); }
   }
   const opt = (value, text, swatch, extra) => h('label', { class: value === null ? 'auto' : '', title: value === null ? 'Automatic: follows the order environments were created in' : text },
     h('input', { type: 'radio', name: 'env-color', value: value ?? 'auto', checked: value === null ? auto : !auto && cur === value, disabled: isPreview, 'aria-label': text, 'data-qa': `env-color-${value ?? 'auto'}`,
