@@ -27,7 +27,15 @@ const toMeta = (r: Row, counts: Record<string, number> = {}, rank = 0): EnvMeta 
 });
 
 /** Creation-order rank of every environment (the automatic colour), snapshot-only ones included. */
-const ranksOf = (db: DB) => envRanks(listEnvs(db).map((name) => ({ name, createdAt: (db.prepare('SELECT created_at FROM envs WHERE name = ?').get(name) as { created_at: string } | undefined)?.created_at ?? '' })));
+function ranksOf(db: DB): Record<string, number> {
+  const made = db.prepare('SELECT name, created_at FROM envs').all() as { name: string; created_at: string }[];
+  const known = new Set(made.map((r) => r.name));
+  const extra = (db.prepare('SELECT DISTINCT env FROM snapshots').all() as { env: string }[]).filter((r) => !known.has(r.env)).map((r) => ({ name: r.env, createdAt: '' }));
+  return envRanks([...made.map((r) => ({ name: r.name, createdAt: r.created_at })), ...extra]);
+}
+
+/** Components with no stored colours yet (an env from before the assignment existed) get them once; later writes keep them current. */
+const backfillColors = (db: DB, r: Row) => { if (!r.colors || r.colors === '{}') ensureColors(db, r.name); };
 
 /** Names only (GET /api/envs): the envs table plus any env that still has snapshots (a rollout safety net). */
 export function listEnvs(db: DB): string[] {
@@ -44,14 +52,24 @@ function countsOf(db: DB, env: string): Record<string, number> {
   return out;
 }
 
+/** What a 404 check needs: the env's kind, source, groups and levels. No entity counts, no colours, no ranks (getEnv does all of that). */
+export type EnvLite = Pick<EnvMeta, 'name' | 'kind' | 'source' | 'groups' | 'levels'>;
+
+/** Throws the 404 for an unknown environment. Use this, not getEnv, when the counts are not needed (getEnv counts every entity of the env). */
+export function requireEnv(db: DB, name: string): EnvLite {
+  const r = getEnvRow(db, name);
+  if (!r) throw notFound(`environment '${name}'`);
+  return { name: r.name, kind: r.kind, source: r.source, groups: JSON.parse(r.groups), levels: JSON.parse(r.levels) };
+}
+
 export function getEnv(db: DB, name: string): EnvMeta {
-  if (!getEnvRow(db, name)) throw notFound(`environment '${name}'`);
-  ensureColors(db, name);
+  requireEnv(db, name);
+  backfillColors(db, getEnvRow(db, name)!);
   return toMeta(getEnvRow(db, name)!, countsOf(db, name), ranksOf(db)[name]);
 }
 
 export function listEnvMeta(db: DB): EnvMeta[] {
-  for (const r of db.prepare('SELECT name FROM envs').all() as { name: string }[]) ensureColors(db, r.name);
+  for (const r of db.prepare("SELECT name, colors FROM envs WHERE colors IS NULL OR colors = '{}'").all() as unknown as Row[]) backfillColors(db, r);
   const rows = new Map((db.prepare('SELECT * FROM envs').all() as unknown as Row[]).map((r) => [r.name, r]));
   const fallback = (n: string): Row => ({ name: n, kind: 'sealed', source: null, copied_at: null, groups: '[]', levels: '["Subsystem","Component"]', created_at: '', created_by: 'anonymous' });
   const rank = ranksOf(db);

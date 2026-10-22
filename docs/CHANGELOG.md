@@ -5,6 +5,14 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## 0.39.0 (2026-10-22)
+Performance batch 1 (docs/plans/perf-review.md). No API or schema change; the resolved graph is identical.
+- **F1.** `resolve()` looks exact bind keys up in maps and scans only glob / amqp-topic items (`core/resolve-lookup.ts`): a 1,000-service graph builds in about 1.5 to 3 s instead of 85 to 156 s. `tests/resolve-equal.test.ts` compares it with the old resolver (`tests/resolve-reference.ts`).
+- **F4.** `requireEnv()` (`server/store/envs.ts`) is the 404 check without entity counts; drafts list, relations, subsystems, components, neighbours and plan apply use it. `getEnv` / `GET /api/envs/meta` keep their counts, read the creation-order ranks in one query and backfill component colours only for envs that have none.
+- **F5.** The graph cache is also bounded by weight: `FLOW_GRAPH_CACHE_ITEMS` (default 250000 items of functions + ingress + egress, about two 1,000-service graphs, RSS plateau about 385 MB instead of growing 75 MB of heap per graph up to 8). Least recently used graphs are evicted and logged; the newest is never evicted.
+- **Migration 019** (`019_perf_indexes.sql`): nine plain / partial `CREATE INDEX` statements (entities by env and list, snapshots, changelog, open comments and action items, author and owner, bug links); no table rebuild, about 5% more file size. The server runs `PRAGMA optimize=0x10002` when it opens a file database and a plain `PRAGMA optimize` hourly. A database upgrades in place and is backed up to `<db>.pre-019.bak`.
+- **F10.** `findUser` reads one user row with its aliases and external ids instead of the whole registry; `listUsers` groups aliases and ids in maps (no per-user filter). Same results.
+
 ## 0.38.3 (2026-10-22)
 UI only: **a link carries its environment.** Every env-specific page (system, inventory, services, stores, instances, channels, events, flows, questions, health) always has `env=<current env>` in its URL, also right after a switch in the environment picker (0.36.0 removed it). A copied link opens on the sender's env. Bugs, users, mentions and the env forms stay without `env=`. The picker still replaces the URL (no history entries); tab keys are unchanged.
 

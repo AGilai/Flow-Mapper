@@ -16,25 +16,29 @@ import { emit } from '../events/bus.ts';
 interface UR { id: string; name: string; color: number; created_at: string; last_seen_at: string | null; merged_into: string | null }
 const now = () => new Date().toISOString();
 
+const toUser = (r: UR, aliases: string[], externalIds: { source: string; externalId: string }[]): User =>
+  ({ id: r.id, name: r.name, color: r.color, createdAt: r.created_at, lastSeenAt: r.last_seen_at, aliases, externalIds });
+
 /** Live users (merged ones are gone from the list), most recently seen first, then by name. */
 export function listUsers(db: DB): User[] {
   const rows = db.prepare('SELECT * FROM users WHERE merged_into IS NULL').all() as unknown as UR[];
-  const al = db.prepare('SELECT user_id, alias FROM user_aliases').all() as unknown as { user_id: string; alias: string }[];
-  const ex = db.prepare('SELECT user_id, source, external_id FROM user_external_ids').all() as unknown as { user_id: string; source: string; external_id: string }[];
-  return rows.map((r) => ({
-    id: r.id, name: r.name, color: r.color, createdAt: r.created_at, lastSeenAt: r.last_seen_at,
-    aliases: al.filter((a) => a.user_id === r.id).map((a) => a.alias), externalIds: ex.filter((e) => e.user_id === r.id).map((e) => ({ source: e.source, externalId: e.external_id })),
-  })).sort((a, b) => (b.lastSeenAt ?? b.createdAt).localeCompare(a.lastSeenAt ?? a.createdAt) || a.name.localeCompare(b.name));
+  const al = new Map<string, string[]>(), ex = new Map<string, { source: string; externalId: string }[]>();
+  for (const a of db.prepare('SELECT user_id, alias FROM user_aliases').all() as unknown as { user_id: string; alias: string }[]) al.set(a.user_id, [...(al.get(a.user_id) ?? []), a.alias]);
+  for (const e of db.prepare('SELECT user_id, source, external_id FROM user_external_ids').all() as unknown as { user_id: string; source: string; external_id: string }[]) ex.set(e.user_id, [...(ex.get(e.user_id) ?? []), { source: e.source, externalId: e.external_id }]);
+  return rows.map((r) => toUser(r, al.get(r.id) ?? [], ex.get(r.id) ?? []))
+    .sort((a, b) => (b.lastSeenAt ?? b.createdAt).localeCompare(a.lastSeenAt ?? a.createdAt) || a.name.localeCompare(b.name));
 }
 
-/** A user by id; an id that was merged answers the user it went into. Undefined when unknown. */
+/** A user by id (one row plus its aliases and external ids, not the whole registry); an id that was merged answers the user it went into. Undefined when unknown. */
 export function findUser(db: DB, id: string): User | undefined {
   let cur = id;
   for (let i = 0; i < 20; i++) {
-    const r = db.prepare('SELECT merged_into FROM users WHERE id = ?').get(cur) as unknown as { merged_into: string | null } | undefined;
+    const r = db.prepare('SELECT * FROM users WHERE id = ?').get(cur) as unknown as UR | undefined;
     if (!r) return undefined;
-    if (!r.merged_into) return listUsers(db).find((u) => u.id === cur);
-    cur = r.merged_into;
+    if (r.merged_into) { cur = r.merged_into; continue; }
+    const al = db.prepare('SELECT alias FROM user_aliases WHERE user_id = ?').all(cur) as unknown as { alias: string }[];
+    const ex = db.prepare('SELECT source, external_id FROM user_external_ids WHERE user_id = ?').all(cur) as unknown as { source: string; external_id: string }[];
+    return toUser(r, al.map((a) => a.alias), ex.map((e) => ({ source: e.source, externalId: e.external_id })));
   }
   return undefined;
 }

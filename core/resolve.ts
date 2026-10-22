@@ -9,8 +9,9 @@
 // A binding target is a declared channel if one has that key, otherwise matching ingress.
 
 import type { Binding, Channel, Delivery, Egress, Mode, Ingress, Link, Model, Ref, Resolution, Transport, Unresolved } from './types.ts';
-import { compareSpecificity, keyMatches, specificity } from './glob.ts';
+import { compareSpecificity, specificity } from './glob.ts';
 import { routeKey, rpcServed } from './amqp-route.ts';
+import { keyLookup, prefixSet } from './resolve-lookup.ts';
 
 export const DEFAULT_DELIVERY: Record<string, Delivery> = {
   http: 'unicast', rpc: 'unicast', grpc: 'unicast', sqs: 'unicast', sns: 'multicast', amqp: 'multicast', eventbridge: 'multicast',
@@ -63,8 +64,12 @@ export function resolve(model: Model): Resolution {
   const ambiguous: Resolution['ambiguous'] = [];
   const brokenBindings: Binding[] = [];
 
+  // Exact keys come from a map, only glob / amqp-topic items are scanned (perf F1); candidates keep their array order.
+  const consumersFor = keyLookup(consumers, (i) => i.bindKey, (i) => i.match);
+  const bindingsMatching = keyLookup(model.bindings, (b) => b.from, (b) => b.match);
+
   const matchIngress = (key: string, delivery: Delivery) => {
-    const cands = consumers.filter((i) => keyMatches(i.bindKey, i.match, key));
+    const cands = consumersFor(key);
     if (delivery === 'multicast' || cands.length <= 1) return { picked: cands, tied: [] as Ingress[] };
     const ranked = cands
       .map((c) => ({ c, s: specificity(c.bindKey, c.match) }))
@@ -76,14 +81,14 @@ export function resolve(model: Model): Resolution {
   // A publish to an AMQP exchange is routed by the exchange's type (core/amqp-route.ts); other keys match bindings by their own `match`.
   const bindingsFrom = (key: string, e?: Egress) => {
     const r = e ? routeKey(model.bindings, channels.get(`amqp:${key.slice(5).split('/')[0]}`)?.details, key, e.details) : null;
-    return r ? [...r.matched, ...r.possible] : model.bindings.filter((b) => keyMatches(b.from, b.match, key));
+    return r ? [...r.matched, ...r.possible] : bindingsMatching(key);
   };
 
   // Binding target → refs
   const targetsOfBinding = new Map<Binding, Ref[]>();
   for (const b of model.bindings) {
     const ch = channels.get(b.to);
-    const refs: Ref[] = ch ? [{ type: 'channel', key: b.to }] : consumers.filter((i) => keyMatches(i.bindKey, i.match, b.to)).map(ingressRef);
+    const refs: Ref[] = ch ? [{ type: 'channel', key: b.to }] : consumersFor(b.to).map(ingressRef);
     targetsOfBinding.set(b, refs);
     if (!refs.length) brokenBindings.push(b);
   }
@@ -110,7 +115,7 @@ export function resolve(model: Model): Resolution {
     const t = channelTransport(c);
     addBindingLinks(from, key, 'async', t);
     if (c.kind === 'sqs-queue' || c.kind === 'amqp-queue') {
-      for (const i of consumers.filter((i) => keyMatches(i.bindKey, i.match, key)))
+      for (const i of consumersFor(key))
         links.push({ from, to: ingressRef(i), via: i.match && i.match !== 'exact' ? 'pattern' : 'key', mode: 'async', transport: t });
     }
   }
@@ -144,13 +149,14 @@ export function resolve(model: Model): Resolution {
   const orphans = consumers.filter((i) => !i.entryPoint && !rpcServed(i) && !reached.has(refKey(ingressRef(i))));
 
   const unbound: Resolution['unbound'] = [];
+  const fromPrefixes = prefixSet(model.bindings.map((b) => b.from));
   for (const [key, c] of channels) {
     if (c.kind === 'sns-topic' && !bindingsFrom(key).length) unbound.push({ channel: c, reason: 'topic has no subscription' });
     if (c.kind === 'eventbridge-bus' && !bindingsFrom(key).length) unbound.push({ channel: c, reason: 'bus has no rule' });
     // an RPC command or reply queue is read by the RPC library, not by an ingress of its own: its commands are `amqp-rpc:` ingress
-    if ((c.kind === 'sqs-queue' || c.kind === 'amqp-queue') && !String(c.details?.role).startsWith('rpc-') && !consumers.some((i) => keyMatches(i.bindKey, i.match, key)))
+    if ((c.kind === 'sqs-queue' || c.kind === 'amqp-queue') && !String(c.details?.role).startsWith('rpc-') && !consumersFor(key).length)
       unbound.push({ channel: c, reason: 'queue has no consumer' });
-    if (c.kind === 'amqp-exchange' && !model.bindings.some((b) => b.from === key || b.from.startsWith(key + '/')))
+    if (c.kind === 'amqp-exchange' && !fromPrefixes.has(key))
       unbound.push({ channel: c, reason: 'exchange has no binding' });
   }
 
