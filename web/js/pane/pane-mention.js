@@ -39,7 +39,7 @@ export function attachMentionPicker(ta) {
     if (!items.length) return close();
     idx = Math.max(0, Math.min(idx, items.length - 1));
     const rows = items.map((u, i) => h('div.u-pk', { role: 'option', 'aria-selected': String(i === idx), class: `${i === idx ? 'on' : ''} ${u.fresh ? 'new' : ''}`.trim(), 'data-qa': u.fresh ? 'mention-new' : 'mention-opt', on: { mousedown: (e) => { e.preventDefault(); choose(i); } } },
-      u.fresh ? [h('b', `+ New user “${u.fresh}”`)] : [userAvatar(u, 's'), h('b', u.name), h('small', me()?.id === u.id ? 'you' : u.externalIds?.[0]?.source ?? '')]));
+      u.fresh ? [h('span.plus', '+'), h('span', `New user “${u.fresh}”`), h('small')] : [userAvatar(u, 's'), h('b', u.name), h('small', me()?.id === u.id ? 'you' : u.externalIds?.[0]?.source ?? '')]));
     const box = h('div.u-pick', { role: 'listbox', 'aria-label': 'Mention someone' }, rows, h('div.u-keys', h('kbd', '↑'), ' ', h('kbd', '↓'), ' choose · ', h('kbd', 'Enter'), ' insert · ', h('kbd', 'Esc'), ' close'));
     pop ? pop.replaceWith(box) : document.body.append(box);
     pop = box;
@@ -66,7 +66,7 @@ export function attachMentionPicker(ta) {
     else if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); close(); }
   }, true);
   ta.addEventListener('input', () => { idx = 0; detect(); });
-  ta.addEventListener('blur', () => setTimeout(close, 120));
+  ta.addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== ta) close(); }, 120)); // the toolbar's @ button blurs and refocuses at once: keep its picker
   loadUsers().catch(() => {});
   return {
     /** The toolbar's "@" button: type an "@" (after a space when the caret follows a word) and let the picker open. */

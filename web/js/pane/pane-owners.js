@@ -37,7 +37,7 @@ export function startOwnersEdit(box, { ids: first, target, header, onClose }) {
     idx = Math.max(0, Math.min(idx, items.length - 1));
     list.hidden = !items.length || document.activeElement !== input;
     list.replaceChildren(...items.map((u, i) => h('div.u-pk', { role: 'option', 'aria-selected': String(i === idx), class: `${i === idx ? 'on' : ''} ${u.fresh ? 'new' : ''}`.trim(), 'data-qa': u.fresh ? 'owner-new' : 'owner-opt', on: { mousedown: (e) => { e.preventDefault(); pick(i); } } },
-      u.fresh ? [h('span'), h('b', `+ New user “${u.fresh}”`)] : [userAvatar(u, 's'), h('b', u.name)])));
+      u.fresh ? [h('span.plus', '+'), h('span', `New user “${u.fresh}”`), h('small')] : [userAvatar(u, 's'), h('b', u.name)])));
   }
   async function pick(i) {
     const it = items[i];

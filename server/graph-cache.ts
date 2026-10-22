@@ -62,6 +62,8 @@ export function invalidate(env: string) {
   for (const k of [...cache.keys()]) if (k === env || k.startsWith(`${env}#`)) cache.delete(k);
   for (const [k, m] of [...memo]) if (m.deps.has(env)) memo.delete(k);
 }
+/** Everything cached is stale (a user merge re-points owners and About mentions in every environment). */
+export function invalidateAll() { cache.clear(); memo.clear(); }
 export function invalidateDraft(env: string, slug: string) {
   cache.delete(`${env}#draft:${slug}`);
   for (const [k, m] of [...memo]) if (k.startsWith(`${env}|${slug}|`)) memo.delete(k);

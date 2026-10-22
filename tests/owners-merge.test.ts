@@ -19,6 +19,8 @@ test('merge: owners and @[id] in an about move to the surviving user; a list tha
   assert.equal(ing.status, 201, JSON.stringify(ing.body));
   assert.equal((await app.call('PUT', '/api/envs/prod/subsystems', { subsystems: [{ key: 'core', label: 'Core', owners: [ron.id] }] })).status, 200);
 
+  // read first, so the graphs are cached when the merge happens (the merge must drop them)
+  await app.call('GET', `/api/envs/hld/services/users-svc?draft=${slug}`); await app.call('GET', '/api/envs/prod/services/orders-svc'); await app.call('GET', `/api/envs/hld/subsystems?draft=${slug}`);
   assert.equal((await app.call('POST', `/api/users/${ron.id}/merge`, { into: dana.id })).status, 200);
 
   const svc = (await app.call('GET', `/api/envs/hld/services/users-svc?draft=${slug}`)).body.service;
