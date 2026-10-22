@@ -64,7 +64,7 @@ const DRAFT: Record<string, (e: string, slug: string) => Req> = {
 };
 
 /** Not map data, or not guarded by kind on purpose: annotations (bugs, descriptions), environment management, the MCP transport (its tools are checked below). */
-const EXEMPT = new Set(['PUT /api/envs/:env/descriptions', 'POST /api/bugs', 'PATCH /api/bugs/:id', 'POST /api/bugs/:id/comments', 'POST /api/bugs/:id/attachments', 'PUT /api/envs/:env/flow-names', 'POST /api/envs/:env/comments', 'PATCH /api/envs/:env/comments/:id', 'DELETE /api/envs/:env/comments/:id', 'POST /api/envs/:env/action-items', 'PATCH /api/envs/:env/action-items/:id', 'DELETE /api/envs/:env/action-items/:id',
+const EXEMPT = new Set(['PUT /api/envs/:env/descriptions', 'POST /api/bugs', 'PATCH /api/bugs/:id', 'POST /api/users', 'PATCH /api/users/:id', 'POST /api/users/:id/merge', 'POST /api/bugs/:id/comments', 'POST /api/bugs/:id/attachments', 'PUT /api/envs/:env/flow-names', 'POST /api/envs/:env/comments', 'PATCH /api/envs/:env/comments/:id', 'DELETE /api/envs/:env/comments/:id', 'POST /api/envs/:env/action-items', 'PATCH /api/envs/:env/action-items/:id', 'DELETE /api/envs/:env/action-items/:id',
   // 0.28: sealed subsystem settings (a design refuses with 409 USE_DRAFT: it never writes one) and level names are annotations
   'PUT /api/envs/:env/subsystems', 'PUT /api/envs/:env/levels',
   'POST /api/envs', 'DELETE /api/envs/:env', 'POST /mcp']);
@@ -135,7 +135,7 @@ test('dry runs are allowed into a design env (nothing is written) and still vali
 
 // MCP tools: read tools are listed so a new tool must be classified too.
 const MCP_READ = new Set(['search', 'list_services', 'get_service', 'list_entry_points', 'trace_flow', 'find_paths', 'link_health', 'changelog', 'get_endpoint_info', 'event_types',
-  'inventory', 'get_store', 'list_clients', 'get_resource_keys', 'get_channel', 'get_exchange', 'list_bugs', 'get_bug', 'list_envs', 'list_drafts', 'draft_changes', 'get_marks', 'import_preview', 'get_call', 'get_flow_names', 'list_comments', 'list_action_items', 'export_mermaid',
+  'inventory', 'get_store', 'list_clients', 'get_resource_keys', 'get_channel', 'get_exchange', 'list_bugs', 'get_bug', 'list_envs', 'list_drafts', 'draft_changes', 'get_marks', 'import_preview', 'get_call', 'get_flow_names', 'list_comments', 'list_action_items', 'list_users', 'export_mermaid',
   'get_subsystems', 'get_subsystem_map', 'list_abstract_links', 'suggest_refinements', 'list_flow_relations']);
 const MCP_HARVESTER: Record<string, (e: string, manifest: any) => any> = {
   ingest_manifest: (e, m) => ({ manifest: { ...m, env: e, version: 999 } }),

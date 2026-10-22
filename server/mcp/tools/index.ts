@@ -14,6 +14,7 @@ import { getFlowNamesTool, setFlowNameTool } from './flow-names.ts';
 import { exportMermaidTool, importMermaidTool } from './mermaid.ts';
 import { listCommentsTool, addCommentTool, resolveCommentTool } from './comments.ts';
 import { listActionItemsTool, addActionItemTool, updateActionItemTool } from './action-items.ts';
+import { listUsersTool } from './users.ts';
 import { listFlowRelationsTool } from './relations.ts';
 import { getSubsystemsTool, getSubsystemMapTool, listAbstractLinksTool, suggestRefinementsTool, applyPlanLinksTool, setSubsystemSettingsTool, setLevelsTool } from './subsystems.ts';
 import type { Tool } from './common.ts';
@@ -76,4 +77,5 @@ export const TOOLS: Tool[] = [
   listActionItemsTool,
   addActionItemTool,
   updateActionItemTool,
+  listUsersTool,
 ];

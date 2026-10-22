@@ -13,7 +13,9 @@ import { sanitize } from '../../core/rich-text.ts';
 import { plainText } from '../../core/rich-text-text.ts';
 import { HttpError, badRequest, invalid, notFound } from '../errors.ts';
 import { commentCreated, commentEdited, commentDeleted } from '../events/emitters.ts';
-import { type R, toRow, out, forbidden, getRow, checkEnv, authorOf, bodyOf } from './comments-rows.ts';
+import { type R, toRow, out, forbidden, getRow, checkEnv, bodyOf } from './comments-rows.ts';
+import { identify, type Caller } from '../identity.ts';
+import { nameIndex } from './users.ts';
 import { parseImport, findExternal, applyImported, reimport, takenBy, type ImportFields } from './comments-import.ts';
 import { resolveComment } from './comments-import.ts';
 export { resolveComment };
@@ -27,8 +29,9 @@ function flowTrace(g: GraphIndex, env: string, service: string, ingress: string)
 
 export function listThread(db: DB, env: string, anchor: string): Thread {
   checkEnv(db, env); flowOf(anchor);
+  const names = nameIndex(db); // the author shows under the user's current name (a rename or merge changes old comments too)
   // sanitized again on the way out: a row that did not come through a write here (a restore, a hand-made insert) is never served raw
-  return buildThread(anchor, (db.prepare('SELECT * FROM comments WHERE env = ? AND anchor = ?').all(env, anchor) as unknown as R[]).map((r) => ({ ...toRow(r), body: sanitize(r.body) })));
+  return buildThread(anchor, (db.prepare('SELECT * FROM comments WHERE env = ? AND anchor = ?').all(env, anchor) as unknown as R[]).map((r) => ({ ...toRow(r), body: sanitize(r.body), author: (r.author_id && names.get(r.author_id)?.name) || r.author })));
 }
 
 /** Open discussions per anchor, for the Flows list: `{anchor: n}`, live top comments that are not resolved (anchors with none are absent). */
@@ -37,13 +40,15 @@ export function counts(db: DB, env: string): Record<string, number> {
   return Object.fromEntries((db.prepare('SELECT anchor, COUNT(*) AS n FROM comments WHERE env = ? AND deleted_at IS NULL AND parent_id IS NULL AND resolved_at IS NULL GROUP BY anchor').all(env) as unknown as { anchor: string; n: number }[]).map((r) => [r.anchor, r.n]));
 }
 
-export interface NewComment extends ImportFields { anchor: string; step?: string | null; parentId?: number | null; author: string; body: string }
+/** `author` (a name) or `authorId` (a user id, from X-Flow-User) says who writes; with neither the call is refused. */
+export interface NewComment extends ImportFields { anchor: string; step?: string | null; parentId?: number | null; author?: string; authorId?: string | null; body: string }
 export type Written = ReturnType<typeof out> & { updated?: true };
 
 export function addComment(db: DB, g: GraphIndex, env: string, i: NewComment): Written {
   checkEnv(db, env);
   const { service, ingress } = flowOf(i?.anchor);
-  const author = authorOf(i.author), body = bodyOf(i.body), x = parseImport(i);
+  const body = bodyOf(i.body), x = parseImport(i);
+  const who = identify(db, { userId: i.authorId, name: i.author, source: x.externalSource, externalId: x.authorExternalId }), author = who.name;
   const t = flowTrace(g, env, service, ingress);
   const step = i.step ?? null;
   if (step !== null && (typeof step !== 'string' || !isStepKey(step) || !hasStep(t, step))) throw badRequest(`step '${step}' is not in the flow ${service} / ${ingress}`);
@@ -60,32 +65,34 @@ export function addComment(db: DB, g: GraphIndex, env: string, i: NewComment): W
     parent = p.parent_id ?? p.id; // one level only: a reply to a reply belongs to the top comment
   }
   if (x.resolved === true && (parent !== null || old?.parent_id != null)) throw badRequest('a reply cannot be resolved on its own: resolve its top comment');
-  if (old) return { ...out(reimport(db, env, old, x, { author, body, step })), updated: true };
+  if (old) return { ...out(reimport(db, env, old, x, { author, authorId: who.id, body, step })), updated: true };
   const at = x.createdAt ?? new Date().toISOString();
-  const id = Number(db.prepare('INSERT INTO comments (env, anchor, step, parent_id, author, body, created_at, external_id, external_source, author_external_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-    .run(env, i.anchor, step, parent, author, body, at, x.externalId, x.externalSource, x.authorExternalId).lastInsertRowid);
+  const id = Number(db.prepare('INSERT INTO comments (env, anchor, step, parent_id, author, author_id, body, created_at, external_id, external_source, author_external_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    .run(env, i.anchor, step, parent, author, who.id, body, at, x.externalId, x.externalSource, x.authorExternalId).lastInsertRowid);
   commentCreated(db, { env, anchor: i.anchor, id, author, text: plainText(body) });
   if (parent === null) applyImported(db, env, id, x, author);
   return out(getRow(db, id));
 }
 
-function mine(db: DB, env: string, id: number, author: unknown): R {
+/** Only the author changes a comment: by user id when the row has one (a rename does not lock the author out), else by the stored name. */
+function mine(db: DB, env: string, id: number, who: Caller): R {
   checkEnv(db, env);
   const r = db.prepare('SELECT * FROM comments WHERE id = ? AND env = ?').get(Number(id), env) as unknown as R | undefined;
   if (!r || r.deleted_at) throw notFound(`comment ${id}`);
-  if (authorOf(author) !== r.author) throw forbidden('only the author can change a comment');
+  if (r.author_id ? r.author_id !== who.id : r.author !== who.name) throw forbidden('only the author can change a comment');
   return r;
 }
+const caller = (db: DB, i: { author?: unknown; authorId?: string | null }) => identify(db, { userId: i.authorId, name: i.author }, false);
 
-export function editComment(db: DB, env: string, id: number, i: { author: string; body: string }) {
-  const r = mine(db, env, id, i?.author), body = bodyOf(i.body);
+export function editComment(db: DB, env: string, id: number, i: { author?: string; authorId?: string | null; body: string }) {
+  const r = mine(db, env, id, caller(db, i ?? {})), body = bodyOf(i.body);
   db.prepare('UPDATE comments SET body = ?, edited_at = ? WHERE id = ?').run(body, new Date().toISOString(), r.id);
   commentEdited(db, { env, anchor: r.anchor, id: r.id, author: r.author, text: plainText(body) });
   return out(getRow(db, r.id));
 }
 
-export function deleteComment(db: DB, env: string, id: number, author: unknown): { deleted: number } {
-  const r = mine(db, env, id, author);
+export function deleteComment(db: DB, env: string, id: number, author: unknown, authorId?: string | null): { deleted: number } {
+  const r = mine(db, env, id, caller(db, { author, authorId }));
   db.prepare("UPDATE comments SET deleted_at = ?, body = '' WHERE id = ?").run(new Date().toISOString(), r.id);
   commentDeleted(db, { env, anchor: r.anchor, id: r.id, author: r.author });
   return { deleted: r.id };
@@ -94,9 +101,9 @@ export function deleteComment(db: DB, env: string, id: number, author: unknown):
 /** A Full copy keeps the discussion: authors, times, the importer's ids, the resolved state and the reply structure (new ids). Soft-deleted rows come too, empty, so replies keep their parent. */
 export function copyComments(db: DB, from: string, to: string): Map<number, number> {
   const ids = new Map<number, number>();
-  const ins = db.prepare('INSERT INTO comments (env, anchor, step, parent_id, author, body, created_at, edited_at, deleted_at, external_id, external_source, author_external_id, resolved_at, resolved_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+  const ins = db.prepare('INSERT INTO comments (env, anchor, step, parent_id, author, author_id, body, created_at, edited_at, deleted_at, external_id, external_source, author_external_id, resolved_at, resolved_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
   tx(db, () => { for (const r of db.prepare('SELECT * FROM comments WHERE env = ? ORDER BY id').all(from) as unknown as R[]) {
-    ids.set(r.id, Number(ins.run(to, r.anchor, r.step, r.parent_id == null ? null : ids.get(r.parent_id) ?? null, r.author, r.body, r.created_at, r.edited_at, r.deleted_at, r.external_id, r.external_source, r.author_external_id, r.resolved_at, r.resolved_by).lastInsertRowid));
+    ids.set(r.id, Number(ins.run(to, r.anchor, r.step, r.parent_id == null ? null : ids.get(r.parent_id) ?? null, r.author, r.author_id, r.body, r.created_at, r.edited_at, r.deleted_at, r.external_id, r.external_source, r.author_external_id, r.resolved_at, r.resolved_by).lastInsertRowid));
   } });
   return ids;
 }

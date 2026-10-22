@@ -628,6 +628,27 @@ annotations: **every environment takes them**, sealed ones too, and `?draft=<slu
 - **MCP.** `list_action_items {env, service, ingress, draft?}` returns `{anchor, open, count, items, events, next}`. `add_action_item {env, service, ingress, owner, description, author, status?, due?, step?, commentId?, draft?}` and `update_action_item {env, id, author, owner?, description?, status?, due?, step?}` (`due` and `step` take `null` to clear). Items written over MCP have `source: "ai"`, which the UI marks with a "by AI" chip. There is no delete over MCP.
 - **Preview.** The static preview bundles the seeded items and keeps what the viewer does in memory.
 
+## Users and identity (0.31.0, #66 part 2)
+
+A global registry of people (not per environment): `users` (migration `016_users.sql`). Comments carry `author_id`, action items `owner_id` /
+`created_by_id`; the free-text `author` / `owner` stays as the display fallback. Existing authors and owners became users in the migration
+(names that differ only in case or spacing are one user). Spec: `docs/plans/users-mentions.md`.
+
+| Method + path | |
+|---|---|
+| `GET /api/users` | `{users: [{id, name, color, createdAt, lastSeenAt, aliases, externalIds: [{source, externalId}]}]}`, live users only, most recently active first |
+| `GET /api/users/:id` | one user (an id that was merged answers the user it went into) |
+| `POST /api/users` | `{name, externalIds?, match?}` -> `201`. A taken name (case and space-insensitive) is `409 NAME_TAKEN`; an external id another user holds is `409 EXTERNAL_ID_TAKEN`. With `match: true` an existing user is returned (`200`) instead of the conflict |
+| `PATCH /api/users/:id` | `{name, keepAlias?}`: rename; ids and colours do not change; `keepAlias: true` keeps the old name as an alias |
+| `POST /api/users/:id/merge` | `{into}`: folds the user into `into` (comments, action items, mentions, seen marks, external ids, aliases move; the old name stays as an alias; the merged id still resolves). Logged as a `user.merged` event. No delete exists |
+
+- **Who is calling (`server/identity.ts`, the only module that knows).** The web client sends `X-Flow-User: <userId>` on every write (the user picked in the sign-in; unknown id: `400`). REST clients that do not send it keep sending `author` (comments) / `actor` (action items, resolve) / `owner` names: each is **matched** to a user (external id first, then exact name or alias, case and space-insensitive) and a user is created when none matches. The header wins over a name in the body. MCP writes are by "Assistant" unless `author` is given. Identity is naive (no passwords); Cognito later replaces only that module.
+- **Author matching on import.** `authorExternalId` together with `externalSource` is looked up first: `{externalSource: "confluence", authorExternalId: "77"}` finds the user that holds that external id whatever name the importer sends (and attaches the id to a user matched by name). An unknown pair creates a user with it.
+- **Edit and delete** compare the caller's user id with the row's `author_id` (action items: `created_by_id`), so a rename does not lock anyone out; rows without ids fall back to the stored name.
+- **Display.** Reads show the author, owner and creator under the user's **current** name; `authorId`, `ownerId`, `createdById` are added to the rows.
+- **Action items** take `owner` (a name, matched) or `ownerId`.
+- **MCP.** `list_users {query?}`.
+
 ## MCP
 
 - HTTP: `POST /mcp` with one JSON-RPC 2.0 message (MCP streamable HTTP, JSON responses).

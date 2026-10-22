@@ -10,10 +10,10 @@ import { addItem, updateItem, listItems, type R } from './action-items.ts';
 
 /** A Full copy keeps every item (deleted ones too, so numbers are never reused), their events, and the comment links remapped to the copy's comment ids. */
 export function copyActionItems(db: DB, from: string, to: string, commentIds: Map<number, number>) {
-  const ins = db.prepare('INSERT INTO action_items (env, anchor, number, owner, description, status, due, step, comment_id, source, created_by, updated_by, created_at, updated_at, closed_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+  const ins = db.prepare('INSERT INTO action_items (env, anchor, number, owner, owner_id, created_by_id, description, status, due, step, comment_id, source, created_by, updated_by, created_at, updated_at, closed_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
   const evs = db.prepare('SELECT kind, actor, at FROM action_item_events WHERE item_id = ? ORDER BY id'), insEv = db.prepare('INSERT INTO action_item_events (item_id, kind, actor, at) VALUES (?, ?, ?, ?)');
   tx(db, () => { for (const r of db.prepare('SELECT * FROM action_items WHERE env = ? ORDER BY id').all(from) as unknown as R[]) {
-    const id = Number(ins.run(to, r.anchor, r.number, r.owner, r.description, r.status, r.due, r.step, r.comment_id == null ? null : commentIds.get(r.comment_id) ?? null, r.source, r.created_by, r.updated_by, r.created_at, r.updated_at, r.closed_at, r.deleted_at).lastInsertRowid);
+    const id = Number(ins.run(to, r.anchor, r.number, r.owner, r.owner_id, r.created_by_id, r.description, r.status, r.due, r.step, r.comment_id == null ? null : commentIds.get(r.comment_id) ?? null, r.source, r.created_by, r.updated_by, r.created_at, r.updated_at, r.closed_at, r.deleted_at).lastInsertRowid);
     for (const e of evs.all(r.id) as unknown as { kind: string; actor: string; at: string }[]) insEv.run(id, e.kind, e.actor, e.at);
   } });
 }

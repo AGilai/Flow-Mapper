@@ -8,7 +8,7 @@ export const MAX_DESCRIPTION = 2000;
 
 /** One item as the list returns it. */
 export interface ActionItem {
-  id: number; anchor: string; number: number; owner: string; description: string; status: ActionStatus; due: string | null; step: string | null;
+  id: number; anchor: string; number: number; owner: string; ownerId?: string | null; createdById?: string | null; description: string; status: ActionStatus; due: string | null; step: string | null;
   commentId: number | null; source: 'human' | 'ai'; createdBy: string; updatedBy: string; createdAt: string; updatedAt: string; closedAt: string | null;
 }
 /** A line of history. `commentId` is the comment the item was made from (null: the event is not shown in a thread). */

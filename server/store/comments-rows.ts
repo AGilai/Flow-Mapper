@@ -9,10 +9,10 @@ import { getEnvRow } from './envs.ts';
 
 export interface R {
   id: number; env: string; anchor: string; step: string | null; parent_id: number | null; author: string; body: string; created_at: string; edited_at: string | null; deleted_at: string | null;
-  external_id: string | null; external_source: string | null; author_external_id: string | null; resolved_at: string | null; resolved_by: string | null;
+  external_id: string | null; external_source: string | null; author_external_id: string | null; resolved_at: string | null; resolved_by: string | null; author_id: string | null;
 }
 export const toRow = (r: R): CommentRow => ({
-  id: r.id, anchor: r.anchor, step: r.step, parentId: r.parent_id, author: r.author, body: r.body, createdAt: r.created_at, editedAt: r.edited_at, deletedAt: r.deleted_at,
+  id: r.id, anchor: r.anchor, step: r.step, parentId: r.parent_id, author: r.author, authorId: r.author_id, body: r.body, createdAt: r.created_at, editedAt: r.edited_at, deletedAt: r.deleted_at,
   externalId: r.external_id, externalSource: r.external_source, authorExternalId: r.author_external_id, resolvedAt: r.resolved_at, resolvedBy: r.resolved_by,
 });
 /** What a write answers: the row plus `resolved` (the state lives on a thread's top comment; a reply's own row never carries it). */
