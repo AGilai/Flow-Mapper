@@ -15,7 +15,7 @@ const row = (queue: string, handler: string, extra: any = {}) => ({ queue, handl
 test('keys round-trip, with the characters that need escaping', () => {
   const e = T.entryKey('api-gateway', 'in.createOrder');
   assert.equal(e, 'api-gateway/in.createOrder');
-  assert.deepEqual(T.parseKey(e), { key: e, kind: 'entry', service: 'api-gateway', ingress: 'in.createOrder', event: null, scope: 'full' });
+  assert.deepEqual(T.parseKey(e), { key: e, env: null, kind: 'entry', service: 'api-gateway', ingress: 'in.createOrder', event: null, scope: 'full' });
   const odd = T.entryKey('svc', 'in,a@b~c/d', 'ev@1');
   assert.deepEqual([T.parseKey(odd).ingress, T.parseKey(odd).event], ['in,a@b~c/d', 'ev@1']);
   assert.ok(!odd.includes(',') && !odd.includes('@'));

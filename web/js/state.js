@@ -1,7 +1,8 @@
 // App-wide state: current environment, app version and the design-environment view state (mode, draft, compare).
 // The design state lives in the URL (`mode=edit`, `draft=<slug>`, `compare=source`) so links land in a draft; the env choice is kept per browser.
 
-import { setQuery } from './router.js';
+import { setQuery, parseHash } from './router.js';
+import { urlKeys, retarget } from './views/flow-tabs-state.js';
 
 const KEY = 'flow-mapper.env';
 const listeners = new Set();
@@ -43,11 +44,17 @@ export function designFromQuery(query, s = state, envs = s.envs, meta = s.envMet
   return { env, draft, mode, compare };
 }
 
-/** Switch environment; `silent` skips the page refresh (the caller navigates next). Clears the design state. */
+/** The tabs of the URL in the terms of another environment (0.36.0): an unprefixed key means the page's environment, so a switch has to write the old one's tabs with their prefix. */
+function tabsPatch(from, to) {
+  try { const q = parseHash().query; return urlKeys(q).length ? retarget(q, from, to) : {}; } catch { return {}; }
+}
+
+/** Switch environment; `silent` skips the page refresh (the caller navigates next, and the URL is already in the new environment's terms). Clears the design state; open flow tabs stay. */
 export function setEnv(env, silent = false) {
+  const tabs = silent || env === state.env ? {} : tabsPatch(state.env, env);
   state.env = env;
   Object.assign(state, DESIGN_KEYS);
-  setQuery({ env: null, draft: null, mode: null, compare: null });
+  setQuery({ env: null, draft: null, mode: null, compare: null, ...tabs });
   try { localStorage.setItem(KEY, env); } catch { /* storage unavailable */ }
   if (!silent) listeners.forEach((fn) => fn());
 }

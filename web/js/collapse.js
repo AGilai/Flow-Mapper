@@ -26,7 +26,7 @@ export const toggleLabel = (what, collapsed) => `${collapsed ? 'Expand' : 'Colla
 
 /** The text written vertically on the collapsed entry-point list: the service in view, else the plain title with its count, then the filters applied. */
 export function stripLabel({ service = null, active = null, count = 0, summary = '' } = {}) {
-  const s = service ?? (active ? String(active).replace(/^(?:fn:|full:)/, '').split('/')[0] : null), base = s || (count ? `Entry points (${count})` : 'Entry points');
+  const s = service ?? (active ? String(active).replace(/^[^|/@~!:]+\|/, '').replace(/^(?:fn:|full:)/, '').split('/')[0] : null), base = s || (count ? `Entry points (${count})` : 'Entry points');
   return summary ? `${base} · ${summary}` : base; // the filters applied (flow-list-filter.js filterSummary), when any
 }
 

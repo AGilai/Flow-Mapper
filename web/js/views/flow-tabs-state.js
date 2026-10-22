@@ -1,60 +1,19 @@
 // Flow tabs, pure: tab keys (stable, URL-safe), URL encode/decode, open/close/reopen order, "distinct" selection and
 // the keyboard map. No DOM. A state is { keys: [...], active: key|null, closed: [{ key, index }] } and is never mutated.
 //
-// Keys:  entry  `service/ingress`  (+ `~event`) (+ `!intra`)   fn  `fn:service/function` (+ `~event`) (+ `!full`)
-//        sub    `queue/handler@origin`               full  `full:service/ingress` (+ `@origin`)
-// `origin` is the key of the tab the flow was opened from; it may itself contain `@` (the first `@` splits).
+// The key format (with its optional `env|` prefix) is in flow-tab-keys.js, re-exported here.
 
-const esc = (s) => String(s).replace(/[%,@~/!\s]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0')}`);
-const unesc = (s) => decodeURIComponent(s);
+import { qual, unqual, parseKey, entryKey, fnKey, originOf, descends, envOfKey } from './flow-tab-keys.js';
+export * from './flow-tab-keys.js';
+
 const CLOSED_CAP = 20;
-/** The most tabs open at once (0.33.3): every opener checks `canOpen` first and tells the viewer when it says no. */
+/** The most tabs open at once (0.33.3): every opener checks `canOpen` first and tells the viewer when it says no. Tabs of every environment count. */
 export const TAB_CAP = 10;
 
-// The scope is part of an entry or fn key only when it is not the default (an ingress starts "full", a function "intra").
-export const entryKey = (service, ingress, event, scope) => `${esc(service)}/${esc(ingress)}${event ? `~${esc(event)}` : ''}${scope === 'intra' ? '!intra' : ''}`;
-export const fnKey = (service, fn, event, scope) => `fn:${esc(service)}/${esc(fn)}${event ? `~${esc(event)}` : ''}${scope === 'full' ? '!full' : ''}`;
-export const fullKey = (service, ingress, origin, event) => `full:${esc(service)}/${esc(ingress)}${event ? `~${esc(event)}` : ''}${origin ? `@${origin}` : ''}`;
-/** A delivery (queue + handler) opened from the tab `origin`. */
-export const subKey = (row, origin) => `${esc(row.queue)}/${esc(row.handler)}@${origin}`;
-
-/** key -> { key, kind: 'entry'|'fn'|'full'|'sub', service?, ingress?, fn?, event?, queue?, handler?, origin? } | null (not a key) */
-export function parseKey(key) {
-  try {
-    if (typeof key !== 'string' || !key || /[\s,]/.test(key)) return null;
-    const at = key.indexOf('@');
-    const head = at < 0 ? key : key.slice(0, at), origin = at < 0 ? null : key.slice(at + 1);
-    if (at >= 0 && !origin) return null;
-    const sc = head.match(/^(.*?)(?:!(intra|full))?$/s), explicit = sc[2] ?? null;
-    const [main, ev] = sc[1].split('~');
-    const [a, b, ...rest] = main.split('/');
-    if (rest.length || !a || !b) return null;
-    const event = ev ? unesc(ev) : null;
-    if (a.startsWith('full:')) return { key, kind: 'full', service: unesc(a.slice(5)), ingress: unesc(b), event, origin };
-    if (origin) return /:/.test(a) ? { key, kind: 'sub', queue: unesc(a), handler: unesc(b), origin } : null;
-    if (a.startsWith('fn:')) return { key, kind: 'fn', service: unesc(a.slice(3)), fn: unesc(b), event, scope: explicit ?? 'intra' };
-    return /^[^:]+$/.test(a) ? { key, kind: 'entry', service: unesc(a), ingress: unesc(b), event, scope: explicit ?? 'full' } : null;
-  } catch { return null; }
-}
-/** The same entry or fn tab at another scope (other kinds have none). */
-export function withScope(key, scope) {
-  const p = parseKey(key);
-  return p?.kind === 'entry' ? entryKey(p.service, p.ingress, p.event, scope) : p?.kind === 'fn' ? fnKey(p.service, p.fn, p.event, scope) : key;
-}
-/** The flow a tab's descriptions belong to: { service, ingress } of its entry point (a sub-flow tab: of the flow it came from), null for a function tab. */
-export function flowRoot(key) {
-  const p = parseKey(key);
-  if (!p) return null;
-  if (p.kind === 'sub') return flowRoot(p.origin);
-  return p.ingress ? { service: p.service, ingress: p.ingress } : null;
-}
-export const originOf =(key) => { const at = key.indexOf('@'); return at < 0 ? null : key.slice(at + 1); };
-/** Is `key` opened (directly or through other tabs) from `origin`? */
-export const descends = (key, origin) => { for (let o = originOf(key); o; o = originOf(o)) if (o === origin) return true; return false; };
-
 // ---- URL ----
-/** The distinct, valid keys of a link: `tabs=` wins; old `service=&ingress=` (or `fn=`, `event=`) links give one tab. Before the cap. */
-export function urlKeys(query) {
+/** The distinct, valid keys of a link: `tabs=` wins; old `service=&ingress=` (or `fn=`, `event=`) links give one tab. Before the cap.
+ *  `env`: the page's environment; keys without a prefix are qualified with it (null: left as written). */
+export function urlKeys(query, env = null) {
   let keys = (query.get('tabs') ?? '').split(',').filter((k) => parseKey(k));
   if (!query.has('tabs')) {
     const service = query.get('service'), ingress = query.get('ingress'), fn = query.get('fn'), event = query.get('event');
@@ -62,17 +21,21 @@ export function urlKeys(query) {
     if (service && ingress) keys = [entryKey(service, ingress, event, scope)];
     else if (service && fn) keys = [fnKey(service, fn, event, scope)];
   }
-  return [...new Set(keys)];
+  return [...new Set(keys.map((k) => qual(env, k)))];
 }
 /** query (URLSearchParams) -> state, at most TAB_CAP tabs: the first ones in URL order, but a `tab=` past the last slot takes it, so the link still shows its flow. */
-export function decodeUrl(query) {
-  let keys = urlKeys(query);
-  const tab = query.get('tab');
+export function decodeUrl(query, env = null) {
+  let keys = urlKeys(query, env);
+  const t = query.get('tab'), tab = t && parseKey(t) ? qual(env, t) : t;
   if (keys.length > TAB_CAP) keys = keys.indexOf(tab) >= TAB_CAP ? [...keys.slice(0, TAB_CAP - 1), tab] : keys.slice(0, TAB_CAP);
   return { keys, active: keys.includes(tab) ? tab : keys[keys.length - 1] ?? null, closed: [] };
 }
-/** state -> the query patch to set; the old single-flow params are cleared. */
-export const encodeUrl = (s) => ({ tabs: s.keys.length ? s.keys.join(',') : null, tab: s.keys.length > 1 ? s.active : null, ingress: null, fn: null, event: null, scope: null });
+/** state -> the query patch to set; the old single-flow params are cleared. A key of the page's environment `env` is written without its prefix, any other with it. */
+export const encodeUrl = (s, env = null) => ({ tabs: s.keys.length ? s.keys.map((k) => unqual(k, env)).join(',') : null, tab: s.keys.length > 1 ? unqual(s.active, env) : null, ingress: null, fn: null, event: null, scope: null });
+/** How many of the tabs in a link are of environment `env` (the page's env is `pageEnv`: unprefixed keys are its): the delete dialog warns about them. */
+export const tabsInEnv = (query, env, pageEnv) => decodeUrl(query, pageEnv).keys.filter((k) => envOfKey(k) === env).length;
+/** The `tabs=` / `tab=` patch that keeps the same tabs when the page's environment goes from `from` to `to` (the URL reads unprefixed keys as the page's own). */
+export const retarget = (query, from, to) => encodeUrl(decodeUrl(query, from), to);
 
 // ---- order ----
 export const emptyState = () => ({ keys: [], active: null, closed: [] });
