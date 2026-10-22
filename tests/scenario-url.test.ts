@@ -27,3 +27,19 @@ test('reload: once resolved, the choice is written from the state', () => {
   Object.assign(st, { chosen: r.chosen, rawCh: null, resolved: true, decisions: ds });
   assert.equal(scen.query('k').ch, 'aaaaaaaa:y');
 });
+test('edit mode: All is the default, so only real choices are written', () => {
+  const all = new Map([[A, 'both'], [B, 'both']]);
+  assert.equal(P.encodeChoose(ds, all, true), null, 'every decision on All: nothing');
+  assert.equal(P.changedCount(ds, all, true), 0);
+  assert.equal(P.encodeChoose(ds, new Map([[A, 'x'], [B, 'both']]), true), 'aaaaaaaa:x', 'an explicit first arm is a choice here');
+  assert.equal(P.changedCount(ds, new Map([[A, 'x'], [B, 'both']]), true), 1);
+  assert.equal(P.encodeChoose(ds, all, false), 'aaaaaaaa:both,bbbbbbbb:both', 'outside edit mode All is a difference');
+  const back = P.applyChoose(ds, P.decodeChoose('aaaaaaaa:x'), true);
+  assert.equal(back.chosen.get(A), 'x', 'the link round-trips in edit mode');
+});
+
+test('edit mode: scenarioQuery follows the state flag', () => {
+  const s = { chosen: new Map([[A, 'both']]), detail: 'external', open: new Set(), edit: true };
+  assert.equal(P.scenarioQuery(ds, s).ch, null);
+  assert.equal(P.scenarioQuery(ds, { ...s, edit: false }).ch, 'aaaaaaaa:both');
+});

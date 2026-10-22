@@ -15,17 +15,18 @@ export function createScenario({ st, base: first, req, baseFor, visible = () => 
   let base = first, token = 0, cur = null;
   let have = { full: st.detail === 'full', open: new Set(st.detail === 'full' ? [] : st.open) }; // what `base` holds beyond the external view
   const loading = new Set();
+  st.edit = editAll; // edit mode of a design draft: the default of every decision is All (the URL's `ch=` is written against it)
   const decisions = () => base.decisions ?? [];
   const intra = () => base.scope === 'intra';
 
   if (!st.resolved) { // the link's `ch=` meets the flow's decisions: unknown groups and arms are dropped with a toast
-    const r = applyChoose(decisions(), decodeChoose(st.rawCh));
+    const r = applyChoose(decisions(), decodeChoose(st.rawCh), editAll);
     st.chosen = r.chosen; st.rawCh = null; st.resolved = true;
     if (r.dropped) toast('Part of the link\'s scenario does not apply to this flow. It was dropped.', 4500);
   }
   // Edit mode of a design draft (0.38.1): every decision not seen yet starts on All, so editing never hides a branch; leaving edit mode takes those back.
   const seed = () => { st.seeded ??= new Set(); seedAll(decisions(), st.chosen, st.seeded, editAll); };
-  const sync = () => { st.decisions = decisions(); seed(); st.chosen = prune(st.decisions, st.chosen); };
+  const sync = () => { st.decisions = decisions(); seed(); st.chosen = prune(st.decisions, st.chosen, editAll); };
   const make = () => { sync(); cur = viewOf(base, { choose: chooseObject(st.chosen), detail: intra() ? 'full' : st.detail, open: [...st.open], dbOpen: [...st.dbOpen], group: true }); return cur; };
   const changed = () => { make(); onChange(cur); };
 
@@ -43,7 +44,7 @@ export function createScenario({ st, base: first, req, baseFor, visible = () => 
   }
   const api = {
     view: () => cur ?? make(), loading, decisions, isFull: () => have.full || st.detail === 'full',
-    choose(group, arm) { st.chosen = setChoice(decisions(), st.chosen, group, arm); changed(); },
+    choose(group, arm) { st.chosen = setChoice(decisions(), st.chosen, group, arm, editAll); changed(); },
     reset() { st.chosen = new Map(); st.seeded?.clear(); changed(); },
     async setDetail(d) {
       if (d === st.detail) return;
@@ -64,12 +65,13 @@ export function createScenario({ st, base: first, req, baseFor, visible = () => 
     },
     /** The scenario as trace-view parameters, for the Mermaid export of what the tab shows. */
     exportView: () => ({ detail: st.detail, choose: Object.entries(chooseObject(st.chosen)).map(([g, a]) => `${g}:${a}`).join(',') || null, open: [...st.open].join(',') || null, dbOpen: [...st.dbOpen].join(',') || null, group: '1' }),
+    editAll: () => editAll,
     toggleDb(key) { if (!st.dbOpen.delete(key)) st.dbOpen.add(key); changed(); },
     /** A step the view does not show: on an arm that is not in force ("Not in this scenario"), or in a detail that is not loaded ("Not in this view"); null when it is shown or gone. */
     hiddenOf(key) {
       if (visible(key)) return null;
       const arm = hiddenByArm(decisions(), st.chosen, base.messages, key);
-      if (arm) { const next = showChoices(decisions(), st.chosen, arm); return { text: 'Not in this scenario', locked: !next, show: () => { if (next) { st.chosen = next; changed(); } } }; }
+      if (arm) { const next = showChoices(decisions(), st.chosen, arm, editAll); return { text: 'Not in this scenario', locked: !next, show: () => { if (next) { st.chosen = next; changed(); } } }; }
       if (base.messages.some((m) => m.key === key) || (!have.full && st.detail !== 'full')) return { text: 'Not in this view', show: () => api.setDetail('full') };
       return null;
     },
