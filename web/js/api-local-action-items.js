@@ -7,7 +7,7 @@ import { HASH_TRACE, isStepKey, hasStep } from '../core/description.js';
 import { parseFlowAnchor, MAX_AUTHOR, cleanName } from '../core/comments.js';
 import { checkFields, eventFor, isOpen } from '../core/action-items.js';
 
-export function createActionItems(data, g) {
+export function createActionItems(data, g, U) {
   const fail = (message, status, code = 'VALIDATION') => { const e = new Error(message); e.status = status; e.code = code; throw e; };
   const store = (env) => ((data.actionItems ??= {})[env] ??= { items: [], events: [] });
   const used = new Map();
@@ -38,7 +38,7 @@ export function createActionItems(data, g) {
       const f = flow(i?.anchor), by = actor(i.actor), v = fields(i, false);
       if (!trace(g(env), { service: f.service, ingress: f.ingress }, HASH_TRACE)) fail(`flow ${f.service} / ${f.ingress} not found`, 404, 'NOT_FOUND');
       const step = stepOf(env, f, i.step), status = v.status ?? 'open', now = new Date().toISOString();
-      const row = { id: Math.max(0, ...store(env).items.map((x) => x.id)) + 1, anchor: i.anchor, number: nextNumber(env, i.anchor), owner: v.owner, description: v.description, status, due: v.due ?? null, step,
+      const row = { id: Math.max(0, ...store(env).items.map((x) => x.id)) + 1, anchor: i.anchor, number: nextNumber(env, i.anchor), owner: v.owner, ownerId: U.userFor(null, v.owner).id, createdById: U.userFor(null, by).id, description: v.description, status, due: v.due ?? null, step,
         commentId: i.commentId ?? null, source: 'human', createdBy: by, updatedBy: by, createdAt: now, updatedAt: now, closedAt: isOpen(status) ? null : now };
       store(env).items.push(row); note(env, row, 'created', by, now);
       return structuredClone(row);

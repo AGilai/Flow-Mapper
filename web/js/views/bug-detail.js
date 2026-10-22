@@ -1,5 +1,6 @@
 // Bug detail: description, logs, comments; side panel to triage, prioritize and fix.
 
+import { ensureUser } from '../users/signin.js';
 import { h, fill, toast } from '../dom.js';
 import { api, isPreview } from '../api.js';
 import { state } from '../state.js';
@@ -47,9 +48,9 @@ export async function render({ main, params }) {
         h('form.stack', { on: { submit: async (e) => {
           e.preventDefault();
           if (!comment.value.trim()) return;
-          let who = 'anonymous';
-          try { who = localStorage.getItem('flow-mapper.reporter') || who; } catch { /* storage unavailable */ }
-          await api.comment(b.id, who, comment.value);
+          let who;
+          try { who = await ensureUser('Sign in to comment. There are no passwords yet: picking a user only labels what you write.'); } catch (er) { if (er.cancelled) return; throw er; }
+          await api.comment(b.id, who.name, comment.value);
           await load();
         } } }, comment, h('div', h('button.btn', { type: 'submit' }, 'Comment')))));
   }

@@ -26,6 +26,8 @@ import { exportMermaid } from '../core/mermaid-export.js';
 import { envApi } from './api-local-envs.js';
 import { createDesign } from './api-local-design.js';
 import { createComments } from './api-local-comments.js';
+import { createUsers } from './api-local-users.js';
+import { createMentions } from './api-local-mentions.js';
 import { createActionItems } from './api-local-action-items.js';
 
 const data = globalThis.FLOW_PREVIEW;
@@ -64,12 +66,15 @@ function noStart(env, q) {
   throw e;
 }
 
+const U = createUsers(data);
 export const api = {
   version: async () => ({ version: data.version }),
   envs: async () => Object.keys(data.models),
   ...envApi(data, g),
-  ...createComments(data, g),
-  ...createActionItems(data, g),
+  ...U,
+  ...createMentions(data),
+  ...createComments(data, g, U),
+  ...createActionItems(data, g, U),
   ...D.api,
   services: async (env) => {
     const h = new Map(health(g(env)).services.map((s) => [s.service, s]));

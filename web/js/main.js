@@ -8,6 +8,7 @@ import { setQuery } from './router.js';
 import { mountDesignStrip } from './design/design-strip.js';
 import { renderRail } from './components/sidebar.js';
 import { mountBugButton } from './components/bug-dialog.js';
+import { startUnread, unreadCount, onUnread } from './users/unread.js';
 
 const rail = document.getElementById('rail');
 const main = document.getElementById('main');
@@ -23,6 +24,8 @@ route('/channels/:key', () => import('./views/channel.js'));
 route('/events/:type', () => import('./views/event.js'));
 route('/services/:name', () => import('./views/service.js'));
 route('/flows', () => import('./views/flows.js'));
+route('/mentions', () => import('./views/mentions.js'));
+route('/users', () => import('./views/users.js'));
 route('/health', () => import('./views/health.js'));
 route('/bugs', () => import('./views/bugs-list.js'));
 route('/bugs/new', () => import('./views/bug-report.js'));
@@ -41,7 +44,9 @@ async function boot() {
   }
   mountBugButton();
   let openBugs = 0;
-  const refreshRail = () => renderRail(rail, parseHash().path, { '/bugs': openBugs || null });
+  const refreshRail = () => renderRail(rail, parseHash().path, { '/bugs': openBugs || null, '/mentions': unreadCount() || null });
+  onUnread(refreshRail);
+  startUnread();
   api.bugs({ open: true, limit: 1000 }).then((b) => { openBugs = b.length; refreshRail(); }).catch(() => {});
 
   start(async (r, params, loc) => {

@@ -7,6 +7,7 @@ import { plainText } from '../../core/rich-text-text.ts';
 import { badRequest, notFound, conflict } from '../errors.ts';
 import { commentEdited, commentResolved } from '../events/emitters.ts';
 import { type R, checkEnv, authorOf, getRow } from './comments-rows.ts';
+import { identify } from '../identity.ts';
 
 export interface ImportFields {
   createdAt?: string; externalId?: string; externalSource?: string; authorExternalId?: string; parentExternalId?: string;
@@ -63,19 +64,19 @@ export function applyImported(db: DB, env: string, id: number, x: Imported, auth
 }
 
 /** A POST whose (externalSource, externalId) exists: the comment is updated (body, author, step, time, resolved), never duplicated. A deleted one comes back. */
-export function reimport(db: DB, env: string, old: R, x: Imported, v: { author: string; body: string; step: string | null }): R {
+export function reimport(db: DB, env: string, old: R, x: Imported, v: { author: string; authorId: string | null; body: string; step: string | null }): R {
   const now = new Date().toISOString(), changed = old.body !== v.body;
-  db.prepare('UPDATE comments SET author = ?, body = ?, step = ?, created_at = ?, author_external_id = COALESCE(?, author_external_id), edited_at = ?, deleted_at = NULL WHERE id = ?')
-    .run(v.author, v.body, v.step, x.createdAt ?? old.created_at, x.authorExternalId, changed || old.deleted_at ? now : old.edited_at, old.id);
+  db.prepare('UPDATE comments SET author = ?, author_id = COALESCE(?, author_id), body = ?, step = ?, created_at = ?, author_external_id = COALESCE(?, author_external_id), edited_at = ?, deleted_at = NULL WHERE id = ?')
+    .run(v.author, v.authorId, v.body, v.step, x.createdAt ?? old.created_at, x.authorExternalId, changed || old.deleted_at ? now : old.edited_at, old.id);
   if (changed) commentEdited(db, { env, anchor: old.anchor, id: old.id, author: v.author, text: plainText(v.body) });
   if (old.parent_id == null) applyImported(db, env, old.id, x, v.author);
   return getRow(db, old.id);
 }
 
 /** Anyone may resolve or reopen a thread (the `actor` is kept in `resolvedBy`); only a top comment can be, its replies follow it. */
-export function resolveComment(db: DB, env: string, id: number, i: { actor?: unknown; author?: unknown; resolved?: unknown }): R {
+export function resolveComment(db: DB, env: string, id: number, i: { actor?: unknown; author?: unknown; userId?: string | null; resolved?: unknown }): R {
   checkEnv(db, env);
-  const by = authorOf(i?.actor ?? i?.author, 'actor');
+  const by = identify(db, { userId: i?.userId, name: i?.actor ?? i?.author, what: 'actor' }).name;
   if (typeof i.resolved !== 'boolean') throw badRequest('resolved must be true or false');
   const r = db.prepare('SELECT * FROM comments WHERE id = ? AND env = ?').get(Number(id), env) as unknown as R | undefined;
   if (!r || r.deleted_at) throw notFound(`comment ${id}`);

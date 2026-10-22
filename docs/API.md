@@ -593,7 +593,7 @@ lets a flow that only exists in an open draft be discussed (an unknown draft is 
   `a` keeps only an `http(s)` `href` and gets `rel="noopener noreferrer" target="_blank"`; `span` keeps only a palette class (`cc-coral cc-ochre cc-sage cc-cyan cc-sky cc-violet`);
   `td` / `th` keep `colspan` / `rowspan` (2 to 20). Everything else is removed: other tags and their attributes, styles, comments, `script` / `style` contents; text is escaped, entities are decoded once.
   `div` and `h1`..`h6` become `p`, so pasted line breaks survive. Limits: 20 000 characters after sanitizing (`422`), nesting depth 20, a table at most 50 rows x 20 columns. A body with no text after sanitizing is `422` ("the comment is empty"). The server sanitizes again on every read, so a row that did not come through a write is never served raw. Clients should still sanitize before they set `innerHTML` (the UI does, with the same code).
-- **Identity is naive.** There are no accounts. `author` (1 to 80 characters) is whatever the client says; only the comment's own author edits or deletes it (`403 FORBIDDEN` when `author` differs, `404` for a deleted or unknown id). The UI remembers the name in `localStorage` (`flow-mapper.reporter`, the bug dialog's name).
+- **Identity is naive.** There are no passwords. Since 0.32.0 the caller is a **user** (see "Users and identity"): the UI sends `X-Flow-User: <userId>` (the user it signed in as), and `author` (1 to 80 characters) is only needed by clients that do not send the header; it is matched to a user (created when new). Only the comment's own author edits or deletes it (by user id, so a rename does not lock anyone out; `403 FORBIDDEN` for someone else, `404` for a deleted or unknown id). Rows carry `authorId`; `author` shows the user's current name. The UI has no name field any more: the composer, resolve, action items and the bug dialog use the signed-in user.
 - **Validation.** `anchor` must be `flow:<service>/<ingress>` of a flow that exists in the environment (or the open draft): `400` for another anchor, `404` for an unknown environment or flow. `step`, when given, is a step key (`#step:...`, see Flow descriptions) of that flow's trace (`400` otherwise). `parentId` must be a comment under the same anchor (`404`), not deleted (`422`); a reply to a reply is stored under the top comment (one level only).
 - **Importer fields (0.29.2, migration `014_comments_import.sql`).** `POST` also takes: `createdAt` (ISO 8601; kept as that instant and stored as UTC; `400` when it is not a time or is more than 5 minutes in the future); `externalSource` + `externalId` (both or neither, at most 200 characters each: the id of the comment in the system it came from, e.g. `confluence`); `authorExternalId` (at most 200); `parentExternalId` instead of `parentId` (the parent is looked up by `externalSource` + that id in the same environment, so `externalSource` is required; unknown, under another flow, or given together with `parentId` is `400`); `resolved` (bool) with optional `resolvedBy` (default: the author) and `resolvedAt` (default: now). `count`, `author` and the other rules are unchanged.
 - **Re-import.** A POST whose (`externalSource`, `externalId`) already exists in the environment **updates that comment** (body, author, step, `createdAt`, `authorExternalId`; `resolved` only when the field is given) and answers `200` with `{..., updated: true}` instead of `201`; it never duplicates. A changed body sets `editedAt`. A comment that was deleted comes back. The same pair under a different anchor is `409 EXTERNAL_ID_TAKEN`. Its parent is not changed by a re-import. The pair is unique per environment (`resolved` of a reply is `400`: see below).
@@ -627,6 +627,46 @@ annotations: **every environment takes them**, sealed ones too, and `?draft=<slu
 - **Push events** (`GET /api/events`): `action_item.created`, `action_item.updated`, `action_item.deleted`, with `env` and `data {anchor, id, number, status, actor}`.
 - **MCP.** `list_action_items {env, service, ingress, draft?}` returns `{anchor, open, count, items, events, next}`. `add_action_item {env, service, ingress, owner, description, author, status?, due?, step?, commentId?, draft?}` and `update_action_item {env, id, author, owner?, description?, status?, due?, step?}` (`due` and `step` take `null` to clear). Items written over MCP have `source: "ai"`, which the UI marks with a "by AI" chip. There is no delete over MCP.
 - **Preview.** The static preview bundles the seeded items and keeps what the viewer does in memory.
+
+## Users and identity (0.32.0, #66 part 2)
+
+A global registry of people (not per environment): `users` (migration `016_users.sql`). Comments carry `author_id`, action items `owner_id` /
+`created_by_id`; the free-text `author` / `owner` stays as the display fallback. Existing authors and owners became users in the migration
+(names that differ only in case or spacing are one user). Spec: `docs/plans/users-mentions.md`.
+
+| Method + path | |
+|---|---|
+| `GET /api/users` | `{users: [{id, name, color, createdAt, lastSeenAt, aliases, externalIds: [{source, externalId}]}]}`, live users only, most recently active first |
+| `GET /api/users/:id` | one user (an id that was merged answers the user it went into) |
+| `POST /api/users` | `{name, externalIds?, match?}` -> `201`. A taken name (case and space-insensitive) is `409 NAME_TAKEN`; an external id another user holds is `409 EXTERNAL_ID_TAKEN`. With `match: true` an existing user is returned (`200`) instead of the conflict |
+| `PATCH /api/users/:id` | `{name, keepAlias?}`: rename; ids and colours do not change; `keepAlias: true` keeps the old name as an alias |
+| `POST /api/users/:id/merge` | `{into}`: folds the user into `into` (comments, action items, mentions, seen marks, external ids, aliases move; the old name stays as an alias; the merged id still resolves). Logged as a `user.merged` event. No delete exists |
+
+- **Who is calling (`server/identity.ts`, the only module that knows).** The web client sends `X-Flow-User: <userId>` on every write (the user picked in the sign-in; unknown id: `400`). REST clients that do not send it keep sending `author` (comments) / `actor` (action items, resolve) / `owner` names: each is **matched** to a user (external id first, then exact name or alias, case and space-insensitive) and a user is created when none matches. The header wins over a name in the body. MCP writes are by "Assistant" unless `author` is given. Identity is naive (no passwords); Cognito later replaces only that module.
+- **Author matching on import.** `authorExternalId` together with `externalSource` is looked up first: `{externalSource: "confluence", authorExternalId: "77"}` finds the user that holds that external id whatever name the importer sends (and attaches the id to a user matched by name). An unknown pair creates a user with it.
+- **Edit and delete** compare the caller's user id with the row's `author_id` (action items: `created_by_id`), so a rename does not lock anyone out; rows without ids fall back to the stored name.
+- **Display.** Reads show the author, owner and creator under the user's **current** name; `authorId`, `ownerId`, `createdById` are added to the rows.
+- **Action items** take `owner` (a name, matched) or `ownerId`.
+- **MCP.** `list_users {query?}`, `list_mentions` (see Mentions). `add_comment`, `resolve_comment`, `add_action_item` and `update_action_item` no longer require `author`: without it the write is by the user "Assistant".
+
+## Mentions (0.32.0, #66 part 2)
+
+A comment can address a user with the token **`@[userId]`** in its body (the id is `u_` plus 8 hex characters; any `[A-Za-z0-9_-]{1,40}` is read as an id).
+The sanitizer keeps it as plain text; the UI draws it as a chip with the user's **current** name (a rename changes every old comment), a filled chip
+for the signed-in user and a dashed "@unknown user" for an id that has no user. A plain "@Priya" stays text (no guessing).
+
+- **Writing a mention.** Put `@[userId]` in the body, or the name form **`@{Display Name}`** (REST and MCP): the name is matched to a user (exact name or alias, case and space-insensitive) and a **new user is created when none matches**; the server rewrites it to the token before the body is sanitized and stored. `GET /api/users` (or MCP `list_users`) gives the ids. An unknown `@[id]` is stored as text and mentions nobody.
+- **Who a comment points at** is kept in step with the body on every write (create, edit, re-import): editing a mention out removes it (and its seen mark); an edit that adds one to an old comment makes it unread. A mention of yourself and the mentions in a Full copy are never unread. A merge rewrites the tokens (`@[old]` becomes `@[kept]`).
+- **Unread** is per user and per comment (a seen mark), so it survives a merge. The UI marks a thread's mentions seen after 2 seconds on screen, or when opened from the Mentions page.
+
+| Method + path | |
+|---|---|
+| `GET /api/mentions?user=<id>[&unread=1][&env=][&anchor=][&limit=]` | `{user, unread, mentions: [{commentId, env, anchor, service, ingress, step, parentId, author, authorId, text, html, createdAt, unread}]}` across **every environment**, newest first. `user` may be the `X-Flow-User` header instead. A deleted comment is not listed. `400` without a user, `404` for an unknown one |
+| `POST /api/mentions/seen` | `{user?, commentIds: [n, ...]}` -> `{marked}`. Only comments that mention that user get a mark |
+| `GET /api/envs/:env/mentions/counts?user=<id>` | `{<anchor>: n}`: unread mentions per flow (the Flows list's "@ n new"); `{}` with no user |
+
+- **MCP.** `list_mentions {user, unread?, env?, limit?}` (`user`: an id or an exact name) returns `{user, unread, mentions}` as above. `add_comment` accepts `@[id]` and `@{Display Name}` in `body`.
+- **Events.** Unchanged (`comment.created` ...): the text carries the token.
 
 ## MCP
 
