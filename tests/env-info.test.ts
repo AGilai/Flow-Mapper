@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 // @ts-ignore plain JS module shared with the browser
-import { envLine, shortDate, nameError, keyFromLabel, summarySentence, carryText, metaOf } from '../web/js/env-info.js';
+import { envLine, shortDate, nameError, keyFromLabel, summarySentence, carryText, metaOf, defaultEnv, canDeleteEnv, deleteConfirmed } from '../web/js/env-info.js';
 import { validateManifest } from '../server/schema.ts';
 import { readSample } from './helpers.ts';
 
@@ -44,4 +44,20 @@ test('a service may carry a groupPath and be a client-app; a bad path is refused
   assert.deepEqual(validateManifest({ ...m, service: { ...m.service, groupPath: 'platform/identity', kind: 'client-app' } }), []);
   assert.notEqual(validateManifest({ ...m, service: { ...m.service, groupPath: 'Platform Team' } }).length, 0);
   assert.notEqual(validateManifest({ ...m, service: { ...m.service, kind: 'client' } }).length, 0);
+});
+
+test('Delete environment is offered for design envs only, not the default or the last one; the confirm needs the exact name (#78)', () => {
+  const envs = ['prod', 'hld', 'dev'];
+  assert.equal(defaultEnv(envs), 'prod');
+  assert.equal(defaultEnv(['b', 'a']), 'b');
+  assert.equal(canDeleteEnv({ name: 'hld', kind: 'design' }, envs), true);
+  assert.equal(canDeleteEnv({ name: 'dev', kind: 'sealed' }, envs), false);
+  assert.equal(canDeleteEnv({ name: 'prod', kind: 'design' }, envs), false);
+  assert.equal(canDeleteEnv({ name: 'x', kind: 'design' }, ['x']), false);
+  assert.equal(canDeleteEnv({ name: 'x', kind: 'design' }, ['x', 'y']), false, 'x is the default when there is no prod');
+  assert.equal(canDeleteEnv(undefined, envs), false);
+  assert.equal(deleteConfirmed('hld', 'hld'), true);
+  assert.equal(deleteConfirmed(' hld ', 'hld'), true);
+  assert.equal(deleteConfirmed('HLD', 'hld'), false);
+  assert.equal(deleteConfirmed('', 'hld'), false);
 });

@@ -85,7 +85,7 @@ test('nothing is emitted for failed writes, no-op patches or dry runs', async ()
     const m = readSample('orders-svc.json');
     assert.equal((await app.call('POST', '/api/ingest?dryRun=1', m)).status, 200);
     assert.ok((await app.call('POST', '/api/ingest', { manifests: [m, { ...m, version: 0 }] })).status >= 400); // batch rolls back
-    assert.ok((await app.call('POST', '/api/envs', { name: 'bad', source: 'nope', mode: 'blank' })).status >= 400);
+    assert.ok((await app.call('POST', '/api/envs', { name: 'bad', source: 'nope', mode: 'full' })).status >= 400);
     assert.equal(await last(), before);
   } finally { await app.close(); }
 });

@@ -26,6 +26,8 @@
 .env-opt[aria-selected='true'] { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 30%, transparent); }
 .env-opt:focus-visible { outline: 2px solid var(--focus); outline-offset: -1px; }
 .env-add { color: var(--accent); font-size: var(--fs-sm); font-weight: 500; margin-top: 2px; border-top: 1px solid var(--line); border-radius: 0 0 var(--r-sm) var(--r-sm); }
+.env-del { color: var(--bad); font-size: var(--fs-sm); font-weight: 500; }
+.env-del:hover { background: color-mix(in srgb, var(--bad) 8%, var(--surface)); }
 @media (max-width: 860px) { .env-trigger { width: auto; max-width: 220px; } }
 
 /* New environment page */

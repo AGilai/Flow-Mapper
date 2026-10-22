@@ -15,7 +15,7 @@ export function envLine(m) {
   if (!m) return '';
   if (m.kind !== 'design') return `sealed · ${plural(m.counts?.components ?? 0, 'component')}`;
   const when = shortDate(m.copiedAt);
-  return `design · from ${m.source ?? '?'}${when ? ', ' + when : ''}`;
+  return `design · ${m.source ? `from ${m.source}` : 'blank'}${when ? ', ' + when : ''}`;
 }
 
 /** Env meta for a name; an environment the list does not know (preview data from before) reads as sealed. */
@@ -52,3 +52,12 @@ export function carryText(c) {
   const parts = [[c.endpoints, 'endpoint'], [c.calls, 'call'], [c.channels, 'queue or topic', 'queues or topics'], [c.stores, 'data store'], [c.dtos, 'DTO']].filter(([n]) => n > 0).map(([n, a, b]) => plural(n, a, b));
   return parts.join(' · ') || 'nothing but the component';
 }
+
+/** The environment the app falls back to: prod when there is one, else the first (as main.js picks on boot). */
+export const defaultEnv = (envs) => (envs.includes('prod') ? 'prod' : envs[0]);
+
+/** Delete environment is offered for design environments only, never for the default one or the last one (#78). */
+export const canDeleteEnv = (meta, envs) => !!meta && meta.kind === 'design' && meta.name !== defaultEnv(envs) && envs.length > 1;
+
+/** The delete confirm is satisfied only by typing the exact environment name. */
+export const deleteConfirmed = (typed, name) => typeof typed === 'string' && typed.trim() === name;

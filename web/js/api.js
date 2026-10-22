@@ -145,3 +145,4 @@ export const api = new Proxy({}, {
 });
 export const attachmentUrl = (id, aid) => (PREVIEW ? null : remote.attachmentUrl(id, aid));
 export const isPreview = PREVIEW;
+export const deleteEnv = (env) => (PREVIEW ? Promise.reject(new Error('Deleting an environment is not available in the preview: it needs the server.')) : http('DELETE', `/api/envs/${e(env)}`));

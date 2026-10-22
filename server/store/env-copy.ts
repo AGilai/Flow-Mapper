@@ -44,8 +44,13 @@ function validate(db: DB, i: CopyInput) {
   if (i.entryPoints !== undefined && i.entryPoints !== 'keep' && i.entryPoints !== 'none') throw invalid("entryPoints must be 'keep' or 'none'");
   if (i.entryPoints === 'none' && i.mode === 'blank') throw invalid("entryPoints applies to 'components' and 'full' copies; a blank copy has no endpoints");
   if (i.infraGroupPath !== undefined && (typeof i.infraGroupPath !== 'string' || (i.infraGroupPath !== '' && !PATH.test(i.infraGroupPath)))) throw invalid("infraGroupPath must be a subsystem key (lowercase, '-' or a path like platform/infra), or '' for none");
-  const src = typeof i.source === 'string' ? getEnvRow(db, i.source) : undefined;
-  if (!src) throw notFound(`source environment '${i.source}'`);
+  // #77: a blank copy copies nothing, so it needs (and records) no source; a copy mode names the field when it is missing.
+  let src: ReturnType<typeof getEnvRow>;
+  if (i.mode !== 'blank') {
+    if (typeof i.source !== 'string' || !i.source) throw badRequest(`source is required for mode '${i.mode}': the name of the environment to copy from`, { field: 'source' });
+    src = getEnvRow(db, i.source);
+    if (!src) throw notFound(`source environment '${i.source}'`);
+  }
   if (getEnvRow(db, i.name)) throw conflict('EXISTS', `environment '${i.name}' already exists`);
   const groups = i.groups ?? [];
   if (!Array.isArray(groups)) throw invalid('groups must be a list of {key, label}');
@@ -70,15 +75,16 @@ function validate(db: DB, i: CopyInput) {
 
 export function copyEnv(db: DB, input: CopyInput): EnvMeta {
   const v = validate(db, input);
-  const { name, source, mode } = input;
+  const { name, mode } = input;
+  const source = mode === 'blank' ? (typeof input.source === 'string' && getEnvRow(db, input.source) ? input.source : null) : input.source;
   const out = tx(db, () => {
     const at = new Date().toISOString();
     // A full copy of a design carries its subsystems (unless the request names others).
-    const fullOfDesign = mode === 'full' && v.src.kind === 'design';
-    const groups = (v.groups.length || !fullOfDesign ? v.groups : JSON.parse(v.src.groups)).map((g: EnvGroup) => ({ key: g.key, label: g.label, ...(g.icon ? { icon: g.icon } : {}), ...(g.about ? { about: g.about } : {}) }));
+    const fullOfDesign = mode === 'full' && v.src?.kind === 'design';
+    const groups = (v.groups.length || !fullOfDesign ? v.groups : JSON.parse(v.src!.groups)).map((g: EnvGroup) => ({ key: g.key, label: g.label, ...(g.icon ? { icon: g.icon } : {}), ...(g.about ? { about: g.about } : {}) }));
     // The baseline of the subsystems (grp: marks): what the design started with. A full copy of a design keeps that design's.
-    const baseGroups = fullOfDesign ? ((v.src as any).baseline_groups ?? null) : JSON.stringify(groups);
-    const levels = input.levels || !fullOfDesign ? v.levels : JSON.parse(v.src.levels);
+    const baseGroups = fullOfDesign ? ((v.src as any)?.baseline_groups ?? null) : JSON.stringify(groups);
+    const levels = input.levels || !fullOfDesign ? v.levels : JSON.parse(v.src!.levels);
     db.prepare('INSERT INTO envs (name, kind, source, copied_at, levels, groups, baseline_groups, created_at, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
       .run(name, 'design', source, at, JSON.stringify(levels), JSON.stringify(groups), baseGroups, at, String(input.createdBy ?? 'anonymous').slice(0, 80));
     if (mode === 'blank') return getEnv(db, name);
@@ -93,7 +99,7 @@ export function copyEnv(db: DB, input: CopyInput): EnvMeta {
       if (new Set(names).size !== names.length) throw invalid('a component is picked twice');
     }
     const path = new Map(picks.map((s) => [s.name, s.groupPath]));
-    const c: CopyCtx = { db, from: source, to: name, at, fromKind: v.src.kind, mode: mode as 'components' | 'full', behaviour: input.behaviour === true };
+    const c: CopyCtx = { db, from: source, to: name, at, fromKind: v.src!.kind, mode: mode as 'components' | 'full', behaviour: input.behaviour === true };
     const types = new Set<string>(), stores = new Set<string>();
     for (const n of names) {
       const r = copyService(c, n, path.get(n))!;

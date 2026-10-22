@@ -5,7 +5,9 @@
 import { h } from '../dom.js';
 import { icon } from '../icons.js';
 import { state, setEnv } from '../state.js';
-import { envLine, metaOf } from '../env-info.js';
+import { envLine, metaOf, canDeleteEnv } from '../env-info.js';
+import { isPreview } from '../api.js';
+import { deleteEnvDialog } from './env-delete.js';
 
 const rowBody = (name) => [h('b', name), h('small', envLine(metaOf(state.envMeta, name)))];
 
@@ -53,7 +55,9 @@ export function envPicker() {
       rows.forEach((r) => { r.tabIndex = r === next ? 0 : -1; });
       next.focus();
     } } }, list, h('a.env-opt.env-add', { href: '#/envs/new', on: { click: () => close(false) } }, '+ New environment'),
-      h('a.env-opt.env-add', { href: `#/envs/${encodeURIComponent(state.env)}/settings`, 'data-qa': 'env-settings', on: { click: () => close(false) } }, 'Environment settings'));
+      h('a.env-opt.env-add', { href: `#/envs/${encodeURIComponent(state.env)}/settings`, 'data-qa': 'env-settings', on: { click: () => close(false) } }, 'Environment settings'),
+      canDeleteEnv(metaOf(state.envMeta, state.env), state.envs) && !isPreview
+        ? h('button.env-opt.env-del', { type: 'button', 'data-qa': 'env-delete', on: { click: () => { close(false); deleteEnvDialog(state.env); } } }, 'Delete environment') : null);
     wrap.append(pop);
     trigger.setAttribute('aria-expanded', 'true');
     place();
