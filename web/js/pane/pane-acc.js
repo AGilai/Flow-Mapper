@@ -8,11 +8,11 @@ import { icon } from '../icons.js';
 import { parseOpen } from './pane-pure.js';
 
 const KEY = 'flow-mapper.pane-open';
-const load = () => { try { return parseOpen(localStorage.getItem(KEY)); } catch { return parseOpen(null); } };
+const load = () => { try { const raw = localStorage.getItem(KEY); return { open: parseOpen(raw), fresh: raw == null }; } catch { return { open: parseOpen(null), fresh: true }; } };
 const save = (set) => { try { localStorage.setItem(KEY, JSON.stringify([...set])); } catch { /* storage unavailable */ } };
 
 export function createAccordion({ onToggle = null } = {}) {
-  const open = load(), rows = new Map(); // id -> { el, btn, bd, def, built }
+  const { open, fresh } = load(), rows = new Map(); // id -> { el, btn, bd, def, built }
 
   async function build(r) {
     if (r.built) return;
@@ -32,6 +32,7 @@ export function createAccordion({ onToggle = null } = {}) {
   function set(id, on) { if (on) open.add(id); else open.delete(id); paint(id); save(open); onToggle?.(id, on); }
 
   function row(def, parent = null) {
+    if (fresh && def.sub && def.defaultOpen !== false) open.add(def.id); // the first time, the sections of the About are open with it (frame 19h)
     const bd = h('div.bd', { role: 'region', hidden: true });
     const btn = h('button', { type: 'button', 'aria-expanded': 'false', 'data-qa': `acc-${def.id}`, on: { click: () => set(def.id, !open.has(def.id)) } }, icon('chev', 'chev'), h('span', def.title),
       def.count != null && def.count !== '' ? h('small', String(def.count)) : null, def.small ? h('small', def.small) : null);

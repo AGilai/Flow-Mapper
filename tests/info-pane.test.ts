@@ -6,7 +6,7 @@ import { sampleManifests, startApp } from './helpers.ts';
 // @ts-ignore plain JS modules shared with the browser
 import { WIDTH, clampWidth, isSheet, sheetHeight, nearestSnap, stepSnap, parseSel, selOf, closesOnClick, currentJump, questionsText, JUMPS, OPEN_DEFAULT, parseOpen, siblingRow, outlineOf, showOutline, expandedParam } from '../web/js/pane/pane-pure.js';
 // @ts-ignore
-import { endpointText, flowName, firstLine } from '../web/js/pane/pane-parts.js';
+import { endpointText, flowName, firstLine, stepsOfComponent } from '../web/js/pane/pane-parts.js';
 import { aboutSections, openQuestions, isQuestions } from '../core/about-sections.ts';
 
 test('the drawer is 420 px, resizable 340 to 640, never more than 60% of the window', () => {
@@ -141,6 +141,13 @@ test('the expanded page: default open rows, remembered open rows, [ ] navigation
   assert.equal(showOutline(1279), false);
   assert.equal(expandedParam(true), '1');
   assert.equal(expandedParam(false), null);
+});
+
+test('"In this flow": the steps of the flow a pane was opened from that touch the component, with the direction', () => {
+  const steps = [{ n: 1, from: 'client', to: 'policy-compiler', label: 'POST /compile' }, { n: 2, from: 'policy-compiler', to: 'pop-policy-cache', label: 'bundle.published' }, { n: 3, from: 'pop-policy-cache', to: 'pop-edge', label: 'pull' }];
+  assert.deepEqual(stepsOfComponent(steps, 'policy-compiler'), [{ n: 1, label: 'POST /compile', how: 'receives', other: 'client' }, { n: 2, label: 'bundle.published', how: 'sends', other: 'pop-policy-cache' }]);
+  assert.deepEqual(stepsOfComponent(steps, 'nobody'), []);
+  assert.deepEqual(stepsOfComponent(undefined, 'x'), []);
 });
 
 let app: Awaited<ReturnType<typeof startApp>>;

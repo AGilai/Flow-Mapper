@@ -41,10 +41,20 @@ export async function render({ main }) {
       [['unread', 'Unread', unread.length], ['all', 'All', all.length]].map(([id, label, n]) => h('button', { type: 'button', 'aria-pressed': String(view === id), 'data-qa': `mn-${id}`, on: { click: () => { view = id; draw(); } } }, label, ' ', h('small', String(n)))));
     head.replaceChildren(seg, h('span.muted.sm.mn-for', `for ${u.name} · `, h('button.lnk', { type: 'button', disabled: !unread.length, 'data-qa': 'mn-all-read', on: { click: async () => { await seen(unread.map((m) => m.commentId)); await load(); } } }, 'Mark all read')));
     if (err) { body.replaceChildren(h('div.error-box', err)); return; }
+    const withAbout = () => { if (view === 'all' && data?.about?.length) body.append(aboutBlock(data.about)); };
     if (!data) { body.replaceChildren(h('div.loading', 'Loading…')); return; }
     body.replaceChildren(list.length ? h('table.grid.u-table.mn-t', h('thead', h('tr', ['', 'Comment', 'From', 'Flow', 'When'].map((t) => h('th', t)))),
       h('tbody', list.map((m) => row(m)))) : h('div.mn-empty', h('p', view === 'unread' && all.length ? 'No unread mentions.' : 'Nobody has mentioned you yet.'), view === 'unread' && all.length ? h('button.lnk', { type: 'button', on: { click: () => { view = 'all'; draw(); } } }, 'Show all') : null));
+    withAbout();
   }
+  /** Mentions in an About (0.33.0): "about of <item>", never unread; a row opens the item's info pane. */
+  function aboutBlock(list) {
+    const to = (a) => `#/system?env=${encodeURIComponent(a.env)}${a.kind === 'subsystem' ? '&level=subsystems' : ''}&sel=${encodeURIComponent(a.kind === 'subsystem' ? `grp:${a.id}` : `svc:${a.id}`)}`;
+    return h('section.mn-about', { 'data-qa': 'mn-about' }, h('h3', 'In an About', h('small', ` ${list.length}`)),
+      h('table.grid.u-table.mn-t', h('tbody', list.map((a) => h('tr.clickable.read', { tabindex: 0, 'data-qa': 'mn-about-row', on: { click: () => { location.hash = to(a).slice(1); }, keydown: (e) => { if (e.key === 'Enter') { e.preventDefault(); location.hash = to(a).slice(1); } } } },
+        h('td.mn-text', renderChips(h('div', a.text))), h('td.nw', h('b', `about of ${a.label}`), h('div.xs.muted', `${a.env} · ${a.kind}`)))))));
+  }
+
   function row(m) {
     const open = async () => { if (m.unread) await seen([m.commentId]); location.hash = flowHref(m).slice(1); };
     const from = userById(m.authorId) ?? { name: m.author, id: m.authorId };

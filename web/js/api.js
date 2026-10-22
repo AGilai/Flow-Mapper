@@ -61,6 +61,7 @@ const remote = {
   system: (env) => get(`/api/envs/${e(env)}/views/system`),
   service: (env, name) => get(`/api/envs/${e(env)}/views/service/${e(name)}`),
   entryPoints: (env) => get(`/api/envs/${e(env)}/entry-points`),
+  openQuestions: (env) => get(`/api/envs/${e(env)}/open-questions`),
   flowsThrough: (env, services) => get(`/api/envs/${e(env)}/flows-through${qs({ service: services.join(',') })}`),
   flowCounts: (env) => get(`/api/envs/${e(env)}/flows/counts`),
   inventory: (env) => get(`/api/envs/${e(env)}/inventory`),

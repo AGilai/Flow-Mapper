@@ -14,6 +14,7 @@ import { markOfPoint } from '../views/flow-list-filter.js';
 import { block, facts, flowsList, firstLine } from './pane-parts.js';
 import { loadAbout, aboutSection, aboutRows } from './pane-about.js';
 import { questionsButton } from './pane-questions.js';
+import { ownersValue } from './pane-owners.js';
 
 const MAX = 8;
 const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
@@ -28,9 +29,11 @@ export async function subsystemSpec(key, ctx) {
   const pen = !box.derived ? ctx.pen?.about(box.label, { form: 'subsystem', box }) ?? null : null;
   const invHref = href('/inventory', { subsystem: box.key || '-' });
 
+  const owners = Array.isArray(box.owners) ? box.owners : [], ownerPen = () => (!box.derived ? ctx.pen?.button('owners', `${box.label} owners`, { form: 'subsystem', box, at: 'owners' }) ?? null : null);
   const kinds = ['new', 'changed'].map((k) => [k, cmark.filter((m) => m?.mark === k).length]).filter(([, n]) => n).map(([k, n]) => `${n} ${k}`);
   const overview = () => [ctx.pen?.hint() ?? null, facts([
     ['Components', [`${box.components.length} `, kinds.length ? h('small', `· ${kinds.join(', ')}`) : null]],
+    ['Owners', owners.length || (design && !box.derived) ? ownersValue(owners, ownerPen()) : null],
     ['Calls', h('span', `${box.internal} inside · ${box.out} out · ${box.in} in`, box.dangling ? h('span.pane-bad', ` · ${box.dangling} to nothing`) : null)],
   ]), h('div.pane-cta', h('a.btn', { href: invHref }, 'Open in Inventory'))];
 
@@ -60,7 +63,7 @@ export async function subsystemSpec(key, ctx) {
       flows: block('flows', 'Flows through it', { count: flows.length, right: tflows }, flowsBody()),
     },
     counts: { components: box.components.length, links: nLinks, flows: flows.length },
-    about,
+    about, owners,
     edit: () => (!box.derived ? ctx.pen?.button('panel-subsystem', `subsystem ${box.label}`, { form: 'subsystem', box }, { text: 'Edit' }) ?? null : null),
     crumb: ['System map', 'Subsystems'], inDraft: marks.inDraft(`grp:${key}`), mark: mk, box,
   };
@@ -69,7 +72,7 @@ export async function subsystemSpec(key, ctx) {
     return [
       { id: 'overview', title: 'Overview', body: overview }, a, questions,
       { id: 'components', title: 'Components', count: box.components.length, right: h('a', { href: invHref }, 'Open in Inventory'),
-        children: box.components.map((c, i) => ({ id: `comp-${c.name}`, title: c.name, small: c.kind, right: markBadge(cmark[i], { store: marks }), body: () => [h('p.pane-md', firstLine(aboutOf.get(c.name)) || h('i', 'No description yet')), h('button.btn.sm', { type: 'button', on: { click: () => ctx.onComponent?.(c.name) } }, `Open ${c.name}`)] })) },
+        children: box.components.map((c, i) => ({ id: `comp-${c.name}`, defaultOpen: false, title: c.name, small: c.kind, right: markBadge(cmark[i], { store: marks }), body: () => [h('p.pane-md', firstLine(aboutOf.get(c.name)) || h('i', 'No description yet')), h('button.btn.sm', { type: 'button', on: { click: () => ctx.onComponent?.(c.name) } }, `Open ${c.name}`)] })) },
       { id: 'links', title: 'Links to other subsystems', count: nLinks, body: linksBody },
       { id: 'flows', title: 'Flows through it', count: flows.length, right: tflows.cloneNode(true), body: flowsBody },
     ].filter(Boolean);

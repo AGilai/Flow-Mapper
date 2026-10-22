@@ -148,7 +148,7 @@ export async function render({ main, query }) {
   if (editing()) host.edit = editOpener(host);
   // The info pane (0.33.0): a lifeline head or a subsystem band opens it (View mode; Edit with a draft: the head opens the form, the head's menu has Show details).
   host.pen = pencils(host); // 0.31.1: the pencils of the flow head; the hint of a harvested page sits under the toolbar
-  const pane = createPane(panel, { pen: host.pen, ctx: () => ({ fromFlow: T.flowRoot(S.active) }), onSelect: (sel) => { flowsEl.classList.add('mp-open'); setQuery({ sel }); } });
+  const pane = createPane(panel, { pen: host.pen, ctx: () => { const root = T.flowRoot(S.active); return { fromFlow: root && { ...root, name: nameOf(root.service, root.ingress), steps: views.get(S.active)?.steps?.() ?? [] } }; }, onSelect: (sel) => { flowsEl.classList.add('mp-open'); setQuery({ sel }); } });
   host.openPane = (target) => pane.show(target);
   host.pane = pane;
   toolbar.after(...[host.pen.hint()].filter(Boolean));

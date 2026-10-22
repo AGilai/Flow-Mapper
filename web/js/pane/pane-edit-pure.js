@@ -69,3 +69,13 @@ export function aboutEdit(target, about, header = {}) {
   if (target.kind === 'subsystem') return { kind: 'subsystem', key: target.key, about: text };
   return { kind: 'component', name: target.name, serviceKind: header.kind ?? 'service', about: text };
 }
+
+/** The edit Save sends for the owners (user ids, in order): the same component / subsystem edits the forms send, with `owners` only. [] clears. */
+export function ownersEdit(target, ids, header = {}) {
+  const owners = [...new Set(ids)];
+  return target.kind === 'subsystem' ? { kind: 'subsystem', key: target.key, owners } : { kind: 'component', name: target.name, serviceKind: header.kind ?? 'service', owners };
+}
+
+/** The owners after adding or removing one (no duplicates, the order kept; a new one goes last). */
+export const addOwner = (ids, id) => (ids.includes(id) ? ids : [...ids, id]);
+export const removeOwner = (ids, id) => ids.filter((x) => x !== id);

@@ -9,6 +9,7 @@ import { h } from '../dom.js';
 import { paneFrame } from './pane-frame.js';
 import { createExpanded } from './pane-expanded.js';
 import { createAboutEditor } from './pane-edit.js';
+import { startOwnersEdit } from './pane-owners.js';
 import { editing } from '../design/edit-target.js';
 import { go, setQuery } from '../router.js';
 import { componentSpec } from './pane-component.js';
@@ -81,6 +82,19 @@ export function createPane(panel, host = {}) {
     return true;
   }
 
+  /** The pencil of the Owners fact: the small editor opens in the Overview of the pane. */
+  async function editOwners(t) {
+    if (!editing()) return false;
+    const want = t.form === 'subsystem' ? { kind: 'subsystem', key: t.box.key } : { kind: 'component', name: t.service };
+    expanded.collapse(false);
+    if (!(cur && cur.kind === want.kind && (cur.name ?? cur.key) === (want.name ?? want.key) && frame)) { await (pending = load(want)); if (!lastSpec) return true; } else await pending;
+    const box = frame.root.querySelector('[data-qa=owners-value]');
+    if (!box || box.querySelector('[data-qa=owners-editor]')) return true;
+    frame.scrollTo('overview');
+    startOwnersEdit(box, { ids: lastSpec.owners ?? [], target: want, header: lastSpec.svc ?? {}, onClose: () => {} });
+    return true;
+  }
+
   function close() { if (!leave(() => close())) return; token++; cur = null; frame = null; lastSpec = null; stack.length = 0; expanded.collapse(false); panel.close(); }
   function back() { const prev = stack.pop(); if (prev) show(prev); }
 
@@ -106,7 +120,7 @@ export function createPane(panel, host = {}) {
   }
 
   return {
-    show, close, back, expand, editAbout, collapse: () => expanded.collapse(), expanded: () => expanded.isOpen(),
+    show, close, back, expand, editAbout, editOwners, collapse: () => expanded.collapse(), expanded: () => expanded.isOpen(),
     /** Open what the URL names: `sel=` (and `expanded=1`). Returns whether a selection was found. */
     async restore(query) {
       const want = parseSel(query.get('sel'));
@@ -114,6 +128,10 @@ export function createPane(panel, host = {}) {
       if (!(cur && cur.kind === want.kind && (cur.name ?? cur.key) === (want.name ?? want.key))) await show(want); // a pencil that waited for the redraw already opened it
       else await pending;
       if (query.get('expanded') === '1' && lastSpec) expand();
+      else if (query.has('question') && frame) { // the Questions list links here: scroll to that question and let it flash (frame 19, extra 1)
+        const li = [...frame.root.querySelectorAll('.pane-ab.q li')][Number(query.get('question'))];
+        if (li) { requestAnimationFrame(() => { frame.scrollToEl(li); li.classList.add('flash'); setTimeout(() => li.classList.remove('flash'), 2200); }); }
+      }
       return true;
     },
     /** A click on empty space: closes the pane unless it is pinned. Returns whether it closed. */

@@ -62,7 +62,7 @@
 .pane-abs { display: grid; gap: 14px; }
 .pane-md { font-size: 13.5px; line-height: 1.6; color: var(--ink); display: grid; gap: 9px; overflow-wrap: anywhere; }
 .pane-md p { margin: 0; color: var(--ink-2); }
-.pane-md p > strong:only-child { display: block; color: var(--ink); font-size: 1.04em; }
+.pane-md p.h > strong { display: block; color: var(--ink); font-size: 1.04em; }
 .pane-md strong, .pane-md li strong { color: var(--ink); font-weight: 600; }
 .pane-md ul, .pane-md ol { margin: 0; padding-left: 19px; color: var(--ink-2); display: grid; gap: 3px; }
 .pane-md code { background: var(--surface-2); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-size: 12px; color: var(--ink); font-family: var(--mono); }
@@ -121,6 +121,19 @@
 .pane-foot { flex: none; display: flex; gap: var(--s2); align-items: center; padding: 10px var(--s4); border-top: 1px solid var(--line); background: var(--surface); }
 .pane-foot .hint { margin-right: auto; font-size: var(--fs-xs); color: var(--muted); }
 .pane-md .u-chip, .pane-ab .u-chip { vertical-align: baseline; }
+
+/* owners: chips in the Overview, and the small editor */
+.pane-owners { display: inline-flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.pane-oed { display: grid; gap: 8px; }
+.pane-ochips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.pane-ochip button { border: 0; background: transparent; margin-left: 4px; cursor: pointer; color: inherit; padding: 0 2px; font-size: 14px; line-height: 1; }
+.pane-opw { position: relative; }
+.pane-opick { position: absolute; left: 0; right: 0; top: calc(100% + 2px); z-index: 5; background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-md); box-shadow: var(--shadow-panel); padding: 4px; display: grid; }
+.pane-opick[hidden] { display: none; }
+.pane-oacts { display: flex; gap: var(--s2); justify-content: flex-end; }
+@keyframes pane-flash { from { background: color-mix(in srgb, var(--warn) 30%, transparent); } to { background: transparent; } }
+.pane-md li.flash { animation: pane-flash 1.6s ease-out 1; border-radius: 3px; }
+@media (prefers-reduced-motion: reduce) { .pane-md li.flash { animation: none; background: color-mix(in srgb, var(--warn) 22%, transparent); } }
 
 /* bottom sheet at <= 760px: peek / half / full */
 @media (max-width: 760px) {

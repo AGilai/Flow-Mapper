@@ -135,8 +135,8 @@ test('dry runs are allowed into a design env (nothing is written) and still vali
 
 // MCP tools: read tools are listed so a new tool must be classified too.
 const MCP_READ = new Set(['search', 'list_services', 'get_service', 'list_entry_points', 'trace_flow', 'find_paths', 'link_health', 'changelog', 'get_endpoint_info', 'event_types',
-  'inventory', 'get_store', 'list_clients', 'get_resource_keys', 'get_channel', 'get_exchange', 'list_bugs', 'get_bug', 'list_envs', 'list_drafts', 'draft_changes', 'get_marks', 'import_preview', 'get_call', 'get_flow_names', 'list_comments', 'list_action_items', 'list_users', 'list_mentions', 'export_mermaid',
-  'get_subsystems', 'get_subsystem_map', 'list_abstract_links', 'suggest_refinements', 'list_flow_relations']);
+  'inventory', 'get_store', 'list_clients', 'get_resource_keys', 'get_channel', 'get_exchange', 'list_bugs', 'get_bug', 'list_envs', 'list_drafts', 'draft_changes', 'get_marks', 'import_preview', 'get_call', 'get_flow_names', 'list_comments', 'list_action_items', 'list_users', 'list_open_questions', 'list_mentions', 'export_mermaid',
+  'get_subsystems', 'get_subsystem_map', 'list_abstract_links', 'suggest_refinements', 'list_flow_relations', 'list_open_questions']);
 const MCP_HARVESTER: Record<string, (e: string, manifest: any) => any> = {
   ingest_manifest: (e, m) => ({ manifest: { ...m, env: e, version: 999 } }),
   load_dtos: (e) => ({ env: e, dtos: [] }),

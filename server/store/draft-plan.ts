@@ -11,6 +11,7 @@ import { appendOps, draftView } from './drafts.ts';
 import { applyDraftIn } from './draft-apply.ts';
 import { baselineRows } from './item-rows.ts';
 import { withDry } from './dry-run.ts';
+import { resolvePlanOwners } from './owners.ts';
 
 export interface PlanResult extends Omit<PlannedOps, 'ops'> { ops: number; counts: { added: number; removed: number; changed: number }; dryRun?: boolean; results?: unknown[]; replaced?: unknown[] }
 
@@ -21,7 +22,7 @@ export function ingestPlan(db: DB, env: string, slug: string, plan: unknown, who
     const base = new Map(baselineRows(db, env).filter((r) => r.list === 'header').map((r) => [r.service, r.sourceVersion]));
     let planned: PlannedOps;
     try {
-      planned = planToOps(plan, rows, { env, groups: getEnv(db, env).groups, baselineVersion: (s) => base.get(s), validateManifest: (m) => validateManifest(m) });
+      planned = planToOps(resolvePlanOwners(db, plan), rows, { env, groups: getEnv(db, env).groups, baselineVersion: (s) => base.get(s), validateManifest: (m) => validateManifest(m) });
     } catch (e) {
       if (!(e instanceof PlanError)) throw e;
       e.issues.sort((a, b) => Number(b.code === 'TWO_GROUPS') - Number(a.code === 'TWO_GROUPS'));

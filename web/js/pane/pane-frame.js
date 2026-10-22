@@ -33,7 +33,7 @@ export function paneFrame(spec) {
   for (const j of ids) setCount(j.id, counts[j.id]);
 
   const secs = new Map(ids.map((j) => [j.id, spec.sections[j.id]]));
-  const scroller = h('div.pane-scroll', { tabindex: -1 }, h('div.pane-body', [...secs.values()]));
+  const scroller = h('div.pane-scroll', { tabindex: -1 }, h('div.pane-body', [...(spec.lead ?? []), ...secs.values()]));
   const edHost = h('div.pane-edit', { hidden: true });
   const root = h('div.pane-root', { 'data-qa': 'pane', 'data-kind': spec.kind ?? '' }, head, bar, scroller, edHost);
 

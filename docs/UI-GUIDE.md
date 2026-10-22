@@ -236,6 +236,17 @@ whether the zero is normal for this kind of object.
 
 `components/bug-dialog.js` mounts one round "Report a bug" button on every screen (hidden on `#/bugs/new`). It opens `components/bug-form.js`, the same form as the page, in a modal dialog so the page underneath is untouched; it moves left of an open right-hand panel. Keep the bottom-right corner of the viewport free of controls that matter. The rail's environment picker is a dropdown of the active environment (`components/env-picker.js`).
 
+## The info pane (0.33.0)
+
+The side panel of a component or a subsystem is a drawer, not a page: 420 px (340 to 640, remembered), a bottom sheet at 760 px or less. It reads top to
+bottom in the order of the jump bar (Overview, About, Flows, Connections; a subsystem: Components, Links). Rules:
+
+- **One pane, content swaps.** Selecting another item replaces the content; Esc or the close button always close; a click on empty space closes it unless it is pinned.
+- **The drawer is flat, the expanded page is an accordion.** The drawer scrolls so a reviewer sees everything; Expand (key `E`) is for long reads (30 endpoints, a long About), open rows are remembered per browser, Esc returns to the same scroll.
+- **Open questions are warn-tinted** with a `?` marker and their count in the header; nothing else uses that tint.
+- **Read-only where the data is harvested.** No pencils, the empty About says where a description comes from; in a design the empty About offers "Add about" and the section template.
+- **Unsaved text is never lost silently**: closing the pane or picking another item while an About is being edited asks "Discard changes?" inline.
+
 ## Checklist before merge
 
 - [ ] Screenshot at 1440px and at 760px, in light and dark. Can you state the page's answer in

@@ -3,7 +3,7 @@
 
 /** What a pencil stands for -> the environments that get it. 'annotation' items are the flow and step descriptions: allowed everywhere. */
 const ITEMS = {
-  header: 'design', docs: 'design', about: 'design', 'about-section': 'design', endpoint: 'design', flow: 'design',
+  header: 'design', docs: 'design', about: 'design', 'about-section': 'design', owners: 'design', endpoint: 'design', flow: 'design',
   inventory: 'design', subsystem: 'design', 'panel-component': 'design', 'panel-subsystem': 'design', 'panel-flow': 'design',
   'flow-description': 'annotation', 'step-description': 'annotation',
 };

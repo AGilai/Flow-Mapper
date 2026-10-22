@@ -27,6 +27,7 @@ const emptyHarvested = () => h('div.pane-empty', { 'data-qa': 'about-empty' }, h
 /** The text of one section as a node (`s.html` is sanitized by core/markdown-lite); an `@[userId]` in it is a chip (0.33.0), named by the users registry. */
 export function sectionBody(s) {
   const el = h('div.pane-md', { html: s.html });
+  for (const p of el.querySelectorAll('p > strong')) if (p.parentElement.textContent.trim() === p.textContent.trim()) p.parentElement.classList.add('h'); // a paragraph that is only a bold run is a ### heading (the sanitizer has no heading tags)
   if (s.html.includes('@[')) { renderChips(el); loadUsers().then(() => refreshChips(el)).catch(() => {}); }
   return el;
 }

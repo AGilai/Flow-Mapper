@@ -30,6 +30,8 @@ export interface Service {
   description?: string;
   /** Markdown-lite, at most 20 000 characters (0.30.2). */
   about?: string;
+  /** User ids of the owners (0.33.0, core/owners.ts); writers send names or external ids and the server matches them. */
+  owners?: string[];
   tags?: string[];
   /** Subsystem path ("platform", later "platform/identity"); optional. */
   groupPath?: string;

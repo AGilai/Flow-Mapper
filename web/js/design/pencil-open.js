@@ -32,6 +32,7 @@ const landOnLinks = () => when(() => document.getElementById('f-links.main')?.qu
 
 /** openTarget(target, host) -> opens the form; `host` = { panel, flowsEl?, pane? } of the page (`pane`: the info pane, which edits an About itself). */
 export function openTarget(t, host) {
+  if (t.at === 'owners' && (t.form === 'component' || t.form === 'subsystem') && host.pane?.editOwners) { host.pane.editOwners(t); return; } // 0.33.0: the owners are edited in the Overview of the pane
   if (t.at === 'about' && (t.form === 'component' || t.form === 'subsystem') && host.pane?.editAbout) { host.pane.editAbout(t, t.section ?? null); return; } // 0.33.0: the info pane edits its About in place (frame 19d)
   const base = { panel: host.panel, flowsEl: host.flowsEl ?? null };
   if (t.form === 'component') {

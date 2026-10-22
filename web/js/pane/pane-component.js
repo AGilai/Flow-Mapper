@@ -13,10 +13,11 @@ import { markBadge } from '../components/status-mark.js';
 import { subIcon } from '../icons.js';
 import { connectionSections } from '../views/system-panel.js';
 import { markOfPoint } from '../views/flow-list-filter.js';
-import { block, facts, docLinks, endpointText, flowsList } from './pane-parts.js';
+import { block, facts, docLinks, endpointText, flowsList, inFlowBlock } from './pane-parts.js';
 import { loadAbout, aboutSection } from './pane-about.js';
 import { componentRows } from './pane-component-rows.js';
 import { questionsButton } from './pane-questions.js';
+import { ownersValue } from './pane-owners.js';
 
 const KIND = { service: 'Service', gateway: 'Gateway', lambda: 'Lambda', 'client-app': 'Client app', infra: 'Infrastructure' };
 
@@ -39,13 +40,14 @@ export async function componentSpec(name, ctx) {
   const about = await loadAbout(svc.about ?? node?.about), subKey = subs.subOf(name), design = isDesign();
   const aboutPen = ctx.pen?.about(name, { form: 'component', service: name }) ?? null;
   const mk = marks.markOf(`svc:${name}`), ep = endpointText(view?.ingress, view?.egress);
-  const target = { kind: 'component', name }, open = href(`/services/${encodeURIComponent(name)}`);
+  const target = { kind: 'component', name }, open = href(`/services/${encodeURIComponent(name)}`), owners = Array.isArray(svc.owners) ? svc.owners : [];
+  const ownerPen = () => ctx.pen?.button('owners', `${name} owners`, { form: 'component', service: name, at: 'owners' }) ?? null;
 
   const subLink = () => (subKey ? h('button.pane-sub-link', { type: 'button', 'data-qa': 'pane-sub', on: { click: () => ctx.onSub?.(subKey) } }, subIcon(subs.info(subKey)?.icon, 14), subs.labelOf(subKey)) : subs.has ? 'Not set' : null);
   const overview = () => [ctx.pen?.hint() ?? null, facts([
     ['Subsystem', subLink()], ['Kind', KIND[kind] ?? kind], ['Team', svc.team], ['Description', svc.description],
     ['Endpoints', ep.total ? [`${ep.total} `, h('small', `· ${ep.text} `), h('a.pane-more', { href: open }, 'Open service')] : h('a.pane-more', { href: open }, 'Open service')],
-    ['Docs', docLinks(svc.links)],
+    ['Owners', owners.length || design ? ownersValue(owners, ownerPen()) : null], ['Docs', docLinks(svc.links)],
   ])];
   const flowsBody = () => flowsList(flows, { mark: (e) => markBadge(markOfPoint(marks, e), { store: marks }), hit: (e) => ctx.fromFlow && e.service === ctx.fromFlow.service && e.id === ctx.fromFlow.ingress });
   const conn = sys?.node ? connectionSections(sys.node, sys.edges, sys.byId) : [];
@@ -60,8 +62,8 @@ export async function componentSpec(name, ctx) {
       flows: block('flows', 'Flows through it', { count: flows.length, right: h('a', { href: href('/flows', { service: name }) }, 'Trace flows') }, flowsBody()),
       connections: block('connections', 'Connections', { count: nConn }, connBody()),
     },
-    counts: { flows: flows.length, connections: nConn },
-    about, edit: () => ctx.pen?.button('panel-component', name, { form: 'component', service: name }, { text: 'Edit' }) ?? null,
+    lead: [inFlowBlock(ctx.fromFlow, name)].filter(Boolean), counts: { flows: flows.length, connections: nConn },
+    about, owners, edit: () => ctx.pen?.button('panel-component', name, { form: 'component', service: name }, { text: 'Edit' }) ?? null,
     crumb: ['System map', subKey ? subs.labelOf(subKey) : null], svc, inDraft: marks.inDraft(`svc:${name}`), mark: mk,
   };
   spec.expanded = () => componentRows(spec, { about, aboutPen, design, flows, flowsBody, overview, connections: () => ({ nodes: sys?.node ? neighbours(sys) : [], count: nConn }), view, ctx, marks });

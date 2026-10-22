@@ -39,3 +39,16 @@ export function flowsList(entries, { mark = () => null, hit = () => false, max =
 
 /** The first line of an about (a heading is skipped), for a row's summary; '' when there is none. */
 export const firstLine = (md) => (typeof md === 'string' ? md.split('\n').map((l) => l.replace(/^\s*(#{1,6}|[-*]|\d+[.)])\s+/, '').trim()).find((l) => l && !/^```/.test(l)) ?? '' : '');
+
+/** The steps of the flow the pane was opened from that touch `name` (frame 19c): [{ n, label, how: 'receives' | 'sends', other }]. */
+export function stepsOfComponent(steps, name) {
+  return (steps ?? []).filter((s) => s.from === name || s.to === name).map((s) => (s.to === name ? { n: s.n, label: s.label, how: 'receives', other: s.from } : { n: s.n, label: s.label, how: 'sends', other: s.to }));
+}
+
+/** "In this flow": the steps (the arrows) the component takes part in, in the order of the flow. */
+export function inFlowBlock(flow, name) {
+  const rows = stepsOfComponent(flow?.steps, name);
+  if (!flow || !rows.length) return null;
+  return block('inflow', 'In this flow', { count: flow.name || `${flow.service} ${flow.ingress}`, cls: 'inflow' }, h('div.pane-list', rows.map((r) => h('div.pane-row.hit', { 'data-qa': 'pane-step' }, h('b.mono', r.label), h('span.r', `step ${r.n} · ${r.how}`), h('small', `${r.how === 'receives' ? 'from' : 'to'} ${r.other}`)))));
+}
+
