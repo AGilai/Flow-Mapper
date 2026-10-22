@@ -141,6 +141,29 @@ and a dashed line between sections; the trace marks each message `alt: {group, b
 more. A group needs two different conditions. Counts and `maxMessages` treat the branches as alternatives,
 not as a sequence. Steps without `altGroup` or a shared `source` are drawn in sequence with an "if …" tag, as before.
 
+**Nested frames** (`groups`, 0.32.2, #72): a step lists the frames it sits in, outermost first, so frames nest inside one
+function (an alt inside a loop): `"groups": [{"id": "each", "kind": "loop", "condition": "for each item"}, {"id": "pay",
+"condition": "card"}]`. `id` is unique within the function and steps with the same id are in one frame; `kind` is `alt`
+(default), `opt`, `loop`, `par`, `critical` or `break` and is the word on the frame's tab; `condition` names the section
+of the frame this step is in (steps with the same condition share a section; none = the frame's only section). A frame
+needs no second branch, so a `loop` or `opt` is one section. `groups` replaces `altGroup` and the `condition`-inference
+for that step; steps without it work as before. The trace message's `alt` keeps `{group, branch, of}` for the innermost
+frame and adds `kind` (when not `alt`), `condition` and `parent` (the enclosing frame, the same shape).
+
+**Notes over lifelines** (`over`, 0.32.2, #74): a classified leaf step (`kind: "leaf"`, no target) is a note on its component and
+is not drawn by default. Give it `over`, a list of components (or data stores, by their instance or database name:
+`cache-main`, `orders-db`), and the flow view draws the note as a box: over one name it sits under that lifeline, over
+several it spans from the leftmost to the rightmost of them (a folded lifeline: out to the edge of its fold column). The
+note's text is the step's `operation` and `note` (`order served · the cache and the database agree`); names the flow
+does not draw are ignored, and none left puts the note under the component that runs the step. The trace message carries `over`.
+
+**Step marks** (`mark`, 0.32.2, #75): `"mark": "new"` or `"mark": "changed"` on a step says the design adds or changes
+that step. The flow view draws it like the component and flow marks: a coloured band along the arrow and the mark's
+icon at its tip. The free text `details.changed` (a string) stays the tooltip and is shown in the step panel. A flow
+that runs a marked step counts as changed: a design's Flows list ticks it under "Changed only" (`marked: n` on its entry
+point, design environments only). The trace message carries `mark` and `changed`. It works in any environment; the
+diff against the baseline is unaffected.
+
 **Per-caller event types** (`bind`, `eventFrom`): when a publish sits in a shared function and its event type is
 a parameter, each caller passes its own constant, and one `event` on the step would be wrong for all but one
 of them. Put the value on the call and read it at the publish:

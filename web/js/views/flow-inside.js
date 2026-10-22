@@ -2,6 +2,7 @@
 // each with its steps in order and alt frames grouped by branch. Pure: built from the messages the bar owns.
 
 import { isPublish } from './flow-scan.js';
+import { chainOf } from './sequence-alt.js';
 
 const stepType = (m) => (m.kind === 'call' ? 'call' : m.kind === 'resource' ? 'store' : m.kind === 'frontier' ? 'frontier' : m.kind === 'leaf' ? 'leaf' : isPublish(m) ? 'publish'
   : m.broken || m.gap ? 'unresolved' : m.kind === 'egress' ? 'out' : 'other');
@@ -11,19 +12,19 @@ export function stepCode(m, trace) {
   return (m.seq ? trace.code?.[`step:${m.service}:${m.fn}#${m.seq}`] : null) ?? (m.egress ? trace.code?.[`egress:${m.service}:${m.egress}`] : null) ?? null;
 }
 
-/** Group consecutive alt steps of one group into one block with a section per branch (ordered by first appearance). */
+/** Group consecutive alt steps of one group into one block with a section per branch (ordered by first appearance). Frames nest (#72): a branch's `steps` hold steps and the blocks inside it. */
 export function altBlocks(steps) {
   const out = [];
-  for (const st of steps) {
-    const a = st.m.alt;
-    const last = out[out.length - 1];
-    if (!a) { out.push(st); continue; }
-    if (last?.alt && last.alt.group === a.group) {
-      let br = last.branches.find((b) => b.branch === a.branch);
-      if (!br) { br = { branch: a.branch, condition: st.m.condition ?? null, steps: [] }; last.branches.push(br); }
-      br.steps.push(st);
-    } else out.push({ alt: a, branches: [{ branch: a.branch, condition: st.m.condition ?? null, steps: [st] }] });
-  }
+  const put = (items, st, chain, k) => {
+    if (k >= chain.length) { items.push(st); return; }
+    const a = chain[k], last = items[items.length - 1];
+    let block = last?.alt?.group === a.group ? last : null;
+    if (!block) { block = { alt: a, branches: [] }; items.push(block); }
+    let br = block.branches.find((b) => b.branch === a.branch);
+    if (!br) { br = { branch: a.branch, condition: a.condition ?? (k === chain.length - 1 ? st.m.condition : null) ?? null, steps: [] }; block.branches.push(br); }
+    put(br.steps, st, chain, k + 1);
+  };
+  for (const st of steps) put(out, st, chainOf(st.m.alt), 0);
   return out;
 }
 

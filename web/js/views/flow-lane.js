@@ -26,6 +26,7 @@ export const svcOf = (id) => (id.startsWith('svc:') ? id.slice(4) : id.startsWit
 /** "http:POST orders-svc/orders" -> "POST /orders"; other transports show their event or label. */
 export function callLabel(m) {
   if (isRpc(m)) return rpcCommand(m);
+  if (m.transport === 'undecided' && m.kind !== 'deliver' && !m.event) return m.operation ?? m.label.replace(/^.*?tbd:(?:[^/\s]*\/)?/, ''); // #76: a `tbd:<component>/<operation>` key is never drawn: the operation name, else the key's last part; the key stays in the tooltip and the panel
   if (m.kind === 'deliver') { const hd = m.target?.fn ?? m.label.match(/→\s*(.+)$/)?.[1] ?? ''; return m.event ? `${m.event} → ${hd}` : hd; }
   if (m.operation && m.kind === 'egress' && !m.event) return m.operation; // the call's own words; the key is in the panel and the title
   if (m.transport === 'http' || m.transport === 'rpc') {
@@ -167,7 +168,11 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
       }
     }
     if (m.kind === 'call') { top.internal.n++; if (m.gap || m.broken) top.internal.gaps++; return; }
-    if (m.kind === 'leaf') return;
+    if (m.kind === 'leaf') { // a leaf is a note on its component; one that names `over` is drawn (0.32.2, #74), over one lifeline or spanning several
+      const over = [...new Set((m.over ?? []).flatMap((n) => (byService.has(n) ? [byService.get(n)] : cols.filter((c) => c.kind === 'resource' && c.store === n))))]; // a component, or a data store by its instance / db name
+      if (m.over?.length) push({ type: 'note', msg: m, bar: top, cols: over.length ? over : [top.col], text: m.label });
+      return;
+    }
     if (m.kind === 'resource') {
       if (stores) { const col = storeCol(m); push({ type: 'store', msg: m, bar: top, from: top.col, fromBar: top, to: col, col, label: arrowLabel(m, col.stack), write: isWrite(m), ...storeLabel(m) }); }
       return;
@@ -197,7 +202,7 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
   }
   const rank = (c) => (c.kind === 'channel' ? 2 : c.kind === 'unresolved' ? 3 : c.kind === 'resource' ? 1 : 0); // data stores sit right after the last service lifeline, then topics and queues, grouped per topic; the unresolved column follows
   const storeAt = new Map(orderStores(cols.filter((c) => c.kind === 'resource')).map((c, i) => [c, i])); // a store's collections together, in the order of their first step
-  const columns = cols.filter((c) => kept.some((e) => e.from === c || e.to === c || e.via === c || e.col === c) || (c === source && !clientApp) || c === rootCol)
+  const columns = cols.filter((c) => kept.some((e) => e.from === c || e.to === c || e.via === c || e.col === c || e.cols?.includes(c)) || (c === source && !clientApp) || c === rootCol)
     .sort((a, b) => rank(a) - rank(b) || (a.kind === 'channel' ? a.ord - b.ord : a.kind === 'resource' ? storeAt.get(a) - storeAt.get(b) : a.ci - b.ci));
   const altEvents = kept.filter((e) => e.msg);
   return { columns, events: kept, bars, altMsgs: altEvents.map((e) => e.msg), altRows: altEvents.map((e) => e.row) };

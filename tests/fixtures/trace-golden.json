@@ -8,7 +8,7 @@
  "account-lambda-erase-controller/in.publishUnknownEvent": "1660302da1bb73",
  "activitylog/in.rpcAppend": "0e4433c3fad2ea",
  "api-gateway/in.createOrder": "059460433b99ae",
- "api-gateway/in.getOrder": "1af404df346a54",
+ "api-gateway/in.getOrder": "1c8aa732d62955",
  "api-gateway/in.users": "1df37ac622d82b",
  "catalog-svc/in.delete.categories.id": "193fb1d8ef52c7",
  "catalog-svc/in.delete.categories.id.products.productId": "15a14b9cbdf253",

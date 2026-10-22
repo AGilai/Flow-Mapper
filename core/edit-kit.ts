@@ -15,6 +15,7 @@ export type CallEdit = {
   to: { service: string; ingress: string } | { endpoint: EndpointEdit } | { bindKey: string; transport: Transport };   // existing | new endpoint | not designed yet
   edit?: { egress: string; seq: number };                                          // replace this existing call
   mode?: Mode; operation?: string; condition?: string; event?: string; description?: string; note?: string;   // note: the step's own text (what the trace shows as its note)
+  mark?: 'new' | 'changed' | null;                                                   // 0.32.2 (#75): the step's own mark (null clears it)
 };
 export type DeleteCallEdit = { kind: 'delete-call'; service: string; fn: string; seq: number };
 export type DesignEdit =

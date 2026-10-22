@@ -23,6 +23,7 @@ import { refKey, unresolvedTarget } from './resolve.ts';
 import { splitAmqpKey } from './amqp.ts';
 import { routeKey, rpcOf } from './amqp-route.ts';
 import { entryPoints } from './trace.ts';
+import { markedId } from './step-marks.ts';
 
 export interface FlowCount {
   service: string; ingress: string; total: number;
@@ -30,6 +31,7 @@ export interface FlowCount {
 }
 interface Node { local: Set<string>; next: string[] }
 
+const markedDone = new WeakMap<GraphIndex, Map<string, number>>();
 const counted = new WeakMap<GraphIndex, FlowCount[]>();
 const cache = new WeakMap<GraphIndex, Map<string, string[]>>();
 
@@ -49,6 +51,7 @@ export function componentSets(g: GraphIndex, mark?: (i: Ingress) => string | und
     node.local.add('s:' + f.service);
     for (const st of f.steps) {
       if (st.origin === 'frontier') continue;
+      if (st.mark) node.local.add(markedId(f.service, f.id, st.seq));
       const out = st.type === 'egress' && st.target ? g.egress.get(sid(f.service, st.target)) : undefined;
       if ((!st.target ? st.unresolved?.find((u) => u.what === 'target') : undefined) ?? (out ? unresolvedTarget(out) : undefined)) continue;
       if (!st.target) continue;
@@ -133,6 +136,7 @@ export function flowCounts(g: GraphIndex): FlowCount[] {
     const c: FlowCount = { service: e.service, ingress: e.id, total: 0, services: 0, topics: 0, queues: 0, buses: 0, stores: 0, otherChannels: 0 };
     const reached = new Set([e.handler, ...(e.middleware ?? [])].flatMap((fn) => sets.get(sid(e.service, fn)) ?? []));
     for (const id of reached) {
+      if (id[0] === 'm') continue;                  // a marked step (step-marks.ts), not a component
       if (id[0] === 's') c.services++;
       else if (id[0] === 'r') c.stores++;
       else {
@@ -155,4 +159,20 @@ export function describeCount(c: FlowCount): string {
   const part = (n: number, one: string, many = one + 's') => (n ? `${n} ${n === 1 ? one : many}` : '');
   return [part(c.services, 'service'), part(c.topics, 'topic'), part(c.queues, 'queue'), part(c.buses, 'bus', 'buses'), part(c.otherChannels, 'other channel'), part(c.stores, 'store')]
     .filter(Boolean).join(', ');
+}
+
+/** 0.32.2 (#75): `${service}:${ingress}` of an entry point -> how many marked steps (step-marks.ts) its flow runs; entries with none are absent. */
+export function markedReached(g: GraphIndex): Map<string, number> {
+  const hit = markedDone.get(g);
+  if (hit) return hit;
+  const out = new Map<string, number>();
+  markedDone.set(g, out);
+  if (![...g.fns.values()].some((f) => f.steps.some((s) => s.mark))) return out;
+  const sets = componentSets(g);
+  for (const e of entryPoints(g)) {
+    const ids = new Set<string>();
+    for (const fn of [e.handler, ...(e.middleware ?? [])]) for (const c of sets.get(sid(e.service, fn)) ?? []) if (c.startsWith('m:')) ids.add(c);
+    if (ids.size) out.set(`${e.service}:${e.id}`, ids.size);
+  }
+  return out;
 }

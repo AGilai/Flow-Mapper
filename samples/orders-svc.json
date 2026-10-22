@@ -132,6 +132,7 @@
           "type": "resource",
           "target": "cache",
           "operation": "GET order:{id}",
+          "groups": [{ "id": "attempt", "kind": "loop", "condition": "up to 2 attempts" }],
           "details": { "keyTemplate": "order:{id}" }
         },
         {
@@ -139,7 +140,8 @@
           "type": "resource",
           "target": "ordersDb",
           "operation": "findOne",
-          "condition": "cache miss"
+          "condition": "cache miss",
+          "groups": [{ "id": "attempt", "kind": "loop", "condition": "up to 2 attempts" }, { "id": "fill", "condition": "cache miss" }]
         },
         {
           "seq": 3,
@@ -147,7 +149,9 @@
           "target": "cache",
           "operation": "SET order:{id}",
           "condition": "cache miss",
-          "details": { "keyTemplate": "order:{id}", "ttlSeconds": 3600 },
+          "groups": [{ "id": "attempt", "kind": "loop", "condition": "up to 2 attempts" }, { "id": "fill", "condition": "cache miss" }],
+          "mark": "changed",
+          "details": { "keyTemplate": "order:{id}", "ttlSeconds": 3600, "changed": "the entry now lives one hour (it was ten minutes)" },
           "assumed": [{ "what": "detail", "detail": "details.ttlSeconds", "value": 3600, "basis": "convention", "reason": "order cache entries expire after one hour by team convention; the code passes no explicit TTL" }]
         },
         {
@@ -156,10 +160,20 @@
           "target": "cache",
           "operation": "SET",
           "condition": "after a refund",
+          "groups": [{ "id": "attempt", "kind": "loop", "condition": "up to 2 attempts" }, { "id": "fill", "condition": "after a refund" }],
+          "mark": "new",
           "unresolved": [
             { "what": "detail", "detail": "details.keyTemplate", "reason": "key_unresolved:call_result:keyFn" },
             { "what": "detail", "detail": "details.ttlSeconds", "reason": "ttlSeconds:computed" }
           ]
+        },
+        {
+          "seq": 5,
+          "type": "call",
+          "kind": "leaf",
+          "operation": "order served",
+          "note": "the cache and the database agree",
+          "over": ["orders-svc", "cache-main", "orders-db"]
         }
       ]
     },

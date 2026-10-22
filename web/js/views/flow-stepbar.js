@@ -29,7 +29,7 @@ export function createStepbar({ store, root, onMove, onEdit, sb = () => 'tad' })
   function paint() {
     const { step, n } = last, set = sb(), t = stepText(data, step.key), [a, b] = stepCols(step.event), parts = [];
     if (set.includes('t') && t.title) parts.push(h('div.sb-t', { title: t.title }, t.title));
-    if (set.includes('a')) parts.push(h('div.sb-a', h('span.mono.sb-api', step.label), h('span.sb-rt', dot(a), h('span.muted', `${step.from} → `), dot(b), h('span.muted', step.to)), step.transport === 'undecided' ? h('span.sb-tbd', { 'data-qa': 'step-tbd', title: 'The design has not decided how this call travels' }, 'transport not decided') : null));
+    if (set.includes('a')) parts.push(h('div.sb-a', h('span.mono.sb-api', { title: step.event?.msg?.label }, step.label), h('span.sb-rt', dot(a), h('span.muted', `${step.from} → `), dot(b), h('span.muted', step.to)), step.transport === 'undecided' ? h('span.sb-tbd', { 'data-qa': 'step-tbd', title: 'The design has not decided how this call travels' }, 'transport not decided') : null));
     if (set.includes('d') && root) {
       if (!t.desc) parts.push(h('div.sb-x.add', h('a', { href: '#', 'data-qa': 'add-description', on: { click: (e) => { e.preventDefault(); onEdit?.(bar); } } }, 'Add a description')));
       else {

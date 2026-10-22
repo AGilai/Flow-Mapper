@@ -20,6 +20,10 @@
     { "service": "api-gateway", "ingress": "in.createOrder", "callee": "#step:svc:orders-svc>svc:payments-svc|http:POST payments-svc/payments/charge|http", "source": "ai", "model": "claude-sonnet-5-5", "generatedAt": "2026-10-20T10:00:00.000Z",
       "text": "Takes the payment. payments-svc checks the customer's risk score first, records the charge and announces PaymentCaptured." },
     { "service": "api-gateway", "ingress": "in.createOrder", "callee": "#step:svc:orders-svc>res:mongodb:orders-db/orders|insertOne|res", "title": "Store the order", "source": "ai", "model": "claude-sonnet-5-5", "generatedAt": "2026-10-20T10:00:00.000Z",
-      "text": "The order is stored only after stock and payment succeeded, then OrderPlaced is announced to the rest of the system." }
+      "text": "The order is stored only after stock and payment succeeded, then OrderPlaced is announced to the rest of the system." },
+    { "service": "api-gateway", "ingress": "in.getOrder", "callee": "#step:svc:orders-svc>res:redis:cache-main/order:{id}|GET order:{id}|res", "title": "Look in the cache", "text": "", "source": "human", "editedBy": "maintainer" },
+    { "service": "api-gateway", "ingress": "in.getOrder", "callee": "#step:svc:orders-svc>res:mongodb:orders-db/orders|findOne|res", "title": "Read it from the database", "text": "", "source": "human", "editedBy": "maintainer" },
+    { "service": "api-gateway", "ingress": "in.getOrder", "callee": "#step:svc:orders-svc>res:redis:cache-main/order:{id}|SET order:{id}|res", "title": "Fill the cache", "text": "", "source": "human", "editedBy": "maintainer" },
+    { "service": "api-gateway", "ingress": "in.getOrder", "callee": "#step:svc:orders-svc>res:redis:cache-main/order:{id}|SET|res", "title": "Refresh it after a refund", "text": "", "source": "human", "editedBy": "maintainer" }
   ]
 }

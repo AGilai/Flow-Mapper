@@ -8,9 +8,10 @@ import { arrow, marker, rpcChip, stop } from './flow-draw-prims.js';
 import { arrowMarkSvg } from './flow-marks-draw.js';
 import { isDesign } from '../state.js';
 import { refNoteSvg } from './flow-refs-draw.js';
+import { noteSvg } from './flow-draw-notes.js';
 
 /** drawRows(layout) -> one element per event, in order. */
-export function drawRows({ events, colX, ys, barX, edge, marks, refs, stacked, folded, idx, noApi = null, th = true }) {
+export function drawRows({ events, colX, ys, barX, edge, marks, refs, stacked, folded, idx, groups = [], noApi = null, th = true }) {
   return events.map((e, r) => {
     const y0 = ys[r], lab = (v) => (noApi?.has(e) ? null : v); // step details: an arrow that shows title / description only has no API label
     const g = (cls, ...kids) => s('g', { class: `msg ${cls}`, 'data-e': r, tabindex: e.msg ? 0 : null, role: e.msg ? 'button' : null }, ...kids);
@@ -44,6 +45,7 @@ export function drawRows({ events, colX, ys, barX, edge, marks, refs, stacked, f
       } else { kids = [arrow(x1, x2, y0, { label: e.trunk ? lab(hl) : null, color: mc })]; mid = (x1 + x2) / 2; }
       return g('hop', ...kids, e.marker ? marker(e.marker, mid, y0, mc) : null, e.end ? stop(e.end, x2, 1, y0, mc, r) : null, ...(e.publish ? [trunkHit(x1, tx, y0, e), hit(tx, x2)] : [hit(left, x2)]), s('title', {}, [e.msg.label, e.marker?.full].filter(Boolean).join('\n')));
     }
+    if (e.type === 'note') return noteSvg(e, y0, { colX, idx, groups });
     if (e.type === 'amqpnote') { // the bindings that do not route this publish, under the fork; the exchange page lists them
       const x0 = colX.get(e.col) + 10;
       return s('g', { class: 'amqpnote' }, s('text', { x: x0, y: y0 + 4 }, e.text),

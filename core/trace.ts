@@ -22,7 +22,8 @@ import { codeLink, sourceLink, type SourceLink } from './endpoint-info.ts';
 import { refKey, unresolvedTarget } from './resolve.ts';
 import { assumedOn, storeOn, unknownOn } from './step-notes.ts';
 import type { Step, StepField, Unresolved } from './types.ts';
-import { altGroups, type Alt } from './alt.ts';
+import { stepExtras } from './step-marks.ts';
+import { altCtxOf, altGroups, type Alt, type AltCtx } from './alt.ts';
 import { egressVia, ingressVia, type LinkedHop } from './via.ts';
 import { bindingKeyOf, splitAmqpKey } from './amqp.ts';
 import { routeInfo, routeKey, rpcOf, rpcServed, withServer, type AmqpRoute, type RpcInfo } from './amqp-route.ts';
@@ -37,6 +38,7 @@ export interface Message {
   kind: 'entry' | 'call' | 'egress' | 'deliver' | 'resource' | 'leaf' | 'frontier';
   depth: number; internal?: boolean; broken?: boolean; cycle?: boolean;
   condition?: string; loop?: boolean;
+  mark?: 'new' | 'changed'; changed?: string; over?: string[]; // 0.32.2: the step's mark and its details.changed text (#75), the components a leaf note spans (#74)
   alt?: Alt;                                                 // the step is one of several alternatives (an alt frame): group, branch (1-based), number of branches; the message keeps its `condition` note?: string; fn?: string; service?: string; transport?: string; protocol?: 'tls' | 'tcp' | 'ws';
   event?: string; unhandled?: boolean; operation?: string; // operation: a call out's own words (`POST /token`); `label` is that plus the bind key
   eventFrom?: { name: string; boundAt?: string };            // the event came from a caller's bind (#42): the name, and where it was bound (`<caller fn>:<seq>`); no boundAt: nothing on this path binds it
@@ -121,7 +123,6 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
   let counted = 0; // messages that count toward maxMessages: everything but the folded frontier markers
   // Alternatives are not sequential load (#41): inside an alt group each branch keeps its own tally and only
   // the largest branch counts (toward the enclosing branch, or toward the cap at the top level).
-  interface AltCtx { counts: number[]; max: number; branch: number; parent?: AltCtx }
   let altCtx: AltCtx | undefined;
   const wouldCount = (c: AltCtx | undefined): boolean => !c || (c.counts[c.branch] + 1 > c.max && wouldCount(c.parent));
   const tally = (c: AltCtx | undefined) => {
@@ -170,12 +171,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
       if (truncated) return;
       const alt = alts.get(st.seq);
       altCtx = outer;
-      if (alt) {
-        let c = ctxs.get(alt.group);
-        if (!c) ctxs.set(alt.group, (c = { counts: Array(alt.of).fill(0), max: 0, branch: 0, parent: outer }));
-        c.branch = alt.branch - 1;
-        altCtx = c;
-      }
+      if (alt) altCtx = altCtxOf(ctxs, alt, outer);
       if (st.origin === 'frontier' && !showFrontier) {
         if (!folded) { // one marker per function, where its first frontier step would be
           folded = true;
@@ -183,7 +179,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
         }
         continue;
       }
-      const base = { depth, condition: st.condition, ...(alt ? { alt } : {}), loop: st.loop, note: st.note, fn: f.id, service, seq: st.seq, ...(st.origin === 'frontier' ? { origin: 'frontier' as const } : {}) };
+      const base = { depth, condition: st.condition, ...(alt ? { alt } : {}), loop: st.loop, note: st.note, fn: f.id, service, seq: st.seq, ...stepExtras(st), ...(st.origin === 'frontier' ? { origin: 'frontier' as const } : {}) };
       // A gap the harvester reported: the step's own target, or the egress it goes through, is unresolved.
       const out = st.type === 'egress' && st.target ? g.egress.get(sid(service, st.target)) : undefined;
       const gap = (!st.target ? st.unresolved?.find((u) => u.what === 'target') : undefined) ?? (out ? unresolvedTarget(out) : undefined);

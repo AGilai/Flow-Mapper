@@ -227,6 +227,20 @@
         "operation": { "type": "string", "description": "e.g. findOne, publish, GET" },
         "condition": { "type": "string", "description": "Branch condition, if conditional." },
         "altGroup": { "type": "string", "description": "Steps of this function with the same altGroup are mutually exclusive alternatives, one branch per condition (drawn as an alt frame). Without it, consecutive steps with the same source file:line that each carry a condition form a group." },
+        "groups": {
+          "type": "array",
+          "description": "The frames this step sits in, outermost first, so frames nest (an alt inside a loop). Each entry: `id` (unique within the function; steps sharing an id are in one frame), `kind` (alt, opt, loop, par, critical or break; default alt) and `condition` (the section of the frame this step is in; steps with the same condition share a section, none = the frame's only section). When present it replaces `altGroup` and `condition` for the grouping of this step.",
+          "items": {
+            "type": "object", "required": ["id"], "additionalProperties": false,
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "kind": { "enum": ["alt", "opt", "loop", "par", "critical", "break"], "default": "alt" },
+              "condition": { "type": "string" }
+            }
+          }
+        },
+        "mark": { "enum": ["new", "changed"], "description": "A step the design adds (new) or changes (changed): drawn as a coloured band on its arrow with the same mark icon as components and flows, and counted by \"Changed only\". `details.changed` (free text) stays the tooltip." },
+        "over": { "type": "array", "items": { "type": "string" }, "description": "On a leaf step: the components (or data stores, by their instance or database name) its note spans. The note is drawn from the leftmost to the rightmost of them (one component: under that lifeline)." },
         "loop": { "type": "boolean", "default": false },
         "note": { "type": "string" },
         "event": { "$ref": "#/$defs/eventType", "description": "For an egress step: the event type it publishes." },

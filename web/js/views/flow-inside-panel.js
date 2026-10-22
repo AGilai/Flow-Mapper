@@ -31,8 +31,8 @@ export function createInside(host, { env, onClose, onOpen, onStep, isActive, des
     return h('button.fi-step', { class: st.type, title: 'Mark this arrow in the diagram', on: { click: () => onStep?.(m) } }, h('span.fi-meta', meta), st.code ? codeLink(st.code) : null);
   };
   const block = (b) => b.branches
-    ? h('div.fi-alt', h('div.fi-alt-h', h('span.alt-kw', 'alt'), h('b', b.alt.group.split(':').pop()), h('span.muted.xs', `${b.branches.length} of ${b.alt.of} branches shown`)),
-      b.branches.map((br) => h('div.fi-branch', h('div.fi-cond', br.condition ? `[${br.condition}]` : `branch ${br.branch}`), br.steps.map(stepRow))))
+    ? h('div.fi-alt', h('div.fi-alt-h', h('span.alt-kw', b.alt.kind ?? 'alt'), h('b', b.alt.group.split(':').pop()), h('span.muted.xs', `${b.branches.length} of ${b.alt.of} branches shown`)),
+      b.branches.map((br) => h('div.fi-branch', h('div.fi-cond', br.condition ? `[${br.condition}]` : `branch ${br.branch}`), br.steps.map(block))))
     : stepRow(b);
 
   function open(bar, trace) {

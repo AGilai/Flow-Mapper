@@ -40,6 +40,10 @@ export interface Service {
   commit?: string;
 }
 
+export type GroupKind = 'alt' | 'opt' | 'loop' | 'par' | 'critical' | 'break';
+/** One frame a step sits in: `id` unique within the function, `condition` names the branch (a section of the frame). */
+export interface StepGroup { id: string; kind?: GroupKind; condition?: string }
+
 export interface Step {
   seq: number;
   type: 'call' | 'egress' | 'resource';
@@ -54,6 +58,12 @@ export interface Step {
   condition?: string;
   /** Steps of this function with the same `altGroup` are mutually exclusive alternatives, one branch per condition. */
   altGroup?: string;
+  /** 0.32.2 (#72): the frames this step sits in, outermost first (nesting inside one function). Replaces `altGroup` / `condition` for the grouping of this step. */
+  groups?: StepGroup[];
+  /** 0.32.2 (#75): a step the design adds (`new`) or changes (`changed`); drawn as a band on its arrow; `details.changed` stays the tooltip. */
+  mark?: 'new' | 'changed';
+  /** 0.32.2 (#74): on a leaf step, the components (or data stores) its note spans (leftmost to rightmost). */
+  over?: string[];
   loop?: boolean;
   note?: string;
   /** Event type this egress step publishes (one of the egress's `events`). */

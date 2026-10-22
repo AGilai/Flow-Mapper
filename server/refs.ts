@@ -4,6 +4,7 @@
 import type { Ctx } from './context.ts';
 import { decorateDesignTrace, refsReached } from '../core/flow-refs.ts';
 import { decorateEntries } from '../core/flow-text.ts';
+import { markedReached } from '../core/flow-counts.ts';
 import { originsOf, referencesOf, type EnvRefs } from '../core/references.ts';
 import { entryPoints, type Trace } from '../core/trace.ts';
 import { notFound } from './errors.ts';
@@ -51,5 +52,5 @@ export function entryPointsOut(ctx: Ctx, env: string, draft: string | null) {
   const texts = reader.flowTexts();
   const design = getEnvRow(ctx.db, env)?.kind === 'design';
   const refs = design ? refsFor(ctx, env, draft) : NO_REFS, reached = design ? refsReached(g, refs) : new Map<string, number>();
-  return decorateEntries(entryPoints(g), texts, refs, reached);
+  return decorateEntries(entryPoints(g), texts, refs, reached, design ? markedReached(g) : undefined);
 }

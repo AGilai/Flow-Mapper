@@ -1,7 +1,9 @@
 // Step details (0.30.0), the pure part: which of a step's Title / API / Description show on the step bar (`sb=`) and on the arrows (`sd=`),
 // the URL form, the button label, and what one step shows on its arrow. Letters t, a, d; always in that order. No DOM.
 
-export const BAR_DEFAULT = 'tad', ARROWS_DEFAULT = 'a', MAX_TITLE = 80;
+export const BAR_DEFAULT = 'tad', ARROWS_DEFAULT = 'a', ARROWS_DESIGN = 't', MAX_TITLE = 80;
+/** The Arrows default of an environment kind (#76): a design shows the step Title (a step without one falls back to its API); a harvested environment shows the API. */
+export const arrowsDefault = (design) => (design ? ARROWS_DESIGN : ARROWS_DEFAULT);
 const NAMES = { t: 'Title', a: 'API', d: 'Description' };
 
 /** The letters of `v` that are fields, in the order t, a, d, once each. */
@@ -13,14 +15,14 @@ export function decodeBar(query) {
   if (v == null) return null;
   return v === '-' ? '' : canon(v) || BAR_DEFAULT;
 }
-/** `sd=` of a query: the letters, at least one (none valid: API only); null when the param is absent. */
-export function decodeArrows(query) {
+/** `sd=` of a query: the letters, at least one (none valid: the kind's default); null when the param is absent. An `sd=` that equals the other kind's default is kept in the URL. */
+export function decodeArrows(query, dflt = ARROWS_DEFAULT) {
   const v = query.get('sd');
-  return v == null ? null : canon(v) || ARROWS_DEFAULT;
+  return v == null ? null : canon(v) || dflt;
 }
 /** URL values: null at the default. */
 export const encodeBar = (set) => (set === BAR_DEFAULT ? null : set === '' ? '-' : set);
-export const encodeArrows = (set) => (set === ARROWS_DEFAULT ? null : set);
+export const encodeArrows = (set, dflt = ARROWS_DEFAULT) => (set === dflt ? null : set);
 
 const words = (set) => (set === 'tad' ? '3' : [...set].map((c) => NAMES[c]).join(' + '));
 /** The toolbar button text: "Step details: bar 3 · arrows API". */
@@ -34,6 +36,7 @@ export function toggle(set, letter, min = 0) {
 
 export const PRESETS = [
   { id: 'api', label: 'API only (as before)', bar: 'tad', arrows: 'a' },
+  { id: 'title', label: 'Title, else API', bar: 'tad', arrows: 't' },
   { id: 'all', label: 'Everything, bar and arrows', bar: 'tad', arrows: 'tad' },
   { id: 'ta', label: 'Title and API on the arrows', bar: 'tad', arrows: 'ta' },
 ];

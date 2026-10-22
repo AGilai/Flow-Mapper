@@ -5,7 +5,7 @@ import { buildIndex } from '../core/graph-index.js';
 import { systemGraph } from '../core/system-graph.js';
 import { serviceView } from '../core/service-view.js';
 import { entryPoints, trace } from '../core/trace.js';
-import { flowCounts } from '../core/flow-counts.js';
+import { flowCounts, markedReached } from '../core/flow-counts.js';
 import { refsReached } from '../core/flow-refs.js';
 import { decorateEntries } from '../core/flow-text.js';
 import { findPaths } from '../core/paths.js';
@@ -88,7 +88,7 @@ export const api = {
   },
   entryPoints: async (env) => {
     const refs = D.refsOf(env), design = D.isDesign(env);
-    return decorateEntries(entryPoints(g(env)), D.texts(env), design ? refs : undefined, design ? refsReached(g(env), refs) : undefined);
+    return decorateEntries(entryPoints(g(env)), D.texts(env), design ? refs : undefined, design ? refsReached(g(env), refs) : undefined, design ? markedReached(g(env)) : undefined);
   },
   flowCounts: async (env) => { const t = D.texts(env); return flowCounts(g(env)).map((c) => (t.get(`${c.service}/${c.ingress}`)?.name ? { ...c, name: t.get(`${c.service}/${c.ingress}`).name } : c)); },
   inventory: async (env) => inventory(g(env), D.eventDtosOf(env).map((d) => d.event), new Map((data.keys?.[env] ?? []).map((k) => [k.instance, keySummary(k.entries)]))),
