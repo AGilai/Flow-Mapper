@@ -4,14 +4,17 @@
 import { h } from '../dom.js';
 import { BAR_DEFAULT, canon, toggle, summary, PRESETS } from './step-details-pure.js';
 
-const KEY = { bar: 'flow-mapper.step-bar', arrows: 'flow-mapper.step-arrows' }, HL_KEY = 'flow-mapper.step-hl';
+const KEY = { bar: 'flow-mapper.step-bar', arrows: 'flow-mapper.step-arrows' }, HL_KEY = 'flow-mapper.step-hl', CB_KEY = 'flow-mapper.comment-brackets';
 export const storedHl = () => { try { return localStorage.getItem(HL_KEY) !== '0'; } catch { return true; } };
+/** The viewer's own choice for the comment brackets layer (0.34.0), or null: then the default of the environment (on in a design, off in a harvested one). */
+export const storedCb = () => { try { const v = localStorage.getItem(CB_KEY); return v === null ? null : v === '1'; } catch { return null; } };
+const keepCb = (on) => { try { localStorage.setItem(CB_KEY, on ? '1' : '0'); } catch { /* storage unavailable */ } };
 const keepHl = (on) => { try { localStorage.setItem(HL_KEY, on ? '1' : '0'); } catch { /* storage unavailable */ } };
 export const stored = (which, dflt) => { try { const v = localStorage.getItem(KEY[which]); return v == null ? dflt : v === '-' ? '' : canon(v) || dflt; } catch { return dflt; } };
 const keep = (which, set) => { try { localStorage.setItem(KEY[which], set === '' ? '-' : set); } catch { /* storage unavailable */ } };
 
-/** createStepMenu({ bar, arrows, hl = true, onChange({ bar, arrows, hl }) }) -> { el, set(bar, arrows), close() } */
-export function createStepMenu({ bar, arrows, hl = true, dflt = 'a', onChange }) {
+/** createStepMenu({ bar, arrows, hl = true, cb = false, onChange({ bar, arrows, hl, cb }) }) -> { el, set(bar, arrows), close() } */
+export function createStepMenu({ bar, arrows, hl = true, cb = false, dflt = 'a', onChange }) {
   const FIELDS = [['t', 'Title'], ['a', 'API'], ['d', 'Description']];
   const label = h('span.sdm-l'), btn = h('button.btn.sm.sdm-btn', { type: 'button', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'data-qa': 'step-details', on: { click: () => (panel.hidden ? open() : close()) } }, label, h('span.sdm-c', '▾'));
   const panel = h('div.sd-menu', { hidden: true, role: 'group', 'aria-label': 'Step details' });
@@ -27,13 +30,14 @@ export function createStepMenu({ bar, arrows, hl = true, dflt = 'a', onChange })
   function paint() {
     label.textContent = summary(bar, arrows);
     panel.replaceChildren(section('bar', 'Step bar', 'above the diagram', 0), section('arrows', 'Arrows', 'on the diagram', 1),
-      h('div.sdm-sec.sdm-hl', h('label.sdm-o', { title: 'A soft yellow band behind the current step. The numbered dot always shows.' }, h('input', { type: 'checkbox', checked: hl, 'data-sd': 'highlight', on: { change: (e) => { hl = e.target.checked; keepHl(hl); onChange({ bar, arrows, hl }); } } }), 'Highlight current step')),
-      h('div.sdm-pre', ...PRESETS.map((p) => h('button.link', { type: 'button', on: { click: () => { bar = p.bar; arrows = p.arrows; keep('bar', bar); keep('arrows', arrows); paint(); onChange({ bar, arrows, hl }); } } }, p.label))),
+      h('div.sdm-sec.sdm-hl', h('label.sdm-o', { title: 'A soft yellow band behind the current step. The numbered dot always shows.' }, h('input', { type: 'checkbox', checked: hl, 'data-sd': 'highlight', on: { change: (e) => { hl = e.target.checked; keepHl(hl); onChange({ bar, arrows, hl, cb }); } } }), 'Highlight current step'),
+        h('label.sdm-o', { title: 'Draw a bracket in the left gutter for each comment on a range of steps, and drag along the gutter to comment on one. On in design environments, off in harvested ones.' }, h('input', { type: 'checkbox', checked: cb, 'data-sd': 'brackets', on: { change: (e) => { cb = e.target.checked; keepCb(cb); onChange({ bar, arrows, hl, cb }); } } }), 'Comment brackets')),
+      h('div.sdm-pre', ...PRESETS.map((p) => h('button.link', { type: 'button', on: { click: () => { bar = p.bar; arrows = p.arrows; keep('bar', bar); keep('arrows', arrows); paint(); onChange({ bar, arrows, hl, cb }); } } }, p.label))),
       h('p.sdm-n', 'The bar always has the stepper. A step shows the fields it has; a step with none of the chosen arrow fields shows its API.'));
   }
   function apply(which, set) {
     if (which === 'bar') bar = set; else arrows = set || dflt;
-    keep(which, which === 'bar' ? bar : arrows); paint(); onChange({ bar, arrows, hl });
+    keep(which, which === 'bar' ? bar : arrows); paint(); onChange({ bar, arrows, hl, cb });
   }
   const onDoc = (e) => { if (!el.contains(e.target)) close(); };
   const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); close(); btn.focus(); } };

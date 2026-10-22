@@ -657,6 +657,35 @@ A global registry of people (not per environment): `users` (migration `016_users
 - **Action items** take `owner` (a name, matched) or `ownerId`.
 - **MCP.** `list_users {query?}`, `list_mentions` (see Mentions). `add_comment`, `resolve_comment`, `add_action_item` and `update_action_item` no longer require `author`: without it the write is by the user "Assistant".
 
+## Notes per flow (0.34.0)
+
+One rich document per flow that tells its story (purpose, how it works, decisions, open questions), kept as **versions** in `flow_notes` (migration
+`017_flow_notes.sql`), anchored with `flow:<service>/<ingress>`. Like comments, Notes are annotations: **every environment takes them**, sealed and
+harvested ones too (notes are not harvested data), no draft needed; `?draft=<slug>` on a write lets a flow that only exists in an open draft have notes.
+Every Save is a new version; the latest is current; a restore writes a new version; nothing is deleted.
+
+| Method + path | |
+|---|---|
+| `GET /api/envs/:env/notes?anchor=flow:<s>/<i>[&version=N]` | `{anchor, version, body, author, authorId, createdAt, restoredFrom}`; `version: 0` and `body: ""` when the flow has no notes yet; `version=N` reads an older one (`404` when it does not exist) |
+| `PUT /api/envs/:env/notes[?draft=]` | `{anchor, body, baseVersion?, author?}` -> the new version `{...}`. `baseVersion` is the version the writer started from: when it is not the current one the answer is `409 STALE_NOTES` with `error.details.current` (the current version, so the writer can show it or save over it with the new `baseVersion`); leave it out to skip the check. Writing the current text again changes nothing and answers `{..., unchanged: true}`. An empty `body` clears the notes (still a version) |
+| `GET /api/envs/:env/notes/history?anchor=[&limit=]` | `{anchor, current, total, versions: [{version, author, authorId, createdAt, restoredFrom, size}]}`, newest first, the latest 30 (`limit` up to 100) |
+| `POST /api/envs/:env/notes/restore[?draft=]` | `{anchor, version, baseVersion?, author?}`: the text of that version written as a new version with `restoredFrom` set |
+| `GET /api/envs/:env/notes/index` | `{<anchor>: version}` for the flows whose current notes have content |
+
+- **Body** is the comment HTML subset (see "Comments under a flow") **plus** `h2` and `h3` (`h1` becomes `h2`, `h4`..`h6` become `h3`) and the **step chip** `<span data-step="4">step 4</span>` (`data-step` is a step number, or a range `"4-9"`; digits only; the text is the chip's label and the UI redraws it from the walk). `@[userId]` and `@{Display Name}` work as in comments. Limit 100 000 characters after sanitizing (`422`). The server sanitizes every write and every read.
+- **Identity, validation:** as comments (`X-Flow-User` or `author`; `400` for a bad `anchor`, `404` for an unknown environment or flow on a write).
+- **Mentions.** A `@[userId]` in the **current** version counts on the Mentions page "in Notes": `GET /api/mentions` and `list_mentions` also return `notes: [{env, anchor, service, ingress, label, text}]` (never unread, like `about`).
+- **Copy.** A Full copy carries the notes with their whole history; Blank and Components copies do not. Deleting a design environment deletes its notes.
+- **Events:** `notes.updated` (`env`, `data {anchor, version, author, text, restoredFrom?}`).
+- **MCP.** `get_notes {env, service, ingress, version?, history?}` returns `{anchor, version, author, authorId, createdAt, restoredFrom, text, html, history?}`; `set_notes {env, service, ingress, body, base_version?, author?, draft?}` writes a new version (`body`: Markdown-lite with `#`/`##`/`###` headings, or HTML) and returns `{anchor, version, author, createdAt, unchanged?}`.
+- **Preview.** The static preview bundles the seeded notes (every version) and keeps what the viewer saves in memory.
+
+### Step ranges on comments (0.34.0)
+
+A comment may carry `steps: {from, to}` (two step keys, `from` before `to`; 2 or more steps) instead of `step`. `POST /api/envs/:env/comments` takes it, the thread
+returns it on every comment (`steps: null` when absent), and `step` is then `null`. A key that is not in the flow is `400`; a range of one step is `400` (use `step`). A range whose
+steps vanish from the flow (the flow changed) is read as what remains, or as a plain comment when none remain; the stored keys are never rewritten.
+
 ## Mentions (0.32.0, #66 part 2)
 
 A comment can address a user with the token **`@[userId]`** in its body (the id is `u_` plus 8 hex characters; any `[A-Za-z0-9_-]{1,40}` is read as an id).

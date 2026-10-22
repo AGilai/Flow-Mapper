@@ -16,6 +16,7 @@ import { resolveOwners, resolveAbout } from './owners.ts';
 import { getEnv, getEnvRow, type EnvGroup, type EnvMeta } from './envs.ts';
 import { copyAllBaseline, copyDescriptions, clearEntryPoints, copyDesignLists, copyDtos, copyKeys, copyService, copyShared, type CopyCtx } from './env-copy-rows.ts';
 import { copyComments } from './comments.ts';
+import { copyNotes } from './notes.ts';
 import { copyActionItems } from './action-items-io.ts';
 import { copySharedChannels } from './env-copy-channels.ts';
 import { ensureColors } from './colors.ts';
@@ -112,7 +113,7 @@ export function copyEnv(db: DB, input: CopyInput): EnvMeta {
     copyShared(c, types, stores);
     copyKeys(c, new Set(names));
     if ((input.entryPoints ?? (mode === 'components' ? 'none' : 'keep')) === 'none') clearEntryPoints(c); // #65: a Components copy lists no copied entry points unless 'keep'
-    if (mode === 'full') { copyDescriptions(c); copyAllBaseline(c); copyActionItems(db, source, name, copyComments(db, source, name)); if (fullOfDesign) copyDesignLists(c); } // only a Full copy carries the discussion
+    if (mode === 'full') { copyDescriptions(c); copyAllBaseline(c); copyActionItems(db, source, name, copyComments(db, source, name)); copyNotes(db, source, name); if (fullOfDesign) copyDesignLists(c); } // only a Full copy carries the discussion
     ensureColors(db, name, JSON.parse((db.prepare('SELECT colors FROM envs WHERE name = ?').get(source) as { colors: string }).colors || '{}'));
     return getEnv(db, name);
   });
