@@ -50,7 +50,9 @@ export function drawStepTiles(res, built, steps, onPick, onEdit = null) {
       tiles.get(n)?.classList.add('cur'); grps.get(n)?.classList.add('cur');
       if (!st || !sp) { halo.setAttribute('visibility', 'hidden'); return; }
       const x = Math.min(sp.x1, sp.x2) - 8, y = res.geometry.y[st.row];
-      halo.setAttribute('x', x); halo.setAttribute('y', y - 22); halo.setAttribute('width', Math.abs(sp.x2 - sp.x1) + 16);
+      // 0.30.0: step details drawn on the arrow (title above, description below) stay inside the halo
+      const up = res.body.querySelector(`.sdt.t[data-step="${n}"]`) ? 14 : 0, down = res.body.querySelector(`.sdt.d[data-step="${n}"]`) ? 7 : 0;
+      halo.setAttribute('x', x); halo.setAttribute('y', y - 22 - up); halo.setAttribute('height', 38 + up + down); halo.setAttribute('width', Math.abs(sp.x2 - sp.x1) + 16);
       halo.setAttribute('style', `--mc:${colorOf(st.transport)}`); halo.setAttribute('visibility', 'visible');
     },
     span: (n) => spans.get(n) ?? null,

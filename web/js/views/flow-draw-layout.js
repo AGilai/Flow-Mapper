@@ -36,7 +36,7 @@ export function layoutLane(lane, fit = 0, sq = null, marks = null, edit = false,
     const a = idx.get(e.from), b = idx.get(e.to), v = e.via ? idx.get(e.via) : null, lab = e.trunk ? labelWidth(e.sub ? `${e.label} ${e.sub}` : e.label) + 8 + BAR + 2 * NEST : 0, mk = e.marker ? markW(e.marker) + 16 : 0;
     return v == null ? [{ a, b, need: Math.max(lab, mk) }] : [{ a, b: v, need: lab }, { a: v, b, need: mk }];
   };
-  const detailPx = (e) => { const p = det?.parts.get(e), t = det?.text.get(e); return p ? Math.max(p.title ? t.title.length * 6.9 : 0, p.desc ? Math.min(t.desc.length, 34) * 6.3 : 0) : 0; }; // step details on the arrow widen the gap it crosses (a description up to 34 characters, the rest is cut)
+  const detailPx = (e) => { const p = det?.parts.get(e), t = det?.text.get(e); return p && (p.title || p.desc) ? 48 + Math.max(p.title ? t.title.length * 6.9 : 0, p.desc ? Math.min(t.desc.length, 34) * 6.3 : 0) : 0; }; // step details on the arrow widen the gap it crosses (a description up to 34 characters, the rest is cut)
   const spans = events.flatMap((e) => {
     const ends = e.type === 'hop' ? [e.from, e.to] : arrowEnds(e);
     if (!ends) return [];

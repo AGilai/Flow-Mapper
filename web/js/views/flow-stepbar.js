@@ -24,7 +24,7 @@ export function createStepbar({ store, root, onMove, onEdit, sb = () => 'tad' })
   const el = h('div.stepwalk', { hidden: true }, bar);
   let last = null, data = null, expanded = false, shownKey = null;
   const unwatch = root ? store.watch(root, (d) => { data = d; if (last) paint(); }) : () => {};
-  if (root) detail.addEventListener('dblclick', (e) => { if (!e.target.closest('a, button') && !getSelection()?.toString()) onEdit?.(bar); });
+  if (root) detail.addEventListener('dblclick', (e) => { if (!e.target.closest('a, button')) { getSelection()?.removeAllRanges(); onEdit?.(bar); } });
 
   function paint() {
     const { step, n } = last, set = sb(), t = stepText(data, step.key), [a, b] = stepCols(step.event), parts = [];

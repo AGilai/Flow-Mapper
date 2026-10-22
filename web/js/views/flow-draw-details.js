@@ -19,7 +19,7 @@ export function detailTexts({ colX, ys, idx, folded }, { parts, text }, onEdit) 
     if (!p.title && !p.desc) continue;
     const [a, b] = ends(e), t = text.get(e);
     if (!a || !b || !colX.has(a) || !colX.has(b) || folded.has(idx.get(a)) || folded.has(idx.get(b))) continue; // inside a fold there is no room
-    const xa = colX.get(a), xb = colX.get(b), cx = (xa + xb) / 2, room = Math.floor((Math.abs(xb - xa) - 36) / CH);
+    const xa = colX.get(a), xb = colX.get(b), cx = (xa + xb) / 2, room = Math.floor((Math.abs(xb - xa) - 84) / CH); // 84: the centred text keeps clear of the step tile and its pencil at the arrow start
     if (room < 6) continue;
     const y = ys[e.row];
     const line = (cls, str, yy) => {
