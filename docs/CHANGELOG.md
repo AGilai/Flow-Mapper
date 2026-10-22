@@ -9,6 +9,7 @@ in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.m
 Performance batch 1 (docs/plans/perf-review.md). No API or schema change; the resolved graph is identical.
 - **F1.** `resolve()` looks exact bind keys up in maps and scans only glob / amqp-topic items (`core/resolve-lookup.ts`): a 1,000-service graph builds in about 1.5 to 3 s instead of 85 to 156 s. `tests/resolve-equal.test.ts` compares it with the old resolver (`tests/resolve-reference.ts`).
 - **F4.** `requireEnv()` (`server/store/envs.ts`) is the 404 check without entity counts; drafts list, relations, subsystems, components, neighbours and plan apply use it. `getEnv` / `GET /api/envs/meta` keep their counts, read the creation-order ranks in one query and backfill component colours only for envs that have none.
+- **F5.** The graph cache is also bounded by weight: `FLOW_GRAPH_CACHE_ITEMS` (default 250000 items of functions + ingress + egress, about two 1,000-service graphs, RSS plateau about 385 MB instead of growing 75 MB of heap per graph up to 8). Least recently used graphs are evicted and logged; the newest is never evicted.
 
 ## 0.38.1 (2026-10-22)
 The Loader now exports `alternatives` only where BOTH arms lead to a flow. Two step markers under `details` (no schema change):

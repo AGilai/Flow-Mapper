@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { openDb, tx } from '../server/db/connection.ts';
 import { ingest } from '../server/store/snapshots.ts';
-import { graphFor, invalidate, size, setMax } from '../server/graph-cache.ts';
+import { graphFor, invalidate, size, setMax, setBudget, cachedItems } from '../server/graph-cache.ts';
 import { config } from '../server/config.ts';
 import { sampleManifests } from './helpers.ts';
 
@@ -67,4 +67,22 @@ test('graph cache: LRU bound, size(), invalidation', () => {
   setMax(1);
   assert.equal(size(), 1, 'lowering the bound evicts at once');
   setMax(8);
+});
+
+test('graph cache: weight budget evicts least recently used, keeps the newest', () => {
+  assert.equal(config.graphCacheItems, 250_000); // default; FLOW_GRAPH_CACHE_ITEMS overrides it
+  const db = openDb(':memory:');
+  for (const e of ['a', 'b', 'c']) for (const m of sampleManifests()) ingest(db, { ...m, env: e });
+  setMax(8);
+  graphFor(db, 'a'); graphFor(db, 'b'); graphFor(db, 'c');
+  assert.equal(size(), 3);
+  const one = cachedItems() / 3;
+  setBudget(one * 2.5);
+  assert.equal(size(), 2, 'over budget: the oldest (a) goes');
+  const c = graphFor(db, 'c');
+  graphFor(db, 'b');
+  assert.equal(graphFor(db, 'c'), c, 'c survived');
+  setBudget(1);
+  assert.equal(size(), 1, 'a graph over the budget on its own stays: the newest is never evicted');
+  setBudget(250_000);
 });
