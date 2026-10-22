@@ -45,6 +45,12 @@ export function matchUser(users: readonly User[], p: Probe): { user: User; by: M
   return al.length === 1 ? { user: al[0], by: 'alias' } : null;
 }
 
+/** The name MCP writes under when no author is given. That user is a system user: an author and a row on the Users page, never a sign-in or "@" choice. */
+export const SYSTEM_USER_NAME = 'Assistant';
+export const isSystemUser = (u: { name: string }) => nameKey(u.name) === nameKey(SYSTEM_USER_NAME);
+/** The users a person can sign in as or mention from the pickers (the system user left out). */
+export const pickable = <T extends { name: string }>(users: readonly T[]): T[] => users.filter((u) => !isSystemUser(u));
+
 /** Filter for pickers: every typed word must be inside the name. Recent users are the caller's order. */
 export function filterUsers<T extends { name: string }>(users: readonly T[], q: string): T[] {
   const ws = nameKey(q).split(' ').filter(Boolean);

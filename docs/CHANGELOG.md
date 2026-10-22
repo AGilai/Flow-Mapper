@@ -5,6 +5,13 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## 0.32.3 (2026-10-22)
+- UI only: the MCP author user "Assistant" is no longer a choice in the sign-in picker or the "@" mention picker (it stays on the Users page and as an author).
+- UI only: the "@" mention popup flips above the caret when there is no room below it.
+- UI only: the sign-in picker list uses up to 60% of the window height before it scrolls.
+- UI only: a flow link takes `comment=<id>` (a comment or a reply): the flow tab opens its comments, scrolls to it and outlines it. Rows on the Mentions page use it.
+- UI only: a link to an environment created after the page was loaded now works (the environment list is fetched again once); an environment that does not exist shows "No environment <name>" with a button to choose one, instead of a blank page.
+
 ## 0.32.2 (2026-10-22)
 HLD flow drawing (bugs #72, #74, #75, #76 of corev5-importer). Additive; no migration; the MCP tool list hash moves (`edit_design`'s `call` form takes `mark`).
 - **#72 nested frames (`groups` on a step).** A step can list the frames it sits in, outermost first: `"groups": [{"id": "each", "kind": "loop", "condition": "for each item"}, {"id": "pay", "condition": "card"}]`. `kind` is `alt` (default), `opt`, `loop`, `par`, `critical` or `break`; steps with the same `id` are in one frame, the same `condition` in one section. The flow view draws the frames inside each other (inset per level, every frame's tab and condition visible) and the "Inside the service" panel nests the blocks. The trace message's `alt` keeps `{group, branch, of}` for the innermost frame and gains `kind`, `condition` and `parent` (the enclosing frame). `altGroup` / `condition` work as before; `groups` wins for a step that has it. The schema takes `groups`; `maxMessages` counts a nested frame toward its parent's branch.

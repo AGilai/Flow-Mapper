@@ -13,7 +13,7 @@ import { renderChips } from '../users/chips.js';
 import { signIn } from '../users/signin.js';
 import { announceSeen } from '../users/unread.js';
 
-const flowHref = (m) => `#/flows?env=${encodeURIComponent(m.env)}&tabs=${encodeURIComponent(`${m.service}/${m.ingress}`).replace(/%2F/g, '/')}`;
+const flowHref = (m) => `#/flows?env=${encodeURIComponent(m.env)}&tabs=${encodeURIComponent(`${m.service}/${m.ingress}`).replace(/%2F/g, '/')}&comment=${m.commentId}`;
 
 export async function render({ main }) {
   await loadUsers().catch(() => {});
