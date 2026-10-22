@@ -6,6 +6,7 @@ import type { DB } from '../db/connection.ts';
 import { MENTION_RE } from '../../core/mentions.ts';
 import { nameIndex } from './users.ts';
 import { userOf } from './mentions-read.ts';
+import { sinceWrite } from './write-memo.ts';
 
 export interface AboutMention { env: string; kind: 'component' | 'subsystem'; id: string; label: string; text: string }
 
@@ -17,15 +18,19 @@ export function mentionLine(about: string, user: string, names: Map<string, { na
 
 /** Newest environment first is not meaningful here: components by environment and name, then subsystems by environment and key. */
 export function listAboutMentions(db: DB, userId: unknown, env: string | null = null): AboutMention[] {
-  const user = userOf(db, userId), names = nameIndex(db), like = `%@[${user}]%`, out: AboutMention[] = [];
-  const envOk = (e: string) => !env || e === env;
+  const user = userOf(db, userId); // the two LIKE scans (snapshots.meta, envs.groups) run once per user between writes (F11)
+  const all = sinceWrite(db, `about-mentions|${user}`, () => scanAbout(db, user));
+  return env ? all.filter((m) => m.env === env) : all;
+}
+function scanAbout(db: DB, user: string): AboutMention[] {
+  const names = nameIndex(db), like = `%@[${user}]%`, out: AboutMention[] = [];
   for (const r of db.prepare('SELECT env, service, meta FROM snapshots WHERE meta LIKE ? ORDER BY env, service').all(like) as unknown as { env: string; service: string; meta: string }[]) {
     const about = (JSON.parse(r.meta) as { about?: unknown }).about;
-    if (envOk(r.env) && typeof about === 'string' && about.includes(`@[${user}]`)) out.push({ env: r.env, kind: 'component', id: r.service, label: r.service, text: mentionLine(about, user, names) });
+    if (typeof about === 'string' && about.includes(`@[${user}]`)) out.push({ env: r.env, kind: 'component', id: r.service, label: r.service, text: mentionLine(about, user, names) });
   }
   for (const r of db.prepare('SELECT name, groups FROM envs WHERE groups LIKE ? ORDER BY name').all(like) as unknown as { name: string; groups: string }[]) {
     for (const g of JSON.parse(r.groups) as { key: string; label: string; about?: string }[]) {
-      if (envOk(r.name) && typeof g.about === 'string' && g.about.includes(`@[${user}]`)) out.push({ env: r.name, kind: 'subsystem', id: g.key, label: g.label || g.key, text: mentionLine(g.about, user, names) });
+      if (typeof g.about === 'string' && g.about.includes(`@[${user}]`)) out.push({ env: r.name, kind: 'subsystem', id: g.key, label: g.label || g.key, text: mentionLine(g.about, user, names) });
     }
   }
   return out;
