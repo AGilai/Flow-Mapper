@@ -5,7 +5,7 @@
 
 import { h } from '../dom.js';
 import { api } from '../api.js';
-import { filterUsers, nameKey } from '../../core/users-match.js';
+import { filterUsers, nameKey, pickable } from '../../core/users-match.js';
 import { userAvatar } from '../users/avatar.js';
 import { chip } from '../users/chips.js';
 import { me, remember, users } from '../users/directory.js';
@@ -33,7 +33,7 @@ export function attachMention(ed, { people = () => [] } = {}) {
 
   function list(q) {
     const here = new Set(people()), all = users();
-    const found = filterUsers(all, q);
+    const found = filterUsers(pickable(all), q);
     const fresh = (a) => a.filter((u) => !here.has(u.id)), mine = found.filter((u) => here.has(u.id));
     const groups = [['Recent', mine], ['Everyone else', fresh(found)]].filter(([, l]) => l.length);
     return { groups, flat: groups.flatMap(([, l]) => l), canNew: !!nameKey(q) && !all.some((u) => nameKey(u.name) === nameKey(q)) };

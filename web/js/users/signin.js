@@ -4,7 +4,7 @@
 
 import { h } from '../dom.js';
 import { api } from '../api.js';
-import { filterUsers, matchUser, MAX_USER_NAME } from '../../core/users-match.js';
+import { filterUsers, matchUser, pickable, MAX_USER_NAME } from '../../core/users-match.js';
 import { userAvatar } from './avatar.js';
 import { loadUsers, me, remember, users } from './directory.js';
 import { legacyName, setMyId } from './me.js';
@@ -37,7 +37,7 @@ export function signIn({ reason = '' } = {}) {
       h('footer', h('span.hint', 'Picking someone does not verify anything.'), cancel, go));
     const done = (u) => { dlg.close(); dlg.remove(); open = null; resolve(u); };
     function draw(rebuild = true) {
-      const shown = filterUsers(users(), q);
+      const shown = filterUsers(pickable(users()), q);
       if (rebuild) list.replaceChildren(...shown.map((u) => {
         const on = pick === u.id;
         return h('div.u-wr', { role: 'radio', 'aria-checked': String(on), tabindex: 0, class: on ? 'on' : '', 'data-qa': 'su-user', 'data-id': u.id,

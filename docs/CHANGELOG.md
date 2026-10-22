@@ -5,6 +5,9 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+- UI only: the MCP author user "Assistant" is no longer a choice in the sign-in picker or the "@" mention picker (it stays on the Users page and as an author).
+
 ## 0.32.1 (2026-10-22)
 - **`POST /api/envs` / MCP `create_env`: `source` is optional for `mode: 'blank'`** (#77): a known one is still recorded as lineage, a missing or unknown one leaves `source` `null`. `components` and `full` still need it: a missing `source` is now `400` with `details.field: 'source'` instead of a `404` about `'undefined'`.
 - UI only (#78): the environment menu has "Delete environment" for design environments (not for harvested ones or the default environment), behind a confirm where you type the environment name. It uses the existing `DELETE /api/envs/:env`; afterwards the UI switches to the default environment.
