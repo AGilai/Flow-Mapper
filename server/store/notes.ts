@@ -7,8 +7,7 @@
 import type { DB } from '../db/connection.ts';
 import { tx } from '../db/connection.ts';
 import type { GraphIndex } from '../../core/graph-index.ts';
-import { trace } from '../../core/trace.ts';
-import { HASH_TRACE } from '../../core/description.ts';
+import { requireFlow } from './flow-check.ts';
 import { parseFlowAnchor } from '../../core/comments.ts';
 import type { NotesDoc, NotesVersion } from '../../core/notes.ts';
 import { sanitize, notesTooLong } from '../../core/rich-text.ts';
@@ -58,7 +57,7 @@ export function putNotes(db: DB, g: GraphIndex, env: string, i: NotesWrite, rest
   const body = sanitize(resolveMentions(db, i.body), { notes: true }), long = notesTooLong(body);
   if (long) throw invalid(long);
   const f = parseFlowAnchor(anchor)!;
-  if (!(g.model.services.length ? trace(g, { service: f.service, ingress: f.ingress }, HASH_TRACE) : null)) throw notFound(`ingress '${f.ingress}' of service '${f.service}' in env '${env}'`);
+  requireFlow(g, env, f.service, f.ingress);
   const who = identify(db, { userId: i.authorId, name: i.author });
   const base = i.baseVersion == null ? null : Number(i.baseVersion);
   if (base !== null && (!Number.isInteger(base) || base < 0)) throw badRequest('baseVersion must be a whole number (0 for no notes yet)');

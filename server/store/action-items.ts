@@ -6,8 +6,8 @@
 import type { DB } from '../db/connection.ts';
 import { tx } from '../db/connection.ts';
 import type { GraphIndex } from '../../core/graph-index.ts';
-import { trace } from '../../core/trace.ts';
-import { HASH_TRACE, isStepKey, hasStep } from '../../core/description.ts';
+import { isStepKey } from '../../core/description.ts';
+import { requireFlow, flowSteps, hasStepIn } from './flow-check.ts';
 import { parseFlowAnchor, MAX_AUTHOR, cleanName } from '../../core/comments.ts';
 import { checkFields, eventFor, isOpen, type ActionItem, type ActionList, type ActionEvent, type ActionStatus, type ActionKind } from '../../core/action-items.ts';
 import { HttpError, notFound } from '../errors.ts';
@@ -36,9 +36,8 @@ function ownerOf(db: DB, i: { owner?: unknown; ownerId?: string | null }): { id:
 function fieldsOf(i: unknown, partial: boolean) { const r = checkFields(i, partial, cleanName, MAX_AUTHOR); if ('error' in r) throw bad(r.error); return r.value; }
 function stepOf(g: GraphIndex, env: string, service: string, ingress: string, step: unknown): string | null {
   if (step == null) return null;
-  const t = g.model.services.length ? trace(g, { service, ingress }, HASH_TRACE) : null;
-  if (!t) throw notFound(`ingress '${ingress}' of service '${service}' in env '${env}'`);
-  if (typeof step !== 'string' || !isStepKey(step) || !hasStep(t, step)) throw bad(`step '${step}' is not in the flow ${service} / ${ingress}`);
+  const fs = flowSteps(g, env, service, ingress);
+  if (typeof step !== 'string' || !isStepKey(step) || !hasStepIn(fs, step)) throw bad(`step '${step}' is not in the flow ${service} / ${ingress}`);
   return step;
 }
 const at = () => new Date().toISOString();
@@ -69,8 +68,7 @@ export function addItem(db: DB, g: GraphIndex, env: string, i: NewItem): ActionI
   const { service, ingress } = flowOf(i?.anchor);
   const who = whoOf(db, i.actorId, i.actor), actor = who.name, own = ownerOf(db, i);
   const f = fieldsOf({ ...i, owner: own?.name ?? i.owner }, false);
-  const t = g.model.services.length ? trace(g, { service, ingress }, HASH_TRACE) : null;
-  if (!t) throw notFound(`ingress '${ingress}' of service '${service}' in env '${env}'`);
+  requireFlow(g, env, service, ingress);
   const step = stepOf(g, env, service, ingress, i.step);
   let commentId: number | null = null;
   if (i.commentId != null) {

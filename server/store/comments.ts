@@ -6,8 +6,8 @@
 import type { DB } from '../db/connection.ts';
 import { tx } from '../db/connection.ts';
 import type { GraphIndex } from '../../core/graph-index.ts';
-import { trace } from '../../core/trace.ts';
-import { HASH_TRACE, isStepKey, hasStep } from '../../core/description.ts';
+import { isStepKey } from '../../core/description.ts';
+import { requireFlow, flowSteps, hasStepIn } from './flow-check.ts';
 import { buildThread, parseFlowAnchor, flowAnchor, type CommentRow, type Thread } from '../../core/comments.ts';
 import { sanitize } from '../../core/rich-text.ts';
 import { plainText } from '../../core/rich-text-text.ts';
@@ -25,11 +25,6 @@ import { resolveComment } from './comments-import.ts';
 export { resolveComment };
 
 function flowOf(anchor: unknown) { const f = parseFlowAnchor(anchor); if (!f) throw badRequest("anchor must be 'flow:<service>/<ingress>'"); return f; }
-
-/** The flow's trace (the graph may be a draft's), 404 when the environment has no such flow. */
-function flowTrace(g: GraphIndex, env: string, service: string, ingress: string) {
-  return (g.model.services.length ? trace(g, { service, ingress }, HASH_TRACE) : null) ?? (() => { throw notFound(`ingress '${ingress}' of service '${service}' in env '${env}'`); })();
-}
 
 export function listThread(db: DB, env: string, anchor: string): Thread {
   checkEnv(db, env); flowOf(anchor);
@@ -53,10 +48,10 @@ export function addComment(db: DB, g: GraphIndex, env: string, i: NewComment): W
   const { service, ingress } = flowOf(i?.anchor);
   const body = bodyIn(db, i.body), x = parseImport(i);
   const who = identify(db, { userId: i.authorId, name: i.author, source: x.externalSource, externalId: x.authorExternalId }), author = who.name;
-  const t = flowTrace(g, env, service, ingress);
-  const step = i.step ?? null;
-  if (step !== null && (typeof step !== 'string' || !isStepKey(step) || !hasStep(t, step))) throw badRequest(`step '${step}' is not in the flow ${service} / ${ingress}`);
-  const range = checkRange(i.steps, step, i.parentId != null || x.parentExternalId !== null, t, `${service} / ${ingress}`); // 0.34.0
+  const step = i.step ?? null; // 404 for a missing flow is a lookup; the trace is only built (once per graph) when a step or a range is given
+  const fs = step !== null || (i.steps !== undefined && i.steps !== null) ? flowSteps(g, env, service, ingress) : (requireFlow(g, env, service, ingress), null);
+  if (step !== null && (typeof step !== 'string' || !isStepKey(step) || !hasStepIn(fs!, step))) throw badRequest(`step '${step}' is not in the flow ${service} / ${ingress}`);
+  const range = checkRange(i.steps, step, i.parentId != null || x.parentExternalId !== null, fs?.t as never, `${service} / ${ingress}`); // 0.34.0
   if (i.parentId != null && x.parentExternalId !== null) throw badRequest('give parentId or parentExternalId, not both');
   const old = x.externalId !== null ? findExternal(db, env, x.externalSource!, x.externalId) : undefined;
   if (old && old.anchor !== i.anchor) throw takenBy(old.anchor);
