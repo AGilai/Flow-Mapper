@@ -42,9 +42,10 @@ export async function renderSubsystems({ main, query, subs, marks }) {
   const pick = (sel, q) => { selected = sel; setQuery({ box: null, line: null, link: null, sel: null, ...q }); paint(); };
   const openLink = (v) => { pick(`link:${v.id}`, { link: v.id }); openLinkPanel(v, { panel, subs, marks, map, editing: edit }); };
   const openLine = (l) => { pick(l.id, { line: l.id }); panel.open(...linePanel(l, { map, label, onLink: openLink })); };
-  const pen = pencils({ panel, flowsEl: null });
+  const penHost = { panel, flowsEl: null }, pen = pencils(penHost);
   // The info pane (0.33.0): a box opens it, `sel=grp:<key>`; a component row inside it swaps to that component.
   const pane = createPane(panel, { pen, ctx: () => ({ map, onLine: openLine, onLink: openLink }), onSelect: (sel, t) => { selected = t.kind === 'subsystem' ? `box:${t.key}` : null; setQuery({ box: null, line: null, link: null, sel }); paint(); } });
+  penHost.pane = pane;
   const openBox = (key) => pane.show({ kind: 'subsystem', key });
   const goDown = (service) => go('/system', { sel: `svc:${service}` });
 

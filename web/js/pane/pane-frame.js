@@ -1,5 +1,5 @@
 // The info pane's frame (0.33.0, frame 19): the header (tile, name, sub line, tools, marks), the jump bar and the scrolling body of sections.
-// `paneFrame(spec)` -> { root, scroller, setCount(id, n), setMarks(nodes), scrollTo(id), section(id) }. No data here: the builders hand it nodes.
+// `paneFrame(spec)` -> { root, scroller, setCount(id, n), scrollTo(id), beginEdit(editor), endEdit(), section(id) }. No data here: the builders hand it nodes.
 
 import { h } from '../dom.js';
 import { icon } from '../icons.js';
@@ -34,7 +34,8 @@ export function paneFrame(spec) {
 
   const secs = new Map(ids.map((j) => [j.id, spec.sections[j.id]]));
   const scroller = h('div.pane-scroll', { tabindex: -1 }, h('div.pane-body', [...secs.values()]));
-  const root = h('div.pane-root', { 'data-qa': 'pane', 'data-kind': spec.kind ?? '' }, head, bar, scroller);
+  const edHost = h('div.pane-edit', { hidden: true });
+  const root = h('div.pane-root', { 'data-qa': 'pane', 'data-kind': spec.kind ?? '' }, head, bar, scroller, edHost);
 
   function mark() {
     const top = scroller.getBoundingClientRect().top;
@@ -54,5 +55,16 @@ export function paneFrame(spec) {
   }
   marks.replaceChildren(...(spec.marks?.(() => scrollToEl(scroller.querySelector('.pane-ab.q') ?? secs.get('about'))) ?? []).filter(Boolean));
   queueMicrotask(mark);
-  return { root, scroller, setCount, scrollTo, scrollToEl, section: (id) => secs.get(id) ?? null, mark };
+  let shown = [];
+  /** The About editor in place of the sections (pane-edit.js): its draft band, body and footer, and the "in draft / editing About" marks. */
+  function beginEdit(ed) {
+    bar.hidden = scroller.hidden = true; edHost.hidden = false; root.classList.add('editing');
+    edHost.replaceChildren(ed.band, h('div.pane-edscroll', ed.node), ed.footer);
+    shown = [...marks.children]; marks.append(...ed.chips());
+  }
+  function endEdit() {
+    bar.hidden = scroller.hidden = false; edHost.hidden = true; root.classList.remove('editing'); edHost.replaceChildren();
+    marks.replaceChildren(...shown); requestAnimationFrame(mark);
+  }
+  return { root, scroller, beginEdit, endEdit, setCount, scrollTo, scrollToEl, section: (id) => secs.get(id) ?? null, mark };
 }

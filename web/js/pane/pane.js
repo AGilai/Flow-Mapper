@@ -8,6 +8,8 @@
 import { h } from '../dom.js';
 import { paneFrame } from './pane-frame.js';
 import { createExpanded } from './pane-expanded.js';
+import { createAboutEditor } from './pane-edit.js';
+import { editing } from '../design/edit-target.js';
 import { go, setQuery } from '../router.js';
 import { componentSpec } from './pane-component.js';
 import { subsystemSpec } from './pane-subsystem.js';
@@ -21,7 +23,7 @@ let pinned = false; // kept for the session across selections and pages
 const SNAP_LABEL = { peek: 'Peek: header only', half: 'Half height', full: 'Full height' };
 
 export function createPane(panel, host = {}) {
-  let width = readWidth(), snap = 'half', token = 0, cur = null, frame = null, lastSpec = null;
+  let width = readWidth(), snap = 'half', token = 0, cur = null, frame = null, lastSpec = null, editor = null, pending = Promise.resolve();
   const stack = [], el = panel.el;
 
   // ---- resize (drawer) ----
@@ -59,10 +61,34 @@ export function createPane(panel, host = {}) {
   const onPaneKey = (e) => { if ((e.key === 'e' || e.key === 'E') && !e.ctrlKey && !e.metaKey && !e.altKey && !e.target.closest?.('input, textarea, select, [contenteditable]') && panel.isPane() && !expanded.isOpen()) { e.preventDefault(); expand(); } };
   el.addEventListener('keydown', onPaneKey);
 
-  function close() { token++; cur = null; frame = null; lastSpec = null; stack.length = 0; expanded.collapse(false); panel.close(); }
+  // ---- editing the About in place (frame 19d): unsaved text is never lost silently ----
+  /** Is it fine to leave what is shown? With unsaved edits the editor asks "Discard changes?" and `then` runs when the answer is Discard. */
+  function leave(then) { if (!editor?.dirty()) { editor = null; return true; } editor.askDiscard(() => { editor = null; then?.(); }); return false; }
+  panel.setGuard(() => leave(() => close()));
+  function endEdit() { editor = null; frame?.endEdit(); }
+  /** A pencil on the About of `t` ({ form: 'component', service } | { form: 'subsystem', box }, `section`): the editor opens in the pane. False when it cannot (not editing). */
+  async function editAbout(t, section = null) {
+    if (!editing()) return false;
+    const want = t.form === 'subsystem' ? { kind: 'subsystem', key: t.box.key } : { kind: 'component', name: t.service };
+    expanded.collapse(false);
+    if (!(cur && cur.kind === want.kind && (cur.name ?? cur.key) === (want.name ?? want.key) && frame)) { await (pending = load(want)); if (!lastSpec) return true; }
+    else await pending;
+    if (editor) { editor.land(); return true; }
+    const spec = lastSpec, md = spec.about?.md ?? '';
+    editor = createAboutEditor({ target: want, initial: md, header: spec.svc ?? {}, section, onClose: () => endEdit() });
+    frame.beginEdit(editor);
+    editor.land();
+    return true;
+  }
+
+  function close() { if (!leave(() => close())) return; token++; cur = null; frame = null; lastSpec = null; stack.length = 0; expanded.collapse(false); panel.close(); }
   function back() { const prev = stack.pop(); if (prev) show(prev); }
 
-  async function show(target, { push = false } = {}) {
+  function show(target, opts = {}) {
+    if (editor && !leave(() => show(target, opts))) return pending;
+    return (pending = load(target, opts));
+  }
+  async function load(target, { push = false } = {}) {
     const mine = ++token;
     if (push && cur) stack.push(cur); else if (!push && !host.keepStack) stack.length = 0;
     cur = target;
@@ -80,12 +106,13 @@ export function createPane(panel, host = {}) {
   }
 
   return {
-    show, close, back, expand, collapse: () => expanded.collapse(), expanded: () => expanded.isOpen(),
+    show, close, back, expand, editAbout, collapse: () => expanded.collapse(), expanded: () => expanded.isOpen(),
     /** Open what the URL names: `sel=` (and `expanded=1`). Returns whether a selection was found. */
     async restore(query) {
       const want = parseSel(query.get('sel'));
       if (!want) return false;
-      await show(want);
+      if (!(cur && cur.kind === want.kind && (cur.name ?? cur.key) === (want.name ?? want.key))) await show(want); // a pencil that waited for the redraw already opened it
+      else await pending;
       if (query.get('expanded') === '1' && lastSpec) expand();
       return true;
     },

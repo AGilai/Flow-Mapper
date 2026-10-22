@@ -4,21 +4,13 @@
 export const ABOUT_MAX = 20000; // core/markdown-lite.ts
 
 /** The five conventional sections, inserted only into an empty about (an existing text is never touched). */
-export const TEMPLATE = `## Capabilities
--
-
-## Motivation
-Why does this exist? What problem does it remove?
-
-## Roles and responsibilities
-- Owns:
-- Does not own:
-
-## Owners
-Team, and who to ask.
-
-## Open questions
-- `;
+export const TEMPLATE = [
+  '## Capabilities', '- ', '',
+  '## Motivation', 'Why does this exist? What problem does it remove?', '',
+  '## Roles and responsibilities', '- Owns: ', '- Does not own: ', '',
+  '## Owners', 'Team, and who to ask.', '',
+  '## Open questions', '- ',
+].join('\n');
 
 /** Offer the template? Only when there is nothing written yet. */
 export const wantsTemplate = (initial) => typeof initial !== 'string' || !initial.trim();

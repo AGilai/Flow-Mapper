@@ -30,8 +30,9 @@ export function landOnAbout(title = null) {
 /** Focus the first links field of the open form. */
 const landOnLinks = () => when(() => document.getElementById('f-links.main')?.querySelector('input'), (el) => el.focus());
 
-/** openTarget(target, host) -> opens the form; `host` = { panel, flowsEl? } of the page. */
+/** openTarget(target, host) -> opens the form; `host` = { panel, flowsEl?, pane? } of the page (`pane`: the info pane, which edits an About itself). */
 export function openTarget(t, host) {
+  if (t.at === 'about' && (t.form === 'component' || t.form === 'subsystem') && host.pane?.editAbout) { host.pane.editAbout(t, t.section ?? null); return; } // 0.33.0: the info pane edits its About in place (frame 19d)
   const base = { panel: host.panel, flowsEl: host.flowsEl ?? null };
   if (t.form === 'component') {
     const p = openComponentForm({ ...base, service: t.service });

@@ -6,9 +6,7 @@ import { sampleManifests, startApp } from './helpers.ts';
 // @ts-ignore plain JS modules shared with the browser
 import { WIDTH, clampWidth, isSheet, sheetHeight, nearestSnap, stepSnap, parseSel, selOf, closesOnClick, currentJump, questionsText, JUMPS, OPEN_DEFAULT, parseOpen, siblingRow, outlineOf, showOutline, expandedParam } from '../web/js/pane/pane-pure.js';
 // @ts-ignore
-import { endpointText, flowName } from '../web/js/pane/pane-parts.js';
-// @ts-ignore
-import { firstLine } from '../web/js/pane/pane-subsystem.js';
+import { endpointText, flowName, firstLine } from '../web/js/pane/pane-parts.js';
 import { aboutSections, openQuestions, isQuestions } from '../core/about-sections.ts';
 
 test('the drawer is 420 px, resizable 340 to 640, never more than 60% of the window', () => {

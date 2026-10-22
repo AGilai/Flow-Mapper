@@ -11,15 +11,12 @@ import { markBadge, countBadges } from '../components/status-mark.js';
 import { subIcon, icon } from '../icons.js';
 import { chip } from '../format.js';
 import { markOfPoint } from '../views/flow-list-filter.js';
-import { block, facts, flowsList } from './pane-parts.js';
+import { block, facts, flowsList, firstLine } from './pane-parts.js';
 import { loadAbout, aboutSection, aboutRows } from './pane-about.js';
 import { questionsButton } from './pane-questions.js';
 
 const MAX = 8;
 const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
-
-/** The first line of an about (a heading is skipped), for a row's summary; '' when there is none. */
-export const firstLine = (md) => (typeof md === 'string' ? md.split('\n').map((l) => l.replace(/^\s*(#{1,6}|[-*]|\d+[.)])\s+/, '').trim()).find((l) => l && !/^```/.test(l)) ?? '' : '');
 
 export async function subsystemSpec(key, ctx) {
   const [map, marks, subs, sys] = await Promise.all([ctx.map ?? api.subsystemMap(state.env), loadMarks(), loadSubsystems(), api.system(state.env).catch(() => null)]);
@@ -63,6 +60,7 @@ export async function subsystemSpec(key, ctx) {
       flows: block('flows', 'Flows through it', { count: flows.length, right: tflows }, flowsBody()),
     },
     counts: { components: box.components.length, links: nLinks, flows: flows.length },
+    about,
     edit: () => (!box.derived ? ctx.pen?.button('panel-subsystem', `subsystem ${box.label}`, { form: 'subsystem', box }, { text: 'Edit' }) ?? null : null),
     crumb: ['System map', 'Subsystems'], inDraft: marks.inDraft(`grp:${key}`), mark: mk, box,
   };

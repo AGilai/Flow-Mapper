@@ -14,7 +14,7 @@ export function createPanel(host, { onClose, onLeavePane } = {}) {
   host.append(el);
   const onKey = (e) => { if (e.key === 'Escape' && el.classList.contains('open') && !document.querySelector('[data-pane-overlay]')) close(); };
   addEventListener('keydown', onKey);
-  let prevWidth = '';
+  let prevWidth = '', guard = null;
 
   /** Enter or leave pane mode; `width` (px) is the pane's inline width, the one the page had is put back on leaving. */
   function paneMode(on, width = null) {
@@ -36,10 +36,11 @@ export function createPanel(host, { onClose, onLeavePane } = {}) {
     el.classList.add('open');
   }
   function close() {
+    if (guard && guard() === false) return; // the pane holds unsaved text and asks first
     el.classList.remove('open');
     onClose?.();
   }
-  return { open, openPane, paneMode, close, el, body, isOpen: () => el.classList.contains('open'), isPane: () => el.classList.contains('pane'), dispose: () => removeEventListener('keydown', onKey) };
+  return { open, openPane, setGuard: (fn) => { guard = fn; }, paneMode, close, el, body, isOpen: () => el.classList.contains('open'), isPane: () => el.classList.contains('pane'), dispose: () => removeEventListener('keydown', onKey) };
 }
 
 /** Panel section with a heading and optional count. */

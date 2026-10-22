@@ -36,3 +36,6 @@ export function flowsList(entries, { mark = () => null, hit = () => false, max =
   const shown = entries.slice(0, max);
   return h('div.pane-list', shown.map(row), entries.length > max ? h('button.pane-all', { type: 'button', on: { click: (ev) => { ev.currentTarget.replaceWith(...entries.slice(max).map(row)); onAll?.(); } } }, `Show all ${entries.length}`) : null);
 }
+
+/** The first line of an about (a heading is skipped), for a row's summary; '' when there is none. */
+export const firstLine = (md) => (typeof md === 'string' ? md.split('\n').map((l) => l.replace(/^\s*(#{1,6}|[-*]|\d+[.)])\s+/, '').trim()).find((l) => l && !/^```/.test(l)) ?? '' : '');

@@ -52,7 +52,7 @@ export async function render({ main, query }) {
   const content = h('div.content.flush', h('div.stage-wrap', stage, legend(marks, data, { regions })));
   let selected = null;
   const panel = createPanel(content, { onClose: () => { selected = null; graph.select(null); setQuery({ sel: null }); apply(); } });
-  const pen = pencils({ panel, flowsEl: null });
+  const penHost = { panel, flowsEl: null }, pen = pencils(penHost);
   // The info pane (0.33.0): a component opens it; so does a subsystem picked inside it. `sel=` names it in the URL.
   const pane = createPane(panel, {
     pen, ctx: (t) => ({ system: t.kind === 'component' ? { node: byId.get(`svc:${t.name}`), edges: current.edges, byId } : null }),
@@ -62,6 +62,7 @@ export async function render({ main, query }) {
       setQuery({ sel });
     },
   });
+  penHost.pane = pane;
   const search = h('input.input', { type: 'search', placeholder: 'Filter by service, team or function', value: opts.q, 'aria-label': 'Filter map' });
   const filt = (key, label) => h('label.check', h('input', { type: 'checkbox', 'data-qa': `map-${key}`, checked: opts[key], on: { change: (e) => { opts[key] = e.target.checked; persist(); apply(); } } }), label);
   const toggle = (key, label) => h('label.check', h('input', { type: 'checkbox', checked: opts[key], on: { change: (e) => { opts[key] = e.target.checked; persist(); rebuild(); } } }), label);

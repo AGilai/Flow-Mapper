@@ -60,7 +60,8 @@ export async function componentSpec(name, ctx) {
       flows: block('flows', 'Flows through it', { count: flows.length, right: h('a', { href: href('/flows', { service: name }) }, 'Trace flows') }, flowsBody()),
       connections: block('connections', 'Connections', { count: nConn }, connBody()),
     },
-    counts: { flows: flows.length, connections: nConn }, edit: () => ctx.pen?.button('panel-component', name, { form: 'component', service: name }, { text: 'Edit' }) ?? null,
+    counts: { flows: flows.length, connections: nConn },
+    about, edit: () => ctx.pen?.button('panel-component', name, { form: 'component', service: name }, { text: 'Edit' }) ?? null,
     crumb: ['System map', subKey ? subs.labelOf(subKey) : null], svc, inDraft: marks.inDraft(`svc:${name}`), mark: mk,
   };
   spec.expanded = () => componentRows(spec, { about, aboutPen, design, flows, flowsBody, overview, connections: () => ({ nodes: sys?.node ? neighbours(sys) : [], count: nConn }), view, ctx, marks });

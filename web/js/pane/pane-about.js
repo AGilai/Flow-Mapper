@@ -3,6 +3,8 @@
 
 import { h } from '../dom.js';
 import { block } from './pane-parts.js';
+import { renderChips, refreshChips } from '../users/chips.js';
+import { loadUsers } from '../users/directory.js';
 
 const EMPTY = { md: '', has: false, sections: [], questions: 0 };
 
@@ -22,8 +24,12 @@ export async function loadAbout(md) {
 const emptyHarvested = () => h('div.pane-empty', { 'data-qa': 'about-empty' }, h('b', 'No description yet'),
   h('p', 'This is a harvested environment, so it is read-only here. A description comes from the harvester (', h('code', 'service.about'), ') or from a design environment that copies this component.'));
 
-/** The text of one section as a node (`s.html` is sanitized by core/markdown-lite). */
-export const sectionBody = (s) => h('div.pane-md', { html: s.html });
+/** The text of one section as a node (`s.html` is sanitized by core/markdown-lite); an `@[userId]` in it is a chip (0.33.0), named by the users registry. */
+export function sectionBody(s) {
+  const el = h('div.pane-md', { html: s.html });
+  if (s.html.includes('@[')) { renderChips(el); loadUsers().then(() => refreshChips(el)).catch(() => {}); }
+  return el;
+}
 
 /** The About blocks of the drawer: one per `##` section (the text before the first has no heading), "Open questions" tinted with its count.
  *  `pen` (design/pencil.js `about()`): { whole, empty, section(title) }; `design`: this environment can hold a description. */

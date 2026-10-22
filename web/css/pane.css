@@ -95,6 +95,33 @@
 .pane-sec section.stack { margin-bottom: var(--s3); }
 .pane-sec section.stack h3 { font-size: var(--fs-xs); color: var(--ink-2); font-weight: 600; margin: 0; }
 
+/* editing the About in place (frame 19d) */
+.pane-root [hidden] { display: none !important; }
+.pane-edit { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.pane-edscroll { flex: 1; min-height: 0; overflow-y: auto; padding: var(--s4); }
+.pane-draft { flex: none; display: flex; gap: 8px; align-items: center; padding: 6px var(--s4); background: color-mix(in srgb, var(--accent) 7%, var(--surface)); border-bottom: 1px solid color-mix(in srgb, var(--accent) 25%, var(--line)); font-size: var(--fs-xs); color: var(--ink-2); }
+.pane-draft b { color: var(--accent); font-weight: 600; }
+.pane-ed { display: grid; gap: 8px; }
+.pane-tpl { display: flex; gap: 8px; align-items: baseline; font-size: var(--fs-xs); color: var(--ink-2); background: color-mix(in srgb, var(--warn) 9%, var(--surface)); border: 1px solid color-mix(in srgb, var(--warn) 35%, var(--line)); border-radius: var(--r-sm); padding: 7px 10px; }
+.pane-tpl .u { margin-left: auto; color: var(--accent); font-weight: 600; white-space: nowrap; background: transparent; border: 0; cursor: pointer; font: inherit; }
+.pane-tb { display: flex; gap: 2px; align-items: center; flex-wrap: wrap; padding: 4px; background: var(--surface-2); border: 1px solid var(--line-strong); border-bottom: 0; border-radius: var(--r-sm) var(--r-sm) 0 0; }
+.pane-tb button { min-width: 26px; height: 26px; border: 0; border-radius: 4px; color: var(--ink-2); font: 600 12px var(--font); padding: 0 6px; background: transparent; cursor: pointer; }
+.pane-tb button:hover { background: var(--surface); color: var(--ink); }
+.pane-tb .sp { margin-left: auto; }
+.pane-tabs { display: inline-flex; gap: 2px; }
+.pane-tabs .btn { height: 24px; }
+.pane-tabs .btn[aria-pressed="true"] { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
+.pane-ta { display: block; width: 100%; box-sizing: border-box; min-height: 360px; border: 1px solid var(--line-strong); border-radius: 0 0 var(--r-sm) var(--r-sm); background: var(--surface); color: var(--ink); font: 400 12.5px/1.65 var(--mono); padding: 10px 12px; resize: vertical; }
+.pane-ta:focus-visible { outline: 2px solid var(--focus); outline-offset: -1px; }
+.pane-prev { border: 1px solid var(--line-strong); border-radius: 0 0 var(--r-sm) var(--r-sm); padding: var(--s3); min-height: 360px; background: var(--surface); }
+.pane-note { font-size: var(--fs-xs); color: var(--muted); margin-bottom: var(--s3); }
+.pane-edmeta { display: flex; justify-content: space-between; gap: 8px; font-size: var(--fs-xs); color: var(--muted); }
+.pane-sanit { font-size: var(--fs-xs); color: var(--ink-2); }
+.pane-sanit code { font-size: 11px; background: var(--surface-2); border-radius: 3px; padding: 0 3px; }
+.pane-foot { flex: none; display: flex; gap: var(--s2); align-items: center; padding: 10px var(--s4); border-top: 1px solid var(--line); background: var(--surface); }
+.pane-foot .hint { margin-right: auto; font-size: var(--fs-xs); color: var(--muted); }
+.pane-md .u-chip, .pane-ab .u-chip { vertical-align: baseline; }
+
 /* bottom sheet at <= 760px: peek / half / full */
 @media (max-width: 760px) {
   .panel.pane.open { position: fixed; left: 0; right: 0; bottom: 0; top: auto; width: 100% !important; height: var(--sheet-h, 55vh); max-height: 95vh; z-index: 30; border-radius: 16px 16px 0 0; border: 1px solid var(--line-strong); border-bottom: 0; box-shadow: 0 -12px 32px -12px rgba(27, 34, 51, .3); inset: auto 0 0 0; }

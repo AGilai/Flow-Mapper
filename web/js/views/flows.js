@@ -150,6 +150,7 @@ export async function render({ main, query }) {
   host.pen = pencils(host); // 0.31.1: the pencils of the flow head; the hint of a harvested page sits under the toolbar
   const pane = createPane(panel, { pen: host.pen, ctx: () => ({ fromFlow: T.flowRoot(S.active) }), onSelect: (sel) => { flowsEl.classList.add('mp-open'); setQuery({ sel }); } });
   host.openPane = (target) => pane.show(target);
+  host.pane = pane;
   toolbar.after(...[host.pen.hint()].filter(Boolean));
   const openEntry = ({ service: s, ingress, fn, event, scope }) => commit(T.openTab(S, ingress ? T.entryKey(s, ingress, event, scope) : T.fnKey(s, fn, event, scope)));
   function setScope(scope) {
