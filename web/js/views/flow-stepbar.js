@@ -3,7 +3,7 @@
 // part collapses, and no description shows "Add a description". Pure view of the state it is given: the walk (current step, keys, URL) lives in flow-walk-view.js.
 
 import { h } from '../dom.js';
-import { announce } from './flow-walk.js';
+import { announce, focusAfter } from './flow-walk.js';
 import { stepCols } from './flow-steps.js';
 import { stepText } from './flow-step-details.js';
 import { colVar } from '../design/component-colors.js';
@@ -45,12 +45,19 @@ export function createStepbar({ store, root, onMove, onEdit, sb = () => 'tad', r
     live.textContent = announce(n, last.total, `${t.title ? `${t.title}, ` : ''}${step.label}, ${step.from} to ${step.to}`);
   }
 
+  /** Prev / Next that has focus and is about to be disabled hands focus to the other one, so the arrow keys keep working (a disabled button drops focus to <body>). */
+  function setNav(n, total) {
+    const was = document.activeElement === prev ? 'prev' : document.activeElement === next ? 'next' : null, to = focusAfter(was, n, total);
+    prev.disabled = n < 1; next.disabled = n >= total;
+    if (to) (to === 'prev' ? prev : next).focus({ preventScroll: true });
+  }
+
   function show(step, n, total) {
     el.hidden = !step && !(total > 0); // step 0 (none selected): the bar shows "Step 0 of N" with Next only
-    if (!step) { last = null; shownKey = null; count.textContent = `Step 0 of ${total}`; prev.disabled = true; next.disabled = false; detail.replaceChildren(); detail.hidden = true; bar.classList.add('plain'); live.textContent = ''; if (edit) edit.style.display = 'none'; return; }
+    if (!step) { last = null; shownKey = null; count.textContent = `Step 0 of ${total}`; setNav(0, total); detail.replaceChildren(); detail.hidden = true; bar.classList.add('plain'); live.textContent = ''; if (edit) edit.style.display = 'none'; return; }
     if (edit) edit.style.display = '';
     count.textContent = `Step ${n} of ${total}`;
-    prev.disabled = n < 1; next.disabled = n >= total;
+    setNav(n, total);
     if (shownKey !== step.key) expanded = false;
     shownKey = step.key; last = { step, n, total };
     paint();

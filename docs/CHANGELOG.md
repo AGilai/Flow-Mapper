@@ -7,6 +7,7 @@ in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.m
 
 ## Unreleased
 - UI: the step bar is always visible. On the first load of a flow the open Human description could push the bar out of the scrolling header, behind the diagram; now the description scrolls inside the header and the bar stays put (also maximized).
+- UI: after Previous to step 0 (or Next at the last step) by mouse, focus moves to the other walker button, so the arrow keys, Home and End keep working.
 
 ## 0.36.2 (2026-10-22)
 - The step walker starts at step 0 (no step selected): a flow, tab or sub-flow opened without `step=` shows no highlighted step and the bar reads "Step 0 of N". Next goes to step 1, Previous from step 1 returns to 0 (no `step=` in the URL). An explicit `step=N` still selects that step.

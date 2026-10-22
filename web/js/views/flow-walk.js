@@ -9,6 +9,13 @@ export function moveStep(cur, total, action) {
   if (action === 'last') return clampStep(total, total);
   return clampStep(cur + (action === 'next' ? 1 : -1), total);
 }
+/** Which walker button keeps focus when the bar is redrawn at step n of total: the pressed one went disabled (Prev at 0, Next at the end), so focus moves to the other one.
+ *  `focused` is 'prev' | 'next' | anything else. Returns 'prev' | 'next' | null (leave focus alone). */
+export function focusAfter(focused, n, total) {
+  if (focused === 'prev' && n < 1) return total > 0 ? 'next' : null;
+  if (focused === 'next' && n >= total) return n >= 1 ? 'prev' : null;
+  return null;
+}
 /** The URL param: `step=3`, or null (no param) when at step 0 (nothing is walked yet). */
 export const encodeStep = (n) => (n >= 1 ? String(n) : null);
 /** `step=` of a query (URLSearchParams) -> a positive integer or null. */
