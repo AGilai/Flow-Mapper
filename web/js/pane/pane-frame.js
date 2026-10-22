@@ -17,7 +17,7 @@ export function paneFrame(spec) {
   const expand = tools.expand ? tool('Expand (full screen), key E', icon('maximize'), tools.expand, { 'data-qa': 'pane-expand' }) : null;
   const close = tool('Close details', icon('close'), tools.onClose, { 'data-qa': 'pane-close' });
   const marks = h('div.pane-marks');
-  const sub = h('div.pane-sub', (spec.sub ?? []).filter(Boolean).map((t, i) => [i ? h('span', '·') : null, h('span', t)]));
+  const sub = h('div.pane-sub', h('span', (spec.sub ?? []).filter(Boolean).join(' · '))); // one run of text: it wraps between words, never leaving a dot at a line end
   const head = h('header.pane-hd', spec.tile(), h('div.pane-title', h('h3', { class: spec.mono ? 'mono' : '' }, spec.title), sub),
     h('div.pane-tools', tools.back ? tool('Back to the previous item', icon('back'), tools.back, { 'data-qa': 'pane-back' }) : null, tools.edit ?? null, expand, pin, close), marks);
 

@@ -59,8 +59,9 @@ export function createPane(panel, host = {}) {
   const showOnMap = (t) => { if (host.showOnMap) host.showOnMap(t); else go('/system', t.kind === 'subsystem' ? { level: 'subsystems', sel: selOf('subsystem', t.key) } : { sel: selOf('component', t.name) }); };
   const expanded = createExpanded({ onCollapse: () => setQuery({ expanded: expandedParam(false) }), onClose: () => close(), onShowOnMap: showOnMap });
   function expand() { if (!lastSpec) return; setQuery({ expanded: expandedParam(true) }); expanded.open(lastSpec); }
-  const onPaneKey = (e) => { if ((e.key === 'e' || e.key === 'E') && !e.ctrlKey && !e.metaKey && !e.altKey && !e.target.closest?.('input, textarea, select, [contenteditable]') && panel.isPane() && !expanded.isOpen()) { e.preventDefault(); expand(); } };
-  el.addEventListener('keydown', onPaneKey);
+  // E expands while the pane is open and nothing is being typed (focus anywhere on the page, not only inside the pane)
+  const onPaneKey = (e) => { if ((e.key === 'e' || e.key === 'E') && !e.defaultPrevented && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey && !e.target.closest?.('input, textarea, select, [contenteditable], dialog, .scrim') && !document.querySelector('dialog[open], .scrim') && panel.isPane() && panel.isOpen() && lastSpec && !expanded.isOpen()) { e.preventDefault(); expand(); } };
+  addEventListener('keydown', onPaneKey);
 
   // ---- editing the About in place (frame 19d): unsaved text is never lost silently ----
   /** Is it fine to leave what is shown? With unsaved edits the editor asks "Discard changes?" and `then` runs when the answer is Discard. */
@@ -137,6 +138,6 @@ export function createPane(panel, host = {}) {
     /** A click on empty space: closes the pane unless it is pinned. Returns whether it closed. */
     dismiss(opts = {}) { if (!panel.isPane() || !closesOnClick({ pinned, onItem: false, insidePane: false, ...opts })) return false; close(); return true; },
     current: () => cur, frame: () => frame, pinned: () => pinned, active: () => panel.isPane() && panel.isOpen(),
-    dispose: () => { removeEventListener('resize', onResize); expanded.collapse(false, true); },
+    dispose: () => { removeEventListener('resize', onResize); removeEventListener('keydown', onPaneKey); expanded.collapse(false, true); },
   };
 }
