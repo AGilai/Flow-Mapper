@@ -49,9 +49,9 @@ test('the export file is named after the flow', () => {
   assert.equal(fileName('Agent connects to POP'), 'agent-connects-to-pop.mmd'); assert.equal(fileName(''), 'flow.mmd'); assert.equal(fileName('in.tunnel.open'), 'in-tunnel-open.mmd');
 });
 
-test('the demo sample parses with one warning (the rect block) and matches the way DEMOS.md says', () => {
+test('the demo sample parses without a warning (the rect block marks steps) and matches the way DEMOS.md says', () => {
   const p = parseMermaid(readFileSync(join(import.meta.dirname, '../samples/mermaid/agent-tunnel.mmd'), 'utf8'));
-  assert.deepEqual(p.warnings.map((w) => w.line), [17]);
+  assert.deepEqual(p.warnings.map((w) => w.line), []);
   assert.equal(p.title, 'Agent opens a tunnel (from Mermaid)'); assert.match(p.description ?? '', /nearest POP/);
   const m = matchParticipants(p.participants, ['pop-edge', 'auth-svc', 'users-svc', 'cp-middleware', 'sase-agent'], ['audit-log-svc', 'pop-edge']);
   assert.deepEqual(m.map((r) => r.how), ['actor', 'alias', 'normalized', 'normalized', 'similar', 'none', 'none', 'in-prod']);

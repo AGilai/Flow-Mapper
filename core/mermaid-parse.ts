@@ -5,10 +5,15 @@
 
 export interface MmParticipant { id: string; label: string; actor: boolean }
 export type MmKind = 'sync' | 'return' | 'async';
-export interface MmMessage { from: string; to: string; label: string; kind: MmKind; line: number; block?: string }
-export interface MmNote { over: string[]; text: string; line: number; after: number }   // after: how many messages came before it
+/** One frame a statement sits in (0.33.1, #72): `id` is unique in the text; `condition` is the section (`alt`/`else`/`and`/`option` text). */
+export interface MmGroup { id: string; kind: 'alt' | 'opt' | 'loop' | 'par' | 'critical' | 'break'; condition: string }
+/** What a statement inherits from its place: the frames around it (outermost first), `rect` (any colour) as changed, `%% real:` as the bind key it really calls. */
+export interface MmCtx { groups?: MmGroup[]; mark?: 'changed'; real?: string }
+export interface MmMessage extends MmCtx { from: string; to: string; label: string; kind: MmKind; line: number; block?: string; response?: string; inner?: boolean }   // response: the label of the return that answers a sync call
+export interface MmNote extends MmCtx { over: string[]; text: string; line: number; after: number }   // after: how many messages came before it
+export interface MmLink { label: string; url: string }
 export interface MmWarning { line: number; text: string }
-export interface MmParsed { title?: string; description?: string; participants: MmParticipant[]; messages: MmMessage[]; notes: MmNote[]; warnings: MmWarning[] }
+export interface MmParsed { title?: string; flow?: string; links: MmLink[]; description?: string; participants: MmParticipant[]; messages: MmMessage[]; notes: MmNote[]; warnings: MmWarning[] }
 
 // longest first: `-->>` before `->>`, `--)` before `-)`
 const ARROWS: [string, MmKind][] = [['<<-->>', 'return'], ['<<->>', 'sync'], ['-->>', 'return'], ['->>', 'sync'], ['--x', 'return'], ['-x', 'sync'], ['--)', 'async'], ['-)', 'async'], ['-->', 'return'], ['->', 'sync']];
@@ -46,9 +51,10 @@ function readMessage(ln: string): { from: string; to: string; kind: MmKind; text
 export const clean = (s: string) => s.replace(/<br\s*\/?>/gi, ' ').replace(/#(\d+);/g, (_, n) => String.fromCharCode(Number(n))).replace(/\s+/g, ' ').trim();
 
 export function parseMermaid(text: string): MmParsed {
-  const out: MmParsed = { participants: [], messages: [], notes: [], warnings: [] };
+  const out: MmParsed = { participants: [], messages: [], notes: [], links: [], warnings: [] };
   const byId = new Map<string, MmParticipant>();
-  const stack: { kind: string; branch: string }[] = [];
+  const stack: { kind: string; branch: string; id: string; cond: string }[] = [], open: MmMessage[] = [];
+  let pendingReal: string | undefined;
   const descLines: string[] = [];
   let header = false, inDesc = false, inInit = false;
   const warn = (line: number, t: string) => out.warnings.push({ line, text: t });
@@ -60,6 +66,10 @@ export function parseMermaid(text: string): MmParsed {
     return p;
   };
   const block = () => { const b = [...stack].reverse().find((x) => x.kind !== 'box' && x.kind !== 'rect'); return b ? b.branch : undefined; };
+  const ctx = (): MmCtx => {
+    const groups = stack.filter((x) => BLOCKS.has(x.kind)).map((x) => ({ id: x.id, kind: x.kind as MmGroup['kind'], condition: x.cond }));
+    return { ...(groups.length ? { groups } : {}), ...(stack.some((x) => x.kind === 'rect') ? { mark: 'changed' as const } : {}) };
+  };
 
   const all = text.replace(/^﻿/, '').split(/\r?\n/);
   all.forEach((raw, i) => {
@@ -71,6 +81,7 @@ export function parseMermaid(text: string): MmParsed {
     if (ln.startsWith('%%{')) { if (!ln.includes('}%%')) inInit = true; return; }
     if (ln.startsWith('%%')) {
       const body = ln.replace(/^%%\s*/, '');
+      if (directive(body, n, out, warn, (r) => { pendingReal = r; })) return;
       const d = /^description:\s*(.*)$/i.exec(body);
       if (d) { descLines.push(d[1]); inDesc = true; } else if (inDesc && !/^flow:/i.test(body)) descLines.push(body); else inDesc = false;
       return;
@@ -85,21 +96,38 @@ export function parseMermaid(text: string): MmParsed {
     if ((m = /^note\s+(left of|right of|over)\s+([^:]+):\s*(.*)$/i.exec(ln))) {
       const over = m[2].split(',').map((s) => s.trim()).filter(Boolean);
       over.forEach((id) => declare(id));
-      out.notes.push({ over, text: clean(m[3]), line: n, after: out.messages.length });
+      out.notes.push({ over, text: clean(m[3]), line: n, after: out.messages.length, ...ctx() });
       return;
     }
-    const msg = readMessage(ln);   // a line that reads as a message is one, whatever word it starts with (`loop->>B`, `alt-svc->>B`)
+    let real = pendingReal;
+    const ci = ln.indexOf('%%');   // `A->>B: text %% real: <bind key>`: the directive at the end of the message line
+    let mline = ln;
+    if (ci > 0) { const d = /^%%\s*real:\s*(.*)$/.exec(ln.slice(ci)); if (d) { real = d[1].trim().slice(0, 300) || real; mline = ln.slice(0, ci).trim(); } }
+    const msg = readMessage(mline);   // a line that reads as a message is one, whatever word it starts with (`loop->>B`, `alt-svc->>B`)
     if (msg) {
       declare(msg.from); declare(msg.to);
       const b = block();
-      out.messages.push({ from: msg.from, to: msg.to, label: clean(msg.text), kind: msg.kind, line: n, ...(b ? { block: b } : {}) });
+      const mm: MmMessage = { from: msg.from, to: msg.to, label: clean(msg.text), kind: msg.kind, line: n, ...(b ? { block: b } : {}), ...ctx(), ...(real ? { real } : {}) };
+      pendingReal = undefined;
+      out.messages.push(mm);
+      if (msg.kind === 'sync' && msg.from !== msg.to) { open.push(mm); if (open.length > 100) open.shift(); }   // bounded: a return looks at most 100 calls back
+      else if (msg.kind === 'return') {   // a return answers the latest open call the other way round: its label is that call's response
+        let k = open.length - 1;
+        while (k >= 0 && !(open[k].from === msg.to && open[k].to === msg.from)) k--;
+        if (k >= 0) {
+          const inner = (mm.groups?.length ?? 0) > (open[k].groups?.length ?? 0);   // a return in a branch of a frame the call is not in (one per branch): the first answers, the call stays open
+          if (mm.label && mm.label.toLowerCase() !== 'return' && !(inner && open[k].response)) open[k].response = mm.label;
+          if (inner) mm.inner = true; else open.length = k;
+        }
+      }
       return;
     }
     if (IGNORED.test(ln)) return;
     const w = /^([A-Za-z]+)(?:\s+(.*))?$/.exec(ln), k = w?.[1].toLowerCase() ?? '', rest = w?.[2] ?? '';
-    if (w && BLOCKS.has(k)) { stack.push({ kind: k, branch: `${k}${rest ? `: ${clean(rest)}` : ''}` }); return; }
-    if (w && BRANCH.has(k) && stack.length) { stack[stack.length - 1].branch = `${k === 'and' ? 'par' : k}${rest ? `: ${clean(rest)}` : ''}`; return; }
-    if (w && (k === 'rect' || k === 'box')) { stack.push({ kind: k, branch: '' }); warn(n, `'${k}' block is only visual: ignored (its messages are kept)`); return; }
+    if (w && BLOCKS.has(k)) { stack.push({ kind: k, branch: `${k}${rest ? `: ${clean(rest)}` : ''}`, id: `g${n}`, cond: clean(rest) }); return; }
+    if (w && BRANCH.has(k) && stack.length) { const top = stack[stack.length - 1]; top.branch = `${k === 'and' ? 'par' : k}${rest ? `: ${clean(rest)}` : ''}`; top.cond = clean(rest); return; }
+    if (w && k === 'rect') { stack.push({ kind: k, branch: '', id: '', cond: '' }); return; }   // any colour: the steps inside are marked changed
+    if (w && k === 'box') { stack.push({ kind: k, branch: '', id: '', cond: '' }); warn(n, `'box' block is only visual: ignored (its messages are kept)`); return; }
     if (/^end\s*$/i.test(ln)) { if (stack.length) stack.pop(); else warn(n, `'end' without an open block: ignored`); return; }
     warn(n, `not understood, skipped: '${ln.length > 60 ? ln.slice(0, 57) + '...' : ln}'`);
   });
@@ -109,7 +137,26 @@ export function parseMermaid(text: string): MmParsed {
   return out;
 }
 
+const LINK = /^https?:\/\/\S+$/;
+/** The `%%` lines that mean something (0.33.1): `flow: <name>`, `link: <label> <url>`, `real: <bind key>` (for the next message). True when the line was one. */
+function directive(body: string, n: number, out: MmParsed, warn: (n: number, t: string) => void, setReal: (r: string) => void): boolean {
+  const d = /^(flow|link|real):\s*(.*)$/.exec(body);   // lower case only: the exporter's own `%% Flow: <name> (<where>)` header is a comment
+  if (!d) return false;
+  const v = d[2].trim();
+  if (d[1] === 'flow') { if (v) out.flow = clean(v); }
+  else if (d[1] === 'real') { if (v) setReal(v.slice(0, 300)); }
+  else {
+    const i = v.lastIndexOf(' '), url = v.slice(i + 1), label = v.slice(0, Math.max(i, 0)).trim();
+    if (i < 0 || !label) warn(n, `'%% link:' needs a label and a URL: skipped`);
+    else if (!LINK.test(url)) warn(n, `link '${label}': the URL must be http or https: skipped`);
+    else if (label.length > 120) warn(n, `link label is longer than 120 characters: skipped`);
+    else if (out.links.length >= 21) warn(n, `a flow has at most 21 links: skipped`);
+    else out.links.push({ label: clean(label), url });
+  }
+  return true;
+}
+
 /** What the paste step says under the box: counts and the warnings. */
 export function summarize(p: MmParsed) {
-  return { participants: p.participants.length, actors: p.participants.filter((x) => x.actor).length, messages: p.messages.filter((m) => m.kind !== 'return').length, returns: p.messages.filter((m) => m.kind === 'return').length, notes: p.notes.length, warnings: p.warnings.length };
+  return { participants: p.participants.length, actors: p.participants.filter((x) => x.actor).length, messages: p.messages.filter((m) => m.kind !== 'return').length, returns: p.messages.filter((m) => m.kind === 'return').length, notes: p.notes.length, groups: new Set([...p.messages, ...p.notes].flatMap((m) => (m.groups ?? []).map((g) => g.id))).size, marked: [...p.messages, ...p.notes].filter((m) => m.mark && m.kind !== 'return').length, links: p.links.length, warnings: p.warnings.length };
 }

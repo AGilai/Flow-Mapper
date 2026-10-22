@@ -35,7 +35,8 @@ test('export: %% is an entity, an id that starts with a reserved word and an und
   const t: any = { start: { service: 'a', ingress: 'in.x', fn: 'h', name: 'Cut %% here' }, participants: [{ id: 'svc:alt_gateway', label: 'alt_gateway', kind: 'service', service: 'alt_gateway' }, { id: 'svc:b', label: 'b', kind: 'service', service: 'b' }],
     messages: [{ from: 'svc:alt_gateway', to: 'svc:b', label: 'do 100%% of it', mode: 'sync', kind: 'call', depth: 0, note: 'x %% y' }] };
   const text = exportMermaid(t);
-  assert.ok(!text.split('\n').slice(1).some((l) => l.includes('%%')), text);
+  assert.ok(!text.split('\n').filter((l) => !l.startsWith('%% ')).some((l) => l.includes('%%')), text);   // only the comment lines (header, directives) hold a %%
+  assert.equal(parseMermaid(text).flow, 'Cut %% here');
   assert.match(text, /participant p_alt_gateway as alt_gateway/); assert.match(text, /title Cut %#37; here/);
   assert.equal(parseMermaid(text).title, 'Cut %% here');
 });

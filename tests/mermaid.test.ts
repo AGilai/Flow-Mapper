@@ -29,10 +29,13 @@ test('parser: activation marks, notes, autonumber and comments', () => {
   assert.deepEqual(p.notes.map((n) => [n.over, n.text, n.after]), [[['A', 'B'], 'shared note', 1], [['B'], 'side', 1]]);
 });
 
-test('parser: blocks label the messages inside them; else switches the branch; rect and box are ignored with a warning', () => {
+test('parser: blocks label the messages inside them; else switches the branch; rect marks the steps inside as changed, box is ignored with a warning', () => {
   const p = parseMermaid(['sequenceDiagram', 'A->>B: first', 'alt valid token', 'B->>C: ok', 'else expired', 'B->>C: refresh', 'end', 'loop each device', 'A->>B: poll', 'end', 'rect rgb(0,0,0)', 'A->>B: tinted', 'end', 'A->>B: after'].join('\n'));
   assert.deepEqual(p.messages.map((m) => m.block), [undefined, 'alt: valid token', 'else: expired', 'loop: each device', undefined, undefined]);
-  assert.equal(p.warnings.length, 1); assert.match(p.warnings[0].text, /rect/);
+  assert.equal(p.warnings.length, 0);
+  assert.deepEqual(p.messages.map((m) => m.mark), [undefined, undefined, undefined, undefined, 'changed', undefined]);
+  assert.deepEqual(p.messages[2].groups, [{ id: 'g3', kind: 'alt', condition: 'expired' }]);
+  assert.deepEqual(parseMermaid('sequenceDiagram\nbox Blue x\nA->>B: m\nend').warnings.length, 1);
 });
 
 test('parser: malformed lines are warnings with their line number, never a throw', () => {
@@ -42,7 +45,7 @@ test('parser: malformed lines are warnings with their line number, never a throw
   assert.ok(lines.includes(1) && lines.includes(3) && lines.includes(5), JSON.stringify(p.warnings));
   assert.ok(p.warnings.some((w) => /not closed/.test(w.text)));
   assert.doesNotThrow(() => parseMermaid(''));
-  assert.deepEqual(summarize(parseMermaid('sequenceDiagram\nA->>B: x\nB-->>A: y')), { participants: 2, actors: 0, messages: 1, returns: 1, notes: 0, warnings: 0 });
+  assert.deepEqual(summarize(parseMermaid('sequenceDiagram\nA->>B: x\nB-->>A: y')), { participants: 2, actors: 0, messages: 1, returns: 1, notes: 0, groups: 0, marked: 0, links: 0, warnings: 0 });
 });
 
 test('matcher: exact, alias, normalized, similar, in prod, actor, infra; the defaults', () => {
@@ -82,17 +85,17 @@ test('edits: components, endpoints, calls, notes and the flow; a second run over
   const rows = [header('pop-edge')];
   const parsed = parseMermaid(TEXT), m = matchParticipants(parsed.participants, ['pop-edge'], []), r = resolveTargets(m);
   const plan = mermaidPlan(parsed, r.targets, rows);
-  assert.deepEqual(plan.counts, { components: 1, endpoints: 3, calls: 2, notes: 3, reused: 0 }, JSON.stringify(plan.counts));
+  assert.deepEqual(plan.counts, { components: 1, endpoints: 3, calls: 2, notes: 2, reused: 0 }, JSON.stringify(plan.counts));
   assert.deepEqual(plan.creates, ['policy-engine']); assert.deepEqual(plan.flow?.name, 'Tunnel');
   const anchors = plan.ops.map((o) => o.anchor);
   assert.ok(anchors.includes('svc:policy-engine') && anchors.some((a) => a.startsWith('ing:policy-engine/')) && anchors.some((a) => a.startsWith('flow:pop-edge/')));
   const fn = plan.ops.filter((o) => o.anchor.startsWith('fn:pop-edge/')).pop()!.data as any;
-  assert.deepEqual(fn.steps.map((s: any) => s.note), ['decides', '[alt: allowed]']);
+  assert.deepEqual(fn.steps.map((s: any) => [s.kind ?? s.type, s.note, s.over, s.groups]), [['egress', undefined, undefined, undefined], ['leaf', 'decides', ['pop-edge', 'policy-engine'], undefined], ['egress', undefined, undefined, [{ id: 'g9', condition: 'allowed' }]]]);   // the note sits after the call, in the caller's function
   // a second import over the first one's rows: nothing new
   const map = new Map(rows.map((x) => [rowId(x), x]));
   for (const o of plan.ops) applyOp(map, { ...o, ...opRow(o) } as any);
   const again = mermaidPlan(parsed, r.targets, [...map.values()]);
-  assert.deepEqual(again.ops, []); assert.deepEqual(again.counts, { components: 0, endpoints: 0, calls: 0, notes: 0, reused: 2 });
+  assert.deepEqual(again.ops, []); assert.deepEqual(again.counts, { components: 0, endpoints: 0, calls: 0, notes: 0, reused: 3 });
 });
 
 test('export: a plain trace gives participants, calls with returns, notes; ; and # are entities', () => {
@@ -107,7 +110,7 @@ test('export: a plain trace gives participants, calls with returns, notes; ; and
     ],
   };
   assert.equal(exportMermaid(t, { description: 'line one\nline two' }), [
-    '%% Flow: Do it#59; now (a · in.x)', '%% Description: line one', '%% line two', 'sequenceDiagram', 'title Do it#59; now',
+    '%% Flow: Do it#59; now (a · in.x)', '%% flow: Do it#59; now', '%% Description: line one', '%% line two', 'sequenceDiagram', 'title Do it#59; now',
     'actor client as client', 'participant a as a', 'participant b_c as b-c', 'participant sqs_q as sqs:q',
     'client->>a: GET /x', 'a->>b_c: POST /y', 'Note over a,b_c: why #35;1', 'b_c-->>a: return', 'a-)sqs_q: publish', 'a-->>client: return', '',
   ].join('\n'));

@@ -127,7 +127,7 @@ export const api = {
   /** A flow as Mermaid text (export works in the preview; import needs the server). */
   mermaid: async (env, service, ingress) => {
     const t = trace(g(env), { service, ingress }, HASH_TRACE) ?? fail('flow not found'), text = D.texts(env).get(`${service}/${ingress}`);
-    return exportMermaid(t, { name: text?.name, description: text?.description, descriptions: await api.descriptions(env, service, ingress) });
+    return exportMermaid(t, { name: text?.name, description: text?.description, links: text?.links, descriptions: await api.descriptions(env, service, ingress) });
   },
   mermaidPreview: async () => fail('Importing Mermaid is not available in the preview: it needs the server.'),
   mermaidImport: async () => fail('Importing Mermaid is not available in the preview: it needs the server.'),

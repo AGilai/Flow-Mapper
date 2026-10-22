@@ -13,5 +13,5 @@ export function flowMermaid(ctx: Ctx, env: string, draft: string | null, service
   const { g, reader } = ctx.view(env, draft);
   const t = trace(g, { service, ingress }, HASH_TRACE) ?? (() => { throw notFound(`ingress '${ingress}' of service '${service}' in env '${env}'`); })();
   const text = reader.flowText(service, ingress);
-  return exportMermaid(t, { name: text?.name, description: text?.description, descriptions: describeFlow(ctx.db, g, env, service, ingress) });
+  return exportMermaid(t, { name: text?.name, description: text?.description, links: text?.links, descriptions: describeFlow(ctx.db, g, env, service, ingress) });
 }

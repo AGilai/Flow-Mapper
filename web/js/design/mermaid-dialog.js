@@ -102,12 +102,15 @@ export function openMermaidImport({ text = '' } = {}) {
         h('div.r', h('button.btn', { type: 'button', on: { click: close } }, 'Cancel'), h('button.btn.primary', { type: 'button', disabled: S.busy, 'data-qa': 'mermaid-preview', on: { click: toPreview } }, 'Preview'))] };
   }
 
+  /** What the text holds beyond calls (0.33.1): frames, changed steps, links. */
+  const constructs = (x) => { const l = [x?.groups && plural(x.groups, 'frame'), x?.marked && `${x.marked} changed ${x.marked === 1 ? 'step' : 'steps'}`, x?.links && plural(x.links, 'link')].filter(Boolean); return l.length ? ` Also read: ${l.join(', ')}.` : ''; };
+
   // ---- step 3: preview, then import
   function previewStep() {
     const p = S.preview, ws = previewWarnings(p, S.rows, S.choices, S.group ? groupLabel() : '');
     const notes = p.counts.notes;
     return { body: [h('div.mm-counts', { 'data-qa': 'mermaid-counts' }, tiles(p).map(([a, b]) => h('span', { class: a === 'Flow name' ? 'nm' : '' }, a, h('small', b)))),
-      h('p.small.muted', `${plural(notes, 'step description')} from notes and labels. Already in the design and reused, not duplicated: ${p.counts.reused}.${p.ops === 0 ? ' Nothing new: importing adds nothing.' : ''}`),
+      h('p.small.muted', `${plural(notes, 'step description')} from notes and labels.${constructs(p.summary)} Already in the design and reused, not duplicated: ${p.counts.reused}.${p.ops === 0 ? ' Nothing new: importing adds nothing.' : ''}`),
       ws.length ? h('div', h('h4.mm-wh', `Warnings (${ws.length})`), h('ul.mm-warns', ws.map((w) => h('li', icon('warn', 'mm-ic'), h('span', w.line ? `Line ${w.line}: ${w.text}` : w.text))))) : null, err()],
     foot: [h('button.btn', { type: 'button', on: { click: () => { S.step = 2; S.error = ''; paint(); } } }, 'Back'), h('span.small.muted', 'Nothing is applied until the draft is applied. Review changes shows it first.'),
       h('div.r', h('button.btn.primary', { type: 'button', disabled: S.busy || !p.flow, 'data-qa': 'mermaid-import', on: { click: run } }, S.busy ? 'Importing…' : `Import into draft ${state.draft}`))] };
