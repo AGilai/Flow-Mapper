@@ -83,6 +83,7 @@ export function createList({ env = '', points: allPoints, counts, cmts = {}, act
   filter.addEventListener('input', debounce(() => { draw(); paint(); }, 120));
   subG.update({ rows: subRows, sel: fs.subs }); cmpG.update({ rows: vis(), sel: fs.comps });
   draw();
+  if (!service && !query.get('group') && encodeGroup(fs.group, design)) setQuery({ group: encodeGroup(fs.group, design) }); // a mode that came only from the per-env memory goes into the URL once, so a copied link keeps it
   const el = h('aside.flows-list', h('div.fl-head', h('span.fl-title', service ? 'Ingress' : 'Entry points'), btn),
     h('div.fl-body', groupRow, filters, h('div.search', icon('search'), filter), changedRow, relRow, body), strip);
   strip.addEventListener('click', () => set(false));
