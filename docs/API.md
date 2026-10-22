@@ -278,6 +278,7 @@ Abstract links are design content: written through drafts in design environments
 | GET | `/api/envs/:env/abstract-links?subsystem=` | `AbstractView[]`; `subsystem` keeps links with an end in it |
 | GET | `/api/envs/:env/abstract-links/:id` | `AbstractView & {suggestions}`; `404` for an unknown id |
 | PUT | `/api/envs/:env/subsystems` | sealed only: `{subsystems: [{key, label, icon?, about?}]}` in display order (`about` left out keeps the stored text, `''` / `null` clears it) -> `{subsystems}`; a design is `409 USE_DRAFT` (edit it through a draft); `422` for a bad key, label (1..80), icon or a duplicate. Unknown keys are allowed: they label future groupPaths |
+| PUT | `/api/envs/:env/color` | `{color: 1..10}` or `{color: null}` (automatic) on any environment -> `{env, color, colorAuto, colorName}`; `422` (`details.field: color`) for anything else, `404` for an unknown environment. Event `env.updated`. `GET /api/envs/meta` and `/api/envs/:env/meta` return `color` (resolved 1..10) and `colorAuto`; a new environment takes the lowest free slot, a copy never inherits its source's |
 | PUT | `/api/envs/:env/levels` | `{levels: [..]}` (1..4 names of at most 40 characters, outermost first) on any environment -> `{levels}`; `422` otherwise |
 | POST | `/api/envs/:env/drafts/:slug/plan/links` | see Draft routes |
 
@@ -550,6 +551,7 @@ Event: `{id, type, at, env?, bugId?, reporter?, summary, data}`. `summary` is on
 | `bug.updated` | other fields changed (title, description, severity, priority, assignee, links, ...) | `fields` |
 | `version.deployed` | at startup, when the version differs from the last recorded one | `version, previous` |
 | `manifest.ingested` | a manifest was ingested (not for `dryRun`); one per manifest of a batch | `service, version, fromVersion, kind, producer, source, changes` (counts) |
+| `env.updated` | an environment's colour changed | `what` |
 | `env.created` / `env.deleted` | a design environment was created or deleted | `source, createdBy` |
 
 An event is recorded once, after the write committed; a rejected or rolled-back write, a no-op patch and a dry run

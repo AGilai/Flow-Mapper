@@ -57,6 +57,7 @@ const remote = {
   envComponents: (env) => get(`/api/envs/${e(env)}/components`),
   neighbours: (env, services) => get(`/api/envs/${e(env)}/neighbours${qs({ services: services.join(',') })}`),
   createEnv: (body) => http('POST', '/api/envs', body),
+  putEnvColor: (env, color) => http('PUT', `/api/envs/${e(env)}/color`, { color }),
   services: (env) => get(`/api/envs/${e(env)}/services`),
   system: (env) => get(`/api/envs/${e(env)}/views/system`),
   service: (env, name) => get(`/api/envs/${e(env)}/views/service/${e(name)}`),

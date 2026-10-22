@@ -8,7 +8,8 @@ import { boundaryNote } from './flow-boundary.js';
 import { h, fill, toast } from '../dom.js';
 import { api } from '../api.js';
 import { state, isDesign } from '../state.js';
-import { metaOf } from '../env-info.js';
+import { metaOf, envVars } from '../env-info.js';
+import { envChip } from '../components/env-chip.js';
 import { setQuery, go } from '../router.js';
 import { pageHead } from '../components/page.js';
 import { createPanel } from '../components/panel.js';
@@ -84,7 +85,7 @@ export async function render({ main, query }) {
     width: () => list.el.offsetWidth, apply: (px) => flowsEl.style.setProperty('--list-w', `${px}px`) });
   resizer(panel.el, { edge: 'left', key: 'flow-panel', defaultWidth: 380, label: 'Resize flow details',
     width: () => panel.el.offsetWidth, apply: (px) => { panel.el.style.width = `${px}px`; } });
-  main.append(pageHead('Flows', service ? `Starting points in ${service}` : `${points.length} entry points in ${state.env}`), h('div.content.flush', flowsEl));
+  main.append(pageHead('Flows', service ? `Starting points in ${service}` : h('span', `${points.length} entry points in `, envChip())), h('div.content.flush', flowsEl));
 
   // ---- toolbar ----
   const info = h('span.small.muted');
@@ -112,7 +113,7 @@ export async function render({ main, query }) {
 
   // ---- tabs ----
   const strip = createTabStrip({ describe: data.describe, onActivate: (k) => commit(T.activate(S, k)), onClose: (k) => commit(T.closeTab(S, k)),
-    onCloseOthers: (k) => commit(T.closeOthers(S, k)), onCloseAll: () => commit(T.closeAll(S)) });
+    onCloseOthers: (k) => commit(T.closeOthers(S, k)), onCloseAll: () => commit(T.closeAll(S)), envVars: () => envVars(state.envMeta, state.env) });
   if (urlCount > T.TAB_CAP) toast(`The link had ${urlCount} tabs. Opened ${T.TAB_CAP}: the limit.`, 5000);
   const empty = h('div.emptyst', h('div.emptyst-i', enterIcon()), h('h3', 'Pick an entry point'),
     h('p.muted', 'Pick a flow in the list. Click opens it here; "Tab" opens it next to the others.'));

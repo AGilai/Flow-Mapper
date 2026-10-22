@@ -5,6 +5,10 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+- **Environment colours (migration 018).** Every environment has a colour slot 1..10 (Teal, Orange, Violet, Rose, Green, Brown, Steel, Plum, Pine, Navy; `core/env-colors.ts`). `GET /api/envs/meta` and `GET /api/envs/:env/meta` return `color` (always resolved 1..10) and `colorAuto` (nobody chose it: NULL in `envs.color`, the slot follows creation order). New: `PUT /api/envs/:env/color {color: 1..10 | null}` on any environment (`422` otherwise; event `env.updated`), MCP `set_env_color`, and `list_envs` returns `color`, `colorName`, `colorAuto`. A new environment (ingest or copy) takes the lowest free slot; a copy never inherits its source's. Existing environments get a stored slot by creation order. Harvesters need no change.
+- UI: the flow tabs' top bar, the picker, the Flows list header and the maximized bar carry the env colour; the transport hue moved to the tab's glyph and number. Environment settings has a Colour section.
+
 ## 0.34.1 (2026-10-22)
 **#81: what a call returns.** A step takes an optional `returns: {label, detail?}` (manifest, draft function steps and plans, the call edit form, `edit_design` `{kind: 'call', returns}`; `null` clears). The label (1 to 80 characters, one line of plain text) is drawn on the dashed return arrow of a sync call, which says `return` without it; the detail (plain text, up to 500) shows in the step panel ("Returns") and as the arrow's tooltip. The trace message and `GET .../call` carry it. A bad value is a `422`. Stored in the step's JSON like `mark` and `groups`: no migration. The Mermaid import reads `B-->>A: text` into `returns.label` and the export writes it back. The MCP tool list changed (hash updated). Demo: DEMOS.md.
 

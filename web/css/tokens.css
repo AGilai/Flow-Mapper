@@ -47,6 +47,8 @@
 
   --flow-1: #c0392b; --flow-2: #a68a00; --flow-3: #2e8b3d; --flow-4: #0e8fb3; --flow-5: #4f46e5; --flow-6: #b5179e; --flow-7: #8d5a2b; --flow-8: #5b7aa6; /* async sub-flows: dots and bands */
   --cmp-1: #9f5989; --cmp-2: #077fa8; --cmp-3: #5a805b; --cmp-4: #6e6ab2; --cmp-5: #ac5859; --cmp-6: #198585; --cmp-7: #846891; --cmp-8: #a5612e; /* component colours (UI-GUIDE section 8): a component, never a transport or a status */
+  /* env colours (UI-GUIDE section 8b): --env-N bar, border, swatch; --env-N-ink chip text. Chrome only, never inside a diagram. */
+  --env-1: #0f8b8d; --env-1-ink: #0b5f61; --env-2: #d9650b; --env-2-ink: #8a3f05; --env-3: #7c4dd6; --env-3-ink: #55329a; --env-4: #d6336c; --env-4-ink: #9a1f4b; --env-5: #3d9a3d; --env-5-ink: #25661f; --env-6: #9a6b3a; --env-6-ink: #6b4520; --env-7: #5b7a99; --env-7-ink: #3b5670; --env-8: #8e3a8e; --env-8-ink: #632763; --env-9: #1f6f50; --env-9-ink: #14472f; --env-10: #3346a8; --env-10-ink: #222f78;
   --rail: 220px;
   --rail-c: 56px;
   --panel: 380px;
@@ -62,6 +64,7 @@
     --flow-1: #ff7a6b; --flow-2: #e2c23a; --flow-3: #5fd070; --flow-4: #4cc9ee; --flow-5: #8a85ff; --flow-6: #f06ad9; --flow-7: #d49a5e; --flow-8: #8fb0dd;
     --new: #f7cf55; --new-ink: #f7cf55; --step-hl: #31291a;
     --cmp-1: #e095c7; --cmp-2: #5dbee9; --cmp-3: #96bd96; --cmp-4: #aaa7f4; --cmp-5: #ef9494; --cmp-6: #64c3c3; --cmp-7: #c2a4d0; --cmp-8: #e79e6b;
+    --env-1: #3cc4c6; --env-1-ink: color-mix(in srgb, #3cc4c6 40%, var(--ink)); --env-2: #ff9a4d; --env-2-ink: color-mix(in srgb, #ff9a4d 40%, var(--ink)); --env-3: #b093ff; --env-3-ink: color-mix(in srgb, #b093ff 40%, var(--ink)); --env-4: #ff7aa8; --env-4-ink: color-mix(in srgb, #ff7aa8 40%, var(--ink)); --env-5: #7bd07b; --env-5-ink: color-mix(in srgb, #7bd07b 40%, var(--ink)); --env-6: #d4a373; --env-6-ink: color-mix(in srgb, #d4a373 40%, var(--ink)); --env-7: #9bb7d4; --env-7-ink: color-mix(in srgb, #9bb7d4 40%, var(--ink)); --env-8: #d98ad9; --env-8-ink: color-mix(in srgb, #d98ad9 40%, var(--ink)); --env-9: #4fc79a; --env-9-ink: color-mix(in srgb, #4fc79a 40%, var(--ink)); --env-10: #7f93ff; --env-10-ink: color-mix(in srgb, #7f93ff 40%, var(--ink));
     --shadow-panel: 0 12px 32px -12px rgba(0, 0, 0, 0.6);
     color-scheme: dark;
   }
@@ -74,6 +77,7 @@
   --flow-1: #ff7a6b; --flow-2: #e2c23a; --flow-3: #5fd070; --flow-4: #4cc9ee; --flow-5: #8a85ff; --flow-6: #f06ad9; --flow-7: #d49a5e; --flow-8: #8fb0dd;
   --new: #f7cf55; --new-ink: #f7cf55; --step-hl: #31291a;
   --cmp-1: #e095c7; --cmp-2: #5dbee9; --cmp-3: #96bd96; --cmp-4: #aaa7f4; --cmp-5: #ef9494; --cmp-6: #64c3c3; --cmp-7: #c2a4d0; --cmp-8: #e79e6b;
+  --env-1: #3cc4c6; --env-1-ink: color-mix(in srgb, #3cc4c6 40%, var(--ink)); --env-2: #ff9a4d; --env-2-ink: color-mix(in srgb, #ff9a4d 40%, var(--ink)); --env-3: #b093ff; --env-3-ink: color-mix(in srgb, #b093ff 40%, var(--ink)); --env-4: #ff7aa8; --env-4-ink: color-mix(in srgb, #ff7aa8 40%, var(--ink)); --env-5: #7bd07b; --env-5-ink: color-mix(in srgb, #7bd07b 40%, var(--ink)); --env-6: #d4a373; --env-6-ink: color-mix(in srgb, #d4a373 40%, var(--ink)); --env-7: #9bb7d4; --env-7-ink: color-mix(in srgb, #9bb7d4 40%, var(--ink)); --env-8: #d98ad9; --env-8-ink: color-mix(in srgb, #d98ad9 40%, var(--ink)); --env-9: #4fc79a; --env-9-ink: color-mix(in srgb, #4fc79a 40%, var(--ink)); --env-10: #7f93ff; --env-10-ink: color-mix(in srgb, #7f93ff 40%, var(--ink));
   --shadow-panel: 0 12px 32px -12px rgba(0, 0, 0, 0.6);
   color-scheme: dark;
 }

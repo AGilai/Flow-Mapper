@@ -61,3 +61,11 @@ export const canDeleteEnv = (meta, envs) => !!meta && meta.kind === 'design' && 
 
 /** The delete confirm is satisfied only by typing the exact environment name. */
 export const deleteConfirmed = (typed, name) => typeof typed === 'string' && typed.trim() === name;
+
+/** The env colour slot 1..10 of a name: the resolved `color` of its meta, else the automatic one by its place in the list. */
+export function envSlotOf(list, name) {
+  const i = list.findIndex((m) => m.name === name);
+  return list[i]?.color ?? (Math.max(0, i) % 10) + 1; // the automatic slot (core/env-colors.ts rankSlot; this file stays free of core/ so tests load it)
+}
+/** CSS custom properties of an env's colour: `--ec` (bar, border, swatch), `--ei` (chip text). */
+export const envVars = (list, name) => { const n = envSlotOf(list, name); return { '--ec': `var(--env-${n})`, '--ei': `var(--env-${n}-ink)` }; };

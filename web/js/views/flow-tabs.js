@@ -9,7 +9,7 @@ export const enterIcon = () => svg(ENTER);
 const svg = (d) => h('svg', { viewBox: '0 0 16 16', html: `<path d="${d}"/>`, 'aria-hidden': 'true' });
 
 /**
- * createTabStrip({ describe(key), onActivate(key), onClose(key), onCloseOthers(key), onCloseAll() })
+ * createTabStrip({ describe(key), envVars() -> {--ec, --ei} (the env colour: bar and border), onActivate(key), onClose(key), onCloseOthers(key), onCloseAll() })
  *   -> { el, render(state), tabEl(key), focusActive() }
  */
 export function createTabStrip(cb) {
@@ -21,7 +21,8 @@ export function createTabStrip(cb) {
   const el = h('div.ftabs', prev, scroll, next, menuBtn);
   let pop = null, drawPop = null;
 
-  const withColor = (el, c) => { el.style.setProperty('--tc', c); return el; };
+  // --tc is the transport hue (glyph, .tn); --ec is the env colour (top bar, border). Step 2 gives each tab its own env.
+  const withColor = (el, c, key) => { el.style.setProperty('--tc', c); for (const [k, v] of Object.entries(cb.envVars?.(key) ?? {})) el.style.setProperty(k, v); return el; };
   const label = (d) => [h('b', d.title), d.sub ? h('i', { title: d.sub }, `· ${d.sub}`) : null];
   const tabFor = (key) => {
     const d = cb.describe(key), on = key === state.active;
@@ -30,8 +31,7 @@ export function createTabStrip(cb) {
       d.tn ? h('span.tn', d.tn) : svg(d.kind === 'full' ? FULL : ENTER),
       h('span.tl', label(d)),
       h('button.x', { type: 'button', tabIndex: -1, 'aria-label': `Close ${d.title}`, title: 'Close (Alt+W)', on: { click: (e) => { e.stopPropagation(); cb.onClose(key); } } }, svg(X)));
-    t.style.setProperty('--tc', d.color);
-    return t;
+    return withColor(t, d.color, key);
   };
   scroll.addEventListener('keydown', (e) => {
     const i = state.keys.indexOf(e.target.closest?.('.tab')?.dataset.key ?? state.active);
@@ -68,7 +68,7 @@ export function createTabStrip(cb) {
       fill(list, state.keys.map((k) => ({ k, d: cb.describe(k) })).filter(({ d }) => !q || `${d.tn ?? ''} ${d.title} ${d.sub}`.toLowerCase().includes(q)).map(({ k, d }) =>
         withColor(h('div.ctx-item.tabrow', { role: 'option', 'aria-selected': String(k === state.active), class: k === state.active ? 'on' : '' },
           h('button.tabrow-b', { type: 'button', on: { click: () => { closeMenu(); cb.onActivate(k); } } }, d.tn ? h('span.tn', d.tn) : svg(d.kind === 'full' ? FULL : ENTER), h('span.tl', label(d))),
-          h('button.x', { type: 'button', 'aria-label': `Close ${d.title}`, on: { click: () => { cb.onClose(k); if (!state.keys.length) closeMenu(); } } }, svg(X))), d.color)));
+          h('button.x', { type: 'button', 'aria-label': `Close ${d.title}`, on: { click: () => { cb.onClose(k); if (!state.keys.length) closeMenu(); } } }, svg(X))), d.color, k)));
       if (!list.children.length) list.append(h('p.xs.muted', { style: { padding: '6px 10px' } }, 'No open flow matches.'));
 
     };

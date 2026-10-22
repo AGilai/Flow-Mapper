@@ -12,6 +12,7 @@ import { me } from '../design/who.js';
 import { afterEdit } from '../design/after-edit.js';
 import { invalidateSubsystems, loadSubsystems } from '../design/subsystems-store.js';
 import { editing } from '../design/edit-target.js';
+import { colorSection } from './env-settings-color.js';
 
 const plural = (n) => `${n} ${n === 1 ? 'component' : 'components'}`;
 
@@ -69,7 +70,8 @@ export async function render({ main, params }) {
         h('div.es-add', key, label, h('button.btn', { type: 'button', 'data-qa': 'add-subsystem', disabled: !canEdit, on: { click: add } }, '+ Add subsystem')),
         !design ? h('div.es-acts', h('button.btn.primary', { type: 'button', 'data-qa': 'save-subsystems', on: { click: saveSealed } }, 'Save subsystems')) : null),
       h('section', h('h2', 'Level names'), h('p.es-note', 'What the map and the filters call each level, outermost first. Saved at once, in every environment.'),
-        h('div.es-levels', levels.map((_, i) => [h('label', { for: `lv-${i}` }, i === 0 ? 'Outermost' : i === levels.length - 1 ? 'Innermost' : `Level ${i + 1}`), Object.assign(inputs[i], { id: `lv-${i}` })]))));
+        h('div.es-levels', levels.map((_, i) => [h('label', { for: `lv-${i}` }, i === 0 ? 'Outermost' : i === levels.length - 1 ? 'Innermost' : `Level ${i + 1}`), Object.assign(inputs[i], { id: `lv-${i}` })]))),
+      colorSection(env, refresh));
   }
   paint();
   return { dispose: () => {} };

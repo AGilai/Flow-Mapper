@@ -7,6 +7,7 @@ import type { Ctx } from '../context.ts';
 import { carryRows, neighbours } from '../../core/neighbours.ts';
 import { copyEnv } from '../store/env-copy.ts';
 import { deleteEnv, getEnv, listEnvMeta } from '../store/envs.ts';
+import { setEnvColor } from '../store/env-color.ts';
 import { loadModel } from '../store/snapshots-read.ts';
 
 export function dtoCounts(ctx: Ctx, env: string): Record<string, number> {
@@ -23,6 +24,13 @@ export function registerEnvs(r: Router, ctx: Ctx) {
     const out = copyEnv(db, await req.json());
     ctx.changed(out.name);
     return created(out);
+  });
+
+  /** The env colour: {color: 1..10} or {color: null} for automatic. Allowed on every environment (an annotation). */
+  r.put('/api/envs/:env/color', async (req) => {
+    const out = setEnvColor(db, req.params.env, (await req.json())?.color);
+    ctx.changed(req.params.env);
+    return out;
   });
 
   r.get('/api/envs/:env/meta', (req) => getEnv(db, req.params.env));

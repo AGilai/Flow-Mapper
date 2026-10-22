@@ -34,6 +34,7 @@ import { createRelations } from './flow-relations.js';
 import { linksRow } from '../components/ext-links.js';
 import { exportButton, importButton } from '../design/mermaid-export.js';
 import { state } from '../state.js';
+import { envChip, paintEnv } from '../components/env-chip.js';
 import { clampRange, fitScale, scaleOf, percentOf, anchorDelta } from './flow-zoom-pure.js';
 import { createZoomControl, applyScale, naturalSize, wireWheel } from './flow-zoom.js';
 
@@ -185,7 +186,7 @@ export function createTabView(data, host) {
   const back = host.backOf?.(key) ?? null; // a sub-flow: the way back to the flow it was opened from (also in the maximized bar)
   const backBtn = (cls) => back ? h(`button.btn.sm.back-main${cls}`, { type: 'button', 'data-qa': 'back-to-main', title: `Back to ${back.label}${back.step ? ` (step ${back.step})` : ''}`, on: { click: () => host.goBack(key) } }, h('span', { 'aria-hidden': 'true' }, '←'), ` Back to ${back.label}`) : null;
   const backBar = back ? h('div.backbar', backBtn(''), h('span.backtrail.xs.muted', `${back.label} › ${label.title}${label.sub ? ` · ${label.sub}` : ''}`)) : null;
-  const maxBar = h('div.max-bar', backBtn('.in-max'), h('span.fh-t', (root && host.nameOf?.(root.service, root.ingress)) || label.title), label.sub ? h('span.mono.xs.muted', label.sub) : null, zctl.el); // shown only while maximized (flow-max.css)
+  const maxBar = paintEnv(h('div.max-bar', backBtn('.in-max'), envChip(host.env), h('span.fh-t', (root && host.nameOf?.(root.service, root.ingress)) || label.title), label.sub ? h('span.mono.xs.muted', label.sub) : null, zctl.el), host.env); // shown only while maximized (flow-max.css)
   if (comments) { pane = createPane({ panels: { notes, comments, actions }, diagram: body }); for (const [id, d] of Object.entries(counts)) pane.setCount(id, d); }
   const el = h('div.flow-tab', maxBar, backBar, h('div.flow-top', flowBox?.el, related?.el, walk.el, partial.el), body, pane?.splitter, pane?.el); // the pane sits under the diagram (0.27.5); the border between them is a drag handle (0.34.0)
   // maximized, the pane's tab row sticks under the title bar and the step bar, whatever height the step bar has (its description wraps): --max-stick is their height

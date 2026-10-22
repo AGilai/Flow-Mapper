@@ -2,12 +2,14 @@
 
 import { copyEnv } from '../../store/env-copy.ts';
 import { listEnvMeta } from '../../store/envs.ts';
+import { setEnvColor } from '../../store/env-color.ts';
+import { ENV_COLORS, envColorName } from '../../../core/env-colors.ts';
 import { type Tool, obj } from './common.ts';
 
 export const listEnvsTool: Tool = {
-  name: 'list_envs', description: "List environments with their kind ('sealed': filled by harvesters, read-only for manual edits; 'design': created by a copy, editable), the source and date it was copied from, its subsystems (groups) and counts.",
+  name: 'list_envs', description: "List environments with their kind ('sealed': filled by harvesters, read-only for manual edits; 'design': created by a copy, editable), the source and date it was copied from, its subsystems (groups) counts and colour (a slot 1..10 with its name; the UI shows it on flow tabs).",
   inputSchema: obj({}),
-  run: (c) => listEnvMeta(c.db).map((e) => ({ name: e.name, kind: e.kind, source: e.source, copiedAt: e.copiedAt, groups: e.groups, components: e.counts.components })),
+  run: (c) => listEnvMeta(c.db).map((e) => ({ name: e.name, kind: e.kind, source: e.source, copiedAt: e.copiedAt, groups: e.groups, components: e.counts.components, color: e.color, colorName: envColorName(e.color), colorAuto: e.colorAuto })),
 };
 
 export const createEnvTool: Tool = {
@@ -23,4 +25,10 @@ export const createEnvTool: Tool = {
     services: { type: 'array', items: obj({ name: { type: 'string' }, groupPath: { type: 'string' } }, ['name']) },
   }, ['name', 'mode']),
   run: (c, a) => { const e = copyEnv(c.db, { ...a, createdBy: 'mcp' }); c.changed(e.name); return e; },
+};
+
+export const setEnvColorTool: Tool = {
+  name: 'set_env_color', description: `Set the colour of an environment (any kind; an annotation, no draft needed): a slot 1..10 (${ENV_COLORS.map((n, i) => `${i + 1} ${n}`).join(', ')}) or null for automatic (follows creation order).`,
+  inputSchema: obj({ env: { type: 'string' }, color: { type: ['integer', 'null'], minimum: 1, maximum: 10 } }, ['env', 'color']),
+  run: (c, a) => { const out = setEnvColor(c.db, a.env, a.color); c.changed(a.env); return out; },
 };

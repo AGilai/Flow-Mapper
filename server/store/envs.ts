@@ -6,6 +6,8 @@ import type { DB } from '../db/connection.ts';
 import { tx } from '../db/connection.ts';
 import { conflict, notFound } from '../errors.ts';
 import { ensureColors } from './colors.ts';
+import { envRanks, envSlot } from '../../core/env-colors.ts';
+import { newEnvSlot } from './env-color.ts';
 
 export type EnvKind = 'sealed' | 'design';
 export interface EnvGroup { key: string; label: string; icon?: string; about?: string; owners?: string[] }
@@ -14,12 +16,18 @@ export interface EnvMeta {
   createdAt: string; createdBy: string; counts: Record<string, number>;
   /** Component colour slots 1..8 ({component: slot}, core/colors.ts). */
   colors: Record<string, number>;
+  /** The env colour slot 1..10 (core/env-colors.ts, `--env-N`), always resolved; `colorAuto`: none was chosen (NULL), it follows creation order. */
+  color: number; colorAuto: boolean;
 }
-interface Row { colors?: string; name: string; kind: EnvKind; source: string | null; copied_at: string | null; groups: string; levels: string; created_at: string; created_by: string }
-const toMeta = (r: Row, counts: Record<string, number> = {}): EnvMeta => ({
+interface Row { colors?: string; color?: number | null; name: string; kind: EnvKind; source: string | null; copied_at: string | null; groups: string; levels: string; created_at: string; created_by: string }
+const toMeta = (r: Row, counts: Record<string, number> = {}, rank = 0): EnvMeta => ({
   name: r.name, kind: r.kind, source: r.source, copiedAt: r.copied_at, groups: JSON.parse(r.groups), levels: JSON.parse(r.levels),
   createdAt: r.created_at, createdBy: r.created_by, counts, colors: JSON.parse(r.colors || '{}'),
+  color: envSlot(r.color, rank), colorAuto: r.color == null,
 });
+
+/** Creation-order rank of every environment (the automatic colour), snapshot-only ones included. */
+const ranksOf = (db: DB) => envRanks(listEnvs(db).map((name) => ({ name, createdAt: (db.prepare('SELECT created_at FROM envs WHERE name = ?').get(name) as { created_at: string } | undefined)?.created_at ?? '' })));
 
 /** Names only (GET /api/envs): the envs table plus any env that still has snapshots (a rollout safety net). */
 export function listEnvs(db: DB): string[] {
@@ -39,19 +47,21 @@ function countsOf(db: DB, env: string): Record<string, number> {
 export function getEnv(db: DB, name: string): EnvMeta {
   if (!getEnvRow(db, name)) throw notFound(`environment '${name}'`);
   ensureColors(db, name);
-  return toMeta(getEnvRow(db, name)!, countsOf(db, name));
+  return toMeta(getEnvRow(db, name)!, countsOf(db, name), ranksOf(db)[name]);
 }
 
 export function listEnvMeta(db: DB): EnvMeta[] {
   for (const r of db.prepare('SELECT name FROM envs').all() as { name: string }[]) ensureColors(db, r.name);
   const rows = new Map((db.prepare('SELECT * FROM envs').all() as unknown as Row[]).map((r) => [r.name, r]));
   const fallback = (n: string): Row => ({ name: n, kind: 'sealed', source: null, copied_at: null, groups: '[]', levels: '["Subsystem","Component"]', created_at: '', created_by: 'anonymous' });
-  return listEnvs(db).map((n) => toMeta(rows.get(n) ?? fallback(n), countsOf(db, n)));
+  const rank = ranksOf(db);
+  return listEnvs(db).map((n) => toMeta(rows.get(n) ?? fallback(n), countsOf(db, n), rank[n]));
 }
 
 /** An ingest into a name that is not known yet creates it, sealed. */
 export function ensureEnv(db: DB, name: string) {
-  db.prepare("INSERT INTO envs (name, kind, created_at) VALUES (?, 'sealed', ?) ON CONFLICT (name) DO NOTHING").run(name, new Date().toISOString());
+  if (getEnvRow(db, name)) return;
+  db.prepare("INSERT INTO envs (name, kind, created_at, color) VALUES (?, 'sealed', ?, ?) ON CONFLICT (name) DO NOTHING").run(name, new Date().toISOString(), newEnvSlot(db));
 }
 
 export type Writer = 'harvester' | 'draft' | 'dry';
