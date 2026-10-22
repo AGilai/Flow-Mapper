@@ -28,7 +28,7 @@ export interface ArmState { path: string[]; fixes: ReadonlyMap<string, Fixed> }
 export const NO_ARMS: ArmState = { path: [], fixes: new Map() };
 
 /** `<group>:<arm>`, split at the first ':'; an alt-made arm `b<N>` (0.38.2: its group id is `<fn>:<altGroup>`) splits at the last. */
-export const splitArm = (e: string): [string, string] => { const i = /:b\d+$/.test(e) ? e.lastIndexOf(':') : e.indexOf(':'); return [e.slice(0, i), e.slice(i + 1)]; };
+export const splitArm = (e: string): [string, string] => { const i = /:(?:b\d+|both)$/.test(e) ? e.lastIndexOf(':') : e.indexOf(':'); return [e.slice(0, i), e.slice(i + 1)]; };
 
 const memo = new WeakMap<GraphIndex, AltIndex | null>();
 /** The alternatives of a graph, or null when no step has any (the walk then does nothing extra). Memoised per GraphIndex. */

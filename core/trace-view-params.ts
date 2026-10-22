@@ -16,7 +16,7 @@ export function parseChoose(v: unknown): Record<string, string> {
   }
   if (typeof v !== 'string' && !Array.isArray(v)) throw new Error('choose must be <group>:<arm>,... or an object {group: arm}');
   return Object.fromEntries(list(v).map((e) => {
-    const i = /:b\d+$/.test(e) ? e.lastIndexOf(':') : e.indexOf(':'); // an alt group id has a colon (`<fn>:<altGroup>`), its arms are b1..bN
+    const i = /:(?:b\d+|both)$/.test(e) ? e.lastIndexOf(':') : e.indexOf(':'); // an alt group id has a colon (`<fn>:<altGroup>`), its arms are b1..bN
     if (i < 1 || i === e.length - 1) throw new Error(`choose: '${e}' is not <group>:<arm>`);
     return [e.slice(0, i), e.slice(i + 1)];
   }));

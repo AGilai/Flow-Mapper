@@ -9,9 +9,9 @@
 import { viewOf } from '../../core/trace-view.js';
 import { toast } from '../dom.js';
 import { detailSave } from './flow-prefs.js';
-import { setChoice, chooseObject, applyChoose, decodeChoose, hiddenByArm, showChoices, prune } from './flow-scenario-pure.js';
+import { setChoice, chooseObject, applyChoose, decodeChoose, hiddenByArm, showChoices, prune, seedAll } from './flow-scenario-pure.js';
 
-export function createScenario({ st, base: first, req, baseFor, visible = () => false, onChange = () => {} }) {
+export function createScenario({ st, base: first, req, baseFor, visible = () => false, onChange = () => {}, editAll = false }) {
   let base = first, token = 0, cur = null;
   let have = { full: st.detail === 'full', open: new Set(st.detail === 'full' ? [] : st.open) }; // what `base` holds beyond the external view
   const loading = new Set();
@@ -23,7 +23,9 @@ export function createScenario({ st, base: first, req, baseFor, visible = () => 
     st.chosen = r.chosen; st.rawCh = null; st.resolved = true;
     if (r.dropped) toast('Part of the link\'s scenario does not apply to this flow. It was dropped.', 4500);
   }
-  const sync = () => { st.decisions = decisions(); st.chosen = prune(st.decisions, st.chosen); };
+  // Edit mode of a design draft (0.38.1): every decision not seen yet starts on All, so editing never hides a branch; leaving edit mode takes those back.
+  const seed = () => { st.seeded ??= new Set(); seedAll(decisions(), st.chosen, st.seeded, editAll); };
+  const sync = () => { st.decisions = decisions(); seed(); st.chosen = prune(st.decisions, st.chosen); };
   const make = () => { sync(); cur = viewOf(base, { choose: chooseObject(st.chosen), detail: intra() ? 'full' : st.detail, open: [...st.open], dbOpen: [...st.dbOpen], group: true }); return cur; };
   const changed = () => { make(); onChange(cur); };
 
@@ -42,7 +44,7 @@ export function createScenario({ st, base: first, req, baseFor, visible = () => 
   const api = {
     view: () => cur ?? make(), loading, decisions, isFull: () => have.full || st.detail === 'full',
     choose(group, arm) { st.chosen = setChoice(decisions(), st.chosen, group, arm); changed(); },
-    reset() { st.chosen = new Map(); changed(); },
+    reset() { st.chosen = new Map(); st.seeded?.clear(); changed(); },
     async setDetail(d) {
       if (d === st.detail) return;
       const was = st.detail;

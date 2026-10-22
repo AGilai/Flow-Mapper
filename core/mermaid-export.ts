@@ -11,6 +11,7 @@
 import { lineText, titleOf, stepKeys, type FlowDescriptions } from './description.ts';
 import type { Links } from './links.ts';
 import type { Alt } from './alt.ts';
+import { splitArm } from './alternatives.ts';
 import type { Message, Participant, Trace } from './trace.ts';
 import type { Decision } from './trace-types.ts';
 import { canFailLine, onlyWhenLine } from './step-markers.ts';
@@ -24,11 +25,14 @@ interface Frame { key: string; open: string; kind: string; cond: string; depth: 
 function framesOf(m: Message, both: Map<string, Decision> = new Map()): Frame[] {   // a frame covers its own messages and the calls below them (the view draws it so)
   const chain: Alt[] = [];
   for (let a: Alt | undefined = m.alt; a; a = a.parent) chain.unshift(a);
+  const frame = (d: Decision, arm: string): Frame => ({ key: `arms:${d.group_id}`, kind: 'alt', cond: d.arms.find((x) => x.arm === arm)?.label ?? arm, open: `alt ${esc(d.name || d.group_id)}`, depth: Infinity });   // Infinity: a decision frame covers its arm's whole subtree, never skipped as "opened by a step above"
+  const inAlt = new Map<string, Frame>();   // 0.38.1: a decision made from an alt frame sits where that frame sits in the chain (a loop around it stays outside)
   const arms: Frame[] = (m.arms ?? []).flatMap((e) => {   // 0.38.0: a decision shown with "Both" is an `alt <decision>` / `else <arm>` frame around its arms (the chosen ones are not frames: the view has only that arm)
-    const i = e.indexOf(':'), d = both.get(e.slice(0, i)), arm = e.slice(i + 1);
-    return d ? [{ key: `arms:${d.group_id}`, kind: 'alt', cond: d.arms.find((x) => x.arm === arm)?.label ?? arm, open: `alt ${esc(d.name || d.group_id)}`, depth: Infinity }] : [];   // Infinity: a decision frame covers its arm's whole subtree, never skipped as "opened by a step above"
+    const [g, arm] = splitArm(e), d = both.get(g);
+    if (d?.from === 'alt') { inAlt.set(g, frame(d, arm)); return []; }
+    return d ? [frame(d, arm)] : [];
   });
-  const out = arms.concat(chain.map((a) => ({ key: a.group, kind: a.kind ?? 'alt', cond: a.condition ?? '', open: `${a.kind ?? 'alt'}${a.condition ? ` ${esc(a.condition)}` : ''}`, depth: m.depth })));
+  const out = arms.concat(chain.map((a) => inAlt.get(a.group) ?? ({ key: a.group, kind: a.kind ?? 'alt', cond: a.condition ?? '', open: `${a.kind ?? 'alt'}${a.condition ? ` ${esc(a.condition)}` : ''}`, depth: m.depth })));
   if (m.mark === 'changed') out.push({ key: 'rect', kind: 'rect', cond: '', open: 'rect rgb(255, 244, 214)', depth: m.depth });
   if (m.mark === 'new') out.push({ key: 'rect-new', kind: 'rect', cond: '', open: 'rect rgb(214, 245, 214)', depth: m.depth });   // #71: green reads back as new
   return out;

@@ -7,10 +7,10 @@ import { createScenarioUi } from './flow-scenario-ui.js';
 import { stepsText } from './flow-scenario-pure.js';
 
 /** createTabScenario({ data, host, key, visible(key), onView(view) }) -> { view, scen, ui, hooks, info(), range() }. host: { scen: createScenarios(...), baseFor, onScenario(key) }. */
-export function createTabScenario({ data, host, key, visible, onView }) {
+export function createTabScenario({ data, host, key, visible, onView, editAll = false }) {
   const st = host.scen.of(key);
   const srcUrl = (at) => scen.view().code?.[`step:${at}`]?.url ?? null;
-  const scen = createScenario({ st, base: data.trace, req: data.req, baseFor: host.baseFor, visible, onChange: (v) => { ui.update(v); onView(v); host.onScenario?.(key); } });
+  const scen = createScenario({ st, base: data.trace, req: data.req, baseFor: host.baseFor, visible, editAll, onChange: (v) => { ui.update(v); onView(v); host.onScenario?.(key); } });
   const ui = createScenarioUi({ scen, st, srcUrl });
   const view = scen.view();
   ui.update(view);

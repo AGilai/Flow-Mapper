@@ -7,6 +7,7 @@ import { trace } from '../core/trace.ts';
 import { viewOf } from '../core/trace-view.ts';
 import { parseChoose } from '../core/trace-view-params.ts';
 import { sampleModel } from './helpers.ts';
+import { exportMermaid } from '../core/mermaid-export.ts';
 // @ts-ignore plain JS module shared with the browser
 import { encodeChoose, applyChoose, decodeChoose } from '../web/js/views/flow-scenario-pure.js';
 
@@ -85,6 +86,7 @@ test('no double counting: a group that hosts `alternatives` stays the one decisi
 
 test('colons in the group id: choose=, ch= and arms entries split at the last colon', () => {
   assert.deepEqual(parseChoose('advance_erase:next-priority:b2'), { 'advance_erase:next-priority': 'b2' });
+  assert.deepEqual(parseChoose('advance_erase:next-priority:both,3b1f0a52-7c1e:both,*:both,g:x:y'), { 'advance_erase:next-priority': 'both', '3b1f0a52-7c1e': 'both', '*': 'both', g: 'x:y' }, 'All of an alt group (QA 0.38.1); other arm names keep the first-colon split');
   const t = trace(buildIndex(sampleModel()), { service: 'account-lambda-erase-controller', ingress: 'in.advanceErase' }, { scope: 'full', maxMessages: 500 })!;
   const v = viewOf(t, { choose: parseChoose('advance_erase:next-priority:b3') });
   assert.equal(v.decisions![0].chosen, 'b3');
@@ -92,4 +94,14 @@ test('colons in the group id: choose=, ch= and arms entries split at the last co
   const ch = encodeChoose(t.decisions, new Map([['advance_erase:next-priority', 'b3']]));
   assert.equal(ch, 'advance_:b3');
   assert.deepEqual(applyChoose(t.decisions, decodeChoose(ch)).chosen, new Map([['advance_erase:next-priority', 'b3']]));
+});
+
+test('Mermaid of an alt decision on All (QA 0.38.1): one alt with its else lines, inside the loop that holds it; the choose=<group>:both text splits at the last colon', () => {
+  const t = trace(buildIndex(sampleModel()), { service: 'account-lambda-erase-controller', ingress: 'in.advanceErase' }, { scope: 'full', maxMessages: 500 })!;
+  const v = viewOf(t, { choose: parseChoose('advance_erase:next-priority:both') });
+  assert.equal(v.decisions![0].chosen, 'both');
+  const text = exportMermaid(v).split('\n');
+  assert.equal(text.filter((l) => l.startsWith('alt ')).length, 1);
+  assert.equal(text.filter((l) => l.startsWith('else ')).length, 3);
+  assert.equal(text.filter((l) => l === 'end').length, text.filter((l) => /^(alt|loop|opt|par|critical|break|rect)\b/.test(l)).length, 'every frame closes');
 });

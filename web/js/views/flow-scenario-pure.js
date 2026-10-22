@@ -56,6 +56,13 @@ export function setChoice(decisions, chosen, group, arm) {
   return prune(decisions, next);
 }
 
+/** Edit mode of a design draft: every decision not seen yet (`seeded`) starts on All unless it is locked or already chosen, so editing never hides a branch.
+ *  Off edit mode the seeded ones that still say All go back to the default. Mutates `chosen` and `seeded`. */
+export function seedAll(decisions, chosen, seeded, on) {
+  if (on) { for (const d of decisions) if (!d.lock && !seeded.has(d.group_id)) { seeded.add(d.group_id); if (!chosen.has(d.group_id)) chosen.set(d.group_id, 'both'); } }
+  else if (seeded.size) { for (const g of seeded) if (chosen.get(g) === 'both') chosen.delete(g); seeded.clear(); }
+}
+
 /** How many decisions differ from the defaults. */
 export const changedCount = (decisions, chosen) => prune(decisions, chosen).size;
 
@@ -116,7 +123,7 @@ export function stepsText(counts, per = false) {
 export function hiddenByArm(decisions, chosen, canon, key) {
   const m = canon.find((x) => x.key === key);
   if (!m) return null;
-  const path = (m.arms ?? []).map((e) => { const i = /:b\d+$/.test(e) ? e.lastIndexOf(':') : e.indexOf(':'); return [e.slice(0, i), e.slice(i + 1)]; });
+  const path = (m.arms ?? []).map((e) => { const i = /:(?:b\d+|both)$/.test(e) ? e.lastIndexOf(':') : e.indexOf(':'); return [e.slice(0, i), e.slice(i + 1)]; });
   const by = new Map(decisions.map((d) => [d.group_id, d]));
   const off = path.filter(([g, a]) => { const d = by.get(g); const cur = d && armIn(d, chosen); return d && cur !== 'both' && cur !== a; });
   return off.length ? { path, locked: off.some(([g]) => by.get(g).lock) } : null;

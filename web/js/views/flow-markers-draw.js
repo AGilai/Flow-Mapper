@@ -30,7 +30,7 @@ export const failNeed = (msg) => (msg?.canFail?.length ? 2 * (chipW('can fail') 
 export function failTag(msg, x1, x2, y0, label) {
   if (!msg?.canFail?.length) return null;
   const l = msg.canFail, full = canFailTag(l), short = l.length > 1 ? full : 'can fail', mid = (x1 + x2) / 2, lw = label ? labelWidth(Array.isArray(label) ? label.join(' ') : label) : 0;
-  const left = label ? mid + lw / 2 + 6 : mid - chipW(short) / 2, text = left + chipW(full) <= Math.max(x1, x2) - 14 ? full : short;
+  const left = label ? mid + lw / 2 + 10 : mid - chipW(short) / 2, text = left + chipW(full) <= Math.max(x1, x2) - 14 ? full : short;
   return svgChip(text, left + chipW(text) / 2, y0 - 24, 'cf', canFailTip(l));
 }
 

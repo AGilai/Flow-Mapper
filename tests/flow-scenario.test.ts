@@ -126,3 +126,23 @@ test('a collapsed DB group stands for its members', () => {
   assert.equal(P.stepOfKey(steps, 'm3')?.n, 2);
   assert.equal(P.stepOfKey(steps, 'zz'), null);
 });
+
+test('edit mode of a design draft: every decision starts on All, a later one too, and leaving edit mode takes it back (0.38.1)', () => {
+  const chosen = new Map<string, string>(), seeded = new Set<string>();
+  P.seedAll(decisions, chosen, seeded, true);
+  assert.equal(chosen.get(A), 'both');
+  assert.equal(chosen.get(B), 'both');
+  assert.equal(chosen.has(C), false, 'a lock is data, never seeded');
+  chosen.set(A, 'invite'); // the viewer picks an arm: a later pass keeps it
+  P.seedAll(decisions, chosen, seeded, true);
+  assert.equal(chosen.get(A), 'invite');
+  const more = [...decisions, { group_id: 'zzzzzzzz', arms: [{ arm: 'b1' }, { arm: 'b2' }] }];
+  P.seedAll(more, chosen, seeded, true);
+  assert.equal(chosen.get('zzzzzzzz'), 'both');
+  assert.equal(P.prune(more, chosen).get('zzzzzzzz'), 'both', 'All survives the prune');
+  P.seedAll(more, chosen, seeded, false);
+  assert.deepEqual([...chosen], [[A, 'invite']]);
+  const view = new Map<string, string>(), s2 = new Set<string>();
+  P.seedAll(decisions, view, s2, false);
+  assert.equal(view.size, 0, 'outside edit mode the first arm stays the default');
+});
