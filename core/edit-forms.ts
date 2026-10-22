@@ -10,6 +10,7 @@ import type { ItemRow } from './item-rows.ts';
 import { setLinks, setRuntime } from './edit-links.ts';
 import { dependentRelationOps } from './edit-relations.ts';
 import { checkLinks, cleanLinks } from './links.ts';
+import { aboutProblem } from './markdown-lite.ts';
 
 const NAME = /^[a-z0-9][a-z0-9-]{0,62}$/;
 const up = (anchor: string, data: unknown): DraftOpInput => ({ op: 'upsert', anchor, data });
@@ -20,6 +21,7 @@ export function componentOps(e: Extract<DesignEdit, { kind: 'component' }>, x: I
   const { version: _v, harvestedAt: _h, commit: _c, ...keep } = x.get(e.name, 'header')?.data ?? {};
   const data: Record<string, any> = { ...keep, kind: e.serviceKind };
   for (const k of ['groupPath', 'team', 'description'] as const) setField(data, k, e[k]);
+  { const bad = aboutProblem(e.about); if (bad) throw new EditError('INVALID', bad, 'about'); setField(data, 'about', typeof e.about === 'string' && !e.about.trim() ? '' : e.about); }
   setLinks(data, e.links); setRuntime(data, e.runtime);
   return [up(`svc:${e.name}`, data)];
 }

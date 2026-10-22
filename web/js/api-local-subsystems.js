@@ -6,6 +6,7 @@ import { subsystemsOf } from '../core/subsystems.js';
 import { rollUp } from '../core/subsystem-rollup.js';
 import { suggestRefinements } from '../core/link-suggest.js';
 import { SUBSYSTEM_ICONS, SUBSYSTEM_KEY } from '../core/subsystems.js';
+import { aboutProblem } from '../core/markdown-lite.js';
 import { relationsOf } from '../core/flow-relations.js';
 
 export function createSubsystems(c) {
@@ -21,7 +22,7 @@ export function createSubsystems(c) {
       return picked.get(rows);   // one array pair per rows array, so the roll-up memo keeps hitting
     }
     return c.memoed(`${env}|sub-rows|sealed|${JSON.stringify(meta.groups ?? [])}`, () => ({
-      subRows: (meta.groups ?? []).map((g, i) => ({ service: '', list: 'subsystem', key: g.key, data: { label: g.label, ...(g.icon ? { icon: g.icon } : {}), order: i } })), linkRows: [] }));
+      subRows: (meta.groups ?? []).map((g, i) => ({ service: '', list: 'subsystem', key: g.key, data: { label: g.label, ...(g.icon ? { icon: g.icon } : {}), ...(g.about ? { about: g.about } : {}), order: i } })), linkRows: [] }));
   }
   const map = (env) => { const { subRows, linkRows } = loaded(env); return rollUp(c.viewGraph(env), subRows, linkRows); };
 
@@ -46,9 +47,11 @@ export function createSubsystems(c) {
       const clean = (Array.isArray(list) ? list : fail('subsystems must be a list of {key, label, icon?}')).map((g) => {
         if (!g || !SUBSYSTEM_KEY.test(g.key ?? '') || !String(g.label ?? '').trim() || String(g.label).trim().length > 80) fail(`subsystem ${JSON.stringify(g)} needs a key and a label of 1 to 80 characters`);
         if (g.icon && !SUBSYSTEM_ICONS.includes(g.icon)) fail(`icon of '${g.key}' must be one of ${SUBSYSTEM_ICONS.join(', ')}`);
+        const badAbout = aboutProblem(g.about); if (badAbout) fail(`about of '${g.key}': ${badAbout}`);
         if (seen.has(g.key)) fail(`subsystem '${g.key}' is listed twice`);
         seen.add(g.key);
-        return { key: g.key, label: String(g.label).trim(), ...(g.icon ? { icon: g.icon } : {}) };
+        const about = g.about === undefined ? (meta.groups ?? []).find((o) => o.key === g.key)?.about : g.about;   // left out: kept; '' or null: cleared
+        return { key: g.key, label: String(g.label).trim(), ...(g.icon ? { icon: g.icon } : {}), ...(typeof about === 'string' && about.trim() ? { about } : {}) };
       });
       meta.groups = clean;
       c.bump(env);

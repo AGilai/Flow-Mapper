@@ -28,6 +28,8 @@ export interface Service {
   repo?: string;
   language?: string;
   description?: string;
+  /** Markdown-lite, at most 20 000 characters (0.30.2). */
+  about?: string;
   tags?: string[];
   /** Subsystem path ("platform", later "platform/identity"); optional. */
   groupPath?: string;

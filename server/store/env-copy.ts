@@ -11,6 +11,7 @@ import type { DB } from '../db/connection.ts';
 import { tx } from '../db/connection.ts';
 import { badRequest, conflict, invalid, notFound } from '../errors.ts';
 import { SUBSYSTEM_ICONS } from '../../core/subsystems.ts';
+import { aboutProblem } from '../../core/markdown-lite.ts';
 import { getEnv, getEnvRow, type EnvGroup, type EnvMeta } from './envs.ts';
 import { copyAllBaseline, copyDescriptions, clearEntryPoints, copyDesignLists, copyDtos, copyKeys, copyService, copyShared, type CopyCtx } from './env-copy-rows.ts';
 import { copyComments } from './comments.ts';
@@ -53,6 +54,7 @@ function validate(db: DB, i: CopyInput) {
     if (!g || typeof g.key !== 'string' || !PATH.test(g.key) || typeof g.label !== 'string' || !g.label.trim()) throw invalid(`group ${JSON.stringify(g)} needs a key (lowercase, '-' or a path like platform/identity) and a label`);
     if (keys.has(g.key)) throw invalid(`group '${g.key}' is listed twice`);
     if (g.icon !== undefined && !(SUBSYSTEM_ICONS as readonly string[]).includes(g.icon)) throw invalid(`group '${g.key}': icon must be one of ${SUBSYSTEM_ICONS.join(', ')}`);
+    { const bad = aboutProblem(g.about); if (bad) throw invalid(`group '${g.key}': ${bad}`); }
     keys.add(g.key);
   }
   const levels = i.levels ?? ['Subsystem', 'Component'];
@@ -73,7 +75,7 @@ export function copyEnv(db: DB, input: CopyInput): EnvMeta {
     const at = new Date().toISOString();
     // A full copy of a design carries its subsystems (unless the request names others).
     const fullOfDesign = mode === 'full' && v.src.kind === 'design';
-    const groups = (v.groups.length || !fullOfDesign ? v.groups : JSON.parse(v.src.groups)).map((g: EnvGroup) => ({ key: g.key, label: g.label, ...(g.icon ? { icon: g.icon } : {}) }));
+    const groups = (v.groups.length || !fullOfDesign ? v.groups : JSON.parse(v.src.groups)).map((g: EnvGroup) => ({ key: g.key, label: g.label, ...(g.icon ? { icon: g.icon } : {}), ...(g.about ? { about: g.about } : {}) }));
     // The baseline of the subsystems (grp: marks): what the design started with. A full copy of a design keeps that design's.
     const baseGroups = fullOfDesign ? ((v.src as any).baseline_groups ?? null) : JSON.stringify(groups);
     const levels = input.levels || !fullOfDesign ? v.levels : JSON.parse(v.src.levels);

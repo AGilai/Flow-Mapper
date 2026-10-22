@@ -7,6 +7,7 @@ import { chip, filterText } from '../format.js';
 import { section } from '../components/panel.js';
 import { channelPath, storePath } from './inventory-links.js';
 import { objectIcon } from '../components/object-icon.js';
+import { aboutBlock } from '../components/about.js';
 
 const MAX = 12;
 const svcName = (id) => id.replace(/^(svc|ch|res|missing):/, '');
@@ -37,6 +38,7 @@ export function nodePanel(n, edges, byId) {
   };
 
   const body = [];
+  if (n.about) body.push(aboutBlock(n.about));
   if (n.stats) {
     body.push(h('dl.kv',
       h('dt', 'Ingress'), h('dd', String(n.stats.ingress)),

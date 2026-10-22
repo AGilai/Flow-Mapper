@@ -8,6 +8,7 @@ import { callOps } from './edit-calls.ts';
 import { checkLink, endOf, inside, LINK_ID, worldOfRows, type LinkData } from './abstract-links.ts';
 import { EditError, indexRows, unique, type CallEdit, type DesignEdit, type Idx } from './edit-kit.ts';
 import { rowsToModel, type ItemRow } from './item-rows.ts';
+import { aboutProblem } from './markdown-lite.ts';
 import { SUBSYSTEM_ICONS, SUBSYSTEM_KEY, subsystemRows } from './subsystems.ts';
 
 const up = (anchor: string, data: unknown): DraftOpInput => ({ op: 'upsert', anchor, data });
@@ -24,11 +25,13 @@ export function subsystemOps(e: Sub, rows: ItemRow[]): DraftOpInput[] {
   if (e.icon !== undefined && e.icon !== null && !(SUBSYSTEM_ICONS as readonly string[]).includes(e.icon)) throw new EditError('BAD_ICON', `icon must be one of ${SUBSYSTEM_ICONS.join(', ')} (or null to clear it)`, 'icon');
   if (e.label !== undefined && (typeof e.label !== 'string' || !e.label.trim() || e.label.trim().length > 80)) throw new EditError('INVALID', 'label must be 1 to 80 characters', 'label');
   if (e.order !== undefined && (!Number.isInteger(e.order) || e.order < 0)) throw new EditError('INVALID', 'order must be a position, 0 or more', 'order');
+  { const bad = aboutProblem(e.about); if (bad) throw new EditError('INVALID', bad, 'about'); }
   const list = ordered(rows), at = list.findIndex((s) => s.key === e.key);
   if (at < 0 && !e.label?.trim()) throw new EditError('INVALID', `a new subsystem '${e.key}' needs a label`, 'label');
   const data: Record<string, any> = { ...(at >= 0 ? list[at].data : {}) };
   if (e.label !== undefined) data.label = e.label.trim();
   if (e.icon === null) delete data.icon; else if (e.icon !== undefined) data.icon = e.icon;
+  if (e.about === null || e.about === '' || (typeof e.about === 'string' && !e.about.trim())) delete data.about; else if (e.about !== undefined) data.about = e.about;   // '' or null clears
   const next = list.filter((s) => s.key !== e.key);
   next.splice(Math.min(e.order ?? (at >= 0 ? at : next.length), next.length), 0, { key: e.key, data });
   const ops: DraftOpInput[] = [];
@@ -41,16 +44,18 @@ export function subsystemOps(e: Sub, rows: ItemRow[]): DraftOpInput[] {
 }
 
 /** The whole settings list of an environment (display order) as ops: only what differs from the rows. Nothing is deleted. */
-export function settingsOps(list: { key: string; label: string; icon?: string | null }[], rows: ItemRow[]): DraftOpInput[] {
+export function settingsOps(list: { key: string; label: string; icon?: string | null; about?: string | null }[], rows: ItemRow[]): DraftOpInput[] {
   const cur = new Map(subsystemRows(rows).map((r) => [r.key, r.data]));
   const listed = new Set(list.map((s) => s.key));
   const rest = ordered(rows).filter((s) => !listed.has(s.key));
   const out: DraftOpInput[] = [];
-  [...list, ...rest.map((s) => ({ key: s.key, label: s.data.label as string, icon: s.data.icon as string | undefined }))].forEach((s, i) => {
+  [...list, ...rest.map((s) => ({ key: s.key, label: s.data.label as string, icon: s.data.icon as string | undefined, about: undefined }))].forEach((s, i) => {
     if (!SUBSYSTEM_KEY.test(s.key)) throw new EditError('BAD_KEY', `subsystem key '${s.key}' is not valid`, 'key');
     if (s.icon && !(SUBSYSTEM_ICONS as readonly string[]).includes(s.icon)) throw new EditError('BAD_ICON', `icon must be one of ${SUBSYSTEM_ICONS.join(', ')}`, 'icon');
     if (typeof s.label !== 'string' || !s.label.trim() || s.label.trim().length > 80) throw new EditError('INVALID', `label of '${s.key}' must be 1 to 80 characters`, 'label');
-    const data = { label: s.label.trim(), ...(s.icon ? { icon: s.icon } : {}), order: i };
+    const bad = aboutProblem(s.about); if (bad) throw new EditError('INVALID', `about of '${s.key}': ${bad}`, 'about');
+    const about = s.about === undefined ? cur.get(s.key)?.about : s.about || undefined;   // left out: kept; '' or null: cleared
+    const data = { label: s.label.trim(), ...(s.icon ? { icon: s.icon } : {}), ...(about ? { about } : {}), order: i };
     if (JSON.stringify(cur.get(s.key)) !== JSON.stringify(data)) out.push(up(`grp:${s.key}`, data));
   });
   return out;

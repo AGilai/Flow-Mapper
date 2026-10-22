@@ -8,7 +8,7 @@ import { conflict, notFound } from '../errors.ts';
 import { ensureColors } from './colors.ts';
 
 export type EnvKind = 'sealed' | 'design';
-export interface EnvGroup { key: string; label: string; icon?: string }
+export interface EnvGroup { key: string; label: string; icon?: string; about?: string }
 export interface EnvMeta {
   name: string; kind: EnvKind; source: string | null; copiedAt: string | null; groups: EnvGroup[]; levels: string[];
   createdAt: string; createdBy: string; counts: Record<string, number>;
