@@ -5,6 +5,15 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## 0.29.0 (2026-10-22)
+Action items under each flow: owner, description, status and due date, linked to comments. Additive; migration `013_action_items.sql` (two new tables, nothing existing is touched; the database is backed up to `<db>.pre-013.bak` first). Details in [API.md](API.md) "Action items under a flow".
+- **REST:** `GET /api/envs/:env/action-items?anchor=flow:<s>/<i>[&draft=]` -> `{items, events, next}`; `GET .../action-items/counts` -> `{anchor: openCount}`; `POST` `{anchor, owner, description, status?, due?, step?, commentId?, actor}`; `PATCH .../:id` `{actor, owner?, description?, status?, due? (null clears), step? (null clears)}`; `DELETE .../:id?actor=`. Status is `open | progress | done | dropped`; `due` is `YYYY-MM-DD`. Numbers (`#1`, `#2`...) are per flow and never reused.
+- **Rules:** anyone edits any field (the `actor` is kept in `updatedBy`); only the creator deletes (`403 NOT_CREATOR`). Validation errors are `400 VALIDATION`. Any environment takes them, sealed ones too, and `?draft=` works like comments.
+- **Events (`GET /api/events`):** `action_item.created`, `action_item.updated`, `action_item.deleted`, each with `env` and `data {anchor, id, number, status, actor}`.
+- **MCP:** `list_action_items {env, service, ingress, draft?}`, `add_action_item {env, service, ingress, owner, description, author, status?, due?, step?, commentId?, draft?}`, `update_action_item {env, id, author, owner?, description?, status?, due?, step?}`. What MCP writes has `source: "ai"` (a "by AI" chip in the UI). The tool list hash moved (three tools added).
+- **Copy:** a Full copy carries items, their events and the comment links; Blank and Components copies do not.
+- UI: an "Action items (3 open · 5)" section above Comments, "+ Action item" and "Make action item" on comments, events under a comment, and an open-actions badge per entry in the Flows list. The static preview shows them.
+
 ## 0.28.4 (2026-10-22)
 Flows list in design environments, from #65. No migration.
 - **Breaking (default flip):** a Components copy (`POST /api/envs {mode: "components"}`, MCP `create_env`) now defaults to `entryPoints: "none"`: copied ingress get `entryPoint: false` and are not entry points. Pass `entryPoints: "keep"` for the 0.28.3 behaviour. Full copies still default to `keep`. Existing environments are unchanged. `create_env`'s description changed (the tool list hash moved).

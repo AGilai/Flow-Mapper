@@ -32,6 +32,7 @@ export function commentItem(node, x) {
     const link = (t, fn, cls = '', qa) => h('button.lnk', { type: 'button', class: cls, 'data-qa': qa, on: { click: fn } }, t);
     if (!node.deleted) {
       if (x.top) act.append(link('Reply', () => x.api.reply(node.id), '', 'cm-reply'));
+      if (x.api.make) act.append(link('Make action item', () => x.api.make(node), 'mkai', 'cm-mkai')); // 0.29.0: opens the new row in the Action items section
       if (mine) act.append(link('Edit', edit, '', 'cm-edit'), link('Delete', ask, 'd', 'cm-del'));
     }
     head.replaceChildren(...(node.deleted ? [h('span.cm-gone', 'Comment deleted'), time]

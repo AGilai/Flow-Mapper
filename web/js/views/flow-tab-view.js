@@ -20,6 +20,9 @@ import { marksNow } from '../design/marks-store.js';
 import { createPartial } from './flow-partial.js';
 import { nameEditor } from './flow-name.js';
 import { createComments } from '../comments/thread.js';
+import { createActionItems } from '../action-items/section.js';
+import { createItemStore } from '../action-items/store.js';
+import { flowAnchor } from '../../core/comments.js';
 import { createRelations } from './flow-relations.js';
 import { linksRow } from '../components/ext-links.js';
 import { exportButton, importButton } from '../design/mermaid-export.js';
@@ -58,7 +61,11 @@ export function createTabView(data, host) {
   const noHint = trace.noHandler ? h('div.noh-hint', { role: 'note', 'data-qa': 'no-handler' }, `No handler function. This entry point has no behaviour in ${host.env} yet.`) : null; // #59
   const walk = createWalkView({ store: host.desc, messages: () => trace.messages, root: data.kind === 'sub' ? null : root, initial: host.initialStep?.(key) ?? null, onStep: (n) => host.setStep?.(key, n), onRestep: (cols) => render?.restep(cols), onSteps: (st) => partial.update(st) });
   const tip = root ? createTip(host.desc, root) : null;
-  comments = root && data.kind !== 'sub' ? createComments({ env: host.env, root, walk }) : null;
+  // Action items (0.29.0): a section above Comments; they share a store ("Make action item", the events under a comment)
+  const items = root && data.kind !== 'sub' ? createItemStore({ env: host.env, anchor: flowAnchor(root.service, root.ingress) }) : null;
+  const actions = items ? createActionItems({ store: items, walk }) : null;
+  comments = items ? createComments({ env: host.env, root, walk, store: items }) : null;
+  items?.refresh();
   const scroller = h('div.seq-scroll');
   const hint = h('span.seq-hint', 'More to the right. Scroll sideways ›');
   const wrap = h('div.seq-wrap', scroller, hint);
@@ -130,10 +137,10 @@ export function createTabView(data, host) {
     edge(); requestAnimationFrame(edge);
   }
   draw();
-  const el = h('div.flow-tab', h('div.flow-top', flowBox?.el, related?.el, walk.el, partial.el), body, comments ? h('div.flow-bottom', comments.el) : null); // comments sit under the diagram (maintainer, 0.27.5)
+  const el = h('div.flow-tab', h('div.flow-top', flowBox?.el, related?.el, walk.el, partial.el), body, comments ? h('div.flow-bottom', actions.el, comments.el) : null); // comments sit under the diagram (maintainer, 0.27.5)
   el.addEventListener('keydown', (ev) => walk.onKey(ev)); // ← → Home End, while focus is in the flow view and not in a text box
   return {
-    el, key, data, draw, insideOpen: () => inside.isOpen(), dispose: () => { clearTimeout(resizeTimer); document.removeEventListener('fm:layout', onLayout); inside.dispose(); ro?.disconnect(); tip?.dispose(); descs.forEach((d) => d?.dispose()); comments?.dispose(); related?.dispose(); walk.dispose(); },
+    el, key, data, draw, insideOpen: () => inside.isOpen(), dispose: () => { clearTimeout(resizeTimer); document.removeEventListener('fm:layout', onLayout); inside.dispose(); ro?.disconnect(); tip?.dispose(); descs.forEach((d) => d?.dispose()); comments?.dispose(); actions?.dispose(); items?.dispose(); related?.dispose(); walk.dispose(); },
     squeezeOff: () => sqOff, resetSqueeze: () => { sqOff = false; },
     save: () => { saved = scroller.scrollTop; },
     restore: () => { scroller.scrollTop = saved; edge(); requestAnimationFrame(edge); },

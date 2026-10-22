@@ -50,6 +50,7 @@ export async function render({ main, query }) {
     : await api.entryPoints(state.env);
   const counts = new Map((await api.flowCounts(state.env).catch(() => [])).map((c) => [`${c.service}:${c.ingress}`, c]));
   const cmts = await api.commentCounts(state.env).catch(() => ({})); // comments per flow, for the 💬 count of the list
+  const acts = await api.actionCounts(state.env).catch(() => ({})); // open action items per flow, for the list's badge
   const relBy = relCounts(isDesign() ? await api.flowRelations(state.env).catch(() => []) : []); // 0.28.2: relations per flow, for the list's badge and filter
   const names = new Map((await api.flowNames(state.env).catch(() => [])).map((n) => [`${n.service}/${n.ingress}`, n.name]));
   points.forEach((p) => { p.name ||= names.get(`${p.service}/${p.id}`) ?? ''; });
@@ -63,7 +64,7 @@ export async function render({ main, query }) {
   const svcs = await api.services(state.env).catch(() => []);
   setServiceInfo(svcs);
   const groupOf = new Map(svcs.map((s) => [s.name, s.groupPath ?? '']));
-  const list = createList({ points, counts, cmts, relBy, service, groupOf, groups: metaOf(state.envMeta, state.env).groups ?? [], marks, design: isDesign(), query, onPick: (p) => openEntry({ service: p.service, ingress: p.id }),
+  const list = createList({ points, counts, cmts, acts, relBy, service, groupOf, groups: metaOf(state.envMeta, state.env).groups ?? [], marks, design: isDesign(), query, onPick: (p) => openEntry({ service: p.service, ingress: p.id }),
     onAll: () => go('/flows', { tabs: S.keys.join(',') || null, tab: S.keys.length > 1 ? S.active : null }),
     onCollapse: (c) => flowsEl.classList.toggle('list-c', c) });
   const flowsEl = h('div.flows', list.el, rightEl);

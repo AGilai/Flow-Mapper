@@ -1,0 +1,16 @@
+{
+  "env": "prod",
+  "items": [
+    { "service": "api-gateway", "ingress": "in.createOrder", "owner": "Dana Levi", "ago": 2800, "dueIn": 6, "fromComment": "Dana Levi", "by": "Asaf G.",
+      "description": "Confirm which order fields the inventory reservation needs (warehouse is optional)" },
+    { "service": "api-gateway", "ingress": "in.createOrder", "owner": "Asaf G.", "ago": 1300, "dueIn": -8,
+      "step": "#step:svc:orders-svc>svc:payments-svc|http:POST payments-svc/payments/charge|http",
+      "description": "Roll out the 15 min TTL for the cached risk score to payments-svc and update the runbook" },
+    { "service": "api-gateway", "ingress": "in.createOrder", "owner": "Noa B.", "ago": 900, "dueIn": 13, "status": "progress",
+      "description": "Load-test the reservation call at 500 requests per second" },
+    { "service": "api-gateway", "ingress": "in.createOrder", "owner": "Dana Levi", "ago": 2000, "closedAgo": 170, "status": "done", "closedBy": "Dana Levi",
+      "description": "Update the risk check description with the new TTL" },
+    { "service": "api-gateway", "ingress": "in.createOrder", "owner": "Asaf G.", "ago": 2600, "closedAgo": 1500, "status": "dropped", "closedBy": "Asaf G.",
+      "description": "Cache the risk score for 24 h in payments-svc (replaced by the 15 min TTL)" }
+  ]
+}

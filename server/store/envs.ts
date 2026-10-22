@@ -74,7 +74,7 @@ export function guardEnv(db: DB, env: string, writer: Writer) {
   if (kind === 'sealed') throw conflict('ENV_SEALED', `environment '${env}' is sealed: only harvesters fill it (ingest, DTOs, schemas). Copy it into a design environment to edit it (POST /api/envs).`);
 }
 
-const TABLES = ['entities', 'snapshots', 'changelog', 'health_history', 'endpoint_dtos', 'event_dtos', 'store_schemas', 'resource_keys', 'resource_keys_meta', 'descriptions', 'baseline_items', 'drafts', 'flow_names', 'flow_links', 'comments', 'abstract_links', 'flow_relations'];
+const TABLES = ['entities', 'snapshots', 'changelog', 'health_history', 'endpoint_dtos', 'event_dtos', 'store_schemas', 'resource_keys', 'resource_keys_meta', 'descriptions', 'baseline_items', 'drafts', 'flow_names', 'flow_links', 'comments', 'action_items', 'abstract_links', 'flow_relations'];
 
 /** Delete a design environment with everything in it (bugs stay: they are reports about the app, not map data). */
 export function deleteEnv(db: DB, name: string) {
@@ -82,6 +82,7 @@ export function deleteEnv(db: DB, name: string) {
   if (!r) throw notFound(`environment '${name}'`);
   if (r.kind !== 'design') throw conflict('ENV_SEALED', `environment '${name}' is sealed and cannot be deleted; only design environments can`);
   tx(db, () => {
+    db.prepare('DELETE FROM action_item_events WHERE item_id IN (SELECT id FROM action_items WHERE env = ?)').run(name);
     for (const t of TABLES) db.prepare(`DELETE FROM ${t} WHERE env = ?`).run(name);
     db.prepare('DELETE FROM envs WHERE name = ?').run(name);
   });

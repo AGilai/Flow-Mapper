@@ -8,6 +8,7 @@ Add a row here with every fix or feature (newest first). A row without a working
 
 | Version | Bug | What to look at | Link |
 |---|---|---|---|
+| 0.29.0 | — | Action items under each flow: five items on the checkout flow (2 open, 1 in progress, 1 done, 1 dropped; #2 is overdue and has a step pill, #1 was made from Dana's comment and shows under it). Closed rows are folded ("Show 2 closed"). Click "Make action item" on a comment for the prefilled row; Edit changes any field. The Flows list shows an open-actions badge next to the comment count. A flow without items has no section, only "+ Action item" on its Comments header: `#/flows?env=prod&tabs=users-svc/in.getUser` | `#/flows?env=prod&tabs=api-gateway/in.createOrder` |
 | 0.28.4 | #65 | Design Flows list shows named flows only; tick "All endpoints" for every endpoint: `#/flows?env=sase-hld` and `#/flows?env=sase-hld&endpoints=all`. A Components copy now has no copied entry points unless `entryPoints: 'keep'`. | UI + API |
 | 0.28.3 | #63 | Components copy without entry points: `POST /api/envs {mode: 'components', entryPoints: 'none', ...}`; the copy lists 0 copied entry points and no marks. | API only |
 | 0.28.3 | #64 | The `<source>-infra` service of a Components copy sits in subsystem `infra` (or `infraGroupPath`): `POST /api/envs {mode: 'components', infraGroupPath: 'platform', ...}`. | API only |
