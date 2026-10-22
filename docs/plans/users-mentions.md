@@ -40,3 +40,22 @@ Migration on a copy of the live DB; matching cases; mention token round trip and
 rename updates chips; merge re-points everything; MCP; Full copy keeps author_id/owner_id (users are global, not per
 env). Samples: 3 users, one with a Confluence id, two mentions in prod comments. CHANGELOG (importer: authorExternalId
 now creates/links users; mention token format), DEMOS rows, version 0.31.0.
+
+## Maintainer amendment (2026-10-22): sign-in instead of name prompts
+"Why does the platform need to collect my name? My name is the user I am logged in with. For now pick from the users
+list or add; the selection is like the login; later we will add Cognito. Add a small login icon under env on the bottom
+left with the user initials."
+- **Sign-in:** the "Who are you?" picker (18e) becomes the sign-in: shown once per browser when no user is signed in
+  and the viewer does anything that writes (comment, action item, resolve, bug report, design edit author), and from the
+  sign-in button. It lists users (search) and "I'm new" (creates a user). The choice is stored per browser
+  (localStorage, try/catch) as the user id; the old `flow-mapper.reporter` name is offered as the first match.
+- **Bottom-left user button:** under the environment picker in the left rail, a round avatar with the user's initials and
+  colour (an outlined "Sign in" icon when nobody is signed in). Click → small menu: the name, "Switch user", "Users"
+  (the Users page), "Sign out". Collapsed rail: the avatar alone. 760 px: same place in the rail drawer.
+- **No name fields anywhere:** the composer, action-item editor, resolve and bug dialog never ask for a name; they use
+  the signed-in user. Not signed in → the write control opens the sign-in first and then continues the action.
+- **Server:** every write takes the user id from an `X-Flow-User: <userId>` header set by the web client (MCP writes
+  use "Assistant" unless an `author` is given; REST clients without the header keep sending `author`/`actor` names,
+  matched to users as today). One server module `server/identity.ts` resolves the caller, so Cognito later replaces
+  only that module (a JWT → user id). Naive identity, documented as such.
+- Frame 18e is read as this sign-in; no new mockup (the maintainer specified the placement).
