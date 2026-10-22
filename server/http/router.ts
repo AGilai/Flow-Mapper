@@ -3,6 +3,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { HttpError, badRequest } from '../errors.ts';
+import { sendJsonFor } from './json-body.ts';
 
 export interface Req {
   method: string;
@@ -100,7 +101,7 @@ export class Router {
       });
       if (out === STREAMED) return true;
       if (out instanceof Reply) send(res, out.status, out.body, out.headers);
-      else sendJson(res, req.method === 'POST' && out && typeof out === 'object' && (out as any).__created ? 201 : 200, stripMarker(out));
+      else await sendJsonFor(req, res, req.method === 'POST' && out && typeof out === 'object' && (out as any).__created ? 201 : 200, stripMarker(out)); // gzip for big bodies when the client accepts it (json-body.ts)
     } catch (err) {
       if (err instanceof HttpError) sendJson(res, err.status, { error: { code: err.code, message: err.message, details: err.details } });
       else {

@@ -3,7 +3,7 @@
 import type { Router } from '../http/router.ts';
 import type { Ctx } from '../context.ts';
 import { badRequest, conflict, notFound } from '../errors.ts';
-import { sid } from '../../core/graph-index.ts';
+import { sid, type GraphIndex } from '../../core/graph-index.ts';
 import { getEnvRow } from '../store/envs.ts';
 import { systemGraph } from '../../core/system-graph.ts';
 import { serviceView } from '../../core/service-view.ts';
@@ -24,6 +24,26 @@ import { listBugs } from '../store/bugs.ts';
 
 const int = (v: string | null, d: number) => (v && /^\d+$/.test(v) ? parseInt(v, 10) : d);
 
+// The service page is a pure function of the graph: kept for the last few services per graph, and the answer with its bug count is the same object while the
+// count is, so the JSON body (json-body.ts) is serialised and gzipped once, not per request (a big service is about 9 MB).
+const views = new WeakMap<GraphIndex, Map<string, ReturnType<typeof serviceView>>>();
+function serviceViewOf(g: GraphIndex, name: string) {
+  let m = views.get(g);
+  if (!m) views.set(g, (m = new Map()));
+  if (m.has(name)) { const v = m.get(name); m.delete(name); m.set(name, v); return v; }
+  const v = serviceView(g, name);
+  if (v) { m.set(name, v); if (m.size > 8) m.delete(m.keys().next().value!); }
+  return v;
+}
+const answers = new WeakMap<object, { n: number; out: object }>();
+function withBugs(v: NonNullable<ReturnType<typeof serviceView>>, n: number) {
+  const hit = answers.get(v);
+  if (hit && hit.n === n) return hit.out;
+  const out = { ...v, openBugs: n };
+  answers.set(v, { n, out });
+  return out;
+}
+
 export function registerQueries(r: Router, ctx: Ctx) {
 
   r.get('/api/envs', () => listEnvs(ctx.db));
@@ -31,10 +51,10 @@ export function registerQueries(r: Router, ctx: Ctx) {
   r.get('/api/envs/:env/views/system', (req) => systemGraph(ctx.graphOf(req)));
 
   r.get('/api/envs/:env/views/service/:service', (req) => {
-    const v = serviceView(ctx.graphOf(req), req.params.service);
+    const v = serviceViewOf(ctx.graphOf(req), req.params.service);
     if (!v) throw notFound(`service '${req.params.service}'`);
     const bugs = listBugs(ctx.db, { service: req.params.service, open: true }, ctx.appVersion);
-    return { ...v, openBugs: bugs.length };
+    return withBugs(v, bugs.length);
   });
 
   r.get('/api/envs/:env/entry-points', (req) => entryPointsOut(ctx, req.params.env, req.query.get('draft')));
