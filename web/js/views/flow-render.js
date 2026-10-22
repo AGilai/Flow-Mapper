@@ -22,7 +22,7 @@ import { laneSlots } from '../design/lane-slots.js';
 /**
  * createFlowRender({ trace, tree, key, ancestors, sticky }, sh) -> { laneBox, idxBox, drawLane(), relane(), expandAll(budget), index() }
  * ancestors: flow ids (service|ingress|event) of the flows this one sits inside: a row that loops back to one is not expanded.
- * sh: { host, opts, tip, walk (the step walk, top lane only), squeeze() (Squeeze on for this tab), squeezeOpen() (a fold was clicked), details(built) (step details on the arrows, top lane only; 0.30.0), editStep(key, n), select(bar), lookInside(bar, trace), openMessage(m, g, trace), flash(el), traceFor(request) }
+ * sh: { host, opts, tip, walk (the step walk, top lane only), squeeze() (Squeeze on for this tab), squeezeOpen() (a fold was clicked), zoom() (the scale), afterLane() (the top lane was drawn), details(built) (step details on the arrows, top lane only; 0.30.0), editStep(key, n), select(bar), lookInside(bar, trace), openMessage(m, g, trace), flash(el), traceFor(request) }
  */
 export function createFlowRender({ trace, tree, key, ancestors = [], sticky = true, depth = 0 }, sh) {
   const { host, opts } = sh, mwOpen = new Set(), fanOpen = new Set(); // fanOpen: topics whose queues are all drawn
@@ -49,9 +49,10 @@ export function createFlowRender({ trace, tree, key, ancestors = [], sticky = tr
     const built = buildLane(msgs, { mwOpen, fanOpen, numbers: deliveryNumbers(tree), stores: lo.stores, scope: 'full', participants: trace.participants, trigger: depth ? null : sh.trigger?.() ?? null });
     groupLane(built, host.subs, opts.bands, marksNow(), laneSlots); // 0.28.1: the components of one subsystem together and the bands over them; a colour per flow (before Squeeze, the walk and the drawing see the columns)
     const sq = sh.squeeze?.() ? { keep: (!depth && sh.walk?.endsOf(built)) || firstStepCols(built) } : null; // Squeeze: the current step's lifelines (a card: its first step's)
-    lane = renderLane(built, { ...handlers, marks: laneMarks(marksNow()), edit: sh.addCall ? { onAddCall: sh.addCall, onAddInBand: sh.addInBand } : null, refs: createRefs(trace, { editing: state.mode === 'edit' && !!state.draft, onImport: sh.importRef }), sticky, squeeze: sq, onSqueeze: sh.squeezeOpen, details: depth ? null : sh.details?.(built) ?? null, onEditStep: sh.editStep, fit: Math.max(0, (sh.fit?.() ?? 0) - (depth ? 40 + depth * 28 : 0)) });
+    lane = renderLane(built, { ...handlers, marks: laneMarks(marksNow()), edit: sh.addCall ? { onAddCall: sh.addCall, onAddInBand: sh.addInBand } : null, refs: createRefs(trace, { editing: state.mode === 'edit' && !!state.draft, onImport: sh.importRef }), sticky, squeeze: sq, onSqueeze: sh.squeezeOpen, details: depth ? null : sh.details?.(built) ?? null, onEditStep: sh.editStep, zoom: sh.zoom?.() ?? 1, hints: opts.th ?? true, fit: Math.max(0, (sh.fit?.() ?? 0) - (depth ? 40 + depth * 28 : 0)) });
     if (!depth) sh.walk?.decorate(lane, built); // numbered steps are the top lane's only (0.20.0)
     laneBox.replaceChildren(lane.el);
+    if (!depth) sh.afterLane?.(); // Fit measures the new lane (flow-tab-view.js)
   }
   /** The walk moved to a step with these columns: redraw only when that folds the lane differently. Focus stays on the same arrow. */
   function restep(cols) {

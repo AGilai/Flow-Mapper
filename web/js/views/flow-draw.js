@@ -17,20 +17,22 @@ import { addCallChips } from './flow-add-call.js';
 import { wireEvents } from './flow-draw-events.js';
 import { storeLegend } from './flow-draw-bands.js';
 import { detailTexts } from './flow-draw-details.js';
+import { sizeSvg } from './flow-zoom.js';
 
 /**
  * renderLane(lane, handlers) -> { el, body, events, bars, geometry }
  * handlers: onMessage(msg, g, event, trunk), onBar(bar, 'select'?) (double-click, pill: look inside; click: select),
  * onBarMenu(bar, x, y), onParticipant(p, x, y), onNum(jump) (a number tile at a queue), onNumHover(own labels, on), onFan(topic) (fold or unfold a big fan-out).
  * `selected`: bar id drawn highlighted. Returns { el, body, events, bars, geometry, mark(label, on) } (mark: highlight the tiles of a list row).
+ * zoom: the scale (1 = 100%) the SVGs are drawn at (0.30.3); hints: an undecided transport keeps its text label (else a small icon, 0.30.4).
  * edit: { onAddCall(bar) } in Edit with a draft: a "+ call" under each bar (flow-add-call.js). marks: laneMarks(store) (flow-marks.js): sparks on heads and arrows of a design environment. refs: createRefs(trace, ...) (flow-refs-draw.js): locks on heads, the note and Import chip at an arrow into a reference.
  * details: { parts, text } (flow-step-details.js): the step's title and description drawn on its arrow; onEditStep(key, n) a double-click on one of those lines.
  * squeeze: { keep: [column index] } folds lifelines when the lane is wider than `fit` (flow-squeeze.js); onSqueeze(): a fold column was clicked.
  * geometry: { x: centre x per lifeline (a folded one: its fold's left edge; folded + groups say which), plan(keep) -> the fold set for another step, y: baseline y per row, top: top y per row (plus the bottom), width, height, headHeight, colWidth }
  * for features that draw on the lane (step numbers, squeeze, editing).
  */
-export function renderLane(lane, { marks = null, refs = null, edit = null, onMessage, onBar, onBarMenu, onParticipant, onNum, onNumHover, onFan, onMw, onBarTip, onSqueeze, selected = null, sticky = true, fit = 0, squeeze = null, details = null, onEditStep = null } = {}) {
-  const c = layoutLane(lane, fit, squeeze, marks, !!edit, details), { columns, events, bars, width, top, ys, frames, strips } = c, height = c.height
+export function renderLane(lane, { marks = null, refs = null, edit = null, onMessage, onBar, onBarMenu, onParticipant, onNum, onNumHover, onFan, onMw, onBarTip, onSqueeze, selected = null, sticky = true, fit = 0, squeeze = null, details = null, onEditStep = null, zoom = 1, hints = true } = {}) {
+  const c = layoutLane(lane, fit, squeeze, marks, !!edit, details, hints), { columns, events, bars, width, top, ys, frames, strips } = c, height = c.height
   const head = drawHead({ ...c, marks, refs, edit });
   const drawn = foldRows(drawRows({ ...c, marks, refs, noApi: details ? new Set([...details.parts].filter(([, p]) => !p.api).map(([e]) => e)) : null }), c);
   const { rects, segs } = drawBars(c, { selected, onBarTip });
@@ -38,6 +40,7 @@ export function renderLane(lane, { marks = null, refs = null, edit = null, onMes
     s('defs', {}, s('pattern', { id: 'mwh', width: 6, height: 6, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' }, s('rect', { width: 6, height: 6, fill: 'var(--mw-bg)' }), s('rect', { width: 2.4, height: 6, fill: 'var(--mw)' }))),
     drawFrames(frames, lane.altRows, strips, (r) => top[r], (r) => top[r + 1], width, GUTTER),
     foldBands(c.groups, height), drawLifelines(c), rects, segs, drawn, details ? detailTexts(c, details, onEditStep) : null, edit ? addCallChips(c, edit) : null);
+  sizeSvg(head, width, c.HEAD, zoom); sizeSvg(body, width, height, zoom); // the vector box of each SVG: zoom only changes its size (flow-zoom.js)
   const mark = wireEvents(head, body, c, { onMessage, onBar, onBarMenu, onParticipant, onNum, onNumHover, onFan, onMw, onBarTip, onSqueeze });
   body.__events = events;
   const geometry = { x: c.xs, y: ys, top, width, height, headHeight: c.HEAD, colWidth: c.COLW, folded: c.folded, groups: c.groups, plan: c.plan, sig: c.sig, foldW: c.foldW };

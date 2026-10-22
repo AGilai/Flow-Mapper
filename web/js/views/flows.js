@@ -24,12 +24,16 @@ import { decodeStep, encodeStep } from './flow-walk.js';
 import { setServiceInfo } from '../design/service-info.js';
 import { openImport } from '../design/import-panel.js';
 import { editOpener, editing } from '../design/edit-open.js';
+import { pencils } from '../design/pencil.js';
 import { loadSubsystems } from '../design/subsystems-store.js';
 import { relCounts } from './flow-relations-pure.js';
 import { createMax } from './flow-max.js';
 import { maxFromQuery } from './flow-max-pure.js';
 import { decodeBar, decodeArrows, encodeBar, encodeArrows, BAR_DEFAULT, ARROWS_DEFAULT } from './step-details-pure.js';
 import { createStepMenu, stored } from './step-details-menu.js';
+import { decodeZoom, encodeZoom, percentOf } from './flow-zoom-pure.js';
+import { createZoomControl } from './flow-zoom.js';
+import { decodeHints, encodeHints } from './flow-hints-pure.js';
 
 // Squeeze (0.20.1): on by default, remembered per viewer; a click on a fold turns it off for that tab only (flow-tab-view.js).
 const sqStored = () => { try { return localStorage.getItem('flow-mapper.squeeze') !== '0'; } catch { return true; } };
@@ -44,11 +48,14 @@ export async function render({ main, query }) {
   const subs = await loadSubsystems(); // the subsystem of each component: bands and grouping over a flow's heads
   const opts = { stores: query.get('stores') !== '0', depth: query.get('depth') ?? 'all',
     frontier: query.get('frontier') === '1', squeeze: sqStored(), bands: bandStored(),
-    sb: decodeBar(query) ?? stored('bar', BAR_DEFAULT), sd: decodeArrows(query) ?? stored('arrows', ARROWS_DEFAULT) }; // step details (0.30.0): what the step bar and the arrows show; // steps the harvester marked as frontier (call trees that reach no sink)
+    sb: decodeBar(query) ?? stored('bar', BAR_DEFAULT), sd: decodeArrows(query) ?? stored('arrows', ARROWS_DEFAULT), th: decodeHints(query, isDesign()) }; // step details (0.30.0): what the step bar and the arrows show; // steps the harvester marked as frontier (call trees that reach no sink)
   let S = T.decodeUrl(query);
   let stepParam = decodeStep(query); // `step=`: the walk's step in the active tab; a link opens on it (0.20.0)
   const stepTab = S.active; // ...and only that tab, once
   const views = new Map(), slots = new Map(), stale = new Set();
+  const zooms = new Map(); // zoom per tab (0.30.3): a percent or 'fit'; the URL carries the active tab's
+  const zoomParam = decodeZoom(query);
+  if (zoomParam != null && S.active) zooms.set(S.active, zoomParam);
   let token = 0, disposed = false;
 
   const points = service
@@ -95,11 +102,14 @@ export async function render({ main, query }) {
     h('input', { type: 'checkbox', checked: opts.squeeze, on: { change: (e) => { opts.squeeze = e.target.checked; sqSave(opts.squeeze); views.forEach((v, k) => { v.resetSqueeze(); if (k === S.active) v.draw(); else stale.add(k); }); } } }), 'Squeeze');
   const bandsCheck = subs.assigned ? h('label.check', { title: 'Put the components of one subsystem next to each other and show a band with its name over them' },
     h('input', { type: 'checkbox', 'data-qa': 'group-by-subsystem', checked: opts.bands, on: { change: (e) => { opts.bands = e.target.checked; bandSave(opts.bands); views.forEach((v, k) => (k === S.active ? v.draw() : stale.add(k))); } } }), 'Group by subsystem') : null;
+  const thCheck = h('label.check', { title: 'Show the words "transport not decided" on arrows. Off: a small icon (the words are in its tooltip and in the step bar).' },
+    h('input', { type: 'checkbox', 'data-qa': 'transport-hints', checked: opts.th, on: { change: (e) => { opts.th = e.target.checked; persist(); views.forEach((v, k) => (k === S.active ? v.draw() : stale.add(k))); } } }), 'Transport hints');
+  const zctl = createZoomControl({ onZoom: (v) => views.get(S.active)?.setZoom(v) });
   const stepMenu = createStepMenu({ bar: opts.sb, arrows: opts.sd, onChange: ({ bar, arrows }) => {
     const arrowsMoved = arrows !== opts.sd; opts.sb = bar; opts.sd = arrows; persist();
     views.forEach((v, k) => { v.refreshBar(); if (arrowsMoved) { if (k === S.active) v.draw(); else stale.add(k); } });
   } });
-  const toolbar = h('div.seq-toolbar', seg, bandsCheck, check('stores', 'Data stores'), frontierCheck, sqCheck, depth, stepMenu.el, h('span.spacer'),
+  const toolbar = h('div.seq-toolbar', seg, bandsCheck, check('stores', 'Data stores'), frontierCheck, sqCheck, thCheck, depth, stepMenu.el, zctl.el, h('span.spacer'),
     h('span.xs.muted', 'Double-click a bar, or right-click it, to look inside'), info,
     editing() ? h('button.btn.sm', { type: 'button', 'data-qa': 'add-component', title: 'Add a component to the draft', on: { click: () => host.edit.addComponent() } }, '+ component') : null);
 
@@ -111,7 +121,7 @@ export async function render({ main, query }) {
   mainPane.append(toolbar, strip.el, empty);
 
   function persist() {
-    setQuery({ ...T.encodeUrl(S), ...(S.keys.length ? { service: null } : {}), stores: opts.stores ? null : '0', queues: null, depth: opts.depth === 'all' ? null : opts.depth, frontier: opts.frontier ? '1' : null, sb: encodeBar(opts.sb), sd: encodeArrows(opts.sd), step: encodeStep(stepParam) });
+    setQuery({ ...T.encodeUrl(S), ...(S.keys.length ? { service: null } : {}), stores: opts.stores ? null : '0', queues: null, depth: opts.depth === 'all' ? null : opts.depth, frontier: opts.frontier ? '1' : null, sb: encodeBar(opts.sb), sd: encodeArrows(opts.sd), th: encodeHints(opts.th, isDesign()), zoom: encodeZoom(zooms.get(S.active)), step: encodeStep(stepParam) });
   }
   const max = createMax({ onChange: () => views.get(S.active)?.el.scrollTo?.(0, 0) });
   const host = {
@@ -125,6 +135,9 @@ export async function render({ main, query }) {
     openEntry: (e) => openEntry(e),
     paintChrome: () => paintChrome(),
     importRef: (anchor, source) => openImport({ panel, flowsEl, anchor, source }),
+    zoomOf: (k) => zooms.get(k) ?? 100,
+    onZoomPaint: (k) => { if (k === S.active) paintZoom(); },
+    setZoom: (k, v) => { zooms.set(k, v); if (k === S.active) { persist(); paintZoom(); } },
     nameOf, relType: query.get('relType'), max,
     edit: null, // set below: the form opener (Edit with a draft)
     initialStep: (k) => (k === stepTab ? stepParam : null),
@@ -132,10 +145,12 @@ export async function render({ main, query }) {
     setFrontier: () => { opts.frontier = true; frontierCheck.querySelector('input').checked = true; persist(); reloadAll(); },
   };
   if (editing()) host.edit = editOpener(host);
+  host.pen = pencils(host); // 0.31.1: the pencils of the flow head; the hint of a harvested page sits under the toolbar
+  toolbar.after(...[host.pen.hint()].filter(Boolean));
   const openEntry = ({ service: s, ingress, fn, event, scope }) => commit(T.openTab(S, ingress ? T.entryKey(s, ingress, event, scope) : T.fnKey(s, fn, event, scope)));
   function setScope(scope) {
     const to = T.withScope(S.active, scope);
-    if (to !== S.active) commit(T.rekey(S, S.active, to));
+    if (to !== S.active) { if (zooms.has(S.active)) zooms.set(to, zooms.get(S.active)); commit(T.rekey(S, S.active, to)); } // the zoom goes with the tab
   }
 
   /** Build the view of a tab (a slot at once, the diagram when its data arrives). */
@@ -156,6 +171,7 @@ export async function render({ main, query }) {
   }
   function drop(key) { views.get(key)?.dispose(); views.delete(key); slots.get(key)?.remove(); slots.delete(key); stale.delete(key); }
 
+  function paintZoom() { const v = views.get(S.active); zctl.show(v ? percentOf(v.zoomScale()) : 100, v?.zoomValue() === 'fit', !!v); }
   function paintChrome() {
     const act = S.active, p = act ? T.parseKey(act) : null, scoped = p && (p.kind === 'entry' || p.kind === 'fn');
     seg.querySelectorAll('button').forEach((b) => {
@@ -166,6 +182,7 @@ export async function render({ main, query }) {
     info.textContent = views.get(act)?.info() ?? '';
     sqCheck.querySelector('input').checked = opts.squeeze && !views.get(act)?.squeezeOff();
     list.mark(S);
+    paintZoom();
     empty.hidden = !!S.keys.length;
     views.get(act)?.refreshDots();
   }
@@ -208,6 +225,7 @@ export async function render({ main, query }) {
   slots.get(S.active)?.removeAttribute('hidden');
   strip.render(S); paintChrome();
   if (S.keys.length) persist(); // old single-flow links become tabs=
+  host.pen.resume();
   if (maxFromQuery(query) && S.keys.length) max.set(true, { fullscreen: false, url: false }); // a link or reload opens maximized (window-filling only)
   return { dispose: () => { disposed = true; removeEventListener('keydown', onKey); max.dispose(); strip.closeMenu(); panel.dispose(); views.forEach((v) => v.dispose()); } };
 }

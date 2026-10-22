@@ -102,7 +102,7 @@ export function descBlock(store, root, callee, { title, wholeFlow, onGenerate, w
   }
   render();
   const unwatch = store.watch(root, (d, e) => { data = d; error = e; render(); });
-  return { el, dispose: unwatch };
+  return { el, edit: () => { if (!editing) { editing = true; render(); } }, dispose: unwatch };
 }
 
 /** One line (sub-flow tab header): the Human note if there is one, else the AI text, with the action that fits. keys: callee keys, most specific first. */

@@ -29,3 +29,9 @@ both.
 ## Tests and demo
 Pane open/close/pin/sel= state (pure), open-questions extractor, mention tokens in about, owners matching, edit flow in a
 draft, harvested read-only. Screenshots vs frame 19 light/dark/760. CHANGELOG, DEMOS, version 0.32.0.
+
+## Maintainer review of the revision (2026-10-22): approved
+- **Expanded view (19h):** an overlay, kept in the URL as `expanded=1`; Esc/Collapse returns to the drawer with the same
+  scroll and open rows. Accordion rows, "On this page" outline at ≥ 1280 px, Expand all / Collapse all.
+- **Pencils (19i, 19j)** are split out and built first as **0.31.1 "Edit where you read"** (docs/plans/edit-pencils.md),
+  so editing is reachable before the pane ships; the pane then reuses them.

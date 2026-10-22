@@ -16,6 +16,15 @@ in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.m
 - **Samples:** prod has three users (one with the Confluence id `noa.barak`) and two comments that mention "Asaf G." and "Dana Levi" (written as `@{Name}`, so a re-seed adds nothing twice).
 - **UI:** a sign-in button under the environment picker (avatar with initials, menu: Switch user, Users, Sign out); the sign-in picker; no name prompts anywhere; "@" picker and an "@ Mention" toolbar button in the comment editor; chips in threads; a **Mentions** page with an unread badge in the rail; "@ n new" on Flows list rows; "Mentioned me" filter in a flow's Comments header; action item owners as avatar and name; a **Users** page with rename and merge.
 
+## 0.31.1 (2026-10-22)
+UI only: a small pencil on every editable item (service header, Docs, About and each section, endpoint and flow rows, Inventory rows and subsystem headers, the map and flow panels) opens the same form the diagram uses; in View mode it first picks or starts a draft. Harvested environments keep only the flow and step description pencils. Also (#69 follow-up): Fit now enlarges a short flow to fill the panel, up to 200%.
+
+## 0.30.4 (2026-10-22)
+UI only (#70): on a flow arrow, "transport not decided" is a small icon (its words in the tooltip and in the step bar); the new toolbar toggle "Transport hints" (`th=0|1` in the URL, left out at the default) shows the full label again. Default: off in a design environment, on elsewhere. Decided transports keep their compact label.
+
+## 0.30.3 (2026-10-22)
+UI only (#69): the flow diagram zooms: a "- [100%] + Fit Reset" control in the flow toolbar (and in the bar of a maximized flow), Ctrl/Cmd + wheel and pinch around the pointer; per tab, `zoom=` in the URL (25 to 400, or `fit`; left out at 100).
+
 ## 0.30.2 (2026-10-22)
 **`about`: a rich description per component and per subsystem** (bug #68, the data part; the dedicated info pane is a later, separate UI). Additive; no migration (it lives in the service header JSON and in `envs.groups` JSON).
 - **Manifest (harvesters and importers):** optional **`service.about`**, a string of at most 20 000 characters, next to `description`. Markdown-lite: `##` / `###` headings, paragraphs, `**bold**`, `*italic*`, `~~strike~~`, `` `code` ``, fenced code, `- ` and `1. ` lists, `[text](https://...)` links. No HTML (it is shown as text) and only `http(s)` links. By convention the sections `## Capabilities`, `## Motivation`, `## Roles and responsibilities`, `## Owners`, `## Open questions`; nothing enforces them. Status, doc links (`links`) and related flows already have their fields: do not repeat them in `about`. A changed `about` is a Changed mark on the component, like any header field. Over the limit or not a string: `422` from ingest.
