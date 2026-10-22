@@ -28,6 +28,8 @@ const P = {
   table: '<rect x="3.5" y="5" width="17" height="14" rx="1.5"/><path d="M3.5 10h17M3.5 14.5h17M9.2 5v14M14.8 5v14"/>',
   more: '<path d="M6 12h.01M12 12h.01M18 12h.01" stroke-width="2.8"/>',
   warn: '<path d="M12 4 21 20H3z"/><path d="M12 10v4.5M12 17.4h.01"/>',
+  maximize: '<path d="M3 9V3h6M15 3h6v6M21 15v6h-6M9 21H3v-6"/>',
+  unmax: '<path d="M9 3v6H3M21 9h-6V3M15 21v-6h6M3 15h6v6"/>',
   external: '<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
 };
 

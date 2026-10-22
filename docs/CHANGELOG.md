@@ -5,6 +5,9 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## 0.29.1 (2026-10-22)
+UI only: a Maximize button (key F) on every flow header fills the window with the flow, its action items and comments; `max=1` in the URL opens it that way.
+
 ## 0.29.0 (2026-10-22)
 Action items under each flow: owner, description, status and due date, linked to comments. Additive; migration `013_action_items.sql` (two new tables, nothing existing is touched; the database is backed up to `<db>.pre-013.bak` first). Details in [API.md](API.md) "Action items under a flow".
 - **REST:** `GET /api/envs/:env/action-items?anchor=flow:<s>/<i>[&draft=]` -> `{items, events, next}`; `GET .../action-items/counts` -> `{anchor: openCount}`; `POST` `{anchor, owner, description, status?, due?, step?, commentId?, actor}`; `PATCH .../:id` `{actor, owner?, description?, status?, due? (null clears), step? (null clears)}`; `DELETE .../:id?actor=`. Status is `open | progress | done | dropped`; `due` is `YYYY-MM-DD`. Numbers (`#1`, `#2`...) are per flow and never reused.
