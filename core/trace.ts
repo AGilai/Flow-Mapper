@@ -94,9 +94,8 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
   let mwCtx: { fn: string; index: number } | null = null; // set while an ingress's middleware runs: its messages are marked
   const push = (m: Message) => {
     if (altIx && ++pushed > 4 * maxMessages) { truncated = true; return false; } // a hard ceiling: exclusive arms may expand the same delivery once each
-    if (arms.path.length) m = { ...m, arms: [...arms.path] };
-    if (mwCtx && !m.middleware) m = { ...m, middleware: mwCtx };
-    if (curOf !== undefined && m.of === undefined) m = { ...m, of: curOf };
+    const addMw = !!mwCtx && !m.middleware, addOf = curOf !== undefined && m.of === undefined; // one copy, the same keys in the same order as three copies one after the other
+    if (arms.path.length || addMw || addOf) m = { ...m, ...(arms.path.length ? { arms: [...arms.path] } : {}), ...(addMw ? { middleware: mwCtx! } : {}), ...(addOf ? { of: curOf } : {}) };
     if (m.kind === 'frontier' || m.repeatOf) { messages.push(m); return true; } // markers are free, as documented on TraceOptions.frontier (and #43 for repeats)
     if (counted >= maxMessages && wouldCount(altCtx)) { truncated = true; return false; }
     tally(altCtx);
@@ -306,11 +305,11 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
   push({ from: client, to: fnPart(root, fnId), label: (ing?.bindKey ?? fnId) + (start.event ? ` · ${start.event}` : ''), event: start.event, mode: 'sync', kind: 'entry', depth: 0, service: root, fn: fnId, transport: ing?.transport, ...(ing?.transport === 'socket' ? { protocol: socketProtocol(ing) } : {}), target: ing ? { service: root, ingress: ing.id, fn: fnId } : undefined, ...(ing && chainOf(ing).length ? { middlewareChain: chainOf(ing) } : {}) });
   if (ing) runIngress(ing, fnId, 1, [sid(root, fnId)]); else visitFn(root, fnId, 1, [sid(root, fnId)]);
 
-  for (const p of participants.values()) {
+  for (const p of opts.countsOnly ? [] : participants.values()) {
     if (p.kind === 'service') p.internalCalls = messages.filter((m) => m.kind === 'call' && m.service === p.service).length;
   }
   const code: Trace['code'] = {};
-  for (const m of messages) {
+  for (const m of opts.countsOnly ? [] : messages) { // countsOnly: no source links, no `via` (nothing that counts reads them)
     for (const [svc, fn] of [[m.service, m.fn], [m.target?.service, m.target?.fn], [m.service, m.calls]]) {
       const k = svc && fn ? sid(svc, fn) : null;
       if (k && !(k in code)) code[k] = g.services.has(svc!) ? sourceLink(g.services.get(svc!)!, g.fns.get(k) ?? null) : null;
@@ -327,8 +326,8 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
     }
     if (e?.source && !(`egress:${m.service}:${e.id}` in code)) code[`egress:${m.service}:${e.id}`] = codeLink(g.services.get(m.service!)!, e.source);
   }
-  const out: Trace = { code, start: { service: root, ingress: ing?.id, fn: fnId, event: start.event }, scope, participants: deliveryOrder([...participants.values()], messages), messages, truncated };
-  return withAltDecisions(altIx && book.places.size ? withDecisions(altIx, book, out) : out); // 0.38.2: alt frames are decisions too
+  const out: Trace = { code, start: { service: root, ingress: ing?.id, fn: fnId, event: start.event }, scope, participants: opts.countsOnly ? [...participants.values()] : deliveryOrder([...participants.values()], messages), messages, truncated };
+  return withAltDecisions(altIx && book.places.size ? withDecisions(altIx, book, out, !!opts.countsOnly) : out, !!opts.countsOnly); // 0.38.2: alt frames are decisions too
 }
 
 /** The wire protocol of a socket ingress (`details.protocol`: tls, tcp or ws); tcp when the harvester gave none. */

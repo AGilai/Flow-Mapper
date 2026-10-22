@@ -21,7 +21,7 @@ const lhsOf = (conds: (string | undefined)[]): string | undefined => {
   return l.length > 1 && l.every((x) => x && x === l[0]) ? l[0] : undefined;
 };
 
-export function withAltDecisions(t: Trace): Trace {
+export function withAltDecisions(t: Trace, countsOnly = false): Trace {
   if (!t.messages.some((m) => m.alt)) return t;
   const open: Frame[] = [], armsOf = new Map<Message, string[]>(), info = new Map<string, Info>();
   for (const m of t.messages) {
@@ -67,6 +67,7 @@ export function withAltDecisions(t: Trace): Trace {
     return mine.length ? { ...m, arms: [...(m.arms ?? []), ...mine] } : m;
   });
   const all = [...(t.decisions ?? []), ...decisions];
+  if (countsOnly) return { ...t, messages, decisions: all }; // no per-arm steps, no keys (see TraceOptions.countsOnly)
   for (const d of decisions) for (const a of d.arms) a.steps = decisionCounts(messages, all, d.group_id, a.arm);
   const keys = messages.every((m) => m.key) ? null : stepKeys(messages);
   return { ...t, messages: keys ? messages.map((m, i) => ({ ...m, key: keys[i] })) : messages, decisions: all };

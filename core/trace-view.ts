@@ -12,7 +12,7 @@
 
 import type { Decision, Message, Trace } from './trace-types.ts';
 import { stepKeys } from './description.ts';
-import { decisionCounts, rangeOf, type Chosen } from './trace-counts.ts';
+import { decisionCounts, rangeOf, type Chosen, type Range } from './trace-counts.ts';
 import { groupDbOps } from './trace-db-group.ts';
 import { renumber } from './trace-renumber.ts';
 import { splitArm } from './alternatives.ts';
@@ -39,16 +39,15 @@ function visible(all: Item[], detail: string, open: string[]): Item[] {
   return all.filter((_, k) => show[k]);
 }
 
-export function viewOf(t: Trace, opts: ViewOptions = {}): Trace {
+/** The part of a view that decides which messages stay and which decisions are offered; `viewOf` and `viewCounts` both start here, so they cannot disagree. `stamp`: give the messages their keys (only a rendered view needs them). */
+function plan(t: Trace, opts: ViewOptions, stamp: boolean) {
   const detail = t.scope === 'intra' ? 'full' : opts.detail ?? 'external';
   const decisions = t.decisions ?? [];
   const group = opts.group ?? detail === 'external';
-  if (!decisions.length && detail === 'full' && !group) return t; // nothing to decide, show or fold: the canonical trace itself
   const req = opts.choose instanceof Map ? opts.choose : new Map(Object.entries(opts.choose ?? {}));
-  const keys = t.messages.every((m) => m.key) ? t.messages.map((m) => m.key!) : stepKeys(t.messages);
-  const all: Item[] = t.messages.map((m, i) => ({ m: m.key ? m : { ...m, key: keys[i] }, i }));
+  const keys = !stamp || t.messages.every((m) => m.key) ? [] : stepKeys(t.messages);
+  const all: Item[] = t.messages.map((m, i) => ({ m: m.key || !stamp ? m : { ...m, key: keys[i] }, i }));
   const grouped = group ? groupDbOps(visible(all, detail, opts.open ?? []), new Set(opts.dbOpen ?? [])) : visible(all, detail, opts.open ?? []);
-
   // choose: the arm in force per decision (lock, else the request, else the first arm; `*:both` makes the default both)
   const warnings: string[] = [], byId = new Map(decisions.map((d) => [d.group_id, d]));
   const dflt = req.get('*') === 'both' ? 'both' : undefined, eff = new Map<string, string>();
@@ -64,6 +63,19 @@ export function viewOf(t: Trace, opts: ViewOptions = {}): Trace {
   const shown = decisions.filter(offered);
   const kept = grouped.filter(({ m }) => (m.arms ?? []).every((e) => { const [g, a] = splitArm(e), c = eff.get(g); return !c || c === 'both' || c === a; }));
 
+  return { detail, decisions, grouped, kept, shown, eff, warnings };
+}
+
+/** The message range and the number of decisions offered of the view `viewOf(t, opts)` would make, without building it (no renumbering, no participants, no per-arm counts): what the Flows list needs per flow. */
+export function viewCounts(t: Trace, opts: ViewOptions = {}): { messages: Range; decisions: number } {
+  const { kept, shown, eff } = plan(t, opts, false);
+  return { messages: rangeOf(kept.map((x) => x.m), shown, new Map(shown.map((d) => [d.group_id, eff.get(d.group_id)!]))), decisions: shown.length };
+}
+
+export function viewOf(t: Trace, opts: ViewOptions = {}): Trace {
+  const detail0 = t.scope === 'intra' ? 'full' : opts.detail ?? 'external';
+  if (!(t.decisions ?? []).length && detail0 === 'full' && !(opts.group ?? detail0 === 'external')) return t; // nothing to decide, show or fold: the canonical trace itself
+  const { detail, decisions, grouped, kept, shown, eff, warnings } = plan(t, opts, true);
   const altOff = new Set(decisions.filter((d) => d.from === 'alt' && eff.get(d.group_id) !== 'both').map((d) => d.group_id)); // 0.38.2: a branch on one arm draws no alt frame
   const messages = renumber(kept, t.messages).map((m) => (m.alt && altOff.size ? (({ alt: _a, ...r }) => { const a = dropFrames(m.alt, altOff); return a ? { ...r, alt: a } : r; })(m) : m));
   const used = new Set(messages.flatMap((m) => [m.from, m.to]));

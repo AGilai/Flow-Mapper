@@ -82,4 +82,6 @@ export interface Trace {
 
 export interface TraceOptions { scope?: 'intra' | 'full'; maxDepth?: number; maxMessages?: number; expand?: string[];
   /** Show steps marked `origin: 'frontier'`. Off by default: each function gets one collapsed marker and they do not count toward maxMessages. */
-  frontier?: boolean }
+  frontier?: boolean;
+  /** Perf batch 4: for callers that only count messages and decisions (the Flows list): `participants` is left in discovery order, not laid out (the lifeline order is the costly part and nothing reads it). */
+  countsOnly?: boolean }

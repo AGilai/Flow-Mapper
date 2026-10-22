@@ -7,9 +7,31 @@ import type { IncomingHttpHeaders, IncomingMessage, ServerResponse } from 'node:
 import { gzip } from 'node:zlib';
 
 export const GZIP_MIN = 32 * 1024;
-const CACHE_MAX = 96 * 1024 * 1024; // bigger bodies are sent, not kept
-interface Body { json: Buffer; gz?: Promise<Buffer> }
+interface Body { json: Buffer; gz?: Promise<Buffer>; gzBytes?: number }
 const bodies = new WeakMap<object, Body>();
+
+// Perf batch 4: the kept bodies (serialised + gzipped bytes of every memoised report) are bounded together, not just by what the GC can free: a global budget,
+// env FLOW_BODY_CACHE_MB (default 64). Over it, the least recently used entries go first (they are only dropped from the cache: a response being sent keeps its own copy).
+// An entry that alone exceeds the budget is sent, not kept. `lru` is in use order (Map order); its keys are the values, held weakly through `refs`.
+let budget = Math.floor((Number(process.env.FLOW_BODY_CACHE_MB) > 0 ? Number(process.env.FLOW_BODY_CACHE_MB) : 64) * 1024 * 1024);
+interface Kept { ref: WeakRef<object>; body: Body }
+const lru = new Set<Kept>(), keptOf = new WeakMap<Body, Kept>();
+const bytesOf = (b: Body) => b.json.length + (b.gzBytes ?? 0);
+let kept = 0;
+
+const forget = (k: Kept) => { if (lru.delete(k)) kept -= bytesOf(k.body); const v = k.ref.deref(); if (v && bodies.get(v) === k.body) bodies.delete(v); };
+/** Drop the entries whose value was collected, then the oldest ones until the bytes fit the budget. */
+function enforce(): void {
+  if (kept <= budget) return;
+  for (const k of [...lru]) if (!k.ref.deref()) forget(k);
+  for (const k of lru) { if (kept <= budget) break; forget(k); }
+}
+const touch = (k: Kept) => { lru.delete(k); lru.add(k); };
+
+/** Set the byte budget of the kept bodies (tests; the default comes from FLOW_BODY_CACHE_MB) and trim to it. */
+export function setBodyCacheBudget(bytes: number): void { budget = Math.max(0, Math.floor(bytes)); enforce(); }
+/** What is kept right now: entries and bytes (serialised + gzipped), and the budget. */
+export const bodyCacheStats = () => { for (const k of [...lru]) if (!k.ref.deref()) forget(k); return { entries: lru.size, bytes: kept, budget }; };
 
 /** Does `Accept-Encoding` allow gzip? A listed `gzip` / `x-gzip` with q > 0, or `*` with q > 0 when gzip is not listed; anything unparseable or q=0 is no. */
 export function acceptsGzip(header: IncomingHttpHeaders['accept-encoding']): boolean {
@@ -34,15 +56,25 @@ export async function sendJsonFor(req: Pick<IncomingMessage, 'headers'>, res: Se
   const type = 'application/json; charset=utf-8';
   const hit = value !== null && typeof value === 'object' ? bodies.get(value) : undefined;
   let body = hit;
+  if (hit) { const k = keptOf.get(hit); if (k) touch(k); }
   if (!body) {
     const text = JSON.stringify(value ?? null);
     if (text.length < GZIP_MIN) { res.writeHead(status, { 'content-type': type }); res.end(text); return; } // the length in characters never exceeds the bytes
     const json = Buffer.from(text);
     body = { json };
-    if (value !== null && typeof value === 'object' && json.length <= CACHE_MAX) bodies.set(value, body);
+    if (value !== null && typeof value === 'object' && json.length <= budget) {
+      bodies.set(value, body);
+      const k: Kept = { ref: new WeakRef(value), body };
+      keptOf.set(body, k); lru.add(k); kept += json.length;
+      enforce();
+    }
   }
+  const mine = body, k = keptOf.get(mine);
   if (acceptsGzip(req.headers['accept-encoding'])) {
-    const gz = await (body.gz ??= compress(body.json).catch((e) => { body!.gz = undefined; throw e; }));
+    const gz = await (body.gz ??= compress(body.json).then((out) => { // the gzipped copy counts toward the budget once it exists (if the entry is still kept)
+      if (k && lru.has(k) && mine.gzBytes === undefined) { mine.gzBytes = out.length; kept += out.length; enforce(); }
+      return out;
+    }, (e) => { body!.gz = undefined; throw e; }));
     res.writeHead(status, { 'content-type': type, 'content-encoding': 'gzip', vary: 'Accept-Encoding', 'content-length': String(gz.length) });
     res.end(gz);
   } else {
