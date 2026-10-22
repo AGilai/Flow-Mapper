@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased (0.33.2)
+## 0.33.2 (2026-10-22)
 - UI only: **a sub-flow has a way back (maintainer).** A tab opened from another flow (an async consumer, "Full flow from here", "Zoom in to ...", "Open the async flow in a tab") shows "← Back to <main flow>" with a "Main flow › Sub-flow" trail at the top (and first in the maximized bar). It switches to (or reopens) the main flow's tab on the step you left; the browser's Back button does the same (opening a sub-flow now adds a history entry, and `step=` no longer leaks into the URL of another tab).
 - **`owners`: an entry that reads as a user id is an id.** A string `u_...` (no spaces) that is not a user is a `422` (`owners[1]: no user 'u_abc'`) and creates nobody; before, only `u_` plus 8 hex digits was checked and anything else became a new user named after it. Names still match or create users.
 - UI only: the info pane's `E` expands it whenever it is open and focus is not in a field, an editor or a dialog; the subsystem pane's sub line wraps as one text (no dangling "Subsystem ·"); the pane's section bar wraps at the 340 px minimum width instead of touching the edge.
