@@ -6,7 +6,7 @@ import { arrowEnds, columnGaps, centres, labelWidth, wrapId, clampLines } from '
 import { markChips, chipsStack } from './flow-marks-draw.js';
 import { sharedVar } from '../design/component-colors.js';
 import { bandsOf } from './flow-stores-pure.js';
-import { subBands } from './flow-bands.js';
+import { subBands, SHARED } from './flow-bands.js';
 import { BAND_H } from './flow-draw-bands.js';
 import { headIconOf } from './flow-draw-icons.js';
 import { FOLD_W, COL_NARROW, displayCols, foldGroups, planSqueeze } from './flow-squeeze.js';
@@ -67,7 +67,7 @@ export function layoutLane(lane, fit = 0, sq = null, marks = null, edit = false,
   const heads = columns.map((c) => (c.sub === 'queue delivery' ? { name: clampLines(wrapId(c.label.replace(/^[^:]+:/, ''), nameCh(c)), nameCh(c)), sub: [] } : { name: clampLines(wrapId(c.label, nameCh(c)), nameCh(c)), sub: isCh(c) ? [c.sub] : wrapId(c.sub ?? '', c.kind === 'resource' ? Math.max(10, Math.floor((headW(c, COLW) - 38) / 5.8)) : subCh) }));
   const boxH = 12 + Math.max(...heads.map((x) => x.name.length * LINE_H + x.sub.length * 13)) + 6, grp = lane.group ?? null, subRuns = grp ? subBands(columns, folded, grp.subOf) : [], hasStore = columns.some((c) => c.kind === 'resource');
   const bandH = BAND_H * ((subRuns.length ? 1 : 0) + (hasStore ? 1 : 0)), HEAD = boxH + 16 + bandH; // bandH: the band rows over the heads (flow-draw-bands.js): subsystems on top, data stores under them
-  const subRow = subRuns.map((r) => ({ ...r, sub: true, row: 0, label: grp.info(r.key)?.label ?? r.key, icon: grp.info(r.key)?.icon ?? null, mark: grp.markOf(r.key) }));
+  const subRow = subRuns.map((r) => ({ ...r, sub: true, row: 0, label: r.key === SHARED ? 'Shared' : grp.info(r.key)?.label ?? r.key, icon: grp.info(r.key)?.icon ?? null, mark: grp.markOf(r.key) }));
   const bands = [...subRow, ...bandsOf(columns, folded).map((b) => ({ ...b, row: subRuns.length ? 1 : 0 }))];
   const frames = altFrames(lane.altMsgs), strips = stripsByRow(frames, lane.altRows);
   const nStrips = (r) => strips.get(r)?.length ?? 0;
