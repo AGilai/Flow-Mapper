@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased
+## 0.39.1 (2026-10-22)
 Performance batch 2 (docs/plans/perf-review.md F2, F3). No API or schema change: ingest results, bugs and warnings filed, events, stored rows and every response stay identical (`tests/perf-batch2.test.ts`; an old-vs-new run of the samples and the mock over the whole API is in the batch report).
 - **F2 (ingest).** One graph per ingest: the one built for the contract reports is handed to the graph cache after the commit instead of being built again (`ingestBatch` `graphs`, `afterWrite(db, env, built)`; a dry run or a draft apply hands none). The contract rules read only the manifest's service (`mixedCommitsOf` / `driftOf` / `byService`) and look up the egress a subscription filters on by bind key. `health_history` rows come from the resolution in one pass (`healthCounts`), not from the full health report; same rows, same order.
 - **F3 (reports).** `GraphIndex` carries `byService`, `egressByKey` and `stepsToEgress`; `/inventory`, `/health`, `/services`, MCP `list_services`, `/views/system`, the stores, event types and channel summaries are memoised per graph (dropped with the graph), and the scans per service or channel are lookups. `/components` (the copy picker) memoises its rows per environment and computes each service's channels without scanning every binding (`core/carry-channels.ts`).
