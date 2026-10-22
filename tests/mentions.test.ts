@@ -1,4 +1,4 @@
-// @mentions (0.31.0): the token survives the sanitizer, @{Name} resolves, comment_mentions follows writes (edit, merge, copy).
+// @mentions (0.32.0): the token survives the sanitizer, @{Name} resolves, comment_mentions follows writes (edit, merge, copy).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { sanitize } from '../core/rich-text.ts';

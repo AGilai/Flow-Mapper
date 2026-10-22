@@ -12,7 +12,7 @@ import { renderChips } from '../users/chips.js';
 import { relTime, fullDate as full } from './pure.js';
 
 /** The body element: sanitized HTML, set once. */
-export const bodyEl = (html) => renderChips(h('div.cm-body', { html: sanitize(html) })); // 0.31.0: `@[id]` tokens become chips
+export const bodyEl = (html) => renderChips(h('div.cm-body', { html: sanitize(html) })); // 0.32.0: `@[id]` tokens become chips
 
 /**
  * commentItem(node, x) -> { el, dispose }

@@ -1,4 +1,4 @@
-// The small pure rules of the Users page (0.31.0), apart from the DOM so a node test can load them. No imports.
+// The small pure rules of the Users page (0.32.0), apart from the DOM so a node test can load them. No imports.
 
 /** Activity of a user: what they wrote and were given. */
 const act = (u) => (u.counts ? u.counts.comments + u.counts.items + u.counts.mentions : 0);

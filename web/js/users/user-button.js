@@ -1,4 +1,4 @@
-// The sign-in button in the rail, under the environment picker (0.31.0): a round avatar with the user's initials and colour and the name,
+// The sign-in button in the rail, under the environment picker (0.32.0): a round avatar with the user's initials and colour and the name,
 // or an outlined "Sign in" icon when nobody is signed in. Click: the sign-in (nobody) or a small menu: the name, Switch user, Users, Sign out.
 // Collapsed rail: the avatar alone (CSS). Same place in the 760 px rail.
 

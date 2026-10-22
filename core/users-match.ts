@@ -1,4 +1,4 @@
-// Users (0.31.0, bug #66 part 2), the pure part shared by the server, the static preview and the UI: the user shape, name normalisation,
+// Users (0.32.0, bug #66 part 2), the pure part shared by the server, the static preview and the UI: the user shape, name normalisation,
 // the one matching rule (external id first, then exact name or alias, case- and space-insensitive, else nothing: the caller creates),
 // the stable colour slot and initials. Spec: docs/plans/users-mentions.md.
 

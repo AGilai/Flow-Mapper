@@ -24,7 +24,7 @@ function checkEnv(db: DB, env: string) { if (!getEnvRow(db, env)) throw notFound
 function flowOf(anchor: unknown) { const f = parseFlowAnchor(anchor); if (!f) throw bad("anchor must be 'flow:<service>/<ingress>'"); return f; }
 /** The caller: a user id (X-Flow-User) or an actor name. */
 const whoOf = (db: DB, id: string | null | undefined, name: unknown, create = true) => asValidation(() => identify(db, { userId: id, name, what: 'actor' }, create));
-/** Action items answer VALIDATION (not BAD_REQUEST) for a bad name, as before 0.31.0. */
+/** Action items answer VALIDATION (not BAD_REQUEST) for a bad name, as before 0.32.0. */
 function asValidation<T>(f: () => T): T { try { return f(); } catch (e) { if (e instanceof HttpError && e.code === 'BAD_REQUEST') throw bad(e.message); throw e; } }
 /** The owner as a user: `ownerId`, or an `owner` name matched to a user (created when new). Undefined when the request does not mention an owner. */
 function ownerOf(db: DB, i: { owner?: unknown; ownerId?: string | null }): { id: string; name: string } | undefined {

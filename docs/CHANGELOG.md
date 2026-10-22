@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## 0.31.0 (2026-10-22)
+## 0.32.0 (2026-10-22)
 **Users, sign-in and @mentions** (bug #66, part 2). Migration `016_users.sql` (additive; the live database is backed up first as `<db>.pre-016.bak`). Spec: [plans/users-mentions.md](plans/users-mentions.md). Everything below is backwards compatible: a client that still sends `author` / `actor` names keeps working.
 - **Users registry (new):** `GET /api/users`, `GET /api/users/:id`, `POST /api/users {name, externalIds?: [{source, externalId}], match?}`, `PATCH /api/users/:id {name, keepAlias?}`, `POST /api/users/:id/merge {into}`. Users are global (not per environment); names are unique ignoring case and spacing; there is no delete (a merge folds one user into another, keeps the old name as an alias, and the merged id still resolves). Existing comment authors and action item owners became users in the migration.
 - **Identity (importers and scripts, read this):** the web UI now sends the header **`X-Flow-User: <userId>`** on every request and has no name field. REST clients without it keep sending `author` (comments) / `actor` (action items, resolve) / `owner`: each is **matched** to a user (external id, then exact name or alias, case and space-insensitive) and a user is created when none matches. The header wins over a name in the body. MCP writes are by **"Assistant"** unless `author` is given (`author` is no longer required on `add_comment`, `resolve_comment`, `add_action_item`, `update_action_item`).

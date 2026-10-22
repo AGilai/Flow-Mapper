@@ -1,4 +1,4 @@
-// The sign-in (0.31.0, frame 18e read as the sign-in): pick a user from the registry (search) or add yourself ("I am new"). There are no
+// The sign-in (0.32.0, frame 18e read as the sign-in): pick a user from the registry (search) or add yourself ("I am new"). There are no
 // passwords; the choice is the login and is remembered on this browser. Shown from the rail's user button and, once, when a viewer does
 // anything that writes while nobody is signed in: `ensureUser()` resolves with the user (then the action continues) or rejects when cancelled.
 

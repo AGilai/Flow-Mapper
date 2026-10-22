@@ -1,4 +1,4 @@
-// The users registry as the UI sees it (0.31.0): one cached list, who "me" is (a user of the list), and a way to refresh after a change.
+// The users registry as the UI sees it (0.32.0): one cached list, who "me" is (a user of the list), and a way to refresh after a change.
 
 import { api } from '../api.js';
 import { currentId, onMe, setMyId } from './me.js';

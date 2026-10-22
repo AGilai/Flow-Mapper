@@ -1,4 +1,4 @@
-// How many mentions of the signed-in user are unread (0.31.0): the rail's "Mentions (n)" badge. Reloaded when someone signs in or out, when the
+// How many mentions of the signed-in user are unread (0.32.0): the rail's "Mentions (n)" badge. Reloaded when someone signs in or out, when the
 // window is focused again and when a page marked mentions seen (it dispatches `fm:mentions`). The UI has no push channel.
 
 import { api } from '../api.js';

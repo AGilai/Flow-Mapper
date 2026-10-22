@@ -1,4 +1,4 @@
-// Preview backend, users (0.31.0): the same rules as server/store/users.ts, in memory, with the same core/ matcher. The bundled list comes from
+// Preview backend, users (0.32.0): the same rules as server/store/users.ts, in memory, with the same core/ matcher. The bundled list comes from
 // the build (`data.users`); what the viewer creates, renames or merges is lost on reload.
 
 import { matchUser, nameKey, colorSlot, MAX_USER_NAME } from '../core/users-match.js';

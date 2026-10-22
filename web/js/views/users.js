@@ -1,4 +1,4 @@
-// Users (0.31.0, frame 18d): the registry. Global (not per environment). Search, rename inline (Enter saves, Esc cancels; optionally keep the old
+// Users (0.32.0, frame 18d): the registry. Global (not per environment). Search, rename inline (Enter saves, Esc cancels; optionally keep the old
 // name as an alias) and merge two users (users-merge.js). A hint marks names that look like one person. There is no delete: a user with history
 // cannot vanish (that would orphan authors). At 760 px the table becomes cards.
 

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { TOOLS } from '../server/mcp/tools.ts';
 
-// 0.31.0: list_users, list_mentions added; add_comment, resolve_comment, add_action_item, update_action_item take no required author (default Assistant)
+// 0.32.0: list_users, list_mentions added; add_comment, resolve_comment, add_action_item, update_action_item take no required author (default Assistant)
 // 0.30.0: set_description takes an optional `title` (a step's short title)
 // 0.29.2: resolve_comment added; add_comment takes the importer fields (createdAt, externalId, externalSource, authorExternalId, parentExternalId, resolved, resolvedBy, resolvedAt)
 // 0.29.0: list_action_items, add_action_item, update_action_item added (action items under a flow)

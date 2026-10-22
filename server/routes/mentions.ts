@@ -1,4 +1,4 @@
-// Mentions (0.31.0): the comments that @mention a user, across every environment, and what is still unread. `user` is a user id; the web client
+// Mentions (0.32.0): the comments that @mention a user, across every environment, and what is still unread. `user` is a user id; the web client
 // sends it as X-Flow-User instead. See docs/API.md "Mentions".
 
 import type { Router } from '../http/router.ts';

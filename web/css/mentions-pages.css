@@ -1,4 +1,4 @@
-/* The Mentions page (frame 18c), the Users page (18d) and the small unread marks (0.31.0). Tokens only. */
+/* The Mentions page (frame 18c), the Users page (18d) and the small unread marks (0.32.0). Tokens only. */
 .mn-head { display: flex; align-items: center; gap: var(--s3); padding: var(--s3) var(--s5) 0; flex-wrap: wrap; }
 .mn-head .seg small { color: var(--muted); }
 .mn-head .seg button[aria-pressed='true'] small { color: var(--accent); }

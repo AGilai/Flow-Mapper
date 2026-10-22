@@ -1,4 +1,4 @@
-// The composer (0.27.0, frame 13): a quiet "Add a comment…" box that opens into the editor. It never asks for a name (0.31.0): it writes as the
+// The composer (0.27.0, frame 13): a quiet "Add a comment…" box that opens into the editor. It never asks for a name (0.32.0): it writes as the
 // signed-in user, and Post opens the sign-in first when nobody is. Post and Cancel, Ctrl/Cmd+Enter posts, Esc cancels (a menu first).
 // Modes: 'new' (collapsed to start with, "Attach to step N" while a step is selected), 'reply' (open, under its comment) and 'edit' (open, in place).
 

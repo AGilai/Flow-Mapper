@@ -1,4 +1,4 @@
-// A user's face (0.31.0, frame 18): initials on a tint of one of the eight component tones, picked from the id (stable across renames).
+// A user's face (0.32.0, frame 18): initials on a tint of one of the eight component tones, picked from the id (stable across renames).
 
 import { h } from '../dom.js';
 import { initials, colorSlot } from '../../core/users-match.js';

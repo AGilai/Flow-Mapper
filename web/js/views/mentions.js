@@ -1,4 +1,4 @@
-// Mentions (0.31.0, frame 18c): the comments that @mention the signed-in user, across every environment. Unread first (a dot and the word "new",
+// Mentions (0.32.0, frame 18c): the comments that @mention the signed-in user, across every environment. Unread first (a dot and the word "new",
 // never colour alone), "All" shows what was seen too. A row opens the flow's discussion and marks the mention seen; "Mark all read" clears the badge.
 
 import { h } from '../dom.js';

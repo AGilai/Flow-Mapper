@@ -1,4 +1,4 @@
-// Users registry (0.31.0): matching, the API, X-Flow-User, author matching for REST clients, rename and merge.
+// Users registry (0.32.0): matching, the API, X-Flow-User, author matching for REST clients, rename and merge.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { matchUser, colorSlot, initials, filterUsers, looksLike, lookalikes, type User } from '../core/users-match.ts';

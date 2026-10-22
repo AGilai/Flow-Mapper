@@ -1,4 +1,4 @@
-// The users registry (0.31.0, migration 016): who writes comments and owns action items, and who can be @mentioned. Users are global (not per
+// The users registry (0.32.0, migration 016): who writes comments and owns action items, and who can be @mentioned. Users are global (not per
 // environment). Matching is core/users-match.ts. No delete: a merge folds a user into another (re-points everything, keeps an alias).
 // Spec: docs/plans/users-mentions.md. Identity is naive (see server/identity.ts).
 

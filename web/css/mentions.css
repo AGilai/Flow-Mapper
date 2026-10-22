@@ -1,4 +1,4 @@
-/* @mentions (0.31.0, frame 18): chips in a comment, the "@" picker, the chip's card, the Mentions page and badges. Tokens only. */
+/* @mentions (0.32.0, frame 18): chips in a comment, the "@" picker, the chip's card, the Mentions page and badges. Tokens only. */
 .u-chip { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 10px; font: 600 var(--fs-sm)/1 var(--font); background: color-mix(in srgb, var(--accent) 11%, var(--surface)); color: var(--accent); white-space: nowrap; vertical-align: 1px; cursor: pointer; user-select: all; }
 .u-chip:hover { background: color-mix(in srgb, var(--accent) 18%, var(--surface)); }
 .u-chip:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }

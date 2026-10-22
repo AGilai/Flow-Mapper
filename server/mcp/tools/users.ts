@@ -1,4 +1,4 @@
-// The users registry for agents (0.31.0): who exists, so an agent can @mention someone by id or by name.
+// The users registry for agents (0.32.0): who exists, so an agent can @mention someone by id or by name.
 
 import { listUsers, findUser } from '../../store/users.ts';
 import { listMentions } from '../../store/mentions-read.ts';

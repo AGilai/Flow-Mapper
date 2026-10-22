@@ -1,4 +1,4 @@
-// Reading mentions (0.31.0): who was asked something, across every environment, and what is still unread. A mention is unread for a user until
+// Reading mentions (0.32.0): who was asked something, across every environment, and what is still unread. A mention is unread for a user until
 // a row in `mention_seen` says otherwise (it survives a merge: re-pointed; an edit that adds a mention makes a new unread one). A comment that
 // was deleted, or that sits in an environment that is gone, is not listed. Spec: docs/plans/users-mentions.md.
 

@@ -1,4 +1,4 @@
-// Mentions read (0.31.0): /api/mentions across environments, unread and seen, counts per flow, merge keeps seen marks, MCP list_mentions.
+// Mentions read (0.32.0): /api/mentions across environments, unread and seen, counts per flow, merge keeps seen marks, MCP list_mentions.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { startApp, sampleManifests } from './helpers.ts';

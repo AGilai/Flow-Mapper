@@ -1,4 +1,4 @@
-// The merge dialog of the Users page (0.31.0, frame 18d): "Merge two users". The user on the left moves into the one on the right; the preview
+// The merge dialog of the Users page (0.32.0, frame 18d): "Merge two users". The user on the left moves into the one on the right; the preview
 // shows the result before anything changes; a radio swaps who survives (the default is the one with external ids, then the one with more
 // activity). The old name stays as an alias. Nothing changes until "Merge".
 

@@ -1,4 +1,4 @@
-// The Users page rules (0.31.0): which user survives a merge by default.
+// The Users page rules (0.32.0): which user survives a merge by default.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { survivor } from '../web/js/views/users-pure.js';

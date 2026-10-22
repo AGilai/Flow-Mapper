@@ -1,4 +1,4 @@
-// Preview backend, mentions (0.31.0): the same answers as server/store/mentions-read.ts, in memory, over the bundled comment rows. "Seen" lasts
+// Preview backend, mentions (0.32.0): the same answers as server/store/mentions-read.ts, in memory, over the bundled comment rows. "Seen" lasts
 // until the page is reloaded (like every other preview write).
 
 import { parseFlowAnchor } from '../core/comments.js';

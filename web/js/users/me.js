@@ -1,4 +1,4 @@
-// Who this browser is signed in as (0.31.0): the user id in localStorage (try/catch: storage may be missing), sent as `X-Flow-User` on
+// Who this browser is signed in as (0.32.0): the user id in localStorage (try/catch: storage may be missing), sent as `X-Flow-User` on
 // every request (api.js). Naive sign-in: picking a user is the login; Cognito later replaces this one module and server/identity.ts.
 
 const KEY = 'flow-mapper.user';

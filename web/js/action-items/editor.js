@@ -1,6 +1,6 @@
 // The editing row of an action item (0.29.0, frames 15b and 15d), for a new item and for Edit: owner with name suggestions, a description
 // textarea, status, due date, the step pill, Save / Cancel. Enter saves, Shift+Enter is a new line, Esc cancels (the suggestions first).
-// It never asks for a name (0.31.0): Save acts as the signed-in user (the sign-in opens first when nobody is).
+// It never asks for a name (0.32.0): Save acts as the signed-in user (the sign-in opens first when nobody is).
 
 import { h } from '../dom.js';
 import { ensureUser } from '../users/signin.js';

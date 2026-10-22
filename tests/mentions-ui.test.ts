@@ -1,4 +1,4 @@
-// The pure rules of the mentions UI (0.31.0): the "Mentioned me" view and its count, the user helpers the pickers use.
+// The pure rules of the mentions UI (0.32.0): the "Mentioned me" view and its count, the user helpers the pickers use.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mentionsUser, mentionedOnly, countMentions, visibleThread } from '../web/js/comments/pure.js';

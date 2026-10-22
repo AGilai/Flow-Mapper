@@ -19,7 +19,7 @@ const cmtBadge = (n) => (n ? h('span.fl-cm', { title: `${n} comment${n === 1 ? '
 /** The open action items of a flow (0.29.0): a small tick-box icon and the number, nothing at 0. */
 const actBadge = (n) => (n ? h('span.fl-ai', { title: `${n} open action item${n === 1 ? '' : 's'}`, 'aria-label': `${n} open action item${n === 1 ? '' : 's'}`, 'data-qa': 'act-badge' }, icon('action'), String(n)) : null);
 
-/** Unread @mentions of the signed-in user in a flow (0.31.0): "@ 2 new", a dot and the word, never colour alone. */
+/** Unread @mentions of the signed-in user in a flow (0.32.0): "@ 2 new", a dot and the word, never colour alone. */
 const mnBadge = (n) => (n ? h('span.fl-mn', { title: `${n} unread mention${n === 1 ? '' : 's'} of you`, 'aria-label': `${n} unread mention${n === 1 ? '' : 's'} of you`, 'data-qa': 'mention-badge' }, h('span.dot', { 'aria-hidden': 'true' }), `@ ${n} new`) : null);
 
 /** The relation badge (0.28.2): two arrows and the number of related flows; the tooltip says which. Nothing when the flow has none. */

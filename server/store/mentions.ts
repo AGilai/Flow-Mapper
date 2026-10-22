@@ -1,4 +1,4 @@
-// @mentions in comment bodies (0.31.0): the token `@[userId]` (core/mentions.ts). Writes resolve the `@{Display Name}` form to tokens and keep
+// @mentions in comment bodies (0.32.0): the token `@[userId]` (core/mentions.ts). Writes resolve the `@{Display Name}` form to tokens and keep
 // `comment_mentions` (who a comment points at) in step with the body; the reads (unread, seen) are in mentions-read.ts. Spec: docs/plans/users-mentions.md.
 
 import type { DB } from '../db/connection.ts';

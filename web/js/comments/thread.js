@@ -35,7 +35,7 @@ export function createComments({ env, root, walk, store, onCount }) {
   const addAi = h('button.abtn', { type: 'button', 'data-qa': 'cm-add-action', on: { click: (e) => { e.preventDefault(); store.startNew(); } } }, '+ Action item');
   // 0.29.2: resolved threads are hidden until the viewer asks (not remembered: a new visit starts with the open discussions)
   const showBtn = h('button.abtn.cm-showres', { type: 'button', 'data-qa': 'cm-show-resolved', 'aria-pressed': 'false', on: { click: (e) => { e.preventDefault(); showResolved = !showResolved; draw(); } } });
-  // 0.31.0: only the threads that mention the signed-in user
+  // 0.32.0: only the threads that mention the signed-in user
   const meBtn = h('button.abtn.cm-mentioned', { type: 'button', 'data-qa': 'cm-mentioned', 'aria-pressed': 'false', hidden: true, on: { click: (e) => { e.preventDefault(); mineOnly = !mineOnly; draw(); } } });
   const el = h('details.cm-sec', { open: false, 'data-qa': 'comments' }, h('summary', title, count, hint, showBtn, meBtn, addAi), list, tail);
   let auto = false; // the toggle the first load makes itself is not the viewer's choice

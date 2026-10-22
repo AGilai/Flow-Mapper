@@ -1,4 +1,4 @@
-// Who is calling: the ONE module that turns a request into a user. Naive identity (0.31.0): the web client sends `X-Flow-User: <userId>` (the
+// Who is calling: the ONE module that turns a request into a user. Naive identity (0.32.0): the web client sends `X-Flow-User: <userId>` (the
 // user it signed in as in that browser; there is no password), and REST clients without the header keep sending an `author` / `actor` name,
 // matched to a user (created when new). MCP writes are "Assistant" unless an author is given. When Cognito comes, only this module changes
 // (a verified token -> user id); the stores and routes already take a Caller. Spec: docs/plans/users-mentions.md "Maintainer amendment".

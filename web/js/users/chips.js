@@ -1,4 +1,4 @@
-// Mention chips (0.31.0, frame 18b): a body holds `@[userId]` tokens (core/mentions.ts); the renderer turns each into a chip with the user's
+// Mention chips (0.32.0, frame 18b): a body holds `@[userId]` tokens (core/mentions.ts); the renderer turns each into a chip with the user's
 // CURRENT name (a rename changes old comments), a filled chip for "you", a dashed "@unknown user" when the id has no user (never silently
 // replaced by a name). Clicking a chip opens a small card. The editor draws the same chips (not editable) and writes the token back.
 

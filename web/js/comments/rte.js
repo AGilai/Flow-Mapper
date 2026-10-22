@@ -17,7 +17,7 @@ const textToHtml = (t) => plain(t, esc);
 /**
  * createEditor({ html, label, placeholder, onSubmit, onEscape, onChange, people }) ->
  *   { el, focus(end), getHtml(), setHtml(html), isEmpty(), exec(fn), inside(node), range(), mention, dispose() }
- * 0.31.0: `@[id]` tokens are drawn as chips (not editable text) and written back as tokens; `people()` lists the user ids already in the thread (the "@" picker shows them first).
+ * 0.32.0: `@[id]` tokens are drawn as chips (not editable text) and written back as tokens; `people()` lists the user ids already in the thread (the "@" picker shows them first).
  * getHtml() is sanitized and trimmed ('' when there is no text); setHtml() sanitizes first. onChange fires on input and on a move of the caret.
  */
 export function createEditor({ html = '', label = 'Comment', placeholder = '', onSubmit, onEscape, onChange, people } = {}) {

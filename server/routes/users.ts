@@ -1,4 +1,4 @@
-// The users registry (0.31.0). Users are global. POST matches before it creates (a REST client may call it every run); there is no delete,
+// The users registry (0.32.0). Users are global. POST matches before it creates (a REST client may call it every run); there is no delete,
 // a merge folds one user into another. Identity is naive (server/identity.ts): the web client sends X-Flow-User. See docs/API.md "Users".
 
 import type { Router } from '../http/router.ts';

@@ -1,4 +1,4 @@
-// The "@" picker of the comment editor (0.31.0, frame 18a): typing "@" after a space (or at the start) opens an anchored list under the caret;
+// The "@" picker of the comment editor (0.32.0, frame 18a): typing "@" after a space (or at the start) opens an anchored list under the caret;
 // the text after it narrows the list (people already in this thread first, then the rest by last seen); Up/Down choose, Enter or Tab insert a
 // chip and a space, Esc closes and leaves the typed text as plain text. "+ New user" makes a user from the typed text. The toolbar's
 // "@ Mention" button types the "@" for you. The chip is not editable text; the editor writes it back as the token `@[id]`.

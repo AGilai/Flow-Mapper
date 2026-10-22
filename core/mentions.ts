@@ -1,4 +1,4 @@
-// @mentions (0.31.0): the token `@[userId]` stored in a comment body. The sanitizer keeps it as text; renderers turn it into a chip.
+// @mentions (0.32.0): the token `@[userId]` stored in a comment body. The sanitizer keeps it as text; renderers turn it into a chip.
 // This module is the one place that knows the token format. User ids are `u_` + hex, but any [A-Za-z0-9_-]{1,40} is accepted so an
 // unknown id still reads as a (dashed, unknown) chip.
 
