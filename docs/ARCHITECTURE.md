@@ -187,6 +187,8 @@ Flow zoom (0.30.3, #69): `flow-zoom-pure.js` (range 25..400, `zoom=` parse and e
 
 Transport hints (0.30.4, #70): `flow-hints-pure.js` (`th=` parse and encode, the default per environment kind); `flow-marks-draw.js` `markChips(marks, msg, th)` gives the text chip (`tbd`) or the icon (`tbd-i`, drawn by `tbdIcon`); `renderLane` takes `hints`, `layoutLane` stacks chips by their real widths.
 
+0.32.5: Flows list Group by (#79): `flow-list-groupby.js` is the pure part (modes, per-kind default, `group=`, remembered per env, `flatOrder` natural sort); `flow-list.js` draws a flat list in None. The current-step highlight: `flow-step-tiles.js` draws a filled `.stepband` first in the lane (token `--step-hl`), `opts.hl` (`hl=0`, `step-details-pure.js` `decodeHl`, remembered by `step-details-menu.js`) switches it; the dot (`.steptile.cur`) always shows.
+
 Step details (0.30.0, `docs/plans/step-details.md`): `step-details-pure.js` is the option model (`sb=` for the step bar, `sd=` for the arrows, letters t a d; label, toggles, `arrowParts` = what a step adds above and below its arrow), `step-details-menu.js` the toolbar control (remembered in localStorage, `flows.js` owns `opts.sb` / `opts.sd` and the URL), `flow-step-details.js` reads step texts from the description store for a lane (null at API only: the rows of 0.29), `flow-draw-layout.js` takes them as `det` (row height from the row model), `flow-draw-details.js` draws the lines, `flow-step-editor.js` is the editor popover and `flow-step-tiles.js` the pencil. `descriptions.title` holds the title (`core/description.ts` `titleOf`, `MAX_TITLE`). CSS: `step-details.css`.
 
 

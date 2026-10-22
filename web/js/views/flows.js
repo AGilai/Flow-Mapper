@@ -78,7 +78,7 @@ export async function render({ main, query }) {
   const svcs = await api.services(state.env).catch(() => []);
   setServiceInfo(svcs);
   const groupOf = new Map(svcs.map((s) => [s.name, s.groupPath ?? '']));
-  const list = createList({ points, counts, cmts, acts, ments, relBy, service, groupOf, groups: metaOf(state.envMeta, state.env).groups ?? [], marks, design: isDesign(), query, onPick: (p) => openEntry({ service: p.service, ingress: p.id }),
+  const list = createList({ env: state.env, points, counts, cmts, acts, ments, relBy, service, groupOf, groups: metaOf(state.envMeta, state.env).groups ?? [], marks, design: isDesign(), query, onPick: (p) => openEntry({ service: p.service, ingress: p.id }),
     onAll: () => go('/flows', { tabs: S.keys.join(',') || null, tab: S.keys.length > 1 ? S.active : null }),
     onCollapse: (c) => flowsEl.classList.toggle('list-c', c) });
   const flowsEl = h('div.flows', list.el, rightEl);

@@ -37,14 +37,14 @@ export function extLink(links) {
 const markTip = (info, marks) => [markTitle(info, marks), info.what].filter(Boolean).join(': ');
 
 /** entryRow(p, { marks, counts, onPick, design }) -> the row element. */
-export function entryRow(p, { marks, counts, cmts = {}, acts = {}, ments = {}, relBy = new Map(), onPick, design }) {
+export function entryRow(p, { marks, counts, cmts = {}, acts = {}, ments = {}, relBy = new Map(), onPick, design, flat = false }) {
   const cm = [cmtBadge(cmts[`flow:${p.service}/${p.id}`]), actBadge(acts[`flow:${p.service}/${p.id}`]), mnBadge(ments[`flow:${p.service}/${p.id}`]), relBadge(relBy.get(`${p.service}/${p.id}`))];
   const info = design ? markOfPoint(marks, p) : null, rest = splitKey(p.bindKey).rest, lock = p.reference || p.partial ? lockChip({ source: p.reference?.source ?? null }, { short: true, text: p.reference ? null : 'partial', title: p.reference ? 'This entry point is a reference: its behaviour is in another environment.' : `This flow runs into ${p.partial} reference${p.partial === 1 ? '' : 's'}.` }) : null;
   return h('a.entry', { href: href('/flows', { service: p.service, ingress: p.id }), 'data-key': entryKey(p.service, p.id), on: { click: (e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button) return; e.preventDefault(); onPick(p); } } },
     p.name ? h('span.fl-nm', extLink(p.flowLinks?.main ? p.flowLinks : p.links), h('b', p.name), lock || info ? h('span.fl-tags', lock, info ? markBadge(info, { store: marks, short: true, title: markTip(info, marks) }) : null) : null) : null,
     h('span.row', p.bindKey.startsWith('amqp-rpc:') ? chip('rpc', 'amqp rpc') : chip(p.transport), p.entryPoint ? h('span.xs.muted', 'entry point') : null,
       p.name ? null : [lock, info ? markBadge(info, { store: marks, short: true, title: markTip(info, marks) }) : null, extLink(p.flowLinks?.main ? p.flowLinks : p.links)]),
-    h('span.key', rest, p.name ? null : countBadge(counts.get(`${p.service}:${p.id}`)), p.name ? null : cm), p.name ? h('span.xs.muted', `${p.service} · ${p.id}`, countBadge(counts.get(`${p.service}:${p.id}`)), cm) : null,
+    h('span.key', rest, p.name || !flat ? null : h('span.xs.muted', ` · ${p.service}`), p.name ? null : countBadge(counts.get(`${p.service}:${p.id}`)), p.name ? null : cm), p.name ? h('span.xs.muted', `${p.service} · ${p.id}`, countBadge(counts.get(`${p.service}:${p.id}`)), cm) : null,
     p.summary ? h('span.fl-sum.xs.muted', p.summary) : null);
 }
 
