@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased
+## 0.38.3 (2026-10-22)
 UI only: **a link carries its environment.** Every env-specific page (system, inventory, services, stores, instances, channels, events, flows, questions, health) always has `env=<current env>` in its URL, also right after a switch in the environment picker (0.36.0 removed it). A copied link opens on the sender's env. Bugs, users, mentions and the env forms stay without `env=`. The picker still replaces the URL (no history entries); tab keys are unchanged.
 
 ## 0.38.2 (2026-10-22)
