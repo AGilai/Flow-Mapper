@@ -2,9 +2,8 @@
 // subscriptions (rules) send which event types, who consumes it, and the event types passing through.
 
 import type { GraphIndex } from './graph-index.ts';
-import { linksFrom, linksInto, sid } from './graph-index.ts';
+import { linksFrom, linksInto, sid, subscriptionsOf } from './graph-index.ts';
 import { egressEvents, eventReport } from './events.ts';
-import { keyMatches } from './glob.ts';
 import { codeLink } from './endpoint-info.ts';
 import { candidatesOf, channelFlow } from './channel-flow.ts';
 
@@ -28,7 +27,7 @@ export function channelView(g: GraphIndex, key: string) {
       return { service: e.service, egress: e.id, events: egressEvents(g, e), possible: candidatesOf(e), at: codeLink(g.services.get(e.service)!, e.source) };
     }),
     feeds: into.filter((l) => l.from.type === 'channel').map((l) => (l.from as any).key as string),
-    subscriptions: g.model.bindings.filter((b) => keyMatches(b.from, b.match, key)).map((b) => ({
+    subscriptions: subscriptionsOf(g, key).map((b) => ({
       id: b.id, service: b.service, to: b.to, toChannel: g.channels.has(b.to), events: b.events ?? '*' as const, conflict: conflicts.some((x) => x.to === b.to),
       at: g.services.has(b.service) ? codeLink(g.services.get(b.service)!, b.source) : null, verified: b.provenance?.verified ?? null,
     })),
@@ -60,17 +59,23 @@ function eventsThrough(g: GraphIndex, key: string) {
   return [...out.values()].sort((a, b) => a.type.localeCompare(b.type));
 }
 
+const summaries = new WeakMap<GraphIndex, ChannelSummary[]>();
+/** Every channel with its counts (memoised per graph: do not mutate). */
 export function channelSummaries(g: GraphIndex): ChannelSummary[] {
+  const hit = summaries.get(g);
+  if (hit) return hit;
   const unbound = new Set(g.resolution.unbound.map((u) => u.channel.bindKey));
   const conflicts = eventReport(g).conflicts;
-  return [...g.channels.values()].map((c) => {
+  const out = [...g.channels.values()].map((c) => {
     const ref = { type: 'channel' as const, key: c.bindKey };
     return {
       key: c.bindKey, name: c.name ?? c.bindKey, kind: c.kind,
       publishers: linksInto(g, ref).filter((l) => l.from.type === 'egress').length,
       consumers: linksFrom(g, ref).filter((l) => l.to.type === 'ingress').length,
-      subscriptions: g.model.bindings.filter((b) => keyMatches(b.from, b.match, c.bindKey)).length,
+      subscriptions: subscriptionsOf(g, c.bindKey).length,
       problems: (unbound.has(c.bindKey) ? 1 : 0) + conflicts.filter((x) => x.from === c.bindKey).length,
     };
   }).sort((a, b) => a.key.localeCompare(b.key));
+  summaries.set(g, out);
+  return out;
 }

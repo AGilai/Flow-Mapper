@@ -4,7 +4,8 @@
 import type { Router } from '../http/router.ts';
 import { created } from '../http/router.ts';
 import type { Ctx } from '../context.ts';
-import { carryRows, neighbours } from '../../core/neighbours.ts';
+import { carryRows, neighbours, type CarryRow } from '../../core/neighbours.ts';
+import { checkFresh, memoGet, memoSet } from '../graph-cache.ts';
 import { copyEnv } from '../store/env-copy.ts';
 import { deleteEnv, getEnv, listEnvMeta, requireEnv } from '../store/envs.ts';
 import { setEnvColor } from '../store/env-color.ts';
@@ -38,7 +39,13 @@ export function registerEnvs(r: Router, ctx: Ctx) {
   /** The components of an environment with what each would bring into a Components copy. */
   r.get('/api/envs/:env/components', (req) => {
     requireEnv(db, req.params.env);
-    if (!req.query.get('draft')) return carryRows(loadModel(db, req.params.env), dtoCounts(ctx, req.params.env));
+    if (!req.query.get('draft')) { // the rows come from the stored model, memoised per env (any write to the env drops them); only the DTO counts are read each time
+      checkFresh(db);
+      const key = `components|${req.params.env}`;
+      const rows = memoGet<CarryRow[]>(key) ?? memoSet(key, carryRows(loadModel(db, req.params.env)), [req.params.env]);
+      const dtos = dtoCounts(ctx, req.params.env);
+      return rows.map((x) => ({ ...x, counts: { ...x.counts, dtos: dtos[x.name] ?? 0 } }));
+    }
     const counts: Record<string, number> = {};
     for (const d of ctx.readerOf(req).listDtos()) counts[d.service] = (counts[d.service] ?? 0) + 1;
     return carryRows(ctx.graphOf(req).model, counts);

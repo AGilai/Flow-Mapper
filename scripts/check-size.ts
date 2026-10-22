@@ -13,7 +13,7 @@ const LIMITS: [string, number][] = [['core', 250], ['server', 250], ['web/js', 2
 export const ALLOWLIST: Record<string, number> = {
   'core/trace.ts': 376,
   'core/channel-flow.ts': 286,
-  'core/events.ts': 271,
+  'core/events.ts': 269,
   'core/instances.ts': 266,
 };
 

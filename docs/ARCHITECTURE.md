@@ -34,7 +34,7 @@ UI / agent ── GET /api/envs/:env/... ─► server/routes/queries.ts ─► 
 | `glob.ts` | bind-key glob matching and specificity |
 | `amqp.ts`, `amqp-route.ts` | RabbitMQ (0.18.0): topic matching (`*` one word, `#` zero or more), headers match, routing of a publish by exchange type, the additive `amqp` / `rpc` trace info |
 | `resolve.ts` | turns keys into links; dangling, orphans, unbound, ambiguous |
-| `graph-index.ts` | lookup maps + adjacency over a resolved model; up/downstream walks |
+| `graph-index.ts` | lookup maps + adjacency over a resolved model; up/downstream walks; per-service lists (`byService`, `itemsOf`), `egressByKey`, `stepsToEgress`, `subscriptionsOf` so no report scans a whole list per item. Reports (`health`, `inventory`, `systemGraph`, `stores`, `eventTypes`, `channelSummaries`) are memoised per graph in a `WeakMap` (the result is shared: never mutate it) |
 | `system-graph.ts` | nodes/edges for the system map (with and without channels) |
 | `service-view.ts` | one service's ingress/egress/resources with peers |
 | `trace.ts`, `trace-defer.ts`, `trace-order.ts` | ordered flow from an ingress or function (intra or full). 0.32.4 (#73): an async call's work runs after the caller's remaining steps (`trace-defer.ts`); the work carries `of` = the `n` of the message that started it, and the views (`flow-scan.js`, `flow-lane.js`) read the tags, not depth; `trace-order.ts` is the fan-out lifeline order |
@@ -55,6 +55,7 @@ UI / agent ── GET /api/envs/:env/... ─► server/routes/queries.ts ─► 
 
 RabbitMQ pages (0.19.0): the exchange page data (publishers, bindings, callouts, the tester's `routesTo`), the inventory rows (exchanges, queues, folded RPC plumbing, RPC commands), the callers of an RPC command for the endpoint panel |
 | `env-colors.ts` | 0.34.x: the ten env colour slots (`--env-1..10`): names, `nextFreeSlot` (a new env takes the lowest free one), `envSlot` / `rankSlot` (stored, else by creation order), `envRanks`. Server: `store/env-color.ts` (`newEnvSlot`, `setEnvColor`, `PUT /api/envs/:env/color`, MCP `set_env_color`), migration 018. Web: `env-info.js` (`envSlotOf`, `envVars`), `components/env-chip.js` (`paintEnv`, `envDot`, `envChip`), `views/env-settings-color.js`, `css/env-color.css` |
+| `carry-channels.ts` | the channels each service brings into a Components copy, for all services at once (same keys and order as `channelsFor`) |
 | `neighbours.ts` | one-hop neighbours of picked services (direct and through channels, each with a reason) and what a component brings into a Components copy (0.21.0) |
 | `channels-for.ts` | the channels and bindings a Components copy must bring so it is self-contained (used, routed to, between copied items); the server copies with it and the page counts with it |
 | `resource-owner.ts` | 0.30.1: `resourceOwner(g, bindKey)`, the component that declares a store (first non-infra declarer); `owner` on a resource-step message; the flow view puts the store in that subsystem's band (`flow-bands.js` `memberOf`, `placeStores`, `SHARED`) |

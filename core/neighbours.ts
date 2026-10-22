@@ -4,7 +4,7 @@
 import type { GraphIndex } from './graph-index.ts';
 import { downstreamIngress } from './graph-index.ts';
 import type { Model } from './types.ts';
-import { channelsFor } from './channels-for.ts';
+import { carryChannelKeys } from './carry-channels.ts';
 
 export interface Neighbour { service: string; team?: string; kind: string; groupPath?: string; reasons: string[]; reason: string }
 
@@ -56,7 +56,7 @@ export function carryRows(model: Model, dtosByService: Record<string, number> = 
     return m;
   };
   const [ing, egr, res] = [n(model.ingress), n(model.egress), n(model.resources)];
-  const chans = new Map(model.services.map((s) => [s.name, [...channelsFor(model, new Set([s.name])).all]]));
+  const chans = carryChannelKeys(model);
   return model.services.map((s) => ({
     name: s.name, kind: s.kind, team: s.team, groupPath: s.groupPath, channelKeys: chans.get(s.name)!,
     counts: { endpoints: ing.get(s.name) ?? 0, calls: egr.get(s.name) ?? 0, channels: chans.get(s.name)!.length, stores: res.get(s.name) ?? 0, dtos: dtosByService[s.name] ?? 0 },
