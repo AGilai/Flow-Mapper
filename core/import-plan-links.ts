@@ -11,6 +11,7 @@ import { checkRelation, normType, REL_TYPES, relationItem } from './flow-relatio
 import type { ItemRow } from './item-rows.ts';
 import { SUBSYSTEM_ICONS, SUBSYSTEM_KEY, subsystemRows } from './subsystems.ts';
 import { aboutProblem } from './markdown-lite.ts';
+import { ownersProblem, cleanOwners } from './owners.ts';
 
 const isObj = (v: unknown): v is Record<string, any> => !!v && typeof v === 'object' && !Array.isArray(v);
 const slugName = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 63).replace(/-+$/, '');
@@ -26,14 +27,17 @@ export function planGroups(groups: unknown, rows: ItemRow[]): { ops: DraftOpInpu
     const known = have.get(g.key);
     const about = typeof g.about === 'string' ? g.about : undefined, badAbout = about !== undefined && aboutProblem(about);
     if (badAbout) warnings.push(`subsystem '${g.key}': ${badAbout}: left out`);
+    const badOwners = ownersProblem(g.owners), owners = badOwners || g.owners === undefined ? undefined : cleanOwners(g.owners);   // user ids: matched by the server before the plan is read
+    if (badOwners) warnings.push(`subsystem '${g.key}': ${badOwners}: left out`);
     if (known) {
       if (known.label !== g.label.trim()) warnings.push(`the plan labels subsystem '${g.key}' '${g.label}', the environment '${known.label}': the environment's is kept`);
-      if (about && !badAbout && about !== known.about) { ops.push({ op: 'upsert', anchor: `grp:${g.key}`, data: { ...known, about } }); have.set(g.key, { ...known, about }); }   // the plan's about updates the known subsystem's (a re-import is idempotent)
+      const next = { ...known, ...(about && !badAbout ? { about } : {}), ...(owners ? { owners } : {}) };
+      if (JSON.stringify(next) !== JSON.stringify(known)) { ops.push({ op: 'upsert', anchor: `grp:${g.key}`, data: next }); have.set(g.key, next); }   // the plan's about and owners update the known subsystem's (a re-import is idempotent)
       continue;
     }
     const icon = (SUBSYSTEM_ICONS as readonly string[]).includes(g.icon) ? g.icon : undefined;
     if (g.icon !== undefined && !icon) warnings.push(`subsystem '${g.key}': icon '${g.icon}' is not one of ${SUBSYSTEM_ICONS.join(', ')}: left out`);
-    ops.push({ op: 'upsert', anchor: `grp:${g.key}`, data: { label: g.label.trim().slice(0, 80), ...(icon ? { icon } : {}), ...(about && !badAbout ? { about } : {}), order: order++ } });
+    ops.push({ op: 'upsert', anchor: `grp:${g.key}`, data: { label: g.label.trim().slice(0, 80), ...(icon ? { icon } : {}), ...(about && !badAbout ? { about } : {}), ...(owners ? { owners } : {}), order: order++ } });
     have.set(g.key, { label: g.label.trim() });
   }
   return { ops, warnings };

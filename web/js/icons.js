@@ -29,6 +29,8 @@ const P = {
   table: '<rect x="3.5" y="5" width="17" height="14" rx="1.5"/><path d="M3.5 10h17M3.5 14.5h17M9.2 5v14M14.8 5v14"/>',
   more: '<path d="M6 12h.01M12 12h.01M18 12h.01" stroke-width="2.8"/>',
   warn: '<path d="M12 4 21 20H3z"/><path d="M12 10v4.5M12 17.4h.01"/>',
+  question: '<circle cx="12" cy="12" r="9"/><path d="M9.6 9.6a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1.1.9-1.1 1.6M12 17.2h.01"/>',
+  pin: '<path d="M9 4h6l-1 6 3 3H7l3-3z"/><path d="M12 13v7"/>',
   maximize: '<path d="M3 9V3h6M15 3h6v6M21 15v6h-6M9 21H3v-6"/>',
   unmax: '<path d="M9 3v6H3M21 9h-6V3M15 21v-6h6M3 15h6v6"/>',
   user: '<circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c.9-3.7 3.9-5.6 7.5-5.6s6.6 1.9 7.5 5.6"/>',

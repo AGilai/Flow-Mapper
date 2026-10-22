@@ -30,6 +30,13 @@ both.
 Pane open/close/pin/sel= state (pure), open-questions extractor, mention tokens in about, owners matching, edit flow in a
 draft, harvested read-only. Screenshots vs frame 19 light/dark/760. CHANGELOG, DEMOS, version 0.32.0.
 
+## Built in 0.33.0: what was decided while building
+- **Version.** Shipped as 0.33.0 (the spec said 0.32.0; that number went to users and mentions). The pencils of 0.31.1 are reused inside the pane.
+- **Flow view, Edit mode.** A click on a lifeline head in Edit with a draft still opens the component form (the diagram's editing gesture); the pane is one right-click away ("Show details") and a subsystem band opens it in both modes. In View mode a click on a head opens the pane and right-click keeps the old menu.
+- **The jump bar of a subsystem** is Overview, About, Components, Links, Flows (frame 19b), a component's is Overview, About, Flows, Connections (frame 19a).
+- **About mentions** are listed on the Mentions page under "In an About" and never count as unread (an About has no thread to answer); `@{Name}` written by an importer or an agent becomes the token when the user exists.
+- **Owners** are stored as user ids; a user merge re-points them (and the About tokens) in headers, subsystems, baselines and drafts.
+
 ## Maintainer review of the revision (2026-10-22): approved
 - **Expanded view (19h):** an overlay, kept in the URL as `expanded=1`; Esc/Collapse returns to the drawer with the same
   scroll and open rows. Accordion rows, "On this page" outline at ≥ 1280 px, Expand all / Collapse all.

@@ -215,6 +215,8 @@ folds into its roll-up line ("includes: usage metering"), keeps its name, descri
 (a manifest and an extension), is refused with `422 TWO_GROUPS` and nothing is imported. Pick one; to say it also serves another subsystem, use an abstract link or a description.
 `environment.groups` may carry `about` (0.30.2: Markdown-lite, at most 20 000 characters; for a subsystem the design already has, the plan's text replaces the stored one, the label is kept; `manifests[].service.about` and `extensions[].about` do the same for a component's header, `''` clears) and `icon` (`platform agent network cloud shield database`); keys the design lacks are added as subsystems, a different label for a known key is a warning.
 
+0.33.0: `environment.groups[].owners`, `extensions[].owners` and `manifests[].service.owners` take a list of people: a name, or `{name?, externalSource, externalId}` (a Confluence account id, say); the server matches each to a user (external id, then name or alias, else it creates one) and the design stores the ids. Left out keeps, `[]` clears. `@{Display Name}` in any `about` becomes a mention when that user exists. Questions you want listed on the Questions page are list items under a `## Open questions` heading of an `about` (they are not the plan's `questions[]`, which stay for the import report).
+
 ## 7. The import plan
 
 One JSON file (`plan.json`), or a folder with `plan.json` plus `manifests/<component>.json` that it references by

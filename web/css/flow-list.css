@@ -52,3 +52,17 @@
 /* inventory rows grouped by subsystem (design environments) */
 table.grid tr.tgrp th { text-align: left; background: var(--surface-2); color: var(--ink-2); font-size: var(--fs-xs); font-weight: 600; padding: 5px var(--s3); border-top: 1px solid var(--line-strong); }
 .fl-tags { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+
+/* The row wrapper and its "Tab" button (0.33.3): click on the row opens the flow here, "Tab" opens it in a new tab. Always visible. */
+.entry-r { position: relative; border-radius: var(--r-sm); }
+.entry-r:hover { background: var(--surface-2); }
+.entry-r:has(> a.entry[aria-current='true']) { background: var(--accent-soft); }
+.entry-r > a.entry { background: none; padding-right: 54px; } /* room for the button on the first line only */
+.entry-r > a.entry > :nth-child(n+2) { margin-right: -46px; } /* the lines below reclaim the width */
+.entry-tab { position: absolute; top: 5px; right: var(--s2); display: inline-flex; align-items: center; gap: 3px; height: 22px; padding: 0 8px;
+  font: 500 var(--fs-xs) var(--font); color: var(--ink-2); background: var(--surface); border: 1px solid var(--line); border-radius: 11px; cursor: pointer; }
+.entry-tab:hover { color: var(--accent); border-color: var(--accent); }
+.entry-tab:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.entry-tab.is-open { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+.entry-tab[aria-disabled='true'] { color: var(--muted); border-style: dashed; background: none; cursor: not-allowed; }
+@media (pointer: coarse), (max-width: 760px) { .entry-tab { height: 28px; padding: 0 12px; top: 4px; } .entry-r > a.entry { padding-right: 64px; } .entry-r > a.entry > :nth-child(n+2) { margin-right: -56px; } }

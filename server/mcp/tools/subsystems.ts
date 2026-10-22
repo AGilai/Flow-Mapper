@@ -3,18 +3,26 @@
 
 import { HttpError } from '../../errors.ts';
 import { linksFor, linkViewFor, subsystemMapFor, subsystemsFor } from '../../subsystems-read.ts';
+import { questionsFor } from '../../open-questions-read.ts';
 import { replanLinks } from '../../store/draft-plan-links.ts';
 import { putDraftSubsystems, putLevels, putSealedSubsystems } from '../../store/subsystem-settings.ts';
 import { getEnvRow } from '../../store/envs.ts';
 import { type Tool, env, obj, envOf, draftArg } from './common.ts';
 
-const list = { type: 'array', items: obj({ key: { type: 'string' }, label: { type: 'string' }, icon: { type: ['string', 'null'], enum: ['platform', 'agent', 'network', 'cloud', 'shield', 'database', null] }, about: { type: ['string', 'null'], description: "Markdown-lite description, at most 20000 characters; left out keeps it, '' or null clears" } }, ['key', 'label']) };
+const list = { type: 'array', items: obj({ key: { type: 'string' }, label: { type: 'string' }, icon: { type: ['string', 'null'], enum: ['platform', 'agent', 'network', 'cloud', 'shield', 'database', null] }, about: { type: ['string', 'null'], description: "Markdown-lite description, at most 20000 characters; left out keeps it, '' or null clears" }, owners: { type: 'array', items: {}, description: 'People who own it: user ids, names or {name?, externalSource, externalId} (matched to users); left out keeps, [] clears' } }, ['key', 'label']) };
 
 export const getSubsystemsTool: Tool = {
   name: 'get_subsystems',
   description: "The subsystems of an environment: {levels, subsystems: [{key, label, icon, about?, order, derived, components}], notSet}. A subsystem is the first segment of a component's groupPath; a component belongs to exactly one. `derived`: no settings row, a groupPath names it. draft: read the environment as that open draft would leave it. Read only.",
   inputSchema: obj({ env, draft: draftArg }),
   run: (c, a) => subsystemsFor(c, envOf(a), a.draft || null),
+};
+
+export const listOpenQuestionsTool: Tool = {
+  name: 'list_open_questions',
+  description: "The open questions of an environment: every list item of a '## Open questions' section in the `about` of a component or a subsystem, as {count, questions: [{kind: component | subsystem, id (component name or subsystem key), label, subsystem, text, index (position among that item's questions), line}]}. Subsystems first, then components by name. Give draft to read a design draft as it would leave them. Add or change questions by editing the about (edit_design kinds component / subsystem, field about).",
+  inputSchema: obj({ env, draft: draftArg }),
+  run: (c, a) => questionsFor(c, envOf(a), a.draft || null),
 };
 
 export const getSubsystemMapTool: Tool = {

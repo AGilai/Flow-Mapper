@@ -169,12 +169,17 @@ export function createTabView(data, host) {
     recompute(); requestAnimationFrame(edge);
   }
   draw();
-  const maxBar = h('div.max-bar', h('span.fh-t', (root && host.nameOf?.(root.service, root.ingress)) || label.title), label.sub ? h('span.mono.xs.muted', label.sub) : null, zctl.el); // shown only while maximized (flow-max.css)
-  const el = h('div.flow-tab', maxBar, h('div.flow-top', flowBox?.el, related?.el, walk.el, partial.el), body, comments ? h('div.flow-bottom', actions.el, comments.el) : null); // comments sit under the diagram (maintainer, 0.27.5)
+  const back = host.backOf?.(key) ?? null; // a sub-flow: the way back to the flow it was opened from (also in the maximized bar)
+  const backBtn = (cls) => back ? h(`button.btn.sm.back-main${cls}`, { type: 'button', 'data-qa': 'back-to-main', title: `Back to ${back.label}${back.step ? ` (step ${back.step})` : ''}`, on: { click: () => host.goBack(key) } }, h('span', { 'aria-hidden': 'true' }, '←'), ` Back to ${back.label}`) : null;
+  const backBar = back ? h('div.backbar', backBtn(''), h('span.backtrail.xs.muted', `${back.label} › ${label.title}${label.sub ? ` · ${label.sub}` : ''}`)) : null;
+  const maxBar = h('div.max-bar', backBtn('.in-max'), h('span.fh-t', (root && host.nameOf?.(root.service, root.ingress)) || label.title), label.sub ? h('span.mono.xs.muted', label.sub) : null, zctl.el); // shown only while maximized (flow-max.css)
+  const el = h('div.flow-tab', maxBar, backBar, h('div.flow-top', flowBox?.el, related?.el, walk.el, partial.el), body, comments ? h('div.flow-bottom', actions.el, comments.el) : null); // comments sit under the diagram (maintainer, 0.27.5)
   el.addEventListener('keydown', (ev) => walk.onKey(ev)); // ← → Home End, while focus is in the flow view and not in a text box
   return {
     el, key, data, draw, insideOpen: () => inside.isOpen(), dispose: () => { unWheel(); clearTimeout(resizeTimer); document.removeEventListener('fm:layout', onLayout); inside.dispose(); ro?.disconnect(); tip?.dispose(); descs.forEach((d) => d?.dispose()); comments?.dispose(); actions?.dispose(); items?.dispose(); related?.dispose(); walk.dispose(); unDesc?.(); },
     refreshBar: () => walk.refreshBar(), refreshHl: () => walk.refreshHl(),
+    step: () => (walk.picked() ? walk.current() : null), goStep: (n) => walk.go(n), // the step the viewer is on (when they chose one) / put the walk on a step
+    steps: () => walk.steps(), // the steps of the lane (n, from, to, label, transport): the info pane's "In this flow"
     setZoom, zoomScale: () => factor, zoomValue: () => zoomV,
     squeezeOff: () => sqOff, resetSqueeze: () => { sqOff = false; },
     save: () => { saved = scroller.scrollTop; },

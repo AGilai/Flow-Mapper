@@ -1,0 +1,18 @@
+/* The Questions page (0.33.0): the open questions of the About texts of one environment, grouped by subsystem. Tokens only. */
+.q-body { display: grid; gap: var(--s5); align-content: start; }
+.q-group h3 { margin: 0 0 var(--s2); font-size: var(--fs-sm); display: flex; align-items: baseline; gap: 4px; }
+.q-group h3 small { color: var(--muted); font-weight: 400; }
+.q-list { display: grid; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); overflow: hidden; }
+.q-row { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; gap: var(--s3); align-items: baseline; padding: var(--s2) var(--s3); border-top: 1px solid var(--line); color: inherit; text-decoration: none; }
+.q-row:first-child { border-top: 0; }
+.q-row:hover, .q-row:focus-visible { background: var(--surface-2); }
+.q-mark { color: var(--warn); font-weight: 700; }
+.q-text { overflow-wrap: anywhere; }
+.q-item { display: grid; justify-items: end; font-size: var(--fs-sm); }
+.q-item small { color: var(--muted); font-size: var(--fs-xs); }
+.q-empty { border: 1px dashed var(--line-strong); border-radius: var(--r-md); padding: var(--s4); display: grid; gap: 6px; max-width: 60ch; background: var(--surface); }
+.q-empty p { margin: 0; color: var(--ink-2); }
+.mn-about { margin-top: var(--s5); }
+.mn-about h3 { margin: 0 0 var(--s2); font-size: var(--fs-sm); }
+.mn-about h3 small { color: var(--muted); font-weight: 400; }
+@media (max-width: 760px) { .q-row { grid-template-columns: 20px minmax(0, 1fr); } .q-item { grid-column: 2; justify-items: start; } }

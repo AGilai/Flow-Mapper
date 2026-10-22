@@ -35,7 +35,7 @@ export function createRelations({ host, root, editing }) {
     const info = marksNow()?.markOf?.(`rel:${v.id}`), key = `${v.other.service} · ${v.other.ingress}`, name = host.nameOf?.(v.other.service, v.other.ingress);
     return h('li.rel-row', { 'data-qa': 'relation', 'data-type': v.type },
       h('span.rel-ty', { title: TYPE_LABEL[v.type] }, v.phrase),
-      h('a.rel-name', { href: '#', title: `Open ${key}`, on: { click: (e) => { e.preventDefault(); host.openEntry({ service: v.other.service, ingress: v.other.ingress }); } } }, name || key),
+      h('a.rel-name', { href: '#', title: `Open ${key}`, on: { click: (e) => { e.preventDefault(); (host.openFlow ?? host.openEntry)({ service: v.other.service, ingress: v.other.ingress }); } } }, name || key),
       name ? h('span.mono.xs.muted.rel-key', key) : null,
       info ? markBadge(info, { store: marksNow(), short: true }) : null,
       editing && host.edit ? h('span.rel-acts',

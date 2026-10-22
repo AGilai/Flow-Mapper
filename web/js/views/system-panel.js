@@ -12,14 +12,10 @@ import { aboutBlock } from '../components/about.js';
 const MAX = 12;
 const svcName = (id) => id.replace(/^(svc|ch|res|missing):/, '');
 
-export function nodePanel(n, edges, byId, pen = null) {
+/** The two neighbour lists of a node: who calls it / what it calls (a channel: published by / delivers to). Shared with the info pane's Connections (0.33.0). */
+export function connectionSections(n, edges, byId) {
   const out = edges.filter((e) => e.from === n.id);
   const inc = edges.filter((e) => e.to === n.id);
-  const kindLabel = { service: 'Service', gateway: 'Gateway', channel: n.sub, resource: `Data store (${n.sub})`, missing: 'No match' }[n.kind] ?? n.kind;
-  const type = n.kind === 'channel' ? 'channel' : n.kind === 'resource' ? 'store' : n.kind === 'missing' ? null : 'service';
-  const kind = type === 'service' ? n.svcKind ?? n.kind : n.sub;
-  const head = h('div.stack', { style: { gap: '2px' } }, h('h2.titled', { class: n.kind === 'missing' ? 'key' : '' }, type ? objectIcon(type, kind, 24) : null, h('span', n.label), type === 'service' ? pen?.button('panel-component', n.label, { form: 'component', service: n.label }) : null), h('span.small.muted', kindLabel, n.team ? `, team ${n.team}` : ''));
-
   const neighbour = (e, other) => {
     const o = byId.get(other);
     const link = o && (o.kind === 'service' || o.kind === 'gateway') ? href(`/services/${encodeURIComponent(o.label)}`) : null;
@@ -36,6 +32,17 @@ export function nodePanel(n, edges, byId, pen = null) {
       sorted.length > MAX ? h('p.xs.muted', `${sorted.length - MAX} more. Open the service view to see all.`) : null,
     ];
   };
+  return [
+    inc.length ? section(n.kind === 'channel' ? 'Published by' : 'Called by', inc.length, list(inc, 'in')) : null,
+    out.length ? section(n.kind === 'channel' ? 'Delivers to' : 'Calls', out.length, list(out, 'out')) : null,
+  ].filter(Boolean);
+}
+
+export function nodePanel(n, edges, byId, pen = null) {
+  const kindLabel = { service: 'Service', gateway: 'Gateway', channel: n.sub, resource: `Data store (${n.sub})`, missing: 'No match' }[n.kind] ?? n.kind;
+  const type = n.kind === 'channel' ? 'channel' : n.kind === 'resource' ? 'store' : n.kind === 'missing' ? null : 'service';
+  const kind = type === 'service' ? n.svcKind ?? n.kind : n.sub;
+  const head = h('div.stack', { style: { gap: '2px' } }, h('h2.titled', { class: n.kind === 'missing' ? 'key' : '' }, type ? objectIcon(type, kind, 24) : null, h('span', n.label), type === 'service' ? pen?.button('panel-component', n.label, { form: 'component', service: n.label }) : null), h('span.small.muted', kindLabel, n.team ? `, team ${n.team}` : ''));
 
   const body = [];
   if (type === 'service') { const hint = pen?.hint(); if (hint) body.push(hint); }
@@ -60,7 +67,6 @@ export function nodePanel(n, edges, byId, pen = null) {
       h('span.grow.truncate.key', s.to),
       s.events === '*' ? h('span.pill', 'all events') : h('span.xs', filterText(s.events)),
       s.conflict ? h('span.pill.warn', { title: 'Reported differently by another manifest' }, 'conflict') : null)))));
-  if (inc.length) body.push(section(n.kind === 'channel' ? 'Published by' : 'Called by', inc.length, list(inc, 'in')));
-  if (out.length) body.push(section(n.kind === 'channel' ? 'Delivers to' : 'Calls', out.length, list(out, 'out')));
+  body.push(...connectionSections(n, edges, byId));
   return [head, body];
 }

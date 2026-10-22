@@ -2,7 +2,7 @@
 
 import { h, clear, fill } from '../dom.js';
 import { icon, brandMark } from '../icons.js';
-import { state } from '../state.js';
+import { state, isDesign } from '../state.js';
 import { envPicker } from './env-picker.js';
 import { userButton } from '../users/user-button.js';
 import { KEYS, SLIDE_MS, readCollapsed, writeCollapsed, toggleLabel, envShort } from '../collapse.js';
@@ -17,6 +17,7 @@ const LINKS = [
   { path: '/inventory', label: 'Inventory', icon: 'services', also: ['/services', '/stores', '/channels', '/events'] },
   { path: '/flows', label: 'Flows', icon: 'flow' },
   { path: '/mentions', label: 'Mentions', icon: 'at' },
+  { path: '/questions', label: 'Questions', icon: 'question', design: true }, // the open questions of the About texts: a design environment's (0.33.0)
   { path: '/health', label: 'Link health', icon: 'health' },
   { path: '/bugs', label: 'Bugs', icon: 'bug' },
   { path: '/users', label: 'Users', icon: 'user' },
@@ -36,7 +37,7 @@ export function renderRail(rail, activePath, counts = {}) {
     h('div.brand-row',
       h('a.brand', { href: '#/system', title: 'Flow-Mapper', 'aria-label': 'Flow-Mapper' }, brandMark(), h('span.brand-name', 'Flow-Mapper')),
       h('button.collapse-btn', { type: 'button', 'aria-expanded': String(!collapsed), 'aria-controls': 'rail', 'aria-label': toggleLabel('the sidebar', collapsed), title: toggleLabel('the sidebar', collapsed), on: { click: toggle } }, icon('chev'))),
-    ...LINKS.map((l) =>
+    ...LINKS.filter((l) => !l.design || isDesign()).map((l) =>
       h('a.nav-link', { href: `#${l.path}`, title: l.label, 'aria-label': l.label, 'aria-current': [l.path, ...(l.also ?? [])].some((p) => activePath.startsWith(p)) ? 'page' : null },
         icon(l.icon), h('span.nav-text', l.label), counts[l.path] ? h('span.nav-badge', String(counts[l.path])) : null)),
     h('div.rail-foot',

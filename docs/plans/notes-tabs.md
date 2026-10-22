@@ -32,3 +32,15 @@ button: "✎ Edit" on Notes, "+ Add comment" / "+ Add action item" elsewhere; �
 - Mermaid export writes a range as `rect` + `Note`; import (#71) reads it back.
 
 Tests, demo (notes + a range comment on api-gateway/in.createOrder), CHANGELOG, DEMOS, version 0.34.0.
+
+## Maintainer additions (2026-10-22)
+- **The pane's header never scrolls away.** Today, with long content (long comments, or a long flow description above),
+  the section header slides under the pane's top border, and you must scroll to the top to collapse it. In 0.34.0 the
+  tab row (`Notes · Comments · Action items` with "+ Add ▾" and the collapse control) is sticky at the top of the pane at
+  all times; inside Notes the document scrolls under it; the outline stays sticky too. QA must test with long Notes,
+  20+ comments and many action items, in normal and maximized views and at 760 px.
+- **The diagram / pane border is a drag handle.** A horizontal splitter between the diagram and the bottom pane: drag up
+  and down (min: pane collapsed to the tab row; max: diagram keeps ~120 px), keyboard-resizable (focus + ↑/↓), double-
+  click resets to the default, height remembered per viewer (try/catch localStorage). The diagram re-lays out on drag end
+  (`fm:layout`). Maximize (frame 16) stays the full-page reading view. Also check the flow description box at the top
+  (Human/AI): when long, its header must stay reachable (sticky summary or capped height with its own scroll).

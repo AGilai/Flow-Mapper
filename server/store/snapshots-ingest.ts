@@ -1,6 +1,7 @@
 // Manifest ingest: full and delta, single and batch, with dry-run. One transaction per call.
 // `ingestIn` is the body without the transaction: harvesters reach it through ingestBatch, a draft's apply calls it directly.
 
+import { resolveOwners, resolveAbout } from './owners.ts';
 import type { DB } from '../db/connection.ts';
 import { LISTS, keyOf, validateManifest } from '../schema.ts';
 import { buildIndex } from '../../core/graph-index.ts';
@@ -70,6 +71,8 @@ function applyIn(db: DB, manifest: any, source: Source, index: number | null, op
 function apply(db: DB, manifest: any, source: Source, opts: ApplyOpts): { result: WriteResult; after: Entities } {
   const errs = validateManifest(manifest);
   if (errs.length) throw invalid('manifest does not match schema', errs.slice(0, 50));
+  if (manifest.service.owners !== undefined) manifest = { ...manifest, service: { ...manifest.service, owners: resolveOwners(db, manifest.service.owners, 'service.owners') } }; // names and external ids -> user ids (0.33.0)
+  if (typeof manifest.service.about === 'string' && manifest.service.about.includes('@{')) manifest = { ...manifest, service: { ...manifest.service, about: resolveAbout(db, manifest.service.about) } }; // @{Name} -> @[id]
   const env = manifest.env ?? 'default';
   const name = manifest.service.name;
   guardEnv(db, env, opts.writer);
@@ -100,6 +103,7 @@ function apply(db: DB, manifest: any, source: Source, opts: ApplyOpts): { result
       after[l] = [...map.values()];
     }
   }
+  if (Array.isArray(header.owners) && !header.owners.length) { header = { ...header }; delete header.owners; }   // [] clears
   assertIntegrity(name, after, opts.tolerateExisting ? before : undefined);
   const changes = diff(before, after);
   upsertSnapshot(db, env, header, manifest.version, manifest.harvestedAt, manifest.commit);

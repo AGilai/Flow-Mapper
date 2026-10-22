@@ -17,5 +17,8 @@
     { "name": "activitylog", "groupPath": "platform" }
   ],
   "createdBy": "seed",
-  "drafts": [{ "slug": "hld-import", "name": "HLD import", "plan": "sase-hld.plan.json" }]
+  "drafts": [
+    { "slug": "hld-import", "name": "HLD import", "plan": "sase-hld.plan.json" },
+    { "slug": "pane-demo", "name": "Info pane demo", "plan": "sase-hld.pane.plan.json" }
+  ]
 }

@@ -10,11 +10,11 @@ const now = () => new Date().toISOString();
 export function writeDesignSide(db: DB, env: string, side: NetOp[], by: string) {
   const subs = side.filter((o) => o.list === 'subsystem');
   if (subs.length) {
-    const cur = JSON.parse((db.prepare('SELECT groups FROM envs WHERE name = ?').get(env) as { groups: string }).groups) as { key: string; label: string; icon?: string; about?: string }[];
+    const cur = JSON.parse((db.prepare('SELECT groups FROM envs WHERE name = ?').get(env) as { groups: string }).groups) as { key: string; label: string; icon?: string; about?: string; owners?: string[] }[];
     let list = cur.map((g, i) => ({ g, order: i }));
     for (const o of subs) {
       list = list.filter((x) => x.g.key !== o.key);
-      if (o.op === 'upsert') { const d = o.data as any; list.push({ g: { key: o.key, label: d.label, ...(d.icon ? { icon: d.icon } : {}), ...(d.about ? { about: d.about } : {}) }, order: d.order ?? list.length }); }
+      if (o.op === 'upsert') { const d = o.data as any; list.push({ g: { key: o.key, label: d.label, ...(d.icon ? { icon: d.icon } : {}), ...(d.about ? { about: d.about } : {}), ...(Array.isArray(d.owners) && d.owners.length ? { owners: d.owners } : {}) }, order: d.order ?? list.length }); }
     }
     const sorted = list.map((x, i) => ({ ...x, i })).sort((a, b) => a.order - b.order || a.i - b.i).map((x) => x.g);
     db.prepare('UPDATE envs SET groups = ? WHERE name = ?').run(JSON.stringify(sorted), env);

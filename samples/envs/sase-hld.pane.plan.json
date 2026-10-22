@@ -1,0 +1,25 @@
+{
+  "planVersion": 1,
+  "planId": "sase-hld-pane-demo-2026-10-22",
+  "createdAt": "2026-10-22T09:00:00Z",
+  "createdBy": "agent:demo",
+  "sources": [{ "file": "hld/00-platform.md", "title": "Platform overview", "revision": "v0.2 / 2026-10-20" }],
+  "environment": {
+    "groups": [
+      { "key": "network", "label": "Network (POP)", "owners": ["Noa Barak", { "name": "Einat Schanin", "externalSource": "confluence", "externalId": "conf-user-77" }] },
+      {
+        "key": "platform", "label": "Platform",
+        "about": "## Capabilities\n- Identity, tenant configuration and policy for every POP.\n- Exposes **HTTP and RPC** APIs.\n\n## Motivation\nKeep everything that holds **tenant truth** in one place, so POPs stay stateless.\n\n## Owners\nPlatform Policy team. Ask @{Einat Schanin} about boundaries.\n\n## Open questions\n- Split Identity into its own subsystem next phase?\n- Who owns the tenant quota numbers?\n",
+        "owners": [{ "name": "Einat Schanin", "externalSource": "confluence", "externalId": "conf-user-77" }]
+      }
+    ]
+  },
+  "extensions": [
+    {
+      "service": "auth-svc",
+      "groupPath": "platform",
+      "about": "## Capabilities\n- Issues and validates tokens for agents and the console.\n- Single sign-on, **device certificates** for the POPs.\n\n## Motivation\nOne place decides who may open a tunnel, so a POP never keeps credentials of its own.\n\n## Roles and responsibilities\n- **Owns** token format and lifetime.\n- **Does not** store users: `users-svc` does.\n\n## Owners\nPlatform Identity. Format changes go through @{Noa Barak}.\n\n## Open questions\n- Is the device token lifetime the same as the user's?\n- Who rotates the signing keys: `auth-svc` or the platform team?\n",
+      "owners": ["Noa Barak", "Einat Schanin"]
+    }
+  ]
+}

@@ -10,6 +10,7 @@ import { renderRail } from './components/sidebar.js';
 import { mountBugButton } from './components/bug-dialog.js';
 import { requestedEnv, unknownEnv } from './env-missing.js';
 import { startUnread, unreadCount, onUnread } from './users/unread.js';
+import { questionCount, onQuestions, refreshQuestions } from './questions-store.js';
 
 const rail = document.getElementById('rail');
 const main = document.getElementById('main');
@@ -26,6 +27,7 @@ route('/events/:type', () => import('./views/event.js'));
 route('/services/:name', () => import('./views/service.js'));
 route('/flows', () => import('./views/flows.js'));
 route('/mentions', () => import('./views/mentions.js'));
+route('/questions', () => import('./views/questions.js'));
 route('/users', () => import('./views/users.js'));
 route('/health', () => import('./views/health.js'));
 route('/bugs', () => import('./views/bugs-list.js'));
@@ -45,8 +47,9 @@ async function boot() {
   }
   mountBugButton();
   let openBugs = 0;
-  const refreshRail = () => renderRail(rail, parseHash().path, { '/bugs': openBugs || null, '/mentions': unreadCount() || null });
+  const refreshRail = () => renderRail(rail, parseHash().path, { '/bugs': openBugs || null, '/mentions': unreadCount() || null, '/questions': questionCount() || null });
   onUnread(refreshRail);
+  onQuestions(refreshRail);
   startUnread();
   api.bugs({ open: true, limit: 1000 }).then((b) => { openBugs = b.length; refreshRail(); }).catch(() => {});
 
@@ -73,6 +76,7 @@ async function boot() {
     Object.assign(state, { mode: d.mode, draft: d.draft, compare: d.compare });
     setQuery(designQuery());
     document.documentElement.classList.toggle('is-design', isDesign());
+    refreshQuestions(); // the rail's "Questions (n)" of a design environment
     refreshRail();
     fill(main, h('div.loading', 'Loading…'));
     try {

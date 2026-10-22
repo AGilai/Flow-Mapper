@@ -2,6 +2,7 @@
 // ("▾ N": every tab with a filter, Close others, Close all). It draws what it is given; the state lives in flows.js.
 
 import { h, fill } from '../dom.js';
+import { TAB_CAP } from './flow-tabs-state.js';
 
 const ENTER = 'M2 8h8 M7 5l3 3-3 3 M12 3v10', FULL = 'M8 2v9 M4 8l4 4 4-4 M3 14h10', X = 'M4 4l8 8 M12 4l-8 8';
 export const enterIcon = () => svg(ENTER);
@@ -86,7 +87,10 @@ export function createTabStrip(cb) {
     state = s;
     const had = document.activeElement?.closest?.('.tab') ? document.activeElement.closest('.tab').dataset.key : null;
     fill(scroll, s.keys.map(tabFor));
-    fill(menuBtn, '▾ ', h('b', String(s.keys.length)));
+    const n = s.keys.length; // from 8 of 10 the count shows the limit; at 10 the button is underlined in amber (and bold: amber alone is too faint)
+    fill(menuBtn, '▾ ', h('b', n >= TAB_CAP - 2 ? `${n}/${TAB_CAP}` : String(n)));
+    menuBtn.classList.toggle('near', n >= TAB_CAP - 2); menuBtn.classList.toggle('full', n >= TAB_CAP);
+    menuBtn.title = n >= TAB_CAP ? `${n} of ${TAB_CAP} tabs open. All open flows` : 'All open flows';
     el.hidden = false;
     menuBtn.hidden = !s.keys.length;
     if (had && tabEl(had)) tabEl(had).focus();

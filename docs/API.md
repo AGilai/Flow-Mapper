@@ -297,6 +297,14 @@ existing calls from the `from` scope into the `to` scope (same mode first, then 
 `set_subsystem_settings {env, subsystems, draft?}` (sealed: at once; a design needs `draft` and the changes become `subsystem` ops; nothing is deleted), `set_levels {env, levels}`.
 Harvester ingest into a design stays `409 ENV_DESIGN`. Migration 012 (`abstract_links`, `flow_relations`, `envs.baseline_groups`; additive, the database is backed up to `<db>.pre-012.bak` first).
 
+### Info pane reads (0.33.0)
+| Method + path | |
+|---|---|
+| `GET /api/envs/:env/open-questions[?draft=]` | `{count, questions: [{kind: 'component' \| 'subsystem', id (component name or subsystem key), label, subsystem, text, index (position among that item's questions), line (0-based line in the about)}]}`: every list item under a `## Open questions` heading in the `about` of the components and subsystems, subsystems first (settings order), then components by name. Read as a draft would leave it with `?draft=`. MCP `list_open_questions {env, draft?}` |
+| `GET /api/envs/:env/flows-through?service=a,b[&draft=]` | the entry points (rows of `entry-points`) whose flows run through any of those components, or start in one; `[]` with no `service` |
+
+`owners` (0.33.0): `service.owners` of a manifest, `extensions[].owners` / `manifests[].service.owners` / `environment.groups[].owners` of a plan, `owners` on `{kind: 'component'}` and `{kind: 'subsystem'}` edits, on `subsystems[]` of the sealed `PUT` and on `create_env` / `POST /api/envs` `groups[]` take a list of people: a user id, a name, or `{name?, externalSource, externalId}`; the server matches them to users (external id, then exact name or alias, else a new user) and stores and returns **user ids** (`service.owners`, `subsystems[].owners`, `boxes[].owners`). Left out keeps, `[]` / `null` clears, more than 20 or a bad entry is `422` (`owners[i]: ...`). `@{Display Name}` in an `about` is written as `@[userId]` when that user exists.
+
 ## Flow relations (0.28.2, #50)
 
 Typed relations between two flows of one design environment: `contradicts`, `variant-of`, `supersedes`, `same-topic`, with an optional `note` (up to 1000 characters). A relation is a design item (`rel:<id>`, row list `flowrel`), so it is written through a draft like everything else in a design, and applied to `flow_relations` with the draft. Sealed environments have none (reads answer `[]`, writes are refused as they are for any design item).
@@ -666,7 +674,8 @@ for the signed-in user and a dashed "@unknown user" for an id that has no user. 
 | `POST /api/mentions/seen` | `{user?, commentIds: [n, ...]}` -> `{marked}`. Only comments that mention that user get a mark |
 | `GET /api/envs/:env/mentions/counts?user=<id>` | `{<anchor>: n}`: unread mentions per flow (the Flows list's "@ n new"); `{}` with no user |
 
-- **MCP.** `list_mentions {user, unread?, env?, limit?}` (`user`: an id or an exact name) returns `{user, unread, mentions}` as above. `add_comment` accepts `@[id]` and `@{Display Name}` in `body`.
+- **About mentions (0.33.0).** `GET /api/mentions` and `list_mentions` also return `about: [{env, kind: 'component' | 'subsystem', id, label, text}]`: the About of a component or a subsystem (as the environment is, not a draft) that holds `@[userId]`; the Mentions page lists them as "about of <item>". They are never unread and do not count in the badge; empty with `unread=1` or `anchor`.
+- **MCP.** `list_mentions {user, unread?, env?, limit?}` (`user`: an id or an exact name) returns `{user, unread, mentions, about}` as above. `add_comment` accepts `@[id]` and `@{Display Name}` in `body`.
 - **Events.** Unchanged (`comment.created` ...): the text carries the token.
 
 ## MCP
