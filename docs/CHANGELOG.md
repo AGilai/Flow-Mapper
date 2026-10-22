@@ -9,6 +9,7 @@ in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.m
 - UI only: the MCP author user "Assistant" is no longer a choice in the sign-in picker or the "@" mention picker (it stays on the Users page and as an author).
 - UI only: the "@" mention popup flips above the caret when there is no room below it.
 - UI only: the sign-in picker list uses up to 60% of the window height before it scrolls.
+- UI only: a flow link takes `comment=<id>` (a comment or a reply): the flow tab opens its comments, scrolls to it and outlines it. Rows on the Mentions page use it.
 
 ## 0.32.1 (2026-10-22)
 - **`POST /api/envs` / MCP `create_env`: `source` is optional for `mode: 'blank'`** (#77): a known one is still recorded as lineage, a missing or unknown one leaves `source` `null`. `components` and `full` still need it: a missing `source` is now `400` with `details.field: 'source'` instead of a `404` about `'undefined'`.
