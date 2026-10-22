@@ -10,6 +10,7 @@ Performance batch 2 (docs/plans/perf-review.md F2, F3). No API or schema change:
 - **F2 (ingest).** One graph per ingest: the one built for the contract reports is handed to the graph cache after the commit instead of being built again (`ingestBatch` `graphs`, `afterWrite(db, env, built)`; a dry run or a draft apply hands none). The contract rules read only the manifest's service (`mixedCommitsOf` / `driftOf` / `byService`) and look up the egress a subscription filters on by bind key. `health_history` rows come from the resolution in one pass (`healthCounts`), not from the full health report; same rows, same order.
 - **F3 (reports).** `GraphIndex` carries `byService`, `egressByKey` and `stepsToEgress`; `/inventory`, `/health`, `/services`, MCP `list_services`, `/views/system`, the stores, event types and channel summaries are memoised per graph (dropped with the graph), and the scans per service or channel are lookups. `/components` (the copy picker) memoises its rows per environment and computes each service's channels without scanning every binding (`core/carry-channels.ts`).
 - **Fix.** `envItemRows` and `baselineRows` read their rows `ORDER BY service, list, key`, so `GET /marks` has the same key order whatever indexes exist.
+- **Fix.** The graph cache weight budget default is 150000 (was 250000): one 1,000-service graph at a time. UI: no stray "null" text in the sign-in list, the notes history list and the delivery grid sentence.
 - **UI.** The sign-in dialog no longer shows a stray "null" under the user list.
 
 ## 0.39.0 (2026-10-22)

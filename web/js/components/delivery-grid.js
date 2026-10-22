@@ -38,14 +38,14 @@ export function deliveryGrid(grid, { limit = 8 } = {}) {
 
   const allHandled = grid.rows.length > 1 && dests.length && grid.rows.every((r) => r.cells.every((c) => c.status === 'handled' && !c.uncertain));
   if (!allHandled) return full;
-  const consumers = [...new Set(dests.map((d) => d.consumer?.service))];
-  const handlers = [...new Set(dests.map((d) => d.consumer?.handler))];
+  const consumers = [...new Set(dests.map((d) => d.consumer?.service).filter(Boolean))];
+  const handlers = [...new Set(dests.map((d) => d.consumer?.handler).filter(Boolean))];
   const maybe = grid.rows.filter((r) => r.possible).length;
-  const inHandler = dests.length === 1 && handlers.length === 1 ? ' in ' : '';
+  const inHandler = dests.length === 1 && handlers.length === 1 && handlers[0] ? ' in ' : '';
   const sentence = maybe ? `All handled by ${list(consumers)}${inHandler}` : `All ${grid.rows.length} event types are handled by ${list(consumers)}${inHandler}`;
   const tail = maybe ? `, except ${maybe} possible.` : '.';
   const wrap = h('div.matrix-collapsed');
-  const draw = (open) => wrap.replaceChildren(open ? full : h('p.matrix-line', sentence, dests.length === 1 ? h('span.mono', handlers[0]) : null, tail),
+  const draw = (open) => wrap.replaceChildren(open ? full : h('p.matrix-line', sentence, ...(dests.length === 1 && handlers[0] ? [h('span.mono', handlers[0])] : []), tail),
     h('button.btn.ghost.show-more', { type: 'button', on: { click: () => draw(!open) } }, open ? 'Show less' : 'Show all event types'));
   draw(false);
   return wrap;
