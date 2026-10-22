@@ -7,7 +7,6 @@ participant http_GET_users_svc_users_id_prefs as http:GET users-svc/users/{id}/p
 participant sns_order_events as sns:order-events
 participant sqs_shipping_order_events as sqs:shipping-order-events
 participant shipping_svc as shipping-svc
-participant mongodb_shipping_db_shipments as mongodb:shipping-db/shipments
 participant sqs_inventory_order_events as sqs:inventory-order-events
 participant inventory_svc as inventory-svc
 participant dynamodb_inventory_stock as dynamodb:inventory-stock
@@ -20,14 +19,15 @@ participant sqs_analytics_all_events as sqs:analytics-all-events
 participant analytics_svc as analytics-svc
 participant s3_acme_event_lake as s3:acme-event-lake
 participant mongodb_orders_db_orders as mongodb:orders-db/orders
+participant unresolved_method_or_path_unresolved as unresolved: method_or_path_unresolved
+participant mongodb_shipping_db_shipments as mongodb:shipping-db/shipments
 participant amqp_queue_notify_shipping as amqp-queue:notify-shipping
 participant notifications_svc as notifications-svc
+participant unresolved_dynamic_dispatch as unresolved: dynamic_dispatch
 participant users_svc as users-svc
 participant postgres_users_db_users as postgres:users-db/users
 participant external_email_provider as external:email-provider
-participant unresolved_dynamic_dispatch as unresolved: dynamic_dispatch
 participant redis_cache_main_order_id as redis:cache-main/order:{id}
-participant unresolved_method_or_path_unresolved as unresolved: method_or_path_unresolved
 client->>api_gateway: POST /api/orders
 api_gateway->>orders_svc: POST /orders
 orders_svc->>http_GET_users_svc_users_id_prefs: GET /users/{id}/prefs
@@ -53,21 +53,21 @@ sns_order_events-)sqs_shipping_order_events: sns:order-events · OrderPlaced
 sqs_shipping_order_events-)shipping_svc: sqs:shipping-order-events · OrderPlaced → onOrderPlaced
 sns_order_events-)sqs_inventory_order_events: sns:order-events · OrderPlaced
 sqs_inventory_order_events-)inventory_svc: sqs:inventory-order-events · OrderPlaced → OnOrderEvent
+orders_svc-)unresolved_method_or_path_unresolved: POST ${AUDIT_URL}/events
 analytics_svc->>s3_acme_event_lake: PutObject
 shipping_svc->>mongodb_shipping_db_shipments: insertOne
 shipping_svc-)amqp_queue_notify_shipping: publish shipping.created amqp:shipping/shipping.created
 amqp_queue_notify_shipping-)notifications_svc: amqp-queue:notify-shipping → onShippingEvent
+shipping_svc->>unresolved_dynamic_dispatch: handlers[event.kind](event)
 notifications_svc->>api_gateway: GET /api/users/{id}/contact
 Note over notifications_svc,api_gateway: via public gateway
-api_gateway->>users_svc: GET /users/{id}/contact
-users_svc->>postgres_users_db_users: SELECT contacts
-users_svc-->>api_gateway: return
-notifications_svc->>external_email_provider: POST /v3/mail/send
 api_gateway-->>notifications_svc: return
-shipping_svc->>unresolved_dynamic_dispatch: handlers[event.kind](event)
+api_gateway->>users_svc: GET /users/{id}/contact
+users_svc-->>api_gateway: return
+users_svc->>postgres_users_db_users: SELECT contacts
+notifications_svc->>external_email_provider: POST /v3/mail/send
 shipping_svc->>redis_cache_main_order_id: DEL order:{id}
 Note over shipping_svc,redis_cache_main_order_id: invalidates the cached order
 inventory_svc->>dynamodb_inventory_stock: TransactWriteItems
-orders_svc-)unresolved_method_or_path_unresolved: POST ${AUDIT_URL}/events
 orders_svc-->>api_gateway: return
 api_gateway-->>client: return

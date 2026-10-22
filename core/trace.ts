@@ -27,6 +27,8 @@ import { altCtxOf, altGroups, type Alt, type AltCtx } from './alt.ts';
 import { egressVia, ingressVia, type LinkedHop } from './via.ts';
 import { bindingKeyOf, splitAmqpKey } from './amqp.ts';
 import { routeInfo, routeKey, rpcOf, rpcServed, withServer, type AmqpRoute, type RpcInfo } from './amqp-route.ts';
+import { deferHelpers } from './trace-defer.ts';
+import { fanOutOrder } from './trace-order.ts';
 
 export interface Participant {
   id: string; label: string; kind: 'client' | 'function' | 'service' | 'channel' | 'resource' | 'missing' | 'unresolved'; service?: string;
@@ -62,6 +64,10 @@ export interface Message {
   repeatOf?: number;                                         // a delivery already expanded earlier in this trace (#43): the 1-based step (message number) of the first one. Nothing is expanded below it; it does not count toward maxMessages
   middleware?: { fn: string; index: number };                // the message comes from this middleware function of the ingress (0-based position in `ingress.middleware`) or from a call it made; absent for the handler's own
   middlewareChain?: { fn: string; name: string }[];          // on a message that reaches an ingress (entry / egress / deliver): its middleware, in the order they run before the handler
+  n?: number;                                                // #73 (additive): the 1-based message number, on a message that starts deferred work (a delivery, an async call). `of` points back at it
+  of?: number;                                               // #73 (additive): this message belongs to the work started by message `n` === of (its innermost one): a consumer's steps carry their delivery's number, an async callee's its call's. Absent in the caller's own flow
+  n?: number;                                                // #73 (additive): the 1-based message number, on a message that starts deferred work (a delivery, an async call); `of` points back at it
+  of?: number;                                               // #73 (additive): the message belongs to the work started by message number `of` (the innermost one): a consumer's steps carry their delivery's `n`, an async callee's its call's. Absent on the caller's own flow
   delivery?: number;                                         // on the topic -> queue and queue -> consumer messages of one delivery: 1-based ordinal within the group
   amqp?: AmqpRoute;                                          // an AMQP publish through an exchange (0.18.0), on the publish and the hops after it: exchange, routing key, type, how many bindings route it and the ones that do not
   rpc?: RpcInfo;                                             // an RPC over AMQP (0.18.0; bind key `amqp-rpc:{command}`, transport amqp, mode sync): the command and the AMQP details both sides declared
@@ -129,9 +135,18 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
     if (!c) { counted++; return; }
     if (++c.counts[c.branch] > c.max) { c.max = c.counts[c.branch]; tally(c.parent); }
   };
+  let curOf: number | undefined; // #73: the message whose work is running (see Message.of)
+  /** Wrap `run` so that what it pushes carries `of` = the number of the message just pushed (stamped `n`); it runs later, so the number is taken now. */
+  const startedBy = (on: boolean, run: () => void): (() => void) => {
+    if (!on) return run;
+    const n = messages.length;
+    messages[n - 1].n = n;
+    return () => { const prev = curOf; curOf = n; try { run(); } finally { curOf = prev; } };
+  };
   let mwCtx: { fn: string; index: number } | null = null; // set while an ingress's middleware runs: its messages are marked
   const push = (m: Message) => {
     if (mwCtx && !m.middleware) m = { ...m, middleware: mwCtx };
+    if (curOf !== undefined && m.of === undefined) m = { ...m, of: curOf };
     if (m.kind === 'frontier' || m.repeatOf) { messages.push(m); return true; } // markers are free, as documented on TraceOptions.frontier (and #43 for repeats)
     if (counted >= maxMessages && wouldCount(altCtx)) { truncated = true; return false; }
     tally(altCtx);
@@ -166,6 +181,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
     const ordered = [...f.steps].sort((a, b) => a.seq - b.seq);
     const alts = altGroups(ordered.filter((st) => showFrontier || st.origin !== 'frontier'), f.id);
     const outer = altCtx, ctxs = new Map<string, AltCtx>();
+    const later: (() => void)[] = []; // #73: what async calls start runs after the caller's own remaining steps
     try {
     for (const st of ordered) {
       if (truncated) return;
@@ -199,7 +215,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
         const target = g.fns.get(key);
         if (!push({ ...base, from: me, to: fnPart(service, st.target), label: target?.name ?? st.target, mode: st.mode ?? 'sync', kind: 'call', internal: true, cycle, calls: st.target })) return;
         const down: Binds = st.bind ? new Map([...binds, ...Object.entries(st.bind).map(([k, value]): [string, { value: string; boundAt: string }] => [k, { value, boundAt: `${f.name}:${st.seq}` }])]) : binds;
-        if (!cycle && depth < maxDepth) visitFn(service, st.target, depth + 1, [...stack, key], down);
+        if (!cycle && depth < maxDepth) afterCaller(st.mode, later, startedBy(st.mode === 'async', () => visitFn(service, st.target!, depth + 1, [...stack, key], down)));
       } else if (st.type === 'resource') {
         const r = g.resources.get(sid(service, st.target));
         const to = part({ id: `res:${r?.bindKey ?? sid(service, st.target)}`, label: r?.name ?? st.target, kind: 'resource' });
@@ -241,12 +257,13 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
           continue;
         }
         if (route && links.length > 1 && links.every((l) => l.to.type === 'channel')) { // an exchange that routes to several queues is a fan-out like an SNS topic: publish to the exchange, one hop per binding
-          follow(me, { type: 'channel', key: `amqp:${route.exchange}` }, label, mode, depth, stack, { ...base, transport: e.transport, event, egress: e.id, ...eventFrom, ...extra }, [], set, links);
+          holdAsync(mode, later, () => follow(me, { type: 'channel', key: `amqp:${route.exchange}` }, label, mode, depth, stack, { ...base, transport: e.transport, event, egress: e.id, ...eventFrom, ...extra }, [], set, links));
           continue;
         }
-        for (const l of links) follow(me, l.to, label, mode, depth, stack, { ...base, transport: e.transport, event, egress: e.id, ...eventFrom, ...extra, ...filterOf(l) }, [], set);
+        holdAsync(mode, later, () => { for (const l of links) follow(me, l.to, label, mode, depth, stack, { ...base, transport: e.transport, event, egress: e.id, ...eventFrom, ...extra, ...filterOf(l) }, [], set); });
       }
     }
+    for (const run of later) run();
     } finally { altCtx = outer; }
   };
 
@@ -267,6 +284,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
   // A fan-out's deliveries are drawn first (publish, then topic -> queue -> consumer for each), and only then what each consumer does
   // (its calls, stores, publishes, nested deliveries), in delivery order: nothing hangs between the deliveries, under the topic's activation bar.
   let deferred: (() => void)[] | null = null;
+  const { withAlt, holdAsync, afterCaller } = deferHelpers<AltCtx | undefined>({ alt: { get: () => altCtx, set: (a) => { altCtx = a; } }, deferred: { get: () => deferred, set: (d) => { deferred = d; } } });
   const follow = (from: string, to: Ref, label: string, mode: Mode, depth: number, stack: string[], base: Partial<Message>, seenCh: string[] = [], set?: EventSet, only?: Link[]) => {
     if (truncated) return;
     if (to.type === 'channel') {
@@ -323,8 +341,8 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
     if (first) return;
     if (seenKey) expanded.set(seenKey, messages.length);
     if (depth < maxDepth) {
-      const go = () => runIngress(i, handler, depth + 1, [...stack, key]);
-      if (deferred) deferred.push(go); else go();
+      const go = startedBy(crossing === 'deliver' || mode === 'async', () => runIngress(i, handler, depth + 1, [...stack, key]));
+      if (deferred) deferred.push(withAlt(go)); else go();
     }
   };
 
@@ -398,39 +416,4 @@ export function deliveryOrder(parts: Participant[], messages: Message[], fanOut 
     order.splice(a, 0, svc); // the queue moved one place left when the consumer was taken out, so this is right after it
   }
   return fanOut ? fanOutOrder(order, messages) : order;
-}
-
-/**
- * A fan-out reads left to right (#35): [topic] [q1] [c1] [q2] [c2] ... in delivery order, so each queue -> consumer
- * arrow points right and sits next to its queue. A lifeline cannot appear twice, so one met before the publish stays
- * where it is when moving it would turn an earlier arrow around: it called someone (an upstream caller), or something
- * right of the topic called it. Then its delivery arrow may point left. One only called from the left (the producer
- * checks on every consumer first) moves with its queue. A consumer reached through several queues goes after the first.
- */
-function fanOutOrder(order: Participant[], messages: Message[]): Participant[] {
-  const placed = new Set<string>();
-  for (const [pi, pub] of messages.entries()) {
-    if (!pub.deliveries || !pub.group) continue;
-    const before = messages.slice(0, pi);
-    const left = (id: string) => order.findIndex((p) => p.id === id) <= order.findIndex((p) => p.id === pub.to);
-    const movable = (id: string) => !before.some((m) => m.from !== m.to && (m.from === id || (m.to === id && !left(m.from))));
-    const legs: string[] = [];
-    for (const [i, m] of messages.entries()) {
-      if (m.group !== pub.group || !m.delivery || m.from !== pub.to) continue;
-      const out = messages.slice(i + 1).find((x) => x.group === pub.group && x.delivery === m.delivery && x.from === m.to);
-      for (const id of [m.to, out?.to]) if (id && id !== pub.to && !placed.has(id) && movable(id)) { placed.add(id); legs.push(id); }
-    }
-    // data stores that followed a moved consumer stay with it
-    const moved = legs.flatMap((id) => {
-      const at = order.findIndex((p) => p.id === id);
-      if (at < 0) return [];
-      let end = at + 1;
-      while (order[end]?.kind === 'resource' && !legs.includes(order[end].id)) end++;
-      return order.slice(at, end);
-    });
-    const rest = order.filter((p) => !moved.includes(p));
-    rest.splice(rest.findIndex((p) => p.id === pub.to) + 1, 0, ...moved);
-    order = rest;
-  }
-  return order;
 }

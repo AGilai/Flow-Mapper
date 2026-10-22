@@ -153,7 +153,10 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
     const miss = m0.amqp && !isQueueKey(root) ? nonMatchText(m0.amqp) : null; // the bindings that do not route this publish: one muted line under the fork
     if (miss) push({ type: 'amqpnote', col: chanCol(root), text: miss, exchange: m0.amqp.exchange });
   };
-  lane.forEach((idx, n) => {
+  // #73: an async call's work runs after the caller's own steps. A message tagged `of` = the `n` of an async call or egress goes back under the frame
+  // that started it (the bars opened since are closed; the callee's own bar, if the call opened one, is taken up again), whatever its depth says.
+  const origin = new Map();
+  const step = (idx, n) => {
     const m = msgs[idx];
     if (n === 0) { open(m, source, null, root, rootCol, isSyncCall(m), isRpc(m) ? { chip: false, glyph: false, reply: m.rpc?.timeoutMs ? plan1(0, root, m.rpc).reply : 'reply' } : null); return; }
     while (stack.length && stack[stack.length - 1].depth >= m.depth) close(stack.pop());
@@ -183,6 +186,12 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
     if (m.broken || m.gap || !service || k === 'missing' || k === 'unresolved') { push({ type: 'unresolved', msg: m, bar: top, col: unresolvedCol(isRpc(m)), label: callLabel(m), chip: isRpc(m) ? 'no server harvested' : null }); return; }
     if (scope === 'intra' && service !== root) { push({ type: 'call', msg: m, from: top.col, fromBar: top, to: pickCol(service, top.col), bar: null, label: callLabel(m) }); return; }
     open(m, top.col, top, service, pickCol(service, top.col), isSyncCall(m), isRpc(m) ? plan1(top.col.ci, service, m.rpc) : null);
+  };
+  lane.forEach((idx, n) => {
+    const m = msgs[idx], at = origin.get(m.of), made = bars.length;
+    if (at) { while (stack.length > at.frame) close(stack.pop()); if (at.bar && !stack.includes(at.bar)) stack.push(at.bar); }
+    step(idx, n);
+    if (m.n != null && n > 0) origin.set(m.n, bars.length > made ? { frame: stack.length - 1, bar: bars[bars.length - 1] } : { frame: stack.length, bar: null });
   });
   while (stack.length) close(stack.pop());
 
