@@ -87,7 +87,14 @@ export function exportMermaid(t: Pick<Trace, 'start' | 'participants' | 'message
     for (let i = k - base; i < want.length; i++) { out.push(want[i].open); stack.push(want[i]); }
   };
   const openAt = new Map<number, number>(); // #73: deferred work (`of`) returns to the frame its async call started in, whatever its depth says
-  const rb = opts.ranges?.length ? rangeBlocks(keys, kept.map((k) => ({ index: k.index, a: ids.get(k.m.from)!, b: ids.get(k.m.to)! })), parts.map((p) => ids.get(p.id)!), opts.ranges.map((r) => ({ ...r, text: esc(r.text) }))) : null; // 0.34.0
+  // A range is a rect that must nest with the frames written around the messages: it is left out when a message in it is marked (its own rect) or sits in another alt chain than the first.
+  const chainOf = (m: Message) => framesOf(m).map((f) => f.key + '|' + f.cond).join('>');
+  const clean = (r: { from: string; to: string }) => {
+    const f = keys.indexOf(r.from), e = keys.indexOf(r.to), span = kept.filter((k) => k.index >= f && k.index <= e);
+    return span.every(({ m }) => !m.mark && chainOf(m) === chainOf(span[0].m));
+  };
+  const ranges = (opts.ranges ?? []).filter(clean);
+  const rb = ranges.length ? rangeBlocks(keys, kept.map((k) => ({ index: k.index, a: ids.get(k.m.from)!, b: ids.get(k.m.to)! })), parts.map((p) => ids.get(p.id)!), ranges.map((r) => ({ ...r, text: esc(r.text) }))) : null; // 0.34.0
   for (const [pos, { m, key }] of kept.entries()) {
     const back = m.of === undefined ? undefined : openAt.get(m.of);
     if (back !== undefined) while (open.length > back) ret(open.pop()!);

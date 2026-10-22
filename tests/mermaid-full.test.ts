@@ -107,3 +107,23 @@ test('export writes the same constructs back, and import -> export -> import -> 
   assert.deepEqual(shape(t3).filter((x) => x[0] !== 'entry'), shape(t2).filter((x) => x[0] !== 'entry'));
   assert.ok(t2.some((m: any) => m.mark === 'changed') && t2.some((m: any) => m.over?.length > 1));
 });
+
+test('export: a range comment keeps the frames nested; a range over a marked step or across an alt is left out (QA #71/#81)', async () => {
+  const { exportMermaid } = await import('../core/mermaid-export.ts');
+  const { stepKeys } = await import('../core/description.ts');
+  const P: any = [{ id: 'a', kind: 'service', label: 'A', service: 'A' }, { id: 'b', kind: 'service', label: 'B', service: 'B' }];
+  const al: any = { group: 'g', kind: 'alt', condition: 'ok' };
+  const mk = (n: number, x: any = {}) => ({ from: 'a', to: 'b', label: 'http:GET b/x' + n, kind: 'call', depth: 1, n, ...x });
+  const msgs: any = [mk(1), mk(2, { mark: 'changed', returns: { label: '200 ok' } }), mk(3, { alt: al }), mk(4, { alt: al, mark: 'new' }), mk(5)];
+  const t: any = { start: { name: 'f' }, participants: P, messages: msgs }, K = stepKeys(msgs);
+  const depthOk = (s: string) => { let d = 0; for (const l of s.split('\n')) { if (/^(rect|alt|opt|loop|par|critical|break)\b/.test(l)) d++; else if (l === 'end') d--; if (d < 0) return false; } return d === 0; };
+  for (const r of [{ from: K[1], to: K[2] }, { from: K[2], to: K[4] }, { from: K[0], to: K[1] }]) {
+    const s = exportMermaid(t, { ranges: [{ ...r, text: 'x' }] });
+    assert.ok(depthOk(s), s);
+    assert.ok(!s.includes('Note over A,B: x'), 'unsafe range left out');
+    assert.match(s, /rect rgb\(255, 244, 214\)/); assert.match(s, /rect rgb\(214, 245, 214\)/);
+    assert.match(s, /B-->>A: 200 ok/);
+  }
+  const ok = exportMermaid(t, { ranges: [{ from: K[2], to: K[2], text: 'in alt' }] });
+  assert.ok(depthOk(ok), ok); assert.match(ok, /alt ok\nrect rgb\(253, 241, 184\)\n  Note over A,B: in alt\nA->>B: GET \/x3\nend/);
+});
