@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased
+## 0.34.1 (2026-10-22)
 **#81: what a call returns.** A step takes an optional `returns: {label, detail?}` (manifest, draft function steps and plans, the call edit form, `edit_design` `{kind: 'call', returns}`; `null` clears). The label (1 to 80 characters, one line of plain text) is drawn on the dashed return arrow of a sync call, which says `return` without it; the detail (plain text, up to 500) shows in the step panel ("Returns") and as the arrow's tooltip. The trace message and `GET .../call` carry it. A bad value is a `422`. Stored in the step's JSON like `mark` and `groups`: no migration. The Mermaid import reads `B-->>A: text` into `returns.label` and the export writes it back. The MCP tool list changed (hash updated). Demo: DEMOS.md.
 
 **#71 gaps closed.** A `rect` with a green colour (`rgb(214, 245, 214)`, `#d6f5d6`, `lightgreen`) marks its steps `new`, any other colour `changed`; the export writes a `new` step in the green rect, so it round-trips. A return inside a branch that holds no step of its own (`else` with only returns) has nothing to attach to: the import now warns with its line instead of dropping it silently. Still open: step titles (a separate store keyed by the step key, which only exists after the draft is applied) and the exact place of a note (it goes after the call it follows, so it can come after the callee's own calls).
