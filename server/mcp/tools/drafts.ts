@@ -2,7 +2,6 @@
 
 import * as drafts from '../../store/drafts.ts';
 import { runApply } from '../../store/draft-apply.ts';
-import { envItemRows } from '../../store/item-rows.ts';
 import { HttpError } from '../../errors.ts';
 import { type Tool, env, obj, envOf } from './common.ts';
 
@@ -31,7 +30,7 @@ export const listDraftsTool: Tool = {
 export const draftChangesTool: Tool = {
   name: 'draft_changes', description: 'What an open draft changes in its environment: counts and one item per added / removed / changed anchor (children of an added component are listed under it, not counted; `stale` = the item changed in the environment since the draft touched it, apply overwrites it). Read only.',
   inputSchema: obj({ env, draft: slug }, ['draft']),
-  run: (c, a) => { const d = drafts.getDraft(c.db, envOf(a), need(a)); return drafts.changesOf(envItemRows(c.db, envOf(a)), drafts.loadOps(c.db, d.id)); },
+  run: (c, a) => { const d = drafts.getDraft(c.db, envOf(a), need(a)); return drafts.changesFor(c.db, envOf(a), d); },
 };
 
 export const editInDraftTool: Tool = {

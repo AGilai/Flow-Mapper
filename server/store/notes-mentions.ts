@@ -8,6 +8,7 @@ import { plainText } from '../../core/rich-text-text.ts';
 import { MENTION_RE } from '../../core/mentions.ts';
 import { nameIndex } from './users.ts';
 import { userOf } from './mentions-read.ts';
+import { sinceWrite } from './write-memo.ts';
 
 export interface NotesMention { env: string; anchor: string; service: string; ingress: string; label: string; text: string }
 
@@ -19,12 +20,17 @@ export function notesLine(body: string, user: string, names: Map<string, { name:
 
 /** The flows whose current Notes mention the user, by environment and flow. */
 export function listNotesMentions(db: DB, userId: unknown, env: string | null = null): NotesMention[] {
-  const user = userOf(db, userId), names = nameIndex(db), out: NotesMention[] = [];
+  const user = userOf(db, userId); // the LIKE scan of the notes runs once per user between writes (F11)
+  const all = sinceWrite(db, `notes-mentions|${user}`, () => scanNotes(db, user));
+  return env ? all.filter((m) => m.env === env) : all;
+}
+function scanNotes(db: DB, user: string): NotesMention[] {
+  const names = nameIndex(db), out: NotesMention[] = [];
   const rows = db.prepare(`SELECT n.env, n.anchor, n.body FROM flow_notes n WHERE n.body LIKE ? AND n.version = (SELECT MAX(version) FROM flow_notes WHERE env = n.env AND anchor = n.anchor)
     AND EXISTS (SELECT 1 FROM envs e WHERE e.name = n.env) ORDER BY n.env, n.anchor`).all(`%@[${user}]%`) as unknown as { env: string; anchor: string; body: string }[];
   for (const r of rows) {
     const f = parseFlowAnchor(r.anchor);
-    if (f && (!env || r.env === env) && r.body.includes(`@[${user}]`)) out.push({ env: r.env, anchor: r.anchor, service: f.service, ingress: f.ingress, label: `${f.service} · ${f.ingress}`, text: notesLine(r.body, user, names) });
+    if (f && r.body.includes(`@[${user}]`)) out.push({ env: r.env, anchor: r.anchor, service: f.service, ingress: f.ingress, label: `${f.service} · ${f.ingress}`, text: notesLine(r.body, user, names) });
   }
   return out;
 }

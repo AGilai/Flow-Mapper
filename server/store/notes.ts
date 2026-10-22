@@ -7,8 +7,7 @@
 import type { DB } from '../db/connection.ts';
 import { tx } from '../db/connection.ts';
 import type { GraphIndex } from '../../core/graph-index.ts';
-import { trace } from '../../core/trace.ts';
-import { HASH_TRACE } from '../../core/description.ts';
+import { requireFlow } from './flow-check.ts';
 import { parseFlowAnchor } from '../../core/comments.ts';
 import type { NotesDoc, NotesVersion } from '../../core/notes.ts';
 import { sanitize, notesTooLong } from '../../core/rich-text.ts';
@@ -19,6 +18,7 @@ import { checkEnv } from './comments-rows.ts';
 import { identify } from '../identity.ts';
 import { nameIndex } from './users.ts';
 import { resolveMentions } from './mentions.ts';
+import { sinceWrite } from './write-memo.ts';
 
 interface R { env: string; anchor: string; version: number; body: string; author: string; author_id: string | null; restored_from: number | null; created_at: string }
 const HISTORY = 30;
@@ -58,7 +58,7 @@ export function putNotes(db: DB, g: GraphIndex, env: string, i: NotesWrite, rest
   const body = sanitize(resolveMentions(db, i.body), { notes: true }), long = notesTooLong(body);
   if (long) throw invalid(long);
   const f = parseFlowAnchor(anchor)!;
-  if (!(g.model.services.length ? trace(g, { service: f.service, ingress: f.ingress }, HASH_TRACE) : null)) throw notFound(`ingress '${f.ingress}' of service '${f.service}' in env '${env}'`);
+  requireFlow(g, env, f.service, f.ingress);
   const who = identify(db, { userId: i.authorId, name: i.author });
   const base = i.baseVersion == null ? null : Number(i.baseVersion);
   if (base !== null && (!Number.isInteger(base) || base < 0)) throw badRequest('baseVersion must be a whole number (0 for no notes yet)');
@@ -91,8 +91,10 @@ export function allNotes(db: DB, env: string): R[] { return db.prepare('SELECT *
 /** The flows of an env that have notes with content: `{anchor: version}` (for the Flows list and the default tab). */
 export function notesIndex(db: DB, env: string): Record<string, number> {
   checkEnv(db, env);
-  const rows = db.prepare('SELECT n.anchor, n.version, n.body FROM flow_notes n WHERE n.env = ? AND n.version = (SELECT MAX(version) FROM flow_notes WHERE env = n.env AND anchor = n.anchor)').all(env) as unknown as R[];
-  return Object.fromEntries(rows.filter((r) => plainText(r.body)).map((r) => [r.anchor, r.version]));
+  return sinceWrite(db, `notes-index|${env}`, () => { // the text check of every flow's latest version runs once between writes (F6)
+    const rows = db.prepare('SELECT n.anchor, n.version, n.body FROM flow_notes n WHERE n.env = ? AND n.version = (SELECT MAX(version) FROM flow_notes WHERE env = n.env AND anchor = n.anchor)').all(env) as unknown as R[];
+    return Object.fromEntries(rows.filter((r) => plainText(r.body)).map((r) => [r.anchor, r.version]));
+  });
 }
 
 export interface SampleNotes { service: string; ingress: string; author: string; body: string; ago?: number; versions?: { author: string; body: string; ago?: number }[] }

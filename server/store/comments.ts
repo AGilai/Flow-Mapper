@@ -4,10 +4,9 @@
 // comments, sealed ones too: they are annotations, like descriptions.
 
 import type { DB } from '../db/connection.ts';
-import { tx } from '../db/connection.ts';
 import type { GraphIndex } from '../../core/graph-index.ts';
-import { trace } from '../../core/trace.ts';
-import { HASH_TRACE, isStepKey, hasStep } from '../../core/description.ts';
+import { isStepKey } from '../../core/description.ts';
+import { requireFlow, flowSteps, hasStepIn } from './flow-check.ts';
 import { buildThread, parseFlowAnchor, flowAnchor, type CommentRow, type Thread } from '../../core/comments.ts';
 import { sanitize } from '../../core/rich-text.ts';
 import { plainText } from '../../core/rich-text-text.ts';
@@ -16,7 +15,7 @@ import { commentCreated, commentEdited, commentDeleted } from '../events/emitter
 import { type R, toRow, out, forbidden, getRow, checkEnv, bodyOf } from './comments-rows.ts';
 import { identify, type Caller } from '../identity.ts';
 import { nameIndex } from './users.ts';
-import { resolveMentions, syncMentions, markSeen } from './mentions.ts';
+import { resolveMentions, syncMentions } from './mentions.ts';
 
 const bodyIn = (db: DB, b: unknown) => bodyOf(typeof b === 'string' ? resolveMentions(db, b) : b); // `@{Name}` becomes `@[id]` before the sanitizer sees it
 import { checkRange } from './comments-range.ts';
@@ -25,11 +24,6 @@ import { resolveComment } from './comments-import.ts';
 export { resolveComment };
 
 function flowOf(anchor: unknown) { const f = parseFlowAnchor(anchor); if (!f) throw badRequest("anchor must be 'flow:<service>/<ingress>'"); return f; }
-
-/** The flow's trace (the graph may be a draft's), 404 when the environment has no such flow. */
-function flowTrace(g: GraphIndex, env: string, service: string, ingress: string) {
-  return (g.model.services.length ? trace(g, { service, ingress }, HASH_TRACE) : null) ?? (() => { throw notFound(`ingress '${ingress}' of service '${service}' in env '${env}'`); })();
-}
 
 export function listThread(db: DB, env: string, anchor: string): Thread {
   checkEnv(db, env); flowOf(anchor);
@@ -53,10 +47,10 @@ export function addComment(db: DB, g: GraphIndex, env: string, i: NewComment): W
   const { service, ingress } = flowOf(i?.anchor);
   const body = bodyIn(db, i.body), x = parseImport(i);
   const who = identify(db, { userId: i.authorId, name: i.author, source: x.externalSource, externalId: x.authorExternalId }), author = who.name;
-  const t = flowTrace(g, env, service, ingress);
-  const step = i.step ?? null;
-  if (step !== null && (typeof step !== 'string' || !isStepKey(step) || !hasStep(t, step))) throw badRequest(`step '${step}' is not in the flow ${service} / ${ingress}`);
-  const range = checkRange(i.steps, step, i.parentId != null || x.parentExternalId !== null, t, `${service} / ${ingress}`); // 0.34.0
+  const step = i.step ?? null; // 404 for a missing flow is a lookup; the trace is only built (once per graph) when a step or a range is given
+  const fs = step !== null || (i.steps !== undefined && i.steps !== null) ? flowSteps(g, env, service, ingress) : (requireFlow(g, env, service, ingress), null);
+  if (step !== null && (typeof step !== 'string' || !isStepKey(step) || !hasStepIn(fs!, step))) throw badRequest(`step '${step}' is not in the flow ${service} / ${ingress}`);
+  const range = checkRange(i.steps, step, i.parentId != null || x.parentExternalId !== null, fs?.t as never, `${service} / ${ingress}`); // 0.34.0
   if (i.parentId != null && x.parentExternalId !== null) throw badRequest('give parentId or parentExternalId, not both');
   const old = x.externalId !== null ? findExternal(db, env, x.externalSource!, x.externalId) : undefined;
   if (old && old.anchor !== i.anchor) throw takenBy(old.anchor);
@@ -105,17 +99,7 @@ export function deleteComment(db: DB, env: string, id: number, author: unknown, 
   return { deleted: r.id };
 }
 
-/** A Full copy keeps the discussion: authors, times, the importer's ids, the resolved state and the reply structure (new ids). Soft-deleted rows come too, empty, so replies keep their parent. */
-export function copyComments(db: DB, from: string, to: string): Map<number, number> {
-  const ids = new Map<number, number>();
-  const ins = db.prepare('INSERT INTO comments (env, anchor, step, parent_id, author, author_id, body, created_at, edited_at, deleted_at, external_id, external_source, author_external_id, resolved_at, resolved_by, steps_from, steps_to) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
-  tx(db, () => { for (const r of db.prepare('SELECT * FROM comments WHERE env = ? ORDER BY id').all(from) as unknown as R[]) {
-    const nid = Number(ins.run(to, r.anchor, r.step, r.parent_id == null ? null : ids.get(r.parent_id) ?? null, r.author, r.author_id, r.body, r.created_at, r.edited_at, r.deleted_at, r.external_id, r.external_source, r.author_external_id, r.resolved_at, r.resolved_by, r.steps_from, r.steps_to).lastInsertRowid);
-    ids.set(r.id, nid);
-    if (!r.deleted_at) { syncMentions(db, nid, r.body, r.author_id); for (const u of (db.prepare('SELECT user_id FROM comment_mentions WHERE comment_id = ?').all(nid) as unknown as { user_id: string }[])) markSeen(db, u.user_id, [nid]); } // a copy's mentions are not news
-  } });
-  return ids;
-}
+export { copyComments } from './comments-copy.ts'; // a Full copy (perf batch 3: set-wise)
 
 /** Every row of an env, for the static preview build. */
 export const allRows = (db: DB, env: string): CommentRow[] => (db.prepare('SELECT * FROM comments WHERE env = ? ORDER BY id').all(env) as unknown as R[]).map(toRow);

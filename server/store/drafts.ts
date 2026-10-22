@@ -9,9 +9,10 @@ import { draftChanges, netOps, overlayRows, type DraftChanges, type DraftOp, typ
 import { rawHash } from '../../core/diff/normalise.ts';
 import { rowOfAnchor } from '../../core/anchors.ts';
 import { getEnvRow, guardEnv } from './envs.ts';
-import { envItemRows } from './item-rows.ts';
+import { envRowsOf, changesNow, rebase } from './env-rows-cache.ts';
 import { prepareOps } from './draft-validate.ts';
 import { assignColorsIn } from './colors.ts';
+import { sinceWrite } from './write-memo.ts';
 
 export interface DraftRow { id: number; env: string; slug: string; name: string; status: 'open' | 'applied' | 'discarded'; plan: string | null; report: string | null; created_by: string; created_at: string; updated_at: string; closed_at: string | null; closed_by: string | null }
 export interface DraftInfo {
@@ -38,26 +39,28 @@ export function loadOps(db: DB, id: number): DraftOp[] {
 /** The environment's rows with the draft's net ops laid over them, plus the ops themselves. */
 export function draftView(db: DB, env: string, slug: string) {
   const d = getDraft(db, env, slug);
-  const ops = loadOps(db, d.id), net = netOps(ops), envRows = envItemRows(db, env);
+  const ops = loadOps(db, d.id), net = netOps(ops), envRows = envRowsOf(db, env);
   return { draft: d, ops, net, envRows, rows: overlayRows(envRows, net) };
 }
 
 export function changesOf(envRows: ItemRow[], ops: DraftOp[]): DraftChanges { return draftChanges(envRows, netOps(ops), ops); }
+/** The changes of an open draft against its environment, kept until the next write (an op, an ingest, anything): the list, the info and /changes ask for the same thing. */
+export const changesFor = (db: DB, env: string, d: DraftRow): DraftChanges => sinceWrite(db, `draft-changes|${env}|${d.id}`, () => changesOf(envRowsOf(db, env), loadOps(db, d.id)));
 
-function info(db: DB, d: DraftRow, envRows: ItemRow[]): DraftInfo {
+/** The changes are computed only when needed: an open draft with ops (a draft with none changes nothing, so a new draft costs no read of the environment). */
+function info(db: DB, env: string, d: DraftRow): DraftInfo {
   const ops = loadOps(db, d.id);
   const closed = d.status !== 'open' && d.report ? JSON.parse(d.report).counts : null;
   return {
     id: d.id, slug: d.slug, name: d.name, status: d.status, createdBy: d.created_by, createdAt: d.created_at, updatedAt: d.updated_at, closedAt: d.closed_at,
-    ops: ops.length, authors: [...new Set(ops.map((o) => o.author))], counts: closed ?? (d.status === 'open' ? changesOf(envRows, ops).counts : { added: 0, removed: 0, changed: 0 }),
+    ops: ops.length, authors: [...new Set(ops.map((o) => o.author))], counts: closed ?? (d.status === 'open' ? (ops.length ? changesFor(db, env, d).counts : changesOf([], ops).counts) : { added: 0, removed: 0, changed: 0 }),
   };
 }
-export const draftInfo = (db: DB, env: string, d: DraftRow): DraftInfo => info(db, d, d.status === 'open' ? envItemRows(db, env) : []);
+export const draftInfo = (db: DB, env: string, d: DraftRow): DraftInfo => info(db, env, d);
 
 export function listDrafts(db: DB, env: string, status: 'open' | 'all' = 'open'): DraftInfo[] {
   const rows = db.prepare(`SELECT * FROM drafts WHERE env = ? ${status === 'open' ? "AND status = 'open'" : ''} ORDER BY id`).all(env) as unknown as DraftRow[];
-  const envRows = rows.some((r) => r.status === 'open') ? envItemRows(db, env) : [];
-  return rows.map((r) => info(db, r, envRows));
+  return rows.map((r) => info(db, env, r));
 }
 
 function slugFor(db: DB, env: string, name: string, wanted?: string): string {
@@ -99,7 +102,7 @@ export function discardDraft(db: DB, env: string, slug: string, by = 'anonymous'
   return tx(db, () => {
     guardEnv(db, env, 'draft');
     const d = getDraft(db, env, slug);
-    const counts = changesOf(envItemRows(db, env), loadOps(db, d.id)).counts, at = now();
+    const counts = changesOf(envRowsOf(db, env), loadOps(db, d.id)).counts, at = now();
     db.prepare("UPDATE drafts SET status = 'discarded', closed_at = ?, closed_by = ?, updated_at = ?, report = ? WHERE id = ?").run(at, by.slice(0, 80), at, JSON.stringify({ discarded: true, counts }), d.id);
     return { discarded: slug };
   });
@@ -107,10 +110,13 @@ export function discardDraft(db: DB, env: string, slug: string, by = 'anonymous'
 
 /** Append ops (validated against the overlay so far, all or nothing). seq = MAX(seq)+1 inside the transaction. */
 export function appendOps(db: DB, env: string, slug: string, inputs: DraftOpInput[], who: { author?: string; byAi?: boolean; origins?: (OpOrigin | null)[] } = {}) {
-  return tx(db, () => {
+  envRowsOf(db, env); // outside the transaction, so a first read is kept (F8); inside it is a hit
+  let rowsRead: ItemRow[] | null = null, tcRead = 0;
+  const out = tx(db, () => {
     guardEnv(db, env, 'draft');
     const d = getDraft(db, env, slug);
-    const envRows = envItemRows(db, env), prior = loadOps(db, d.id);
+    const envRows = rowsRead = envRowsOf(db, env), prior = loadOps(db, d.id);
+    tcRead = changesNow(db);
     const overlay = new Map(overlayRows(envRows, netOps(prior)).map((r) => [rowId(r), r]));
     const prepared = prepareOps(overlay, inputs, { groups: (JSON.parse(getEnvRow(db, env)!.groups) as { key: string }[]).map((g) => g.key) });
     const envMap = new Map(envRows.map((r) => [rowId(r), r]));
@@ -128,6 +134,8 @@ export function appendOps(db: DB, env: string, slug: string, inputs: DraftOpInpu
     db.prepare('UPDATE drafts SET updated_at = ? WHERE id = ?').run(at, d.id);
     return { from, to: seq, counts: changesOf(envRows, loadOps(db, d.id)).counts };
   });
+  if (rowsRead) rebase(db, env, rowsRead, tcRead); // the writes were draft ops (and env colours): the cached rows are still the environment's
+  return out;
 }
 
 export function undoLast(db: DB, env: string, slug: string) {
