@@ -107,6 +107,7 @@ const remote = {
   commentCounts: (env) => get(`/api/envs/${e(env)}/comments/counts`),
   addComment: (env, body) => http('POST', `/api/envs/${e(env)}/comments${qs({ draft: state.draft })}`, body),
   editComment: (env, id, body) => http('PATCH', `/api/envs/${e(env)}/comments/${id}`, body),
+  resolveComment: (env, id, body) => http('PATCH', `/api/envs/${e(env)}/comments/${id}`, body), // { actor, resolved } (0.29.2)
   deleteComment: (env, id, author) => http('DELETE', `/api/envs/${e(env)}/comments/${id}${qs({ author })}`),
   actionItems: (env, anchor) => get(`/api/envs/${e(env)}/action-items${qs({ anchor })}`),
   actionCounts: (env) => get(`/api/envs/${e(env)}/action-items/counts`),

@@ -153,7 +153,7 @@ const MCP_DRAFT: Record<string, (e: string, slug: string) => any> = {
   apply_plan_links: (env, draft) => ({ env, draft }),
   import_mermaid: (env, draft) => ({ env, draft, text: 'sequenceDiagram\nA->>B: x' }),
 };
-const MCP_EXEMPT = new Set(['set_description', 'set_flow_name', 'report_bug', 'update_bug', 'create_env', 'add_comment', 'add_action_item', 'update_action_item', 'set_subsystem_settings', 'set_levels']);
+const MCP_EXEMPT = new Set(['set_description', 'set_flow_name', 'report_bug', 'update_bug', 'create_env', 'add_comment', 'resolve_comment', 'add_action_item', 'update_action_item', 'set_subsystem_settings', 'set_levels']);
 
 const mcp = async (name: string, args: any) => {
   const r = await app.call('POST', '/mcp', { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } });

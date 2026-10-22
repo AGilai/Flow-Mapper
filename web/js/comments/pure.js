@@ -26,3 +26,9 @@ export const textToHtml = (t, esc) => String(t).replace(/\r\n?/g, '\n').split(/\
 
 /** Whether the Comments section starts open once its thread is loaded: an empty one starts collapsed to its header, unless a comment is attached to the step the viewer arrived on (a step deep-link); otherwise the remembered state. */
 export const startsOpen = ({ count, remembered, stepKey = null, comments = [] }) => (!count ? false : remembered || (stepKey != null && comments.some((c) => c.step === stepKey || c.replies?.some((r) => r.step === stepKey))));
+
+/** What the section shows: resolved top threads (with their replies) are hidden unless `show`. `count` is the live comments shown, replies included. */
+export function visibleThread(thread, show) {
+  const comments = show ? thread.comments : thread.comments.filter((c) => !c.resolved);
+  return { comments, count: comments.reduce((n, c) => n + (c.deleted ? 0 : 1) + c.replies.length, 0) };
+}
