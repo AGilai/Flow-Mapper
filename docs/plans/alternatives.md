@@ -224,3 +224,10 @@ Steps 1–3 change no drawing for flows without lambdas or alternatives when `de
 - **Links:** locks never go into the URL, because they come from the data.
 - **Flows without decisions:** no chip, and the header is unchanged apart from the small External | Full switch.
 - **"⊕ internal":** shown on lifeline hover or focus, and always visible on touch.
+
+## Rule change from the Loader side (#82 comment 225, 2026-10-22), for 0.38.1
+`alternatives` now carries only if/else where BOTH arms lead to a flow. Two new step markers, both under `details` (no schema change):
+- `details.can_fail: [{when, error, source:{file,line}}]` on a success step. Draw a small "can fail: <error>" marker on the step: a tag next to the step label, with when, error and file:line in a tooltip. Several entries collapse to "can fail (2)". No dropdown. Show it in the step details panel too.
+- `details.only_when: {guard, source}` on each step of the arm that remains. Draw "only when <guard>", clipped, full text on hover. Consecutive steps that share the same guard get one marker on the first step plus a thin gutter line across the run. No dropdown. Show it in step details too.
+- The trace API passes both through on the message (`canFail`, `onlyWhen`, read from details). MCP trace_flow returns them too. Mermaid export writes them as `Note over` lines.
+- Both markers show in External and Full, and when the step is folded into a DB group.
