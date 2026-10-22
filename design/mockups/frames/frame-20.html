@@ -1,0 +1,591 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frame 20 · The flow bottom pane</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../shared.css">
+<style>
+/* ---------- Frame 20: the flow's bottom pane (tabs, discussions, step-range brackets) ---------- */
+:root { --step-hl: #fdf1b8; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) { --step-hl: #4a4222; } }
+:root[data-theme='dark'], .force-dark { --step-hl: #4a4222; }
+.f20 { color: var(--ink); }
+.f20 svg.ic { width: 13px; height: 13px; flex: none; }
+/* avatars and chips (same as frame 18) */
+.f20-av { width: 28px; height: 28px; border-radius: 50%; flex: none; display: grid; place-items: center; font: 700 10.5px var(--font); color: var(--c, var(--ink-2)); background: color-mix(in srgb, var(--c, var(--ink-2)) 16%, var(--surface)); border: 1px solid color-mix(in srgb, var(--c, var(--ink-2)) 45%, var(--surface)); }
+.f20-av.s { width: 22px; height: 22px; font-size: 9px; }
+.f20-avs { display: inline-flex; } .f20-avs .f20-av + .f20-av { margin-left: -6px; box-shadow: 0 0 0 2px var(--surface); }
+.f20-chip { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 10px; font: 600 var(--fs-sm)/1 var(--font); background: color-mix(in srgb, var(--accent) 11%, var(--surface)); color: var(--accent); white-space: nowrap; }
+.f20-chip.me { background: var(--accent); color: var(--surface); }
+/* pane + tabs */
+.f20-pane { background: var(--surface); border-top: 1px solid var(--line); color: var(--ink); position: relative; }
+.f20-tabs { display: flex; align-items: flex-end; gap: 2px; padding: 0 var(--s4); border-bottom: 1px solid var(--line); position: relative; }
+.f20-tab { padding: 11px 12px 9px; font-size: var(--fs-sm); font-weight: 500; color: var(--ink-2); border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; display: inline-flex; gap: 5px; align-items: baseline; }
+.f20-tab small { font-size: var(--fs-xs); color: var(--muted); font-weight: 400; }
+.f20-tab.on { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; } .f20-tab.on small { color: var(--accent); }
+.f20-tab.foc { outline: 2px solid var(--focus); outline-offset: -3px; border-radius: 6px 6px 0 0; }
+.f20-sp { flex: 1; }
+.f20-add { display: inline-flex; align-self: center; margin: 0 0 1px; height: 28px; border: 1px solid var(--accent); border-radius: var(--r-sm); background: var(--accent); color: var(--surface); font-size: var(--fs-sm); font-weight: 600; white-space: nowrap; position: relative; }
+.f20-add > span { display: inline-flex; align-items: center; padding: 0 10px; }
+.f20-add > span + span { border-left: 1px solid color-mix(in srgb, var(--surface) 45%, transparent); padding: 0 7px; font-size: 10px; }
+.f20-add.open > span + span { background: color-mix(in srgb, var(--ink) 18%, transparent); border-radius: 0 5px 5px 0; }
+.f20-menu { position: absolute; z-index: 8; right: 0; top: 32px; width: 262px; background: var(--surface); color: var(--ink); border: 1px solid var(--line-strong); border-radius: var(--r-md); box-shadow: var(--shadow-panel); padding: 4px; font-weight: 400; }
+.f20-menu .o { display: flex; align-items: center; gap: 9px; padding: 6px 8px; border-radius: 5px; font-size: var(--fs-sm); }
+.f20-menu .o.h { background: var(--accent-soft); } .f20-menu .o b { font-weight: 600; }
+.f20-menu .o small { margin-left: auto; color: var(--muted); font-size: 10.5px; }
+.f20-menu .o i { font-style: normal; width: 16px; text-align: center; color: var(--accent); font-weight: 700; }
+  .f20-menu .n { white-space: normal; border-top: 1px solid var(--line); margin-top: 4px; padding: 6px 8px 3px; font-size: 10.5px; color: var(--muted); line-height: 1.4; }
+.f20-body { padding: var(--s4); min-height: 120px; position: relative; }
+.f20-url { padding: 6px var(--s4); border-top: 1px solid var(--line); background: var(--surface-2); font: 400 10.5px var(--mono); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.f20-url b { color: var(--ink-2); font-weight: 500; }
+.f20 .cm-list { margin-top: 0; }
+.f20 .cm { grid-template-columns: 28px minmax(0, 1fr); }
+.f20 .cm-act span.x { color: var(--accent); }
+.f20-ev { display: flex; gap: 8px; align-items: baseline; font-size: var(--fs-xs); color: var(--muted); padding-left: 38px; margin-top: 4px; }
+.f20-ev::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--line-strong); align-self: center; }
+.f20-xl { display: inline-flex; align-items: center; gap: 4px; height: 18px; padding: 0 6px; border-radius: 5px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--accent); font: 600 10.5px var(--font); white-space: nowrap; }
+.f20-xl.on { outline: 2px solid var(--focus); outline-offset: 1px; border-color: var(--accent); }
+.f20-outl { outline: 2px solid var(--focus); outline-offset: -2px; background: color-mix(in srgb, var(--accent) 6%, var(--surface)); }
+.f20-cmo { outline: 2px solid var(--focus); outline-offset: 5px; border-radius: 4px; }
+/* discussions list */
+.f20-dl { border: 1px solid var(--line); border-radius: var(--r-sm); font-size: var(--fs-sm); overflow: hidden; }
+.f20-dr { display: grid; grid-template-columns: minmax(0, 1fr) 78px 64px 92px 104px; gap: var(--s3); align-items: center; padding: 9px var(--s3); border-top: 1px solid var(--line); }
+.f20-dr:first-child { border-top: 0; }
+.f20-dr.h { background: var(--surface-2); color: var(--muted); font-size: var(--fs-xs); font-weight: 600; padding: 5px var(--s3); }
+.f20-dr.hov { background: var(--accent-soft); }
+.f20-dr .t { min-width: 0; } .f20-dr .t b { font-weight: 600; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.f20-dr .t small { display: flex; gap: 8px; align-items: center; color: var(--muted); font-size: var(--fs-xs); margin-top: 2px; white-space: nowrap; overflow: hidden; }
+.f20-dr .rp { font-size: var(--fs-xs); color: var(--ink-2); display: inline-flex; align-items: center; gap: 4px; }
+.f20-dr .la { font-size: var(--fs-xs); color: var(--muted); white-space: nowrap; }
+.f20-dr.res .t b, .f20-dr.res .rp { color: var(--muted); }
+.f20-st { display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 8px; border-radius: 10px; border: 1px solid var(--line-strong); font: 600 var(--fs-xs) var(--font); white-space: nowrap; width: max-content; }
+.f20-st::before { content: ''; width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid currentColor; }
+.f20-st.open { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+.f20-st.res { color: var(--ok); border-color: var(--ok); background: color-mix(in srgb, var(--ok) 10%, var(--surface)); } .f20-st.res::before { background: currentColor; }
+.f20-sec-h { font-size: 10.5px; letter-spacing: .02em; text-transform: uppercase; font-weight: 600; color: var(--muted); padding: 7px var(--s3) 4px; background: var(--surface); border-top: 1px solid var(--line); }
+.f20-rng { display: inline-flex; align-items: center; gap: 4px; height: 18px; padding: 0 7px 0 5px; border-radius: 9px; border: 1px solid color-mix(in srgb, var(--new-ink) 50%, var(--line-strong)); background: color-mix(in srgb, var(--step-hl) 70%, var(--surface)); color: var(--ink); font: 600 10.5px var(--font); white-space: nowrap; }
+.f20-rng svg { width: 8px; height: 11px; }
+.f20-rng.on { outline: 2px solid var(--focus); outline-offset: 1px; background: var(--step-hl); }
+.f20-back { display: inline-flex; gap: 6px; align-items: center; font-size: var(--fs-sm); color: var(--accent); font-weight: 500; }
+.f20-th { display: flex; gap: 10px 12px; align-items: center; flex-wrap: wrap; margin: 8px 0 14px; }
+.f20-th h3 { font: 700 var(--fs-lg)/1.3 var(--font); flex: 1 1 260px; min-width: 0; }
+.f20-in { border: 1px solid var(--line-strong); border-radius: var(--r-sm); background: var(--surface); padding: 6px 10px; font-size: var(--fs-sm); color: var(--ink); line-height: 1.45; }
+.f20-in.foc { border-color: var(--focus); outline: 2px solid var(--focus); outline-offset: -1px; }
+.f20-in.ph { color: var(--muted); }
+.f20 .caret { display: inline-block; width: 1.5px; height: 14px; background: var(--ink); vertical-align: -2px; margin-left: 1px; }
+.f20-tb { display: flex; gap: 2px; padding: 4px 6px; border-bottom: 1px solid var(--line); background: var(--surface-2); border-radius: 5px 5px 0 0; font-size: var(--fs-sm); color: var(--ink-2); }
+.f20-tb span { width: 24px; height: 22px; display: grid; place-items: center; border-radius: 4px; }
+.f20-fl { display: block; font-size: var(--fs-xs); font-weight: 600; color: var(--ink-2); margin: 10px 0 3px; } .f20-fl small { font-weight: 400; color: var(--muted); margin-left: 4px; }
+.f20-empty { text-align: center; padding: var(--s6) var(--s3); color: var(--ink-2); font-size: var(--fs-sm); border: 1px dashed var(--line-strong); border-radius: var(--r-sm); }
+.f20-empty .abtn { margin-top: 8px; }
+.f20-two { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: var(--s4); align-items: start; }
+.f20-two .window { min-width: 0; }
+.f20-two h4 { font-size: var(--fs-sm); margin: 0 0 6px; }
+.f20-toast { position: absolute; right: 16px; bottom: 12px; z-index: 6; background: var(--ink); color: var(--surface); border-radius: var(--r-sm); padding: 7px 12px; font-size: var(--fs-xs); box-shadow: var(--shadow-panel); }
+.f20-toast a { color: inherit; text-decoration: underline; font-weight: 600; margin-left: 8px; }
+.f20-pop { position: absolute; z-index: 8; width: 330px; background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-md); box-shadow: var(--shadow-panel); padding: 10px 12px; font-size: var(--fs-sm); color: var(--ink); }
+/* diagram */
+.f20-dg { position: relative; background: var(--paper); overflow: hidden; }
+.f20-g { position: absolute; left: 0; top: 0; bottom: 0; }
+.f20-bd { position: absolute; left: var(--gw); right: 0; top: 0; bottom: 0; }
+.f20-hd { position: absolute; top: 7px; transform: translateX(-50%); font: 500 var(--fs-xs) var(--mono); padding: 3px 9px; border: 1px solid var(--line-strong); border-radius: 5px; background: var(--surface); white-space: nowrap; z-index: 3; }
+.f20-ll { position: absolute; top: 34px; bottom: 0; border-left: 1px dashed var(--line-strong); z-index: 1; }
+.f20-band { position: absolute; left: 0; right: 0; background: var(--step-hl); z-index: 0; }
+.f20-row { position: absolute; left: 0; right: 0; z-index: 2; }
+.f20-lab { position: absolute; top: 3px; font: 500 var(--fs-xs)/15px var(--mono); color: var(--t-http); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.f20-lab.ret { color: var(--ink-2); }
+.f20-lab .tt { display: block; font: 650 var(--fs-sm)/16px var(--font); color: var(--ink); overflow: hidden; text-overflow: ellipsis; }
+.f20-ar { position: absolute; height: 0; border-top: 1.5px solid var(--t-http); }
+.f20-ar.ret { border-top: 1.5px dashed var(--ink-2); }
+.f20-ar::after { content: ''; position: absolute; top: -5px; right: -1px; border: 4px solid transparent; border-left: 7px solid var(--t-http); border-right: 0; }
+.f20-ar.ret::after { border-left-color: var(--ink-2); }
+.f20-ar.rtl::after { right: auto; left: -1px; border-left: 0; border-right: 7px solid var(--ink-2); }
+.f20-nb { position: absolute; width: 16px; height: 16px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); border: 1px solid var(--line-strong); font: 600 10px var(--font); color: var(--ink-2); }
+.f20-nb.cur { background: var(--ink); border-color: var(--ink); color: var(--surface); }
+.f20-nb.sel { outline: 2px solid var(--focus); outline-offset: 1px; background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.f20-fr { position: absolute; border: 1px solid var(--line-strong); border-radius: 4px; z-index: 1; }
+.f20-fr.alt { border-style: dashed; }
+.f20-fr > b { position: absolute; right: -1px; top: -1px; font: 600 10px/14px var(--font); padding: 0 6px; background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 0 4px 0 4px; color: var(--ink-2); white-space: nowrap; }
+.f20-note { position: absolute; z-index: 2; background: color-mix(in srgb, var(--new) 14%, var(--surface)); border: 1px solid color-mix(in srgb, var(--new-ink) 40%, var(--line-strong)); border-radius: 3px; font-size: var(--fs-xs); padding: 4px 8px; color: var(--ink); line-height: 1.35; }
+.f20-mk { position: absolute; left: 0; width: 4px; z-index: 3; }
+.f20-mk.new { background: var(--new); } .f20-mk.chg { background: var(--new-ink); }
+/* brackets in the gutter */
+.f20-bk { position: absolute; width: 6px; border: 2px solid var(--accent); border-right: 0; border-radius: 3px 0 0 3px; z-index: 5; }
+.f20-bk.hot { border-color: var(--accent); border-width: 3px; width: 7px; filter: drop-shadow(0 0 0 var(--accent)); }
+.f20-bb { position: absolute; z-index: 6; min-width: 20px; height: 15px; padding: 0 4px; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; border: 1.5px solid var(--accent); background: var(--surface); color: var(--accent); font: 700 9.5px/1 var(--font); }
+.f20-bb::after { content: ''; position: absolute; left: 5px; bottom: -5px; border: 3px solid transparent; border-top: 3px solid var(--accent); border-bottom: 0; }
+.f20-bb.hot { background: var(--accent); color: var(--surface); }
+.f20-more { position: absolute; z-index: 6; height: 15px; padding: 0 4px; border-radius: 8px; background: var(--ink); color: var(--surface); font: 700 9.5px/15px var(--font); }
+.f20-sbk { position: absolute; width: 8px; border: 2px dashed var(--accent); border-right: 0; border-radius: 3px 0 0 3px; z-index: 5; background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.f20-hdl { position: absolute; z-index: 6; width: 10px; height: 10px; border-radius: 50%; background: var(--surface); border: 2px solid var(--accent); }
+.f20-tip { position: absolute; z-index: 9; background: var(--ink); color: var(--surface); border-radius: var(--r-sm); padding: 7px 10px; font-size: var(--fs-xs); line-height: 1.45; box-shadow: var(--shadow-panel); width: 250px; }
+.f20-tip b { font-weight: 600; } .f20-tip i { font-style: normal; opacity: .75; }
+.f20-sd { position: absolute; z-index: 9; right: 12px; top: 44px; width: 300px; background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-md); box-shadow: var(--shadow-panel); padding: 8px; font-size: var(--fs-sm); color: var(--ink); }
+.f20-sd h5 { margin: 2px 6px 4px; font-size: var(--fs-xs); font-weight: 600; color: var(--muted); }
+.f20-sd label { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 5px; }
+.f20-sd label.new { background: var(--accent-soft); }
+.f20-sd label small { margin-left: auto; color: var(--muted); font-size: 10.5px; }
+.f20-cb { width: 14px; height: 14px; border: 1.5px solid var(--line-strong); border-radius: 3px; display: inline-grid; place-items: center; font-size: 10px; line-height: 1; color: var(--surface); background: var(--surface); }
+.f20-cb.on { background: var(--accent); border-color: var(--accent); }
+.f20-tbr { display: flex; gap: var(--s3); align-items: center; padding: 6px var(--s4); background: var(--surface); border-bottom: 1px solid var(--line); font-size: var(--fs-xs); color: var(--ink-2); position: relative; }
+.f20-sdb { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 10px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); background: var(--surface); color: var(--ink-2); font-size: var(--fs-xs); margin-left: auto; }
+.f20-sdb.on { border-color: var(--accent); outline: 2px solid var(--focus); outline-offset: 1px; } .f20-sdb b { color: var(--ink); }
+.f20-cur { position: absolute; z-index: 10; width: 14px; height: 14px; }
+.f20-ra { color: var(--muted); font-size: 10.5px; position: absolute; right: 12px; top: 10px; z-index: 4; }
+/* 760 */
+.f20.w760 .f20-dr { grid-template-columns: minmax(0, 1fr) 78px 60px 84px; } .f20.w760 .f20-dr > .la, .f20.w760 .f20-dr.h > span:last-child { display: none; }
+.f20.w760 .f20-tab { padding-left: 9px; padding-right: 9px; }
+.f20-sel { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; margin: 6px 0; border: 1px solid var(--line-strong); border-radius: var(--r-sm); background: var(--surface); font-size: var(--fs-sm); font-weight: 600; }
+.f20 ol.f20-key { margin: var(--s3) 0 0; padding-left: 0; list-style: none; font-size: var(--fs-sm); color: var(--ink-2); display: grid; gap: 6px; max-width: 110ch; }
+.f20 ol.f20-key li { display: grid; grid-template-columns: 24px 1fr; align-items: baseline; } .f20 ol.f20-key b { color: var(--ink); font-weight: 600; }
+.f20-n { display: inline-grid; place-items: center; width: 15px; height: 15px; border-radius: 50%; background: var(--ink); color: var(--surface); font: 700 9.5px/1 var(--font); }
+.f20-rules { max-width: 1180px; } .f20-rules h3 { margin: var(--s5) 0 6px; font-size: var(--fs-md); }
+.f20-rules ul, .f20-rules ol { margin: 0; padding-left: 20px; font-size: var(--fs-sm); color: var(--ink-2); display: grid; gap: 6px; }
+.f20-rules b { color: var(--ink); font-weight: 600; }
+.f20-rules pre { margin: 6px 0 0; padding: 10px 12px; background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-sm); font: 400 12px/1.5 var(--mono); color: var(--ink); overflow-x: auto; }
+
+/* notes */
+.f20-nt { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s5); }
+.f20-nt.ol { grid-template-columns: minmax(0, 1fr) 210px; }
+.f20-doc { max-width: 84ch; font-size: var(--fs-md); line-height: 1.6; color: var(--ink); }
+.f20-doc h2 { font: 700 var(--fs-lg)/1.3 var(--font); margin: 22px 0 6px; letter-spacing: -.01em; } .f20-doc h2:first-of-type { margin-top: 8px; }
+.f20-doc h3 { font: 650 var(--fs-md)/1.3 var(--font); margin: 14px 0 4px; color: var(--ink); }
+.f20-doc p { margin: 4px 0; color: var(--ink); } .f20-doc ul, .f20-doc ol { margin: 4px 0; padding-left: 22px; } .f20-doc li { margin: 2px 0; }
+.f20-doc table { border-collapse: collapse; margin: 8px 0; font-size: var(--fs-sm); }
+.f20-doc th, .f20-doc td { border: 1px solid var(--line-strong); padding: 4px 10px; text-align: left; } .f20-doc th { background: var(--surface-2); font-weight: 600; }
+.f20-doc .ph { color: var(--muted); font-style: italic; }
+.f20-doc .cc { color: var(--cmp-5); font-weight: 600; }
+.f20-sc { display: inline-flex; align-items: center; gap: 3px; height: 18px; padding: 0 7px; border-radius: 9px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--accent); font: 600 10.5px var(--font); white-space: nowrap; vertical-align: 1px; word-spacing: 2px; margin: 0 1px; }
+.f20-sc.on { background: var(--accent-soft); border-color: var(--accent); }
+.f20-sc.gone { color: var(--muted); border-style: dashed; font-style: italic; font-weight: 500; }
+.f20-meta { display: flex; gap: 8px 12px; align-items: center; flex-wrap: wrap; font-size: var(--fs-xs); color: var(--muted); padding-bottom: 10px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+.f20-meta > span:first-child { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; } .f20-meta b { color: var(--ink-2); font-weight: 600; } .f20-meta .r { margin-left: auto; display: inline-flex; gap: 8px; }
+.f20-ol { position: sticky; top: 8px; align-self: start; border-left: 1px solid var(--line); padding-left: 14px; font-size: var(--fs-xs); display: grid; gap: 7px; }
+.f20-ol h5 { margin: 0 0 2px; font-size: 10.5px; letter-spacing: .02em; text-transform: uppercase; font-weight: 600; color: var(--muted); }
+.f20-ol span { color: var(--ink-2); } .f20-ol span.s { padding-left: 12px; color: var(--muted); } .f20-ol span.on { color: var(--accent); font-weight: 600; }
+.f20-etb { display: flex; gap: 2px; align-items: center; flex-wrap: wrap; padding: 4px 6px; background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 6px 6px 0 0; font-size: var(--fs-sm); color: var(--ink-2); }
+.f20-etb > span { min-width: 26px; height: 24px; padding: 0 5px; display: grid; place-items: center; border-radius: 4px; white-space: nowrap; }
+.f20-etb > span.on { background: var(--accent-soft); color: var(--accent); }
+.f20-etb .sep { width: 1px; min-width: 0; padding: 0; height: 16px; background: var(--line-strong); margin: 0 4px; }
+.f20-etb .hs { border: 1px solid var(--line-strong); background: var(--surface); padding: 0 8px; }
+.f20-ed { border: 1px solid var(--line-strong); border-top: 0; border-radius: 0 0 6px 6px; padding: 8px 14px 16px; background: var(--surface); outline: 2px solid var(--focus); outline-offset: -1px; }
+.f20-btns { display: inline-flex; gap: 6px; align-self: center; margin-bottom: 1px; }
+.f20-hist { display: grid; grid-template-columns: 250px minmax(0, 1fr); border: 1px solid var(--line); border-radius: var(--r-sm); overflow: hidden; }
+.f20-vl { border-right: 1px solid var(--line); background: var(--surface-2); font-size: var(--fs-sm); }
+.f20-v { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 8px; padding: 8px 10px; border-top: 1px solid var(--line); align-items: center; } .f20-v:first-child { border-top: 0; }
+.f20-v.on { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+.f20-v b { font-weight: 600; } .f20-v small { display: block; color: var(--muted); font-size: var(--fs-xs); }
+.f20-df { padding: 12px 16px; font-size: var(--fs-sm); }
+.f20-dh { display: flex; gap: 8px 12px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+.f20-dh .seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: var(--r-sm); overflow: hidden; font-size: var(--fs-xs); } .f20-dh .seg span { padding: 3px 10px; color: var(--ink-2); } .f20-dh .seg .on { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.f20-dd { line-height: 1.6; max-width: 80ch; }
+.f20-dd p, .f20-dd h4 { margin: 2px 0; padding: 1px 8px 1px 10px; border-left: 3px solid transparent; font-size: var(--fs-sm); } .f20-dd h4 { font-weight: 700; font-size: var(--fs-md); margin-top: 8px; }
+.f20-dd .ad { background: color-mix(in srgb, var(--ok) 13%, var(--surface)); border-left-color: var(--ok); } .f20-dd .rm { background: color-mix(in srgb, var(--bad) 11%, var(--surface)); border-left-color: var(--bad); color: var(--ink-2); }
+.f20-dd .rm s { text-decoration-color: var(--bad); } .f20-dd .un { color: var(--muted); }
+.f20-dd ins { text-decoration: none; background: color-mix(in srgb, var(--ok) 28%, transparent); border-radius: 2px; } .f20-dd del { background: color-mix(in srgb, var(--bad) 24%, transparent); border-radius: 2px; }
+.f20-mx { position: relative; }
+.f20-xp { position: absolute; right: 14px; top: 10px; z-index: 4; display: inline-flex; gap: 6px; align-items: center; height: 28px; padding: 0 12px; border-radius: 14px; background: var(--ink); color: var(--surface); font-size: var(--fs-xs); font-weight: 600; }
+.f20-xp kbd { font: 500 10.5px var(--mono); opacity: .75; }
+.f20-rs { display: flex; gap: 8px; align-items: baseline; font-size: var(--fs-xs); color: var(--muted); border: 1px dashed var(--line-strong); border-radius: var(--r-sm); padding: 7px 10px; }
+.f20-tag { display: inline-flex; height: 18px; align-items: center; padding: 0 7px; border-radius: 9px; font: 600 10.5px var(--font); border: 1px solid var(--accent); color: var(--accent); background: var(--accent-soft); }
+.f20-tag.res { border-color: var(--ok); color: var(--ok); background: color-mix(in srgb, var(--ok) 10%, var(--surface)); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="f20-brk" viewBox="0 0 8 11"><path d="M7 1.5H2v8h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="f20-msg" viewBox="0 0 14 13"><path d="M2 1.5h10a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H6l-3 2.5V9.5H2a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></symbol>
+<symbol id="f20-left" viewBox="0 0 12 12"><path d="M7.5 2 3.5 6l4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</defs></svg>
+<nav class="fbar" aria-label="Design navigation"><a href="../design-env.html">← All designs</a><span class="pos">Frame 20 of 20</span><a href="frame-19.html">‹ prev</a><a href="spec.html">Spec ›</a><span class="chip chip-awaiting">Awaiting approval</span><div class="theme" role="group" aria-label="Theme"><button data-t="system" aria-pressed="true">System</button><button data-t="light" aria-pressed="false">Light</button><button data-t="dark" aria-pressed="false">Dark</button></div></nav>
+
+<div class="frame-label">
+  <h2>Frame 20. The flow's bottom pane: Notes, Comments and Action items, with step-range comments (new)</h2>
+  <p>Maintainer (2026-10-22): the bottom pane under the diagram stacks two collapsible sections, Action items (frame 15) and Comments (frame 13). Make them <b>tabs on one row</b> and add a first tab, <b>Notes</b>: one long-form write-up per flow, like a Confluence page or a Word section (explanation, rationale, background). There is no separate “discussion” type: points under discussion are Comments and Action items. A comment can be <b>anchored to a range of steps</b>, drawn as a thin bracket in the diagram's left gutter.</p>
+  <ol class="decisions">
+    <li><b>One tab row</b>: <span class="mono">Notes · Comments (6) · Action items (3 open · 5)</span>. Comment count includes replies (frame 13); action items show open and total (frame 15); Notes has no count (it is one document; the page shows who edited it last). One body is open at a time; the collapsible sections go away.</li>
+    <li><b>Remembered twice</b>: URL <span class="mono">pane=notes|comments|actions</span> and per viewer per flow (try/catch localStorage); the URL wins, so a shared link lands on the sender's tab. With nothing remembered the pane opens on Notes if the flow has notes, else Comments. Deep targets: <span class="mono">item=4</span>, <span class="mono">c=12</span>, <span class="mono">edit=1</span>, <span class="mono">history=6</span>.</li>
+    <li><b>Notes is ONE rich document per flow.</b> It opens read-only; <b>Edit</b> (the button at the end of the tab row) switches to writing. It shows “Edited by Dana Levi · 2 h ago”, a version number and History. At 1280 px and wider an outline of the H2/H3 headings sits on the right (sticky, current section in accent); below that it is hidden. Maximize (frame 16) is the best way to read it (20a, second window).</li>
+    <li><b>Context-aware button at the right end of the row</b>: on Notes it reads <b>✎ Edit</b>; on Comments “+ Add comment”; on Action items “+ Add action item”. The ▾ always offers Comment and Action item and adds them <b>without switching tab</b> (a small form opens under the button; a toast “Comment added · View” links to it). “Make action item” on a comment stays.</li>
+    <li><b>Cross-links switch tabs</b> and outline the target (2 px focus ring, fades after 2 s): the comment's “created action #4” opens Action items with #4 outlined; the item's “from Dana's comment” opens Comments with that comment outlined. A “step 4” chip in Notes jumps to the step on the diagram.</li>
+    <li><b>A bracket, never a box.</b> “Comment on steps 4–9” anchors a comment to a range. The diagram gets only a thin bracket in the left gutter with a small speech-bubble count. Hover or click it: the steps take the light-yellow band (the 0.32.5 current-step token, no border) and the Comments tab opens with that comment outlined. The comment's pill reads “steps 4–9” and re-highlights on hover. Resolved comments hide their bracket. The layer toggle “Comment brackets” lives in Step details (on in design environments, off in harvested).</li>
+  </ol>
+</div>
+
+<div class="frame-label"><h3 style="font-size:var(--fs-md)">20a. Notes tab, read mode, with the outline</h3><p>The document is set at 84 characters wide for reading, with H2 (18 px bold), H3 (14.5 px semibold), body 14.5 px. “step N” chips are link-coloured pills; clicking one scrolls the diagram to that step and selects it; a range chip (“steps 4–9”) also lays the yellow band. @mentions are the frame 18 chips. The meta line carries the editor, the version and the History button. The outline appears only at ≥ 1280 px (drawn here); this window is the design page's 1240 px, so treat the outline as the wide layout.</p></div>
+<div class="stage"><div class="window f20 " style=""><div class="f13mini"><span class="fh-t">Checkout</span><span class="mono xs muted">api-gateway · in.createOrder</span><span class="xs muted" style="margin-left:auto">Step 3 of 12</span></div><div class="f20-dg" style="height:318px;--gw:60px">
+<div class="f20-g" style="width:60px">
+<i class="f20-bk " style="left:9px;top:134px;height:172px"></i>
+<span class="f20-bb " style="left:2px;top:212px">3</span>
+</div>
+<div class="f20-bd">
+<span class="f20-hd" style="left:7%">client</span><i class="f20-ll" style="left:7%"></i>
+<span class="f20-hd" style="left:33%">api-gateway</span><i class="f20-ll" style="left:33%"></i>
+<span class="f20-hd" style="left:59%">orders-svc</span><i class="f20-ll" style="left:59%"></i>
+<span class="f20-hd" style="left:85%">inventory-svc</span><i class="f20-ll" style="left:85%"></i>
+<div class="f20-row" style="top:40px;height:30px"><div class="f20-lab " style="left:calc(7% + 14px);width:calc(26% - 22px)">POST /api/orders</div><i class="f20-ar  " style="left:7%;width:26%;top:19px"></i><b class="f20-nb  " style="left:calc(7% - 8px);top:11px">1</b></div>
+<div class="f20-row" style="top:70px;height:30px"><div class="f20-lab " style="left:calc(33% + 14px);width:calc(26% - 22px)">POST /orders</div><i class="f20-ar  " style="left:33%;width:26%;top:19px"></i><b class="f20-nb  " style="left:calc(33% - 8px);top:11px">2</b></div>
+<div class="f20-row" style="top:100px;height:30px"><div class="f20-lab " style="left:calc(59% + 14px);width:calc(26% - 22px)">GET /stock/{sku}</div><i class="f20-ar  " style="left:59%;width:26%;top:19px"></i><b class="f20-nb cur " style="left:calc(59% - 8px);top:11px">3</b></div>
+<div class="f20-row" style="top:130px;height:30px"><div class="f20-lab ret" style="left:calc(59% + 14px);width:calc(26% - 22px)">200 levels</div><i class="f20-ar ret rtl" style="left:59%;width:26%;top:19px"></i><b class="f20-nb  " style="left:calc(85% - 8px);top:11px">4</b></div>
+<div class="f20-row" style="top:160px;height:30px"><div class="f20-lab " style="left:calc(59% + 14px);width:calc(26% - 22px)">PUT /reservations</div><i class="f20-ar  " style="left:59%;width:26%;top:19px"></i><b class="f20-nb  " style="left:calc(59% - 8px);top:11px">5</b></div>
+<div class="f20-row" style="top:190px;height:30px"><div class="f20-lab ret" style="left:calc(59% + 14px);width:calc(26% - 22px)">201 reservation id</div><i class="f20-ar ret rtl" style="left:59%;width:26%;top:19px"></i><b class="f20-nb  " style="left:calc(85% - 8px);top:11px">6</b></div>
+<div class="f20-row" style="top:220px;height:30px"><div class="f20-lab " style="left:calc(59% + 14px);width:calc(26% - 22px)">POST /pricing/quote</div><i class="f20-ar  " style="left:59%;width:26%;top:19px"></i><b class="f20-nb  " style="left:calc(59% - 8px);top:11px">7</b></div>
+<div class="f20-row" style="top:250px;height:30px"><div class="f20-lab ret" style="left:calc(59% + 14px);width:calc(26% - 22px)">200 quote</div><i class="f20-ar ret rtl" style="left:59%;width:26%;top:19px"></i><b class="f20-nb  " style="left:calc(85% - 8px);top:11px">8</b></div>
+<div class="f20-row" style="top:280px;height:30px"><div class="f20-lab " style="left:calc(59% + 14px);width:calc(26% - 22px)">POST /reservations/commit</div><i class="f20-ar  " style="left:59%;width:26%;top:19px"></i><b class="f20-nb  " style="left:calc(59% - 8px);top:11px">9</b></div>
+</div>
+
+</div><div class="f20-pane"><div class="f20-tabs" role="tablist"><span class="f20-tab on " role="tab" aria-selected="true">Notes</span><span class="f20-tab  " role="tab" aria-selected="false">Comments<small>(6)</small></span><span class="f20-tab  " role="tab" aria-selected="false">Action items<small>(3 open · 5)</small></span><span class="f20-sp"></span><span class="f20-add "><span>✎ Edit</span><span>▾</span></span></div><div class="f20-body"><div class="f20-nt ol"><div><div class="f20-meta"><span>Edited by <span class="f20-av s" style="--c:var(--cmp-4)" title="Dana Levi">DL</span> <b>Dana Levi</b> · 2 h ago</span><span>Version 7</span><span class="r"><span class="abtn">History (7)</span></span></div>
+<div class="f20-doc"><h2>Purpose</h2><p>Turns a basket into a confirmed order: stock is held, payment authorized, and one <span class="mono">OrderCreated</span> event published for fulfilment.</p>
+<h2>How it works</h2><p>The storefront calls the gateway (<span class="f20-sc ">step 1</span>), which creates the order in orders-svc (<span class="f20-sc ">step 2</span>). Every line is then reserved in inventory:</p>
+<ol><li>check stock levels (<span class="f20-sc ">step 3</span>);</li><li>reserve each line, retrying up to 3 times (<span class="f20-sc ">steps 4–9</span>), with the out-of-stock branch for short lines;</li><li>authorize the payment (<span class="f20-sc ">step 8</span>) and publish the event.</li></ol>
+<h3>Failure behaviour</h3><table><thead><tr><th>Failure</th><th>Behaviour</th><th>Step</th></tr></thead><tbody><tr><td>One line is short</td><td>Whole order fails, <span class="cc">hold released</span></td><td><span class="f20-sc ">step 6</span></td></tr><tr><td>Payment declined</td><td>Order kept, status <span class="mono">payment_failed</span></td><td><span class="f20-sc ">step 9</span></td></tr></tbody></table>
+<h2>Decisions</h2><ul><li>Reservations expire after <b>15 min</b>, agreed with <span class="f20-chip">@Einat Schanin</span> on Oct 20.</li><li>The 201 returns the reservation id so payments can release the hold.</li></ul>
+<h2>Open questions</h2><ul><li>Should a partial order be allowed for the optional warehouse? <span class="f20-sc ">step 5</span></li></ul></div></div><nav class="f20-ol" aria-label="On this page"><h5>On this page</h5><span class="on">Purpose</span><span>How it works</span><span class="s">Failure behaviour</span><span>Decisions</span><span>Open questions</span></nav></div></div><div class="f20-url">flows/api-gateway/in.createOrder<b>?pane=notes</b></div></div></div></div>
+<div class="frame-label"><h3 style="font-size:var(--fs-md)">20a (cont.). Maximized (frame 16): Notes full screen</h3><p>The tab row, the document and the outline use the whole tab; the diagram is not shown (it is one click away: Exit, or click a step chip, which exits maximize and scrolls to the step). The dark exit pill is frame 16's.</p></div>
+<div class="stage"><div class="window f20 " style="max-width:100%"><div class="f20-mx"><span class="f20-xp">⤡ Exit maximize <kbd>Esc</kbd></span><div class="f13mini"><span class="fh-t">Checkout · Notes</span><span class="mono xs muted">api-gateway · in.createOrder</span></div><div class="f20-pane"><div class="f20-tabs" role="tablist"><span class="f20-tab on " role="tab" aria-selected="true">Notes</span><span class="f20-tab  " role="tab" aria-selected="false">Comments<small>(6)</small></span><span class="f20-tab  " role="tab" aria-selected="false">Action items<small>(3 open · 5)</small></span><span class="f20-sp"></span><span class="f20-add "><span>✎ Edit</span><span>▾</span></span></div><div class="f20-body" style="padding:var(--s5) var(--s6)"><div class="f20-nt ol"><div><div class="f20-meta"><span>Edited by <span class="f20-av s" style="--c:var(--cmp-4)" title="Dana Levi">DL</span> <b>Dana Levi</b> · 2 h ago</span><span>Version 7</span><span class="r"><span class="abtn">History (7)</span></span></div>
+<div class="f20-doc"><h2>Purpose</h2><p>Turns a basket into a confirmed order: stock is held, payment authorized, and one <span class="mono">OrderCreated</span> event published for fulfilment.</p>
+<h2>How it works</h2><p>The storefront calls the gateway (<span class="f20-sc ">step 1</span>), which creates the order in orders-svc (<span class="f20-sc ">step 2</span>). Every line is then reserved in inventory:</p>
+<ol><li>check stock levels (<span class="f20-sc ">step 3</span>);</li><li>reserve each line, retrying up to 3 times (<span class="f20-sc ">steps 4–9</span>), with the out-of-stock branch for short lines;</li><li>authorize the payment (<span class="f20-sc ">step 8</span>) and publish the event.</li></ol>
+<h3>Failure behaviour</h3><table><thead><tr><th>Failure</th><th>Behaviour</th><th>Step</th></tr></thead><tbody><tr><td>One line is short</td><td>Whole order fails, <span class="cc">hold released</span></td><td><span class="f20-sc ">step 6</span></td></tr><tr><td>Payment declined</td><td>Order kept, status <span class="mono">payment_failed</span></td><td><span class="f20-sc ">step 9</span></td></tr></tbody></table>
+<h2>Decisions</h2><ul><li>Reservations expire after <b>15 min</b>, agreed with <span class="f20-chip">@Einat Schanin</span> on Oct 20.</li><li>The 201 returns the reservation id so payments can release the hold.</li></ul>
+<h2>Open questions</h2><ul><li>Should a partial order be allowed for the optional warehouse? <span class="f20-sc ">step 5</span></li></ul></div></div><nav class="f20-ol" aria-label="On this page"><h5>On this page</h5><span class="on">Purpose</span><span>How it works</span><span class="s">Failure behaviour</span><span>Decisions</span><span>Open questions</span></nav></div></div></div></div></div></div>
+
+<div class="frame-label"><h3 style="font-size:var(--fs-md)">20b. Notes in edit mode, template inserted; and the empty state</h3><p>Edit replaces the right of the tab row with Save and Cancel (Ctrl/Cmd+S saves, Esc asks if there are unsaved changes). The editor is the comment editor (frame 13: bold, italic, strike, text colour, lists, link, table) plus a <b>heading menu</b> (Paragraph, Heading 2, Heading 3), <b>@</b> (people, frame 18) and <b>step #</b> (inserts a chip; typing “step 4” also offers one). A draft autosaves per viewer; the saved version only changes on Save. The template button fills Purpose / How it works / Decisions / Open questions as H2 with grey hints that disappear on typing.</p></div>
+<div class="stage"><div class="f20-two"><div><h4>Edit mode</h4><div class="window f20 " style=""><div class="f13mini"><span class="fh-t">Checkout</span><span class="mono xs muted">api-gateway · in.createOrder</span><span class="xs muted" style="margin-left:auto">Editing notes</span></div><div class="f20-pane"><div class="f20-tabs" role="tablist"><span class="f20-tab on " role="tab" aria-selected="true">Notes</span><span class="f20-tab  " role="tab" aria-selected="false">Comments<small>(6)</small></span><span class="f20-tab  " role="tab" aria-selected="false">Action items<small>(3 open · 5)</small></span><span class="f20-sp"></span><span class="f20-btns"><span class="btn primary sm">Save</span><span class="btn sm">Cancel</span></span></div><div class="f20-body"><div class="cm-hint" style="margin-bottom:8px">Template inserted. Delete any heading you do not need. Others see version 7 until you save.</div><div class="f20-etb"><span class="hs on">Heading 2 ▾</span><span class="sep"></span><span><b>B</b></span><span><i>I</i></span><span><s>S</s></span><span style="color:var(--cmp-5);font-weight:700">A</span><span class="sep"></span><span>•</span><span>1.</span><span>🔗</span><span>▦</span><span class="sep"></span><span>@</span><span>step&nbsp;#</span><span style="margin-left:auto;font-size:var(--fs-xs);color:var(--muted);width:auto">Draft saved 10:42</span></div><div class="f20-ed f20-doc"><h2>Purpose</h2><p class="ph">Why does this flow exist? One or two sentences.</p>
+<h2>How it works</h2><p class="ph">The path in words. Type “step” and a number to link a step: <span class="f20-sc ">step 4</span></p>
+<h2>Decisions</h2><p class="ph">What was decided and why. @ mentions the people involved.</p>
+<h2>Open questions</h2><p class="ph">What is still unknown.<span class="caret"></span></p></div></div><div class="f20-url">flows/api-gateway/in.createOrder<b>?pane=notes&amp;edit=1</b></div></div></div></div><div><h4>Empty state</h4><div class="window f20 " style=""><div class="f13mini"><span class="fh-t">Checkout</span><span class="mono xs muted">api-gateway · in.createOrder</span><span class="xs muted" style="margin-left:auto"></span></div><div class="f20-pane"><div class="f20-tabs" role="tablist"><span class="f20-tab on " role="tab" aria-selected="true">Notes</span><span class="f20-tab  " role="tab" aria-selected="false">Comments<small>(6)</small></span><span class="f20-tab  " role="tab" aria-selected="false">Action items<small>(3 open · 5)</small></span><span class="f20-sp"></span><span class="f20-add "><span>✎ Edit</span><span>▾</span></span></div><div class="f20-body"><div class="f20-empty">No notes for this flow yet. Write the story of this flow.<br><span style="display:inline-flex;gap:8px;margin-top:12px"><span class="btn primary sm">Start from template</span><span class="btn sm">Write from scratch</span></span><div class="cm-hint" style="margin-top:8px">Template: Purpose · How it works · Decisions · Open questions</div></div></div><div class="f20-url">flows/api-gateway/in.createOrder<b>?pane=notes</b></div></div></div></div></div></div>
+
+<div class="frame-label"><h3 style="font-size:var(--fs-md)">20c. History: versions, diff and Restore</h3><p>History replaces the document (“← Back to notes”). Left: the version list, newest first (author, time). Right: version N compared with N−1, as Changes (default: changed paragraphs only, with unchanged headings for context; removed on red with strike, added on green with a left rule, so colour is never the only cue) or Full text. <b>Restore this version</b> writes its text as a new version (“Restored from version 6”); nothing is deleted. On the current version Restore is disabled. Versions beyond the latest 30 fold into “older versions”.</p></div>
+<div class="stage"><div class="window f20 " style=""><div class="f13mini"><span class="fh-t">Checkout</span><span class="mono xs muted">api-gateway · in.createOrder</span><span class="xs muted" style="margin-left:auto">Notes · History</span></div><div class="f20-pane"><div class="f20-tabs" role="tablist"><span class="f20-tab on " role="tab" aria-selected="true">Notes</span><span class="f20-tab  " role="tab" aria-selected="false">Comments<small>(6)</small></span><span class="f20-tab  " role="tab" aria-selected="false">Action items<small>(3 open · 5)</small></span><span class="f20-sp"></span><span class="f20-add "><span>✎ Edit</span><span>▾</span></span></div><div class="f20-body"><span class="f20-back"><svg class="ic" ><use href="#f20-left"/></svg> Back to notes</span><div class="f20-hist" style="margin-top:10px"><div class="f20-vl"><div class="f20-v "><span class="f20-av s" style="--c:var(--cmp-4)" title="Dana Levi">DL</span><div><b>Version 7 · current</b><small>Dana Levi · 2 h ago</small></div></div><div class="f20-v on"><span class="f20-av s" style="--c:var(--cmp-2)" title="Asaf Gilai">AG</span><div><b>Version 6</b><small>Asaf Gilai · yesterday</small></div></div><div class="f20-v "><span class="f20-av s" style="--c:var(--cmp-1)" title="Einat Schanin">ES</span><div><b>Version 5</b><small>Einat Schanin · Oct 20</small></div></div><div class="f20-v "><span class="f20-av s" style="--c:var(--cmp-4)" title="Dana Levi">DL</span><div><b>Version 4</b><small>Dana Levi · Oct 19</small></div></div><div class="f20-v "><span class="f20-av s" style="--c:var(--cmp-4)" title="Dana Levi">DL</span><div><b>Version 3</b><small>Dana Levi · Oct 19</small></div></div><div class="f20-v" style="color:var(--muted);font-size:var(--fs-xs)"><span></span>2 older versions ▸</div></div><div class="f20-df"><div class="f20-dh"><b>Version 6 compared with version 5</b><span class="muted xs">Asaf Gilai · yesterday</span><span class="seg"><span class="on">Changes</span><span>Full text</span></span><span style="margin-left:auto;display:inline-flex;gap:8px"><span class="btn sm" style="color:var(--accent)">Restore this version</span></span></div>
+<div class="f20-dd"><h4 class="un">Decisions</h4>
+<p class="rm"><s>Reservations expire after 24 h.</s></p>
+<p class="ad">Reservations expire after <ins>15 min</ins>, agreed with <span class="f20-chip">@Einat Schanin</span> on Oct 20.</p>
+<p class="un">The 201 returns the reservation id so payments can release the hold.</p>
+<h4 class="un">Open questions</h4>
+<p class="ad">Should a partial order be allowed for the optional warehouse? <span class="f20-sc ">step 5</span></p></div>
+<div class="cm-hint" style="margin-top:10px">Restore makes a new version 8 with this text (“Restored from version 6”); nothing is deleted. Removed text is struck through on red, added text sits on green and is underlined by weight, not colour alone (the left rule is the second cue).</div></div></div></div><div class="f20-url">flows/api-gateway/in.createOrder<b>?pane=notes&amp;history=6</b></div></div></div></div>
+
+<div class="frame-label"><h3 style="font-size:var(--fs-md)">20d. Comments tab with “+ Add ▾” open, then the Action items tab</h3><p>The first comment is anchored to <b>steps 4–9</b>: its pill reads “steps 4–9” (hover re-highlights), it carries an Open tag and a <b>Resolve</b> action; the plain “step 3” comment keeps today's pill. Resolved comments fold under the list (“Resolved · 1 comment on steps 2–3”) and have no bracket. The ▾ menu marks the active type and adds in place. Second window: Action items after following “#4 → Action items”.</p></div>
+<div class="stage"><div class="window f20 " style=""><div class="f13mini"><span class="fh-t">Checkout</span><span class="mono xs muted">api-gateway · in.createOrder</span><span class="xs muted" style="margin-left:auto">Step 3 of 12</span></div><div class="f20-dg" style="height:318px;--gw:60px">
+<div class="f20-g" style="width:60px">
+<i class="f20-bk " style="left:9px;top:134px;height:172px"></i>
+<span class="f20-bb " style="left:2px;top:212px">3</span>
+</div>
+<div class="f20-bd">
+<span class="f20-hd" style="left:7%">client</span><i class="f20-ll" style="left:7%"></i>
+<span class="f20-hd" style="left:33%">api-gateway</span><i class="f20-ll" style="left:33%"></i>
+<span class="f20-hd" style="left:59%">orders-svc</span><i class="f20-ll" style="left:59%"></i>
+<span class="f20-hd" style="left:85%">inventory-svc</span><i class="f20-ll" style="left:85%"></i>
+<div class="f20-row" style="top:40px;height:30px"><div class="f20-lab " style="left:calc(7% + 14px);width:calc(26% - 22px)">POST /api/orders</div><i class="f20-ar  " style="left:7%;width:26%;top:19px"></i><b class="f20-nb  " style="left:calc(7% - 8px);top:11px">1</b></div>
+<div class="f20-row" style="top:70px;height:30px"><div class="f20-lab " style="left:calc(33% + 14px);width:calc(26% - 22px)">POST /orders</div><i class="f20-ar  " style="left:33%;width:26%;top:19px"></i><b class="f20-nb  " style="left:calc(33% - 8px);top:11px">2</b></div>
+<div class="f20-row" style="top:100px;height:30px"><div class="f20-lab " style="left:calc(59% + 14px);width:calc(26% - 22px)">GET /stock/{sku}</div><i class="f20-ar  " style="left:59%;width:26%;top:19px"></i><b class="f20-nb cur " style="left:calc(59% - 8px);top:11px">3</b></div>
+<div class="f20-row" style="top:130px;height:30px"><div class="f20-lab ret" style="left:calc(59% + 14px);width:calc(26% - 22px)">200 levels</div><i class="f20-ar ret rtl" style="left:59%;width:26%;top:19px"></i><b class="f20-nb  " style="left:calc(85% - 8px);top:11px">4</b></div>
+<div class="f20-row" style="top:160px;height:30px"><div class="f20-lab " style="left:calc(59% + 14px);width:calc(26% - 22px)">PUT /reservations</div><i class="f20-ar  " style="left:59%;width:26%;top:19px"></i><b class="f20-nb  " style="left:calc(59% - 8px);top:11px">5</b></div>
+<div class="f20-row" style="top:190px;height:30px"><div class="f20-lab ret" style="left:calc(59% + 14px);width:calc(26% - 22px)">201 reservation id</div><i class="f20-ar ret rtl" style="left:59%;width:26%;top:19px"></i><b class="f20-nb  " style="left:calc(85% - 8px);top:11px">6</b></div>
+<div class="f20-row" style="top:220px;height:30px"><div class="f20-lab " style="left:calc(59% + 14px);width:calc(26% - 22px)">POST /pricing/quote</div><i class="f20-ar  " style="left:59%;width:26%;top:19px"></i><b class="f20-nb  " style="left:calc(59% - 8px);top:11px">7</b></div>
+<div class="f20-row" style="top:250px;height:30px"><div class="f20-lab ret" style="left:calc(59% + 14px);width:calc(26% - 22px)">200 quote</div><i class="f20-ar ret rtl" style="left:59%;width:26%;top:19px"></i><b class="f20-nb  " style="left:calc(85% - 8px);top:11px">8</b></div>
+<div class="f20-row" style="top:280px;height:30px"><div class="f20-lab " style="left:calc(59% + 14px);width:calc(26% - 22px)">POST /reservations/commit</div><i class="f20-ar  " style="left:59%;width:26%;top:19px"></i><b class="f20-nb  " style="left:calc(59% - 8px);top:11px">9</b></div>
+</div>
+
+</div><div class="f20-pane"><div class="f20-tabs" role="tablist"><span class="f20-tab  " role="tab" aria-selected="false">Notes</span><span class="f20-tab on " role="tab" aria-selected="true">Comments<small>(6)</small></span><span class="f20-tab  " role="tab" aria-selected="false">Action items<small>(3 open · 5)</small></span><span class="f20-sp"></span><span class="f20-add open"><span>+ Add comment</span><span>▾</span><div class="f20-menu"><div class="o h"><i>✓</i><b>Comment</b><small>on the flow or steps · this tab</small></div><div class="o "><i></i><b>Action item</b><small>owner, due date</small></div><div class="n">Adds the chosen type without leaving this tab: a small form opens here and a toast links to where it landed. On Notes the main button is Edit; the menu still adds a comment or an action item.</div></div></span></div><div class="f20-body"><div class="cm-list">
+<div><div class="cm "><span class="f20-av " style="--c:var(--cmp-4)" title="Dana Levi">DL</span><div><div class="cm-head"><b>Dana Levi</b><span class="tm">2 h ago</span><span class="f20-rng "><svg class="ic" ><use href="#f20-brk"/></svg>steps 4–9</span><span class="f20-tag">Open</span><span class="cm-act"><span>Reply</span><span>Resolve</span><span>Make action item</span></span></div><div class="cm-body"><p>Inventory times out at 800 ms under load. For these steps: retry the reservation 3 times with backoff, then take the out-of-stock branch.</p></div></div></div>
+<div class="cm-reply"><div><div class="cm"><span class="f20-av " style="--c:var(--cmp-2)" title="Asaf Gilai">AG</span><div><div class="cm-head"><b>Asaf G.</b> <span class="you">you</span><span class="tm">1 h ago</span><span class="cm-act"><span>Edit</span><span class="d">Delete</span></span></div><div class="cm-body"><p><span class="f20-chip">@Einat Schanin</span> does payments tolerate a double authorize if step 8 retries?</p></div></div></div></div>
+<div><div class="cm"><span class="f20-av " style="--c:var(--cmp-1)" title="Einat Schanin">ES</span><div><div class="cm-head"><b>Einat Schanin</b><span class="tm">40 min ago</span><span class="cm-act"><span>Reply</span></span></div><div class="cm-body"><p>Idempotent on the order id, so yes. Add a jitter to the backoff.</p></div></div></div></div></div></div>
+<div><div class="cm"><span class="f20-av " style="--c:var(--cmp-4)" title="Dana Levi">DL</span><div><div class="cm-head"><b>Dana Levi</b><span class="tm">2 days ago</span><span class="spill">step 3</span><span class="cm-act"><span>Reply</span><span>Make action item</span></span></div><div class="cm-body"><p>Do we need the <b>reservation id</b> in the 201, or is the order id enough for the callers?</p></div></div></div>
+<div class="f20-ev">Asaf G. created action <span class="f20-xl">#4 → Action items</span> from this comment</div></div>
+<div class="f20-rs"><span class="f20-tag res">Resolved</span>1 comment on <span class="f20-rng "><svg class="ic" ><use href="#f20-brk"/></svg>steps 2–3</span> · 2 replies · Asaf, Oct 20 <span style="margin-left:auto;color:var(--accent)">Show ▸</span></div>
+</div><div class="cm-compose" style="margin-top:12px"><div class="av" style="width:28px;height:28px">AG</div><div class="cm-quiet">Add a comment…</div></div></div><div class="f20-url">flows/api-gateway/in.createOrder<b>?pane=comments</b></div></div></div></div>
+<div class="stage"><div class="window f20 " style=""><div class="f13mini"><span class="fh-t">Checkout</span><span class="mono xs muted">api-gateway · in.createOrder</span><span class="xs muted" style="margin-left:auto">Step 3 of 12</span></div><div class="f20-dg" style="height:318px;--gw:60px">
+<div class="f20-g" style="width:60px">
+<i class="f20-bk " style="left:9px;top:134px;height:172px"></i>
+<span class="f20-bb " style="left:2px;top:212px">3</span>
+</div>
+<div class="f20-bd">
+<span class="f20-hd" style="left:7%">client</span><i class="f20-ll" style="left:7%"></i>
+<span class="f20-hd" style="left:33%">api-gateway</span><i class="f20-ll" style="left:33%"></i>
+<span class="f20-hd" style="left:59%">orders-svc</span><i class="f20-ll" style="left:59%"></i>
+<span class="f20-hd" style="left:85%">inventory-svc</span><i class="f20-ll" style="left:85%"></i>
+<div class="f20-row" style="top:40px;height:30px"><div class="f20-lab " style="left:calc(7% + 14px);width:calc(26% - 22px)">POST /api/orders</div><i class="f20-ar  " style="left:7%;width:26%;top:19px"></i><b class="f20-nb  " style="left:calc(7% - 8px);top:11px">1</b></div>
+<div class="f20-row" style="top:70px;height:30px"><div class="f20-lab " style="left:calc(33% + 14px);width:calc(26% - 22px)">POST /orders</div><i class="f20-ar  " style="left:33%;width:26%;top:19px"></i><b class="f20-nb  " style="left:calc(33% - 8px);top:11px">2</b></div>
+<div class="f20-row" style="top:100px;height:30px"><div class="f20-lab " style="left:calc(59% + 14px);width:calc(26% - 22px)">GET /stock/{sku}</div><i class="f20-ar  " style="left:59%;width:26%;top:19px"></i><b class="f20-nb cur " style="left:calc(59% - 8px);top:11px">3</b></div>
+<div class="f20-row" style="top:130px;height:30px"><div class="f20-lab ret" style="left:calc(59% + 14px);width:calc(26% - 22px)">200 levels</div><i class="f20-ar ret rtl" style="left:59%;width:26%;top:19px"></i><b class="f20-nb  " style="left:calc(85% - 8px);top:11px">4</b></div>
+<div class="f20-row" style="top:160px;height:30px"><div class="f20-lab " style="left:calc(59% + 14px);width:calc(26% - 22px)">PUT /reservations</div><i class="f20-ar  " style="left:59%;width:26%;top:19px"></i><b class="f20-nb  " style="left:calc(59% - 8px);top:11px">5</b></div>
+<div class="f20-row" style="top:190px;height:30px"><div class="f20-lab ret" style="left:calc(59% + 14px);width:calc(26% - 22px)">201 reservation id</div><i class="f20-ar ret rtl" style="left:59%;width:26%;top:19px"></i><b class="f20-nb  " style="left:calc(85% - 8px);top:11px">6</b></div>
+<div class="f20-row" style="top:220px;height:30px"><div class="f20-lab " style="left:calc(59% + 14px);width:calc(26% - 22px)">POST /pricing/quote</div><i class="f20-ar  " style="left:59%;width:26%;top:19px"></i><b class="f20-nb  " style="left:calc(59% - 8px);top:11px">7</b></div>
+<div class="f20-row" style="top:250px;height:30px"><div class="f20-lab ret" style="left:calc(59% + 14px);width:calc(26% - 22px)">200 quote</div><i class="f20-ar ret rtl" style="left:59%;width:26%;top:19px"></i><b class="f20-nb  " style="left:calc(85% - 8px);top:11px">8</b></div>
+<div class="f20-row" style="top:280px;height:30px"><div class="f20-lab " style="left:calc(59% + 14px);width:calc(26% - 22px)">POST /reservations/commit</div><i class="f20-ar  " style="left:59%;width:26%;top:19px"></i><b class="f20-nb  " style="left:calc(59% - 8px);top:11px">9</b></div>
+</div>
+
+</div><div class="f20-pane"><div class="f20-tabs" role="tablist"><span class="f20-tab  " role="tab" aria-selected="false">Notes</span><span class="f20-tab  " role="tab" aria-selected="false">Comments<small>(6)</small></span><span class="f20-tab on " role="tab" aria-selected="true">Action items<small>(3 open · 5)</small></span><span class="f20-sp"></span><span class="f20-add "><span>+ Add action item</span><span>▾</span></span></div><div class="f20-body"><div class="ai-t" style="max-width:none"><div class="ai-r h" style="grid-template-columns:34px 150px minmax(0,1fr) 92px 100px"><span>#</span><span>Owner</span><span>Description</span><span>Due</span><span>Status</span></div>
+<div class="ai-r f20-outl" style="grid-template-columns:34px 150px minmax(0,1fr) 92px 100px"><span class="ai-n">#4</span><span class="ai-o" style="display:flex;gap:6px;align-items:center"><span class="f20-av s" style="--c:var(--cmp-4)" title="Dana Levi">DL</span>Dana Levi</span><span class="ai-d">Decide: reservation id in the 201?<small><span class="f20-xl on">from Dana’s comment → Comments</span></small></span><span class="ai-due">Oct 25</span><span><span class="ai-st open">Open</span></span></div>
+<div class="ai-r" style="grid-template-columns:34px 150px minmax(0,1fr) 92px 100px"><span class="ai-n">#3</span><span class="ai-o" style="display:flex;gap:6px;align-items:center"><span class="f20-av s" style="--c:var(--cmp-1)" title="Einat Schanin">ES</span>Einat Schanin</span><span class="ai-d">Re-run the review with the new TTL</span><span class="ai-due late">Oct 21</span><span><span class="ai-st open">Open</span></span></div>
+<div class="ai-r" style="grid-template-columns:34px 150px minmax(0,1fr) 92px 100px"><span class="ai-n">#2</span><span class="ai-o" style="display:flex;gap:6px;align-items:center"><span class="f20-av s" style="--c:var(--cmp-2)" title="Asaf Gilai">AG</span>Asaf Gilai</span><span class="ai-d">Update step 4 with the 15 min TTL</span><span class="ai-due">Oct 23</span><span><span class="ai-st prog">In progress</span></span></div></div>
+<div class="ai-fold">▸ 2 closed (done, dropped)</div></div><div class="f20-url">flows/api-gateway/in.createOrder<b>?pane=actions&amp;item=4</b></div></div></div></div>
+
+<div class="frame-label"><h3 style="font-size:var(--fs-md)">20e. Density check: brackets on a busy flow</h3><p>A 12-step flow in the shape of <span class="mono">api-gateway · in.createOrder</span> and the hld-drawing environment: six lifelines, a <b>loop</b> frame with a nested <b>alt</b>, a spanning note, New / Changed mark bands at the left edge and titles on the arrows (Step details: title + API). Three range comments overlap: A steps 2–5 (3), B 5–9 (3), C 8–11 (1). The Step details panel is open to show the new “Comment brackets” row under “Highlight current step”. The diagram stays readable: brackets live only in the 60 px gutter and carry no fill in the drawing.</p></div>
+<div class="stage"><div class="window f20 " style=""><div class="f13mini"><span class="fh-t">Checkout</span><span class="mono xs muted">api-gateway · in.createOrder</span><span class="xs muted" style="margin-left:auto">Step 3 of 12 · 3 range comments</span></div><div class="f20-tbr"><span style="display:inline-flex;border:1px solid var(--line-strong);border-radius:6px;overflow:hidden"><span style="padding:3px 10px">Inside the service</span><span style="padding:3px 10px;background:var(--accent-soft);color:var(--accent);font-weight:600">Full flow</span></span><span>Data stores ✓</span><span>Squeeze ✓</span><span class="f20-sdb on">Step details: <b>title + API · brackets</b> ▾</span></div><div class="f20-dg" style="height:688px;--gw:60px">
+<i class="f20-mk new" style="top:140px;height:50px"></i>
+<i class="f20-mk chg" style="top:430px;height:50px"></i>
+<i class="f20-mk new" style="top:480px;height:50px"></i>
+<div class="f20-g" style="width:60px">
+<i class="f20-bk " style="left:9px;top:94px;height:192px"></i>
+<span class="f20-bb " style="left:2px;top:182px">3</span>
+<i class="f20-bk " style="left:21px;top:244px;height:282px"></i>
+<span class="f20-bb " style="left:14px;top:377px">3</span>
+<i class="f20-bk " style="left:9px;top:434px;height:192px"></i>
+<span class="f20-bb " style="left:2px;top:522px">1</span>
+</div>
+<div class="f20-bd">
+<span class="f20-hd" style="left:6%">client</span><i class="f20-ll" style="left:6%"></i>
+<span class="f20-hd" style="left:22%">api-gateway</span><i class="f20-ll" style="left:22%"></i>
+<span class="f20-hd" style="left:39%">orders-svc</span><i class="f20-ll" style="left:39%"></i>
+<span class="f20-hd" style="left:57%">inventory-svc</span><i class="f20-ll" style="left:57%"></i>
+<span class="f20-hd" style="left:75%">payments-svc</span><i class="f20-ll" style="left:75%"></i>
+<span class="f20-hd" style="left:91%">events</span><i class="f20-ll" style="left:91%"></i>
+<div class="f20-fr loop" style="top:241px;height:148px;left:calc(39% - 20px);width:calc(18% + 40px)"><b>loop · each order line</b></div>
+<div class="f20-fr alt" style="top:294px;height:92px;left:calc(39% - 14px);width:calc(18% + 28px)"><b>alt · out of stock</b></div>
+<div class="f20-row" style="top:40px;height:50px"><div class="f20-lab " style="left:calc(6% + 14px);width:calc(16% - 22px)"><span class="tt">Place order</span>POST /api/orders</div><i class="f20-ar  " style="left:6%;width:16%;top:39px"></i><b class="f20-nb  " style="left:calc(6% - 8px);top:31px">1</b></div>
+<div class="f20-row" style="top:90px;height:50px"><div class="f20-lab " style="left:calc(22% + 14px);width:calc(17% - 22px)"><span class="tt">Create order</span>POST /orders</div><i class="f20-ar  " style="left:22%;width:17%;top:39px"></i><b class="f20-nb  " style="left:calc(22% - 8px);top:31px">2</b></div>
+<div class="f20-row" style="top:140px;height:50px"><div class="f20-lab " style="left:calc(39% + 14px);width:calc(18% - 22px)"><span class="tt">Check stock</span>GET /stock/{sku}</div><i class="f20-ar  " style="left:39%;width:18%;top:39px"></i><b class="f20-nb cur " style="left:calc(39% - 8px);top:31px">3</b></div>
+<div class="f20-row" style="top:190px;height:50px"><div class="f20-lab ret" style="left:calc(39% + 14px);width:calc(18% - 22px)"><span class="tt"></span>200 levels</div><i class="f20-ar ret rtl" style="left:39%;width:18%;top:39px"></i><b class="f20-nb  " style="left:calc(57% - 8px);top:31px">4</b></div>
+<div class="f20-row" style="top:240px;height:50px"><div class="f20-lab " style="left:calc(39% + 14px);width:calc(18% - 22px)"><span class="tt">Reserve line</span>PUT /reservations/{sku}</div><i class="f20-ar  " style="left:39%;width:18%;top:39px"></i><b class="f20-nb  " style="left:calc(39% - 8px);top:31px">5</b></div>
+<div class="f20-row" style="top:290px;height:50px"><div class="f20-lab ret" style="left:calc(39% + 14px);width:calc(18% - 22px)"><span class="tt">Out of stock</span>409 short</div><i class="f20-ar ret rtl" style="left:39%;width:18%;top:39px"></i><b class="f20-nb  " style="left:calc(57% - 8px);top:31px">6</b></div>
+<div class="f20-row" style="top:340px;height:50px"><div class="f20-lab " style="left:calc(39% + 14px);width:calc(18% - 22px)"><span class="tt">Reserve substitute</span>PUT /reservations/{sku2}</div><i class="f20-ar  " style="left:39%;width:18%;top:39px"></i><b class="f20-nb  " style="left:calc(39% - 8px);top:31px">7</b></div>
+<div class="f20-note" style="top:393px;height:34px;left:calc(22% + 10px);width:calc(53% - 20px)">Reservations expire after 15 min; the whole order fails if one line is short.</div>
+<div class="f20-row" style="top:430px;height:50px"><div class="f20-lab " style="left:calc(39% + 14px);width:calc(36% - 22px)"><span class="tt">Authorize payment</span>POST /payments/authorize</div><i class="f20-ar  " style="left:39%;width:36%;top:39px"></i><b class="f20-nb  " style="left:calc(39% - 8px);top:31px">8</b></div>
+<div class="f20-row" style="top:480px;height:50px"><div class="f20-lab ret" style="left:calc(39% + 14px);width:calc(36% - 22px)"><span class="tt"></span>200 auth id</div><i class="f20-ar ret rtl" style="left:39%;width:36%;top:39px"></i><b class="f20-nb  " style="left:calc(75% - 8px);top:31px">9</b></div>
+<div class="f20-row" style="top:530px;height:50px"><div class="f20-lab " style="left:calc(39% + 14px);width:calc(52% - 22px)"><span class="tt">Publish</span>OrderCreated</div><i class="f20-ar  " style="left:39%;width:52%;top:39px"></i><b class="f20-nb  " style="left:calc(39% - 8px);top:31px">10</b></div>
+<div class="f20-row" style="top:580px;height:50px"><div class="f20-lab ret" style="left:calc(22% + 14px);width:calc(17% - 22px)"><span class="tt"></span>201 order id</div><i class="f20-ar ret rtl" style="left:22%;width:17%;top:39px"></i><b class="f20-nb  " style="left:calc(39% - 8px);top:31px">11</b></div>
+<div class="f20-row" style="top:630px;height:50px"><div class="f20-lab ret" style="left:calc(6% + 14px);width:calc(16% - 22px)"><span class="tt"></span>201 Created</div><i class="f20-ar ret rtl" style="left:6%;width:16%;top:39px"></i><b class="f20-nb  " style="left:calc(22% - 8px);top:31px">12</b></div>
+</div>
+<div class="f20-sd"><h5>Step details</h5><label><span class="f20-cb on">✓</span>Title on arrows</label><label><span class="f20-cb on">✓</span>API on arrows</label><label><span class="f20-cb"></span>Description on arrows</label><h5 style="margin-top:6px">Layers</h5><label><span class="f20-cb on">✓</span>Highlight current step</label><label class="new"><span class="f20-cb on">✓</span>Comment brackets<small>design: on · harvested: off</small></label></div>
+</div></div></div>
+<div class="frame-label"><h3 style="font-size:var(--fs-md)">20e (cont.). Hovering bracket B: the yellow band and the tooltip</h3><p>The band is the 0.32.5 token (<span class="mono">--step-hl</span>) drawn <b>behind</b> everything: lifelines, the loop and alt frames, the note and the arrows keep their ink. No border or outline. The current step's black dot stays. The tooltip shows the first line of the comment, the range and the comment count; the bracket is the click target (padded to 14 px wide).</p></div>
+<div class="stage"><div class="window f20 " style=""><div class="f13mini"><span class="fh-t">Checkout</span><span class="mono xs muted">api-gateway · in.createOrder</span><span class="xs muted" style="margin-left:auto">Hovering bracket B</span></div><div class="f20-dg" style="height:688px;--gw:60px">
+<div class="f20-band" style="top:240px;height:290px"></div>
+<i class="f20-mk new" style="top:140px;height:50px"></i>
+<i class="f20-mk chg" style="top:430px;height:50px"></i>
+<i class="f20-mk new" style="top:480px;height:50px"></i>
+<div class="f20-g" style="width:60px">
+<i class="f20-bk " style="left:9px;top:94px;height:192px"></i>
+<span class="f20-bb " style="left:2px;top:182px">3</span>
+<i class="f20-bk hot" style="left:21px;top:244px;height:282px"></i>
+<span class="f20-bb hot" style="left:14px;top:377px">3</span>
+<i class="f20-bk " style="left:9px;top:434px;height:192px"></i>
+<span class="f20-bb " style="left:2px;top:522px">1</span>
+</div>
+<div class="f20-bd">
+<span class="f20-hd" style="left:6%">client</span><i class="f20-ll" style="left:6%"></i>
+<span class="f20-hd" style="left:22%">api-gateway</span><i class="f20-ll" style="left:22%"></i>
+<span class="f20-hd" style="left:39%">orders-svc</span><i class="f20-ll" style="left:39%"></i>
+<span class="f20-hd" style="left:57%">inventory-svc</span><i class="f20-ll" style="left:57%"></i>
+<span class="f20-hd" style="left:75%">payments-svc</span><i class="f20-ll" style="left:75%"></i>
+<span class="f20-hd" style="left:91%">events</span><i class="f20-ll" style="left:91%"></i>
+<div class="f20-fr loop" style="top:241px;height:148px;left:calc(39% - 20px);width:calc(18% + 40px)"><b>loop · each order line</b></div>
+<div class="f20-fr alt" style="top:294px;height:92px;left:calc(39% - 14px);width:calc(18% + 28px)"><b>alt · out of stock</b></div>
+<div class="f20-row" style="top:40px;height:50px"><div class="f20-lab " style="left:calc(6% + 14px);width:calc(16% - 22px)"><span class="tt">Place order</span>POST /api/orders</div><i class="f20-ar  " style="left:6%;width:16%;top:39px"></i><b class="f20-nb  " style="left:calc(6% - 8px);top:31px">1</b></div>
+<div class="f20-row" style="top:90px;height:50px"><div class="f20-lab " style="left:calc(22% + 14px);width:calc(17% - 22px)"><span class="tt">Create order</span>POST /orders</div><i class="f20-ar  " style="left:22%;width:17%;top:39px"></i><b class="f20-nb  " style="left:calc(22% - 8px);top:31px">2</b></div>
+<div class="f20-row" style="top:140px;height:50px"><div class="f20-lab " style="left:calc(39% + 14px);width:calc(18% - 22px)"><span class="tt">Check stock</span>GET /stock/{sku}</div><i class="f20-ar  " style="left:39%;width:18%;top:39px"></i><b class="f20-nb cur " style="left:calc(39% - 8px);top:31px">3</b></div>
+<div class="f20-row" style="top:190px;height:50px"><div class="f20-lab ret" style="left:calc(39% + 14px);width:calc(18% - 22px)"><span class="tt"></span>200 levels</div><i class="f20-ar ret rtl" style="left:39%;width:18%;top:39px"></i><b class="f20-nb  " style="left:calc(57% - 8px);top:31px">4</b></div>
+<div class="f20-row" style="top:240px;height:50px"><div class="f20-lab " style="left:calc(39% + 14px);width:calc(18% - 22px)"><span class="tt">Reserve line</span>PUT /reservations/{sku}</div><i class="f20-ar  " style="left:39%;width:18%;top:39px"></i><b class="f20-nb  " style="left:calc(39% - 8px);top:31px">5</b></div>
+<div class="f20-row" style="top:290px;height:50px"><div class="f20-lab ret" style="left:calc(39% + 14px);width:calc(18% - 22px)"><span class="tt">Out of stock</span>409 short</div><i class="f20-ar ret rtl" style="left:39%;width:18%;top:39px"></i><b class="f20-nb  " style="left:calc(57% - 8px);top:31px">6</b></div>
+<div class="f20-row" style="top:340px;height:50px"><div class="f20-lab " style="left:calc(39% + 14px);width:calc(18% - 22px)"><span class="tt">Reserve substitute</span>PUT /reservations/{sku2}</div><i class="f20-ar  " style="left:39%;width:18%;top:39px"></i><b class="f20-nb  " style="left:calc(39% - 8px);top:31px">7</b></div>
+<div class="f20-note" style="top:393px;height:34px;left:calc(22% + 10px);width:calc(53% - 20px)">Reservations expire after 15 min; the whole order fails if one line is short.</div>
+<div class="f20-row" style="top:430px;height:50px"><div class="f20-lab " style="left:calc(39% + 14px);width:calc(36% - 22px)"><span class="tt">Authorize payment</span>POST /payments/authorize</div><i class="f20-ar  " style="left:39%;width:36%;top:39px"></i><b class="f20-nb  " style="left:calc(39% - 8px);top:31px">8</b></div>
+<div class="f20-row" style="top:480px;height:50px"><div class="f20-lab ret" style="left:calc(39% + 14px);width:calc(36% - 22px)"><span class="tt"></span>200 auth id</div><i class="f20-ar ret rtl" style="left:39%;width:36%;top:39px"></i><b class="f20-nb  " style="left:calc(75% - 8px);top:31px">9</b></div>
+<div class="f20-row" style="top:530px;height:50px"><div class="f20-lab " style="left:calc(39% + 14px);width:calc(52% - 22px)"><span class="tt">Publish</span>OrderCreated</div><i class="f20-ar  " style="left:39%;width:52%;top:39px"></i><b class="f20-nb  " style="left:calc(39% - 8px);top:31px">10</b></div>
+<div class="f20-row" style="top:580px;height:50px"><div class="f20-lab ret" style="left:calc(22% + 14px);width:calc(17% - 22px)"><span class="tt"></span>201 order id</div><i class="f20-ar ret rtl" style="left:22%;width:17%;top:39px"></i><b class="f20-nb  " style="left:calc(39% - 8px);top:31px">11</b></div>
+<div class="f20-row" style="top:630px;height:50px"><div class="f20-lab ret" style="left:calc(6% + 14px);width:calc(16% - 22px)"><span class="tt"></span>201 Created</div><i class="f20-ar ret rtl" style="left:6%;width:16%;top:39px"></i><b class="f20-nb  " style="left:calc(22% - 8px);top:31px">12</b></div>
+</div>
+<div class="f20-tip" style="left:calc(60px + 12px);top:248px"><b>Dana: “Inventory times out at 800 ms…”</b><br>steps 5–9 · 3 comments · open<br><i>Click: open in Comments</i></div>
+</div></div></div>
+<div class="frame-label"><h3 style="font-size:var(--fs-md)">20e (cont.). Four overlapping ranges: three brackets and “+1”</h3><p>Brackets sit side by side 12 px apart; a fourth collapses into a dark “+1” chip at the top of its range (click: a small list of the hidden comments). Cost: the gutter is 60 px wide, taken from the diagram's left padding, so lifelines sit 60 px further right only while the layer is on.</p></div>
+<div class="stage"><div class="window f20 " style=""><div class="f13mini"><span class="fh-t">Checkout</span><span class="mono xs muted">api-gateway · in.createOrder</span><span class="xs muted" style="margin-left:auto">Four overlapping ranges: three brackets and “+1”</span></div><div class="f20-dg" style="height:688px;--gw:60px">
+<i class="f20-mk new" style="top:140px;height:50px"></i>
+<i class="f20-mk chg" style="top:430px;height:50px"></i>
+<i class="f20-mk new" style="top:480px;height:50px"></i>
+<div class="f20-g" style="width:60px">
+<i class="f20-bk " style="left:9px;top:94px;height:192px"></i>
+<span class="f20-bb " style="left:2px;top:182px">3</span>
+<i class="f20-bk " style="left:21px;top:244px;height:282px"></i>
+<span class="f20-bb " style="left:14px;top:377px">3</span>
+<i class="f20-bk " style="left:9px;top:294px;height:92px"></i>
+<span class="f20-bb " style="left:2px;top:332px">2</span>
+<i class="f20-bk " style="left:9px;top:434px;height:192px"></i>
+<span class="f20-bb " style="left:2px;top:522px">1</span>
+</div>
+<div class="f20-bd">
+<span class="f20-hd" style="left:6%">client</span><i class="f20-ll" style="left:6%"></i>
+<span class="f20-hd" style="left:22%">api-gateway</span><i class="f20-ll" style="left:22%"></i>
+<span class="f20-hd" style="left:39%">orders-svc</span><i class="f20-ll" style="left:39%"></i>
+<span class="f20-hd" style="left:57%">inventory-svc</span><i class="f20-ll" style="left:57%"></i>
+<span class="f20-hd" style="left:75%">payments-svc</span><i class="f20-ll" style="left:75%"></i>
+<span class="f20-hd" style="left:91%">events</span><i class="f20-ll" style="left:91%"></i>
+<div class="f20-fr loop" style="top:241px;height:148px;left:calc(39% - 20px);width:calc(18% + 40px)"><b>loop · each order line</b></div>
+<div class="f20-fr alt" style="top:294px;height:92px;left:calc(39% - 14px);width:calc(18% + 28px)"><b>alt · out of stock</b></div>
+<div class="f20-row" style="top:40px;height:50px"><div class="f20-lab " style="left:calc(6% + 14px);width:calc(16% - 22px)"><span class="tt">Place order</span>POST /api/orders</div><i class="f20-ar  " style="left:6%;width:16%;top:39px"></i><b class="f20-nb  " style="left:calc(6% - 8px);top:31px">1</b></div>
+<div class="f20-row" style="top:90px;height:50px"><div class="f20-lab " style="left:calc(22% + 14px);width:calc(17% - 22px)"><span class="tt">Create order</span>POST /orders</div><i class="f20-ar  " style="left:22%;width:17%;top:39px"></i><b class="f20-nb  " style="left:calc(22% - 8px);top:31px">2</b></div>
+<div class="f20-row" style="top:140px;height:50px"><div class="f20-lab " style="left:calc(39% + 14px);width:calc(18% - 22px)"><span class="tt">Check stock</span>GET /stock/{sku}</div><i class="f20-ar  " style="left:39%;width:18%;top:39px"></i><b class="f20-nb cur " style="left:calc(39% - 8px);top:31px">3</b></div>
+<div class="f20-row" style="top:190px;height:50px"><div class="f20-lab ret" style="left:calc(39% + 14px);width:calc(18% - 22px)"><span class="tt"></span>200 levels</div><i class="f20-ar ret rtl" style="left:39%;width:18%;top:39px"></i><b class="f20-nb  " style="left:calc(57% - 8px);top:31px">4</b></div>
+<div class="f20-row" style="top:240px;height:50px"><div class="f20-lab " style="left:calc(39% + 14px);width:calc(18% - 22px)"><span class="tt">Reserve line</span>PUT /reservations/{sku}</div><i class="f20-ar  " style="left:39%;width:18%;top:39px"></i><b class="f20-nb  " style="left:calc(39% - 8px);top:31px">5</b></div>
+<div class="f20-row" style="top:290px;height:50px"><div class="f20-lab ret" style="left:calc(39% + 14px);width:calc(18% - 22px)"><span class="tt">Out of stock</span>409 short</div><i class="f20-ar ret rtl" style="left:39%;width:18%;top:39px"></i><b class="f20-nb  " style="left:calc(57% - 8px);top:31px">6</b></div>
+<div class="f20-row" style="top:340px;height:50px"><div class="f20-lab " style="left:calc(39% + 14px);width:calc(18% - 22px)"><span class="tt">Reserve substitute</span>PUT /reservations/{sku2}</div><i class="f20-ar  " style="left:39%;width:18%;top:39px"></i><b class="f20-nb  " style="left:calc(39% - 8px);top:31px">7</b></div>
+<div class="f20-note" style="top:393px;height:34px;left:calc(22% + 10px);width:calc(53% - 20px)">Reservations expire after 15 min; the whole order fails if one line is short.</div>
+<div class="f20-row" style="top:430px;height:50px"><div class="f20-lab " style="left:calc(39% + 14px);width:calc(36% - 22px)"><span class="tt">Authorize payment</span>POST /payments/authorize</div><i class="f20-ar  " style="left:39%;width:36%;top:39px"></i><b class="f20-nb  " style="left:calc(39% - 8px);top:31px">8</b></div>
+<div class="f20-row" style="top:480px;height:50px"><div class="f20-lab ret" style="left:calc(39% + 14px);width:calc(36% - 22px)"><span class="tt"></span>200 auth id</div><i class="f20-ar ret rtl" style="left:39%;width:36%;top:39px"></i><b class="f20-nb  " style="left:calc(75% - 8px);top:31px">9</b></div>
+<div class="f20-row" style="top:530px;height:50px"><div class="f20-lab " style="left:calc(39% + 14px);width:calc(52% - 22px)"><span class="tt">Publish</span>OrderCreated</div><i class="f20-ar  " style="left:39%;width:52%;top:39px"></i><b class="f20-nb  " style="left:calc(39% - 8px);top:31px">10</b></div>
+<div class="f20-row" style="top:580px;height:50px"><div class="f20-lab ret" style="left:calc(22% + 14px);width:calc(17% - 22px)"><span class="tt"></span>201 order id</div><i class="f20-ar ret rtl" style="left:22%;width:17%;top:39px"></i><b class="f20-nb  " style="left:calc(39% - 8px);top:31px">11</b></div>
+<div class="f20-row" style="top:630px;height:50px"><div class="f20-lab ret" style="left:calc(6% + 14px);width:calc(16% - 22px)"><span class="tt"></span>201 Created</div><i class="f20-ar ret rtl" style="left:6%;width:16%;top:39px"></i><b class="f20-nb  " style="left:calc(22% - 8px);top:31px">12</b></div>
+</div>
+
+</div></div></div>
+
+<div class="frame-label"><h3 style="font-size:var(--fs-md)">20f. Creating a range: “Comment on steps 4–9”</h3><p>Two ways in, same result. <b>Shift-click</b> a step number (first click selects it, shift-click a second extends; the dots take the focus ring) or <b>drag along the left gutter</b> (a dashed bracket with two round handles follows the pointer and can be adjusted afterwards). The selected steps take the yellow band. A popover opens under the last step with the range chip and one primary button, <b>Comment on steps 4–9</b>. Esc, ✕ or a click elsewhere clears. Harvested environments: no gesture (layer off).</p></div>
+<div class="stage"><div class="window f20 " style=""><div class="f13mini"><span class="fh-t">Checkout</span><span class="mono xs muted">api-gateway · in.createOrder</span><span class="xs muted" style="margin-left:auto">Selecting steps 4–9: shift-click 4, then shift-click 9</span></div><div class="f20-dg" style="height:480px;--gw:60px">
+<div class="f20-band" style="top:148px;height:216px"></div>
+<div class="f20-g" style="width:60px">
+<i class="f20-sbk" style="left:8px;top:152px;height:208px"></i><i class="f20-hdl" style="left:6px;top:146px"></i><i class="f20-hdl" style="left:6px;top:356px"></i>
+</div>
+<div class="f20-bd">
+<span class="f20-hd" style="left:7%">client</span><i class="f20-ll" style="left:7%"></i>
+<span class="f20-hd" style="left:33%">api-gateway</span><i class="f20-ll" style="left:33%"></i>
+<span class="f20-hd" style="left:59%">orders-svc</span><i class="f20-ll" style="left:59%"></i>
+<span class="f20-hd" style="left:85%">inventory-svc</span><i class="f20-ll" style="left:85%"></i>
+<div class="f20-row" style="top:40px;height:36px"><div class="f20-lab " style="left:calc(7% + 14px);width:calc(26% - 22px)">POST /api/orders</div><i class="f20-ar  " style="left:7%;width:26%;top:25px"></i><b class="f20-nb  " style="left:calc(7% - 8px);top:17px">1</b></div>
+<div class="f20-row" style="top:76px;height:36px"><div class="f20-lab " style="left:calc(33% + 14px);width:calc(26% - 22px)">POST /orders</div><i class="f20-ar  " style="left:33%;width:26%;top:25px"></i><b class="f20-nb  " style="left:calc(33% - 8px);top:17px">2</b></div>
+<div class="f20-row" style="top:112px;height:36px"><div class="f20-lab " style="left:calc(59% + 14px);width:calc(26% - 22px)">GET /stock/{sku}</div><i class="f20-ar  " style="left:59%;width:26%;top:25px"></i><b class="f20-nb cur " style="left:calc(59% - 8px);top:17px">3</b></div>
+<div class="f20-row" style="top:148px;height:36px"><div class="f20-lab ret" style="left:calc(59% + 14px);width:calc(26% - 22px)">200 levels</div><i class="f20-ar ret rtl" style="left:59%;width:26%;top:25px"></i><b class="f20-nb  sel" style="left:calc(85% - 8px);top:17px">4</b></div>
+<div class="f20-row" style="top:184px;height:36px"><div class="f20-lab " style="left:calc(59% + 14px);width:calc(26% - 22px)">PUT /reservations</div><i class="f20-ar  " style="left:59%;width:26%;top:25px"></i><b class="f20-nb  " style="left:calc(59% - 8px);top:17px">5</b></div>
+<div class="f20-row" style="top:220px;height:36px"><div class="f20-lab ret" style="left:calc(59% + 14px);width:calc(26% - 22px)">201 reservation id</div><i class="f20-ar ret rtl" style="left:59%;width:26%;top:25px"></i><b class="f20-nb  " style="left:calc(85% - 8px);top:17px">6</b></div>
+<div class="f20-row" style="top:256px;height:36px"><div class="f20-lab " style="left:calc(59% + 14px);width:calc(26% - 22px)">POST /pricing/quote</div><i class="f20-ar  " style="left:59%;width:26%;top:25px"></i><b class="f20-nb  " style="left:calc(59% - 8px);top:17px">7</b></div>
+<div class="f20-row" style="top:292px;height:36px"><div class="f20-lab ret" style="left:calc(59% + 14px);width:calc(26% - 22px)">200 quote</div><i class="f20-ar ret rtl" style="left:59%;width:26%;top:25px"></i><b class="f20-nb  " style="left:calc(85% - 8px);top:17px">8</b></div>
+<div class="f20-row" style="top:328px;height:36px"><div class="f20-lab " style="left:calc(59% + 14px);width:calc(26% - 22px)">POST /reservations/commit</div><i class="f20-ar  " style="left:59%;width:26%;top:25px"></i><b class="f20-nb  sel" style="left:calc(59% - 8px);top:17px">9</b></div>
+<div class="f20-row" style="top:364px;height:36px"><div class="f20-lab ret" style="left:calc(59% + 14px);width:calc(26% - 22px)">204</div><i class="f20-ar ret rtl" style="left:59%;width:26%;top:25px"></i><b class="f20-nb  " style="left:calc(85% - 8px);top:17px">10</b></div>
+<div class="f20-row" style="top:400px;height:36px"><div class="f20-lab ret" style="left:calc(33% + 14px);width:calc(26% - 22px)">201 order id</div><i class="f20-ar ret rtl" style="left:33%;width:26%;top:25px"></i><b class="f20-nb  " style="left:calc(59% - 8px);top:17px">11</b></div>
+<div class="f20-row" style="top:436px;height:36px"><div class="f20-lab ret" style="left:calc(7% + 14px);width:calc(26% - 22px)">201 Created</div><i class="f20-ar ret rtl" style="left:7%;width:26%;top:25px"></i><b class="f20-nb  " style="left:calc(33% - 8px);top:17px">12</b></div>
+</div>
+<div class="f20-pop" style="left:calc(60px + 18%);top:332px"><div style="display:flex;gap:8px;align-items:center"><span class="f20-rng on"><svg class="ic" ><use href="#f20-brk"/></svg>steps 4–9</span><span class="cm-hint">6 steps</span><span style="margin-left:auto;color:var(--muted)">✕</span></div><div style="display:flex;gap:8px;margin-top:10px;align-items:center"><span class="btn primary sm">Comment on steps 4–9</span></div><div class="cm-hint" style="margin-top:8px;line-height:1.5">Shift-click another number or drag a handle to change the range. Esc clears. The Comments tab opens with the range attached to a new comment.</div></div>
+</div></div></div>
+<div class="frame-label"><h3 style="font-size:var(--fs-md)">20f (cont.). After the button: the Comments tab with the range attached</h3><p>The tab switches to Comments (URL <span class="mono">steps=4-9</span>) and the composer opens with the “steps 4–9” pill attached; ✕ detaches it. Posting draws the bracket.</p></div>
+<div class="stage"><div class="window f20 " style=""><div class="f13mini"><span class="fh-t">Checkout</span><span class="mono xs muted">api-gateway · in.createOrder</span><span class="xs muted" style="margin-left:auto">After the button</span></div><div class="f20-pane"><div class="f20-tabs" role="tablist"><span class="f20-tab  " role="tab" aria-selected="false">Notes</span><span class="f20-tab on " role="tab" aria-selected="true">Comments<small>(6)</small></span><span class="f20-tab  " role="tab" aria-selected="false">Action items<small>(3 open · 5)</small></span><span class="f20-sp"></span><span class="f20-add "><span>+ Add comment</span><span>▾</span></span></div><div class="f20-body"><div class="cm-compose" style="margin-top:0"><div class="av" style="width:28px;height:28px">AG</div><div><div class="f20-in foc" style="min-height:58px"><span style="display:flex;gap:8px;align-items:center;margin-bottom:6px"><span class="f20-rng on"><svg class="ic" ><use href="#f20-brk"/></svg>steps 4–9</span><span class="cm-hint">attached · <span style="color:var(--accent)">remove</span></span></span>Retry the reservation, but<span class="caret"></span></div><div style="display:flex;gap:8px;margin-top:8px"><span class="btn primary sm">Comment</span><span class="btn sm">Cancel</span></div></div></div></div><div class="f20-url">flows/api-gateway/in.createOrder<b>?pane=comments&amp;steps=4-9</b></div></div></div></div>
+
+<div class="frame-label"><h3 style="font-size:var(--fs-md)">20g. Dark</h3><p>Same tokens. The band is a muted olive (<span class="mono">--step-hl</span>, dark) lighter than the paper; ink on the band stays above 10:1. The hovered bracket and its bubble fill with the dark accent; the comment it opens is outlined.</p></div>
+<div class="stage"><div class="window f20 force-dark" style="background:var(--paper)"><div class="f13mini"><span class="fh-t">Checkout</span><span class="mono xs muted">api-gateway · in.createOrder</span><span class="xs muted" style="margin-left:auto">Dark · hovering bracket B</span></div><div class="f20-dg" style="height:372px;--gw:60px">
+<div class="f20-band" style="top:148px;height:216px"></div>
+<div class="f20-g" style="width:60px">
+<i class="f20-bk hot" style="left:9px;top:152px;height:208px"></i>
+<span class="f20-bb hot" style="left:2px;top:248px">3</span>
+<i class="f20-bk " style="left:21px;top:260px;height:100px"></i>
+<span class="f20-bb " style="left:14px;top:302px">1</span>
+</div>
+<div class="f20-bd">
+<span class="f20-hd" style="left:7%">client</span><i class="f20-ll" style="left:7%"></i>
+<span class="f20-hd" style="left:33%">api-gateway</span><i class="f20-ll" style="left:33%"></i>
+<span class="f20-hd" style="left:59%">orders-svc</span><i class="f20-ll" style="left:59%"></i>
+<span class="f20-hd" style="left:85%">inventory-svc</span><i class="f20-ll" style="left:85%"></i>
+<div class="f20-row" style="top:40px;height:36px"><div class="f20-lab " style="left:calc(7% + 14px);width:calc(26% - 22px)">POST /api/orders</div><i class="f20-ar  " style="left:7%;width:26%;top:25px"></i><b class="f20-nb  " style="left:calc(7% - 8px);top:17px">1</b></div>
+<div class="f20-row" style="top:76px;height:36px"><div class="f20-lab " style="left:calc(33% + 14px);width:calc(26% - 22px)">POST /orders</div><i class="f20-ar  " style="left:33%;width:26%;top:25px"></i><b class="f20-nb  " style="left:calc(33% - 8px);top:17px">2</b></div>
+<div class="f20-row" style="top:112px;height:36px"><div class="f20-lab " style="left:calc(59% + 14px);width:calc(26% - 22px)">GET /stock/{sku}</div><i class="f20-ar  " style="left:59%;width:26%;top:25px"></i><b class="f20-nb cur " style="left:calc(59% - 8px);top:17px">3</b></div>
+<div class="f20-row" style="top:148px;height:36px"><div class="f20-lab ret" style="left:calc(59% + 14px);width:calc(26% - 22px)">200 levels</div><i class="f20-ar ret rtl" style="left:59%;width:26%;top:25px"></i><b class="f20-nb  " style="left:calc(85% - 8px);top:17px">4</b></div>
+<div class="f20-row" style="top:184px;height:36px"><div class="f20-lab " style="left:calc(59% + 14px);width:calc(26% - 22px)">PUT /reservations</div><i class="f20-ar  " style="left:59%;width:26%;top:25px"></i><b class="f20-nb  " style="left:calc(59% - 8px);top:17px">5</b></div>
+<div class="f20-row" style="top:220px;height:36px"><div class="f20-lab ret" style="left:calc(59% + 14px);width:calc(26% - 22px)">201 reservation id</div><i class="f20-ar ret rtl" style="left:59%;width:26%;top:25px"></i><b class="f20-nb  " style="left:calc(85% - 8px);top:17px">6</b></div>
+<div class="f20-row" style="top:256px;height:36px"><div class="f20-lab " style="left:calc(59% + 14px);width:calc(26% - 22px)">POST /pricing/quote</div><i class="f20-ar  " style="left:59%;width:26%;top:25px"></i><b class="f20-nb  " style="left:calc(59% - 8px);top:17px">7</b></div>
+<div class="f20-row" style="top:292px;height:36px"><div class="f20-lab ret" style="left:calc(59% + 14px);width:calc(26% - 22px)">200 quote</div><i class="f20-ar ret rtl" style="left:59%;width:26%;top:25px"></i><b class="f20-nb  " style="left:calc(85% - 8px);top:17px">8</b></div>
+<div class="f20-row" style="top:328px;height:36px"><div class="f20-lab " style="left:calc(59% + 14px);width:calc(26% - 22px)">POST /reservations/commit</div><i class="f20-ar  " style="left:59%;width:26%;top:25px"></i><b class="f20-nb  " style="left:calc(59% - 8px);top:17px">9</b></div>
+</div>
+
+</div><div class="f20-pane"><div class="f20-tabs" role="tablist"><span class="f20-tab  " role="tab" aria-selected="false">Notes</span><span class="f20-tab on " role="tab" aria-selected="true">Comments<small>(6)</small></span><span class="f20-tab  " role="tab" aria-selected="false">Action items<small>(3 open · 5)</small></span><span class="f20-sp"></span><span class="f20-add "><span>+ Add comment</span><span>▾</span></span></div><div class="f20-body"><div class="cm-list">
+<div><div class="cm f20-cmo"><span class="f20-av " style="--c:var(--cmp-4)" title="Dana Levi">DL</span><div><div class="cm-head"><b>Dana Levi</b><span class="tm">2 h ago</span><span class="f20-rng on"><svg class="ic" ><use href="#f20-brk"/></svg>steps 4–9</span><span class="f20-tag">Open</span><span class="cm-act"><span>Reply</span><span>Resolve</span><span>Make action item</span></span></div><div class="cm-body"><p>Inventory times out at 800 ms under load. For these steps: retry the reservation 3 times with backoff, then take the out-of-stock branch.</p></div></div></div>
+<div class="cm-reply"><div><div class="cm"><span class="f20-av " style="--c:var(--cmp-2)" title="Asaf Gilai">AG</span><div><div class="cm-head"><b>Asaf G.</b> <span class="you">you</span><span class="tm">1 h ago</span><span class="cm-act"><span>Edit</span><span class="d">Delete</span></span></div><div class="cm-body"><p><span class="f20-chip">@Einat Schanin</span> does payments tolerate a double authorize if step 8 retries?</p></div></div></div></div>
+<div><div class="cm"><span class="f20-av " style="--c:var(--cmp-1)" title="Einat Schanin">ES</span><div><div class="cm-head"><b>Einat Schanin</b><span class="tm">40 min ago</span><span class="cm-act"><span>Reply</span></span></div><div class="cm-body"><p>Idempotent on the order id, so yes. Add a jitter to the backoff.</p></div></div></div></div></div></div>
+<div><div class="cm"><span class="f20-av " style="--c:var(--cmp-4)" title="Dana Levi">DL</span><div><div class="cm-head"><b>Dana Levi</b><span class="tm">2 days ago</span><span class="spill">step 3</span><span class="cm-act"><span>Reply</span><span>Make action item</span></span></div><div class="cm-body"><p>Do we need the <b>reservation id</b> in the 201, or is the order id enough for the callers?</p></div></div></div>
+<div class="f20-ev">Asaf G. created action <span class="f20-xl">#4 → Action items</span> from this comment</div></div>
+<div class="f20-rs"><span class="f20-tag res">Resolved</span>1 comment on <span class="f20-rng "><svg class="ic" ><use href="#f20-brk"/></svg>steps 2–3</span> · 2 replies · Asaf, Oct 20 <span style="margin-left:auto;color:var(--accent)">Show ▸</span></div>
+</div><div class="cm-compose" style="margin-top:12px"><div class="av" style="width:28px;height:28px">AG</div><div class="cm-quiet">Add a comment…</div></div></div><div class="f20-url">flows/api-gateway/in.createOrder<b>?pane=comments&amp;c=12</b></div></div></div></div>
+
+<div class="frame-label"><h3 style="font-size:var(--fs-md)">20h. At 760 px, and under 600 px</h3><p><b>Proposal:</b> down to about 680 px the three tabs stay on the row, counts compact (“3·5”) and the button shortens to “+ Add ▾” (“✎ Edit” on Notes). Under about 600 px the tabs would scroll sideways and hide the active tab or the button, so they <b>collapse into a select</b> (current tab and count) with the button beside it. The gutter narrows to 44 px and shows at most two brackets, then “+n” (drawn: three ranges, third becomes “+1”). The outline is hidden; Notes is one column.</p></div>
+<div class="stage"><div class="window f20 w760" style=""><div class="f13mini"><span class="fh-t">Checkout</span><span class="mono xs muted">api-gateway · in.createOrder</span><span class="xs muted" style="margin-left:auto">760 px</span></div><div class="f20-dg" style="height:372px;--gw:44px">
+<div class="f20-g" style="width:44px">
+<i class="f20-bk " style="left:9px;top:80px;height:136px"></i>
+<span class="f20-bb " style="left:2px;top:140px">3</span>
+<i class="f20-bk " style="left:21px;top:152px;height:208px"></i>
+<span class="f20-bb " style="left:14px;top:248px">3</span>
+<span class="f20-more" style="left:31px;top:188px">+1</span>
+</div>
+<div class="f20-bd">
+<span class="f20-hd" style="left:7%">client</span><i class="f20-ll" style="left:7%"></i>
+<span class="f20-hd" style="left:33%">api-gateway</span><i class="f20-ll" style="left:33%"></i>
+<span class="f20-hd" style="left:59%">orders-svc</span><i class="f20-ll" style="left:59%"></i>
+<span class="f20-hd" style="left:85%">inventory-svc</span><i class="f20-ll" style="left:85%"></i>
+<div class="f20-row" style="top:40px;height:36px"><div class="f20-lab " style="left:calc(7% + 14px);width:calc(26% - 22px)">POST /api/orders</div><i class="f20-ar  " style="left:7%;width:26%;top:25px"></i><b class="f20-nb  " style="left:calc(7% - 8px);top:17px">1</b></div>
+<div class="f20-row" style="top:76px;height:36px"><div class="f20-lab " style="left:calc(33% + 14px);width:calc(26% - 22px)">POST /orders</div><i class="f20-ar  " style="left:33%;width:26%;top:25px"></i><b class="f20-nb  " style="left:calc(33% - 8px);top:17px">2</b></div>
+<div class="f20-row" style="top:112px;height:36px"><div class="f20-lab " style="left:calc(59% + 14px);width:calc(26% - 22px)">GET /stock/{sku}</div><i class="f20-ar  " style="left:59%;width:26%;top:25px"></i><b class="f20-nb cur " style="left:calc(59% - 8px);top:17px">3</b></div>
+<div class="f20-row" style="top:148px;height:36px"><div class="f20-lab ret" style="left:calc(59% + 14px);width:calc(26% - 22px)">200 levels</div><i class="f20-ar ret rtl" style="left:59%;width:26%;top:25px"></i><b class="f20-nb  " style="left:calc(85% - 8px);top:17px">4</b></div>
+<div class="f20-row" style="top:184px;height:36px"><div class="f20-lab " style="left:calc(59% + 14px);width:calc(26% - 22px)">PUT /reservations</div><i class="f20-ar  " style="left:59%;width:26%;top:25px"></i><b class="f20-nb  " style="left:calc(59% - 8px);top:17px">5</b></div>
+<div class="f20-row" style="top:220px;height:36px"><div class="f20-lab ret" style="left:calc(59% + 14px);width:calc(26% - 22px)">201 reservation id</div><i class="f20-ar ret rtl" style="left:59%;width:26%;top:25px"></i><b class="f20-nb  " style="left:calc(85% - 8px);top:17px">6</b></div>
+<div class="f20-row" style="top:256px;height:36px"><div class="f20-lab " style="left:calc(59% + 14px);width:calc(26% - 22px)">POST /pricing/quote</div><i class="f20-ar  " style="left:59%;width:26%;top:25px"></i><b class="f20-nb  " style="left:calc(59% - 8px);top:17px">7</b></div>
+<div class="f20-row" style="top:292px;height:36px"><div class="f20-lab ret" style="left:calc(59% + 14px);width:calc(26% - 22px)">200 quote</div><i class="f20-ar ret rtl" style="left:59%;width:26%;top:25px"></i><b class="f20-nb  " style="left:calc(85% - 8px);top:17px">8</b></div>
+<div class="f20-row" style="top:328px;height:36px"><div class="f20-lab " style="left:calc(59% + 14px);width:calc(26% - 22px)">POST /reservations/commit</div><i class="f20-ar  " style="left:59%;width:26%;top:25px"></i><b class="f20-nb  " style="left:calc(59% - 8px);top:17px">9</b></div>
+</div>
+
+</div><div class="f20-pane"><div class="f20-tabs" role="tablist"><span class="f20-tab  " role="tab" aria-selected="false">Notes</span><span class="f20-tab on " role="tab" aria-selected="true">Comments<small>(6)</small></span><span class="f20-tab  " role="tab" aria-selected="false">Action items<small>(3·5)</small></span><span class="f20-sp"></span><span class="f20-add "><span>+ Add</span><span>▾</span></span></div><div class="f20-body"><div class="cm-list">
+<div><div class="cm "><span class="f20-av " style="--c:var(--cmp-4)" title="Dana Levi">DL</span><div><div class="cm-head"><b>Dana Levi</b><span class="tm">2 h ago</span><span class="f20-rng "><svg class="ic" ><use href="#f20-brk"/></svg>steps 4–9</span><span class="f20-tag">Open</span><span class="cm-act"><span>Reply</span><span>Resolve</span><span>⋯</span></span></div><div class="cm-body"><p>Inventory times out at 800 ms under load. For these steps: retry the reservation 3 times with backoff, then take the out-of-stock branch.</p></div></div></div>
+<div class="cm-reply"><div><div class="cm"><span class="f20-av " style="--c:var(--cmp-2)" title="Asaf Gilai">AG</span><div><div class="cm-head"><b>Asaf G.</b> <span class="you">you</span><span class="tm">1 h ago</span><span class="cm-act"><span>Edit</span><span class="d">Delete</span></span></div><div class="cm-body"><p><span class="f20-chip">@Einat Schanin</span> does payments tolerate a double authorize if step 8 retries?</p></div></div></div></div>
+<div><div class="cm"><span class="f20-av " style="--c:var(--cmp-1)" title="Einat Schanin">ES</span><div><div class="cm-head"><b>Einat Schanin</b><span class="tm">40 min ago</span><span class="cm-act"><span>Reply</span></span></div><div class="cm-body"><p>Idempotent on the order id, so yes. Add a jitter to the backoff.</p></div></div></div></div></div></div>
+<div><div class="cm"><span class="f20-av " style="--c:var(--cmp-4)" title="Dana Levi">DL</span><div><div class="cm-head"><b>Dana Levi</b><span class="tm">2 days ago</span><span class="spill">step 3</span><span class="cm-act"><span>Reply</span><span>⋯</span></span></div><div class="cm-body"><p>Do we need the <b>reservation id</b> in the 201, or is the order id enough for the callers?</p></div></div></div>
+<div class="f20-ev">Asaf G. created action <span class="f20-xl">#4 → Action items</span> from this comment</div></div>
+<div class="f20-rs"><span class="f20-tag res">Resolved</span>1 comment on <span class="f20-rng "><svg class="ic" ><use href="#f20-brk"/></svg>steps 2–3</span> · 2 replies · Asaf, Oct 20 <span style="margin-left:auto;color:var(--accent)">Show ▸</span></div>
+</div><div class="cm-compose" style="margin-top:12px"><div class="av" style="width:28px;height:28px">AG</div><div class="cm-quiet">Add a comment…</div></div></div><div class="f20-url">flows/api-gateway/in.createOrder<b>?pane=comments</b></div></div></div></div>
+<div class="stage"><div class="window f20 " style="width:480px;max-width:100%"><div class="f13mini"><span class="fh-t">Checkout</span><span class="mono xs muted">api-gateway · in.createOrder</span><span class="xs muted" style="margin-left:auto">Under 600 px</span></div><div class="f20-pane"><div class="f20-tabs" role="tablist"><span class="f20-sel">Comments <small style="font-weight:400;color:var(--muted)">(6)</small> ▾</span><span class="f20-sp"></span><span class="f20-add "><span>+ Add</span><span>▾</span></span></div><div class="f20-body"><div class="cm-hint">Select: Notes · Comments (6) · Action items (3 open · 5). Opening it lists the three with their counts.</div></div><div class="f20-url">flows/api-gateway/in.createOrder<b>?pane=comments</b></div></div></div></div>
+
+<div class="stage"><div class="f20-rules">
+<h3>Rules and open questions</h3>
+<h3 style="font-size:var(--fs-sm);color:var(--muted);text-transform:uppercase;letter-spacing:.03em">Rules for brackets (from the density check)</h3>
+<ol>
+<li><b>Gutter, left to right:</b> 4 px mark band (New / Changed, #75), 5 px gap, brackets in 12 px columns, bubbles straddling their bracket. Marks and brackets never share a column.</li>
+<li><b>At most 3 columns</b> (2 under 760 px); further ones become “+n”. Columns are assigned by start step, longer first; a bracket reuses a column once the previous one in it has ended.</li>
+<li><b>Bubbles never overlap:</b> placed mid-range; if two would touch, the later slides down 17 px inside its range.</li>
+<li><b>The band sits behind all drawing</b> (below frames, lifelines, notes, arrows) and is the union of the current-step highlight and the hovered range; it never stacks darker. It spans the full width including the gutter.</li>
+<li><b>A range may start or end inside a loop or alt frame;</b> the bracket does not move to the frame edge.</li>
+<li><b>Resolved comments hide their bracket;</b> a replied-to resolved thread reopens on reply. If steps are deleted the range clamps to what remains and the pill reads “steps 4–7 (was 4–9)”; if none remain it becomes a plain comment.</li>
+<li><b>Layer off (harvested default):</b> no gutter, no brackets, no gesture; the pills in Comments still highlight on click. Maximize keeps the gutter.</li>
+<li><b>Colour:</b> brackets are the accent; yellow is only ever the band (the New spark stays the only yellow icon).</li>
+</ol>
+<h3 style="font-size:var(--fs-sm);color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-top:var(--s5)">Rules for Notes</h3>
+<ol>
+<li><b>Storage:</b> the same sanitized HTML subset as comments plus <span class="mono">h2 h3</span> and a step-chip element <span class="mono">&lt;span data-step="4"&gt;</span> (ranges: <span class="mono">data-step="4-9"</span>); mentions as in frame 18. Every Save is a version; History keeps all, shows the latest 30.</li>
+<li><b>Step chips follow the step number;</b> a deleted step renders “step 4 (gone)” as plain dashed text, like the comment pill in frame 13.</li>
+<li><b>Concurrent edits:</b> Save checks the version it started from; on a mismatch it offers “Keep mine (new version)” or “Open theirs”, never a silent overwrite.</li>
+<li><b>Every environment has Notes;</b> harvested ones are editable too (notes are not harvested data). A full environment copy copies notes; Blank and Components copies do not.</li>
+<li><b>MCP:</b> <span class="mono">get_notes</span> and <span class="mono">set_notes</span> (author, HTML or plain text, <span class="mono">base_version</span>) so an assistant can read and draft the story.</li>
+</ol>
+<h3 style="font-size:var(--fs-sm);color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-top:var(--s5)">Mermaid round trip</h3>
+<ul><li>A range comment exports as a <span class="mono">rect</span> around those messages plus a <span class="mono">Note</span> with the comment's first line; plain comments and Notes are not exported. On import, a <span class="mono">rect</span> holding a <span class="mono">Note over</span> becomes a range comment.</li></ul>
+<pre>rect rgb(253, 241, 184)
+  Note over orders-svc,inventory-svc: Retry 3x with backoff (steps 4-9)
+  orders-svc-&gt;&gt;inventory-svc: PUT /reservations/{sku}
+  inventory-svc--&gt;&gt;orders-svc: 409 short
+end</pre>
+<h3 style="font-size:var(--fs-sm);color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-top:var(--s5)">Open questions</h3>
+<ol>
+<li><b>Do comments with a single step pill become one-step ranges?</b> Suggest no: a pill stays a pin on one step with no bracket; only “Comment on steps N–M” (two or more steps) draws one. Alternative: bracket every pinned comment (more marks, one concept).</li>
+<li><b>Default tab:</b> Notes when it has content, else Comments (drawn in rule 2). Or always Comments, as today?</li>
+<li><b>Resolve:</b> anyone can resolve any comment (no accounts, frame 13), or only the author and the mentioned (frame 18 users)? Should plain comments without a range also be resolvable? Suggest yes, same tag.</li>
+<li><b>Should Notes be allowed in harvested environments?</b> Drawn as yes (notes are the one human-written layer there); the alternative keeps harvested fully read-only.</li>
+<li><b>Mentions in Notes</b> notify nobody today; the Mentioned me view (frame 18) should list notes mentions as well.</li>
+<li><b>Frame 8 (“All discussions in the design”)</b> is approved but unbuilt; does it list Notes edits and range comments next to comments, or only comments?</li>
+<li><b>Outline threshold:</b> 1280 px is the viewport; with the app rail open the document column is then about 880 px. If that feels tight, show the outline at ≥ 1360 px.</li>
+</ol>
+</div></div>
+
+<script>
+document.querySelectorAll('.theme button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.theme button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  if (b.dataset.t === 'system') document.documentElement.removeAttribute('data-theme'); else document.documentElement.dataset.theme = b.dataset.t;
+}));
+</script>
+</body>
+</html>
