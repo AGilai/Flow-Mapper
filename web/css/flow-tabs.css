@@ -56,6 +56,11 @@
 .crumbs .arr, .tp-lane .arr { color: var(--muted); font-style: normal; }
 .crumbs .grow { flex: 1; }
 .crumbs a { color: var(--accent); }
+/* Back to the main flow (0.33.2): the top of a sub-flow tab, and the first thing in the maximized bar */
+.backbar { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; padding: var(--s2) var(--s4); background: var(--surface); border-bottom: 1px solid var(--line); }
+.back-main { flex: none; color: var(--accent); border-color: var(--accent); font-weight: 600; }
+.backtrail { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+body.is-max .backbar { display: none; }
 .tp-lane { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: var(--fs-sm); }
 .tabdot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); margin-left: 5px; vertical-align: middle; }
 .flows-scroll a.entry.has-tab .key::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-right: 6px; vertical-align: middle; }
