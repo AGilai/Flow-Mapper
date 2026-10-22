@@ -35,6 +35,10 @@ test('manifest: the sample step carries returns into the trace; a bad label is a
   assert.equal((await app.call('POST', '/api/ingest?dryRun=1', mf)).status, 422);
   mf.functions.find((f: any) => f.id === 'routeGetOrder').steps[0].returns = { label: 'ok', detail: 'd'.repeat(501) };
   assert.equal((await app.call('POST', '/api/ingest?dryRun=1', mf)).status, 422);
+  for (const label of ['a\u0007b', 'tab\there', 'two\nlines', '   ']) {   // QA #71/#81: the schema pattern let a control character count as the non-blank one
+    mf.functions.find((f: any) => f.id === 'routeGetOrder').steps[0].returns = { label };
+    assert.equal((await app.call('POST', '/api/ingest?dryRun=1', mf)).status, 422, JSON.stringify(label));
+  }
   mf.functions.find((f: any) => f.id === 'routeGetOrder').steps[0].returns = { label: 'fine', detail: 'short' };
   assert.equal((await app.call('POST', '/api/ingest?dryRun=1', mf)).status, 200);
 });
