@@ -129,7 +129,7 @@ export function loadComments(db: DB, g: GraphIndex, env: string, list: SampleCom
     try {
       const anchor = flowAnchor(c.service, c.ingress);
       const have = listThread(db, env, anchor).comments;
-      if (have.some((x) => x.author === c.author && x.body === sanitize(c.body))) continue;
+      if (have.some((x) => x.author === c.author && x.body === sanitize(resolveMentions(db, c.body)))) continue; // @{Name} in a sample is resolved to the user's token first
       const row = addComment(db, g, env, { anchor, step: c.step ?? null, author: c.author, body: c.body, externalId: c.externalId, externalSource: c.externalSource, authorExternalId: c.authorExternalId });
       db.prepare('UPDATE comments SET created_at = COALESCE(?, created_at), edited_at = ? WHERE id = ?').run(when(c.ago), c.edited ? when(Math.max(0, (c.ago ?? 0) - 30)) ?? row.createdAt : null, row.id);
       n++;
