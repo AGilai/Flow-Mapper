@@ -5,6 +5,12 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## 0.32.5 (2026-10-22)
+UI only. No API, schema or manifest change, no migration.
+- **Flows list, Group by (#79).** "Group by: Component | None" above the filters. None is one flat list in natural name order (`ARL_2` before `ARL_10`), unnamed entries after the named ones by their key. Default None in design environments, Component in harvested ones; `group=` in the URL only when it differs from that default; remembered per environment. The Component and Subsystem filters apply in both modes.
+- **Current-step highlight.** The numbered black dot of the current step always shows. The bordered rectangle is replaced by a soft yellow filled band behind the step row (new token `--step-hl`, light and dark). "Highlight current step" in the Step details panel turns the band off (`hl=0` in the URL, remembered per viewer).
+- Seeds: `samples/flow-names/<env>.json` names three flows of `hld-drawing` (a name already given is kept).
+
 ## 0.32.4 (2026-10-22)
 **Trace order after an async call** (bug #73 of corev5-importer). No migration, no schema change. **The order of `messages` changes for flows where the caller has steps after an async call; the messages themselves do not.**
 - **The rule (one, for every async call).** A step with `mode: async` draws its arrow where it stands, and the callee's work (what a consumer does after a delivery, what an async call or egress to a service runs) comes **after the rest of the calling function's steps**, not right after the arrow. Before, a caller step that followed an async publish (an audit call, a second publish, a cleanup) was listed after the whole consumer subtree, so it read as if the consumer had called it. Harvested fan-outs follow the same rule (their consumers already ran after the last delivery; now they also run after the caller's remaining steps). Sync calls are unchanged. An async call inside an `alt` / `loop` frame keeps its frame for its arrows and counting.

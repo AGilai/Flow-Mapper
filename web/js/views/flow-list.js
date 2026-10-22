@@ -9,16 +9,17 @@ import { KEYS, SLIDE_MS, isNarrow, readCollapsed, writeCollapsed, toggleLabel, s
 import { createGroup } from './flow-list-groups.js';
 import { entryRow, removedRow } from './flow-list-rows.js';
 import { parseRel, relOptions } from './flow-relations-pure.js';
+import { startGroup, encodeGroup, saveGroup, flatOrder } from './flow-list-groupby.js';
 import { scopePoints, parseSel, encodeSel, subsystemRows, componentRows, filterPoints, removedPoints, filterSummary } from './flow-list-filter.js';
 
 const LIST_CAP = 300;
 
 /** createList({ points, counts, cmts = {} (comments per `flow:<service>/<ingress>`), service, groupOf, groups, marks, design, query, onPick(point), onAll(), onCollapse(collapsed) }) -> { el, mark({ keys, active }), collapsed() } */
-export function createList({ points: allPoints, counts, cmts = {}, acts = {}, ments = {}, relBy = new Map(), service, groupOf = new Map(), groups = [], marks = null, design = false, query = new URLSearchParams(), onPick, onAll, onCollapse }) {
+export function createList({ env = '', points: allPoints, counts, cmts = {}, acts = {}, ments = {}, relBy = new Map(), service, groupOf = new Map(), groups = [], marks = null, design = false, query = new URLSearchParams(), onPick, onAll, onCollapse }) {
   const body = h('div.flows-scroll');
   const filter = h('input.input', { type: 'search', placeholder: service ? 'Filter ingress' : 'Filter entry points', 'aria-label': 'Filter starting points' });
   let marked = { keys: [], active: null }, collapsed = readCollapsed(KEYS.list, undefined, isNarrow()); // narrow viewport: starts collapsed unless a choice was saved
-  const fs = { all: query.get('endpoints') === 'all', subs: parseSel(query.get('subsystems')), comps: parseSel(query.get('components')), changed: design && ['1', 'all'].includes(query.get('changed')) ? query.get('changed') : null, rel: relBy.size ? parseRel(query.get('rel')) : null };
+  const fs = { all: query.get('endpoints') === 'all', subs: parseSel(query.get('subsystems')), comps: parseSel(query.get('components')), changed: design && ['1', 'all'].includes(query.get('changed')) ? query.get('changed') : null, rel: relBy.size ? parseRel(query.get('rel')) : null, group: startGroup(query, env, design) };
   const word = h('span.fl-word'), strip = h('div.fl-strip', { 'aria-hidden': 'true' }, word);
   const btn = h('button.collapse-btn.fl-toggle', { type: 'button', on: { click: () => set(!collapsed) } }, icon('chev'));
   let points = scopePoints(allPoints, { design, service, all: fs.all }), subRows = subsystemRows(points, groupOf, groups);
@@ -35,6 +36,10 @@ export function createList({ points: allPoints, counts, cmts = {}, acts = {}, me
   const relSel = h('select.select', { 'aria-label': 'Filter by relation', 'data-qa': 'rel-filter', on: { change: (e) => { fs.rel = parseRel(e.target.value); commit(); } } },
     relOptions(new Map([...relBy].filter(([k]) => points.some((p) => `${p.service}/${p.id}` === k)))).map((o) => h('option', { value: o.value, selected: o.value === (fs.rel ?? '') }, o.n == null ? o.label : `${o.label} (${o.n})`)));
   const relRow = relBy.size ? h('div.fl-rel-row', h('label', { for: 'fl-rel' }, 'Related flows'), Object.assign(relSel, { id: 'fl-rel' })) : null;
+  // 0.32.5 (#79): Group by Component (a heading per component) or None (one flat list in natural name order). Not offered inside one component.
+  const groupSel = h('select.select', { id: 'fl-group', 'aria-label': 'Group by', 'data-qa': 'group-by', on: { change: (e) => { fs.group = e.target.value; saveGroup(env, fs.group); commit(); } } },
+    [['component', 'Component'], ['none', 'None']].map(([v, l]) => h('option', { value: v, selected: v === fs.group }, l)));
+  const groupRow = service ? null : h('div.fl-group-row', h('label', { for: 'fl-group' }, 'Group by'), groupSel);
   const filters = h('div.fl-filters', subRows.length > 1 ? subG.el : null, cmpG.el);
 
   const vis = () => componentRows(points, groupOf, fs.subs).map((r) => ({ key: r.name, label: r.name, count: r.count }));
@@ -48,19 +53,19 @@ export function createList({ points: allPoints, counts, cmts = {}, acts = {}, me
   const set = (c) => { collapsed = writeCollapsed(KEYS.list, c); paint(); onCollapse?.(collapsed); setTimeout(() => document.dispatchEvent(new CustomEvent('fm:layout')), SLIDE_MS + 40); };
   function commit() { // a filter changed: the URL (a parameter that selects everything is left out), the groups and the list
     const rows = vis();
-    setQuery({ subsystems: encodeSel(fs.subs, subRows.map((r) => r.key)), components: encodeSel(fs.comps, rows.map((r) => r.key)), changed: fs.changed, rel: fs.rel, endpoints: fs.all ? 'all' : null });
+    setQuery({ subsystems: encodeSel(fs.subs, subRows.map((r) => r.key)), components: encodeSel(fs.comps, rows.map((r) => r.key)), changed: fs.changed, rel: fs.rel, endpoints: fs.all ? 'all' : null, group: encodeGroup(fs.group, design) });
     relSel.value = fs.rel ?? '';
     removedBox.checked = fs.changed === 'all'; changed.checked = !!fs.changed; changedRow?.querySelector('.fl-rm')?.toggleAttribute('hidden', !fs.changed);
     subG.update({ rows: subRows, sel: fs.subs }); cmpG.update({ rows, sel: fs.comps });
     draw(); paint();
   }
   function draw() {
-    const opts = { q: filter.value, subs: fs.subs, comps: fs.comps, changed: fs.changed, rel: fs.rel, relBy, marks, groupOf }, xs = filterPoints(points, opts);
+    const flat = fs.group === 'none' && !service, opts = { q: filter.value, subs: fs.subs, comps: fs.comps, changed: fs.changed, rel: fs.rel, relBy, marks, groupOf }, list = filterPoints(points, opts), xs = flat ? flatOrder(list) : list;
     const gone = fs.changed === 'all' ? removedPoints(marks, opts) : [], groupsMap = new Map();
     for (const p of xs.slice(0, LIST_CAP)) { if (!groupsMap.has(p.service)) groupsMap.set(p.service, []); groupsMap.get(p.service).push(p); }
     fill(body,
       service ? h('a.small', { href: href('/flows'), style: { padding: '0 var(--s2)' }, on: { click: (e) => { e.preventDefault(); onAll(); } } }, 'Show all entry points') : null,
-      [...groupsMap].map(([svc, ps]) => [h('h3', svc), ps.map((p) => entryRow(p, { marks, counts, cmts, acts, ments, relBy, onPick, design }))]),
+      flat ? xs.slice(0, LIST_CAP).map((p) => entryRow(p, { marks, counts, cmts, acts, ments, relBy, onPick, design, flat })) : [...groupsMap].map(([svc, ps]) => [h('h3', svc), ps.map((p) => entryRow(p, { marks, counts, cmts, acts, ments, relBy, onPick, design }))]),
       gone.length ? [h('h3', 'Removed'), gone.map((g) => removedRow(g, marks))] : null,
       xs.length > LIST_CAP ? h('p.xs.muted', { style: { padding: 'var(--s2)' } }, `${xs.length - LIST_CAP} more. Type to narrow the list.`) : null,
       !xs.length && !gone.length ? h('p.small.muted', { style: { padding: 'var(--s2)' } }, flowsOnly && !fs.all && !points.length ? 'No named flows yet. Name a flow, or turn on "All endpoints".' : 'No starting points match.') : null,
@@ -78,8 +83,9 @@ export function createList({ points: allPoints, counts, cmts = {}, acts = {}, me
   filter.addEventListener('input', debounce(() => { draw(); paint(); }, 120));
   subG.update({ rows: subRows, sel: fs.subs }); cmpG.update({ rows: vis(), sel: fs.comps });
   draw();
+  if (!service && !query.get('group') && encodeGroup(fs.group, design)) setQuery({ group: encodeGroup(fs.group, design) }); // a mode that came only from the per-env memory goes into the URL once, so a copied link keeps it
   const el = h('aside.flows-list', h('div.fl-head', h('span.fl-title', service ? 'Ingress' : 'Entry points'), btn),
-    h('div.fl-body', filters, h('div.search', icon('search'), filter), changedRow, relRow, body), strip);
+    h('div.fl-body', groupRow, filters, h('div.search', icon('search'), filter), changedRow, relRow, body), strip);
   strip.addEventListener('click', () => set(false));
   paint();
   return { el, mark, collapsed: () => collapsed };
