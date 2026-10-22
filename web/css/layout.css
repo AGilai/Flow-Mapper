@@ -82,3 +82,9 @@
 .content.flush:has(> .panel) { display: flex; }
 .content.flush > .stage-wrap { flex: 1; min-width: 0; position: relative; }
 @media (max-width: 860px) { .panel.open { position: absolute; inset: 0; width: 100%; z-index: 5; border-left: 0; } }
+
+/* Component page header (#80): the doc links sit on their own wrapping row under the description, at every width */
+.page-head .head-links { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s2) var(--s3); margin-top: var(--s2); }
+.page-head .head-links:empty { display: none; }
+.page-head h1 .row { min-width: 0; flex-wrap: wrap; row-gap: 2px; } /* a name never shares its line with a badge by squeezing: the badge wraps below instead */
+.page-head h1 .row > .titled { max-width: 100%; overflow-wrap: anywhere; }

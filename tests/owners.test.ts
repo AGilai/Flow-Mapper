@@ -13,6 +13,12 @@ test('owner probes: a user id stays an id, a string is a name, an object needs a
   for (const bad of ['', '   ', 'x'.repeat(81), {}, { externalSource: 'c' }, { externalId: '1' }, 5, null, ['a']]) assert.equal(typeof ownerProbe(bad), 'string', JSON.stringify(bad));
 });
 
+test('ownerProbe: anything shaped like a user id is looked up as one; names with spaces stay names', () => {
+  assert.deepEqual(ownerProbe('u_abc'), { id: 'u_abc' });
+  assert.deepEqual(ownerProbe('u_ Dana'), { name: 'u_ Dana' });
+  assert.deepEqual(ownerProbe('Dana u_1'), { name: 'Dana u_1' });
+});
+
 test('stored owners: a list of ids up to the limit; cleaning drops duplicates and blanks, and leaves nothing for an empty list', () => {
   assert.equal(ownersProblem(undefined), null);
   assert.equal(ownersProblem(null), null);
@@ -64,6 +70,12 @@ test('a bad owner is a 422 that says where; a dry run creates nobody', async () 
   const unknownId = await app.call('POST', '/api/ingest', await manifest({ owners: ['u_00000000'] }));
   assert.equal(unknownId.status, 422);
   assert.match(JSON.stringify(unknownId.body), /owners\[0\]/);
+  for (const looks of ['u_abc', 'u_9z9z9z9z', 'u_0A1B2C3D']) { // reads as a user id, is none: never a new user named after it
+    const r = await app.call('POST', '/api/ingest', await manifest({ owners: ['Dana Levi', looks] }));
+    assert.equal(r.status, 422, looks);
+    assert.match(JSON.stringify(r.body), new RegExp(`owners\\[1\\].*${looks}`));
+  }
+  assert.equal((await users()).length, before + 0, 'a rejected entry created nobody');
   const dry = await app.call('POST', '/api/ingest?dryRun=1', await manifest({ owners: ['Somebody New'] }));
   assert.equal(dry.status, 200, JSON.stringify(dry.body));
   assert.equal((await users()).length, before, 'rolled back with the dry run');

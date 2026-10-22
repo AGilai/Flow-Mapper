@@ -30,7 +30,7 @@
 .pane-q { border: 0; background: transparent; color: var(--warn); font: 600 var(--fs-xs) var(--font); cursor: pointer; padding: 0; text-decoration: underline; text-underline-offset: 2px; }
 .pane-q[hidden] { display: none; }
 
-.pane-jump { flex: none; display: flex; gap: 2px; padding: 0 var(--s3); border-bottom: 1px solid var(--line); background: var(--surface); overflow-x: auto; }
+.pane-jump { flex: none; display: flex; flex-wrap: wrap; gap: 0 2px; padding: 0 var(--s3); border-bottom: 1px solid var(--line); background: var(--surface); } /* wraps at the narrowest width instead of touching the edge */
 .pane-jump button { padding: 9px 8px 8px; font: 500 var(--fs-xs) var(--font); color: var(--ink-2); border: 0; border-bottom: 2px solid transparent; background: transparent; white-space: nowrap; cursor: pointer; }
 .pane-jump button.on { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
 .pane-jump button small { color: var(--muted); margin-left: 3px; font-size: 10.5px; }
