@@ -8,6 +8,8 @@
 const esc = (s) => String(s).replace(/[%,@~/!\s]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0')}`);
 const unesc = (s) => decodeURIComponent(s);
 const CLOSED_CAP = 20;
+/** The most tabs open at once (0.33.3): every opener checks `canOpen` first and tells the viewer when it says no. */
+export const TAB_CAP = 10;
 
 // The scope is part of an entry or fn key only when it is not the default (an ingress starts "full", a function "intra").
 export const entryKey = (service, ingress, event, scope) => `${esc(service)}/${esc(ingress)}${event ? `~${esc(event)}` : ''}${scope === 'intra' ? '!intra' : ''}`;
@@ -51,8 +53,8 @@ export const originOf =(key) => { const at = key.indexOf('@'); return at < 0 ? n
 export const descends = (key, origin) => { for (let o = originOf(key); o; o = originOf(o)) if (o === origin) return true; return false; };
 
 // ---- URL ----
-/** query (URLSearchParams) -> state. `tabs=` wins; old `service=&ingress=` (or `fn=`, `event=`) links give one tab. */
-export function decodeUrl(query) {
+/** The distinct, valid keys of a link: `tabs=` wins; old `service=&ingress=` (or `fn=`, `event=`) links give one tab. Before the cap. */
+export function urlKeys(query) {
   let keys = (query.get('tabs') ?? '').split(',').filter((k) => parseKey(k));
   if (!query.has('tabs')) {
     const service = query.get('service'), ingress = query.get('ingress'), fn = query.get('fn'), event = query.get('event');
@@ -60,8 +62,13 @@ export function decodeUrl(query) {
     if (service && ingress) keys = [entryKey(service, ingress, event, scope)];
     else if (service && fn) keys = [fnKey(service, fn, event, scope)];
   }
-  keys = [...new Set(keys)];
+  return [...new Set(keys)];
+}
+/** query (URLSearchParams) -> state, at most TAB_CAP tabs: the first ones in URL order, but a `tab=` past the last slot takes it, so the link still shows its flow. */
+export function decodeUrl(query) {
+  let keys = urlKeys(query);
   const tab = query.get('tab');
+  if (keys.length > TAB_CAP) keys = keys.indexOf(tab) >= TAB_CAP ? [...keys.slice(0, TAB_CAP - 1), tab] : keys.slice(0, TAB_CAP);
   return { keys, active: keys.includes(tab) ? tab : keys[keys.length - 1] ?? null, closed: [] };
 }
 /** state -> the query patch to set; the old single-flow params are cleared. */
@@ -71,9 +78,34 @@ export const encodeUrl = (s) => ({ tabs: s.keys.length ? s.keys.join(',') : null
 export const emptyState = () => ({ keys: [], active: null, closed: [] });
 export const activate = (s, key) => (s.keys.includes(key) ? { ...s, active: key } : s);
 
-/** Open a tab (or just activate it when already open). A sub-flow lands after the last tab opened from its origin; an origin brought back lands before them. */
+const scopeless = (k) => k.replace(/!(intra|full)$/, '');
+/** The open tab that shows the same flow as `key` (exact, else the same entry or function at the other scope), or null. */
+export const findOpen = (s, key) => (s.keys.includes(key) ? key : s.keys.find((k) => scopeless(k) === scopeless(key)) ?? null);
+/** Can `key` get a tab: it is open already (opening switches to it) or there is a free slot. */
+export const canOpen = (s, key) => s.keys.length < TAB_CAP || !!findOpen(s, key);
+export const freeSlots = (s) => Math.max(0, TAB_CAP - s.keys.length);
+/** "Open all distinct": of `keys`, which open (one that is open already costs no slot), how many are new tabs and how many are skipped for lack of room. */
+export function fitKeys(s, keys) {
+  let room = freeSlots(s);
+  const take = keys.filter((k) => s.keys.includes(k) || (room > 0 && room--));
+  return { take, skipped: keys.length - take.length, opened: take.filter((k) => !s.keys.includes(k)).length };
+}
+/** A plain click on a list row: the flow takes the active tab's place (same position; the old key goes onto the closed stack). No tabs: the first tab. Open elsewhere: switch to it. */
+export function replaceActive(s, key) {
+  if (!s.keys.length || !s.active) return openTab(s, key);
+  const open = findOpen(s, key);
+  if (open) return open === s.active ? s : { ...s, active: open };
+  const index = s.keys.indexOf(s.active);
+  const keys = s.keys.map((k, i) => (i === index ? key : k));
+  return { keys, active: key, closed: [{ key: s.active, index }, ...s.closed.filter((c) => c.key !== key)].slice(0, CLOSED_CAP) };
+}
+/** The "Tab" button: a new tab, or a switch to the tab that already shows the flow. */
+export const addTab = (s, key) => { const open = findOpen(s, key); return open ? activate(s, open) : openTab(s, key); };
+
+/** Open a tab (or just activate it when already open). At the cap nothing opens: callers check `canOpen` first, to say why. A sub-flow lands after the last tab opened from its origin; an origin brought back lands before them. */
 export function openTab(s, key, { activate: act = true } = {}) {
   if (s.keys.includes(key)) return act ? { ...s, active: key } : s;
+  if (s.keys.length >= TAB_CAP) return s;
   const keys = [...s.keys], origin = originOf(key);
   let at = keys.length;
   if (origin) {
@@ -104,6 +136,7 @@ export function reopenTab(s) {
   const [last, ...closed] = s.closed;
   if (!last) return s;
   if (s.keys.includes(last.key)) return { ...s, closed };
+  if (s.keys.length >= TAB_CAP) return s;
   const keys = [...s.keys];
   keys.splice(Math.min(last.index, keys.length), 0, last.key);
   return { keys, active: last.key, closed };

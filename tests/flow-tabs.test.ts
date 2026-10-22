@@ -174,3 +174,63 @@ test('flowRoot: a tab belongs to the flow it came from; a function tab has none'
   assert.equal(T.flowRoot(T.fnKey('svc', 'doIt')), null);
   assert.equal(T.flowRoot('not a key'), null);
 });
+
+// 0.33.3: the active tab is replaced by a click, the cap of 10 tabs.
+const many = (n: number) => Array.from({ length: n }, (_, i) => `svc/in.f${i}`);
+const withKeys = (keys: string[], active = keys[keys.length - 1] ?? null) => ({ keys, active, closed: [] as any[] });
+
+test('replaceActive: takes the active tab\'s place, keeps its position, pushes the old key on the closed stack', () => {
+  const s = T.replaceActive(withKeys(['a/in.1', 'b/in.2', 'c/in.3'], 'b/in.2'), 'd/in.4');
+  assert.deepEqual(s.keys, ['a/in.1', 'd/in.4', 'c/in.3']);
+  assert.equal(s.active, 'd/in.4');
+  assert.deepEqual(s.closed, [{ key: 'b/in.2', index: 1 }]);
+  assert.deepEqual(T.reopenTab(s).keys, ['a/in.1', 'b/in.2', 'd/in.4', 'c/in.3']);
+});
+test('replaceActive: no tabs opens the first one; the active flow is a no-op; a flow open elsewhere is switched to', () => {
+  assert.deepEqual(T.replaceActive(T.emptyState(), 'a/in.1').keys, ['a/in.1']);
+  const s = withKeys(['a/in.1', 'b/in.2'], 'a/in.1');
+  assert.equal(T.replaceActive(s, 'a/in.1'), s);
+  const sw = T.replaceActive(s, 'b/in.2');
+  assert.deepEqual([sw.keys, sw.active, sw.closed], [s.keys, 'b/in.2', []]);
+  assert.equal(T.replaceActive(s, 'b/in.2!intra').active, 'b/in.2'); // the same flow at another scope counts as open
+});
+test('replaceActive at the cap still replaces', () => {
+  const s = T.replaceActive(withKeys(many(10), 'svc/in.f3'), 'x/in.9');
+  assert.equal(s.keys.length, 10);
+  assert.equal(s.keys[3], 'x/in.9');
+});
+test('cap: canOpen, openTab and reopenTab stop at 10; an open flow always switches', () => {
+  const full = withKeys(many(10), 'svc/in.f0');
+  assert.equal(T.TAB_CAP, 10);
+  assert.equal(T.canOpen(withKeys(many(9)), 'z/in.z'), true);
+  assert.equal(T.canOpen(full, 'z/in.z'), false);
+  assert.equal(T.canOpen(full, 'svc/in.f5'), true);
+  assert.equal(T.canOpen(full, 'svc/in.f5!intra'), true);
+  assert.equal(T.openTab(full, 'z/in.z'), full);
+  assert.equal(T.openTab(full, 'svc/in.f5').active, 'svc/in.f5');
+  assert.equal(T.addTab(full, 'z/in.z'), full);
+  assert.equal(T.addTab(withKeys(['a/in.1', 'b/in.2'], 'a/in.1'), 'b/in.2').active, 'b/in.2');
+  const closed = T.closeTab(full, 'svc/in.f9');
+  assert.equal(T.openTab(closed, 'z/in.z').keys.length, 10);
+  assert.equal(T.reopenTab({ ...T.openTab(closed, 'z/in.z'), closed: [{ key: 'svc/in.f9', index: 9 }] }).keys.length, 10);
+});
+test('fitKeys: opens what fits, in order, and counts the skipped', () => {
+  const s = withKeys(many(8));
+  assert.deepEqual(T.fitKeys(s, ['q/in.1', 'q/in.2', 'q/in.3', 'q/in.4']), { take: ['q/in.1', 'q/in.2'], skipped: 2, opened: 2 });
+  assert.deepEqual(T.fitKeys(withKeys(many(10)), ['q/in.1']), { take: [], skipped: 1, opened: 0 });
+  assert.deepEqual(T.fitKeys(withKeys(many(10)), ['svc/in.f1', 'q/in.1']), { take: ['svc/in.f1'], skipped: 1, opened: 0 }); // an open one costs no slot
+  assert.equal(T.freeSlots(s), 2);
+});
+test('decodeUrl: more than 10 tabs are trimmed; a tab= past the 10th takes the last slot', () => {
+  const keys = many(14), q10 = (t?: string) => new URLSearchParams({ tabs: keys.join(','), ...(t ? { tab: t } : {}) });
+  assert.equal(T.urlKeys(q10()).length, 14);
+  const a = T.decodeUrl(q10());
+  assert.deepEqual(a.keys, keys.slice(0, 10));
+  assert.equal(a.active, keys[9]);
+  const b = T.decodeUrl(q10(keys[12]));
+  assert.deepEqual(b.keys, [...keys.slice(0, 9), keys[12]]);
+  assert.equal(b.active, keys[12]);
+  const c = T.decodeUrl(q10(keys[2]));
+  assert.deepEqual([c.keys.length, c.active], [10, keys[2]]);
+  assert.equal(T.encodeUrl(b).tabs, b.keys.join(','));
+});

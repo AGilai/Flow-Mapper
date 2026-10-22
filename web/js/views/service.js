@@ -64,7 +64,7 @@ export async function render({ main, params, query }) {
   }
 
   main.append(
-    pageHead(h('span.row.has-pen', titled('service', s.kind, name), pen.button('header', name, comp), runtimeGlyph(runtimeOf(s)), markBadge(mine, { store: marks }), refs?.refs ? lockChip(null, { text: `${refs.refs} reference ${refs.refs === 1 ? 'endpoint' : 'endpoints'}`, title: `${refs.refs} of its ${refs.endpoints} endpoints are references: their behaviour is in another environment.` }) : null, linksRow(s.links), pen.button('docs', `${name} docs links`, { ...comp, at: 'links' })), mine && wasText(mine) ? [s.description, h('span.mk-what', ` ${wasText(mine)}`)] : s.description ?? null,
+    pageHead(h('span.row.has-pen', titled('service', s.kind, name), pen.button('header', name, comp), runtimeGlyph(runtimeOf(s)), markBadge(mine, { store: marks }), refs?.refs ? lockChip(null, { text: `${refs.refs} reference ${refs.refs === 1 ? 'endpoint' : 'endpoints'}`, title: `${refs.refs} of its ${refs.endpoints} endpoints are references: their behaviour is in another environment.` }) : null), [mine && wasText(mine) ? [s.description, h('span.mk-what', ` ${wasText(mine)}`)] : s.description ?? null, h('span.head-links', linksRow(s.links), pen.button('docs', `${name} docs links`, { ...comp, at: 'links' }))], // #80: name and badges on one line, the description under it, the doc links on a row of their own
       pen.button('header', `${name} (header)`, comp, { text: 'Edit' }),
       h('a.btn', { href: href('/system', { sel: `svc:${name}` }) }, icon('system'), 'Show on map'),
       h('button.btn', { type: 'button', on: { click: (e) => openBugDialog(e.currentTarget) } }, icon('bug'), 'Report a bug'),

@@ -19,7 +19,7 @@ const chType = (key) => key.split(':')[0].replace('amqp-queue', 'amqp');
 /**
  * renderIndex(tree, ctx) -> { el, expandAll(budget), collapseAll, reveal(label) -> Promise, groupEl(pubIndex), rowNode(label), refresh(), relane() }
  * ctx: { ancestors (flow ids this list sits inside), makeFlow(row, ancestors) -> Promise<flow render: { laneBox, idxBox, relane, expandAll, index }>,
- *        open(row, full), openAll(rows), isOpen(row) (has a tab), jump(label) (a "seen" row whose target is not in this list) }
+ *        open(row, full), openAll(rows), freeSlots() (tabs that still fit, for a tooltip), isOpen(row) (has a tab), jump(label) (a "seen" row whose target is not in this list) }
  */
 export function renderIndex(tree, ctx) {
   const uid = `ix${++uids}`;
@@ -128,7 +128,7 @@ export function renderIndex(tree, ctx) {
   const sub = (ctx.depth ?? 0) > 0, tools = !sub || stats.deliveries > 2; // a nested list is a small line; its buttons only when it has many rows
   const header = sub ? h('div.cards-h.small', h('h3', `Async flows · ${stats.deliveries}`), h('span.grow'), tools ? h('span.cards-btns', h('button.btn.sm', { on: { click: () => all(true) } }, 'Expand all'), h('button.btn.sm', { on: { click: () => all(false) } }, 'Collapse all')) : null) : h('div.cards-h', h('h2', 'Async flows'),
     h('span.hint', `${stats.deliveries} ${stats.deliveries === 1 ? 'delivery' : 'deliveries'} · ${plural(stats.distinct, 'distinct consumer')} · ${stats.publishes} ${stats.publishes === 1 ? 'publish' : 'publishes'}. Expand a row to see its flow here.`),
-    h('span.grow'), h('span.cards-btns', distinct.length > 1 ? h('button.btn.sm', { title: 'One tab per distinct consumer', on: { click: openAll } }, `Open all distinct (${distinct.length})`) : null,
+    h('span.grow'), h('span.cards-btns', distinct.length > 1 ? h('button.btn.sm', { title: 'One tab per distinct consumer', on: { click: openAll, pointerenter: (e) => { const n = ctx.freeSlots?.(); e.currentTarget.title = n != null && distinct.length > n ? `Opens the first ${n} (the limit is 10 tabs)` : 'One tab per distinct consumer'; } } }, `Open all distinct (${distinct.length})`) : null,
       h('button.btn.sm', { on: { click: () => all(true) } }, 'Expand all'), h('button.btn.sm', { on: { click: () => all(false) } }, 'Collapse all')));
   const el = h('div.cards', header, tree.groups.map((g) => groupEl(g)));
   return { el, expandAll: (budget) => all(true, budget), collapseAll: () => all(false), reveal, groupEl: (i) => groupEls.get(i), rowNode: (label) => rowNodes.get(label) ?? null,
