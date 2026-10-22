@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased
+## 0.40.0 (2026-10-22)
 Performance batch 3 (docs/plans/perf-review.md F6 to F12, gzip). No schema change, no new dependency; stored rows, events and every response body stay identical (`tests/perf-batch3*.test.ts`, plus an old-vs-new run over every table and about 900 API responses).
 - **Gzip (API).** A JSON response of 32 KB or more is gzipped when, and only when, the request's `Accept-Encoding` allows it (`gzip` or `x-gzip` with q > 0, or `*`; `gzip;q=0`, `identity`, `br` alone or an unparseable value get plain JSON). The bytes after decoding are exactly what they were. Big bodies carry `Vary: Accept-Encoding` and a `Content-Length`. Server-Sent Events (`/api/events`) and every response that is not JSON are never compressed or buffered. A harvester or MCP client that sends no `Accept-Encoding` sees no change; one that does (most HTTP libraries) gets about 15x smaller bodies (1,000 services: system map 24.2 MB to 1.6 MB, model 24.2 MB to 1.3 MB, the biggest service page 9.7 MB to 0.35 MB). The serialised and gzipped body is kept next to the memoised report, so a warm request neither stringifies nor compresses.
 - **F9.** Comment, action item and notes writes look the flow up in the graph instead of tracing it (a plain comment on a 1,000-service system: about 400 ms to 20 ms). The trace is built, once per flow per graph, only when a `step` or `steps` is given. Same errors, same order.
