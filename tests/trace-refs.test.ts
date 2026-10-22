@@ -24,7 +24,7 @@ const get = async (p: string) => (await app.call('GET', p)).body;
 const json = (v: unknown) => JSON.parse(JSON.stringify(v));
 
 test('the agent flow: the message into users-svc/in.getPosture is a reference from prod, partial.steps lists it', async () => {
-  const t = await get(`${E}/trace?${ENTRY}&${D}`);
+  const t = await get(`${E}/trace?detail=full&${ENTRY}&${D}`);
   const ms: any[] = t.messages;
   const i = ms.findIndex((m) => m.target?.service === 'users-svc' && m.target?.ingress === 'in.getPosture');
   assert.ok(i > 0, 'the flow reaches the posture endpoint');
@@ -38,11 +38,11 @@ test('the agent flow: the message into users-svc/in.getPosture is a reference fr
 });
 
 test('tracing a reference itself: 409 NO_HANDLER with reference: true, its source and its anchor', async () => {
-  const r = await app.call('GET', `${E}/trace?service=auth-svc&ingress=in.verify`);
+  const r = await app.call('GET', `${E}/trace?detail=full&service=auth-svc&ingress=in.verify`);
   assert.equal(r.status, 409); assert.equal(r.body.error.code, 'NO_HANDLER');
   assert.deepEqual(r.body.error.details, { source: 'prod', service: 'auth-svc', ingress: 'in.verify', reference: true, anchor: 'ing:auth-svc/in.verify' });
   assert.match(r.body.error.message, /reference: its behaviour lives in prod/);
-  const own = await app.call('GET', `${E}/trace?service=auth-svc&ingress=in.token.device&${D}`);
+  const own = await app.call('GET', `${E}/trace?detail=full&service=auth-svc&ingress=in.token.device&${D}`);
   assert.equal(own.status, 200, 'a design-made endpoint with a handler traces');
 });
 
@@ -83,7 +83,7 @@ test('marks carry refs: the copied endpoints, the component counts, and the orig
 
 test('a sealed environment: trace and entry points are what core gives, nothing added', async () => {
   const g = app.ctx.graph('prod');
-  const t = await get('/api/envs/prod/trace?service=users-svc&ingress=in.getPosture');
+  const t = await get('/api/envs/prod/trace?detail=full&service=users-svc&ingress=in.getPosture');
   assert.deepEqual(t, json(trace(g, { service: 'users-svc', ingress: 'in.getPosture' }, { scope: 'full', maxDepth: 25, maxMessages: 500 })));
   for (const k of ['partial', 'reference']) assert.ok(!(k in t) && !t.messages.some((m: any) => k in m), k);
   assert.ok(t.participants.every((p: any) => !('serviceKind' in p)));

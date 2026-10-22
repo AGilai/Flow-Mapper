@@ -90,7 +90,7 @@ export function flowPrompt({ env, service, ingress }: PromptTarget): string {
 
 Target: env ${q(env)}, service ${q(service)}, ingress ${q(ingress)} (the whole flow, with all its services).
 
-1. Call trace_flow(env=${q(env)}, service=${q(service)}, ingress=${q(ingress)}, scope="full")
+1. Call trace_flow(env=${q(env)}, service=${q(service)}, ingress=${q(ingress)}, scope="full", detail="full")
    and read every step, activation bar and async consumer in it.
 2. For each service that appears, call get_service(env=${q(env)}, service=<name>)
    for its description, owner and functions.
@@ -111,7 +111,7 @@ export function servicePrompt({ env, service, ingress, callee }: PromptTarget & 
 
 Target: env ${q(env)}, the flow ${q(service)} / ${q(ingress)}, the service ${q(svc)} only.
 
-1. Call trace_flow(env=${q(env)}, service=${q(service)}, ingress=${q(ingress)}, scope="full")
+1. Call trace_flow(env=${q(env)}, service=${q(service)}, ingress=${q(ingress)}, scope="full", detail="full")
    and find what ${svc} does in this flow: who calls it, what it calls, the stores it touches, the events it publishes.
 2. Call get_service(env=${q(env)}, service=${q(svc)}) for its description, owner and functions.
 3. Write what ${svc} does in this flow and why, 1 to 2 plain sentences.

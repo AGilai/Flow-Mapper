@@ -49,7 +49,7 @@ test('design edits: component links and runtime, endpoint, function and flow lin
   assert.deepEqual(sv.ingress.find((i: any) => i.id === 'in.getUser').links, { main: L.main });
   const ep = (await draft('/entry-points')).find((e: any) => e.id === 'in.getUser');
   assert.deepEqual([ep.links, ep.flowLinks], [{ main: L.main }, L]);
-  assert.deepEqual((await draft('/trace?service=users-svc&ingress=in.getUser')).start.links, L);
+  assert.deepEqual((await draft('/trace?detail=full&service=users-svc&ingress=in.getUser')).start.links, L);
   assert.deepEqual((await draft('/flow-names'))[0].links, L);
   assert.equal((await app.call('GET', '/api/envs/hld/flow-names')).body.length, 0, 'the draft wrote nothing yet');
   // errors
@@ -60,14 +60,14 @@ test('design edits: component links and runtime, endpoint, function and flow lin
   // apply: stored in the environment
   assert.equal((await app.call('POST', `${D}/links/apply`, {})).status, 200);
   assert.deepEqual((await app.call('GET', '/api/envs/hld/flow-names')).body[0].links, L);
-  assert.deepEqual((await app.call('GET', '/api/envs/hld/trace?service=users-svc&ingress=in.getUser')).body.start.links, L);
+  assert.deepEqual((await app.call('GET', '/api/envs/hld/trace?detail=full&service=users-svc&ingress=in.getUser')).body.start.links, L);
   const ep2 = ((await app.call('GET', '/api/envs/hld/entry-points')).body as any[]).find((e) => e.id === 'in.getUser');
   assert.deepEqual(ep2.flowLinks, L);
   // null clears
   assert.equal((await app.call('POST', D, { name: 'Clear', slug: 'clear' })).status, 201);
   assert.equal((await edit('clear', { kind: 'flow', service: 'users-svc', ingress: 'in.getUser', links: null })).status, 201);
   assert.equal((await app.call('POST', `${D}/clear/apply`, {})).status, 200);
-  assert.equal((await app.call('GET', '/api/envs/hld/trace?service=users-svc&ingress=in.getUser')).body.start.links, undefined);
+  assert.equal((await app.call('GET', '/api/envs/hld/trace?detail=full&service=users-svc&ingress=in.getUser')).body.start.links, undefined);
 });
 
 test('flow-names PUT takes links; a plan takes flow links and details.runtime', async () => {

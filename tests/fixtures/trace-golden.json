@@ -67,6 +67,8 @@
  "dpc-worker/in.rpcZoneLookup": "120e916ceb4d6c",
  "identity-svc/in.auditExport": "02ee1b55207d3e",
  "identity-svc/in.login": "09c77de813c254",
+ "member-api/in.register": "151be24e638387",
+ "member-api/in.registerIdp": "115de5f45b8940",
  "orders-svc/in.remove": "0c2de978d672be",
  "orders-svc/in.touch": "1ea663a7aed717",
  "payments-svc/in.legacyRefund": "16523545ad48c2",

@@ -29,7 +29,7 @@ test('access is read or write from the operation, unless the step says', () => {
 test('inventory lists every kind of object', async () => {
   const items = (await app.call('GET', '/api/envs/prod/inventory')).body as any[];
   const of = (t: string) => items.filter((x) => x.type === t);
-  assert.equal(of('service').length, 56, 'infra is not a service (50 + the 5 RabbitMQ demo services of 0.18.0 + identity-svc of 0.27.1)');
+  assert.equal(of('service').length, 58, 'infra is not a service (50 + the 5 RabbitMQ demo services of 0.18.0 + identity-svc of 0.27.1 + member-api and member-notifier of 0.37.0)');
   assert.ok(of('service').some((x) => x.id === 'catalog-svc' && x.connections.startsWith('50 endpoints')));
   assert.ok(of('channel').some((x) => x.id === 'eventbridge:acme-bus' && x.kind === 'eventbridge-bus'));
   assert.ok(of('store').some((x) => x.id === 'redis:cache-main' && x.kind === 'redis' && x.instance === 'cluster' && x.label === 'cache-main'), 'a Redis instance is one row');
@@ -62,7 +62,7 @@ test('read_write counts as reader and writer; fields are kept on the operation, 
   const bad = structuredClone(base);
   bad.functions.find((f: any) => f.id === 'OrderController.touch').steps[0].fields = [{ role: 'bogus', path: 'x' }];
   assert.equal((await app.call('POST', '/api/ingest?dryRun=1', bad)).status, 422);
-  const trace = (await app.call('GET', '/api/envs/prod/trace?service=orders-svc&ingress=in.touch')).body;
+  const trace = (await app.call('GET', '/api/envs/prod/trace?detail=full&service=orders-svc&ingress=in.touch')).body;
   assert.ok(trace.messages.some((m: any) => m.fields?.some((f: any) => f.path === 'viewCount')));
 });
 

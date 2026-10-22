@@ -5,6 +5,8 @@ import { buildIndex } from '../core/graph-index.js';
 import { systemGraph } from '../core/system-graph.js';
 import { serviceView } from '../core/service-view.js';
 import { entryPoints, trace } from '../core/trace.js';
+import { viewOf } from '../core/trace-view.js';
+import { viewParams } from '../core/trace-view-params.js';
 import { flowCounts, markedReached } from '../core/flow-counts.js';
 import { flowsThrough } from '../core/flows-through.js';
 import { refsReached } from '../core/flow-refs.js';
@@ -117,7 +119,7 @@ export const api = {
     D.dtosOf(env).filter((d) => d.service === service && d.ingress === ingress), D.eventDtosOf(env)) ?? fail('endpoint not found'),
   trace: async (env, q) => {
     const t = trace(g(env), q, { scope: q.scope, maxMessages: q.maxMessages ?? 500, expand: q.expand?.split(',').filter(Boolean), frontier: q.frontier === '1' || q.frontier === true });
-    return t ? D.traceOut(env, t, g(env)) : noStart(env, q);
+    return t ? D.traceOut(env, viewOf(t, viewParams({ detail: 'full', choose: '*:both', ...q })), g(env)) : noStart(env, q); // 0.37.1: as api.js, the page keeps every step and both arms
   },
   descriptions: async (env, service, ingress) => {
     const t = trace(g(env), { service, ingress }, HASH_TRACE) ?? fail('flow not found');

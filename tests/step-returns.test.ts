@@ -13,7 +13,7 @@ after(() => app.close());
 
 const D = (slug: string) => `/api/envs/hld/drafts/${slug}`;
 const open = async (name: string) => (await app.call('POST', '/api/envs/hld/drafts', { name })).body.slug as string;
-const trace = async (slug: string, f: { service: string; ingress: string }) => (await app.call('GET', `/api/envs/hld/trace?service=${f.service}&ingress=${f.ingress}&draft=${slug}`)).body;
+const trace = async (slug: string, f: { service: string; ingress: string }) => (await app.call('GET', `/api/envs/hld/trace?detail=full&service=${f.service}&ingress=${f.ingress}&draft=${slug}`)).body;
 const exp = async (slug: string, f: { service: string; ingress: string }) => (await app.call('GET', `/api/envs/hld/flows/mermaid?service=${f.service}&ingress=${f.ingress}&draft=${slug}`)).body as string;
 
 test('returnsProblem: label 1 to 80 characters on one line, detail up to 500, nothing else', () => {
@@ -27,7 +27,7 @@ test('returnsProblem: label 1 to 80 characters on one line, detail up to 500, no
 });
 
 test('manifest: the sample step carries returns into the trace; a bad label is a 422', async () => {
-  const t = (await app.call('GET', '/api/envs/prod/trace?service=api-gateway&ingress=in.getOrder')).body;
+  const t = (await app.call('GET', '/api/envs/prod/trace?detail=full&service=api-gateway&ingress=in.getOrder')).body;
   const m = t.messages.find((x: any) => x.returns);
   assert.equal(m.returns.label, '200 order JSON'); assert.match(m.returns.detail, /404 when the id is unknown/);
   const mf = readSample('api-gateway.json'); mf.version += 1;

@@ -1,0 +1,360 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "version": 1,
+  "harvestedAt": "2026-10-22T09:00:00Z",
+  "commit": "a82a82a",
+  "service": {
+    "name": "member-api",
+    "kind": "service",
+    "team": "identity",
+    "repo": "github.com/acme/member-api",
+    "language": "javascript",
+    "description": "Joins a member: from the identity provider or by invitation (#82 demo: nested either/or decisions, a lock, DB groups)",
+    "tags": [
+      "demo"
+    ]
+  },
+  "functions": [
+    {
+      "id": "register",
+      "name": "POST /members/register",
+      "file": "routes/register.js",
+      "line": 40,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "createMember"
+        }
+      ]
+    },
+    {
+      "id": "registerIdp",
+      "name": "POST /members/register-idp",
+      "file": "routes/register.js",
+      "line": 70,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "createMember",
+          "fixes": [
+            {
+              "group_id": "3b1f0a52-7c1e-5d1a-8a34-5e0c4f6b2d10",
+              "arm": "createFromIdp",
+              "source": {
+                "file": "routes/register.js",
+                "line": 75
+              },
+              "literal": "idp"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "createMember",
+      "name": "create a member",
+      "file": "lib/member.js",
+      "line": 10,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "createFromIdp",
+          "alternatives": [
+            {
+              "group_id": "3b1f0a52-7c1e-5d1a-8a34-5e0c4f6b2d10",
+              "name": "switch (member.source): createFromIdp / invite",
+              "name_source": "template",
+              "llm_name": "How the member joins",
+              "llm_provenance": null,
+              "depends_on": "message",
+              "guard": {
+                "text": "member.source",
+                "file": "lib/member.js",
+                "line": 12
+              },
+              "arms": [
+                {
+                  "arm": "createFromIdp",
+                  "label": "createFromIdp",
+                  "guard_text": "source === 'idp'",
+                  "step_ids": [
+                    "member-api:createMember#1"
+                  ]
+                },
+                {
+                  "arm": "invite",
+                  "label": "invite",
+                  "guard_text": "source === 'invite'",
+                  "step_ids": [
+                    "member-api:createMember#2"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "type": "call",
+          "target": "invite",
+          "alternatives": [
+            {
+              "group_id": "3b1f0a52-7c1e-5d1a-8a34-5e0c4f6b2d10",
+              "name": "switch (member.source): createFromIdp / invite",
+              "name_source": "template",
+              "llm_name": "How the member joins",
+              "llm_provenance": null,
+              "depends_on": "message",
+              "guard": {
+                "text": "member.source",
+                "file": "lib/member.js",
+                "line": 12
+              },
+              "arms": [
+                {
+                  "arm": "createFromIdp",
+                  "label": "createFromIdp",
+                  "guard_text": "source === 'idp'",
+                  "step_ids": [
+                    "member-api:createMember#1"
+                  ]
+                },
+                {
+                  "arm": "invite",
+                  "label": "invite",
+                  "guard_text": "source === 'invite'",
+                  "step_ids": [
+                    "member-api:createMember#2"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "createFromIdp",
+      "name": "create from the identity provider",
+      "file": "lib/idp.js",
+      "line": 28,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "membersDb",
+          "operation": "find by email"
+        },
+        {
+          "seq": 2,
+          "type": "call",
+          "target": "linkExisting",
+          "alternatives": [
+            {
+              "group_id": "3b1f0a52-7c1e-5d1a-8a34-5e0c4f6b2d11",
+              "name": "when the user exists -> link, else -> create",
+              "name_source": "template",
+              "llm_name": "User exists?",
+              "llm_provenance": null,
+              "depends_on": "data",
+              "guard": {
+                "text": "await users.find(email)",
+                "file": "lib/idp.js",
+                "line": 31
+              },
+              "arms": [
+                {
+                  "arm": "yes",
+                  "label": "yes (existing user)",
+                  "guard_text": "existing",
+                  "step_ids": [
+                    "member-api:createFromIdp#2"
+                  ]
+                },
+                {
+                  "arm": "no",
+                  "label": "no (new user)",
+                  "step_ids": [
+                    "member-api:createFromIdp#3"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 3,
+          "type": "call",
+          "target": "createNew",
+          "alternatives": [
+            {
+              "group_id": "3b1f0a52-7c1e-5d1a-8a34-5e0c4f6b2d11",
+              "name": "when the user exists -> link, else -> create",
+              "name_source": "template",
+              "llm_name": "User exists?",
+              "llm_provenance": null,
+              "depends_on": "data",
+              "guard": {
+                "text": "await users.find(email)",
+                "file": "lib/idp.js",
+                "line": 31
+              },
+              "arms": [
+                {
+                  "arm": "yes",
+                  "label": "yes (existing user)",
+                  "guard_text": "existing",
+                  "step_ids": [
+                    "member-api:createFromIdp#2"
+                  ]
+                },
+                {
+                  "arm": "no",
+                  "label": "no (new user)",
+                  "step_ids": [
+                    "member-api:createFromIdp#3"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "linkExisting",
+      "name": "link the existing user",
+      "file": "lib/idp.js",
+      "line": 40,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "membersDb",
+          "operation": "update"
+        },
+        {
+          "seq": 2,
+          "type": "resource",
+          "target": "devicesDb",
+          "operation": "insert"
+        }
+      ]
+    },
+    {
+      "id": "createNew",
+      "name": "create a new user",
+      "file": "lib/idp.js",
+      "line": 55,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "membersDb",
+          "operation": "insert"
+        },
+        {
+          "seq": 2,
+          "type": "resource",
+          "target": "devicesDb",
+          "operation": "insert"
+        },
+        {
+          "seq": 3,
+          "type": "resource",
+          "target": "membersDb",
+          "operation": "update"
+        },
+        {
+          "seq": 4,
+          "type": "egress",
+          "target": "member.welcome"
+        }
+      ]
+    },
+    {
+      "id": "invite",
+      "name": "invite by mail",
+      "file": "lib/invite.js",
+      "line": 8,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "membersDb",
+          "operation": "insert"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "member.invite"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.register",
+      "bindKey": "http:POST member-api/members/register",
+      "transport": "http",
+      "handler": "register",
+      "entryPoint": true,
+      "details": {
+        "method": "POST",
+        "path": "/members/register"
+      }
+    },
+    {
+      "id": "in.registerIdp",
+      "bindKey": "http:POST member-api/members/register-idp",
+      "transport": "http",
+      "handler": "registerIdp",
+      "entryPoint": true,
+      "details": {
+        "method": "POST",
+        "path": "/members/register-idp"
+      }
+    }
+  ],
+  "egress": [
+    {
+      "id": "member.welcome",
+      "bindKey": "http:POST member-notifier/welcome",
+      "transport": "http",
+      "mode": "sync",
+      "details": {
+        "method": "POST",
+        "path": "/welcome"
+      }
+    },
+    {
+      "id": "member.invite",
+      "bindKey": "http:POST member-notifier/invite",
+      "transport": "http",
+      "mode": "sync",
+      "details": {
+        "method": "POST",
+        "path": "/invite"
+      }
+    }
+  ],
+  "resources": [
+    {
+      "id": "membersDb",
+      "kind": "mongodb",
+      "name": "members",
+      "bindKey": "mongodb:members-db/members"
+    },
+    {
+      "id": "devicesDb",
+      "kind": "mongodb",
+      "name": "devices",
+      "bindKey": "mongodb:members-db/devices"
+    }
+  ]
+}

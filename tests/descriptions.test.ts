@@ -121,7 +121,7 @@ test('MCP set_description writes the AI record only; trace_flow and get_service 
     const again = out(await mcp(a, 'set_description', { service: 'api-gateway', ingress: 'in.createOrder', callee: 'orders-svc', text: 'v2', model: 'm' }));
     assert.equal(again.callees['orders-svc'].ai.text, 'v2');
     // visible to agents
-    const tf = out(await mcp(a, 'trace_flow', { service: 'api-gateway', ingress: 'in.createOrder' }));
+    const tf = out(await mcp(a, 'trace_flow', { detail: 'full', service: 'api-gateway', ingress: 'in.createOrder' }));
     assert.equal(tf.descriptions.flow.ai.text, 'AI words.');
     assert.equal(tf.descriptions.flow.human.text, 'Human words.');
     const gs = out(await mcp(a, 'get_service', { service: 'api-gateway' }));

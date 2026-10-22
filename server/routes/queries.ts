@@ -8,6 +8,8 @@ import { getEnvRow } from '../store/envs.ts';
 import { systemGraph } from '../../core/system-graph.ts';
 import { serviceView } from '../../core/service-view.ts';
 import { trace } from '../../core/trace.ts';
+import { viewOf } from '../../core/trace-view.ts';
+import { viewParams } from '../../core/trace-view-params.ts';
 import { emptyFlow } from '../../core/entry-points.ts';
 import { flowsThrough } from '../../core/flows-through.ts';
 import { entryPointsOut, flowNameMap, refsFor, traceOut } from '../refs.ts';
@@ -47,6 +49,8 @@ export function registerQueries(r: Router, ctx: Ctx) {
     const service = q.get('service');
     if (!service) throw badRequest('service is required (plus ingress or fn)');
     const scope = q.get('scope') === 'intra' ? 'intra' : 'full';
+    let view; // 0.37.1 (#82): detail (default external), choose, open, dbOpen, group
+    try { view = viewParams({ detail: q.get('detail'), choose: q.get('choose'), open: q.get('open'), dbOpen: q.get('dbOpen'), group: q.get('group') }); } catch (e) { throw badRequest((e as Error).message); }
     const g = ctx.graphOf(req);
     const t = trace(g, { service, ingress: q.get('ingress') ?? undefined, fn: q.get('fn') ?? undefined, event: q.get('event') ?? undefined },
       { scope, maxDepth: int(q.get('maxDepth'), 25), maxMessages: Math.min(int(q.get('maxMessages'), 500), 5000), expand: q.get('expand')?.split(',').filter(Boolean), frontier: ['1', 'true'].includes(q.get('frontier') ?? '') });
@@ -61,7 +65,7 @@ export function registerQueries(r: Router, ctx: Ctx) {
         { source, service, ingress: ing.id, reference: !!ref, anchor });
     }
     if (!t) throw notFound('start point (service + ingress or fn)');
-    return traceOut(ctx, req.params.env, q.get('draft'), t);
+    return traceOut(ctx, req.params.env, q.get('draft'), viewOf(t, view));
   });
 
   r.get('/api/envs/:env/paths', (req) => {

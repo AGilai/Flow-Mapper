@@ -23,7 +23,7 @@ test('PUT and GET on a sealed environment and on a design; \'\' removes; unknown
     assert.ok(l[0].updatedAt);
   }
   assert.equal((await entry('prod', 'in.getUser')).name, 'Look up a user', 'entry points carry the name');
-  assert.equal((await app.call('GET', '/api/envs/prod/trace?service=users-svc&ingress=in.getUser')).body.start.name, 'Look up a user', 'and so does the trace start');
+  assert.equal((await app.call('GET', '/api/envs/prod/trace?detail=full&service=users-svc&ingress=in.getUser')).body.start.name, 'Look up a user', 'and so does the trace start');
   assert.equal((await put('prod', { ...E, name: '' })).body.name, null);
   assert.deepEqual(await names('prod'), []);
   assert.equal((await entry('prod', 'in.getUser')).name, undefined, 'no name: no field');
@@ -48,7 +48,7 @@ test('a draft: its flow op name wins while it is read, the stored names survive 
   const slug = (await app.call('POST', '/api/envs/hld/drafts', { name: 'names' })).body.slug;
   await app.call('POST', `/api/envs/hld/drafts/${slug}/edits`, { edit: { kind: 'component', name: 'bystander', serviceKind: 'service', groupPath: 'platform' } });
   assert.equal((await entry('hld', 'in.getContact', slug)).name, 'Stored name', 'a draft read does not lose the names in the database');
-  assert.equal((await app.call('GET', `/api/envs/hld/trace?service=users-svc&ingress=in.getContact&draft=${slug}`)).status, 409, 'it is a reference here: nothing to trace');
+  assert.equal((await app.call('GET', `/api/envs/hld/trace?detail=full&service=users-svc&ingress=in.getContact&draft=${slug}`)).status, 409, 'it is a reference here: nothing to trace');
   assert.equal((await names('hld', slug)).length, 1);
   const r = await app.call('POST', `/api/envs/hld/drafts/${slug}/edits`, { edit: { kind: 'flow', service: 'users-svc', ingress: 'in.getContact', name: 'Draft name', description: 'Described in the draft' }, author: 'bo' });
   assert.equal(r.status, 201, JSON.stringify(r.body));
@@ -96,9 +96,9 @@ test('Fix #52: in an applied design environment (no ?draft) the flow name is rea
   const hits = (await app.call('GET', `${A}/search?q=pods%20inv`)).body;
   assert.deepEqual(hits.map((h: any) => [h.type, h.id, h.name]), [['ingress', 'in.pods', n]], 'the search finds a flow by its name and says it');
   assert.equal((await app.call('GET', `${A}/search?q=pods`)).body.find((h: any) => h.type === 'ingress').name, n);
-  assert.equal((await app.call('GET', `${A}/trace?service=kubernetes&ingress=in.pods`)).body.start.name, n);
+  assert.equal((await app.call('GET', `${A}/trace?detail=full&service=kubernetes&ingress=in.pods`)).body.start.name, n);
   assert.equal((await app.mcp('list_entry_points', { env: 'nm' })).json[0].name, n);
   assert.equal((await app.mcp('search', { env: 'nm', query: 'Pods inventory' })).json[0].name, n);
-  assert.equal((await app.mcp('trace_flow', { env: 'nm', service: 'kubernetes', ingress: 'in.pods' })).json.start.name, n);
+  assert.equal((await app.mcp('trace_flow', { detail: 'full', env: 'nm', service: 'kubernetes', ingress: 'in.pods' })).json.start.name, n);
   assert.equal((await app.call('GET', '/api/envs/prod/search?q=getPosture')).body.find((h: any) => h.type === 'ingress').name, undefined, 'an unnamed flow: no field');
 });

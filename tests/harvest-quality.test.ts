@@ -24,7 +24,7 @@ test('an unresolved call is reported with its reason, not as a broken link', asy
 });
 
 test('a trace shows the gap where the harvester lost the call', async () => {
-  const t = (await app.call('GET', '/api/envs/prod/trace?service=orders-svc&ingress=in.create&scope=full')).body;
+  const t = (await app.call('GET', '/api/envs/prod/trace?detail=full&service=orders-svc&ingress=in.create&scope=full')).body;
   const gap = t.messages.find((m: any) => m.gap?.reason === 'method_or_path_unresolved');
   assert.ok(gap && !gap.broken);
   assert.equal(t.participants.find((p: any) => p.id === gap.to).kind, 'unresolved');

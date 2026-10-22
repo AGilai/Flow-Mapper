@@ -62,12 +62,12 @@ test('link health reports every event problem', async () => {
 });
 
 test('traces carry the event type and run the handler for it', async () => {
-  const t = (await app.call('GET', '/api/envs/prod/trace?service=orders-svc&ingress=in.create&scope=full')).body;
+  const t = (await app.call('GET', '/api/envs/prod/trace?detail=full&service=orders-svc&ingress=in.create&scope=full')).body;
   const deliveries = t.messages.filter((m: any) => m.kind === 'deliver' && m.event === 'OrderPlaced');
   assert.ok(deliveries.some((m: any) => m.label.endsWith('→ onOrderPlaced')));
   assert.ok(deliveries.some((m: any) => m.label.endsWith('→ OnOrderEvent')));
   assert.ok(!t.messages.some((m: any) => m.unhandled));
-  const start = (await app.call('GET', '/api/envs/prod/trace?service=inventory-svc&ingress=in.orderEvents&event=OrderPlaced&scope=intra')).body;
+  const start = (await app.call('GET', '/api/envs/prod/trace?detail=full&service=inventory-svc&ingress=in.orderEvents&event=OrderPlaced&scope=intra')).body;
   assert.equal(start.start.fn, 'OnOrderEvent');
   assert.equal(start.start.event, 'OrderPlaced');
 });
@@ -105,7 +105,7 @@ test('MCP event_types lists producers and consumers', async () => {
 });
 
 test('trace arrows say where the call is made, what handles it, and which store they touch', async () => {
-  const t = (await app.call('GET', '/api/envs/prod/trace?service=orders-svc&ingress=in.create&scope=full')).body;
+  const t = (await app.call('GET', '/api/envs/prod/trace?detail=full&service=orders-svc&ingress=in.create&scope=full')).body;
   const publish = t.messages.find((m: any) => m.kind === 'egress' && m.event === 'OrderPlaced');
   assert.equal(publish.fn, 'OrderService.place');
   assert.ok(publish.seq > 0);
@@ -118,7 +118,7 @@ test('trace arrows say where the call is made, what handles it, and which store 
 });
 
 test('expanding a service in a full trace draws its functions as lifelines', async () => {
-  const base = '/api/envs/prod/trace?service=api-gateway&ingress=in.createOrder&scope=full';
+  const base = '/api/envs/prod/trace?detail=full&service=api-gateway&ingress=in.createOrder&scope=full';
   const t = (await app.call('GET', base)).body;
   const orders = t.participants.find((p: any) => p.id === 'svc:orders-svc');
   assert.ok(orders.internalCalls > 0, 'collapsed service reports its internal calls');

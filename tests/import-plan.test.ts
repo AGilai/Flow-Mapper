@@ -124,7 +124,7 @@ test('apply: the flow of the client app traces into pop-edge and auth-svc; flow 
   assert.deepEqual(ap.body.results.map((x: any) => x.service).sort(), ['auth-svc', 'pop-edge', 'sase-agent']);
   const eps = (await app.call('GET', `${E}/entry-points`)).body;
   assert.ok(eps.some((e: any) => e.service === 'sase-agent' && e.id === 'in.tunnel.open' && e.bindKey === 'client:sase-agent/tunnel-open' && e.entryPoint));
-  const t = (await app.call('GET', `${E}/trace?service=sase-agent&ingress=in.tunnel.open`)).body;
+  const t = (await app.call('GET', `${E}/trace?detail=full&service=sase-agent&ingress=in.tunnel.open`)).body;
   const hops = new Set(t.messages.flatMap((x: any) => [x.from, x.to]));
   assert.ok(hops.has('svc:sase-agent') && hops.has('svc:pop-edge') && hops.has('svc:auth-svc'), [...hops].join(' '));
   const names = app.ctx.db.prepare("SELECT name, author FROM flow_names WHERE env = 'sase-hld'").all() as any[];

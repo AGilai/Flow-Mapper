@@ -41,7 +41,7 @@ test('switching env clears the design state; a sealed env is always view with no
 
 test('api reads of the current design env carry draft=<slug>, nothing else does', () => {
   assert.equal(withDraft('/api/envs/sase-hld/inventory', 'hld-import', 'sase-hld'), '/api/envs/sase-hld/inventory?draft=hld-import');
-  assert.equal(withDraft('/api/envs/sase-hld/trace?service=a', 'd', 'sase-hld'), '/api/envs/sase-hld/trace?service=a&draft=d');
+  assert.equal(withDraft('/api/envs/sase-hld/trace?detail=full&service=a', 'd', 'sase-hld'), '/api/envs/sase-hld/trace?detail=full&service=a&draft=d');
   assert.equal(withDraft('/api/envs/sase-hld/inventory', null, 'sase-hld'), '/api/envs/sase-hld/inventory');
   assert.equal(withDraft('/api/envs/prod/inventory', 'd', 'sase-hld'), '/api/envs/prod/inventory', 'another environment');
   assert.equal(withDraft('/api/envs/sase-hld/drafts', 'd', 'sase-hld'), '/api/envs/sase-hld/drafts');

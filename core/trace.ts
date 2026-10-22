@@ -29,64 +29,10 @@ import { bindingKeyOf, splitAmqpKey } from './amqp.ts';
 import { routeInfo, routeKey, rpcOf, rpcServed, withServer, type AmqpRoute, type RpcInfo } from './amqp-route.ts';
 import { deferHelpers } from './trace-defer.ts';
 import { fanOutOrder } from './trace-order.ts';
+import { altIndex, armChain, covers, enterStep, newBook, NO_ARMS, withDecisions, type ArmState } from './alternatives.ts';
 
-export interface Participant {
-  id: string; label: string; kind: 'client' | 'function' | 'service' | 'channel' | 'resource' | 'missing' | 'unresolved'; service?: string;
-  /** Service lifelines: function calls inside that service on this trace (what expanding would show). */
-  internalCalls?: number;
-}
-export interface Message {
-  from: string; to: string; label: string; mode: Mode;
-  kind: 'entry' | 'call' | 'egress' | 'deliver' | 'resource' | 'leaf' | 'frontier';
-  depth: number; internal?: boolean; broken?: boolean; cycle?: boolean;
-  condition?: string; loop?: boolean; alternatives?: StepAlternative[]; fixes?: StepFix[]; stepId?: string; // 0.36.1 (#82): the step's either/or groups as sent, and the id `arms[].step_ids` use (`<service>:<fn>#<seq>`)
-  mark?: 'new' | 'changed'; changed?: string; over?: string[]; real?: string; returns?: { label: string; detail?: string }; self?: boolean; // 0.33.2: what the call returns (#81); 0.33.1: a mermaid import's `%% real:` bind key, the return's label, a self-message; 0.32.2: the step's mark and its details.changed text (#75), the components a leaf note spans (#74)
-  alt?: Alt;                                                 // the step is one of several alternatives (an alt frame): group, branch (1-based), number of branches; the message keeps its `condition` note?: string; fn?: string; service?: string; transport?: string; protocol?: 'tls' | 'tcp' | 'ws';
-  event?: string; unhandled?: boolean; operation?: string; // operation: a call out's own words (`POST /token`); `label` is that plus the bind key
-  eventFrom?: { name: string; boundAt?: string };            // the event came from a caller's bind (#42): the name, and where it was bound (`<caller fn>:<seq>`); no boundAt: nothing on this path binds it
-  possible?: boolean;                                        // delivered only if the publisher's event is one of its candidates (the step names no event)
-  seq?: number;                                              // step number in the calling function
-  target?: { service: string; ingress: string; fn?: string }; // ingress reached, and the handler that runs
-  store?: string; storeKind?: string; owner?: string; access?: 'read' | 'write' | 'read_write' | 'unknown'; // resource steps (owner, 0.30.1: the component that declares the store, for the flow view's subsystem band): data-store key; its driver (`mongodb`); read / write from the step's `access`, else its operation (0.27.1, the drawing's line weight)
-  fields?: StepField[];                                      // fields a resource step touches (role, path, operator, inDdl)
-  calls?: string;                                            // function called, for call steps (same service)
-  egress?: string;                                           // egress id, for calls out (its call site is in `code`)
-  via?: LinkedHop[];                                         // wrappers the call goes through (last one calls the SDK); display only
-  handlerVia?: LinkedHop[];                                  // how the ingress resolved to its handler (registration / bind hops); display only
-  origin?: 'frontier';                                       // a step the harvester marked as frontier (shown because the trace was asked to expand them)
-  frontierSteps?: number;                                    // on a kind 'frontier' marker: frontier steps folded into it (this function's and those of the frontier calls below it)
-  assumed?: { field: string; value: unknown; basis: string; reason: string }[]; // #47: details of a resource step the harvester filled by a rule
-  unknown?: { field: string; reason: string }[];            // on a resource step: details the harvester could not read (`unresolved` what=detail: keyTemplate, dbIndex, ttlSeconds) and why
-  gap?: Unresolved;                                          // the harvester could not resolve this call; why
-  group?: string;                                            // SNS fan-out: id of the publish (`m<index of the publish message>`), on the publish and on each of its deliveries
-  deliveries?: number;                                       // on the publish message of a fan-out: how many deliveries follow it
-  matched?: string[];                                        // on deliveries of an untyped publish: the event types (its events / candidates) that the subscription's filter let through
-  repeatOf?: number;                                         // a delivery already expanded earlier in this trace (#43): the 1-based step (message number) of the first one. Nothing is expanded below it; it does not count toward maxMessages
-  middleware?: { fn: string; index: number };                // the message comes from this middleware function of the ingress (0-based position in `ingress.middleware`) or from a call it made; absent for the handler's own
-  middlewareChain?: { fn: string; name: string }[];          // on a message that reaches an ingress (entry / egress / deliver): its middleware, in the order they run before the handler
-  n?: number;                                                // #73 (additive): the 1-based message number, on a message that starts deferred work (a delivery, an async call). `of` points back at it
-  of?: number;                                               // #73 (additive): this message belongs to the work started by message `n` === of (its innermost one): a consumer's steps carry their delivery's number, an async callee's its call's. Absent in the caller's own flow
-  n?: number;                                                // #73 (additive): the 1-based message number, on a message that starts deferred work (a delivery, an async call); `of` points back at it
-  of?: number;                                               // #73 (additive): the message belongs to the work started by message number `of` (the innermost one): a consumer's steps carry their delivery's `n`, an async callee's its call's. Absent on the caller's own flow
-  delivery?: number;                                         // on the topic -> queue and queue -> consumer messages of one delivery: 1-based ordinal within the group
-  amqp?: AmqpRoute;                                          // an AMQP publish through an exchange (0.18.0), on the publish and the hops after it: exchange, routing key, type, how many bindings route it and the ones that do not
-  rpc?: RpcInfo;                                             // an RPC over AMQP (0.18.0; bind key `amqp-rpc:{command}`, transport amqp, mode sync): the command and the AMQP details both sides declared
-  filter?: HopFilter;                                        // on a hop that goes through a subscription, rule or binding (topic -> queue, bus -> target, exchange -> queue): what it declares
-}
-/** The subscription behind a hop: its id, the key it listens on (SNS topic, bus, `exchange/routing-key`) and the event types it lets through (absent: all). */
-export interface HopFilter { id: string; service: string; from: string; events?: '*' | string[]; /** An AMQP binding: its key as written in code (`details.bindingKey`, else the part of `from` after the exchange). */ bindingKey?: string; match?: string; /** Headers exchange: the binding's headers and x-match. */ headers?: Record<string, unknown>; xMatch?: 'all' | 'any' }
-export interface Trace {
-  start: { service: string; ingress?: string; fn: string; event?: string }; scope: 'intra' | 'full';
-  participants: Participant[]; messages: Message[]; truncated: boolean;
-  /** An entry point with no handler (none named, or none for the requested event) (0.25.1, #59): an empty flow (the entry participant, no messages) that can still be fetched, described and linked. */
-  noHandler?: true;
-  /** Code location of every function on the trace, by `${service}:${fn}`, of call sites, by `egress:${service}:${id}`, and of steps that carry a `source`, by `step:${service}:${fn}#${seq}`. */
-  code: Record<string, SourceLink | null>;
-}
-
-export interface TraceOptions { scope?: 'intra' | 'full'; maxDepth?: number; maxMessages?: number; expand?: string[];
-  /** Show steps marked `origin: 'frontier'`. Off by default: each function gets one collapsed marker and they do not count toward maxMessages. */
-  frontier?: boolean }
+export type { Participant, Message, HopFilter, Trace, TraceOptions } from './trace-types.ts';
+import type { Message, Participant, HopFilter, Trace, TraceOptions } from './trace-types.ts';
 
 export function trace(g: GraphIndex, start: { service: string; ingress?: string; fn?: string; event?: string }, opts: TraceOptions = {}): Trace | null {
   const scope = opts.scope ?? 'full';
@@ -104,7 +50,9 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
   let truncated = false;
   const root = start.service;
 
-  const expanded = new Map<string, number>(); // deliveries expanded so far (consumer, ingress, handler, event) -> step number of the first (#43)
+  const expanded = new Map<string, { n: number; path: string[] }[]>(); // deliveries expanded so far (consumer, ingress, handler, event) -> step number of the first and the arms it sat in (#43; 0.37.0: a later one reuses it only inside the same arms)
+  const altIx = altIndex(g), book = newBook(), armCtxs = new Map<string, AltCtx>(); // 0.37.0 (#82): the either/or index (null: none), what the decisions need, the maxMessages tally per group
+  let arms: ArmState = NO_ARMS, pushed = 0;
   const part = (p: Participant) => { if (!participants.has(p.id)) participants.set(p.id, p); return p.id; };
   const fnPart = (service: string, fn: string) => {
     if ((scope === 'intra' && service === root) || expand.has(service)) {
@@ -145,6 +93,8 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
   };
   let mwCtx: { fn: string; index: number } | null = null; // set while an ingress's middleware runs: its messages are marked
   const push = (m: Message) => {
+    if (altIx && ++pushed > 4 * maxMessages) { truncated = true; return false; } // a hard ceiling: exclusive arms may expand the same delivery once each
+    if (arms.path.length) m = { ...m, arms: [...arms.path] };
     if (mwCtx && !m.middleware) m = { ...m, middleware: mwCtx };
     if (curOf !== undefined && m.of === undefined) m = { ...m, of: curOf };
     if (m.kind === 'frontier' || m.repeatOf) { messages.push(m); return true; } // markers are free, as documented on TraceOptions.frontier (and #43 for repeats)
@@ -180,14 +130,20 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
     let folded = false;
     const ordered = [...f.steps].sort((a, b) => a.seq - b.seq);
     const alts = altGroups(ordered.filter((st) => showFrontier || st.origin !== 'frontier'), f.id);
-    const outer = altCtx, ctxs = new Map<string, AltCtx>();
+    const outer = altCtx, ctxs = new Map<string, AltCtx>(), arm0 = arms;
     const later: (() => void)[] = []; // #73: what async calls start runs after the caller's own remaining steps
     try {
     for (const st of ordered) {
       if (truncated) return;
       const alt = alts.get(st.seq);
-      altCtx = outer;
-      if (alt) altCtx = altCtxOf(ctxs, alt, outer);
+      altCtx = outer; arms = arm0;
+      if (altIx) { // 0.37.0: the arms this step sits in, the locks it adds; an arm a lock excludes is skipped with its subtree
+        const r = enterStep(altIx, book, st, `${service}:${f.id}#${st.seq}`, arm0);
+        if (r.skip) continue;
+        arms = r.state;
+        if (arms.path.length > arm0.path.length) altCtx = altCtxOf(armCtxs, armChain(altIx, arms.path)!, outer);
+      }
+      if (alt) altCtx = altCtxOf(ctxs, alt, altCtx);
       if (st.origin === 'frontier' && !showFrontier) {
         if (!folded) { // one marker per function, where its first frontier step would be
           folded = true;
@@ -264,7 +220,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
       }
     }
     for (const run of later) run();
-    } finally { altCtx = outer; }
+    } finally { altCtx = outer; arms = arm0; }
   };
 
   // An ingress's middleware (in order) runs before its handler, each as an ordinary function visit; their messages carry `middleware`.
@@ -284,7 +240,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
   // A fan-out's deliveries are drawn first (publish, then topic -> queue -> consumer for each), and only then what each consumer does
   // (its calls, stores, publishes, nested deliveries), in delivery order: nothing hangs between the deliveries, under the topic's activation bar.
   let deferred: (() => void)[] | null = null;
-  const { withAlt, holdAsync, afterCaller } = deferHelpers<AltCtx | undefined>({ alt: { get: () => altCtx, set: (a) => { altCtx = a; } }, deferred: { get: () => deferred, set: (d) => { deferred = d; } } });
+  const { withAlt, holdAsync, afterCaller } = deferHelpers<{ a: AltCtx | undefined; p: ArmState }>({ alt: { get: () => ({ a: altCtx, p: arms }), set: (x) => { altCtx = x.a; arms = x.p; } }, deferred: { get: () => deferred, set: (d) => { deferred = d; } } });
   const follow = (from: string, to: Ref, label: string, mode: Mode, depth: number, stack: string[], base: Partial<Message>, seenCh: string[] = [], set?: EventSet, only?: Link[]) => {
     if (truncated) return;
     if (to.type === 'channel') {
@@ -333,13 +289,13 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
     const key = sid(i.service, handler);
     // One expansion per delivery and trace, wherever it sits (siblings, other alt branches): the first in trace order wins. An ancestor on the path stays a [cycle].
     const seenKey = scope === 'intra' && i.service !== root ? undefined : `${key}|${i.id}|${base.event ?? ''}|${base.matched?.join(',') ?? ''}`;
-    const first = seenKey && !stack.includes(key) ? expanded.get(seenKey) : undefined;
+    const first = seenKey && !stack.includes(key) ? expanded.get(seenKey)?.find((e) => covers(e.path, arms.path))?.n : undefined;
     const text = crossing === 'deliver' ? `${label} → ${handler}` : label;
     if (!push({ ...base, from, to: target, label: first ? `${text} ↩ seen at step ${first}` : text, mode, kind: crossing, depth, target: { service: i.service, ingress: i.id, fn: handler }, ...(base.rpc ? { rpc: withServer(base.rpc, i.details) } : {}), ...(first ? { repeatOf: first } : scope === 'intra' && i.service !== root || !chainOf(i).length ? {} : { middlewareChain: chainOf(i) }) } as Message)) return;
     if (scope === 'intra' && i.service !== root) return;
     if (stack.includes(key)) { messages[messages.length - 1].cycle = true; return; }
     if (first) return;
-    if (seenKey) expanded.set(seenKey, messages.length);
+    if (seenKey) expanded.set(seenKey, [...(expanded.get(seenKey) ?? []), { n: messages.length, path: arms.path }]);
     if (depth < maxDepth) {
       const go = startedBy(crossing === 'deliver' || mode === 'async', () => runIngress(i, handler, depth + 1, [...stack, key]));
       if (deferred) deferred.push(withAlt(go)); else go();
@@ -371,7 +327,8 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
     }
     if (e?.source && !(`egress:${m.service}:${e.id}` in code)) code[`egress:${m.service}:${e.id}`] = codeLink(g.services.get(m.service!)!, e.source);
   }
-  return { code, start: { service: root, ingress: ing?.id, fn: fnId, event: start.event }, scope, participants: deliveryOrder([...participants.values()], messages), messages, truncated };
+  const out: Trace = { code, start: { service: root, ingress: ing?.id, fn: fnId, event: start.event }, scope, participants: deliveryOrder([...participants.values()], messages), messages, truncated };
+  return altIx && book.places.size ? withDecisions(altIx, book, out) : out;
 }
 
 /** The wire protocol of a socket ingress (`details.protocol`: tls, tcp or ws); tcp when the harvester gave none. */

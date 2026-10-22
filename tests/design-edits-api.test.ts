@@ -31,7 +31,7 @@ test('a hand-drawn flow made only through edits: it traces end to end in the dra
   await ok('drawn', slug, { kind: 'call', from: { service: 'edge', fn: 'in.hello.handle' }, to: { bindKey: 'http:GET nowhere/x', transport: 'http' } });
 
   const q = `service=agent&ingress=in.open&draft=${slug}`;
-  const t = (await app.call('GET', `/api/envs/drawn/trace?${q}`)).body;
+  const t = (await app.call('GET', `/api/envs/drawn/trace?detail=full&${q}`)).body;
   assert.deepEqual(t.messages.map((m: any) => `${m.kind}:${m.from}>${m.to}`), [
     'entry:client>svc:agent', 'egress:svc:agent>svc:edge', 'egress:svc:edge>svc:core', 'egress:svc:edge>missing:http:GET nowhere/x']);
   assert.equal(t.messages[1].target.fn, 'in.hello.handle'); assert.equal(t.messages[2].target.service, 'core');

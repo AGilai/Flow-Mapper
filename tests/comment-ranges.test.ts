@@ -9,7 +9,7 @@ let app: Awaited<ReturnType<typeof startDesign>>;
 let keys: string[];
 before(async () => {
   app = await startDesign();
-  const t = (await app.call('GET', '/api/envs/prod/trace?service=api-gateway&ingress=in.createOrder&scope=full&maxMessages=2000')).body;
+  const t = (await app.call('GET', '/api/envs/prod/trace?detail=full&service=api-gateway&ingress=in.createOrder&scope=full&maxMessages=2000')).body;
   keys = stepKeys(t.messages);
 });
 after(() => app.close());

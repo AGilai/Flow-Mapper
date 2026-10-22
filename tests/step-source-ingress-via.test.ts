@@ -32,7 +32,7 @@ test('the schema rejects a step source with a bad line and an ingress via with n
 });
 
 test('trace links the step source and carries handlerVia on the delivery, in the API and in MCP', async () => {
-  for (const t of [(await app.call('GET', '/api/envs/e/trace?service=api&ingress=in&scope=full')).body, await mcp('trace_flow', { service: 'api', ingress: 'in' })]) {
+  for (const t of [(await app.call('GET', '/api/envs/e/trace?detail=full&service=api&ingress=in&scope=full')).body, await mcp('trace_flow', { detail: 'full', service: 'api', ingress: 'in' })]) {
     assert.equal(t.code['step:api:run#1'].url, 'https://github.com/acme/api/blob/b6c8c6b/src/run.ts#L7');
     assert.ok(!('step:api:run#2' in t.code), 'a step without a source has no link');
     const hop = t.messages.find((m: any) => m.target?.service === 'worker');
@@ -47,7 +47,7 @@ test('service view, endpoint info and an entry trace show ingress via, also from
   assert.deepEqual(v.find((i: any) => i.id === 'c').via.map((h: any) => h.kind), ['registration', 'bind']);
   assert.deepEqual(v.find((i: any) => i.id === 'legacy').via.map((h: any) => h.function), ['Handler.process']);
   assert.equal((await app.call('GET', '/api/envs/e/endpoints/worker/c')).body.handlerVia.length, 2);
-  const t = (await app.call('GET', '/api/envs/e/trace?service=worker&ingress=c')).body;
+  const t = (await app.call('GET', '/api/envs/e/trace?detail=full&service=worker&ingress=c')).body;
   assert.equal(t.messages[0].handlerVia.length, 2);
   assert.equal((await app.call('GET', '/api/envs/e/views/service/api')).body.ingress[0].via.length, 0);
 });
