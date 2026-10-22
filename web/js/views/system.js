@@ -23,6 +23,8 @@ import { levelControl } from './system-toolbar.js';
 import { renderSubsystems } from './system-subsystems.js';
 import { regionsOf, regionCells } from '../graph/graph-regions.js';
 import { edgePanel } from './edge-panel.js';
+import { createPane } from '../pane/pane.js';
+import { parseSel } from '../pane/pane-pure.js';
 
 const TRANSPORTS = ['http', 'rpc', 'grpc', 'sns', 'sqs', 'amqp', 'eventbridge', 'socket'];
 
@@ -50,7 +52,17 @@ export async function render({ main, query }) {
   const content = h('div.content.flush', h('div.stage-wrap', stage, legend(marks, data, { regions })));
   let selected = null;
   const panel = createPanel(content, { onClose: () => { selected = null; graph.select(null); setQuery({ sel: null }); apply(); } });
-  const pen = pencils({ panel, flowsEl: null });
+  const penHost = { panel, flowsEl: null }, pen = pencils(penHost);
+  // The info pane (0.33.0): a component opens it; so does a subsystem picked inside it. `sel=` names it in the URL.
+  const pane = createPane(panel, {
+    pen, ctx: (t) => ({ system: t.kind === 'component' ? { node: byId.get(`svc:${t.name}`), edges: current.edges, byId } : null }),
+    onSelect: (sel, t) => {
+      const id = t.kind === 'component' && byId.has(`svc:${t.name}`) ? `svc:${t.name}` : null;
+      if (id !== selected) { selected = id; graph.select(id); apply(); }
+      setQuery({ sel });
+    },
+  });
+  penHost.pane = pane;
   const search = h('input.input', { type: 'search', placeholder: 'Filter by service, team or function', value: opts.q, 'aria-label': 'Filter map' });
   const filt = (key, label) => h('label.check', h('input', { type: 'checkbox', 'data-qa': `map-${key}`, checked: opts[key], on: { change: (e) => { opts[key] = e.target.checked; persist(); apply(); } } }), label);
   const toggle = (key, label) => h('label.check', h('input', { type: 'checkbox', checked: opts[key], on: { change: (e) => { opts[key] = e.target.checked; persist(); rebuild(); } } }), label);
@@ -77,7 +89,7 @@ export async function render({ main, query }) {
   const graph = createCanvasGraph(stage, {
     marks, quiet: design ? (e) => isSvc(byId.get(e.from) ?? {}) && isSvc(byId.get(e.to) ?? {}) && !marks.markOf(e.from) && !marks.markOf(e.to) : null, padBottom: () => (content.querySelector('.legend')?.offsetHeight ?? 0) + 24, // the legend wraps to more lines on a narrow window
     onSelect: (hit) => {
-      if (!hit) { panel.close(); return; }
+      if (!hit) { if (pane.active()) pane.dismiss(); else panel.close(); return; }
       if (hit.type === 'region') go('/inventory', { subsystem: hit.item.key }); // a region's head opens its components in Inventory
       else if (hit.type === 'node') selectNode(hit.item.id);
       else { graph.select(hit.item.id); panel.open(...edgePanel(hit.item, byId, state.env)); }
@@ -169,8 +181,9 @@ export async function render({ main, query }) {
     if (!n) return;
     selected = id;
     graph.select(id);
-    setQuery({ sel: id });
     apply();
+    if (isSvc(n)) { pane.show({ kind: 'component', name: n.label }); return; }
+    setQuery({ sel: id });
     panel.open(...nodePanel(n, current.edges, byId, pen));
   }
 
@@ -183,8 +196,10 @@ export async function render({ main, query }) {
   });
 
   rebuild();
-  const sel = query.get('sel');
-  if (sel && byId.has(sel)) { selectNode(sel); graph.zoomTo(sel); }
+  const sel = query.get('sel'), want = parseSel(sel);
+  if (want?.kind === 'component' && byId.has(sel)) graph.zoomTo(sel);
+  if (want) pane.restore(query); // a component or a subsystem: the pane (and the expanded page, `expanded=1`)
+  else if (sel && byId.has(sel)) { selectNode(sel); graph.zoomTo(sel); }
   pen.resume();
-  return { dispose: () => { graph.dispose(); panel.dispose(); } };
+  return { dispose: () => { graph.dispose(); pane.dispose(); panel.dispose(); } };
 }

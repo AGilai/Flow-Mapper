@@ -15,7 +15,7 @@ export const createEnvTool: Tool = {
   inputSchema: obj({
     name: { type: 'string', description: 'Lowercase letters, digits and -' }, source: { type: 'string', description: "The environment to copy from (any kind). Required for 'components' and 'full'; not needed (ignored) for 'blank'" },
     mode: { enum: ['blank', 'components', 'full'] },
-    groups: { type: 'array', items: obj({ key: { type: 'string' }, label: { type: 'string' }, about: { type: 'string', description: 'Markdown-lite description of the subsystem, at most 20000 characters' } }, ['key', 'label']) },
+    groups: { type: 'array', items: obj({ key: { type: 'string' }, label: { type: 'string' }, about: { type: 'string', description: 'Markdown-lite description of the subsystem, at most 20000 characters' }, owners: { type: 'array', description: 'People who own the subsystem: names or {name?, externalSource, externalId}, matched to users', items: {} } }, ['key', 'label']) },
     levels: { type: 'array', items: { type: 'string' } },
     behaviour: { type: 'boolean', description: "components mode: also copy the services' functions and steps (flows of copied endpoints trace; they are unchanged against the baseline). Default false" },
     entryPoints: { enum: ['keep', 'none'], description: "components / full: 'none' marks every copied ingress entryPoint:false (not listed as an entry point, no marks). Default 'none' for components (#65), 'keep' for full" },

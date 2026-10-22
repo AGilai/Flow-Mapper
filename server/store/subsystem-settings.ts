@@ -11,14 +11,16 @@ import { settingsOps } from '../../core/edit-subsystems.ts';
 import { netOps, overlayRows } from '../../core/draft-ops.ts';
 import { SUBSYSTEM_ICONS, SUBSYSTEM_KEY } from '../../core/subsystems.ts';
 import { aboutProblem } from '../../core/markdown-lite.ts';
+import { cleanOwners } from '../../core/owners.ts';
+import { resolveOwners, resolveAbout } from './owners.ts';
 import { getEnvRow, type EnvGroup } from './envs.ts';
 import { appendOps, getDraft, loadOps } from './drafts.ts';
 import { envItemRows } from './item-rows.ts';
 
-export interface SubsystemInput { key: string; label: string; icon?: string | null; about?: string | null }
+export interface SubsystemInput { key: string; label: string; icon?: string | null; about?: string | null; owners?: unknown }
 
 /** The list as stored: keys unique, labels 1..80 characters, icons from the set. Unknown keys are allowed (they label future groupPaths). */
-export function cleanSubsystems(list: unknown): EnvGroup[] {
+export function cleanSubsystems(list: unknown, db: DB | null = null): EnvGroup[] {
   if (!Array.isArray(list)) throw invalid('subsystems must be a list of {key, label, icon?} in display order');
   const seen = new Set<string>();
   return list.map((g: any) => {
@@ -29,7 +31,8 @@ export function cleanSubsystems(list: unknown): EnvGroup[] {
     if (seen.has(g.key)) throw invalid(`subsystem '${g.key}' is listed twice`);
     seen.add(g.key);
     // about: left out (undefined) means "keep what is there"; '' (or null) clears it; so an empty one is returned as '' here
-    return { key: g.key, label: g.label.trim(), ...(g.icon ? { icon: g.icon } : {}), ...(g.about === undefined ? {} : { about: typeof g.about === 'string' && g.about.trim() ? g.about : '' }) } as EnvGroup;
+    const owners = g.owners === undefined ? undefined : db ? resolveOwners(db, g.owners, `owners of '${g.key}'`) : (cleanOwners(g.owners) ?? []);   // owners (0.33.0): names and external ids become user ids; left out keeps, [] clears
+    return { key: g.key, label: g.label.trim(), ...(g.icon ? { icon: g.icon } : {}), ...(g.about === undefined ? {} : { about: typeof g.about === 'string' && g.about.trim() ? (db ? resolveAbout(db, g.about) : g.about) : '' }), ...(owners === undefined ? {} : { owners }) } as EnvGroup;
   });
 }
 
@@ -37,8 +40,8 @@ export function putSealedSubsystems(db: DB, env: string, list: unknown): { subsy
   const row = getEnvRow(db, env);
   if (!row) throw notFound(`environment '${env}'`);
   if (row.kind === 'design') throw conflict('USE_DRAFT', `environment '${env}' is a design: edit its subsystems through a draft (an edit of kind 'subsystem'), not directly`);
-  const old = new Map(((JSON.parse(row.groups) as EnvGroup[]) ?? []).map((g) => [g.key, g.about]));
-  const subsystems = cleanSubsystems(list).map(({ about, ...g }) => { const a = about === undefined ? old.get(g.key) : about; return a ? { ...g, about: a } : g; });   // about left out: kept; '' or null: cleared
+  const old = new Map(((JSON.parse(row.groups) as EnvGroup[]) ?? []).map((g) => [g.key, g]));
+  const subsystems = cleanSubsystems(list, db).map(({ about, owners, ...g }) => { const a = about === undefined ? old.get(g.key)?.about : about, o = owners === undefined ? old.get(g.key)?.owners : owners; return { ...g, ...(a ? { about: a } : {}), ...(o?.length ? { owners: o } : {}) }; });   // about left out: kept; '' or null: cleared
   db.prepare('UPDATE envs SET groups = ? WHERE name = ?').run(JSON.stringify(subsystems), env);
   return { subsystems };
 }
@@ -55,7 +58,7 @@ export function putLevels(db: DB, env: string, levels: unknown): { levels: strin
 export function putDraftSubsystems(db: DB, env: string, slug: string, list: unknown, who: { author?: string; byAi?: boolean } = {}) {
   return tx(db, () => {
     const d = getDraft(db, env, slug);
-    const clean = cleanSubsystems(list);
+    const clean = cleanSubsystems(list, db);
     try {
       const ops = settingsOps(clean, overlayRows(envItemRows(db, env), netOps(loadOps(db, d.id))));
       if (!ops.length) throw new EditError('NO_CHANGE', 'this changes no subsystem');

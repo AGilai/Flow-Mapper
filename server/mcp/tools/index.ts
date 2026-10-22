@@ -16,7 +16,7 @@ import { listCommentsTool, addCommentTool, resolveCommentTool } from './comments
 import { listActionItemsTool, addActionItemTool, updateActionItemTool } from './action-items.ts';
 import { listUsersTool, listMentionsTool } from './users.ts';
 import { listFlowRelationsTool } from './relations.ts';
-import { getSubsystemsTool, getSubsystemMapTool, listAbstractLinksTool, suggestRefinementsTool, applyPlanLinksTool, setSubsystemSettingsTool, setLevelsTool } from './subsystems.ts';
+import { getSubsystemsTool, getSubsystemMapTool, listOpenQuestionsTool, listAbstractLinksTool, suggestRefinementsTool, applyPlanLinksTool, setSubsystemSettingsTool, setLevelsTool } from './subsystems.ts';
 import type { Tool } from './common.ts';
 export type { Tool };
 
@@ -79,4 +79,5 @@ export const TOOLS: Tool[] = [
   updateActionItemTool,
   listUsersTool,
   listMentionsTool,
+  listOpenQuestionsTool,
 ];

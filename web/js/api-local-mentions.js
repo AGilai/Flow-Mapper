@@ -16,7 +16,10 @@ export function createMentions(data) {
         .map(({ env, r }) => { const f = parseFlowAnchor(r.anchor) ?? { service: '', ingress: '' }, html = sanitize(r.body);
           return { commentId: r.id, env, anchor: r.anchor, service: f.service, ingress: f.ingress, step: r.step, parentId: r.parentId, author: r.author, authorId: r.authorId ?? null, text: plainText(html), html, createdAt: r.createdAt, unread: !seen.has(`${user}:${r.id}`) && r.authorId !== user }; })
         .filter((m) => !q.unread || m.unread).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)).slice(0, q.limit ?? 200);
-      return { user, unread: list.filter((m) => m.unread).length, mentions: list };
+      const name = (id) => (data.users ?? []).find((u) => u.id === id)?.name ?? 'unknown user', token = `@[${user}]`;   // 0.33.0: mentions in the About of a component (a subsystem's about is not bundled)
+      const about = q.unread || q.anchor ? [] : Object.entries(data.models ?? {}).flatMap(([env, m]) => (q.env && q.env !== env ? [] : (m.services ?? []).filter((s) => typeof s.about === 'string' && s.about.includes(token))
+        .map((s) => ({ env, kind: 'component', id: s.name, label: s.name, text: (s.about.split('\n').find((l) => l.includes(token)) ?? '').replace(/^\s*(#{1,6}|[-*]|\d+[.)])\s+/, '').replace(/@\[([A-Za-z0-9_-]{1,40})\]/g, (_x, id) => `@${name(id)}`).replace(/[*_~`]/g, '').trim().slice(0, 200) }))));
+      return { user, unread: list.filter((m) => m.unread).length, mentions: list, about };
     },
     seenMentions: async (user, ids) => { known(user); let n = 0; for (const id of ids ?? []) if (!seen.has(`${user}:${id}`)) { seen.add(`${user}:${id}`); n++; } return { marked: n }; },
     mentionCounts: async (env, user) => { known(user); const o = {}; for (const { env: e, r } of mentioning(user)) if (e === env && !seen.has(`${user}:${r.id}`) && r.authorId !== user) o[r.anchor] = (o[r.anchor] ?? 0) + 1; return o; },

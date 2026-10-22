@@ -4,13 +4,16 @@
 import type { Router } from '../http/router.ts';
 import type { Ctx } from '../context.ts';
 import { linksFor, linkViewFor, subsystemMapFor, subsystemsFor } from '../subsystems-read.ts';
+import { questionsFor } from '../open-questions-read.ts';
 import { putLevels, putSealedSubsystems } from '../store/subsystem-settings.ts';
 
 export function registerSubsystems(r: Router, ctx: Ctx) {
   const draft = (req: { query: URLSearchParams }) => req.query.get('draft') || null;
   r.get('/api/envs/:env/subsystems', (req) => subsystemsFor(ctx, req.params.env, draft(req)));
   r.get('/api/envs/:env/views/subsystems', (req) => subsystemMapFor(ctx, req.params.env, draft(req)));
-  r.get('/api/envs/:env/abstract-links', (req) => linksFor(ctx, req.params.env, draft(req), req.query.get('subsystem')));
+  /** 0.33.0: the list items of every "Open questions" about section (components and subsystems). */
+  r.get('/api/envs/:env/open-questions', (req) => questionsFor(ctx, req.params.env, draft(req)));
+  r.get('/api/envs/:env/abstract-links',(req) => linksFor(ctx, req.params.env, draft(req), req.query.get('subsystem')));
   r.get('/api/envs/:env/abstract-links/:id', (req) => linkViewFor(ctx, req.params.env, draft(req), req.params.id));
   r.put('/api/envs/:env/subsystems', async (req) => {
     const out = putSealedSubsystems(ctx.db, req.params.env, (await req.json())?.subsystems);

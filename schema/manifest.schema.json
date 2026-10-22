@@ -6,6 +6,12 @@
   "oneOf": [{ "$ref": "#/$defs/fullManifest" }, { "$ref": "#/$defs/deltaManifest" }],
 
   "$defs": {
+    "owner": {
+      "oneOf": [
+        { "type": "string", "minLength": 1, "maxLength": 80 },
+        { "type": "object", "additionalProperties": false, "properties": { "name": { "type": "string", "minLength": 1, "maxLength": 80 }, "externalSource": { "type": "string", "minLength": 1, "maxLength": 80 }, "externalId": { "type": "string", "minLength": 1, "maxLength": 200 } } }
+      ]
+    },
     "id": {
       "type": "string",
       "pattern": "^[A-Za-z0-9_.:\\-/{}#*]+$",
@@ -208,6 +214,7 @@
         "language": { "type": "string" },
         "description": { "type": "string" },
         "about": { "type": "string", "maxLength": 20000, "description": "Optional (0.30.2). A rich description of the component in Markdown-lite (## headings, **bold**, *italic*, ~~strike~~, `code`, lists, [text](https://...) links; no HTML). By convention sections: ## Capabilities, ## Motivation, ## Roles and responsibilities, ## Owners, ## Open questions. Shown in the component panel; diffs like any header field." },
+        "owners": { "type": "array", "maxItems": 20, "items": { "$ref": "#/$defs/owner" }, "description": "Optional (0.33.0). Who owns the component, as structured people (the free-text \"## Owners\" section of about stays allowed). Each owner is a name, or { name?, externalSource, externalId } (for example the Confluence account id); the server matches it to a user (external id first, then an exact name or alias) and creates the user when nothing matches. Stored and read back as a list of user ids. Left out: keeps what is there on a delta; [] clears." },
         "tags": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
         "groupPath": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*(/[a-z0-9][a-z0-9-]*)*$", "description": "Optional. The subsystem the service belongs to, as a path: \"platform\", later \"platform/identity\". Harvesters may leave it out; design environments set it." },
         "links": { "$ref": "#/$defs/links" },

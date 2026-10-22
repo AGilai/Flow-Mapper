@@ -18,7 +18,7 @@ test('no open draft: offer "my edits"; one: use it; several: pick, the last used
 });
 
 test('a design environment gives every item a pencil', () => {
-  for (const k of ['header', 'docs', 'about', 'about-section', 'endpoint', 'flow', 'inventory', 'subsystem', 'panel-component', 'panel-subsystem', 'panel-flow', 'flow-description', 'step-description']) {
+  for (const k of ['header', 'docs', 'about', 'about-section', 'owners', 'endpoint', 'flow', 'inventory', 'subsystem', 'panel-component', 'panel-subsystem', 'panel-flow', 'flow-description', 'step-description']) {
     assert.equal(pencilAllowed(k, true), true, k);
   }
   assert.equal(pencilAllowed('nonsense', true), false);
@@ -26,7 +26,7 @@ test('a design environment gives every item a pencil', () => {
 
 test('a harvested environment gives only the annotation pencils, and one hint', () => {
   assert.deepEqual(pencilItems(false), ['flow-description', 'step-description']);
-  for (const k of ['header', 'docs', 'about', 'about-section', 'endpoint', 'flow', 'inventory', 'subsystem', 'panel-component']) assert.equal(pencilAllowed(k, false), false, k);
+  for (const k of ['header', 'docs', 'about', 'about-section', 'owners', 'endpoint', 'flow', 'inventory', 'subsystem', 'panel-component']) assert.equal(pencilAllowed(k, false), false, k);
   assert.equal(harvestedHint(false), 'Harvested — edit at the source');
   assert.equal(harvestedHint(true), null);
 });

@@ -175,6 +175,7 @@ export function createTabView(data, host) {
   return {
     el, key, data, draw, insideOpen: () => inside.isOpen(), dispose: () => { unWheel(); clearTimeout(resizeTimer); document.removeEventListener('fm:layout', onLayout); inside.dispose(); ro?.disconnect(); tip?.dispose(); descs.forEach((d) => d?.dispose()); comments?.dispose(); actions?.dispose(); items?.dispose(); related?.dispose(); walk.dispose(); unDesc?.(); },
     refreshBar: () => walk.refreshBar(), refreshHl: () => walk.refreshHl(),
+    steps: () => walk.steps(), // the steps of the lane (n, from, to, label, transport): the info pane's "In this flow"
     setZoom, zoomScale: () => factor, zoomValue: () => zoomV,
     squeezeOff: () => sqOff, resetSqueeze: () => { sqOff = false; },
     save: () => { saved = scroller.scrollTop; },

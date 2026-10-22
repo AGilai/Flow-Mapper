@@ -8,6 +8,7 @@ import { applyOp, opRow, type DraftOpInput } from './draft-ops.ts';
 import { planGroups, planLinks } from './import-plan-links.ts';
 import { topOf } from './subsystems.ts';
 import { aboutProblem } from './markdown-lite.ts';
+import { ownersProblem, cleanOwners } from './owners.ts';
 
 export interface PlanIssue { path: string; message: string; code?: string }
 /** One or more problems with a plan; `code` of an issue is the HTTP error code (PLAN_VERSION, PLAN_ENV, PLAN_EXISTS, PLAN_NO_SERVICE) when it has one. */
@@ -93,10 +94,14 @@ export function planToOps(plan: unknown, rows: ItemRow[], cx: PlanContext): Plan
     const badAbout = x.about === undefined ? null : typeof x.about === 'string' ? aboutProblem(x.about) : 'about must be a string (Markdown)';
     if (badAbout) err(`${at}.about`, badAbout);
     const aboutChanged = !badAbout && x.about !== undefined && (x.about || undefined) !== head.about;
-    if ((x.groupPath !== undefined && x.groupPath !== head.groupPath) || aboutChanged) {   // the header: groupPath and about (0.30.2); '' clears about
+    const badOwners = ownersProblem(x.owners);   // user ids: the server matched the names and external ids a writer sent before the plan is read (store/draft-plan.ts)
+    if (badOwners) err(`${at}.owners`, badOwners);
+    const ownersNew = badOwners || x.owners === undefined ? undefined : cleanOwners(x.owners) ?? [], ownersChanged = ownersNew !== undefined && JSON.stringify(ownersNew) !== JSON.stringify(head.owners ?? []);
+    if ((x.groupPath !== undefined && x.groupPath !== head.groupPath) || aboutChanged || ownersChanged) {   // the header: groupPath, about (0.30.2) and owners (0.33.0); '' clears about, [] clears owners
       const { version: _v, harvestedAt: _h, commit: _c, ...cur } = head;
       const next = { ...cur, ...(x.groupPath !== undefined ? { groupPath: x.groupPath } : {}) } as Record<string, unknown>;
       if (aboutChanged) { if (x.about) next.about = x.about; else delete next.about; }
+      if (ownersChanged) { if (ownersNew!.length) next.owners = ownersNew; else delete next.owners; }
       ops.push({ op: 'upsert', anchor: `svc:${x.service}`, data: next });
     }
     for (const [l, items] of Object.entries(x.upsert ?? {})) {

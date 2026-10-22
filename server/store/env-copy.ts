@@ -12,6 +12,7 @@ import { tx } from '../db/connection.ts';
 import { badRequest, conflict, invalid, notFound } from '../errors.ts';
 import { SUBSYSTEM_ICONS } from '../../core/subsystems.ts';
 import { aboutProblem } from '../../core/markdown-lite.ts';
+import { resolveOwners, resolveAbout } from './owners.ts';
 import { getEnv, getEnvRow, type EnvGroup, type EnvMeta } from './envs.ts';
 import { copyAllBaseline, copyDescriptions, clearEntryPoints, copyDesignLists, copyDtos, copyKeys, copyService, copyShared, type CopyCtx } from './env-copy-rows.ts';
 import { copyComments } from './comments.ts';
@@ -81,7 +82,7 @@ export function copyEnv(db: DB, input: CopyInput): EnvMeta {
     const at = new Date().toISOString();
     // A full copy of a design carries its subsystems (unless the request names others).
     const fullOfDesign = mode === 'full' && v.src?.kind === 'design';
-    const groups = (v.groups.length || !fullOfDesign ? v.groups : JSON.parse(v.src!.groups)).map((g: EnvGroup) => ({ key: g.key, label: g.label, ...(g.icon ? { icon: g.icon } : {}), ...(g.about ? { about: g.about } : {}) }));
+    const groups = (v.groups.length || !fullOfDesign ? v.groups : JSON.parse(v.src!.groups)).map((g: EnvGroup) => ({ key: g.key, label: g.label, ...(g.icon ? { icon: g.icon } : {}), ...(g.about ? { about: resolveAbout(db, g.about) } : {}), ...(g.owners?.length ? { owners: resolveOwners(db, g.owners, `group '${g.key}' owners`) } : {}) }));
     // The baseline of the subsystems (grp: marks): what the design started with. A full copy of a design keeps that design's.
     const baseGroups = fullOfDesign ? ((v.src as any)?.baseline_groups ?? null) : JSON.stringify(groups);
     const levels = input.levels || !fullOfDesign ? v.levels : JSON.parse(v.src!.levels);

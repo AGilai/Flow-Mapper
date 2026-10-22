@@ -6,6 +6,7 @@ import { created } from '../http/router.ts';
 import type { Ctx } from '../context.ts';
 import { badRequest } from '../errors.ts';
 import { headerUser } from '../identity.ts';
+import { invalidateAll } from '../graph-cache.ts';
 import { ensureUser, getUser, listUsers, mergeUser, renameUser, createUser, userName, userCounts } from '../store/users.ts';
 
 export function registerUsers(r: Router, ctx: Ctx) {
@@ -26,6 +27,8 @@ export function registerUsers(r: Router, ctx: Ctx) {
     const b = await req.json();
     if (typeof b?.into !== 'string' || !b.into) throw badRequest('into is required (the user id to keep)');
     const by = headerUser(req.headers);
-    return mergeUser(ctx.db, req.params.id, b.into, by ? getUser(ctx.db, by).name : typeof b?.by === 'string' ? b.by : 'unknown');
+    const merged = mergeUser(ctx.db, req.params.id, b.into, by ? getUser(ctx.db, by).name : typeof b?.by === 'string' ? b.by : 'unknown');
+    invalidateAll(); // owners and About mentions changed inside cached graphs
+    return merged;
   });
 }

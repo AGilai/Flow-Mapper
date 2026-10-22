@@ -41,7 +41,7 @@ function subBand(b, x, y, w, onAdd) {
   if (ic) { ic.setAttribute('x', 8); ic.setAttribute('y', 3); }
   add?.addEventListener('click', (e) => { e.stopPropagation(); onAdd(b.key); });
   add?.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onAdd(b.key); } });
-  return s('g', { class: `band sub${isNew ? ' isnew' : ''}`, 'data-sub': b.key, transform: `translate(${x} ${y})` }, s('rect', { width: w, height: 22, rx: 4 }), ic,
+  return s('g', { class: `band sub${isNew ? ' isnew' : ''}`, 'data-sub': b.key, ...(b.key !== '~shared' ? { tabindex: 0, role: 'button', 'aria-label': `Details of ${b.label}` } : {}), transform: `translate(${x} ${y})` }, s('rect', { width: w, height: 22, rx: 4 }), ic,
     room >= 3 ? s('text', { x: left, y: 15 }, shown) : null,
     isNew && room >= 3 ? s('path', { class: 'band-spark', d: GLYPH.new.d, transform: `translate(${left + shown.length * 6.8 + 4} 5)` }) : null,
     add, s('title', {}, isNew ? `${b.label} (new subsystem)` : b.label));

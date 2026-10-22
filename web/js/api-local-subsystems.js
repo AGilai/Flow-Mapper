@@ -3,6 +3,7 @@
 // Everything is in memory; the design lists of a draft come from its overlay rows. Composed by api-local-design.js.
 
 import { subsystemsOf } from '../core/subsystems.js';
+import { collectQuestions } from '../core/open-questions.js';
 import { rollUp } from '../core/subsystem-rollup.js';
 import { suggestRefinements } from '../core/link-suggest.js';
 import { SUBSYSTEM_ICONS, SUBSYSTEM_KEY } from '../core/subsystems.js';
@@ -32,6 +33,8 @@ export function createSubsystems(c) {
       return { levels: c.meta(env).levels ?? ['Subsystem', 'Component'], subsystems: subsystemsOf(subRows, g.model.services), notSet: g.model.services.filter((s) => !s.groupPath).map((s) => s.name).sort() };
     },
     subsystemMap: async (env) => map(env),
+    /** 0.33.0: the list items of every "Open questions" about section of the components and subsystems, as the open draft leaves them. */
+    openQuestions: async (env) => { const { subRows } = loaded(env), g = c.viewGraph(env), questions = collectQuestions(subsystemsOf(subRows, g.model.services), g.model.services); return { count: questions.length, questions }; },
     /** Flow relations (0.28.2): a design's, as the open draft leaves them; a sealed environment has none. */
     flowRelations: async (env, q = {}) => (c.isDesign(env) ? relationsOf(c.rowsNow(env), q.service && q.ingress ? { service: q.service, ingress: q.ingress } : null, q.type || null) : []),
     abstractLinks: async (env, subsystem) => map(env).abstract.filter((v) => !subsystem || v.from.subsystem === subsystem || v.to.subsystem === subsystem),
