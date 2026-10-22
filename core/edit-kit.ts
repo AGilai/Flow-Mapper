@@ -18,7 +18,8 @@ export type CallEdit = {
   mode?: Mode; operation?: string; condition?: string; event?: string; description?: string; note?: string;   // note: the step's own text (what the trace shows as its note)
   mark?: 'new' | 'changed' | null;                                                   // 0.32.2 (#75): the step's own mark (null clears it)
   groups?: StepGroupEdit[] | null;                                                   // 0.33.1 (#72): the frames the step sits in, outermost first
-  real?: string; response?: string;                                                  // 0.33.1: `details.real` (the bind key it really calls) and `details.response` (the label of its return)
+  real?: string;                                                                     // 0.33.1: `details.real` (the bind key it really calls)
+  returns?: { label: string; detail?: string } | null;                               // 0.33.2 (#81): what the call returns (null clears)
 };
 /** 0.33.1: a step with no target in a function: a note (`over`: the components it spans, #74) or an internal step (a self-message). */
 export type LeafEdit = { kind: 'leaf'; from: { service: string; fn: string }; operation?: string; note?: string; over?: string[]; self?: boolean; mark?: 'new' | 'changed' | null; groups?: StepGroupEdit[] | null; real?: string; before?: number };

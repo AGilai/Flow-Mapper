@@ -5,6 +5,7 @@ import type { DraftOpInput } from './draft-ops.ts';
 import { endpointBuild } from './edit-forms.ts';
 import { EditError, renumber, setField, slug, unique, type CallEdit, type DeleteCallEdit, type Idx, type LeafEdit, type StepGroupEdit } from './edit-kit.ts';
 import { STEP_MARKS } from './step-marks.ts';
+import { cleanReturns, returnsProblem, type StepReturns } from './step-returns.ts';
 import type { Mode, Transport } from './types.ts';
 
 const up = (anchor: string, data: unknown): DraftOpInput => ({ op: 'upsert', anchor, data });
@@ -22,14 +23,19 @@ export function egressIdFor(service: string, target: { service?: string; label: 
   return unique(`out.${target.service ?? 'ext'}.${slug(target.label)}`, new Set(x.list(service, 'egress').map((r) => r.key)));
 }
 
-/** `groups`, `details.real` and `details.response` of an edit onto a step (undefined keeps, null / '' clears). */
-function stepExtrasOf(step: Record<string, any>, e: { groups?: StepGroupEdit[] | null; real?: string; response?: string }) {
+/** `groups`, `details.real` and `returns` of an edit onto a step (undefined keeps, null / '' clears). */
+function stepExtrasOf(step: Record<string, any>, e: { groups?: StepGroupEdit[] | null; real?: string; returns?: StepReturns | null }) {
   if (e.groups !== undefined) {
     if (e.groups !== null && (!Array.isArray(e.groups) || e.groups.some((g) => !g?.id || typeof g.id !== 'string'))) throw new EditError('INVALID', 'groups is a list of {id, kind?, condition?}', 'groups');
     if (e.groups === null || !e.groups.length) delete step.groups; else step.groups = e.groups.map((g) => ({ id: g.id, ...(g.kind && g.kind !== 'alt' ? { kind: g.kind } : {}), ...(g.condition ? { condition: g.condition } : {}) }));
   }
   const d = { ...(step.details ?? {}) };
-  for (const k of ['real', 'response'] as const) setField(d, k, e[k]);
+  setField(d, 'real', e.real);
+  if (e.returns !== undefined) {
+    const bad = returnsProblem(e.returns);
+    if (bad) throw new EditError('INVALID', bad, 'returns');
+    if (e.returns === null) delete step.returns; else step.returns = cleanReturns(e.returns);
+  }
   if (Object.keys(d).length) step.details = d; else delete step.details;
 }
 

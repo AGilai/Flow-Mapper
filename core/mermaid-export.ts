@@ -23,6 +23,7 @@ function framesOf(m: Message): Frame[] {   // a frame covers its own messages an
   for (let a: Alt | undefined = m.alt; a; a = a.parent) chain.unshift(a);
   const out = chain.map((a) => ({ key: a.group, kind: a.kind ?? 'alt', cond: a.condition ?? '', open: `${a.kind ?? 'alt'}${a.condition ? ` ${esc(a.condition)}` : ''}`, depth: m.depth }));
   if (m.mark === 'changed') out.push({ key: 'rect', kind: 'rect', cond: '', open: 'rect rgb(255, 244, 214)', depth: m.depth });
+  if (m.mark === 'new') out.push({ key: 'rect-new', kind: 'rect', cond: '', open: 'rect rgb(214, 245, 214)', depth: m.depth });   // #71: green reads back as new
   return out;
 }
 
@@ -76,10 +77,10 @@ export function exportMermaid(t: Pick<Trace, 'start' | 'participants' | 'message
   const stack: Frame[] = [];   // the frames written and not yet closed
   const frames = (want: Frame[], depth: number) => {
     let base = 0;   // frames opened by a step above this one cover it too (a rect only covers its own step)
-    while (base < stack.length && stack[base].depth < depth && stack[base].key !== 'rect') base++;
+    while (base < stack.length && stack[base].depth < depth && !stack[base].key.startsWith('rect')) base++;
     let k = base;
     while (k < stack.length && k - base < want.length && stack[k].key === want[k - base].key) k++;
-    const branched = k > base && stack[k - 1].key !== 'rect' && stack[k - 1].cond !== want[k - 1 - base].cond;   // the same frame, another section
+    const branched = k > base && !stack[k - 1].key.startsWith('rect') && stack[k - 1].cond !== want[k - 1 - base].cond;   // the same frame, another section
     while (stack.length > k) { out.push('end'); stack.pop(); }
     if (branched) { const w = want[k - 1 - base]; out.push(`${BRANCH[w.kind] ?? 'else'}${w.cond ? ` ${esc(w.cond)}` : ''}`); stack[k - 1] = w; }
     for (let i = k - base; i < want.length; i++) { out.push(want[i].open); stack.push(want[i]); }
@@ -104,7 +105,7 @@ export function exportMermaid(t: Pick<Trace, 'start' | 'participants' | 'message
     if (title) out.push(`Note over ${a === b ? a : `${a},${b}`}: ${esc(messageLabel(m))}`);
     const note = lineText(opts.descriptions?.callees[key])?.text ?? m.note;
     if (note) out.push(`Note over ${a === b ? a : `${a},${b}`}: ${esc(note)}`);
-    if (m.mode !== 'async' && m.from !== m.to && ['service', 'client', 'function'].includes(kind.get(m.to) ?? '')) open.push({ from: m.from, to: m.to, depth: m.depth, response: m.response });
+    if (m.mode !== 'async' && m.from !== m.to && ['service', 'client', 'function'].includes(kind.get(m.to) ?? '')) open.push({ from: m.from, to: m.to, depth: m.depth, response: m.returns?.label });
   }
   close(-1);
   frames([], -1);

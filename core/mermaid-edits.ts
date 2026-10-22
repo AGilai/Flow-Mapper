@@ -5,6 +5,7 @@
 import { applyOp, opRow, type DraftOpInput } from './draft-ops.ts';
 import { designEditOps, type DesignEdit } from './design-edit.ts';
 import { slug } from './edit-kit.ts';
+import { MAX_RETURN_LABEL } from './step-returns.ts';
 import { rowId, type ItemRow } from './item-rows.ts';
 import type { Links } from './links.ts';
 import type { MmCtx, MmMessage, MmNote, MmParsed } from './mermaid-parse.ts';
@@ -153,7 +154,7 @@ export function mermaidPlan(parsed: MmParsed, targets: Record<string, Target>, r
     if (steps.length > before) plan.counts.reused++;
     else {
       emit({ kind: 'call', from: { service: S.name, fn }, to: { service: R.name, ingress: e.id }, ...(mode ? { mode } : {}), ...(l.operation ? { operation: l.operation } : {}), ...(note0 ? { note: note0 } : {}),
-        ...ctxOf(m, `${S.name}/${fn}`), ...(m.real ? { real: m.real } : {}), ...(m.response ? { response: m.response } : {}) });
+        ...ctxOf(m, `${S.name}/${fn}`), ...(m.real ? { real: m.real } : {}), ...(m.response ? { returns: { label: m.response.slice(0, MAX_RETURN_LABEL) } } : {}) });
       plan.counts.calls++; if (note0) plan.counts.notes++;
     }
     cur.set(R.name, e.handler); lastHost = S.name;

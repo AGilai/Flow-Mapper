@@ -71,7 +71,7 @@ test('import: one batch of ops, the flow is there with its name, notes, http and
   const calls = t.messages.filter((m: any) => m.kind === 'egress').map((m: any) => `${m.from}>${m.to}|${m.note ?? ''}`);
   assert.ok(calls.some((c: string) => c.startsWith('svc:users-svc>svc:auth-svc')), JSON.stringify(calls));
   assert.ok(t.messages.some((m: any) => m.kind === 'leaf' && m.label === 'verifies the token' && m.over?.join() === 'users-svc,auth-svc'), 'the note is a step spanning both');
-  assert.ok(t.messages.some((m: any) => m.kind === 'egress' && m.to === 'svc:auth-svc' && m.response === 'ok'), 'the return is the response of the call');
+  assert.ok(t.messages.some((m: any) => m.kind === 'egress' && m.to === 'svc:auth-svc' && m.returns?.label === 'ok'), 'the return is the response of the call');
   assert.ok(calls.some((c: string) => c.startsWith('svc:users-svc>svc:policy-engine')));
   assert.ok(calls.some((c: string) => c.endsWith('|how risky')), JSON.stringify(calls));
   assert.ok(t.messages.some((m: any) => m.note === 'how risky' && m.alt?.condition === 'allowed'), 'the alt is a group of the step');

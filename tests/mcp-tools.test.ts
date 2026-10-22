@@ -15,7 +15,7 @@ import { TOOLS } from '../server/mcp/tools.ts';
 // 0.25.2: link_health takes assumed / basis; get_service, get_endpoint_info, trace_flow, get_resource_keys say assumed values are defaults
 // 0.25.0: upsert_entity and delete_entity removed; import_preview, import_into_draft, edit_design, get_call, get_flow_names, set_flow_name added; descriptions of list_entry_points, trace_flow, edit_in_draft changed
 const NAMES = 'search,list_services,get_service,list_entry_points,trace_flow,set_description,find_paths,link_health,changelog,ingest_manifest,get_endpoint_info,load_dtos,event_types,inventory,get_store,list_clients,get_resource_keys,get_channel,get_exchange,load_schemas,list_bugs,get_bug,report_bug,update_bug,list_envs,create_env,open_draft,list_drafts,draft_changes,edit_in_draft,apply_draft,discard_draft,get_marks,apply_import_plan,import_preview,import_into_draft,edit_design,get_call,get_flow_names,set_flow_name,list_comments,add_comment,resolve_comment,get_subsystems,get_subsystem_map,list_abstract_links,suggest_refinements,apply_plan_links,list_flow_relations,set_subsystem_settings,set_levels,export_mermaid,import_mermaid,list_action_items,add_action_item,update_action_item,list_users,list_mentions,list_open_questions';
-const HASH = '709b29c585e47a3782ab82bedd77327169dc265a983cc32d9ecf2fd641fb82b3';   // 0.33.1: import_mermaid and edit_design descriptions (the fuller Mermaid import)
+const HASH = '14757e738da403289b7bb815f15ea37a67c3c479f8e5cbc9b8c0899ea99e5463';   // 0.33.2: edit_design (returns) and import_mermaid descriptions (#81)
 
 test('MCP tool list is stable', () => {
   assert.equal(TOOLS.map((t) => t.name).join(','), NAMES);

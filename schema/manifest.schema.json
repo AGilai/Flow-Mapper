@@ -248,6 +248,14 @@
         },
         "mark": { "enum": ["new", "changed"], "description": "A step the design adds (new) or changes (changed): drawn as a coloured band on its arrow with the same mark icon as components and flows, and counted by \"Changed only\". `details.changed` (free text) stays the tooltip." },
         "over": { "type": "array", "items": { "type": "string" }, "description": "On a leaf step: the components (or data stores, by their instance or database name) its note spans. The note is drawn from the leftmost to the rightmost of them (one component: under that lifeline)." },
+        "returns": {
+          "type": "object", "required": ["label"], "additionalProperties": false,
+          "description": "What this call returns (#81). `label` (1 to 80 characters, one line of plain text) is drawn on the dashed return arrow of a sync call (without `returns` the arrow says \"return\"); `detail` (plain text, up to 500 characters) shows in the step panel and as the arrow's tooltip. A Mermaid `B-->>A: text` import sets the label.",
+          "properties": {
+            "label": { "type": "string", "minLength": 1, "maxLength": 80, "pattern": "^[^\\u0000-\\u001f]*\\S[^\\u0000-\\u001f]*$" },
+            "detail": { "type": "string", "maxLength": 500 }
+          }
+        },
         "loop": { "type": "boolean", "default": false },
         "note": { "type": "string" },
         "event": { "$ref": "#/$defs/eventType", "description": "For an egress step: the event type it publishes." },
