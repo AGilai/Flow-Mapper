@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased
+## 0.33.3 (2026-10-22)
 - UI only: **the active tab is clear, a click replaces it, "Tab" opens a new one, at most 10 tabs (maintainer).** The active tab joins the pane (same fill, a full top bar, a bold label); the others recede. A click on a flow in the Flows list opens it in the active tab (a flow that is open elsewhere is switched to; no tabs: the first tab). Every list row, "All endpoints" rows included, has an always-visible "Tab" button that opens it in a new tab. Ten tabs is the limit in every opener (toast "You have 10 tabs open. Close some tabs to open another."; the Tab buttons turn dashed and `aria-disabled`; the overflow button reads "8/10" from 8). "Open all distinct" opens what fits and says how many it skipped; a link with more than 10 tabs opens the first 10 (a `tab=` beyond them takes the last slot).
 - UI only: **#80, component page header.** The name and its badges stay on one line, the description goes under them and the doc-link chips get their own wrapping row below it, at every width.
 
