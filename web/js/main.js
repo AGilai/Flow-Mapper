@@ -8,6 +8,7 @@ import { setQuery } from './router.js';
 import { mountDesignStrip } from './design/design-strip.js';
 import { renderRail } from './components/sidebar.js';
 import { mountBugButton } from './components/bug-dialog.js';
+import { requestedEnv, unknownEnv } from './env-missing.js';
 import { startUnread, unreadCount, onUnread } from './users/unread.js';
 
 const rail = document.getElementById('rail');
@@ -49,7 +50,23 @@ async function boot() {
   startUnread();
   api.bugs({ open: true, limit: 1000 }).then((b) => { openBugs = b.length; refreshRail(); }).catch(() => {});
 
+  /** The URL names an environment this page does not know (made after it loaded): look the list up once more. true when it is known now. */
+  const learnEnv = async (name) => {
+    try {
+      const [envs, meta] = await Promise.all([api.envs(), api.envMeta().catch(() => state.envMeta)]);
+      state.envMeta = meta; state.envs = envs.length ? envs : ['default'];
+    } catch { /* keep the list we have */ }
+    return !unknownEnv(name, state.envs);
+  };
+  const noEnv = (name) => {
+    refreshRail();
+    fill(main, h('div.content', h('div.env-missing', { 'data-qa': 'env-missing' }, h('b', `No environment ${name}`), h('p', 'It does not exist (or was deleted). Check the link, or choose one of the environments.'),
+      h('button.btn.primary', { type: 'button', 'data-qa': 'env-missing-pick', on: { click: () => document.querySelector('.env-trigger')?.click() } }, 'Choose an environment'))));
+  };
+
   start(async (r, params, loc) => {
+    const want = unknownEnv(requestedEnv(loc.query, r.parts, params), state.envs);
+    if (want && !(await learnEnv(want))) return noEnv(want);
     const named = r.parts[0] === 'envs' && params.name && state.envs.includes(params.name) && !loc.query.has('env'); // #/envs/<name>/settings names its environment in the path
     const d = designFromQuery(named ? new URLSearchParams([...loc.query, ['env', params.name]]) : loc.query);
     if (d.env !== state.env) setEnv(d.env, true);

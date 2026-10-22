@@ -11,7 +11,8 @@ import { createComposer } from './composer.js';
 import { userAvatar } from '../users/avatar.js';
 import { myName, me, watchUsers, loadUsers } from '../users/directory.js';
 import { refreshChips } from '../users/chips.js';
-import { startsOpen, relTime, fullDate, visibleThread, mentionedOnly, countMentions } from './pure.js';
+import { parseHash } from '../router.js';
+import { commentParam, locateComment, startsOpen, relTime, fullDate, visibleThread, mentionedOnly, countMentions } from './pure.js';
 import { announceSeen } from '../users/unread.js';
 import { prefill, stripTables, eventParts } from '../action-items/pure.js';
 import { sanitize, plainText } from '../../core/rich-text.js';
@@ -28,7 +29,7 @@ const plural = (n, w) => `${n} ${n === 1 ? w : w === 'reply' ? 'replies' : `${w}
  */
 export function createComments({ env, root, walk, store, onCount }) {
   const anchor = flowAnchor(root.service, root.ingress);
-  let thread = { count: 0, resolvedThreads: 0, comments: [] }, showResolved = false, items = [], composer = null, replying = null, loaded = false, seq = 0, own = false, flash = 0, mineOnly = false, considered = false;
+  let thread = { count: 0, resolvedThreads: 0, comments: [] }, showResolved = false, items = [], composer = null, replying = null, loaded = false, seq = 0, own = false, flash = 0, wait = 0, hl = 0, t0 = 0, mineOnly = false, considered = false, target = commentParam(parseHash().query); // target: `comment=<id>` of the URL, until it was shown
   const fresh = new Set(); // comment ids that mention me and were unread when this thread opened: they carry a "new" mark until the page is left
   const title = h('span.cm-t', 'Comments'), count = h('span.muted.sm', '(0)'), hint = h('span.cm-hint.cm-sum');
   const list = h('div.cm-list'), tail = h('div.cm-tail');
@@ -92,7 +93,7 @@ export function createComments({ env, root, walk, store, onCount }) {
       composer = createComposer({ mode: 'new', people, step: stepNow, onSubmit: async ({ html, step, name }) => { await api.addComment(env, { anchor, step, author: name, body: html }); await refresh(true); } });
       tail.replaceChildren(h('div.cm-compose', h('span.cm-me'), composer.el)); drawMe();
     }
-    mark();
+    mark(); showTarget();
     const r = replying !== null ? list.querySelector('.cm-composer.reply') : null; r?.querySelector('[data-qa=rte]')?.focus();
   }
 
@@ -108,6 +109,21 @@ export function createComments({ env, root, walk, store, onCount }) {
     setTimeout(async () => { if (!el.isConnected) return; await api.seenMentions(u.id, r.mentions.map((m) => m.commentId)).catch(() => {}); announceSeen(); }, 2000);
   }
 
+  /** `comment=<id>`: scroll to that comment (a reply too) and outline it for a few seconds. It waits while the tab is not on screen, and keeps to the
+   * comment for the first second (the diagram under the tab is still settling) and across redraws, which replace the nodes. */
+  function showTarget(tries = 25) {
+    if (target == null) return;
+    clearTimeout(wait);
+    const c = list.querySelector(`.cm[data-id="${target}"]`), id = target;
+    if (c && el.offsetParent) {
+      hl ||= (t0 = Date.now(), setTimeout(() => { target = null; hl = 0; list.querySelectorAll(`.cm[data-id="${id}"]`).forEach((x) => x.classList.remove('flash')); }, 2600));
+      c.classList.add('flash');
+      const pane = el.closest('.flow-bottom'); if (pane && pane.clientHeight < 160 && pane.scrollHeight > pane.clientHeight) pane.style.minHeight = '200px'; // a short window leaves the pane no room: make some, or the comment is outlined out of sight
+      if (Date.now() - t0 < 1000) c.scrollIntoView({ block: 'center' });
+      wait = setTimeout(() => showTarget(tries), 250);
+    } else if (tries > 0 && el.isConnected) wait = setTimeout(() => showTarget(tries - 1), 300); // the tab's slot is still hidden while its diagram loads
+  }
+
   /** Load the thread. While a reply or an edit is open the list is left as it is (its text must not be lost); `force` redraws anyway (the person's own save or post). */
   async function refresh(force = false) {
     const mine = ++seq;
@@ -117,6 +133,7 @@ export function createComments({ env, root, walk, store, onCount }) {
       thread = t; own = true; store.setComments(t.comments); own = false;
       if (!loaded) { const open = startsOpen({ count: visibleThread(t, false).count, remembered: read(), stepKey: walk.picked() ? walk.steps()[walk.current() - 1]?.key : null, comments: t.comments }); if (open !== el.open) { auto = true; el.open = open; } }
       loaded = true;
+      if (target != null) { const at = locateComment(t, target); if (at) { if (at.resolved) showResolved = true; if (!el.open) { auto = true; el.open = true; } force = true; } }
       if (force || !busy()) draw();
       consider();
       onCount?.(t.count);
@@ -140,5 +157,5 @@ export function createComments({ env, root, walk, store, onCount }) {
     if (loaded && !busy()) draw(); else mark();
   });
   refresh(true);
-  return { el, refresh, dispose: () => { off(); offUsers(); clearTimeout(flash); window.removeEventListener('focus', onFocus); document.removeEventListener('visibilitychange', onFocus); unwatch(); items.forEach((i) => i.dispose()); composer?.dispose(); } };
+  return { el, refresh, dispose: () => { off(); offUsers(); clearTimeout(flash); clearTimeout(wait); clearTimeout(hl); window.removeEventListener('focus', onFocus); document.removeEventListener('visibilitychange', onFocus); unwatch(); items.forEach((i) => i.dispose()); composer?.dispose(); } };
 }

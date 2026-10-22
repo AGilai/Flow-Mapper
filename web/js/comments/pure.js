@@ -43,3 +43,17 @@ export function mentionedOnly(vis, id) {
 }
 /** How many live comments (replies included) in a thread mention the user. */
 export const countMentions = (thread, id) => thread.comments.reduce((n, c) => n + (!c.deleted && mentionsUser(c.body, id) ? 1 : 0) + c.replies.filter((r) => mentionsUser(r.body, id)).length, 0);
+
+/** `comment=<id>` of a flow URL (URLSearchParams): a positive whole number, else null. */
+export function commentParam(query) {
+  const v = query?.get?.('comment');
+  return v && /^[1-9]\d{0,9}$/.test(v) ? Number(v) : null;
+}
+/** Where a comment sits in a loaded thread: { resolved } (its top thread is resolved, so hidden by default) or null when this thread does not have it. */
+export function locateComment(thread, id) {
+  for (const c of thread.comments ?? []) if (c.id === id || (c.replies ?? []).some((r) => r.id === id)) return { resolved: !!c.resolved };
+  return null;
+}
+
+/** Should a popup of height `need` open above the caret? Only when it does not fit below and there is more room above. */
+export const placeAbove = (need, below, above) => need > below && above > below;

@@ -5,11 +5,11 @@
 
 import { h } from '../dom.js';
 import { api } from '../api.js';
-import { filterUsers, nameKey } from '../../core/users-match.js';
+import { filterUsers, nameKey, pickable } from '../../core/users-match.js';
 import { userAvatar } from '../users/avatar.js';
 import { chip } from '../users/chips.js';
 import { me, remember, users } from '../users/directory.js';
-import { relTime } from './pure.js';
+import { placeAbove, relTime } from './pure.js';
 
 const TRIGGER = /(^|[\s ])@([^\s@[\]{}]{0,40})$/;
 
@@ -33,7 +33,7 @@ export function attachMention(ed, { people = () => [] } = {}) {
 
   function list(q) {
     const here = new Set(people()), all = users();
-    const found = filterUsers(all, q);
+    const found = filterUsers(pickable(all), q);
     const fresh = (a) => a.filter((u) => !here.has(u.id)), mine = found.filter((u) => here.has(u.id));
     const groups = [['Recent', mine], ['Everyone else', fresh(found)]].filter(([, l]) => l.length);
     return { groups, flat: groups.flatMap(([, l]) => l), canNew: !!nameKey(q) && !all.some((u) => nameKey(u.name) === nameKey(q)) };
@@ -61,8 +61,12 @@ export function attachMention(ed, { people = () => [] } = {}) {
   function place() {
     const r = document.createRange();
     r.setStart(at.node, Math.min(at.start, at.node.nodeValue.length)); r.setEnd(at.node, Math.min(at.caret, at.node.nodeValue.length));
-    const b = r.getClientRects()[0] ?? el.getBoundingClientRect(), w = Math.min(300, innerWidth - 16), up = b.bottom + 260 > innerHeight && b.top > 260;
-    Object.assign(pop.style, { width: `${w}px`, left: `${Math.max(8, Math.min(b.left, innerWidth - w - 8))}px`, top: up ? 'auto' : `${b.bottom + 4}px`, bottom: up ? `${innerHeight - b.top + 4}px` : 'auto' });
+    const b = r.getClientRects()[0] ?? el.getBoundingClientRect(), w = Math.min(300, innerWidth - 16);
+    Object.assign(pop.style, { width: `${w}px`, left: `${Math.max(8, Math.min(b.left, innerWidth - w - 8))}px`, top: `${b.bottom + 4}px`, bottom: 'auto', maxHeight: '' });
+    const need = pop.offsetHeight, below = innerHeight - b.bottom - 12, above = b.top - 12;
+    const up = placeAbove(need, below, above); // flip above the caret when it does not fit below
+    const room = up ? above : below;
+    Object.assign(pop.style, { top: up ? 'auto' : `${b.bottom + 4}px`, bottom: up ? `${innerHeight - b.top + 4}px` : 'auto', maxHeight: need > room ? `${Math.max(120, room)}px` : '', overflowY: 'auto' });
     pop.querySelector('.on')?.scrollIntoView({ block: 'nearest' });
   }
 
