@@ -231,3 +231,11 @@ Steps 1–3 change no drawing for flows without lambdas or alternatives when `de
 - `details.only_when: {guard, source}` on each step of the arm that remains. Draw "only when <guard>", clipped, full text on hover. Consecutive steps that share the same guard get one marker on the first step plus a thin gutter line across the run. No dropdown. Show it in step details too.
 - The trace API passes both through on the message (`canFail`, `onlyWhen`, read from details). MCP trace_flow returns them too. Mermaid export writes them as `Note over` lines.
 - Both markers show in External and Full, and when the step is folded into a DB group.
+
+## Maintainer correction (2026-10-22): older alt groups are decisions too
+The older either/or groups also become scenario decisions. This covers `condition` with `altGroup`, implicit groups formed by the same file:line with conditions, and design `alt` frames. For example, prod `account-lambda-erase-controller/in.advanceErase` has a 4-way next-priority branch.
+- The arms are the branches. Each arm is labelled by its `condition`, and the first branch is the default.
+- "All" shows every branch, using today's alt-frame drawing.
+- The kinds opt, loop, par, critical and break are not choices.
+- A group that already comes from `alternatives` is never counted twice.
+This replaces Q4 above, which said to keep them as frames. It ships in 0.38.1 with the markers.
