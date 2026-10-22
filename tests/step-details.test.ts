@@ -24,13 +24,13 @@ const mcp = (a: any, name: string, args: any) => a.call('POST', '/mcp', { jsonrp
 const out = (r: any) => JSON.parse(r.body.result.content[0].text);
 async function app() { const a = await startApp(); await a.call('POST', '/api/ingest', { manifests: sampleManifests() }); return a; }
 
-test('migration 015 adds the title column to a database that has 001-013 but not 014; rows are kept, the backup has no title', () => {
+test('migration 015 adds the title column to a database that has 001-014; rows are kept, the backup has no title', () => {
   const MIG = join(import.meta.dirname, '../server/db/migrations');
   const all = readdirSync(MIG).filter((f) => f.endsWith('.sql')).sort();
   const path = join(mkdtempSync(join(tmpdir(), 'flow-mapper-mig15-')), 'old.db');
   const raw = new DatabaseSync(path);
   raw.exec('PRAGMA journal_mode = WAL; CREATE TABLE schema_migrations (name TEXT PRIMARY KEY, applied_at TEXT NOT NULL, checksum TEXT)');
-  for (const f of all.filter((f) => f < '014')) {
+  for (const f of all.filter((f) => f < '015')) {
     const sql = readFileSync(join(MIG, f), 'utf8');
     raw.exec(sql);
     raw.prepare('INSERT INTO schema_migrations VALUES (?, ?, ?)').run(f, 'then', createHash('sha256').update(sql).digest('hex'));
