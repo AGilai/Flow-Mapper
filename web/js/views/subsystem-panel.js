@@ -26,15 +26,15 @@ export function linePanel(l, { map, label, onLink }) {
     inc.length ? section('Includes', inc.length, h('div.list', inc.map((v) => h('div.list-item', h('span.xs.muted', 'includes: '), h('button.btn.sm.ghost', { type: 'button', 'data-qa': 'includes-link', on: { click: () => onLink(v) } }, v.name), h('span.xs.muted', '(refined)'))))) : null]];
 }
 
-/** boxPanel(box, { map, marks, label, onGo, onLink, onEdit? }) -> [head, ...body]. `onEdit`: a draft is open (the About block gets an Edit button; a derived subsystem has no settings row to hold it). */
-export function boxPanel(box, { map, marks, label, onGo, onLink, onEdit = null }) {
+/** boxPanel(box, { map, marks, label, onGo, onLink, onEdit? }) -> [head, ...body]. `pen` (design/pencil.js): the pencils of the head and of the About block; a derived subsystem has no settings row to hold them, so none. */
+export function boxPanel(box, { map, marks, label, onGo, onLink, pen = null }) {
   const m = marks.markOf(`grp:${box.key}`), links = map.abstract.filter((v) => v.from.subsystem === box.key || v.to.subsystem === box.key);
-  const head = h('div.stack', { style: { gap: '4px' } }, h('h2.titled', box.icon ? subIcon(box.icon, 22) : null, h('span', box.label)),
+  const head = h('div.stack', { style: { gap: '4px' } }, h('h2.titled', box.icon ? subIcon(box.icon, 22) : null, h('span', box.label), box.derived ? null : pen?.button('panel-subsystem', `subsystem ${box.label}`, { form: 'subsystem', box })),
     h('div.row', h('span.small.muted', `${box.components.length} ${box.components.length === 1 ? 'component' : 'components'}${box.derived ? ' · named by a groupPath only' : ''}`),
       m ? h(`span.mark.${m.mark === 'new' ? 'new' : 'chg'}`, glyph(m.mark), m.what ?? (m.mark === 'new' ? 'New' : 'Changed')) : null));
   const comp = (c) => { const cm = marks.markOf(`svc:${c.name}`)?.mark; return h('div.list-item', h('button.btn.ghost.sm.grow', { type: 'button', style: { justifyContent: 'flex-start' }, 'data-qa': 'go-down', title: `Open ${c.name} at component level`, on: { click: () => onGo(c.name) } }, c.name), cm ? h(`span.mark.${cm === 'new' ? 'new' : 'chg'}`, glyph(cm), cm === 'new' ? 'New' : 'Changed') : null, h('span.xs.muted', c.kind)); };
   return [head, [
-    aboutBlock(box.about, { onEdit: onEdit && !box.derived ? () => onEdit(box) : null }),
+    aboutBlock(box.about, { pen: pen && !box.derived ? pen.about(box.label, { form: 'subsystem', box }) : null }),
     h('dl.kv', h('dt', 'Calls inside'), h('dd', String(box.internal)), h('dt', 'Calls out'), h('dd', String(box.out)), h('dt', 'Calls in'), h('dd', String(box.in)), h('dt', 'Calls to nothing'), h('dd', { style: { color: box.dangling ? 'var(--bad)' : '' } }, String(box.dangling))),
     h('div.row', h('a.btn.primary', { href: href('/inventory', { subsystem: box.key || '-' }) }, 'Open in Inventory')),
     section('Components', box.components.length, h('div.list', box.components.slice(0, MAX).map(comp))),

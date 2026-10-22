@@ -23,6 +23,7 @@ import { decodeStep, encodeStep } from './flow-walk.js';
 import { setServiceInfo } from '../design/service-info.js';
 import { openImport } from '../design/import-panel.js';
 import { editOpener, editing } from '../design/edit-open.js';
+import { pencils } from '../design/pencil.js';
 import { loadSubsystems } from '../design/subsystems-store.js';
 import { relCounts } from './flow-relations-pure.js';
 import { createMax } from './flow-max.js';
@@ -142,6 +143,8 @@ export async function render({ main, query }) {
     setFrontier: () => { opts.frontier = true; frontierCheck.querySelector('input').checked = true; persist(); reloadAll(); },
   };
   if (editing()) host.edit = editOpener(host);
+  host.pen = pencils(host); // 0.31.1: the pencils of the flow head; the hint of a harvested page sits under the toolbar
+  toolbar.after(...[host.pen.hint()].filter(Boolean));
   const openEntry = ({ service: s, ingress, fn, event, scope }) => commit(T.openTab(S, ingress ? T.entryKey(s, ingress, event, scope) : T.fnKey(s, fn, event, scope)));
   function setScope(scope) {
     const to = T.withScope(S.active, scope);
@@ -220,6 +223,7 @@ export async function render({ main, query }) {
   slots.get(S.active)?.removeAttribute('hidden');
   strip.render(S); paintChrome();
   if (S.keys.length) persist(); // old single-flow links become tabs=
+  host.pen.resume();
   if (maxFromQuery(query) && S.keys.length) max.set(true, { fullscreen: false, url: false }); // a link or reload opens maximized (window-filling only)
   return { dispose: () => { disposed = true; removeEventListener('keydown', onKey); max.dispose(); strip.closeMenu(); panel.dispose(); views.forEach((v) => v.dispose()); } };
 }

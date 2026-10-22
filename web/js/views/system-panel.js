@@ -12,13 +12,13 @@ import { aboutBlock } from '../components/about.js';
 const MAX = 12;
 const svcName = (id) => id.replace(/^(svc|ch|res|missing):/, '');
 
-export function nodePanel(n, edges, byId) {
+export function nodePanel(n, edges, byId, pen = null) {
   const out = edges.filter((e) => e.from === n.id);
   const inc = edges.filter((e) => e.to === n.id);
   const kindLabel = { service: 'Service', gateway: 'Gateway', channel: n.sub, resource: `Data store (${n.sub})`, missing: 'No match' }[n.kind] ?? n.kind;
   const type = n.kind === 'channel' ? 'channel' : n.kind === 'resource' ? 'store' : n.kind === 'missing' ? null : 'service';
   const kind = type === 'service' ? n.svcKind ?? n.kind : n.sub;
-  const head = h('div.stack', { style: { gap: '2px' } }, h('h2.titled', { class: n.kind === 'missing' ? 'key' : '' }, type ? objectIcon(type, kind, 24) : null, h('span', n.label)), h('span.small.muted', kindLabel, n.team ? `, team ${n.team}` : ''));
+  const head = h('div.stack', { style: { gap: '2px' } }, h('h2.titled', { class: n.kind === 'missing' ? 'key' : '' }, type ? objectIcon(type, kind, 24) : null, h('span', n.label), type === 'service' ? pen?.button('panel-component', n.label, { form: 'component', service: n.label }) : null), h('span.small.muted', kindLabel, n.team ? `, team ${n.team}` : ''));
 
   const neighbour = (e, other) => {
     const o = byId.get(other);
@@ -38,7 +38,8 @@ export function nodePanel(n, edges, byId) {
   };
 
   const body = [];
-  if (n.about) body.push(aboutBlock(n.about));
+  if (type === 'service') { const hint = pen?.hint(); if (hint) body.push(hint); }
+  if (n.about || type === 'service') { const a = aboutBlock(n.about, { pen: type === 'service' ? pen?.about(n.label, { form: 'component', service: n.label }) : null }); if (a) body.push(a); }
   if (n.stats) {
     body.push(h('dl.kv',
       h('dt', 'Ingress'), h('dd', String(n.stats.ingress)),

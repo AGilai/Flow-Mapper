@@ -19,6 +19,8 @@ import { statusFilter, filterByStatus, whatColumn, statusOf, anchorOfItem } from
 import { markBadge } from '../components/status-mark.js';
 import { createPanel } from '../components/panel.js';
 import { editing } from '../design/edit-open.js';
+import { pencils } from '../design/pencil.js';
+import { loadSubsystems } from '../design/subsystems-store.js';
 import { openComponentForm } from '../design/forms/component-form.js';
 import { metaOf } from '../env-info.js';
 import { subsystemOptions, inSubsystem, subsystemSelect, subsystemLabel } from './inventory-subsystem.js';
@@ -43,6 +45,7 @@ export async function render({ main, query }) {
   const f = { rpcq: query.get('rpcq') === '1', type: query.get('type') ?? '', kind: query.get('kind') ?? '', team: query.get('team') ?? '', q: query.get('q') ?? '', problems: query.get('problems') === '1', dto: query.get('dto') ?? '', driver: query.get('driver') ?? '', sub: query.get('subsystem') ?? '', status: design ? query.get('status') ?? '' : '' }; // driver: `<package>@<major>`, `<package>@` when the version is unknown
   if (f.type === 'store') f.type = ''; // older links
   const total = h('span'), host = h('div.panel-host'), panel = createPanel(host); // the component form opens beside the table
+  const pen = pencils({ panel, flowsEl: null }), subs = design ? await loadSubsystems() : null;
   const groups = metaOf(state.envMeta, state.env).groups ?? [], subOpts = subsystemOptions(all, groups);
   if (!subOpts.some(([v]) => v === f.sub)) f.sub = '';
   const hasRpc = all.some((x) => x.type === 'rpc'), hasAmqp = all.some(isAmqp);
@@ -55,11 +58,14 @@ export async function render({ main, query }) {
   const typeList = hasRpc ? [...TYPES, RPC] : TYPES;
   const types = [...dbKinds.map((k) => [`store:${k}`, DB[k] ?? k])];
 
+  const subBox = (label) => { const key = groups.find((g) => g.label === label)?.key ?? ''; return subs?.info(key) ?? { key, label }; };
+  const addBtn = (label) => h('button.btn.sm', { type: 'button', 'data-qa': 'add-component', style: { marginLeft: 'var(--s3)' }, title: `Add a component to ${label}`, on: { click: () => openComponentForm({ panel, flowsEl: null, groupPath: groups.find((g) => g.label === label)?.key ?? '' }) } }, '+ component');
   const table = dataTable({
     rows: [], pageSize: 50, sortKey: 'label', groupBy: design && subOpts.length ? (x) => subsystemLabel(x, groups) : null,
-    groupExtra: editing() ? (label) => h('button.btn.sm', { type: 'button', 'data-qa': 'add-component', style: { marginLeft: 'var(--s3)' }, title: `Add a component to ${label}`, on: { click: () => openComponentForm({ panel, flowsEl: null, groupPath: groups.find((g) => g.label === label)?.key ?? '' }) } }, '+ component') : null, onRow: (x) => go(...openTarget(x)), rowClass: (x) => (x.plumbing ? 'plumb' : statusOf(x, marks) === 'removed' ? 'gone' : ''),
+    groupExtra: (label) => [subBox(label).key ? pen.button('subsystem', `subsystem ${label}`, { form: 'subsystem', box: subBox(label) }) : null, editing() ? addBtn(label) : null],
+    onRow: (x) => go(...openTarget(x)), rowClass: (x) => `has-pen ${x.plumbing ? 'plumb' : statusOf(x, marks) === 'removed' ? 'gone' : ''}`,
     columns: [
-      { key: 'label', label: 'Name', sort: (x) => (f.type === 'amqp' ? `${KRANK[x.kind] ?? 5}${x.label}` : x.label), render: (x) => h('div.name-cell', objectIcon(x.type, x.kind, 22), h('div.stack', { style: { gap: 0 } }, h('span.row.mk-name', h('b', { class: x.type === 'service' ? '' : x.type === 'rpc' || x.plumbing ? 'key nowrap' : 'key' }, x.label), design ? markBadge(marks.markOf(anchorOfItem(x) ?? ''), { store: marks }) : null), x.group && x.group !== x.id ? h('span.xs.muted', x.group) : null)) },
+      { key: 'label', label: 'Name', sort: (x) => (f.type === 'amqp' ? `${KRANK[x.kind] ?? 5}${x.label}` : x.label), render: (x) => h('div.name-cell', objectIcon(x.type, x.kind, 22), h('div.stack', { style: { gap: 0 } }, h('span.row.mk-name', h('b', { class: x.type === 'service' ? '' : x.type === 'rpc' || x.plumbing ? 'key nowrap' : 'key' }, x.label), design ? markBadge(marks.markOf(anchorOfItem(x) ?? ''), { store: marks }) : null, x.type === 'service' ? pen.button('inventory', x.label, { form: 'component', service: x.id }) : null), x.group && x.group !== x.id ? h('span.xs.muted', x.group) : null)) },
       { key: 'type', label: 'Type', render: (x) => h('span.small.nowrap', TYPE_LABEL[x.type]) },
       { key: 'kind', label: 'Kind', render: (x) => h('span.pill.kind-pill', { class: isAmqp(x) ? (x.type === 'rpc' || /^rpc-/.test(x.kind) ? 'rpc' : 'amqp') : '' }, x.type === 'store' ? objectIcon('store', x.kind, 14) : null, kindLabel(x)) },
       ...(subOpts.length ? [{ key: 'groupPath', label: 'Subsystem', render: (x) => h('span.small.muted', subsystemLabel(x, groups) ?? '') }] : []),
@@ -171,10 +177,11 @@ export async function render({ main, query }) {
       st ? [h('span.small.muted', 'Status'), st.el] : null,
       h('span.spacer'), shown),
     host);
-  host.prepend(h('div.content', fold, h('div.box', table.el, svcTable.el)));
+  host.prepend(h('div.content', pen.hint(), fold, h('div.box', table.el, svcTable.el)));
   dtoSel.hidden = f.type !== 'event';
   recount();
   fillKinds();
   fillFacet();
   apply();
+  pen.resume();
 }

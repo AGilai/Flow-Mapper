@@ -6,7 +6,7 @@ in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.m
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
 ## 0.31.1 (2026-10-22)
-UI only (#69 follow-up): Fit now enlarges a short flow to fill the panel, up to 200%.
+UI only: a small pencil on every editable item (service header, Docs, About and each section, endpoint and flow rows, Inventory rows and subsystem headers, the map and flow panels) opens the same form the diagram uses; in View mode it first picks or starts a draft. Harvested environments keep only the flow and step description pencils. Also (#69 follow-up): Fit now enlarges a short flow to fill the panel, up to 200%.
 
 ## 0.30.4 (2026-10-22)
 UI only (#70): on a flow arrow, "transport not decided" is a small icon (its words in the tooltip and in the step bar); the new toolbar toggle "Transport hints" (`th=0|1` in the URL, left out at the default) shows the full label again. Default: off in a design environment, on elsewhere. Decided transports keep their compact label.

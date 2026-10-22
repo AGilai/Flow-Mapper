@@ -40,7 +40,7 @@ export function dataTable({ columns, rows, pageSize = 50, onRow, rowClass, group
     page = Math.min(page, pages - 1);
     const slice = all.slice(page * pageSize, page * pageSize + pageSize);
     let last = null; // a header row where the group changes
-    const grp = (r) => { const l = groupBy && sort === sortKey ? groupBy(r) : null; if (l === null || l === last) return null; last = l; return h('tr.tgrp', h('th', { colSpan: columns.length }, l, groupExtra?.(l) ?? null)); };
+    const grp = (r) => { const l = groupBy && sort === sortKey ? groupBy(r) : null; if (l === null || l === last) return null; last = l; return h('tr.tgrp.has-pen', h('th', { colSpan: columns.length }, l, groupExtra?.(l) ?? null)); };
     fill(tbody, ...(slice.length ? slice.flatMap((r) => [grp(r),
       h('tr', { class: [onRow ? 'clickable' : '', rowClass?.(r) ?? ''].join(' ').trim(), tabindex: onRow ? 0 : null,
         on: onRow ? { click: () => onRow(r), keydown: (e) => { if (e.key === 'Enter') onRow(r); } } : {} },

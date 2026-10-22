@@ -1,0 +1,24 @@
+/* Pencils (0.31.1, "Edit where you read"): a small icon button on every editable item. Hidden until its row is hovered or holds focus,
+   always there on touch, dimly there in Edit mode. A container that carries pencils has the class .has-pen. */
+.pen { display: inline-grid; place-items: center; width: 22px; height: 22px; padding: 0; flex: none; vertical-align: middle; cursor: pointer;
+  border: 1px solid transparent; border-radius: var(--r-sm); background: transparent; color: var(--muted); }
+.pen svg { width: 13px; height: 13px; }
+.pen:hover { color: var(--accent); background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+.pen:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; color: var(--accent); }
+.has-pen .pen { opacity: 0; transition: opacity .12s; }
+.has-pen:hover .pen, .has-pen:focus-within .pen, .has-pen .pen:focus-visible, .has-pen .pen[aria-expanded="true"] { opacity: 1; }
+.has-pen .pen.on { opacity: .55; }
+.has-pen:hover .pen.on, .has-pen:focus-within .pen.on { opacity: 1; }
+@media (hover: none) { .has-pen .pen { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .has-pen .pen { transition: none; } }
+.pen-hint { margin: 0; font-size: var(--fs-xs); color: var(--muted); }
+.page-head .pen-hint { margin-top: 2px; }
+/* the pencil by a title or a section heading */
+.svc-title { display: inline-flex; align-items: center; gap: var(--s2); }
+.about > h3 .pen { margin-left: var(--s1); }
+.about-body p.has-pen { display: flex; align-items: baseline; gap: var(--s1); }
+.about-body p.has-pen > strong { display: block; }
+.sb-actions .pen { margin-left: 2px; }
+.tgrp .pen { margin-left: var(--s2); }
+.cell-pen { width: 28px; padding-left: 0; padding-right: 0; text-align: right; }
+.seq-toolbar + .pen-hint { padding: var(--s1) var(--s3); background: var(--paper); }
