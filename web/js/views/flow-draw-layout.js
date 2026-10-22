@@ -23,8 +23,8 @@ export const tileW = (t) => Math.max(32, Math.ceil(String(t).length * TILE_PX) +
 export const markW = (m) => Math.ceil(m.label.length * (m.kind === 'key' ? 6.9 : 6.4)) + 30; // an exchange's binding key is mono
 export const FUNNEL = 'M1.5 2h9L7 6.3V10l-2-1V6.3z';
 
-/** layoutLane(lane, fit, sq) -> every measure the drawing needs; `fit`: the width the diagram has (0 = no limit); sq: { keep: [column index] } turns Squeeze on (flow-squeeze.js). */
-export function layoutLane(lane, fit = 0, sq = null, marks = null, edit = false) {
+/** layoutLane(lane, fit, sq) -> every measure the drawing needs; `fit`: the width the diagram has (0 = no limit); sq: { keep: [column index] } turns Squeeze on (flow-squeeze.js); det: step details on the arrows (flow-step-details.js): a step's row grows by what it shows above and below its line. */
+export function layoutLane(lane, fit = 0, sq = null, marks = null, edit = false, det = null) {
   const { columns, events, bars } = lane;
   // Each gap between lifelines grows to fit the longest arrow label that crosses it: a label is never cut.
   const idx = new Map(columns.map((c, i) => [c, i]));
@@ -36,10 +36,11 @@ export function layoutLane(lane, fit = 0, sq = null, marks = null, edit = false)
     const a = idx.get(e.from), b = idx.get(e.to), v = e.via ? idx.get(e.via) : null, lab = e.trunk ? labelWidth(e.sub ? `${e.label} ${e.sub}` : e.label) + 8 + BAR + 2 * NEST : 0, mk = e.marker ? markW(e.marker) + 16 : 0;
     return v == null ? [{ a, b, need: Math.max(lab, mk) }] : [{ a, b: v, need: lab }, { a: v, b, need: mk }];
   };
+  const detailPx = (e) => { const p = det?.parts.get(e), t = det?.text.get(e); return p ? Math.max(p.title ? t.title.length * 6.9 : 0, p.desc ? Math.min(t.desc.length, 34) * 6.3 : 0) : 0; }; // step details on the arrow widen the gap it crosses (a description up to 34 characters, the rest is cut)
   const spans = events.flatMap((e) => {
     const ends = e.type === 'hop' ? [e.from, e.to] : arrowEnds(e);
     if (!ends) return [];
-    const a = idx.get(ends[0]), b = idx.get(ends[1]), out = e.type === 'hop' ? hopSpans(e) : [{ a, b, need: labelWidth(e.label) + 8 + BAR + 2 * NEST }];
+    const a = idx.get(ends[0]), b = idx.get(ends[1]), out = e.type === 'hop' ? hopSpans(e) : [{ a, b, need: Math.max(labelWidth(e.label), detailPx(e)) + 8 + BAR + 2 * NEST }];
     if (e.end) { const n = b + (Math.sign(b - a) || 1); if (n >= 0 && n < columns.length) out.push({ a: b, b: n, need: endW(e) + 14 }); }
     return out;
   });
@@ -76,7 +77,7 @@ export function layoutLane(lane, fit = 0, sq = null, marks = null, edit = false)
   const stacked = new Set(events.filter((e) => e.type === 'call' && e.msg && chipsStack(markChips(marks, e.msg), Math.abs(colX.get(e.to) - colX.get(e.from)) - 12)));
   // Edit: room under the last row of each bar for its "+ call" chip, so it never meets the next arrow or label
   const addRows = new Set(edit ? lane.bars.filter((b) => !b.msg.reference && b.msg.target?.fn).map((b) => b.end) : []);
-  events.forEach((e, r) => { top[r] = y; ys[r] = y + nStrips(r) * STRIP + LINE[e.type]; y += nStrips(r) * STRIP + rowH(e) + (stacked.has(e) ? 19 * (markChips(marks, e.msg).length - 1) : 0) + (addRows.has(r) ? 20 : 0); });
+  events.forEach((e, r) => { const dp = det?.parts.get(e), up = dp?.extraUp ?? 0; top[r] = y; ys[r] = y + nStrips(r) * STRIP + up + LINE[e.type]; y += nStrips(r) * STRIP + up + (dp?.extraDown ?? 0) + rowH(e) + (stacked.has(e) ? 19 * (markChips(marks, e.msg).length - 1) : 0) + (addRows.has(r) ? 20 : 0); });
   top[events.length] = y;
   const height = y + PAD;
   const barX = (bar, dir) => (folded.has(idx.get(bar.col)) ? colX.get(bar.col) + (dir < 0 ? 0 : fw) : colX.get(bar.col) + bar.level * NEST + dir * BAR / 2); // in a fold: its edge on that side

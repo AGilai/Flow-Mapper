@@ -555,8 +555,8 @@ Stored in `descriptions` (migration `003_descriptions.sql`, kept when a service 
 
 | Method + path | |
 |---|---|
-| `GET /api/envs/:env/descriptions?service=&ingress=` | `{service, ingress, hash, flow: {human, ai}, callees: {<callee>: {human, ai}}}`. `human` is `{text, editedBy, editedAt}` or null; `ai` is `{text, model, generatedAt, traceHash, outdated}` or null. `hash` is the hash of the flow's current trace; `outdated` is true when an AI record was written from a different trace (the flow changed since). 404 for an unknown ingress |
-| `PUT /api/envs/:env/descriptions` | writes the **human** record: `{service, ingress, callee?, text, editedBy?}`. Empty `text` removes it. Max 4000 characters. Returns the flow's descriptions. There is no REST write for the AI record |
+| `GET /api/envs/:env/descriptions?service=&ingress=` | `{service, ingress, hash, flow: {human, ai}, callees: {<callee>: {human, ai}}}`. `human` is `{text, title, editedBy, editedAt}` or null; `ai` is `{text, title, model, generatedAt, traceHash, outdated}` or null (`title`: 0.30.0, string or null). `hash` is the hash of the flow's current trace; `outdated` is true when an AI record was written from a different trace (the flow changed since). 404 for an unknown ingress |
+| `PUT /api/envs/:env/descriptions` | writes the **human** record: `{service, ingress, callee?, text, title?, editedBy?}`. Empty `text` (and no title) removes it. Max 4000 characters. Returns the flow's descriptions. There is no REST write for the AI record |
 
 **Step keys (0.20.0).** `#step:<from>><to>|<label>|<transport>`, built from one message of the flow's trace
 (`message.from`, `message.to`, `message.label`, `message.transport`, empty when absent), for example
@@ -564,6 +564,8 @@ Stored in `descriptions` (migration `003_descriptions.sql`, kept when a service 
 its position, so it survives redraws and inserted steps. A second identical arrow in the same flow ends in `~2`, a third in
 `~3`. The same call (`PUT` or `set_description`) writes them; a key that matches no message of the flow is refused (400). The
 flow page shows them as the step description under the walk bar. Their trace hash covers only the step's own messages.
+
+**Step titles (0.30.0, migration `015_step_titles.sql`).** A step key may also carry a `title`: at most 80 characters, trimmed (400 over that), `null` = none; it is ignored for any other callee. `PUT` and MCP `set_description` take it as `title`; omitted keeps the stored one, `''` clears it. A record may hold a title with empty text and the other way round; the human record is removed only when both are empty. The human title wins over the AI title (`titleOf`). The step bar, the arrows (option) and the Mermaid export show it (export: the title is the message text and the API goes into a `Note`).
 
 The trace hash (`core/description.ts` `traceHash`) is a 53-bit hash over each message's depth, kind, endpoints, label,
 transport, event, target, store and call (trace options: scope full, 2000 messages). For a callee it covers only the

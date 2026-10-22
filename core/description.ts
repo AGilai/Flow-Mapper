@@ -4,11 +4,11 @@
 
 import type { Trace, Message } from './trace.ts';
 
-export interface HumanRecord { text: string; editedBy: string; editedAt: string }
-export interface AiRecord { text: string; model: string; generatedAt: string; traceHash: string; outdated: boolean }
+export interface HumanRecord { text: string; title: string | null; editedBy: string; editedAt: string }
+export interface AiRecord { text: string; title: string | null; model: string; generatedAt: string; traceHash: string; outdated: boolean }
 export interface DescPair { human: HumanRecord | null; ai: AiRecord | null }
 /** A stored row as the server keeps it (callee '' = the whole flow). */
-export interface DescRow { callee: string; source: 'human' | 'ai'; text: string; author: string | null; model: string | null; traceHash: string | null; updatedAt: string }
+export interface DescRow { callee: string; source: 'human' | 'ai'; text: string; author: string | null; model: string | null; traceHash: string | null; updatedAt: string; title?: string | null }
 export interface FlowDescriptions { service: string; ingress: string; hash: string; flow: DescPair; callees: Record<string, DescPair> }
 
 /** Trace options both the server and the preview use for the hash, so they agree. */
@@ -62,8 +62,8 @@ export function flowDescriptions(trace: Pick<Trace, 'messages'>, service: string
     const h = rows.find((r) => r.callee === callee && r.source === 'human'), a = rows.find((r) => r.callee === callee && r.source === 'ai');
     const cur = traceHash(trace, callee);
     return {
-      human: h ? { text: h.text, editedBy: h.author ?? '', editedAt: h.updatedAt } : null,
-      ai: a ? { text: a.text, model: a.model ?? '', generatedAt: a.updatedAt, traceHash: a.traceHash ?? '', outdated: isOutdated({ traceHash: a.traceHash }, cur) } : null,
+      human: h ? { text: h.text, title: h.title ?? null, editedBy: h.author ?? '', editedAt: h.updatedAt } : null,
+      ai: a ? { text: a.text, title: a.title ?? null, model: a.model ?? '', generatedAt: a.updatedAt, traceHash: a.traceHash ?? '', outdated: isOutdated({ traceHash: a.traceHash }, cur) } : null,
     };
   };
   const callees: Record<string, DescPair> = {};
@@ -75,6 +75,11 @@ export function flowDescriptions(trace: Pick<Trace, 'messages'>, service: string
 export function lineText(p: DescPair | null | undefined): { text: string; who: 'human' | 'ai'; outdated?: boolean } | null {
   return p?.human?.text ? { text: p.human.text, who: 'human' } : p?.ai?.text ? { text: p.ai.text, who: 'ai', outdated: p.ai.outdated } : null;
 }
+
+/** Longest step title. */
+export const MAX_TITLE = 80;
+/** The title of a step: the human title, else the AI title (the same rule as the text). */
+export const titleOf = (p: DescPair | null | undefined): string => p?.human?.title || p?.ai?.title || '';
 
 export interface PromptTarget { env: string; service: string; ingress: string }
 const q = (s: string) => JSON.stringify(s);

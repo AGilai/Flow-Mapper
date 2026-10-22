@@ -17,29 +17,37 @@ export function arrowSpan(step, { columns, geometry }) {
 }
 
 /**
- * drawStepTiles(res, built, steps, onPick(n)) -> { setCurrent(n), rowEl(n), span(n) -> { x1, x2 } (lane pixels) }
+ * drawStepTiles(res, built, steps, onPick(n), onEdit(n)) -> { setCurrent(n), rowEl(n), span(n) -> { x1, x2 } (lane pixels) }
  * res: what renderLane returned; built: what buildLane returned (its columns); steps: stepsOf(built).
  */
-export function drawStepTiles(res, built, steps, onPick) {
+export function drawStepTiles(res, built, steps, onPick, onEdit = null) {
   const halo = s('rect', { class: 'stephalo', rx: 9, height: 38, visibility: 'hidden', 'pointer-events': 'none' });
-  const tiles = new Map(), spans = new Map();
-  const g = s('g', { class: 'steptiles', 'aria-hidden': 'true' }, halo, ...steps.map((st) => {
+  const tiles = new Map(), spans = new Map(), grps = new Map();
+  const g = s('g', { class: 'steptiles' }, halo, ...steps.map((st) => {
     const sp = arrowSpan(st, { columns: built.columns, geometry: res.geometry }), w = tw(st.n), cx = sp.x1 + sp.dir * (w / 2 + 3), y = res.geometry.y[st.row];
     spans.set(st.n, sp);
-    const t = s('g', { class: 'steptile', 'data-step': st.n },
+    const t = s('g', { class: 'steptile', 'data-step': st.n, 'aria-hidden': 'true' },
       s('rect', { x: cx - w / 2, y: y - 6, width: w, height: H, rx: H / 2 }), s('text', { x: cx, y: y + 6, 'text-anchor': 'middle' }, st.n), s('title', {}, `Step ${st.n}: ${st.label}`));
     t.addEventListener('click', (ev) => { ev.stopPropagation(); onPick(st.n); });
     tiles.set(st.n, t);
-    return t;
+    if (!onEdit) return t;
+    // 0.30.0: a pencil next to the tile opens the step editor; shown on hover, on the current step, and always on touch (flow-walk.css)
+    const px = cx + sp.dir * (w / 2 + 15), pen = s('g', { class: 'steppen', role: 'button', 'aria-label': `Edit step ${st.n}` },
+      s('rect', { x: px - 10, y: y - 6, width: 20, height: H, rx: 5 }), s('path', { d: `M${px - 4} ${y + 6.5}h2.3l5.2-5.2-2.3-2.3-5.2 5.2z`, class: 'pp' }), s('title', {}, `Edit step ${st.n}`));
+    const open = (ev) => { ev.stopPropagation(); ev.preventDefault?.(); onEdit(st.n); };
+    pen.addEventListener('click', open); // keyboard: the key E, or Edit step on the bar
+    const grp = s('g', { class: 'stepgrp', 'data-step': st.n }, t, pen);
+    tiles.set(st.n, t); grps.set(st.n, grp);
+    return grp;
   }));
   res.body.append(g);
   let cur = 0;
   return {
     setCurrent(n) {
-      tiles.get(cur)?.classList.remove('cur');
+      tiles.get(cur)?.classList.remove('cur'); grps.get(cur)?.classList.remove('cur');
       cur = n;
       const st = steps[n - 1], sp = spans.get(n);
-      tiles.get(n)?.classList.add('cur');
+      tiles.get(n)?.classList.add('cur'); grps.get(n)?.classList.add('cur');
       if (!st || !sp) { halo.setAttribute('visibility', 'hidden'); return; }
       const x = Math.min(sp.x1, sp.x2) - 8, y = res.geometry.y[st.row];
       halo.setAttribute('x', x); halo.setAttribute('y', y - 22); halo.setAttribute('width', Math.abs(sp.x2 - sp.x1) + 16);

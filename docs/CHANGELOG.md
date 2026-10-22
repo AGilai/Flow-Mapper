@@ -5,6 +5,13 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## 0.30.0 (2026-10-22)
+Step details: a step (one arrow of a flow) can carry a short **title** next to its description. Additive; migration `015_step_titles.sql` (`ALTER TABLE descriptions ADD COLUMN title TEXT`; backed up to `<db>.pre-015.bak` first; 014 belongs to another branch and the runner does not need contiguous numbers). Details in [API.md](API.md) "Flow descriptions".
+- **Agents (MCP `set_description`):** new optional argument **`title`**, for a step (`callee` starting `#step:`) only: a short name for the arrow, at most 80 characters, trimmed; ignored for other callees. Omit it to keep the stored title, send `''` to clear it. `text` may be empty when the note carries a title (a title-only note). The human title wins over the AI title, like the text.
+- **REST:** `PUT /api/envs/:env/descriptions` takes the same optional `title` (a step). Reads return `title` (string or null) in every `human` and `ai` record. An empty text with no title removes the human record. A title over 80 characters is `400`. `get_service` descriptions carry `title` when set.
+- **Mermaid export:** a step with a title writes the title as the message text and the API (`POST /path`) into a `Note over` line.
+- **UI:** the Step bar shows the step's title, API and description (`sb=`); the toolbar control "Step details" also puts title / description on the arrows (`sd=`; default API only); a step editor (button, pencil, right-click, key E).
+
 ## 0.29.1 (2026-10-22)
 UI only: a Maximize button (key F) on every flow header fills the window with the flow, its action items and comments; `max=1` in the URL opens it that way.
 

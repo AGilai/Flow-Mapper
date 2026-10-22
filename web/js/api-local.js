@@ -110,11 +110,13 @@ export const api = {
     const t = trace(g(env), { service, ingress }, HASH_TRACE) ?? fail('flow not found');
     return flowDescriptions(t, service, ingress, (data.descriptions?.[env] ?? []).filter((r) => r.service === service && r.ingress === ingress));
   },
-  putDescription: async (env, { service, ingress, callee = '', text, editedBy }) => { // the human record, in memory
+  putDescription: async (env, { service, ingress, callee = '', text, title, editedBy }) => { // the human record, in memory (a title only on a step; omitted keeps the stored one)
     const rows = (data.descriptions ??= {})[env] ??= [];
     const at = rows.findIndex((r) => r.service === service && r.ingress === ingress && r.callee === callee && r.source === 'human');
+    const old = at >= 0 ? rows[at].title ?? null : null;
     if (at >= 0) rows.splice(at, 1);
-    if (String(text).trim()) rows.push({ service, ingress, callee, source: 'human', text: String(text).trim(), author: editedBy ?? 'preview', model: null, traceHash: null, updatedAt: now() });
+    const ttl = !callee.startsWith('#step:') ? null : title === undefined ? old : String(title ?? '').trim().slice(0, 80) || null, body = String(text).trim();
+    if (body || ttl) rows.push({ service, ingress, callee, source: 'human', text: body, title: ttl, author: editedBy ?? 'preview', model: null, traceHash: null, updatedAt: now() });
     return api.descriptions(env, service, ingress);
   },
   /** A flow as Mermaid text (export works in the preview; import needs the server). */
