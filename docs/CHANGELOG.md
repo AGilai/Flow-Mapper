@@ -5,6 +5,17 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased (0.38.0, #82 part 3: the scenario UI)
+**UI.** The Flows page draws the new views. Defaults: External, and every either/or decision on its first arm.
+- A decision is a divider row in the diagram with an inline dropdown of its arms and "Both"; a nested one has its own divider (indented, only while its parent arm is drawn); a locked one shows its reason and file:line (locks never go into a link). The flow header row has a "Scenario (N)" chip (accent while anything differs from the defaults) that opens a popover with every decision and "Reset to defaults", and a small External | Full switch (remembered per viewer). With "Both" the arms follow one another (a caption and a 3 px gutter marker per arm) and the step bar reads "6-7 messages per path". A service lifeline has a plain "⊕ internal" control that loads that service's internal calls (`open=`); Full loads all. DB operations are one "DB: N ops (collections)" row; a click opens them (`dbOpen=`).
+- Links (active tab only): `ch=<first 8 characters of group_id>:<arm>,...` for the choices that differ from the default (longer on a clash), `detail=full`, `open=svc,svc:fn`. An old link opens the default view. An unknown group or arm in `ch=` is dropped with a toast.
+- A comment, action item or note chip on a step the scenario hides says "Not in this scenario · Show" (Show switches that decision to the arm that holds the step); on an internal call that External does not load, "Not in this view · Show" (loads Full). Keys never change, so nothing is lost. A new Notes step chip also stores the step's key (`data-key`, `data-key-to`; the notes sanitizer keeps them), so it follows its step across scenarios; chips without a key keep reading numbers.
+- Internal calls (Full, or after "⊕ internal") are rows of their own with a grey "internal" tag and a step number, no longer the folded "N internal calls" pill.
+**API (additive).**
+- `GET /api/envs/:env/flows/counts`: a flow that reaches either/or decisions also carries `decisions` (how many), `steps` (the default view: External, first arms), `both: {min, max}` (messages per path with Both) and `full` (every internal call, first arms). Other rows are unchanged. Cheap: only flows that reach a decision are traced, once per graph (`core/flow-decisions.ts`).
+- `GET /api/envs/:env/flows/mermaid` takes `detail`, `choose`, `open`, `dbOpen`, `group` like the trace API and exports that view; without any of them it exports the full trace as before. The page's Export writes the view the tab shows. Step keys of an export are the canonical keys.
+- Callers: `web/js/api.js` no longer sends `detail=full&choose=*:both` by default; a tab asks for `choose=*:both&group=0` and `detail` / `open` itself and chooses in the browser (`viewOf`), so choosing an arm needs no request.
+
 ## 0.37.2 (2026-10-22)
 - UI: the step bar is always visible. On the first load of a flow the open Human description could push the bar out of the scrolling header, behind the diagram; now the description scrolls inside the header and the bar stays put (also maximized).
 - UI: after Previous to step 0 (or Next at the last step) by mouse, focus moves to the other walker button, so the arrow keys, Home and End keep working.

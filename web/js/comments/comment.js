@@ -11,6 +11,7 @@ import { isMe } from '../users/directory.js';
 import { renderChips } from '../users/chips.js';
 import { relTime, fullDate as full } from './pure.js';
 import { rangeLook, rangeText } from './range.js';
+import { hiddenPill } from '../views/flow-hidden-pill.js';
 
 /** The body element: sanitized HTML, set once. */
 export const bodyEl = (html) => renderChips(h('div.cm-body', { html: sanitize(html) })); // 0.32.0: `@[id]` tokens become chips
@@ -31,14 +32,16 @@ export function commentItem(node, x) {
   function pill() {
     if (node.steps) { // a comment on a range of steps (0.34.0): "steps 4-9"; hover and click lay the band over it again
       const r = rangeLook(node.steps, (k) => x.step(k)?.n ?? null);
-      if (!r) return null; // none of its steps remain: a plain comment
+      if (!r) { const hid = x.hidden?.(node.steps.from) ?? x.hidden?.(node.steps.to); el.classList.toggle('cm-hid', !!hid); return hid ? hiddenPill(hid) : null; } // none of its steps are drawn: hidden by this scenario (Show), else a plain comment
       const text = rangeText(r), look = x.range?.(r);
       return h('button.spill.rng', { type: 'button', title: r.kind === 'range' ? `Go to ${text}` : 'This comment was on a range of steps, and only this one is left', 'data-qa': 'cm-range',
         on: { click: () => (r.kind === 'range' ? x.rangeGo?.(r) : x.jump(r.n)), mouseenter: () => look?.on(), mouseleave: () => look?.off(), focus: () => look?.on(), blur: () => look?.off() } }, text);
     }
     if (!node.step) return null;
     const s = x.step(node.step);
-    return s ? h('button.spill', { type: 'button', title: `Go to step ${s.n} in the walk`, 'data-qa': 'cm-step', on: { click: () => x.jump(s.n) } }, `step ${s.n}`) : h('span.spill.gone', { title: 'The flow has changed: that step is no longer in it' }, 'step (gone)');
+    const hid = s ? null : x.hidden?.(node.step);
+    el.classList.toggle('cm-hid', !!hid);
+    return s ? h('button.spill', { type: 'button', title: `Go to step ${s.n} in the walk`, 'data-qa': 'cm-step', on: { click: () => x.jump(s.n) } }, `step ${s.n}`) : hid ? hiddenPill(hid) : h('span.spill.gone', { title: 'The flow has changed: that step is no longer in it' }, 'step (gone)');
   }
   function show() { // the head and the body as they read
     const act = h('span.cm-act', { role: 'group', 'aria-label': 'Comment actions' });

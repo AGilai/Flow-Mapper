@@ -76,7 +76,7 @@ const remote = {
   channel: (env, key) => get(`/api/envs/${e(env)}/channels/${e(key)}`),
   eventType: (env, type) => get(`/api/envs/${e(env)}/events/${e(type)}`),
   endpoint: (env, service, ingress) => get(`/api/envs/${e(env)}/endpoints/${e(service)}/${e(ingress)}`),
-  trace: (env, q) => get(`/api/envs/${e(env)}/trace${qs({ detail: 'full', choose: '*:both', ...q })}`), // 0.37.1 (#82): the page draws every step and both arms until the scenario UI (0.38.0); the API default is external, first arm
+  trace: (env, q) => get(`/api/envs/${e(env)}/trace${qs(q)}`), // 0.38.0 (#82): a tab asks for `detail`, `open`, `choose=*:both` and `group=0` itself (flow-tab-data.js), then chooses in the browser; anything else gets the API default (external, first arm)
   descriptions: (env, service, ingress) => get(`/api/envs/${e(env)}/descriptions${qs({ service, ingress })}`),
   putDescription: (env, body) => http('PUT', `/api/envs/${e(env)}/descriptions`, body),
   paths: (env, from, to) => get(`/api/envs/${e(env)}/paths${qs({ from, to })}`),
@@ -95,7 +95,7 @@ const remote = {
   applyDraft: (env, slug, by) => put(env, `/${e(slug)}/apply`, 'POST', { by }),
   importPreview: (env, slug, i) => http('GET', `/api/envs/${e(env)}/drafts/${e(slug)}/import/preview${qs({ source: i.source, anchor: i.anchor, groupPath: i.groupPath })}`),
   importIntoDraft: (env, slug, i, author) => put(env, `/${e(slug)}/import`, 'POST', { ...i, author }),
-  mermaid: (env, service, ingress) => httpText(withDraft(`/api/envs/${e(env)}/flows/mermaid${qs({ service, ingress })}`)),
+  mermaid: (env, service, ingress, view = {}) => httpText(withDraft(`/api/envs/${e(env)}/flows/mermaid${qs({ service, ingress, ...view })}`)), // view: { detail, choose, open, dbOpen, group }: the tab's scenario (0.38.0)
   mermaidPreview: (env, slug, body) => put(env, `/${e(slug)}/mermaid/preview`, 'POST', body),
   mermaidImport: (env, slug, body, author) => put(env, `/${e(slug)}/mermaid`, 'POST', { ...body, author }),
   undoMermaid: (env, slug, batch) => put(env, `/${e(slug)}/mermaid/${e(batch)}`, 'DELETE'),

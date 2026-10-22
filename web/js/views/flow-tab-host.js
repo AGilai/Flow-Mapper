@@ -10,7 +10,7 @@ export function createHostFor(host, { drillIn, openIn, paneIn }) {
   function hostFor(ctx) {
     if (!ctx.foreign) return host;
     if (!cache.has(ctx.env)) {
-      cache.set(ctx.env, { ...host, env: ctx.env, marks: ctx.marks, subs: ctx.subs, design: ctx.design, desc: ctx.desc, nameOf: ctx.nameOf, traceFor: ctx.data.traceFor, describe: ctx.data.describe, readOnly: true, edit: null, pen: penRO,
+      cache.set(ctx.env, { ...host, env: ctx.env, marks: ctx.marks, subs: ctx.subs, design: ctx.design, desc: ctx.desc, nameOf: ctx.nameOf, traceFor: ctx.data.traceFor, baseFor: ctx.data.baseFor, describe: ctx.data.describe, readOnly: true, edit: null, pen: penRO,
         switchEnv: () => setEnv(ctx.env), openEntry: (e) => drillIn(e, ctx.env), openFlow: (e) => openIn(e, ctx.env), openPane: (t) => paneIn(t, ctx.env) });
     }
     return cache.get(ctx.env);

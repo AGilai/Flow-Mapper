@@ -1,0 +1,107 @@
+/* 0.38.0 (#82 part 3), frame 21: the scenario of a flow. Either/or decisions as divider rows with an inline dropdown, "Both" with a caption and a gutter marker per arm,
+   the Scenario chip and the External | Full switch in the flow header row, the lazy "⊕ internal" control under a lifeline, internal calls and DB groups in the lane.
+   Tokens only; light and dark come from them. */
+
+/* ---- header row: chip + switch ---- */
+.scn-ctl { display: inline-flex; align-items: center; gap: var(--s2); margin-left: auto; flex: none; order: 90; }
+.scn-row { display: flex; justify-content: flex-end; padding: var(--s2) var(--s4) 0; }
+.scn-chip { display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 0 8px 0 12px; border: 1px solid var(--line-strong); border-radius: 14px; background: var(--surface); color: var(--ink); font: 500 var(--fs-sm) var(--font); cursor: pointer; white-space: nowrap; }
+.scn-chip[hidden] { display: none; }
+.scn-chip .n { color: var(--ink-2); }
+.scn-chip svg { width: 14px; height: 14px; transform: rotate(-90deg); stroke: currentColor; fill: none; stroke-width: 2; }
+.scn-chip:hover { background: var(--accent-soft); }
+.scn-chip.set { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.scn-chip.set .n { color: var(--accent); }
+.scn-chip:focus-visible, .scn-seg button:focus-visible, .dec-sel:focus-visible, .dec-dep:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.scn-seg button { height: 28px; padding: 0 10px; font-size: var(--fs-xs); }
+.scn-seg.busy button[aria-pressed='true'] { opacity: .6; }
+.scn-resolve[hidden] { display: none; }
+.fh-src { order: 91; }
+
+/* ---- the popover ---- */
+.scn-pop { position: fixed; z-index: 60; width: min(400px, calc(100vw - 16px)); max-height: min(70vh, 560px); display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-md); box-shadow: var(--shadow-panel); }
+.scn-h { display: flex; flex-wrap: wrap; gap: 2px 8px; align-items: baseline; padding: 12px 14px 8px; font-size: var(--fs-sm); }
+.scn-list { overflow: auto; padding: 0 14px 10px; display: grid; gap: 12px; }
+.scn-d { display: grid; gap: 4px; min-width: 0; }
+.scn-d.nested { padding-left: 14px; }
+.scn-dn { font-size: var(--fs-xs); color: var(--ink-2); display: flex; min-width: 0; }
+.scn-dn .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.scn-d .dec-sel { width: 100%; height: 32px; }
+.scn-why { display: flex; gap: 6px; align-items: flex-start; font-size: var(--fs-xs); color: var(--ink-2); line-height: 1.4; }
+.scn-why svg { width: 13px; height: 13px; flex: none; margin-top: 1px; stroke: currentColor; fill: none; stroke-width: 2; }
+.scn-dep { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
+.scn-d a, .scn-why a { color: var(--accent); font-family: var(--mono); }
+.scn-f { display: flex; justify-content: space-between; gap: var(--s3); padding: 10px 14px; border-top: 1px solid var(--line); align-items: center; }
+.scn-f .lnk:disabled { color: var(--muted); cursor: default; text-decoration: none; }
+
+/* ---- the controls themselves (a divider row in the diagram, the popover) ---- */
+.dec-sel { display: inline-flex; align-items: center; gap: 6px; height: 26px; max-width: 100%; padding: 0 26px 0 9px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); font: 500 var(--fs-sm) var(--font); cursor: pointer;
+  appearance: none; -webkit-appearance: none; background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%); background-position: calc(100% - 13px) 55%, calc(100% - 9px) 55%; background-size: 4px 4px; background-repeat: no-repeat; text-overflow: ellipsis; }
+select.dec-sel.set { border-color: var(--accent); background-color: color-mix(in srgb, var(--accent) 7%, var(--surface)); color: var(--accent); font-weight: 600; }
+select.dec-sel:not(.set) { color: var(--accent); }
+.dec-sel.lock { padding: 0 9px; background: var(--surface-2); color: var(--ink-2); cursor: default; background-image: none; }
+.dec-sel.lock svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; flex: none; }
+.dec-sel.lock .v { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dec-dep { display: inline-flex; align-items: center; height: 16px; padding: 0 6px; border-radius: 8px; border: 1px dashed var(--warn); color: var(--warn); background: color-mix(in srgb, var(--warn) 9%, transparent); font-size: 10.5px; font-weight: 600; white-space: nowrap; cursor: help; }
+
+/* ---- divider and caption rows in the lane ---- */
+.dec-row { box-sizing: border-box; height: 100%; display: flex; align-items: center; gap: 8px; min-width: 0; color: var(--ink); font-family: var(--font); }
+.dec-k { font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); white-space: nowrap; background: var(--surface); }
+.dec-nest { color: var(--muted); font: 500 15px var(--mono); letter-spacing: 0; }
+.dec-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: var(--fs-xs) var(--mono); color: var(--ink-2); }
+.dec-t a { color: var(--accent); }
+.dec-row .dec-sel { flex: none; max-width: 46%; }
+.dec-line { stroke: var(--line-strong); stroke-width: 1.2; }
+.dec.nested .dec-line { stroke-dasharray: 5 4; }
+.dec-caption .dec-row { gap: 8px; font-size: var(--fs-xs); }
+.dec-arm { color: var(--c, var(--accent)); font-weight: 600; white-space: nowrap; max-width: 40%; overflow: hidden; text-overflow: ellipsis; }
+.dec-g { color: var(--muted); font-family: var(--mono); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ar-0 { --c: var(--cmp-4); } .ar-1 { --c: var(--cmp-8); } .ar-2 { --c: var(--cmp-6); } .ar-3 { --c: var(--cmp-1); }
+.armmark { fill: var(--c); }
+
+/* ---- "⊕ internal" under a lifeline head ---- */
+.int-ctl { cursor: pointer; outline: none; opacity: 0; transition: opacity .12s; }
+.seq-part:hover .int-ctl, .int-ctl:focus-visible, .int-ctl.open, .int-ctl.loading { opacity: 1; }
+@media (hover: none) { .int-ctl { opacity: 1; } }
+.int-ctl rect { fill: var(--surface-2); stroke: var(--line-strong); }
+.int-ctl text { font: 600 10.5px var(--font); fill: var(--ink-2); }
+.int-ctl:hover rect, .int-ctl.open rect { fill: var(--accent-soft); stroke: var(--accent); }
+.int-ctl.open text, .int-ctl:hover text { fill: var(--accent); }
+.int-ctl.loading { cursor: progress; }
+.int-ctl:focus-visible rect { stroke: var(--focus); stroke-width: 2; }
+
+/* ---- internal calls (Full, or one service opened) and DB groups ---- */
+.msg.icall .idot { fill: var(--surface); stroke: var(--ink-2); stroke-width: 2; }
+.msg.icall .ilab { font: 12px var(--mono); fill: var(--ink); }
+.msg.icall .itag { fill: var(--surface-2); stroke: var(--line-strong); }
+.msg.icall .itagt { font: 600 10px var(--font); fill: var(--ink-2); }
+.msg.icall.warn .idot { stroke: var(--bad); } .msg.icall.warn .ilab { fill: var(--bad); }
+.msg.icall:focus-visible .itag, .msg.icall:hover .itag { stroke: var(--accent); }
+.dbtog { cursor: pointer; outline: none; }
+.dbtog rect { fill: var(--surface-2); stroke: var(--line-strong); }
+.dbtog text { font: 600 10.5px var(--font); fill: var(--ink-2); }
+.dbtog:hover rect, .dbtog:focus-visible rect { stroke: var(--accent); }
+.msg.store .label { cursor: pointer; }
+
+/* ---- the step bar and the pills of a step this scenario hides ---- */
+.stepext { margin-left: 6px; white-space: nowrap; }
+.spill.hid { color: var(--ink-2); background: var(--surface-2); border-style: dashed; font-weight: 600; }
+.spill.hid .show, .scn-hid .show { color: var(--accent); font-weight: 600; margin-left: 4px; cursor: pointer; background: none; border: 0; padding: 0; font: inherit; }
+.spill.hid .show:disabled { color: var(--muted); cursor: default; }
+.cm.cm-hid .cm-body { opacity: .6; }
+.dchip { display: inline-flex; align-items: center; gap: 6px; padding: 0 8px; height: 20px; border-radius: 10px; border: 1px solid var(--accent); color: var(--accent); background: var(--surface); font-size: 10.5px; font-weight: 600; white-space: nowrap; margin-left: 6px; cursor: help; }
+
+@media (max-width: 860px) {
+  .scn-ctl { order: 0; }
+  .dec-row .dec-t { display: none; }
+}
+
+/* ---- the Flows list: "2 decisions" ---- */
+.fl-dec { display: inline-flex; align-items: center; height: 18px; padding: 0 7px; margin-left: 6px; border-radius: 9px; border: 1px solid var(--accent); color: var(--accent); background: var(--surface); font: 600 10.5px var(--font); white-space: nowrap; vertical-align: middle; cursor: help; }
+.dec-t, .dec-g, .dec-arm { background: var(--surface); padding: 0 4px; border-radius: 3px; }
+
+/* ---- a tight header row (QA 0.38.0): the chip and the switch added ~220 px, so the Maximize button wrapped alone onto a second row (long flow names at 1440, any flow at 760).
+   The status text goes first, then the gaps shrink; the chip and the switch stay. ---- */
+.flowhead > summary { container-type: inline-size; }
+@container (max-width: 1000px) { .fh-src { display: none; } }
+@media (max-width: 800px) { details.flowhead > summary { gap: 6px; } .scn-ctl { gap: 6px; } }

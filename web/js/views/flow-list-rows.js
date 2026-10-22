@@ -12,8 +12,11 @@ import { entryKey } from './flow-tabs-state.js';
 import { markOfPoint } from './flow-list-filter.js';
 import { safeUrl } from '../components/ext-links.js';
 import { relTitle, relTotal } from './flow-relations-pure.js';
+import { decisionsTitle } from './flow-scenario-pure.js';
 
-const countBadge = (c) => (c ? h('span.count', { title: describeCount(c) }, ` (${c.total})`) : null);
+const countBadge = (c) => (c ? [h('span.count', { title: describeCount(c) }, ` (${c.total})`), decBadge(c)] : null);
+/** "2 decisions" (0.38.0, #82): the flow has either/or decisions; the tooltip names the steps of the default view, the range with Both and the Full count. */
+const decBadge = (c) => (c.decisions ? h('span.fl-dec', { title: decisionsTitle(c), 'data-qa': 'decisions-chip' }, `${c.decisions} ${c.decisions === 1 ? 'decision' : 'decisions'}`) : null);
 /** The comment count of a flow (0.27.0): a small speech-bubble icon and the number, nothing when there are none. */
 const cmtBadge = (n) => (n ? h('span.fl-cm', { title: `${n} comment${n === 1 ? '' : 's'}`, 'aria-label': `${n} comment${n === 1 ? '' : 's'}` }, icon('comment'), String(n)) : null);
 /** The open action items of a flow (0.29.0): a small tick-box icon and the number, nothing at 0. */

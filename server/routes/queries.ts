@@ -10,6 +10,7 @@ import { serviceView } from '../../core/service-view.ts';
 import { trace } from '../../core/trace.ts';
 import { viewOf } from '../../core/trace-view.ts';
 import { viewParams } from '../../core/trace-view-params.ts';
+import { flowDecisions } from '../../core/flow-decisions.ts';
 import { emptyFlow } from '../../core/entry-points.ts';
 import { flowsThrough } from '../../core/flows-through.ts';
 import { entryPointsOut, flowNameMap, refsFor, traceOut } from '../refs.ts';
@@ -42,7 +43,10 @@ export function registerQueries(r: Router, ctx: Ctx) {
     const hit = flowsThrough(ctx.graphOf(req), (req.query.get('service') ?? '').split(',').filter(Boolean));
     return entryPointsOut(ctx, req.params.env, req.query.get('draft')).filter((e) => hit.has(`${e.service}:${e.id}`));
   });
-  r.get('/api/envs/:env/flows/counts', (req) => { const names = flowNameMap(ctx, req.params.env, req.query.get('draft')); return flowCounts(ctx.graphOf(req)).map((c) => (names.has(`${c.service}/${c.ingress}`) ? { ...c, name: names.get(`${c.service}/${c.ingress}`) } : c)); });
+  r.get('/api/envs/:env/flows/counts', (req) => { // 0.38.0: a flow that reaches either/or decisions also carries `decisions` and `steps` / `both` / `full` (core/flow-decisions.ts); the other rows are as before
+    const g = ctx.graphOf(req), names = flowNameMap(ctx, req.params.env, req.query.get('draft')), dec = flowDecisions(g);
+    return flowCounts(g).map((c) => ({ ...c, ...(names.has(`${c.service}/${c.ingress}`) ? { name: names.get(`${c.service}/${c.ingress}`) } : {}), ...(dec.get(`${c.service}:${c.ingress}`) ?? {}) }));
+  });
 
   r.get('/api/envs/:env/trace', (req) => {
     const q = req.query;

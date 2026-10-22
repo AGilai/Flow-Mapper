@@ -8,6 +8,7 @@ import { entryPoints, trace } from '../core/trace.js';
 import { viewOf } from '../core/trace-view.js';
 import { viewParams } from '../core/trace-view-params.js';
 import { flowCounts, markedReached } from '../core/flow-counts.js';
+import { flowDecisions } from '../core/flow-decisions.js';
 import { flowsThrough } from '../core/flows-through.js';
 import { refsReached } from '../core/flow-refs.js';
 import { decorateEntries } from '../core/flow-text.js';
@@ -100,7 +101,7 @@ export const api = {
     const hit = flowsThrough(g(env), services), refs = D.refsOf(env), design = D.isDesign(env);
     return decorateEntries(entryPoints(g(env)).filter((e) => hit.has(`${e.service}:${e.id}`)), D.texts(env), design ? refs : undefined, design ? refsReached(g(env), refs) : undefined, design ? markedReached(g(env)) : undefined);
   },
-  flowCounts: async (env) => { const t = D.texts(env); return flowCounts(g(env)).map((c) => (t.get(`${c.service}/${c.ingress}`)?.name ? { ...c, name: t.get(`${c.service}/${c.ingress}`).name } : c)); },
+  flowCounts: async (env) => { const t = D.texts(env), dec = flowDecisions(g(env)); return flowCounts(g(env)).map((c) => ({ ...c, ...(t.get(`${c.service}/${c.ingress}`)?.name ? { name: t.get(`${c.service}/${c.ingress}`).name } : {}), ...(dec.get(`${c.service}:${c.ingress}`) ?? {}) })); },
   inventory: async (env) => inventory(g(env), D.eventDtosOf(env).map((d) => d.event), new Map((data.keys?.[env] ?? []).map((k) => [k.instance, keySummary(k.entries)]))),
   instance: async (env, id) => {
     const key = resolveInstance(g(env), id), k = (data.keys?.[env] ?? []).find((x) => x.instance === key);
@@ -119,7 +120,7 @@ export const api = {
     D.dtosOf(env).filter((d) => d.service === service && d.ingress === ingress), D.eventDtosOf(env)) ?? fail('endpoint not found'),
   trace: async (env, q) => {
     const t = trace(g(env), q, { scope: q.scope, maxMessages: q.maxMessages ?? 500, expand: q.expand?.split(',').filter(Boolean), frontier: q.frontier === '1' || q.frontier === true });
-    return t ? D.traceOut(env, viewOf(t, viewParams({ detail: 'full', choose: '*:both', ...q })), g(env)) : noStart(env, q); // 0.37.1: as api.js, the page keeps every step and both arms
+    return t ? D.traceOut(env, viewOf(t, viewParams(q)), g(env)) : noStart(env, q); // 0.38.0: as api.js, the request says which view
   },
   descriptions: async (env, service, ingress) => {
     const t = trace(g(env), { service, ingress }, HASH_TRACE) ?? fail('flow not found');
@@ -135,8 +136,8 @@ export const api = {
     return api.descriptions(env, service, ingress);
   },
   /** A flow as Mermaid text (export works in the preview; import needs the server). */
-  mermaid: async (env, service, ingress) => {
-    const t = trace(g(env), { service, ingress }, HASH_TRACE) ?? fail('flow not found'), text = D.texts(env).get(`${service}/${ingress}`);
+  mermaid: async (env, service, ingress, view = {}) => {
+    const t0 = trace(g(env), { service, ingress }, HASH_TRACE) ?? fail('flow not found'), t = view.detail ? viewOf(t0, viewParams(view)) : t0, text = D.texts(env).get(`${service}/${ingress}`);
     const ranges = (await api.comments(env, `flow:${service}/${ingress}`)).comments.filter((c) => c.steps && !c.resolved && !c.deleted).map((c) => ({ ...c.steps, text: plainText(c.body).split('\n')[0] })); // 0.34.0: open comments on a range of steps
     return exportMermaid(t, { name: text?.name, description: text?.description, links: text?.links, descriptions: await api.descriptions(env, service, ingress), ranges });
   },

@@ -16,6 +16,7 @@ import { commentParam, locateComment, startsOpen, relTime, fullDate, visibleThre
 import { announceSeen } from '../users/unread.js';
 import { prefill, stripTables, eventParts } from '../action-items/pure.js';
 import { sanitize, plainText } from '../../core/rich-text.js';
+import { stepOfKey } from '../views/flow-scenario-pure.js';
 
 const OPEN = 'flow-mapper.comments-open';
 const read = () => { try { const v = localStorage.getItem(OPEN); return v === null ? true : v === '1'; } catch { return true; } };
@@ -45,7 +46,7 @@ export function createComments({ env, root, walk, store, onCount, onThread, pane
   const shown = () => (pane ? pane.shown() : el.open), reveal = () => { if (pane) pane.reveal(); else if (!el.open) { auto = true; el.open = true; } };
   if (!pane) el.addEventListener('toggle', () => { consider(); if (auto) { auto = false; return; } if (visibleThread(thread, showResolved).count) write(el.open); });
 
-  const stepOf = (key) => { const s = walk.steps().find((x) => x.key === key); return s ? { n: s.n } : null; };
+  const stepOf = (key) => { const s = stepOfKey(walk.steps(), key); return s ? { n: s.n } : null; };
   const stepNow = () => { const s = walk.picked() ? walk.steps()[walk.current() - 1] : null; return s ? { n: s.n, key: s.key } : null; };
   const busy = () => !!list.querySelector('.cm-editing, .cm-composer.reply');
   const run = async (fn) => { await fn(); await refresh(true); };
@@ -71,7 +72,7 @@ export function createComments({ env, root, walk, store, onCount, onThread, pane
 
   function draw() {
     items.forEach((i) => i.dispose()); items = [];
-    const x = (top) => ({ people, fresh: (id) => fresh.has(id), step: stepOf, jump: (n) => walk.go(n), top, api: api_, range: (r) => (r.kind === 'range' ? { on: () => walk.hlRange(r.from, r.to), off: () => walk.hlRange(null) } : null), rangeGo: (r) => walk.go(r.from) });
+    const x = (top) => ({ people, fresh: (id) => fresh.has(id), step: stepOf, hidden: (k) => walk.hiddenOf?.(k), jump: (n) => walk.go(n), top, api: api_, range: (r) => (r.kind === 'range' ? { on: () => walk.hlRange(r.from, r.to), off: () => walk.hlRange(null) } : null), rangeGo: (r) => walk.go(r.from) });
     const u = me(), mineN = u ? countMentions(thread, u.id) : 0;
     if (!mineN) mineOnly = false;
     const vis = mineOnly && u ? mentionedOnly(visibleThread(thread, showResolved), u.id) : visibleThread(thread, showResolved), hiddenN = thread.resolvedThreads ?? 0;

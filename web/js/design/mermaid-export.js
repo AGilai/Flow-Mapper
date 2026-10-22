@@ -26,8 +26,8 @@ function download(text, name) {
 }
 
 /** The export button of one flow: { service, ingress } is its entry point; `name` its display name (for the file). */
-export function exportButton({ service, ingress, name, env = state.env }) { // env: the flow's own (a tab of another env exports its flow, not the page's)
-  const get = async () => { try { return await api.mermaid(env, service, ingress); } catch (e) { toast(`Could not export: ${e.message}`); return null; } };
+export function exportButton({ service, ingress, name, env = state.env, view = null }) { // view(): the tab's scenario (detail, choose, open): the export is the view the tab shows (0.38.0) // env: the flow's own (a tab of another env exports its flow, not the page's)
+  const get = async () => { try { return await api.mermaid(env, service, ingress, view?.() ?? {}); } catch (e) { toast(`Could not export: ${e.message}`); return null; } };
   const file = fileName(name || ingress);
   return h('button.btn.sm.mm-export', { type: 'button', 'data-qa': 'mermaid-export', 'aria-haspopup': 'menu', title: 'Export this flow as a Mermaid sequence diagram',
     on: { click: (e) => {

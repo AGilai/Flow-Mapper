@@ -7,10 +7,11 @@ import { parseStepRef, stepRefText } from '../../core/notes.js';
 const BLOCKS = [['p', 'Paragraph'], ['h2', 'Heading 2'], ['h3', 'Heading 3']];
 
 /** The HTML of a step chip as the editor holds it: not editable text, written back as `<span data-step>`. */
-export const chipHtml = (ref) => `<span data-step="${ref.to > ref.from ? `${ref.from}-${ref.to}` : ref.from}" contenteditable="false">${stepRefText(ref)}</span>&nbsp;`;
+const attr = (v) => String(v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+export const chipHtml = (ref, keys = {}) => `<span data-step="${ref.to > ref.from ? `${ref.from}-${ref.to}` : ref.from}"${keys.key ? ` data-key="${attr(keys.key)}"` : ''}${keys.keyTo ? ` data-key-to="${attr(keys.keyTo)}"` : ''} contenteditable="false">${stepRefText(ref)}</span>&nbsp;`; // 0.38.0: the step's key too (the chip follows it across scenarios)
 
 /** notesTools(ed, tb, { stepNow() -> { n } | null }) -> { update(), dispose() }: adds the buttons to the toolbar `tb` (createToolbar) of the editor `ed`. */
-export function notesTools(ed, tb, { stepNow = () => null } = {}) {
+export function notesTools(ed, tb, { stepNow = () => null, keyOf = () => null } = {}) {
   let menu = null;
   const close = () => { menu?.remove(); menu = null; head.setAttribute('aria-expanded', 'false'); stepBtn.setAttribute('aria-expanded', 'false'); };
   const place = (m, b) => { const bar = tb.el; m.style.top = `${bar.offsetTop + bar.offsetHeight + 2}px`; bar.parentElement.append(m); m.style.left = `${Math.max(0, Math.min(b.offsetLeft + bar.offsetLeft, bar.parentElement.clientWidth - m.offsetWidth - 4))}px`; };
@@ -34,7 +35,7 @@ export function notesTools(ed, tb, { stepNow = () => null } = {}) {
     const apply = () => {
       const ref = parseStepRef(b.value ? `${a.value}-${b.value}` : a.value);
       if (!ref) { err.textContent = 'Give a step number (and a later one for a range).'; return; }
-      close(); ed.exec(() => document.execCommand('insertHTML', false, chipHtml(ref)));
+      close(); ed.exec(() => document.execCommand('insertHTML', false, chipHtml(ref, { key: keyOf(ref.from), keyTo: ref.to > ref.from ? keyOf(ref.to) : null })));
     };
     const onKey = (e) => { if (e.key === 'Enter') { e.preventDefault(); apply(); } };
     a.addEventListener('keydown', onKey); b.addEventListener('keydown', onKey);

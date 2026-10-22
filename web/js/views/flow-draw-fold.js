@@ -26,7 +26,7 @@ export function foldRows(nodes, { events, idx, columns, groups, colX, ys }) {
   if (!groups.length) return nodes;
   return nodes.map((node, r) => {
     const e = events[r], y0 = ys[r];
-    if (e.type === 'note') return node; // a note over folded lifelines spans the fold column (flow-draw-notes.js), it does not vanish
+    if (e.type === 'note' || e.type === 'decision') return node; // a note over folded lifelines spans the fold column (flow-draw-notes.js), it does not vanish
     const inside = foldedInside(eventCols(e, idx), groups);
     if (inside >= 0) return inFold(e, r, y0, groups[inside]);
     const to = e.type === 'unresolved' ? e.col : e.type === 'call' || e.type === 'hop' || e.type === 'store' ? e.to : null, gi = to ? groupOf(groups, idx.get(to)) : -1;

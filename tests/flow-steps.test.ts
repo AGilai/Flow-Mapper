@@ -57,8 +57,9 @@ test('step keys: from message content, unique per flow, stable when the flow is 
 
 test('step keys: a repeat is counted over the whole trace, so hiding the first copy (depth, stores) keeps the keys', () => {
   const i = t.messages.findIndex((m: any) => m.kind === 'egress' && m.depth <= 2 && steps.some((x: any) => x.event.msg === m));
-  const m = t.messages[i], hidden = { ...m, depth: 99 };
-  const all = [...t.messages.slice(0, i), hidden, ...t.messages.slice(i)];
+  const bare = t.messages.map(({ key, ...r }: any) => r); // 0.38.0: a trace's messages carry their `key`; this test makes a copy by hand, so the keys are worked out from content
+  const m = bare[i], hidden = { ...m, depth: 99 };
+  const all = [...bare.slice(0, i), hidden, ...bare.slice(i)];
   const visible = all.filter((x: any) => x.depth <= 50);
   const laneOf = (msgs: any[]) => buildLane(msgs, { scope: t.scope, participants: t.participants });
   const withAll = stepsOf(laneOf(visible), stepKeys, all).find((x: any) => x.event.msg === m);

@@ -22,6 +22,8 @@ const HEADING = new Set(['h2', 'h3']);
 const isHead = (n: string) => /^h[1-6]$/.test(n);
 /** A step chip's `data-step`: "4" or "4-9" (a range runs forward), as written back; null when it is neither. */
 const stepAttr = (v: string | undefined) => { const m = /^\s*(\d{1,4})(?:\s*[-\u2013]\s*(\d{1,4}))?\s*$/.exec(v ?? ''); if (!m) return null; const a = Number(m[1]), b = m[2] ? Number(m[2]) : a; return a > 0 && b >= a ? (b > a ? `${a}-${b}` : `${a}`) : null; };
+/** A step chip's `data-key` / `data-key-to` (0.38.0): the stable key of the step (`#step:...`), so the chip follows the step across scenarios and detail; null when it is not one. */
+const keyAttr = (v: string | undefined) => { const t = (v ?? '').trim(); return /^#step:[^\u0000-\u001f]{3,500}$/.test(t) ? t : null; };
 const INLINE = new Set(['b', 'strong', 'i', 'em', 's', 'del', 'strike', 'u', 'span', 'a', 'code']);
 const FOSTER = new Set(['table', 'thead', 'tbody', 'tr', 'ul', 'ol']); // elements whose only children are their own parts: text and other tags in them are dropped
 const CHILD: Record<string, string[]> = { table: ['thead', 'tbody', 'tr'], thead: ['tr'], tbody: ['tr'], tr: ['td', 'th'], ul: ['li'], ol: ['li'] };
@@ -95,9 +97,9 @@ export function sanitize(html: string, opts: SanitizeOptions = {}): string {
       emit = emit && !!href && !st.some((o) => o.name === 'a' && o.emit); // links do not nest
       if (emit) extra = ` href="${escAttr(href!)}" rel="noopener noreferrer" target="_blank"`;
     } else if (name === 'span') {
-      const c = (attrs.class ?? '').split(/\s+/).find((x) => PALETTE.includes(x)), ds = notes ? stepAttr(attrs['data-step']) : null;
+      const c = (attrs.class ?? '').split(/\s+/).find((x) => PALETTE.includes(x)), ds = notes ? stepAttr(attrs['data-step']) : null, dk = ds ? keyAttr(attrs['data-key']) : null, dt = dk ? keyAttr(attrs['data-key-to']) : null;
       emit = emit && (!!c || !!ds); // a span with no palette colour (and no step) is nothing: its contents stay
-      if (emit) extra = ds ? ` data-step="${ds}"` : ` class="${c}"`;
+      if (emit) extra = ds ? ` data-step="${ds}"${dk ? ` data-key="${escAttr(dk)}"` : ''}${dt ? ` data-key-to="${escAttr(dt)}"` : ''}` : ` class="${c}"`;
     } else if (name === 'td' || name === 'th') {
       const cs = span(attrs.colspan), rs = span(attrs.rowspan);
       extra = (cs ? ` colspan="${cs}"` : '') + (rs ? ` rowspan="${rs}"` : '');

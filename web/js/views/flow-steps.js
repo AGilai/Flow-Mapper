@@ -8,17 +8,18 @@ import { stepLabel } from './flow-stores-pure.js';
 
 // Pure web modules cannot import core/*.js in node tests (those are .ts there), so the caller hands over stepKeys.
 
-const STEP_TYPES = new Set(['call', 'hop', 'unresolved', 'store']);
+const STEP_TYPES = new Set(['call', 'hop', 'unresolved', 'store', 'icall']); // icall (0.38.0): a call inside a service, drawn only when the view holds the internal calls
 export const isStep = (e) => STEP_TYPES.has(e.type) && !!e.msg;
 
 /** stepsOf(lane, stepKeys, all) -> [{ n (1-based), row, event, key, label, from, to, transport }]. from / to: display names ("pop-edge", "orders-queue"). */
 export function stepsOf(lane, stepKeys, all = null) {
   const evs = lane.events.filter(isStep);
   // `~2` for a repeat is counted over ALL the trace's messages (`all`), so hiding stores or deep calls never moves a description to another arrow.
-  const byMsg = new Map(), full = all ? stepKeys(all) : [];
+  // 0.38.0: a message of a trace view carries its `key` (stamped once on the canonical trace: choosing an arm or the detail never re-keys); only a trace without keys is keyed here.
+  const byMsg = new Map(), full = all && !all.every((m) => m.key) ? stepKeys(all) : [];
   full.forEach((k, i) => byMsg.set(all[i], k));
-  const own = stepKeys(evs.map((e) => e.msg)), keys = evs.map((e, i) => byMsg.get(e.msg) ?? own[i]);
-  return evs.map((e, i) => ({ n: i + 1, row: e.row, event: e, key: keys[i], label: labelOf(e), ...ends(e), transport: e.type === 'hop' ? e.transport : e.tr ?? e.msg.transport ?? null }));
+  const own = evs.every((e) => e.msg.key) ? [] : stepKeys(evs.map((e) => e.msg)), keys = evs.map((e, i) => e.msg.key ?? byMsg.get(e.msg) ?? own[i]);
+  return evs.map((e, i) => ({ n: i + 1, row: e.row, event: e, key: keys[i], ...(e.msg.dbGroup ? { keys: e.msg.dbGroup.members } : {}), label: labelOf(e), ...ends(e), transport: e.type === 'hop' ? e.transport : e.tr ?? e.msg.transport ?? null }));
 }
 
 const name = (c) => (c?.service ?? c?.label ?? '?');
@@ -35,7 +36,7 @@ function ends(e) {
 /** The step drawn on a lane row (or null). */
 export const stepAtRow = (steps, row) => steps.find((s) => s.row === row) ?? null;
 /** The step a stored key belongs to (kept across redraws), or null. */
-export const stepByKey = (steps, key) => steps.find((s) => s.key === key) ?? null;
+export const stepByKey = (steps, key) => steps.find((s) => s.key === key || s.keys?.includes(key)) ?? null; // a collapsed DB group (0.38.0) stands for every operation in it
 
 /** The columns at the two ends of a step's arrow: [from, to]; a missing target has no component column at the far end. */
 export const stepCols = (e) => (e.type === 'unresolved' ? [e.bar.col, null] : [e.from, e.to]);

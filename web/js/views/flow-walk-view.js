@@ -2,7 +2,7 @@
 // The current step survives a redraw by its key (message content), never by its row. The URL gets `step=` only when the viewer moves it.
 
 import { stepKeys } from '../../core/description.js';
-import { stepsOf, stepAtRow } from './flow-steps.js';
+import { stepsOf, stepAtRow, stepByKey } from './flow-steps.js';
 import { drawStepTiles } from './flow-step-tiles.js';
 import { createStepbar } from './flow-stepbar.js';
 import { clampStep, moveStep, walkAction, scrollLeftFor } from './flow-walk.js';
@@ -25,12 +25,12 @@ const calm = () => { try { return matchMedia('(prefers-reduced-motion: reduce)')
 
 /** createWalkView({ store, root, messages, initial, onStep(n), onRestep(cols) }) -> { el, decorate(res, built), endsOf(built), hit(event), onKey(ev), move(action), current(), dispose }
  *  onSteps(steps): the numbering of the lane just drawn (the partial-flow line reads it). onRestep(cols): the viewer moved to a step whose lifelines are the columns `cols` (Squeeze folds again for it). endsOf(built): the columns of the current step, before the lane is drawn. */
-export function createWalkView({ store, root, messages = () => null, initial = null, sb = () => 'tad', hl = () => true, zoom = () => 1, onStep, onRestep, onSteps, onPick, readOnly = false }) {
+export function createWalkView({ store, root, messages = () => null, initial = null, sb = () => 'tad', hl = () => true, extra = () => '', zoom = () => 1, onStep, onRestep, onSteps, onPick, readOnly = false }) {
   let steps = [], built = null, tiles = null, cur = initial ?? 0, curKey = null, jumpOnDraw = initial != null, rng = null; // rng: the range band (0.34.0), kept across a redraw
   let picked = initial != null; // a step the viewer chose (a click, a key, a link with step=): the comments' "Attach to step N" only offers one then
   const pickedNow = () => picked && cur >= 1; // ...and not at step 0
   const watchers = new Set(); // the comments section reads the steps and the current one (0.27.0)
-  const bar = createStepbar({ store, root, sb, readOnly, onMove: (a) => move(a), onEdit: (anchor) => edit(steps[cur - 1], anchor) });
+  const bar = createStepbar({ store, root, sb, extra, readOnly, onMove: (a) => move(a), onEdit: (anchor) => edit(steps[cur - 1], anchor) });
   /** The step editor (0.30.0) for a step, hanging under `anchor` (the bar, or the step's row). */
   function edit(st, anchor = bar.bar) { if (root && st && !readOnly) openStepEditor({ store, root, key: st.key, n: st.n, label: st.label, anchor }); }
 
@@ -60,13 +60,14 @@ export function createWalkView({ store, root, messages = () => null, initial = n
       openMenu(ev.clientX, ev.clientY, `Step ${st.n}`, [{ label: 'Edit step description…', icon: 'edit', hint: 'Title and description of this step (E)', onSelect: () => edit(st, g) }]);
     });
     tiles?.setRange(rng?.[0] ?? null, rng?.[1] ?? null);
-    const keep = steps.find((s) => s.key === curKey);
+    const keep = stepByKey(steps, curKey), before = cur;
     go(keep ? keep.n : cur, { scroll: false, user: false });
+    if (picked && cur !== before) onStep?.(cur); // the view changed (an arm, the detail): the same step has another number, and `step=` follows it (0.38.0)
     if (jumpOnDraw) requestAnimationFrame(() => requestAnimationFrame(() => reveal(tiles, cur, 'auto', null, zoom()))); // a link opened on a step: the lane is not attached yet
     jumpOnDraw = false;
   }
   function endsOf(lane) { // the step Squeeze keeps on screen: the current one (by key), else the first
-    const all = stepsOf(lane, stepKeys, messages()), st = all.find((x) => x.key === curKey) ?? all[Math.max(1, clampStep(cur, all.length)) - 1];
+    const all = stepsOf(lane, stepKeys, messages()), st = stepByKey(all, curKey) ?? all[Math.max(1, clampStep(cur, all.length)) - 1];
     return st ? colsOfEvent(lane, st.event) : [];
   }
   return {

@@ -18,6 +18,8 @@ import { wireEvents } from './flow-draw-events.js';
 import { storeLegend } from './flow-draw-bands.js';
 import { detailTexts } from './flow-draw-details.js';
 import { sizeSvg } from './flow-zoom.js';
+import { armSpans } from './flow-decision-rows.js';
+import { armMarks } from './flow-decision-draw.js';
 
 /**
  * renderLane(lane, handlers) -> { el, body, events, bars, geometry }
@@ -31,18 +33,19 @@ import { sizeSvg } from './flow-zoom.js';
  * geometry: { x: centre x per lifeline (a folded one: its fold's left edge; folded + groups say which), plan(keep) -> the fold set for another step, y: baseline y per row, top: top y per row (plus the bottom), width, height, headHeight, colWidth }
  * for features that draw on the lane (step numbers, squeeze, editing).
  */
-export function renderLane(lane, { marks = null, refs = null, edit = null, onMessage, onBar, onBarMenu, onParticipant, onNum, onNumHover, onFan, onMw, onBarTip, onSqueeze, onBand, selected = null, sticky = true, fit = 0, squeeze = null, details = null, onEditStep = null, zoom = 1, hints = true } = {}) {
+export function renderLane(lane, { marks = null, refs = null, edit = null, onMessage, onBar, onBarMenu, onParticipant, onNum, onNumHover, onFan, onMw, onBarTip, onSqueeze, onBand, onChoose = null, srcUrl = null, onInternal = null, onDb = null, selected = null, sticky = true, fit = 0, squeeze = null, details = null, onEditStep = null, zoom = 1, hints = true } = {}) {
   const c = layoutLane(lane, fit, squeeze, marks, !!edit, details, hints), { columns, events, bars, width, top, ys, frames, strips } = c, height = c.height
   const head = drawHead({ ...c, marks, refs, edit });
-  const drawn = foldRows(drawRows({ ...c, marks, refs, noApi: details ? new Set([...details.parts].filter(([, p]) => !p.api).map(([e]) => e)) : null }), c);
+  const drawn = foldRows(drawRows({ ...c, marks, refs, decide: { onChoose, srcUrl }, noApi: details ? new Set([...details.parts].filter(([, p]) => !p.api).map(([e]) => e)) : null }), c);
   const { rects, segs } = drawBars(c, { selected, onBarTip });
   const body = s('svg', { width, height, class: 'seq-body', role: 'group', 'aria-label': `Flow with ${bars.length} calls across ${columns.length} lifelines` },
     s('defs', {}, s('pattern', { id: 'mwh', width: 6, height: 6, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' }, s('rect', { width: 6, height: 6, fill: 'var(--mw-bg)' }), s('rect', { width: 2.4, height: 6, fill: 'var(--mw)' }))),
     foldBands(c.groups, height), // the fold columns' fills come first: the current-step band (flow-step-tiles.js) goes right after them, under the frames
     drawFrames(frames, lane.altRows, strips, (r) => top[r], (r) => top[r + 1], width, GUTTER),
+    events.some((e) => e.type === 'decision') ? armMarks(armSpans(events), top) : null,
     drawLifelines(c), rects, segs, drawn, details ? detailTexts(c, details, onEditStep) : null, edit ? addCallChips(c, edit) : null);
   sizeSvg(head, width, c.HEAD, zoom); sizeSvg(body, width, height, zoom); // the vector box of each SVG: zoom only changes its size (flow-zoom.js)
-  const mark = wireEvents(head, body, c, { onMessage, onBar, onBarMenu, onParticipant, onNum, onNumHover, onFan, onMw, onBarTip, onSqueeze, onBand });
+  const mark = wireEvents(head, body, c, { onMessage, onBar, onBarMenu, onParticipant, onNum, onNumHover, onFan, onMw, onBarTip, onSqueeze, onBand, onInternal, onDb });
   body.__events = events;
   const geometry = { x: c.xs, y: ys, top, width, height, headHeight: c.HEAD, colWidth: c.COLW, folded: c.folded, groups: c.groups, plan: c.plan, sig: c.sig, foldW: c.foldW };
   return { el: h('div.seq', h(sticky ? 'div.seq-sticky' : 'div.seq-head-static', head), body, events.some((e) => e.type === 'store') ? storeLegend() : null), body, events, bars, geometry, mark };
