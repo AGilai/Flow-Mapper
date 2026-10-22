@@ -49,5 +49,5 @@ and the arrows `…&sd=tad`. CHANGELOG, version 0.30.0.
 "Step details ▾" holds two sections, each with Title / API / Description checkboxes: **Step bar** (default all three)
 and **Arrows** (default API only). The viewer chooses what shows where. Remembered per viewer and in the URL: `sb=`
 (bar) and `sd=` (arrows), letters t,a,d, each omitted at its default; `sb=-` means nothing in the bar but the stepper.
-Arrows keep at least one field (falls back to API). The button label summarises both, e.g. "Step details: bar 3 ·
+Arrows keep at least one field (falls back to API). 0.32.1 (#76): the Arrows default per environment kind: design environments Title (API for a step without a title), harvested API; `sd=` is omitted at the kind's default. The button label summarises both, e.g. "Step details: bar 3 ·
 arrows API".

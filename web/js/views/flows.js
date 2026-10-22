@@ -28,7 +28,7 @@ import { loadSubsystems } from '../design/subsystems-store.js';
 import { relCounts } from './flow-relations-pure.js';
 import { createMax } from './flow-max.js';
 import { maxFromQuery } from './flow-max-pure.js';
-import { decodeBar, decodeArrows, encodeBar, encodeArrows, BAR_DEFAULT, ARROWS_DEFAULT } from './step-details-pure.js';
+import { decodeBar, decodeArrows, encodeBar, encodeArrows, arrowsDefault, BAR_DEFAULT } from './step-details-pure.js';
 import { createStepMenu, stored } from './step-details-menu.js';
 import { decodeZoom, encodeZoom, percentOf } from './flow-zoom-pure.js';
 import { createZoomControl } from './flow-zoom.js';
@@ -47,7 +47,7 @@ export async function render({ main, query }) {
   const subs = await loadSubsystems(); // the subsystem of each component: bands and grouping over a flow's heads
   const opts = { stores: query.get('stores') !== '0', depth: query.get('depth') ?? 'all',
     frontier: query.get('frontier') === '1', squeeze: sqStored(), bands: bandStored(),
-    sb: decodeBar(query) ?? stored('bar', BAR_DEFAULT), sd: decodeArrows(query) ?? stored('arrows', ARROWS_DEFAULT), th: decodeHints(query, isDesign()) }; // step details (0.30.0): what the step bar and the arrows show; // steps the harvester marked as frontier (call trees that reach no sink)
+    sb: decodeBar(query) ?? stored('bar', BAR_DEFAULT), sd: decodeArrows(query, arrowsDefault(isDesign())) ?? stored('arrows', arrowsDefault(isDesign())), th: decodeHints(query, isDesign()) }; // step details (0.30.0): what the step bar and the arrows show; // steps the harvester marked as frontier (call trees that reach no sink)
   let S = T.decodeUrl(query);
   let stepParam = decodeStep(query); // `step=`: the walk's step in the active tab; a link opens on it (0.20.0)
   const stepTab = S.active; // ...and only that tab, once
@@ -103,7 +103,7 @@ export async function render({ main, query }) {
   const thCheck = h('label.check', { title: 'Show the words "transport not decided" on arrows. Off: a small icon (the words are in its tooltip and in the step bar).' },
     h('input', { type: 'checkbox', 'data-qa': 'transport-hints', checked: opts.th, on: { change: (e) => { opts.th = e.target.checked; persist(); views.forEach((v, k) => (k === S.active ? v.draw() : stale.add(k))); } } }), 'Transport hints');
   const zctl = createZoomControl({ onZoom: (v) => views.get(S.active)?.setZoom(v) });
-  const stepMenu = createStepMenu({ bar: opts.sb, arrows: opts.sd, onChange: ({ bar, arrows }) => {
+  const stepMenu = createStepMenu({ bar: opts.sb, arrows: opts.sd, dflt: arrowsDefault(isDesign()), onChange: ({ bar, arrows }) => {
     const arrowsMoved = arrows !== opts.sd; opts.sb = bar; opts.sd = arrows; persist();
     views.forEach((v, k) => { v.refreshBar(); if (arrowsMoved) { if (k === S.active) v.draw(); else stale.add(k); } });
   } });
@@ -119,7 +119,7 @@ export async function render({ main, query }) {
   mainPane.append(toolbar, strip.el, empty);
 
   function persist() {
-    setQuery({ ...T.encodeUrl(S), ...(S.keys.length ? { service: null } : {}), stores: opts.stores ? null : '0', queues: null, depth: opts.depth === 'all' ? null : opts.depth, frontier: opts.frontier ? '1' : null, sb: encodeBar(opts.sb), sd: encodeArrows(opts.sd), th: encodeHints(opts.th, isDesign()), zoom: encodeZoom(zooms.get(S.active)), step: encodeStep(stepParam) });
+    setQuery({ ...T.encodeUrl(S), ...(S.keys.length ? { service: null } : {}), stores: opts.stores ? null : '0', queues: null, depth: opts.depth === 'all' ? null : opts.depth, frontier: opts.frontier ? '1' : null, sb: encodeBar(opts.sb), sd: encodeArrows(opts.sd, arrowsDefault(isDesign())), th: encodeHints(opts.th, isDesign()), zoom: encodeZoom(zooms.get(S.active)), step: encodeStep(stepParam) });
   }
   const max = createMax({ onChange: () => views.get(S.active)?.el.scrollTo?.(0, 0) });
   const host = {

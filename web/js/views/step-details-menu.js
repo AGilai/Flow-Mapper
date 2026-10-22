@@ -2,14 +2,14 @@
 // each with Title / API / Description checkboxes, and presets. The arrows keep at least one field. Remembered per viewer (storage may be unavailable) and in the URL.
 
 import { h } from '../dom.js';
-import { BAR_DEFAULT, ARROWS_DEFAULT, canon, toggle, summary, PRESETS } from './step-details-pure.js';
+import { BAR_DEFAULT, canon, toggle, summary, PRESETS } from './step-details-pure.js';
 
 const KEY = { bar: 'flow-mapper.step-bar', arrows: 'flow-mapper.step-arrows' };
 export const stored = (which, dflt) => { try { const v = localStorage.getItem(KEY[which]); return v == null ? dflt : v === '-' ? '' : canon(v) || dflt; } catch { return dflt; } };
 const keep = (which, set) => { try { localStorage.setItem(KEY[which], set === '' ? '-' : set); } catch { /* storage unavailable */ } };
 
 /** createStepMenu({ bar, arrows, onChange({ bar, arrows }) }) -> { el, set(bar, arrows), close() } */
-export function createStepMenu({ bar, arrows, onChange }) {
+export function createStepMenu({ bar, arrows, dflt = 'a', onChange }) {
   const FIELDS = [['t', 'Title'], ['a', 'API'], ['d', 'Description']];
   const label = h('span.sdm-l'), btn = h('button.btn.sm.sdm-btn', { type: 'button', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'data-qa': 'step-details', on: { click: () => (panel.hidden ? open() : close()) } }, label, h('span.sdm-c', '▾'));
   const panel = h('div.sd-menu', { hidden: true, role: 'group', 'aria-label': 'Step details' });
@@ -29,7 +29,7 @@ export function createStepMenu({ bar, arrows, onChange }) {
       h('p.sdm-n', 'The bar always has the stepper. A step shows the fields it has; a step with none of the chosen arrow fields shows its API.'));
   }
   function apply(which, set) {
-    if (which === 'bar') bar = set; else arrows = set || ARROWS_DEFAULT;
+    if (which === 'bar') bar = set; else arrows = set || dflt;
     keep(which, which === 'bar' ? bar : arrows); paint(); onChange({ bar, arrows });
   }
   const onDoc = (e) => { if (!el.contains(e.target)) close(); };
@@ -38,5 +38,5 @@ export function createStepMenu({ bar, arrows, onChange }) {
      btn.setAttribute('aria-expanded', 'true'); document.addEventListener('mousedown', onDoc, true); panel.addEventListener('keydown', onKey); }
   function close() { panel.hidden = true; btn.setAttribute('aria-expanded', 'false'); document.removeEventListener('mousedown', onDoc, true); panel.removeEventListener('keydown', onKey); }
   label.textContent = summary(bar, arrows);
-  return { el, close, set(b, a) { bar = b ?? BAR_DEFAULT; arrows = a ?? ARROWS_DEFAULT; label.textContent = summary(bar, arrows); if (!panel.hidden) paint(); } };
+  return { el, close, set(b, a) { bar = b ?? BAR_DEFAULT; arrows = a ?? dflt; label.textContent = summary(bar, arrows); if (!panel.hidden) paint(); } };
 }

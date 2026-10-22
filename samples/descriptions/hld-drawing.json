@@ -1,0 +1,41 @@
+{
+  "env": "hld-drawing",
+  "descriptions": [
+    {
+      "service": "api-gateway",
+      "ingress": "in.getOrder",
+      "callee": "#step:svc:orders-svc>res:redis:cache-main/order:{id}|GET order:{id}|res",
+      "title": "Look in the cache",
+      "text": "",
+      "source": "human",
+      "editedBy": "maintainer"
+    },
+    {
+      "service": "api-gateway",
+      "ingress": "in.getOrder",
+      "callee": "#step:svc:orders-svc>res:mongodb:orders-db/orders|findOne|res",
+      "title": "Read it from the database",
+      "text": "",
+      "source": "human",
+      "editedBy": "maintainer"
+    },
+    {
+      "service": "api-gateway",
+      "ingress": "in.getOrder",
+      "callee": "#step:svc:orders-svc>res:redis:cache-main/order:{id}|SET order:{id}|res",
+      "title": "Fill the cache",
+      "text": "",
+      "source": "human",
+      "editedBy": "maintainer"
+    },
+    {
+      "service": "api-gateway",
+      "ingress": "in.getOrder",
+      "callee": "#step:svc:orders-svc>res:redis:cache-main/order:{id}|SET|res",
+      "title": "Refresh it after a refund",
+      "text": "",
+      "source": "human",
+      "editedBy": "maintainer"
+    }
+  ]
+}
