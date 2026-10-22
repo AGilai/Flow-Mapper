@@ -4,7 +4,7 @@
 import { resolveOwners, resolveAbout } from './owners.ts';
 import type { DB } from '../db/connection.ts';
 import { LISTS, keyOf, validateManifest } from '../schema.ts';
-import { buildIndex } from '../../core/graph-index.ts';
+import { buildIndex, type GraphIndex } from '../../core/graph-index.ts';
 import { contractReport } from '../../core/contract.ts';
 import { HttpError, conflict, invalid, notFound } from '../errors.ts';
 import { getSnapshotRow, loadEntities, loadModel, rowToService, type Entities, type Source, type WriteResult } from './snapshots-read.ts';
@@ -23,6 +23,8 @@ export interface ApplyOpts {
   replaceHeader?: Set<string>;
   /** Written on the changelog rows. */
   draftId?: number;
+  /** Filled with the graph of each env after the batch (built once for the contract reports), for the caller to hand to the graph cache after the commit. */
+  graphs?: Map<string, GraphIndex>;
 }
 
 /** Ingest one manifest. With dryRun, everything runs (validation, version checks, diff) and is rolled back. */
@@ -36,10 +38,10 @@ export function ingest(db: DB, manifest: any, source: Source = 'api', opts: { dr
  * A dry run may target a design environment (nothing is written); `prelude` runs first inside the same transaction
  * (the draft apply of `?draft=`, so the batch is checked against the environment as that draft leaves it).
  */
-export function ingestBatch(db: DB, manifests: any[], source: Source = 'api', { dryRun = false, prelude }: { dryRun?: boolean; prelude?: () => void } = {}): WriteResult[] {
+export function ingestBatch(db: DB, manifests: any[], source: Source = 'api', { dryRun = false, prelude, graphs }: { dryRun?: boolean; prelude?: () => void; graphs?: Map<string, GraphIndex> } = {}): WriteResult[] {
   const results = withDry(db, dryRun, () => {
     prelude?.();
-    return ingestIn(db, manifests, source, { writer: dryRun ? 'dry' : 'harvester' });
+    return ingestIn(db, manifests, source, { writer: dryRun ? 'dry' : 'harvester', graphs: dryRun ? undefined : graphs });
   });
   if (!dryRun) results.forEach((r, i) => manifestIngested(db, r, manifests[i], source)); // after the commit
   return results;
@@ -48,9 +50,9 @@ export function ingestBatch(db: DB, manifests: any[], source: Source = 'api', { 
 /** The body of ingestBatch, without a transaction: the caller owns it. */
 export function ingestIn(db: DB, manifests: any[], source: Source, opts: ApplyOpts): WriteResult[] {
   const applied = manifests.map((m, i) => applyIn(db, m, source, manifests.length > 1 ? i : null, opts));
-  const index = new Map<string, ReturnType<typeof buildIndex>>();
+  const index = new Map<string, GraphIndex>();
   return applied.map(({ result, after }) => {
-    if (!index.has(result.env)) index.set(result.env, buildIndex(loadModel(db, result.env)));
+    if (!index.has(result.env)) { const g = buildIndex(loadModel(db, result.env)); index.set(result.env, g); opts.graphs?.set(result.env, g); }
     return { ...result, contract: contractReport({ service: result.service, ...after }, index.get(result.env)!) };
   });
 }
