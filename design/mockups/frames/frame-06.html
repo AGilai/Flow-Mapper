@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frame 6 · Importing what&#x27;s missing while you work</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../shared.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <pattern id="hatch" patternUnits="userSpaceOnUse" width="5" height="5" patternTransform="rotate(45)">
+      <rect width="5" height="5" style="fill:var(--surface)"/>
+      <line x1="0" y1="0" x2="0" y2="5" style="stroke:var(--ink-2);stroke-width:1.2;stroke-opacity:.7"/>
+    </pattern>
+    <symbol id="i-new" viewBox="0 0 12 12"><path d="M6 .4C6.5 3.7 8.3 5.5 11.6 6 8.3 6.5 6.5 8.3 6 11.6 5.5 8.3 3.7 6.5.4 6 3.7 5.5 5.5 3.7 6 .4Z" style="fill:var(--new);stroke:var(--new-ink);stroke-width:.8;stroke-linejoin:round"/></symbol>
+    <symbol id="i-chg" viewBox="0 0 12 12"><circle cx="6" cy="6" r="3.6" style="fill:var(--surface);stroke:var(--new-ink);stroke-width:1.6"/><circle cx="6" cy="6" r="1.4" style="fill:var(--new-ink)"/></symbol>
+    <symbol id="i-msg" viewBox="0 0 14 13"><path d="M2 1.5h10a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H6l-3 2.5V9.5H2a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1Z" style="fill:var(--surface);stroke:var(--ink-2);stroke-width:1.2;stroke-linejoin:round"/></symbol>
+  </defs>
+</svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-db" viewBox="0 0 14 14"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round"><ellipse cx="7" cy="3.2" rx="5" ry="2"/><path d="M2 3.2v7.6c0 1.1 2.2 2 5 2s5-.9 5-2V3.2M2 7c0 1.1 2.2 2 5 2s5-.9 5-2"/></g></symbol>
+<symbol id="i-ul" viewBox="0 0 16 16"><g fill="currentColor"><circle cx="3" cy="4" r="1.2"/><circle cx="3" cy="8" r="1.2"/><circle cx="3" cy="12" r="1.2"/></g><path d="M6.5 4h7M6.5 8h7M6.5 12h7" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></symbol>
+<symbol id="i-ol" viewBox="0 0 16 16"><text x="1" y="5.6" font-size="5.5" fill="currentColor" font-family="sans-serif" font-weight="700">1</text><text x="1" y="9.6" font-size="5.5" fill="currentColor" font-family="sans-serif" font-weight="700">2</text><text x="1" y="13.6" font-size="5.5" fill="currentColor" font-family="sans-serif" font-weight="700">3</text><path d="M6.5 4h7M6.5 8h7M6.5 12h7" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></symbol>
+<symbol id="i-link" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6.8 9.2a2.6 2.6 0 0 0 3.7 0l2.2-2.2a2.6 2.6 0 0 0-3.7-3.7l-.8.8"/><path d="M9.2 6.8a2.6 2.6 0 0 0-3.7 0L3.3 9a2.6 2.6 0 0 0 3.7 3.7l.8-.8"/></g></symbol>
+<symbol id="i-table" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1.8" y="2.8" width="12.4" height="10.4" rx="1.5"/><path d="M1.8 6.3h12.4M1.8 9.8h12.4M6 2.8v10.4M10.2 2.8v10.4"/></g></symbol>
+<symbol id="i-more" viewBox="0 0 16 16"><g fill="currentColor"><circle cx="3" cy="8" r="1.4"/><circle cx="8" cy="8" r="1.4"/><circle cx="13" cy="8" r="1.4"/></g></symbol>
+<symbol id="ss-platform" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><path d="M8 2l6 3-6 3-6-3z"/><path d="M2 8l6 3 6-3M2 11l6 3 6-3"/></g></symbol>
+<symbol id="ss-agent" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><rect x="3" y="3" width="10" height="7" rx="1"/><path d="M1.5 13h13M6.5 10v3M9.5 10v3"/></g></symbol>
+<symbol id="ss-network" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><circle cx="8" cy="8" r="6"/><ellipse cx="8" cy="8" rx="2.6" ry="6"/><path d="M2 8h12"/></g></symbol>
+<symbol id="ss-cloud" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><path d="M4.5 12.5a3 3 0 0 1-.3-6 4 4 0 0 1 7.7 1A2.6 2.6 0 0 1 11.5 12.5z"/></g></symbol>
+<symbol id="ss-shield" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><path d="M8 1.8l5 1.8v4c0 3-2.2 5-5 6.4C5.2 12.600 3 10.600 3 7.600v-4z"/><path d="M5.800 8l1.500 1.500L10.300 6.500"/></g></symbol>
+<symbol id="ss-database" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><ellipse cx="8" cy="3.600" rx="5" ry="2"/><path d="M3 3.600v8.800c0 1.100 2.200 2 5 2s5-.9 5-2V3.600M3 8c0 1.100 2.200 2 5 2s5-.9 5-2"/></g></symbol>
+</defs></svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="i-warn" viewBox="0 0 16 16"><path d="M8 2 15 14H1z"/><path d="M8 6.5v3.4M8 11.8v.1"/></symbol></svg>
+
+<nav class="fbar" aria-label="Design navigation"><a href="../design-env.html">← All designs</a><span class="pos">Frame 6 of 19</span><a href="frame-05.html">‹ prev</a><a href="frame-07.html">next ›</a><span class="chip chip-built">Built</span><div class="theme" role="group" aria-label="Theme"><button data-t="system" aria-pressed="true">System</button><button data-t="light" aria-pressed="false">Light</button><button data-t="dark" aria-pressed="false">Dark</button></div></nav>
+<div class="frame-label">
+  <h2>Frame 6. Importing what's missing while you work</h2>
+  <p>Even a design that started Blank can pull in components and endpoints from other environments when it needs them. Three ways in: the assistant notices while drafting, a call points at something this environment lacks, or you search.</p>
+  <ol class="decisions">
+    <li><b>The assistant checks as it drafts</b> and asks once, with a short list: what matches, what exists elsewhere (import?), what exists nowhere (add as new). It never imports without asking.</li>
+    <li><b>A call to something missing</b> shows a neutral notice (not a problem: in a design it's normal) with "Import from prod" when another environment has it.</li>
+    <li><b>Import from another environment</b> searches every environment, groups results by environment, and says what comes along. Imports go into the open draft, so they're reviewed and applied like any edit. Their baseline is the source's current revision.</li>
+    <li><b>Imported, not new.</b> An imported endpoint is unchanged against its own source, so it gets no spark. The meta line says where it came from ("from prod, imported Oct 22").</li>
+  </ol>
+</div>
+<div class="stage"><div class="window" style="padding:var(--s4);display:grid;gap:var(--s4)">
+  <div class="asst">
+    <span class="who"><b>Assistant</b> in draft use-token-grant · checked against every environment</span>
+    <span>I drafted "Agent reports device posture". Of its 5 calls:</span>
+    <ul>
+      <li>3 go to endpoints this environment already has.</li>
+      <li><span class="mono">GET users-svc/users/{id}/devices</span> is only in <b>prod</b>. Import it with its 2 DTOs?</li>
+      <li><span class="mono">audit-sink</span> isn't in any environment. Add it to Platform as a new component?</li>
+    </ul>
+    <div class="acts"><span class="btn sm primary" style="color:var(--surface)">Import 1 from prod</span><span class="btn sm">Add audit-sink as new</span><span class="btn sm">Show the calls</span></div>
+  </div>
+  <div class="info"><span><span class="mono">pop-edge</span> calls <span class="mono">GET users-svc/users/{id}/devices</span>. users-svc here doesn't have it; <b>prod</b> does (<span class="mono">UsersController.devices</span>).</span><span class="acts"><span class="btn sm">Import from prod</span><span class="btn sm">Add as new endpoint</span></span></div>
+  <section class="section">
+    <header><h2>Import into draft use-token-grant</h2><span class="search">devices</span><span class="hint">Search every environment</span></header>
+    <div class="scroll"><table class="t">
+      <thead><tr><th style="width:28px"></th><th>Item</th><th>Kind</th><th>Comes along</th><th>Here</th></tr></thead>
+      <tbody>
+        <tr class="fold"><td colspan="5"><b>prod</b> <span class="muted">harvested</span></td></tr>
+        <tr><td><span class="check"><i class="on"></i></span></td><td class="key">users-svc · GET /users/{id}/devices</td><td class="typ">endpoint</td><td class="carry">2 DTOs (response 200, 404)</td><td class="muted">users-svc is here, this endpoint isn't</td></tr>
+        <tr><td><span class="check"><i></i></span></td><td class="key">sns:user-devices</td><td class="typ">topic</td><td class="carry">1 event type, 2 subscriptions</td><td class="muted">not here</td></tr>
+        <tr class="fold"><td colspan="5"><b>ztna-hld</b> <span class="muted">design</span></td></tr>
+        <tr><td><span class="check"><i></i></span></td><td class="key">device-registry</td><td class="typ">component</td><td class="carry">3 endpoints · 1 data store</td><td class="muted">not here</td></tr>
+      </tbody>
+    </table></div>
+    <div class="foot" style="display:flex;align-items:center"><span>1 picked. It goes into the draft and is applied with it.</span><span class="btn sm primary" style="margin-left:auto;color:var(--surface)">Import 1 into draft</span></div>
+  </section>
+</div></div>
+
+<script>
+document.querySelectorAll('.theme button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.theme button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  if (b.dataset.t === 'system') document.documentElement.removeAttribute('data-theme'); else document.documentElement.dataset.theme = b.dataset.t;
+}));
+</script>
+</body>
+</html>

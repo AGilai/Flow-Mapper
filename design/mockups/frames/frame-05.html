@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frame 5 · New and changed down to a field</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../shared.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <pattern id="hatch" patternUnits="userSpaceOnUse" width="5" height="5" patternTransform="rotate(45)">
+      <rect width="5" height="5" style="fill:var(--surface)"/>
+      <line x1="0" y1="0" x2="0" y2="5" style="stroke:var(--ink-2);stroke-width:1.2;stroke-opacity:.7"/>
+    </pattern>
+    <symbol id="i-new" viewBox="0 0 12 12"><path d="M6 .4C6.5 3.7 8.3 5.5 11.6 6 8.3 6.5 6.5 8.3 6 11.6 5.5 8.3 3.7 6.5.4 6 3.7 5.5 5.5 3.7 6 .4Z" style="fill:var(--new);stroke:var(--new-ink);stroke-width:.8;stroke-linejoin:round"/></symbol>
+    <symbol id="i-chg" viewBox="0 0 12 12"><circle cx="6" cy="6" r="3.6" style="fill:var(--surface);stroke:var(--new-ink);stroke-width:1.6"/><circle cx="6" cy="6" r="1.4" style="fill:var(--new-ink)"/></symbol>
+    <symbol id="i-msg" viewBox="0 0 14 13"><path d="M2 1.5h10a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H6l-3 2.5V9.5H2a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1Z" style="fill:var(--surface);stroke:var(--ink-2);stroke-width:1.2;stroke-linejoin:round"/></symbol>
+  </defs>
+</svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-db" viewBox="0 0 14 14"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round"><ellipse cx="7" cy="3.2" rx="5" ry="2"/><path d="M2 3.2v7.6c0 1.1 2.2 2 5 2s5-.9 5-2V3.2M2 7c0 1.1 2.2 2 5 2s5-.9 5-2"/></g></symbol>
+<symbol id="i-ul" viewBox="0 0 16 16"><g fill="currentColor"><circle cx="3" cy="4" r="1.2"/><circle cx="3" cy="8" r="1.2"/><circle cx="3" cy="12" r="1.2"/></g><path d="M6.5 4h7M6.5 8h7M6.5 12h7" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></symbol>
+<symbol id="i-ol" viewBox="0 0 16 16"><text x="1" y="5.6" font-size="5.5" fill="currentColor" font-family="sans-serif" font-weight="700">1</text><text x="1" y="9.6" font-size="5.5" fill="currentColor" font-family="sans-serif" font-weight="700">2</text><text x="1" y="13.6" font-size="5.5" fill="currentColor" font-family="sans-serif" font-weight="700">3</text><path d="M6.5 4h7M6.5 8h7M6.5 12h7" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></symbol>
+<symbol id="i-link" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6.8 9.2a2.6 2.6 0 0 0 3.7 0l2.2-2.2a2.6 2.6 0 0 0-3.7-3.7l-.8.8"/><path d="M9.2 6.8a2.6 2.6 0 0 0-3.7 0L3.3 9a2.6 2.6 0 0 0 3.7 3.7l.8-.8"/></g></symbol>
+<symbol id="i-table" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1.8" y="2.8" width="12.4" height="10.4" rx="1.5"/><path d="M1.8 6.3h12.4M1.8 9.8h12.4M6 2.8v10.4M10.2 2.8v10.4"/></g></symbol>
+<symbol id="i-more" viewBox="0 0 16 16"><g fill="currentColor"><circle cx="3" cy="8" r="1.4"/><circle cx="8" cy="8" r="1.4"/><circle cx="13" cy="8" r="1.4"/></g></symbol>
+<symbol id="ss-platform" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><path d="M8 2l6 3-6 3-6-3z"/><path d="M2 8l6 3 6-3M2 11l6 3 6-3"/></g></symbol>
+<symbol id="ss-agent" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><rect x="3" y="3" width="10" height="7" rx="1"/><path d="M1.5 13h13M6.5 10v3M9.5 10v3"/></g></symbol>
+<symbol id="ss-network" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><circle cx="8" cy="8" r="6"/><ellipse cx="8" cy="8" rx="2.6" ry="6"/><path d="M2 8h12"/></g></symbol>
+<symbol id="ss-cloud" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><path d="M4.5 12.5a3 3 0 0 1-.3-6 4 4 0 0 1 7.7 1A2.6 2.6 0 0 1 11.5 12.5z"/></g></symbol>
+<symbol id="ss-shield" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><path d="M8 1.8l5 1.8v4c0 3-2.2 5-5 6.4C5.2 12.600 3 10.600 3 7.600v-4z"/><path d="M5.800 8l1.500 1.500L10.300 6.500"/></g></symbol>
+<symbol id="ss-database" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><ellipse cx="8" cy="3.600" rx="5" ry="2"/><path d="M3 3.600v8.800c0 1.100 2.200 2 5 2s5-.9 5-2V3.600M3 8c0 1.100 2.200 2 5 2s5-.9 5-2"/></g></symbol>
+</defs></svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="i-warn" viewBox="0 0 16 16"><path d="M8 2 15 14H1z"/><path d="M8 6.5v3.4M8 11.8v.1"/></symbol></svg>
+
+<nav class="fbar" aria-label="Design navigation"><a href="../design-env.html">← All designs</a><span class="pos">Frame 5 of 19</span><a href="frame-04.html">‹ prev</a><a href="frame-06.html">next ›</a><span class="chip chip-built">Built</span><div class="theme" role="group" aria-label="Theme"><button data-t="system" aria-pressed="true">System</button><button data-t="light" aria-pressed="false">Light</button><button data-t="dark" aria-pressed="false">Dark</button></div></nav>
+<div class="frame-label">
+  <h2>Frame 5. New and changed down to a field</h2>
+  <p>Left: the endpoint panel's message for <span class="mono">sns:user-events</span> event <span class="mono">UserUpdated</span>, a prod message the design changes. Right: the schema of the collection <span class="mono">mongodb:users-db/users</span>. Both are compared with the baseline (prod, Oct 21 14:02).</p>
+  <ol class="decisions">
+    <li><b>The same three marks at field level:</b> spark for a new field, ring for a changed one (with "was …"), struck-through muted row for a removed one. A coloured left edge on the row repeats the mark, so a long schema can be scanned.</li>
+    <li><b>Children of a new field aren't marked again</b> (<span class="mono">devices[].certFingerprint</span> is new because <span class="mono">devices</span> is).</li>
+    <li><b>"Compared with"</b> defaults to the baseline. Switching to "prod now" shows what changed in prod since the copy, using the same marks. That's how you spot drift before you apply a design.</li>
+    <li><b>The head sentence counts the marks</b>, and a component, endpoint or message that has any marked field below it shows "Changed" one level up.</li>
+  </ol>
+</div>
+<div class="stage"><div class="window" style="padding:var(--s4);display:grid;gap:var(--s3)">
+  <div class="row" style="display:flex;gap:var(--s3);align-items:center;flex-wrap:wrap"><span class="sm" style="color:var(--ink-2)">Compared with</span><span class="seg"><span class="on">Baseline: prod, Oct 21 14:02</span><span>prod now</span></span></div>
+  <div class="cols2">
+    <section class="section">
+      <header><h2>UserUpdated <span class="bchg"><svg><use href="#i-chg"/></svg>Changed</span></h2><span class="hint">1 new, 1 changed, 1 removed</span></header>
+      <table class="fd"><thead><tr><th>Field</th><th>Type</th><th></th></tr></thead><tbody>
+        <tr><td class="f">userId</td><td class="ty">string</td><td></td></tr>
+        <tr><td class="f">email</td><td class="ty">string</td><td></td></tr>
+        <tr class="isnew"><td class="f">deviceId</td><td class="ty">string</td><td><span class="bnew"><svg><use href="#i-new"/></svg>New</span></td></tr>
+        <tr class="ischg"><td class="f">status</td><td class="ty">enum</td><td><span class="bchg"><svg><use href="#i-chg"/></svg>Changed</span> <span class="was">+ quarantined</span></td></tr>
+        <tr><td class="f">updatedAt</td><td class="ty">date</td><td></td></tr>
+        <tr class="isrm"><td class="f">legacyRole</td><td class="ty">string</td><td><span class="brm">Removed</span></td></tr>
+      </tbody></table>
+    </section>
+    <section class="section">
+      <header><h2>users <span class="bchg"><svg><use href="#i-chg"/></svg>Changed</span></h2><span class="hint mono xs">mongodb:users-db/users · source: manual</span></header>
+      <table class="fd"><thead><tr><th>Field</th><th>Type</th><th></th></tr></thead><tbody>
+        <tr><td class="f">_id</td><td class="ty">objectId</td><td></td></tr>
+        <tr><td class="f">email</td><td class="ty">string</td><td></td></tr>
+        <tr class="ischg"><td class="f">status</td><td class="ty">enum</td><td><span class="bchg"><svg><use href="#i-chg"/></svg>Changed</span> <span class="was">+ quarantined</span></td></tr>
+        <tr class="isnew"><td class="f">devices<i>[]</i></td><td class="ty">array</td><td><span class="bnew"><svg><use href="#i-new"/></svg>New</span></td></tr>
+        <tr><td class="f" style="padding-left:28px">certFingerprint</td><td class="ty">string</td><td></td></tr>
+        <tr><td class="f" style="padding-left:28px">posture</td><td class="ty">object</td><td></td></tr>
+      </tbody></table>
+    </section>
+  </div>
+</div></div>
+
+<script>
+document.querySelectorAll('.theme button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.theme button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  if (b.dataset.t === 'system') document.documentElement.removeAttribute('data-theme'); else document.documentElement.dataset.theme = b.dataset.t;
+}));
+</script>
+</body>
+</html>

@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frame 4 · Editing a flow in a draft</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../shared.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <pattern id="hatch" patternUnits="userSpaceOnUse" width="5" height="5" patternTransform="rotate(45)">
+      <rect width="5" height="5" style="fill:var(--surface)"/>
+      <line x1="0" y1="0" x2="0" y2="5" style="stroke:var(--ink-2);stroke-width:1.2;stroke-opacity:.7"/>
+    </pattern>
+    <symbol id="i-new" viewBox="0 0 12 12"><path d="M6 .4C6.5 3.7 8.3 5.5 11.6 6 8.3 6.5 6.5 8.3 6 11.6 5.5 8.3 3.7 6.5.4 6 3.7 5.5 5.5 3.7 6 .4Z" style="fill:var(--new);stroke:var(--new-ink);stroke-width:.8;stroke-linejoin:round"/></symbol>
+    <symbol id="i-chg" viewBox="0 0 12 12"><circle cx="6" cy="6" r="3.6" style="fill:var(--surface);stroke:var(--new-ink);stroke-width:1.6"/><circle cx="6" cy="6" r="1.4" style="fill:var(--new-ink)"/></symbol>
+    <symbol id="i-msg" viewBox="0 0 14 13"><path d="M2 1.5h10a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H6l-3 2.5V9.5H2a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1Z" style="fill:var(--surface);stroke:var(--ink-2);stroke-width:1.2;stroke-linejoin:round"/></symbol>
+  </defs>
+</svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-db" viewBox="0 0 14 14"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round"><ellipse cx="7" cy="3.2" rx="5" ry="2"/><path d="M2 3.2v7.6c0 1.1 2.2 2 5 2s5-.9 5-2V3.2M2 7c0 1.1 2.2 2 5 2s5-.9 5-2"/></g></symbol>
+<symbol id="i-ul" viewBox="0 0 16 16"><g fill="currentColor"><circle cx="3" cy="4" r="1.2"/><circle cx="3" cy="8" r="1.2"/><circle cx="3" cy="12" r="1.2"/></g><path d="M6.5 4h7M6.5 8h7M6.5 12h7" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></symbol>
+<symbol id="i-ol" viewBox="0 0 16 16"><text x="1" y="5.6" font-size="5.5" fill="currentColor" font-family="sans-serif" font-weight="700">1</text><text x="1" y="9.6" font-size="5.5" fill="currentColor" font-family="sans-serif" font-weight="700">2</text><text x="1" y="13.6" font-size="5.5" fill="currentColor" font-family="sans-serif" font-weight="700">3</text><path d="M6.5 4h7M6.5 8h7M6.5 12h7" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></symbol>
+<symbol id="i-link" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6.8 9.2a2.6 2.6 0 0 0 3.7 0l2.2-2.2a2.6 2.6 0 0 0-3.7-3.7l-.8.8"/><path d="M9.2 6.8a2.6 2.6 0 0 0-3.7 0L3.3 9a2.6 2.6 0 0 0 3.7 3.7l.8-.8"/></g></symbol>
+<symbol id="i-table" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1.8" y="2.8" width="12.4" height="10.4" rx="1.5"/><path d="M1.8 6.3h12.4M1.8 9.8h12.4M6 2.8v10.4M10.2 2.8v10.4"/></g></symbol>
+<symbol id="i-more" viewBox="0 0 16 16"><g fill="currentColor"><circle cx="3" cy="8" r="1.4"/><circle cx="8" cy="8" r="1.4"/><circle cx="13" cy="8" r="1.4"/></g></symbol>
+<symbol id="ss-platform" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><path d="M8 2l6 3-6 3-6-3z"/><path d="M2 8l6 3 6-3M2 11l6 3 6-3"/></g></symbol>
+<symbol id="ss-agent" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><rect x="3" y="3" width="10" height="7" rx="1"/><path d="M1.5 13h13M6.5 10v3M9.5 10v3"/></g></symbol>
+<symbol id="ss-network" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><circle cx="8" cy="8" r="6"/><ellipse cx="8" cy="8" rx="2.6" ry="6"/><path d="M2 8h12"/></g></symbol>
+<symbol id="ss-cloud" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><path d="M4.5 12.5a3 3 0 0 1-.3-6 4 4 0 0 1 7.7 1A2.6 2.6 0 0 1 11.5 12.5z"/></g></symbol>
+<symbol id="ss-shield" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><path d="M8 1.8l5 1.8v4c0 3-2.2 5-5 6.4C5.2 12.600 3 10.600 3 7.600v-4z"/><path d="M5.800 8l1.500 1.500L10.300 6.500"/></g></symbol>
+<symbol id="ss-database" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><ellipse cx="8" cy="3.600" rx="5" ry="2"/><path d="M3 3.600v8.800c0 1.100 2.200 2 5 2s5-.9 5-2V3.600M3 8c0 1.100 2.200 2 5 2s5-.9 5-2"/></g></symbol>
+</defs></svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="i-warn" viewBox="0 0 16 16"><path d="M8 2 15 14H1z"/><path d="M8 6.5v3.4M8 11.8v.1"/></symbol></svg>
+
+<nav class="fbar" aria-label="Design navigation"><a href="../design-env.html">← All designs</a><span class="pos">Frame 4 of 19</span><a href="frame-03.html">‹ prev</a><a href="frame-05.html">next ›</a><span class="chip chip-built">Built</span><div class="theme" role="group" aria-label="Theme"><button data-t="system" aria-pressed="true">System</button><button data-t="light" aria-pressed="false">Light</button><button data-t="dark" aria-pressed="false">Dark</button></div></nav>
+<div class="frame-label" id="f3">
+  <h2>Frame 4. Editing a flow in a draft</h2>
+  <p><span class="mono">#/flows?env=sase-hld&amp;draft=use-token-grant&amp;tabs=sase-agent/tunnel.open</span>. The flow "Agent connects to POP" in Edit mode, inside the draft that came from the discussion in rev 1: replace the new <span class="mono">POST /token/exchange</span> with prod's <span class="mono">POST /token</span>.</p>
+  <ol class="decisions">
+    <li><b>View · Edit</b> is a toggle on every page of a design environment. Edit opens a draft (a new one, or one picked from a list); nothing you change touches the environment until <b>Apply</b>.</li>
+    <li><b>The draft bar</b> names the draft, counts its changes (+1 −2 ~1), says who has worked on it and how many discussions it has, and holds Review changes · Discard · Apply. Anyone can open the same draft; there is no ownership yet (see the spec: a later invite model fits on top).</li>
+    <li><b>Draft changes are drawn in place:</b> what the draft removes is faded and struck through with "removed in draft"; what it adds carries an "in draft" chip. Review changes lists the same set as text.</li>
+    <li><b>Full create, edit and delete on the canvas.</b> "+" in a band adds a component to that subsystem. Dragging the "+" under a bar to another lifeline adds a call. Clicking an arrow or head opens its form in the panel. Delete is in the form, not on hover.</li>
+    <li><b>Discussions on anything:</b> the bubble with a count sits on what it's about: the flow (on the tab), a component (on its head), a call (on its arrow). The rev 1 thread now lives under this draft's change.</li>
+    <li><b>The spark marks the highest new thing:</b> heads of new components, and the new endpoint on a prod component. The calls of a new component don't repeat it.</li>
+  </ol>
+</div>
+<div class="stage"><div class="window">
+  <div class="toolbar"><span class="seg"><span>View</span><span class="on">Edit</span></span><span class="seg"><span>Inside the service</span><span class="on">Full flow</span></span><span class="check"><i class="on"></i>Group by subsystem</span><span class="hint">Click an arrow or a head to edit it · drag ⊕ to a lifeline to add a call</span></div>
+  <div class="draftbar"><span class="dn">Draft: use-token-grant<small>by Reviewer and 1 other · 2 discussions</small></span><span class="delta">+1 −2 ~1</span><span class="right"><span class="btn sm">Review changes</span><span class="btn sm">Discard</span><span class="btn sm primary" style="color:var(--surface)">Apply to sase-hld</span></span></div>
+  <div class="tabs"><span class="tab" style="--tc:var(--t-socket)"><b>Agent connects to POP</b><i>sase-agent · tunnel.open</i><span class="bub"><svg><use href="#i-msg"/></svg>1</span><span class="x">×</span></span></div>
+  <div class="split">
+  <div class="diagram">
+  <svg viewBox="0 0 880 520" width="880" height="520" role="img" aria-label="Flow in edit mode with draft changes">
+    <!-- bands with add buttons -->
+    <rect class="band" x="4" y="4" width="128" height="22" rx="4"/><text class="band-t" x="12" y="19">Agent</text>
+    <g class="plus"><circle cx="120" cy="15" r="7"/><path d="M116.5 15h7M120 11.5v7"/></g>
+    <rect class="band" x="138" y="4" width="268" height="22" rx="4"/><text class="band-t" x="146" y="19">Network (POP)</text>
+    <g class="plus"><circle cx="394" cy="15" r="7"/><path d="M390.5 15h7M394 11.5v7"/></g>
+    <rect class="band" x="412" y="4" width="464" height="22" rx="4"/><text class="band-t" x="420" y="19">Platform</text><text class="band-s" x="476" y="19">2 from prod</text>
+    <g class="plus"><circle cx="864" cy="15" r="7"/><path d="M860.5 15h7M864 11.5v7"/></g>
+    <line class="band-div" x1="135" y1="30" x2="135" y2="516"/><line class="band-div" x1="409" y1="30" x2="409" y2="516"/>
+    <!-- heads -->
+    <rect class="hd" x="8" y="34" width="120" height="46" rx="6"/><rect class="st-client" x="8" y="34" width="3" height="46"/><text class="tn" x="20" y="54">sase-agent</text><text class="ts" x="20" y="71">client</text><use class="spark" href="#i-new" x="110" y="40" width="12" height="12"/>
+    <rect class="hd" x="146" y="34" width="120" height="46" rx="6"/><rect class="st-svc" x="146" y="34" width="3" height="46"/><text class="tn" x="158" y="54">pop-edge</text><text class="ts" x="158" y="71">service</text><use class="spark" href="#i-new" x="248" y="40" width="12" height="12"/>
+    <rect class="hd" x="280" y="34" width="120" height="46" rx="6"/><rect class="st-svc" x="280" y="34" width="3" height="46"/><text class="tn" x="292" y="54">pop-swg</text><text class="ts" x="292" y="71">service</text><use class="spark" href="#i-new" x="382" y="40" width="12" height="12"/>
+    <rect class="hd" x="428" y="34" width="120" height="46" rx="6"/><rect class="st-svc" x="428" y="34" width="3" height="46"/><text class="tn" x="440" y="54">tenant-config</text><text class="ts" x="440" y="71">service</text><use class="spark" href="#i-new" x="530" y="40" width="12" height="12"/>
+    <rect class="hd" x="574" y="34" width="120" height="46" rx="6"/><rect class="st-svc" x="574" y="34" width="3" height="46"/><text class="tn" x="586" y="54">auth-svc</text><text class="ts" x="586" y="71">service · from prod</text>
+    <use href="#i-msg" x="672" y="40" width="14" height="13"/><text class="ru-l" x="688" y="51" style="font-size:10px">1</text>
+    <rect class="hd" x="730" y="34" width="120" height="46" rx="6"/><rect class="st-svc" x="730" y="34" width="3" height="46"/><text class="tn" x="742" y="54">users-svc</text><text class="ts" x="742" y="71">service · from prod</text>
+    <!-- lifelines -->
+    <line class="ll" x1="68" y1="80" x2="68" y2="516"/><line class="ll" x1="206" y1="80" x2="206" y2="516"/><line class="ll" x1="340" y1="80" x2="340" y2="516"/>
+    <line class="ll" x1="488" y1="80" x2="488" y2="516"/><line class="ll" x1="634" y1="80" x2="634" y2="516"/><line class="ll" x1="790" y1="80" x2="790" y2="516"/>
+
+    <line class="s socket" x1="68" y1="116" x2="192" y2="116"/><polygon class="f-socket" points="200,116 191,111.5 191,120.5"/><text class="lbl" x="78" y="109">tunnel.open</text>
+    <rect class="bar-socket" x="200" y="116" width="12" height="376" rx="2"/>
+
+    <!-- removed in draft -->
+    <g class="gone">
+      <line class="s http" x1="212" y1="150" x2="620" y2="150"/><polygon class="f-http" points="628,150 619,145.5 619,154.5"/>
+      <text class="lbl" x="222" y="143">POST /token/exchange</text>
+    </g>
+    <g class="chip-b"><rect x="380" y="132" width="100" height="15" rx="7.5"/><text x="388" y="143">removed in draft</text></g>
+
+    <!-- added in draft (selected) -->
+    <line class="halo http" x1="212" y1="186" x2="626" y2="186"/>
+    <line class="s http" x1="212" y1="186" x2="620" y2="186"/><polygon class="f-http" points="628,186 619,181.5 619,190.5"/>
+    <text class="lbl" x="222" y="179">POST /token</text><text class="ts" x="312" y="179">grant_type=device_cert</text>
+    <g class="chip-b draft"><rect x="446" y="168" width="58" height="15" rx="7.5"/><text x="454" y="179">in draft</text></g>
+    <use href="#i-msg" x="512" y="169" width="14" height="13"/><text class="ru-l" x="528" y="180">2</text>
+    <rect class="bar-old" x="628" y="186" width="12" height="28" rx="2"/><line class="cap" x1="624" y1="216" x2="644" y2="216"/>
+    <line class="s http ret" x1="628" y1="222" x2="220" y2="222"/><polyline class="o-http" points="221,217.5 212,222 221,226.5"/><text class="ret-t" x="236" y="217">session token</text>
+
+    <line class="s http" x1="212" y1="262" x2="776" y2="262"/><polygon class="f-http" points="784,262 775,257.5 775,266.5"/>
+    <text class="lbl" x="222" y="255">GET /users/{id}/posture</text>
+    <rect class="bar-old" x="784" y="262" width="12" height="28" rx="2"/><line class="cap" x1="780" y1="292" x2="800" y2="292"/>
+    <rect class="note-bg" x="560" y="300" width="236" height="16"/><text class="note" x="562" y="312">in prod: 4 calls, 1 data store · <tspan class="lk">Open in prod</tspan></text>
+    <line class="s http ret" x1="784" y1="278" x2="220" y2="278"/><polyline class="o-http" points="221,273.5 212,278 221,282.5"/><text class="ret-t" x="236" y="273">posture</text>
+
+    <line class="s rpc" x1="212" y1="340" x2="474" y2="340"/><polygon class="f-rpc" points="482,340 473,335.5 473,344.5"/>
+    <text class="lbl" x="222" y="333">GetTenantPolicy</text><text class="ts" x="222" y="356">params not specified</text>
+    <rect class="bar-rpc" x="482" y="340" width="12" height="58" rx="2"/>
+    <line class="s" style="stroke:var(--line-strong)" x1="494" y1="366" x2="506" y2="366"/>
+    <g class="store"><rect x="506" y="350" width="150" height="32" rx="5"/><text class="k" x="515" y="364">read policies</text><text class="c" x="515" y="376">tenant-db</text></g>
+    <line class="s rpc ret" x1="482" y1="406" x2="220" y2="406"/><polyline class="o-rpc" points="221,401.5 212,406 221,410.5"/><text class="ret-t" x="236" y="401">policy bundle</text>
+
+    <!-- changed in draft: transport decided -->
+    <line class="s rpc" x1="212" y1="444" x2="326" y2="444"/><polygon class="f-rpc" points="334,444 325,439.5 325,448.5"/>
+    <text class="lbl" x="222" y="437">ApplyPolicy</text>
+    <rect class="bar-rpc" x="334" y="444" width="12" height="22" rx="2"/>
+    <g class="chip-b draft"><rect x="354" y="448" width="118" height="15" rx="7.5"/><text x="362" y="459">in draft: was "tbd"</text></g>
+
+    <line class="s socket ret" x1="200" y1="486" x2="76" y2="486"/><polyline points="77,481.5 68,486 77,490.5" style="fill:none;stroke:var(--t-socket);stroke-width:1.3"/><text class="ret-t" x="92" y="481">tunnel.ready</text>
+    <!-- add-call handle -->
+    <g class="plus"><circle cx="206" cy="504" r="7"/><path d="M202.5 504h7M206 500.5v7"/><text x="218" y="508">drag to a lifeline to add a call</text></g>
+  </svg>
+  </div>
+  <aside class="pane">
+    <div class="panel-head"><div class="grow">
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="kind http"><span class="ln"></span>http</span><span class="st" style="color:var(--accent);border-color:var(--accent)">in draft</span></div>
+      <h3>Call · pop-edge → auth-svc</h3>
+      <span class="xs muted">Step 2 of "Agent connects to POP"</span>
+    </div><span class="close">×</span></div>
+    <div class="panel-body">
+      <div class="fgrid">
+        <span>From</span><span class="fsel">pop-edge</span>
+        <span>To</span><span class="fsel">auth-svc</span>
+        <span>Endpoint</span><span class="fsel">POST /token</span>
+        <span class="fhint">Exists in auth-svc (from prod). Pick "+ New endpoint" to add one.</span>
+        <span>Transport</span><span class="fsel">http</span>
+        <span>Mode</span><span class="fsel">sync</span>
+        <span>Params</span><span class="fsel txt"><span class="mono">grant_type = device_cert</span></span>
+        <span></span><a class="xs" href="#">+ Add param</a>
+        <span>Returns</span><span class="fsel txt">session token</span>
+        <span style="grid-column:1/-1">Description</span>
+        <span class="ftext">pop-edge trades the agent's device certificate for a short-lived session token, using prod's token endpoint with a device-certificate grant.</span>
+      </div>
+      <div class="acts"><span class="btn sm danger">Delete call</span><span class="btn sm" style="margin-left:auto">Done</span></div>
+      <div style="display:grid;gap:6px">
+        <h4 style="display:flex;gap:6px;align-items:center;margin:0">Discussion <span class="st open">open</span></h4>
+        <div class="thread">
+          <div class="msg"><span class="who"><b>Reviewer</b> 15:10</span>Why a new endpoint? Prod's <span class="mono">POST /token</span> already handles refresh.</div>
+          <div class="msg ai"><span class="who"><b>Assistant</b> 15:11</span>A device-certificate grant fits <span class="mono">POST /token</span>. I made the change in this draft: one call replaced, the new endpoint removed.</div>
+          <div class="reply">Reply, or ask the assistant…</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+  </div>
+</div></div>
+
+<script>
+document.querySelectorAll('.theme button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.theme button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  if (b.dataset.t === 'system') document.documentElement.removeAttribute('data-theme'); else document.documentElement.dataset.theme = b.dataset.t;
+}));
+</script>
+</body>
+</html>

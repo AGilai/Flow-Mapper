@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frame 2 · System map, component level</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../shared.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <pattern id="hatch" patternUnits="userSpaceOnUse" width="5" height="5" patternTransform="rotate(45)">
+      <rect width="5" height="5" style="fill:var(--surface)"/>
+      <line x1="0" y1="0" x2="0" y2="5" style="stroke:var(--ink-2);stroke-width:1.2;stroke-opacity:.7"/>
+    </pattern>
+    <symbol id="i-new" viewBox="0 0 12 12"><path d="M6 .4C6.5 3.7 8.3 5.5 11.6 6 8.3 6.5 6.5 8.3 6 11.6 5.5 8.3 3.7 6.5.4 6 3.7 5.5 5.5 3.7 6 .4Z" style="fill:var(--new);stroke:var(--new-ink);stroke-width:.8;stroke-linejoin:round"/></symbol>
+    <symbol id="i-chg" viewBox="0 0 12 12"><circle cx="6" cy="6" r="3.6" style="fill:var(--surface);stroke:var(--new-ink);stroke-width:1.6"/><circle cx="6" cy="6" r="1.4" style="fill:var(--new-ink)"/></symbol>
+    <symbol id="i-msg" viewBox="0 0 14 13"><path d="M2 1.5h10a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H6l-3 2.5V9.5H2a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1Z" style="fill:var(--surface);stroke:var(--ink-2);stroke-width:1.2;stroke-linejoin:round"/></symbol>
+  </defs>
+</svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-db" viewBox="0 0 14 14"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round"><ellipse cx="7" cy="3.2" rx="5" ry="2"/><path d="M2 3.2v7.6c0 1.1 2.2 2 5 2s5-.9 5-2V3.2M2 7c0 1.1 2.2 2 5 2s5-.9 5-2"/></g></symbol>
+<symbol id="i-ul" viewBox="0 0 16 16"><g fill="currentColor"><circle cx="3" cy="4" r="1.2"/><circle cx="3" cy="8" r="1.2"/><circle cx="3" cy="12" r="1.2"/></g><path d="M6.5 4h7M6.5 8h7M6.5 12h7" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></symbol>
+<symbol id="i-ol" viewBox="0 0 16 16"><text x="1" y="5.6" font-size="5.5" fill="currentColor" font-family="sans-serif" font-weight="700">1</text><text x="1" y="9.6" font-size="5.5" fill="currentColor" font-family="sans-serif" font-weight="700">2</text><text x="1" y="13.6" font-size="5.5" fill="currentColor" font-family="sans-serif" font-weight="700">3</text><path d="M6.5 4h7M6.5 8h7M6.5 12h7" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></symbol>
+<symbol id="i-link" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6.8 9.2a2.6 2.6 0 0 0 3.7 0l2.2-2.2a2.6 2.6 0 0 0-3.7-3.7l-.8.8"/><path d="M9.2 6.8a2.6 2.6 0 0 0-3.7 0L3.3 9a2.6 2.6 0 0 0 3.7 3.7l.8-.8"/></g></symbol>
+<symbol id="i-table" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1.8" y="2.8" width="12.4" height="10.4" rx="1.5"/><path d="M1.8 6.3h12.4M1.8 9.8h12.4M6 2.8v10.4M10.2 2.8v10.4"/></g></symbol>
+<symbol id="i-more" viewBox="0 0 16 16"><g fill="currentColor"><circle cx="3" cy="8" r="1.4"/><circle cx="8" cy="8" r="1.4"/><circle cx="13" cy="8" r="1.4"/></g></symbol>
+<symbol id="ss-platform" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><path d="M8 2l6 3-6 3-6-3z"/><path d="M2 8l6 3 6-3M2 11l6 3 6-3"/></g></symbol>
+<symbol id="ss-agent" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><rect x="3" y="3" width="10" height="7" rx="1"/><path d="M1.5 13h13M6.5 10v3M9.5 10v3"/></g></symbol>
+<symbol id="ss-network" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><circle cx="8" cy="8" r="6"/><ellipse cx="8" cy="8" rx="2.6" ry="6"/><path d="M2 8h12"/></g></symbol>
+<symbol id="ss-cloud" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><path d="M4.5 12.5a3 3 0 0 1-.3-6 4 4 0 0 1 7.7 1A2.6 2.6 0 0 1 11.5 12.5z"/></g></symbol>
+<symbol id="ss-shield" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><path d="M8 1.8l5 1.8v4c0 3-2.2 5-5 6.4C5.2 12.600 3 10.600 3 7.600v-4z"/><path d="M5.800 8l1.500 1.500L10.300 6.500"/></g></symbol>
+<symbol id="ss-database" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><ellipse cx="8" cy="3.600" rx="5" ry="2"/><path d="M3 3.600v8.800c0 1.100 2.200 2 5 2s5-.9 5-2V3.600M3 8c0 1.100 2.200 2 5 2s5-.9 5-2"/></g></symbol>
+</defs></svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="i-warn" viewBox="0 0 16 16"><path d="M8 2 15 14H1z"/><path d="M8 6.5v3.4M8 11.8v.1"/></symbol></svg>
+
+<nav class="fbar" aria-label="Design navigation"><a href="../design-env.html">← All designs</a><span class="pos">Frame 2 of 19</span><a href="frame-01.html">‹ prev</a><a href="frame-03.html">next ›</a><span class="chip chip-built">Built</span><div class="theme" role="group" aria-label="Theme"><button data-t="system" aria-pressed="true">System</button><button data-t="light" aria-pressed="false">Light</button><button data-t="dark" aria-pressed="false">Dark</button></div></nav>
+<div class="frame-label">
+  <h2>Frame 2. System map, component level</h2>
+  <p><span class="mono">#/?env=sase-hld</span>. 14 components in three regions. New ones carry the spark, prod's are quiet, and the two prod components the design changes say how.</p>
+  <ol class="decisions">
+    <li><b>Level control: Subsystems · Components</b> (frame 3 is the subsystem level; Domains joins later). At component level the map groups by subsystem instead of team in a design environment. The force layout is held to columns, one per subsystem, in the environment's order.</li>
+    <li><b>Region head = name and the split.</b> "Platform: 9 components, 3 new, 6 from prod". No tiles.</li>
+    <li><b>New node: the spark at its top right.</b> Shapes keep their meaning (ring service, diamond topic, rounded square client). The agent is a new kind, <span class="mono">client</span>, drawn as a device.</li>
+    <li><b>Changed prod component: the label says what changed</b> ("+1 endpoint", "+1 call"), so a reviewer sees the design's footprint on prod at a glance.</li>
+    <li><b>Edges keep the transport colours</b>, async stays dashed. Edges between two prod components are thin grey: they came along with the copy and aren't part of the design.</li>
+    <li><b>Verdict sentence</b> under the title, written from the data, with one callout per real gap (here: a call into the design with no transport chosen yet).</li>
+  </ol>
+</div>
+<div class="stage"><div class="window">
+  <div class="head"><div class="grow">
+    <div class="title"><h1>System map</h1><span class="st prod" style="margin-left:4px">design</span></div>
+    <div class="meta"><span class="envline">environment <span class="mono">sase-hld</span></span><span>from prod, Oct 21 14:02</span><span><b>14</b> components, <b>17</b> connections</span></div>
+  </div></div>
+  <div class="toolbar">
+    <span class="seg"><span>Subsystems</span><span class="on">Components</span><span class="off" style="color:var(--muted)">Domains</span></span>
+    <span class="check"><i class="on"></i>Components from prod</span>
+    <span class="check"><i class="on"></i>Queues and topics</span>
+    <span class="check"><i></i>Only what's new</span>
+    <span class="hint">Click a region to open its components in Inventory</span>
+  </div>
+  <div class="content" style="padding:var(--s3) var(--s4) 0;gap:var(--s2)">
+    <div class="verdict">
+      <p class="v">The design adds <b>8 components</b> and <b>12 connections</b>. It reaches prod through <b>4 components</b>: it calls auth-svc, users-svc and activitylog, and swg-api gains a call into the design.</p>
+      <div class="callout"><span class="dot"></span><span><span class="mono">pop-edge</span> → <span class="mono">pop-swg</span> has no transport yet, so the map draws it neutral and the flow says "transport not decided".</span><a href="#f3">Show in the flow</a></div>
+    </div>
+  </div>
+  <div class="map" style="padding:var(--s3) var(--s4)">
+  <svg viewBox="0 0 1190 528" width="1190" height="528" role="img" aria-label="System map of sase-hld grouped into Agent, Network and Platform regions">
+    <!-- regions -->
+    <rect class="rg" x="12" y="12" width="200" height="510" rx="12"/>
+    <text class="rg-t" x="28" y="38">Agent</text><text class="rg-s" x="28" y="56">1 component, new</text>
+    <rect class="rg" x="228" y="12" width="400" height="510" rx="12"/>
+    <text class="rg-t" x="244" y="38">Network (POP)</text><text class="rg-s" x="244" y="56">4 components, all new</text>
+    <rect class="rg" x="644" y="12" width="534" height="510" rx="12"/>
+    <text class="rg-t" x="660" y="38">Platform</text><text class="rg-s" x="660" y="56">9 components: 3 new, 6 from prod (2 changed)</text>
+
+    <!-- quiet prod edges -->
+    <line class="e old" x1="720" y1="130" x2="880" y2="95"/>
+    <line class="e old" x1="720" y1="250" x2="900" y2="220"/>
+    <line class="e old" x1="900" y1="220" x2="1060" y2="150"/>
+    <line class="e old" x1="900" y1="220" x2="1060" y2="330"/>
+    <line class="e old" x1="880" y1="95" x2="900" y2="220"/>
+
+    <!-- design edges -->
+    <line class="e socket" x1="120" y1="262" x2="330" y2="250"/>
+    <line class="e tbd" x1="330" y1="250" x2="480" y2="330"/>
+    <path class="e http" d="M330 250 Q 540 120 720 130"/>
+    <path class="e http" d="M330 250 Q 600 40 880 95"/>
+    <line class="e rpc" x1="330" y1="250" x2="800" y2="380"/>
+    <line class="e rpc" x1="480" y1="330" x2="480" y2="450"/>
+    <line class="e sns" x1="800" y1="380" x2="690" y2="410"/>
+    <line class="e sns" x1="690" y1="410" x2="480" y2="450"/>
+    <line class="e http" x1="770" y1="300" x2="800" y2="380"/>
+    <line class="e http" x1="720" y1="250" x2="770" y2="300"/>
+    <line class="e amqp" x1="330" y1="500" x2="980" y2="492"/>
+    <line class="e rpc" x1="980" y1="492" x2="1060" y2="330"/>
+
+    <!-- agent: client device -->
+    <use class="spark" href="#i-new" x="130" y="240" width="13" height="13"/>
+    <rect class="nd" x="110" y="254" width="18" height="15" rx="3"/><line style="stroke:var(--ink);stroke-width:1.6" x1="114" y1="273" x2="124" y2="273"/>
+    <text class="nl" x="78" y="300">sase-agent</text>
+
+    <!-- network: new -->
+    <use class="spark" href="#i-new" x="335" y="231" width="13" height="13"/><circle class="nd" cx="330" cy="250" r="6.5"/><text class="nl" x="348" y="254">pop-edge</text>
+    <use class="spark" href="#i-new" x="485" y="311" width="13" height="13"/><circle class="nd" cx="480" cy="330" r="6.5"/><text class="nl" x="500" y="334">pop-swg</text>
+    <use class="spark" href="#i-new" x="485" y="431" width="13" height="13"/><circle class="nd" cx="480" cy="450" r="6.5"/><text class="nl" x="440" y="482">pop-policy-cache</text>
+    <use class="spark" href="#i-new" x="335" y="481" width="13" height="13"/><circle class="nd" cx="330" cy="500" r="6.5"/><text class="nl" x="270" y="478">pop-telemetry</text>
+
+    <!-- platform: prod -->
+    <circle class="nd old" cx="720" cy="130" r="6.5"/><text class="nl old" x="734" y="126">auth-svc</text><text class="rg-s" x="734" y="142">+1 endpoint</text>
+    <circle class="nd old" cx="880" cy="95" r="6.5"/><text class="nl old" x="894" y="99">users-svc</text>
+    <circle class="nd old" cx="720" cy="250" r="6.5"/><text class="nl old" x="734" y="246">swg-api</text><text class="rg-s" x="734" y="262">+1 call</text>
+    <circle class="nd old" cx="900" cy="220" r="6.5"/><text class="nl old" x="914" y="224">cp-middleware</text>
+    <circle class="nd old" cx="1060" cy="150" r="6.5"/><text class="nl old" x="1074" y="154">sxdns</text>
+    <circle class="nd old" cx="1060" cy="330" r="6.5"/><text class="nl old" x="1074" y="334">activitylog</text>
+
+    <!-- platform: new -->
+    <use class="spark" href="#i-new" x="805" y="361" width="13" height="13"/><circle class="nd" cx="800" cy="380" r="6.5"/><text class="nl" x="818" y="376">tenant-config</text>
+    <use class="spark" href="#i-new" x="775" y="281" width="13" height="13"/><circle class="nd" cx="770" cy="300" r="6.5"/><text class="nl" x="790" y="304">policy-compiler</text>
+    <use class="spark" href="#i-new" x="985" y="473" width="13" height="13"/><circle class="nd" cx="980" cy="492" r="6.5"/><text class="nl" x="1000" y="478">telemetry-ingest</text>
+    <!-- topic -->
+    <use class="spark" href="#i-new" x="698" y="388" width="13" height="13"/>
+    <rect class="dia" x="684" y="404" width="12" height="12" transform="rotate(45 690 410)"/><text class="nl" x="650" y="442" style="font-family:var(--mono);font-size:11.5px">policy-events</text>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><svg width="26" height="18"><circle cx="9" cy="11" r="4.5" style="fill:var(--surface);stroke:var(--ink);stroke-width:1.5"/><use href="#i-new" x="13" y="0" width="10" height="10"/></svg>New (not in the baseline)</span>
+    <span><svg width="16" height="18"><circle cx="8" cy="9" r="4.5" style="fill:var(--surface);stroke:var(--muted);stroke-width:1.3"/></svg>From prod</span>
+    <span><svg width="22" height="18"><rect x="4" y="3" width="14" height="11" rx="2" style="fill:var(--surface);stroke:var(--ink);stroke-width:1.4"/></svg>Client (agent)</span>
+    <span><svg width="18" height="18"><rect x="5" y="5" width="8" height="8" transform="rotate(45 9 9)" style="fill:var(--surface);stroke:var(--t-sns);stroke-width:1.4"/></svg>Queue / topic</span>
+    <span><svg width="30" height="18"><line x1="2" y1="9" x2="28" y2="9" style="stroke:var(--ink-2);stroke-width:1.5"/></svg>Sync call (transport colour; grey: not decided)</span>
+    <span><svg width="30" height="18"><line x1="2" y1="9" x2="28" y2="9" style="stroke:var(--ink-2);stroke-width:1.5;stroke-dasharray:5 4"/></svg>Async</span>
+    <span><svg width="30" height="18"><line x1="2" y1="9" x2="28" y2="9" style="stroke:var(--t-socket);stroke-width:2"/></svg>Client socket</span>
+    <span><svg width="30" height="18"><line x1="2" y1="9" x2="28" y2="9" style="stroke:var(--line-strong);stroke-width:1"/></svg>Between prod components (came with the copy)</span>
+  </div>
+</div></div>
+
+<script>
+document.querySelectorAll('.theme button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.theme button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  if (b.dataset.t === 'system') document.documentElement.removeAttribute('data-theme'); else document.documentElement.dataset.theme = b.dataset.t;
+}));
+</script>
+</body>
+</html>

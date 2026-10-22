@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frame 3 · Subsystem level</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../shared.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <pattern id="hatch" patternUnits="userSpaceOnUse" width="5" height="5" patternTransform="rotate(45)">
+      <rect width="5" height="5" style="fill:var(--surface)"/>
+      <line x1="0" y1="0" x2="0" y2="5" style="stroke:var(--ink-2);stroke-width:1.2;stroke-opacity:.7"/>
+    </pattern>
+    <symbol id="i-new" viewBox="0 0 12 12"><path d="M6 .4C6.5 3.7 8.3 5.5 11.6 6 8.3 6.5 6.5 8.3 6 11.6 5.5 8.3 3.7 6.5.4 6 3.7 5.5 5.5 3.7 6 .4Z" style="fill:var(--new);stroke:var(--new-ink);stroke-width:.8;stroke-linejoin:round"/></symbol>
+    <symbol id="i-chg" viewBox="0 0 12 12"><circle cx="6" cy="6" r="3.6" style="fill:var(--surface);stroke:var(--new-ink);stroke-width:1.6"/><circle cx="6" cy="6" r="1.4" style="fill:var(--new-ink)"/></symbol>
+    <symbol id="i-msg" viewBox="0 0 14 13"><path d="M2 1.5h10a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H6l-3 2.5V9.5H2a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1Z" style="fill:var(--surface);stroke:var(--ink-2);stroke-width:1.2;stroke-linejoin:round"/></symbol>
+  </defs>
+</svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-db" viewBox="0 0 14 14"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round"><ellipse cx="7" cy="3.2" rx="5" ry="2"/><path d="M2 3.2v7.6c0 1.1 2.2 2 5 2s5-.9 5-2V3.2M2 7c0 1.1 2.2 2 5 2s5-.9 5-2"/></g></symbol>
+<symbol id="i-ul" viewBox="0 0 16 16"><g fill="currentColor"><circle cx="3" cy="4" r="1.2"/><circle cx="3" cy="8" r="1.2"/><circle cx="3" cy="12" r="1.2"/></g><path d="M6.5 4h7M6.5 8h7M6.5 12h7" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></symbol>
+<symbol id="i-ol" viewBox="0 0 16 16"><text x="1" y="5.6" font-size="5.5" fill="currentColor" font-family="sans-serif" font-weight="700">1</text><text x="1" y="9.6" font-size="5.5" fill="currentColor" font-family="sans-serif" font-weight="700">2</text><text x="1" y="13.6" font-size="5.5" fill="currentColor" font-family="sans-serif" font-weight="700">3</text><path d="M6.5 4h7M6.5 8h7M6.5 12h7" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></symbol>
+<symbol id="i-link" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6.8 9.2a2.6 2.6 0 0 0 3.7 0l2.2-2.2a2.6 2.6 0 0 0-3.7-3.7l-.8.8"/><path d="M9.2 6.8a2.6 2.6 0 0 0-3.7 0L3.3 9a2.6 2.6 0 0 0 3.7 3.7l.8-.8"/></g></symbol>
+<symbol id="i-table" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1.8" y="2.8" width="12.4" height="10.4" rx="1.5"/><path d="M1.8 6.3h12.4M1.8 9.8h12.4M6 2.8v10.4M10.2 2.8v10.4"/></g></symbol>
+<symbol id="i-more" viewBox="0 0 16 16"><g fill="currentColor"><circle cx="3" cy="8" r="1.4"/><circle cx="8" cy="8" r="1.4"/><circle cx="13" cy="8" r="1.4"/></g></symbol>
+<symbol id="ss-platform" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><path d="M8 2l6 3-6 3-6-3z"/><path d="M2 8l6 3 6-3M2 11l6 3 6-3"/></g></symbol>
+<symbol id="ss-agent" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><rect x="3" y="3" width="10" height="7" rx="1"/><path d="M1.5 13h13M6.5 10v3M9.5 10v3"/></g></symbol>
+<symbol id="ss-network" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><circle cx="8" cy="8" r="6"/><ellipse cx="8" cy="8" rx="2.6" ry="6"/><path d="M2 8h12"/></g></symbol>
+<symbol id="ss-cloud" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><path d="M4.5 12.5a3 3 0 0 1-.3-6 4 4 0 0 1 7.7 1A2.6 2.6 0 0 1 11.5 12.5z"/></g></symbol>
+<symbol id="ss-shield" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><path d="M8 1.8l5 1.8v4c0 3-2.2 5-5 6.4C5.2 12.600 3 10.600 3 7.600v-4z"/><path d="M5.800 8l1.500 1.500L10.300 6.500"/></g></symbol>
+<symbol id="ss-database" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><ellipse cx="8" cy="3.600" rx="5" ry="2"/><path d="M3 3.600v8.800c0 1.100 2.200 2 5 2s5-.9 5-2V3.600M3 8c0 1.100 2.200 2 5 2s5-.9 5-2"/></g></symbol>
+</defs></svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="i-warn" viewBox="0 0 16 16"><path d="M8 2 15 14H1z"/><path d="M8 6.5v3.4M8 11.8v.1"/></symbol></svg>
+
+<nav class="fbar" aria-label="Design navigation"><a href="../design-env.html">← All designs</a><span class="pos">Frame 3 of 19</span><a href="frame-02.html">‹ prev</a><a href="frame-04.html">next ›</a><span class="chip chip-built">Built</span><div class="theme" role="group" aria-label="Theme"><button data-t="system" aria-pressed="true">System</button><button data-t="light" aria-pressed="false">Light</button><button data-t="dark" aria-pressed="false">Dark</button></div></nav>
+<div class="frame-label">
+  <h2>Frame 3. Subsystem level: rolled-up calls and abstract links</h2>
+  <p><span class="mono">#/?env=sase-hld&amp;level=subsystems</span>. The same design, one level up. Calls between components roll up into one line per direction and transport. Two links were drawn at this level and have no component yet; one is being refined.</p>
+  <ol class="decisions">
+    <li><b>Roll-up is automatic and goes both ways.</b> Every call between components in two subsystems shows here as one line per transport, labelled with the count ("2 calls · http"); thickness grows with the count. Click it to list the calls. Nothing is stored for a roll-up.</li>
+    <li><b>An abstract link is a real item</b>, drawn at subsystem level: a name, a direction, sync or async, a description. Its ends are open circles on the box edge: "no component here yet". It can be discussed, and it can be marked New like anything else.</li>
+    <li><b>Refine end by end.</b> The panel picks a component for each end, then an endpoint (or a new one). An end that has a component draws into that component's row; when both ends have endpoints, the link becomes an ordinary call at component level and rolls up here like the others.</li>
+    <li><b>The assistant suggests ends from the design</b> ("pop-telemetry already sends flow logs to telemetry-ingest over amqp"), so refining usually starts from what's already drawn.</li>
+    <li><b>Inside each box, the components are a list</b> with their marks, prod ones muted. Click a name to go down to it at component level.</li>
+  </ol>
+</div>
+<div class="stage"><div class="window">
+  <div class="toolbar">
+    <span class="seg"><span class="on">Subsystems</span><span>Components</span><span class="off">Domains</span></span>
+    <span class="check"><i class="on"></i>Rolled-up calls</span>
+    <span class="check"><i class="on"></i>Abstract links</span>
+    <span class="hint">Edit mode: drag from a box edge to another box to draw an abstract link</span>
+  </div>
+  <div class="split">
+  <div class="diagram">
+  <svg viewBox="0 0 880 450" width="880" height="450" role="img" aria-label="Subsystem level: Agent, Network and Platform with rolled-up calls and two abstract links">
+    <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" style="fill:context-stroke"/></marker></defs>
+    <!-- boxes -->
+    <rect class="rg" x="12" y="30" width="160" height="350" rx="12"/>
+    <text class="box-t" x="28" y="56">Agent</text><text class="box-c" x="28" y="74">1 component</text>
+    <text class="box-n" x="28" y="106">sase-agent</text><use class="spark" href="#i-new" x="100" y="96" width="11" height="11"/>
+
+    <rect class="rg" x="292" y="30" width="240" height="350" rx="12"/>
+    <text class="box-t" x="308" y="56">Network (POP)</text><use class="spark" href="#i-new" x="414" y="45" width="12" height="12"/><text class="box-c" x="308" y="74">4 components, the whole subsystem is new</text>
+    <text class="box-n" x="308" y="106">pop-edge</text><text class="box-n" x="308" y="126">pop-swg</text><text class="box-n" x="308" y="146">pop-policy-cache</text><text class="box-n" x="308" y="166">pop-telemetry</text>
+
+    <rect class="rg" x="652" y="30" width="216" height="350" rx="12"/>
+    <text class="box-t" x="668" y="56">Platform</text><text class="box-c" x="668" y="74">9 components: 3 new, 2 changed</text>
+    <text class="box-n" x="668" y="106">tenant-config</text><use class="spark" href="#i-new" x="752" y="96" width="11" height="11"/>
+    <text class="box-n" x="668" y="126">policy-compiler</text><use class="spark" href="#i-new" x="766" y="116" width="11" height="11"/>
+    <text class="box-n" x="668" y="146">telemetry-ingest</text><use class="spark" href="#i-new" x="772" y="136" width="11" height="11"/>
+    <text class="box-n old" x="668" y="166">auth-svc</text><use href="#i-chg" x="722" y="156" width="11" height="11"/>
+    <text class="box-n old" x="668" y="186">swg-api</text><use href="#i-chg" x="716" y="176" width="11" height="11"/>
+    <text class="box-n old" x="668" y="206">users-svc</text><text class="box-n old" x="668" y="226">activitylog</text><text class="box-c" x="668" y="246">+2 untouched</text>
+
+    <!-- roll-ups -->
+    <line class="ru socket" x1="172" y1="120" x2="290" y2="120" marker-end="url(#ah)"/><text class="ru-l" x="190" y="112">1 call · socket</text>
+    <line class="ru http" x1="532" y1="104" x2="650" y2="104" marker-end="url(#ah)"/><text class="ru-l" x="548" y="96">2 calls · http</text>
+    <line class="ru rpc" x1="532" y1="138" x2="650" y2="138" marker-end="url(#ah)"/><text class="ru-l" x="548" y="130">1 call · rpc</text>
+    <line class="ru amqp" x1="532" y1="172" x2="650" y2="172" marker-end="url(#ah)"/><text class="ru-l" x="548" y="164">1 async · amqp</text>
+    <line class="ru sns" x1="650" y1="214" x2="534" y2="214" marker-end="url(#ah)"/><text class="ru-l" x="548" y="206">1 async · sns</text>
+
+    <!-- abstract: network -> platform, selected -->
+    <line class="halo ink" x1="532" y1="290" x2="652" y2="290"/>
+    <line class="abs" x1="540" y1="290" x2="644" y2="290"/><circle class="abs-end" cx="532" cy="290" r="5"/><circle class="abs-end" cx="652" cy="290" r="5"/>
+    <text class="ru-l" x="544" y="276">usage metering</text><use class="spark" href="#i-new" x="626" y="266" width="11" height="11"/>
+    <g class="chip-b"><rect x="548" y="298" width="56" height="15" rx="7.5"/><text x="555" y="309">abstract</text></g>
+    <use href="#i-msg" x="610" y="298" width="14" height="13"/><text class="ru-l" x="626" y="309">1</text>
+
+    <!-- abstract: platform -> agent, underneath -->
+    <path class="abs" d="M760 380 V 420 H 92 V 388"/><circle class="abs-end" cx="760" cy="380" r="5"/><circle class="abs-end" cx="92" cy="380" r="5"/>
+    <text class="ru-l" x="330" y="412">push config update · async</text><use class="spark" href="#i-new" x="478" y="402" width="11" height="11"/>
+    <g class="chip-b"><rect x="496" y="402" width="56" height="15" rx="7.5"/><text x="503" y="413">abstract</text></g>
+  </svg>
+  </div>
+  <aside class="pane">
+    <div class="panel-head"><div class="grow">
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="kind tbd"><span class="ln"></span>async</span><span class="st">abstract</span><span class="bnew"><svg><use href="#i-new"/></svg>New</span></div>
+      <h3 style="font-family:var(--font)">usage metering</h3>
+      <span class="xs muted">Network (POP) → Platform · drawn at subsystem level</span>
+    </div><span class="close">×</span></div>
+    <div class="panel-body">
+      <p class="sm" style="color:var(--ink-2)">POPs report per-tenant traffic volumes so the platform can bill and enforce quotas.</p>
+      <div>
+        <h4>Refine</h4>
+        <div class="fgrid">
+          <span>From</span><span class="fsel">Network › pop-telemetry</span>
+          <span>Via</span><span class="fsel">new egress</span>
+          <span>To</span><span class="fsel txt" style="color:var(--muted)">Platform › pick a component</span>
+        </div>
+      </div>
+      <div class="info" style="font-size:var(--fs-xs)"><span><b>Suggestion</b> from the design: pop-telemetry already sends flow logs to telemetry-ingest over amqp. Metering could use the same exchange.</span><span class="acts"><span class="btn sm">Use telemetry-ingest</span></span></div>
+      <p class="xs muted">When both ends have an endpoint, this becomes a call at component level and shows here as part of "1 async · amqp". Until then it stays abstract and is listed under "Open in this design".</p>
+      <div style="display:grid;gap:6px">
+        <h4 style="display:flex;gap:6px;align-items:center;margin:0">Discussion <span class="st open">open</span></h4>
+        <div class="thread"><div class="msg"><span class="who"><b>Reviewer</b> 15:40</span>Per-flow or aggregated per minute? Billing only needs per-minute totals.</div><div class="reply">Reply, or ask the assistant…</div></div>
+      </div>
+    </div>
+  </aside>
+  </div>
+</div></div>
+
+<script>
+document.querySelectorAll('.theme button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.theme button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  if (b.dataset.t === 'system') document.documentElement.removeAttribute('data-theme'); else document.documentElement.dataset.theme = b.dataset.t;
+}));
+</script>
+</body>
+</html>

@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frame 10 · References, partial flows</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../shared.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <pattern id="hatch" patternUnits="userSpaceOnUse" width="5" height="5" patternTransform="rotate(45)">
+      <rect width="5" height="5" style="fill:var(--surface)"/>
+      <line x1="0" y1="0" x2="0" y2="5" style="stroke:var(--ink-2);stroke-width:1.2;stroke-opacity:.7"/>
+    </pattern>
+    <symbol id="i-new" viewBox="0 0 12 12"><path d="M6 .4C6.5 3.7 8.3 5.5 11.6 6 8.3 6.5 6.5 8.3 6 11.6 5.5 8.3 3.7 6.5.4 6 3.7 5.5 5.5 3.7 6 .4Z" style="fill:var(--new);stroke:var(--new-ink);stroke-width:.8;stroke-linejoin:round"/></symbol>
+    <symbol id="i-chg" viewBox="0 0 12 12"><circle cx="6" cy="6" r="3.6" style="fill:var(--surface);stroke:var(--new-ink);stroke-width:1.6"/><circle cx="6" cy="6" r="1.4" style="fill:var(--new-ink)"/></symbol>
+    <symbol id="i-msg" viewBox="0 0 14 13"><path d="M2 1.5h10a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H6l-3 2.5V9.5H2a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1Z" style="fill:var(--surface);stroke:var(--ink-2);stroke-width:1.2;stroke-linejoin:round"/></symbol>
+  </defs>
+</svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-db" viewBox="0 0 14 14"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round"><ellipse cx="7" cy="3.2" rx="5" ry="2"/><path d="M2 3.2v7.6c0 1.1 2.2 2 5 2s5-.9 5-2V3.2M2 7c0 1.1 2.2 2 5 2s5-.9 5-2"/></g></symbol>
+<symbol id="i-ul" viewBox="0 0 16 16"><g fill="currentColor"><circle cx="3" cy="4" r="1.2"/><circle cx="3" cy="8" r="1.2"/><circle cx="3" cy="12" r="1.2"/></g><path d="M6.5 4h7M6.5 8h7M6.5 12h7" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></symbol>
+<symbol id="i-ol" viewBox="0 0 16 16"><text x="1" y="5.6" font-size="5.5" fill="currentColor" font-family="sans-serif" font-weight="700">1</text><text x="1" y="9.6" font-size="5.5" fill="currentColor" font-family="sans-serif" font-weight="700">2</text><text x="1" y="13.6" font-size="5.5" fill="currentColor" font-family="sans-serif" font-weight="700">3</text><path d="M6.5 4h7M6.5 8h7M6.5 12h7" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></symbol>
+<symbol id="i-link" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6.8 9.2a2.6 2.6 0 0 0 3.7 0l2.2-2.2a2.6 2.6 0 0 0-3.7-3.7l-.8.8"/><path d="M9.2 6.8a2.6 2.6 0 0 0-3.7 0L3.3 9a2.6 2.6 0 0 0 3.7 3.7l.8-.8"/></g></symbol>
+<symbol id="i-table" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1.8" y="2.8" width="12.4" height="10.4" rx="1.5"/><path d="M1.8 6.3h12.4M1.8 9.8h12.4M6 2.8v10.4M10.2 2.8v10.4"/></g></symbol>
+<symbol id="i-more" viewBox="0 0 16 16"><g fill="currentColor"><circle cx="3" cy="8" r="1.4"/><circle cx="8" cy="8" r="1.4"/><circle cx="13" cy="8" r="1.4"/></g></symbol>
+<symbol id="ss-platform" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><path d="M8 2l6 3-6 3-6-3z"/><path d="M2 8l6 3 6-3M2 11l6 3 6-3"/></g></symbol>
+<symbol id="ss-agent" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><rect x="3" y="3" width="10" height="7" rx="1"/><path d="M1.5 13h13M6.5 10v3M9.5 10v3"/></g></symbol>
+<symbol id="ss-network" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><circle cx="8" cy="8" r="6"/><ellipse cx="8" cy="8" rx="2.6" ry="6"/><path d="M2 8h12"/></g></symbol>
+<symbol id="ss-cloud" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><path d="M4.5 12.5a3 3 0 0 1-.3-6 4 4 0 0 1 7.7 1A2.6 2.6 0 0 1 11.5 12.5z"/></g></symbol>
+<symbol id="ss-shield" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><path d="M8 1.8l5 1.8v4c0 3-2.2 5-5 6.4C5.2 12.600 3 10.600 3 7.600v-4z"/><path d="M5.800 8l1.500 1.500L10.300 6.500"/></g></symbol>
+<symbol id="ss-database" viewBox="0 0 16 16"><g style="fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"><ellipse cx="8" cy="3.600" rx="5" ry="2"/><path d="M3 3.600v8.800c0 1.100 2.200 2 5 2s5-.9 5-2V3.600M3 8c0 1.100 2.200 2 5 2s5-.9 5-2"/></g></symbol>
+</defs></svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="i-warn" viewBox="0 0 16 16"><path d="M8 2 15 14H1z"/><path d="M8 6.5v3.4M8 11.8v.1"/></symbol></svg>
+
+<nav class="fbar" aria-label="Design navigation"><a href="../design-env.html">← All designs</a><span class="pos">Frame 10 of 19</span><a href="frame-09.html">‹ prev</a><a href="frame-11.html">next ›</a><span class="chip chip-built">Built</span><div class="theme" role="group" aria-label="Theme"><button data-t="system" aria-pressed="true">System</button><button data-t="light" aria-pressed="false">Light</button><button data-t="dark" aria-pressed="false">Dark</button></div></nav>
+<div class="frame-label">
+  <h2>Frame 10. References, importing one level, and partial flows</h2>
+  <p><span class="mono">#/flows?env=sase-hld&amp;draft=hld-import&amp;tabs=sase-agent/in.tunnel.open&amp;step=3</span>. The agent's flow reaches two prod components whose behaviour isn't in the design: <span class="mono">users-svc</span> and <span class="mono">activitylog</span>. The user is about to import <span class="mono">users-svc</span>'s posture endpoint so it can be changed.</p>
+  <ol class="decisions">
+    <li><b>A reference has a lock.</b> A copied endpoint without its behaviour (handler and call tree not in the design) shows 🔒 on its bar end, on its head and in lists, with the words "reference from prod". It's neutral, not a warning: referencing prod is normal in a design. A component with at least one reference endpoint shows the lock on its head; the panel says which endpoints.</li>
+    <li><b>"Import into design" sits next to every lock</b>: at the flow boundary, on the service page row, in the step panel. It never fires directly: it opens the preview on the right.</li>
+    <li><b>One level, never recursive.</b> The preview lists what comes along: the endpoint's handler and its call tree inside that component, the calls it makes, the stores it touches, the queues and DTOs it uses. What it calls in other components stays a reference (locked) and is listed under "Stays a reference", each with its own Import, so the next level is always an explicit choice.</li>
+    <li><b>Imported is not new.</b> Imported items take the source's current revision as their baseline, so they show no spark; the lock goes and the meta line says "imported from prod, Oct 21". Editing them later marks them Changed.</li>
+    <li><b>A partial flow says so.</b> When any step of a flow continues into a reference, a neutral line under the step walk says "Partial flow: 2 steps continue into references", with the names and Import links. The flow list shows a small lock next to such flows.</li>
+    <li><b>Editing across a reference warns once.</b> Opening the edit form of a call whose other side is a reference shows a callout in the form: the edit changes the call only, not what happens in the reference. Two buttons: "Import users-svc's flow first" and "Edit the call only". The choice isn't remembered: every such edit asks.</li>
+  </ol>
+</div>
+<div class="stage"><div class="window">
+  <div class="toolbar"><span class="seg"><span>View</span><span class="on">Edit</span></span><span class="seg"><span>Inside the service</span><span class="on">Full flow</span></span><span class="check"><i class="on"></i>Squeeze</span><span class="hint">🔒 = reference: behaviour not in this design</span></div>
+  <div class="draftbar"><span class="dn">Draft: HLD import<small>by seed</small></span><span class="delta">+4 −0 ~1</span><span class="right"><span class="btn sm">Review changes</span><span class="btn sm">Discard</span><span class="btn sm primary" style="color:var(--surface)">Apply to sase-hld</span></span></div>
+  <div class="tabs"><span class="tab" style="--tc:var(--t-socket)"><b>Agent connects to POP</b><i>sase-agent · tunnel.open</i><span class="x">×</span></span></div>
+  <div class="stepbar"><span class="nav" style="display:inline-grid;place-items:center">‹</span><span class="cnt">Step 3 of 5</span><span class="nav" style="display:inline-grid;place-items:center">›</span><span class="slabel"><span class="mono">GET /users/{id}/posture</span> <span class="muted">pop-edge → users-svc 🔒</span></span></div>
+  <div class="info" style="margin:0;border-radius:0;border-width:0 0 1px;font-size:var(--fs-xs)"><span><b>Partial flow:</b> 2 steps continue into references, so their behaviour isn't in this design: step 3 <span class="mono">users-svc · GET /users/{id}/posture</span>, step 5 <span class="mono">activitylog · rpc.activitylog.log.append</span>.</span><span class="acts"><a href="#">Import step 3</a> · <a href="#">Import step 5</a></span></div>
+  <div class="split">
+  <div class="diagram">
+  <svg viewBox="0 0 880 430" width="880" height="430" role="img" aria-label="Flow with two reference lifelines and an import in progress">
+    <rect class="band" x="4" y="4" width="128" height="22" rx="4"/><text class="band-t" x="12" y="19">Agent</text>
+    <rect class="band" x="138" y="4" width="128" height="22" rx="4"/><text class="band-t" x="146" y="19">Network (POP)</text>
+    <rect class="band" x="272" y="4" width="604" height="22" rx="4"/><text class="band-t" x="280" y="19">Platform</text>
+    <rect class="hd" x="8" y="34" width="120" height="46" rx="6"/><rect class="st-client" x="8" y="34" width="3" height="46"/><text class="tn" x="20" y="54">sase-agent</text><text class="ts" x="20" y="71">client app</text><use class="spark" href="#i-new" x="110" y="40" width="12" height="12"/>
+    <rect class="hd" x="146" y="34" width="120" height="46" rx="6"/><rect class="st-svc" x="146" y="34" width="3" height="46"/><text class="tn" x="158" y="54">pop-edge</text><text class="ts" x="158" y="71">service</text><use class="spark" href="#i-new" x="248" y="40" width="12" height="12"/>
+    <rect class="hd" x="300" y="34" width="120" height="46" rx="6"/><rect class="st-svc" x="300" y="34" width="3" height="46"/><text class="tn" x="312" y="54">auth-svc</text><text class="ts" x="312" y="71">service</text><use href="#i-chg" x="402" y="40" width="12" height="12"/>
+    <rect class="hd" x="470" y="34" width="140" height="46" rx="6" style="stroke-dasharray:4 3"/><rect class="st-svc" x="470" y="34" width="3" height="46"/><text class="tn" x="482" y="54">users-svc</text><text class="ts" x="482" y="71">🔒 reference from prod</text>
+    <rect class="hd" x="680" y="34" width="150" height="46" rx="6" style="stroke-dasharray:4 3"/><rect class="st-svc" x="680" y="34" width="3" height="46"/><text class="tn" x="692" y="54">activitylog</text><text class="ts" x="692" y="71">🔒 reference from prod</text>
+    <line class="ll" x1="68" y1="80" x2="68" y2="426"/><line class="ll" x1="206" y1="80" x2="206" y2="426"/><line class="ll" x1="360" y1="80" x2="360" y2="426"/><line class="ll" x1="540" y1="80" x2="540" y2="426"/><line class="ll" x1="755" y1="80" x2="755" y2="426"/>
+
+    <line class="s socket" x1="68" y1="112" x2="192" y2="112"/><polygon class="f-socket" points="200,112 191,107.5 191,116.5"/><g class="num"><rect x="74" y="90" width="16" height="16" rx="8"/><text x="79" y="102">1</text></g><text class="lbl" x="96" y="104">open tunnel</text>
+    <rect class="bar-socket" x="200" y="112" width="12" height="290" rx="2"/>
+
+    <line class="s http" x1="212" y1="150" x2="346" y2="150"/><polygon class="f-http" points="354,150 345,145.5 345,154.5"/><g class="num"><rect x="218" y="128" width="16" height="16" rx="8"/><text x="223" y="140">2</text></g><text class="lbl" x="240" y="142">POST /token</text>
+    <rect class="bar-http" x="354" y="150" width="12" height="30" rx="2"/>
+    <line class="s http ret" x1="354" y1="186" x2="220" y2="186"/><polyline class="o-http" points="221,181.5 212,186 221,190.5"/>
+
+    <!-- step 3: into a reference, selected -->
+    <line class="halo http" x1="212" y1="226" x2="534" y2="226"/>
+    <line class="s http" x1="212" y1="226" x2="526" y2="226"/><polygon class="f-http" points="534,226 525,221.5 525,230.5"/><g class="num"><rect x="218" y="204" width="16" height="16" rx="8" style="fill:var(--ink);stroke:var(--ink)"/><text x="223" y="216" style="fill:var(--surface)">3</text></g><text class="lbl" x="240" y="218">GET /users/{id}/posture</text>
+    <rect class="bar-old" x="534" y="226" width="12" height="26" rx="2"/><line class="cap" x1="530" y1="254" x2="550" y2="254"/>
+    <text class="note" x="556" y="246">🔒 behaviour in prod</text>
+    <g class="chip-b" style="cursor:pointer"><rect x="556" y="254" width="122" height="17" rx="8.5" style="stroke:var(--accent)"/><text x="566" y="266" style="fill:var(--accent)">Import into design</text></g>
+    <line class="s http ret" x1="534" y1="282" x2="220" y2="282"/><polyline class="o-http" points="221,277.5 212,282 221,286.5"/><text class="ret-t" x="236" y="277">posture</text>
+
+    <line class="s tbd" x1="212" y1="320" x2="290" y2="320" style="stroke-dasharray:5 4"/><g class="num"><rect x="218" y="298" width="16" height="16" rx="8"/><text x="223" y="310">4</text></g><text class="lbl" x="240" y="312">GetTenantPolicy</text><text class="fto" x="296" y="324">not designed yet</text>
+
+    <line class="s rpc" x1="212" y1="372" x2="741" y2="372"/><polygon class="f-rpc" points="749,372 740,367.5 740,376.5"/><g class="num"><rect x="218" y="350" width="16" height="16" rx="8"/><text x="223" y="362">5</text></g><text class="lbl" x="240" y="364">rpc.activitylog.log.append</text>
+    <rect class="bar-old" x="749" y="372" width="12" height="20" rx="2"/><line class="cap" x1="745" y1="394" x2="765" y2="394"/><text class="note" x="770" y="388">🔒 Import</text>
+  </svg>
+  </div>
+  <aside class="pane">
+    <div class="panel-head"><div class="grow">
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="kind http"><span class="ln"></span>http</span><span class="st">🔒 reference</span></div>
+      <h3>Import users-svc · GET /users/{id}/posture</h3>
+      <span class="xs muted">from prod (now) into draft HLD import · one level</span>
+    </div><span class="close">×</span></div>
+    <div class="panel-body">
+      <div>
+        <h4>Comes along: 11 items</h4>
+        <dl class="kv">
+          <dt>Handler</dt><dd><span class="mono">PostureController.get</span> <small>and 3 functions it calls inside users-svc</small></dd>
+          <dt>Calls it makes</dt><dd>2 <small><span class="mono">GET cache-main/device:{id}</span>, <span class="mono">mdm-api POST /devices/check</span></small></dd>
+          <dt>Stores</dt><dd><span class="mono">mongodb:users-db/devices</span> <small>read, with its schema</small></dd>
+          <dt>Messages</dt><dd>request + response DTOs</dd>
+        </dl>
+      </div>
+      <div>
+        <h4>Stays a reference: 1 component</h4>
+        <div class="info" style="font-size:var(--fs-xs)"><span>🔒 <span class="mono">mdm-api · POST /devices/check</span> is called by the imported flow. It stays a reference; import it from its lock when you need to change it.</span></div>
+      </div>
+      <p class="xs muted">Imported items are unchanged against prod, so they get no spark. They become editable once the draft is applied, and show as Changed when you edit them.</p>
+      <div class="acts"><span class="btn sm primary" style="color:var(--surface)">Import 11 items into draft</span><span class="btn sm">Cancel</span></div>
+    </div>
+  </aside>
+  </div>
+</div></div>
+
+<div class="stage"><div class="window" style="padding:var(--s4)">
+  <div class="cols2">
+    <section class="section">
+      <header><h2>Edit call · pop-edge → users-svc</h2><span class="hint">Edit mode, draft HLD import</span></header>
+      <div style="padding:var(--s3) var(--s4);display:grid;gap:var(--s3)">
+        <div class="callout" style="background:var(--surface);border-color:var(--line-strong)"><span class="dot" style="background:var(--ink-2)"></span><span>The other side of this call is a reference: <span class="mono">users-svc · GET /users/{id}/posture</span> lives in prod. Your edit changes the call only, not what users-svc does with it.</span></div>
+        <div class="acts"><span class="btn sm primary" style="color:var(--surface)">Import users-svc's flow first</span><span class="btn sm">Edit the call only</span></div>
+        <div class="fgrid" style="opacity:.55">
+          <span>Endpoint</span><span class="fsel">GET /users/{id}/posture</span>
+          <span>Transport</span><span class="fsel">http</span>
+          <span>Params</span><span class="fsel txt">deviceId</span>
+        </div>
+      </div>
+    </section>
+    <section class="section">
+      <header><h2>users-svc</h2><span class="st">🔒 1 reference endpoint</span><span class="hint">service page, design env</span></header>
+      <div class="scroll"><table class="t">
+        <thead><tr><th>Endpoint</th><th>Behaviour</th><th></th></tr></thead>
+        <tbody>
+          <tr><td class="key">GET /users/{id}</td><td class="muted">imported from prod, Oct 21</td><td></td></tr>
+          <tr><td class="key">GET /users/{id}/posture</td><td><span class="st">🔒 reference from prod</span></td><td><span class="btn sm">Import into design</span></td></tr>
+          <tr><td class="key">POST /users</td><td class="muted">in this design</td><td></td></tr>
+        </tbody>
+      </table></div>
+      <div class="foot">The flow list marks flows that run into a reference with 🔒 next to their name.</div>
+    </section>
+  </div>
+</div></div>
+
+<script>
+document.querySelectorAll('.theme button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.theme button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  if (b.dataset.t === 'system') document.documentElement.removeAttribute('data-theme'); else document.documentElement.dataset.theme = b.dataset.t;
+}));
+</script>
+</body>
+</html>
