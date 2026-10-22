@@ -204,11 +204,16 @@ test('a view of a view is one view; the canonical trace is never changed', () =>
 });
 
 test('viewParams: strings, objects, defaults and a bad detail', () => {
-  assert.deepEqual(parseChoose('g1:x,g2:a:b,,bad'), { g1: 'x', g2: 'a:b' });
+  assert.deepEqual(parseChoose('g1:x,g2:a:b,'), { g1: 'x', g2: 'a:b' });
   assert.deepEqual(parseChoose({ g: 'x' }), { g: 'x' });
   assert.deepEqual(viewParams({}), { detail: 'external', choose: {}, open: [], dbOpen: [] });
   assert.deepEqual(viewParams({ detail: 'full', choose: '*:both', open: 'a,a:b', dbOpen: ['k'], group: '1' }), { detail: 'full', choose: { '*': 'both' }, open: ['a', 'a:b'], dbOpen: ['k'], group: true });
   assert.throws(() => viewParams({ detail: 'big' }), /external or full/);
+  assert.throws(() => viewParams({ choose: 'garbage' }), /not <group>:<arm>/);
+  assert.throws(() => viewParams({ choose: 'g:' }), /not <group>:<arm>/);
+  assert.throws(() => viewParams({ choose: { g: 3 } }), /non-empty string/);
+  assert.throws(() => viewParams({ choose: 5 }), /choose must be/);
+  assert.throws(() => viewParams({ group: 'banana' }), /group must be/);
 });
 
 test('scope intra ignores detail (its lifelines are the functions)', () => {

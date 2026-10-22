@@ -49,6 +49,8 @@ test('REST: detail=full is the canonical trace; choose, open and both', async ()
 
 test('REST: a bad detail is a 400; a flow without alternatives with detail=full is exactly what it was', async () => {
   assert.equal((await app.call('GET', `${Q}&detail=big`)).status, 400);
+  assert.equal((await app.call('GET', `${Q}&choose=garbage`)).status, 400);
+  assert.equal((await app.call('GET', `${Q}&group=banana`)).status, 400);
   const plain = trace(buildIndex(sampleModel()), { service: 'orders-svc', ingress: 'in.create' }, { scope: 'full', maxMessages: 500 })!;
   const r = (await app.call('GET', '/api/envs/prod/trace?service=orders-svc&ingress=in.create&detail=full')).body;
   assert.deepEqual(shape(r.messages), shape(plain.messages));
