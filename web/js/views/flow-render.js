@@ -69,7 +69,7 @@ export function createFlowRender({ trace, tree, key, ancestors = [], sticky = tr
   function drawIndex() {
     index = tree.groups.length ? renderIndex(tree, { trace, handlers, depth, key, ancestors, makeFlow,
       open: (row, full) => (full ? host.openFull(row, key) : host.openSub(row, key)),
-      openAll: (rows) => host.openMany(rows, key), isOpen: (row) => host.isOpen(row, key), jump: (label) => host.jumpToLabel(label),
+      openAll: (rows) => host.openMany(rows, key), freeSlots: host.freeSlots, isOpen: (row) => host.isOpen(row, key), jump: (label) => host.jumpToLabel(label),
       hover: (labels, on) => lane?.mark(labels, on) }) : null;
     idxBox.replaceChildren(...(index ? [index.el] : []));
   }

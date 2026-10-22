@@ -6,26 +6,35 @@
 .tabscroll.fadeR { -webkit-mask-image: linear-gradient(270deg, transparent 0, #000 36px); mask-image: linear-gradient(270deg, transparent 0, #000 36px); }
 .tabscroll.fadeL.fadeR { -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 36px, #000 calc(100% - 36px), transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 36px, #000 calc(100% - 36px), transparent 100%); }
 .tab { display: inline-flex; align-items: center; gap: 6px; height: 35px; min-width: 130px; max-width: 230px; padding: 0 6px 0 10px; border: 1px solid var(--line); border-bottom: 0; border-radius: 8px 8px 0 0;
-  background: color-mix(in srgb, var(--surface) 55%, var(--surface-2)); color: var(--ink-2); font-size: var(--fs-sm); cursor: pointer; position: relative; flex: none; box-shadow: inset 0 2px 0 var(--tc, var(--t-http)); }
-.tab:hover { background: var(--surface); }
-.tab:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+  font-size: var(--fs-sm); cursor: pointer; position: relative; flex: none; }
+/* Active vs inactive (0.33.3): the active tab joins the pane (same fill, no bottom line, 1 px taller), a full top bar and a heavier label; the rest recede. */
+.tab { background: color-mix(in srgb, var(--surface) 40%, var(--surface-2)); color: var(--ink-2);
+  box-shadow: inset 0 2px 0 color-mix(in srgb, var(--tc, var(--t-http)) 40%, transparent); }
+.tab:hover { background: var(--surface); color: var(--ink); box-shadow: inset 0 2px 0 var(--tc, var(--t-http)); }
+.tab:hover .tl b { color: var(--ink); }
+.tab:focus-visible { outline: 2px solid var(--focus); outline-offset: -3px; z-index: 1; }
 .tab svg { width: 14px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; }
 .tab .tl { display: flex; align-items: baseline; gap: 4px; min-width: 0; white-space: nowrap; }
-.tab .tl b { font-weight: 600; color: var(--ink); flex: 0 0 auto; white-space: nowrap; }
+.tab .tl b { font-weight: 500; color: var(--ink-2); flex: 0 0 auto; white-space: nowrap; }
 .tab .tl i { font-style: normal; color: var(--muted); font-size: var(--fs-xs); min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .tab.entry, .tab.fn, .tab.full { max-width: 320px; }
 .tn { font: 700 10.5px var(--mono); padding: 1px 5px; border-radius: 4px; background: var(--surface-2); color: var(--ink-2); flex: none; }
-.tab.on .tn { background: var(--surface-2); }
+.tab.on .tn { background: var(--accent-soft); color: var(--accent); }
 .tab.full .tn, .tab.full svg { color: var(--accent); }
 .tab .x { margin-left: auto; width: 22px; height: 22px; border-radius: 5px; display: grid; place-items: center; flex: none; color: var(--muted); border: 0; background: none; cursor: pointer; padding: 0; }
 .tab .x svg { width: 11px; height: 11px; }
 .tab .x:hover { background: var(--surface-2); color: var(--ink); }
-.tab.on { background: var(--paper); color: var(--ink); height: 36px; border-color: var(--line-strong); margin-bottom: -1px; box-shadow: inset 0 3px 0 var(--tc, var(--t-http)); }
+.tab.on, .tab.on:hover { background: var(--paper); color: var(--ink); height: 37px; margin-bottom: -1px; border-color: var(--line-strong); border-bottom: 0;
+  box-shadow: inset 0 3px 0 var(--tc, var(--t-http)), 0 1px 0 var(--paper); } /* the last shadow hides the strip line under the tab */
+.tab.on .tl b { font-weight: 700; color: var(--ink); }
+.tab.on .x { color: var(--ink-2); }
+.tab:not(.on) .x { opacity: .7; } .tab:hover .x, .tab .x:focus-visible { opacity: 1; }
 .tabnav, .tabmenu { height: 35px; border: 0; background: none; color: var(--ink-2); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 0 8px; font: inherit; font-size: var(--fs-sm); }
 .tabnav[hidden], .tabmenu[hidden] { display: none; }
 .tabnav:hover, .tabmenu:hover { color: var(--ink); }
 .tabmenu { border-left: 1px solid var(--line-strong); margin-right: 8px; padding: 0 10px; }
 .tabmenu b { font-weight: 700; color: var(--ink); }
+.tabmenu.full { box-shadow: inset 0 -2px 0 var(--warn); }
 .tabmenu.open { background: var(--accent-soft); color: var(--accent); }
 
 .tabpop { position: absolute; top: 42px; right: 8px; width: 340px; max-width: calc(100% - 16px); z-index: 6; background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-md); box-shadow: var(--shadow-panel); overflow: hidden; }

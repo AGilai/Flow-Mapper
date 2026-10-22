@@ -1,4 +1,4 @@
-// The entry-point list on the left of the Flows page. Picking one opens a tab (it never replaces one). Above the text filter: the Subsystem and Component
+// The entry-point list on the left of the Flows page. A click opens the flow in the active tab (replacing it), the row's "Tab" button in a new one. Above the text filter: the Subsystem and Component
 // groups, and in a design "Changed only" (#61) and "All endpoints" (#65: a design lists named flows unless it is on). The filters live in the URL
 // (`subsystems=`, `components=`, `changed=`, `endpoints=all`) and combine with the text.
 
@@ -7,6 +7,7 @@ import { icon } from '../icons.js';
 import { href, setQuery } from '../router.js';
 import { KEYS, SLIDE_MS, isNarrow, readCollapsed, writeCollapsed, toggleLabel, stripLabel } from '../collapse.js';
 import { createGroup } from './flow-list-groups.js';
+import { TAB_CAP } from './flow-tabs-state.js';
 import { entryRow, removedRow } from './flow-list-rows.js';
 import { parseRel, relOptions } from './flow-relations-pure.js';
 import { startGroup, encodeGroup, saveGroup, flatOrder } from './flow-list-groupby.js';
@@ -15,7 +16,7 @@ import { scopePoints, parseSel, encodeSel, subsystemRows, componentRows, filterP
 const LIST_CAP = 300;
 
 /** createList({ points, counts, cmts = {} (comments per `flow:<service>/<ingress>`), service, groupOf, groups, marks, design, query, onPick(point), onAll(), onCollapse(collapsed) }) -> { el, mark({ keys, active }), collapsed() } */
-export function createList({ env = '', points: allPoints, counts, cmts = {}, acts = {}, ments = {}, relBy = new Map(), service, groupOf = new Map(), groups = [], marks = null, design = false, query = new URLSearchParams(), onPick, onAll, onCollapse }) {
+export function createList({ env = '', points: allPoints, counts, cmts = {}, acts = {}, ments = {}, relBy = new Map(), service, groupOf = new Map(), groups = [], marks = null, design = false, query = new URLSearchParams(), onPick, onPickTab, onAll, onCollapse }) {
   const body = h('div.flows-scroll');
   const filter = h('input.input', { type: 'search', placeholder: service ? 'Filter ingress' : 'Filter entry points', 'aria-label': 'Filter starting points' });
   let marked = { keys: [], active: null }, collapsed = readCollapsed(KEYS.list, undefined, isNarrow()); // narrow viewport: starts collapsed unless a choice was saved
@@ -65,7 +66,7 @@ export function createList({ env = '', points: allPoints, counts, cmts = {}, act
     for (const p of xs.slice(0, LIST_CAP)) { if (!groupsMap.has(p.service)) groupsMap.set(p.service, []); groupsMap.get(p.service).push(p); }
     fill(body,
       service ? h('a.small', { href: href('/flows'), style: { padding: '0 var(--s2)' }, on: { click: (e) => { e.preventDefault(); onAll(); } } }, 'Show all entry points') : null,
-      flat ? xs.slice(0, LIST_CAP).map((p) => entryRow(p, { marks, counts, cmts, acts, ments, relBy, onPick, design, flat })) : [...groupsMap].map(([svc, ps]) => [h('h3', svc), ps.map((p) => entryRow(p, { marks, counts, cmts, acts, ments, relBy, onPick, design }))]),
+      flat ? xs.slice(0, LIST_CAP).map((p) => entryRow(p, { marks, counts, cmts, acts, ments, relBy, onPick, onPickTab, design, flat })) : [...groupsMap].map(([svc, ps]) => [h('h3', svc), ps.map((p) => entryRow(p, { marks, counts, cmts, acts, ments, relBy, onPick, onPickTab, design }))]),
       gone.length ? [h('h3', 'Removed'), gone.map((g) => removedRow(g, marks))] : null,
       xs.length > LIST_CAP ? h('p.xs.muted', { style: { padding: 'var(--s2)' } }, `${xs.length - LIST_CAP} more. Type to narrow the list.`) : null,
       !xs.length && !gone.length ? h('p.small.muted', { style: { padding: 'var(--s2)' } }, flowsOnly && !fs.all && !points.length ? 'No named flows yet. Name a flow, or turn on "All endpoints".' : 'No starting points match.') : null,
@@ -78,7 +79,13 @@ export function createList({ env = '', points: allPoints, counts, cmts = {}, act
     if (collapsed) word.textContent = stripLabel({ service, active: m.active, count: points.length, summary: summary() });
     const base = (k) => (k ?? '').replace(/(~[^!]*)?(!(intra|full))?$/, '');
     const open = new Set(m.keys.map(base)), cur = base(m.active);
-    body.querySelectorAll('a.entry').forEach((a) => { a.setAttribute('aria-current', String(a.dataset.key === cur)); a.classList.toggle('has-tab', open.has(a.dataset.key)); });
+    const full = m.keys.length >= TAB_CAP;
+    body.querySelectorAll('.entry-r').forEach((r) => {
+      const a = r.querySelector('a.entry'), b = r.querySelector('.entry-tab'), on = open.has(a.dataset.key);
+      a.setAttribute('aria-current', String(a.dataset.key === cur)); a.classList.toggle('has-tab', on);
+      b.classList.toggle('is-open', on); b.setAttribute('aria-disabled', String(full && !on));
+      b.title = on ? 'Already open: go to its tab' : full ? `${TAB_CAP} tabs open: close one to open another` : 'Open in a new tab';
+    });
   }
   filter.addEventListener('input', debounce(() => { draw(); paint(); }, 120));
   subG.update({ rows: subRows, sel: fs.subs }); cmpG.update({ rows: vis(), sel: fs.comps });
