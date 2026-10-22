@@ -25,6 +25,7 @@ import { setServiceInfo } from '../design/service-info.js';
 import { openImport } from '../design/import-panel.js';
 import { editOpener, editing } from '../design/edit-open.js';
 import { pencils } from '../design/pencil.js';
+import { createPane } from '../pane/pane.js';
 import { loadSubsystems } from '../design/subsystems-store.js';
 import { relCounts } from './flow-relations-pure.js';
 import { createMax } from './flow-max.js';
@@ -74,7 +75,7 @@ export async function render({ main, query }) {
 
   const mainPane = h('div.flows-main');
   const rightEl = h('div.flows-right', mainPane); // the message panel is this grid's second column, so it squeezes the diagram
-  const panel = createPanel(rightEl, { onClose: () => { flowsEl.classList.remove('mp-open'); views.get(S.active)?.clearMessage(); } });
+  const panel = createPanel(rightEl, { onClose: () => { flowsEl.classList.remove('mp-open'); views.get(S.active)?.clearMessage(); setQuery({ sel: null }); }, onLeavePane: () => setQuery({ sel: null }) });
   const svcs = await api.services(state.env).catch(() => []);
   setServiceInfo(svcs);
   const groupOf = new Map(svcs.map((s) => [s.name, s.groupPath ?? '']));
@@ -145,7 +146,10 @@ export async function render({ main, query }) {
     setFrontier: () => { opts.frontier = true; frontierCheck.querySelector('input').checked = true; persist(); reloadAll(); },
   };
   if (editing()) host.edit = editOpener(host);
+  // The info pane (0.33.0): a lifeline head or a subsystem band opens it (View mode; Edit with a draft: the head opens the form, the head's menu has Show details).
   host.pen = pencils(host); // 0.31.1: the pencils of the flow head; the hint of a harvested page sits under the toolbar
+  const pane = createPane(panel, { pen: host.pen, ctx: () => ({ fromFlow: T.flowRoot(S.active) }), onSelect: (sel) => { flowsEl.classList.add('mp-open'); setQuery({ sel }); } });
+  host.openPane = (target) => pane.show(target);
   toolbar.after(...[host.pen.hint()].filter(Boolean));
   const openEntry = ({ service: s, ingress, fn, event, scope }) => commit(T.openTab(S, ingress ? T.entryKey(s, ingress, event, scope) : T.fnKey(s, fn, event, scope)));
   function setScope(scope) {
@@ -226,6 +230,7 @@ export async function render({ main, query }) {
   strip.render(S); paintChrome();
   if (S.keys.length) persist(); // old single-flow links become tabs=
   host.pen.resume();
+  pane.restore(query);
   if (maxFromQuery(query) && S.keys.length) max.set(true, { fullscreen: false, url: false }); // a link or reload opens maximized (window-filling only)
   return { dispose: () => { disposed = true; removeEventListener('keydown', onKey); max.dispose(); strip.closeMenu(); panel.dispose(); views.forEach((v) => v.dispose()); } };
 }

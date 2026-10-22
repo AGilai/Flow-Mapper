@@ -8,6 +8,7 @@ import { servicePath } from './inventory-links.js';
 /** ctx: { trace, openEntry(spec) } */
 export function participantMenu(p, x, y, ctx) {
   const items = [];
+  if (p.kind === 'service' && ctx.openPane) items.push({ label: 'Show details', icon: 'info', hint: 'The info pane: overview, about, flows, connections', onSelect: () => ctx.openPane({ kind: 'component', name: p.service }) });
   if (p.kind === 'service') items.push(zoomIn(p.service, ctx.trace, ctx.openEntry));
   if (p.service) items.push('divider', { label: `Open ${p.service}`, icon: 'services', onSelect: () => go(servicePath(p.service)) });
   if (items.length) openMenu(x, y, p.label, items);

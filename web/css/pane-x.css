@@ -1,0 +1,63 @@
+/* The expanded info pane (0.33.0, frame 19h): a full-screen page over the app with accordion rows and an outline. Tokens only, light and dark. */
+.pane-x { position: fixed; inset: 0; z-index: 60; background: var(--paper); color: var(--ink); display: flex; flex-direction: column; font-size: var(--fs-sm); }
+.pane-x-top { flex: none; display: flex; align-items: center; gap: var(--s3); padding: 0 var(--s4); min-height: 52px; background: var(--surface); border-bottom: 1px solid var(--line-strong); flex-wrap: wrap; }
+.pane-x-title { min-width: 0; }
+.pane-x-title h3 { margin: 0; font: 700 var(--fs-lg)/1.2 var(--font); }
+.pane-x-title h3.mono { font-family: var(--mono); }
+.pane-x .crumb { font-size: var(--fs-xs); color: var(--muted); }
+.pane-x .pane-marks { grid-column: auto; margin: 0; }
+.pane-x-top .sp { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+.pane-ib.b { width: auto; padding: 0 8px; gap: 6px; display: inline-flex; border-color: var(--accent); color: var(--accent); font: 600 12px var(--font); }
+.pane-ib.b svg { width: 14px; height: 14px; }
+.pane-ib.b kbd { font: 10.5px var(--mono); color: var(--muted); }
+.st.new { font-size: var(--fs-xs); font-weight: 600; color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); border-radius: 10px; padding: 0 7px; }
+.pane-x-bar { flex: none; display: flex; gap: 10px; align-items: center; padding: 8px var(--s4); background: var(--surface-2); border-bottom: 1px solid var(--line); font-size: var(--fs-xs); color: var(--ink-2); flex-wrap: wrap; }
+.pane-x-bar .sp { margin-left: auto; }
+.pane-x-main { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: minmax(0, 1fr) 232px; gap: var(--s5); padding: var(--s4) var(--s5); max-width: 1180px; width: 100%; margin: 0 auto; box-sizing: border-box; align-content: start; align-items: start; }
+.pane-x-aside { position: sticky; top: 0; display: grid; gap: var(--s4); font-size: var(--fs-xs); }
+.pane-cap { padding-bottom: 4px; color: var(--muted); font-size: var(--fs-xs); }
+.pane-cap b { color: var(--ink); }
+.pane-out { display: grid; gap: 1px; border-left: 1px solid var(--line-strong); }
+.pane-out button { padding: 5px 10px; color: var(--ink-2); border: 0; border-left: 2px solid transparent; margin-left: -1px; display: flex; gap: 6px; background: transparent; text-align: left; font: inherit; cursor: pointer; }
+.pane-out button small { color: var(--muted); margin-left: auto; }
+.pane-out button.on { color: var(--accent); font-weight: 600; border-left-color: var(--accent); }
+.pane-out button.q { color: var(--warn); }
+.pane-out button.sub { padding-left: 22px; font-size: 11.5px; }
+.pane-keys { display: grid; gap: 6px; color: var(--muted); }
+.pane-keys b { color: var(--ink); }
+
+.pane-accs { display: grid; gap: 8px; align-content: start; min-width: 0; }
+.pane-acc { border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); overflow: hidden; scroll-margin-top: 8px; }
+.pane-acc.q { border-color: color-mix(in srgb, var(--warn) 55%, var(--line)); }
+.pane-acc > .hd { margin: 0; display: flex; align-items: center; gap: 9px; padding: 0 12px 0 0; font-size: var(--fs-sm); font-weight: 700; background: color-mix(in srgb, var(--surface-2) 60%, var(--surface)); }
+.pane-acc.q > .hd { background: color-mix(in srgb, var(--warn) 9%, var(--surface)); color: var(--warn); }
+.pane-acc > .hd > button { flex: 1; min-width: 0; display: flex; align-items: center; gap: 9px; padding: 9px 12px; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; text-align: left; }
+.pane-acc > .hd > button:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.pane-acc .chev { width: 12px; height: 12px; color: var(--muted); flex: none; transform: rotate(180deg); transition: transform .12s; }
+.pane-acc.open > .hd .chev { transform: rotate(270deg); }
+.pane-acc > .hd small { font-weight: 500; color: var(--muted); font-size: var(--fs-xs); }
+.pane-acc.q > .hd small { color: var(--warn); }
+.pane-acc > .hd .r { margin-left: auto; display: flex; gap: 8px; align-items: center; font-weight: 500; font-size: var(--fs-xs); color: var(--accent); }
+.pane-acc > .bd { padding: 12px 14px 14px; border-top: 1px solid var(--line); }
+.pane-acc.sub { border: 0; border-radius: 0; border-top: 1px solid var(--line); background: transparent; }
+.pane-acc.sub > .hd { background: transparent; font-weight: 600; padding-left: 8px; }
+.pane-acc.sub > .bd { border-top: 0; padding-top: 2px; }
+.pane-acc > .bd > .pane-acc-kids { margin: -12px -14px -14px; }
+.pane-acc > .bd > .pane-acc-kids:first-child { margin: -12px -14px -14px; }
+.pane-acc .pane-ab.q { border-left-color: var(--warn); }
+.pane-eps { display: grid; border: 1px solid var(--line); border-radius: var(--r-sm); overflow: hidden; }
+.pane-ep { border-top: 1px solid var(--line); }
+.pane-ep:first-child { border-top: 0; }
+.pane-ep > .l { display: grid; grid-template-columns: 12px 44px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 7px 10px; width: 100%; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.pane-ep > .l b { font: 500 12.5px var(--mono); overflow-wrap: anywhere; }
+.pane-ep > .l .chev { width: 12px; height: 12px; color: var(--muted); transform: rotate(180deg); }
+.pane-ep > .l[aria-expanded="true"] .chev { transform: rotate(270deg); }
+.pane-ep > .l .r { display: flex; gap: 6px; align-items: center; }
+.pane-ep > .d { margin: 0 10px 10px 30px; padding: 9px 12px; background: var(--surface-2); border-radius: var(--r-sm); display: grid; gap: 6px; font-size: var(--fs-xs); color: var(--ink-2); }
+.pane-ep > .d pre { margin: 0; font: 400 11.5px/1.5 var(--mono); color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; }
+.pane-ep > .d[hidden] { display: none; }
+.pane-dir { font: 600 10px var(--font); letter-spacing: .04em; text-transform: uppercase; color: var(--ink-2); border: 1px solid var(--line-strong); border-radius: 4px; padding: 1px 5px; text-align: center; }
+.btn-row:disabled { cursor: default; }
+
+@media (max-width: 1279px) { .pane-x-main { grid-template-columns: minmax(0, 1fr); } .pane-x-aside { display: none; } }
+@media (max-width: 760px) { .pane-x-main { padding: var(--s3); } .pane-x-top { padding: var(--s2) var(--s3); } }

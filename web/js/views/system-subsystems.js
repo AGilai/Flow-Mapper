@@ -14,7 +14,9 @@ import { openLinkForm } from '../design/forms/link-form.js';
 import { pencils } from '../design/pencil.js';
 import { layoutBoxes, gridFor, MANY } from '../graph/subsystem-layout.js';
 import { drawSubsystems } from './subsystem-draw.js';
-import { linePanel, boxPanel } from './subsystem-panel.js';
+import { linePanel } from './subsystem-panel.js';
+import { createPane } from '../pane/pane.js';
+import { parseSel } from '../pane/pane-pure.js';
 import { openList } from './subsystem-open.js';
 import { levelControl, subsystemBar } from './system-toolbar.js';
 import { href } from '../router.js';
@@ -31,16 +33,19 @@ export async function renderSubsystems({ main, query, subs, marks }) {
   const many = map.boxes.length > MANY; // a merged line per pair of boxes, shown for the box in focus
   let hoverKey = null, draw = null;
   const label = (k) => subs.labelOf(k) || 'Not set';
-  let selected = query.get('link') ? `link:${query.get('link')}` : query.get('line') ?? (query.get('box') != null ? `box:${query.get('box')}` : null);
+  const want = parseSel(query.get('sel')), wantBox = want?.kind === 'subsystem' ? want.key : query.get('box'); // `sel=grp:<key>` (0.33.0); `box=` still opens it
+  let selected = query.get('link') ? `link:${query.get('link')}` : query.get('line') ?? (wantBox != null ? `box:${wantBox}` : null);
 
   const stage = h('div.ss-stage', { 'data-qa': 'ss-stage' }), under = h('div.ss-under');
   const content = h('div.content.flush', h('div.stage-wrap.ss-wrap', stage, under, subsystemLegend()));
-  const panel = createPanel(content, { onClose: () => { selected = null; setQuery({ box: null, line: null, link: null }); paint(); } });
-  const pick = (sel, q) => { selected = sel; setQuery({ box: null, line: null, link: null, ...q }); paint(); };
+  const panel = createPanel(content, { onClose: () => { selected = null; setQuery({ box: null, line: null, link: null, sel: null }); paint(); } });
+  const pick = (sel, q) => { selected = sel; setQuery({ box: null, line: null, link: null, sel: null, ...q }); paint(); };
   const openLink = (v) => { pick(`link:${v.id}`, { link: v.id }); openLinkPanel(v, { panel, subs, marks, map, editing: edit }); };
   const openLine = (l) => { pick(l.id, { line: l.id }); panel.open(...linePanel(l, { map, label, onLink: openLink })); };
-  const openBox = (key) => { pick(`box:${key}`, { box: key }); panel.open(...boxPanel(map.boxes.find((b) => b.key === key), { map, marks, label, onGo: goDown, onLink: openLink, pen })); };
   const pen = pencils({ panel, flowsEl: null });
+  // The info pane (0.33.0): a box opens it, `sel=grp:<key>`; a component row inside it swaps to that component.
+  const pane = createPane(panel, { pen, ctx: () => ({ map, onLine: openLine, onLink: openLink }), onSelect: (sel, t) => { selected = t.kind === 'subsystem' ? `box:${t.key}` : null; setQuery({ box: null, line: null, link: null, sel }); paint(); } });
+  const openBox = (key) => pane.show({ kind: 'subsystem', key });
   const goDown = (service) => go('/system', { sel: `svc:${service}` });
 
   const boxSel = () => (selected?.startsWith('box:') ? selected.slice(4) : null), lineSel = () => (selected && !selected.startsWith('box:') && !selected.startsWith('link:') ? selected : null);
@@ -63,8 +68,9 @@ export async function renderSubsystems({ main, query, subs, marks }) {
   paint();
   // Reopen the panel of the selection the URL names (a refine, a reload, a link).
   if (selected?.startsWith('link:')) { const v = map.abstract.find((x) => x.id === selected.slice(5)); if (v) openLinkPanel(v, { panel, subs, marks, map, editing: edit }); }
-  else if (selected?.startsWith('box:')) { const b = map.boxes.find((x) => x.key === selected.slice(4)); if (b) panel.open(...boxPanel(b, { map, marks, label, onGo: goDown, onLink: openLink, pen })); }
+  else if (selected?.startsWith('box:')) { if (map.boxes.some((x) => x.key === selected.slice(4))) pane.restore(new URLSearchParams({ sel: `grp:${selected.slice(4)}`, ...(query.get('expanded') ? { expanded: query.get('expanded') } : {}) })); }
   else if (selected) { const l = map.lines.find((x) => x.id === selected); if (l) panel.open(...linePanel(l, { map, label, onLink: openLink })); }
+  else if (want?.kind === 'component') pane.restore(query);
   pen.resume();
-  return { dispose: () => { ro.disconnect(); panel.dispose(); } };
+  return { dispose: () => { ro.disconnect(); pane.dispose(); panel.dispose(); } };
 }
