@@ -191,6 +191,12 @@ test('api routing: a foreign env context reads only its own env and never the pa
     assert.deepEqual(s.seen.filter((u) => !u.startsWith('/api/envs/sase/') && !u.startsWith('/api/mentions')), [], 'every request names the tab\'s env');
     assert.deepEqual(s.seen.filter((u) => /[?&]draft=/.test(u)), [], 'a foreign env never gets the page env\'s draft');
     assert.ok(s.seen.some((u) => u.includes('/marks') && u.includes('against=source')), 'a foreign design env shows its committed state against its source');
+    s.seen.length = 0; // writes too: comments, notes and action items of a foreign tab go to its env without the page's draft
+    for (const call of [() => api.addComment('sase', {}), () => api.saveNotes('sase', {}), () => api.restoreNotes('sase', {}), () => api.addActionItem('sase', {}), () => api.editActionItem('sase', 1, {})]) await call().catch(() => {});
+    assert.equal(s.seen.length, 5);
+    assert.deepEqual(s.seen.filter((u) => /[?&]draft=/.test(u) || !u.startsWith('/api/envs/sase/')), [], 'a write to a foreign env never carries the page env\'s draft');
+    await api.addComment('design-x', {}).catch(() => {});
+    assert.ok(s.seen.at(-1)?.includes('draft=my-edits'), 'a write to the page env still carries its draft');
     // the control: the page's own env does carry its draft
     s.seen.length = 0;
     await ctxs.get('design-x').desc.refresh({ service: 'svc', ingress: 'in.x' });

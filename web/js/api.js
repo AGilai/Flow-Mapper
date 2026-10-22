@@ -49,6 +49,8 @@ export function withDraft(path, draft = state.draft, env = state.env) {
   return path + (path.includes('?') ? '&' : '?') + `draft=${e(draft)}`;
 }
 const get = (path) => http('GET', withDraft(path));
+/** The open draft belongs to the page's env: a write to another env (a flow tab of another env) never carries it. */
+const draftOf = (env) => (env === state.env ? state.draft : null);
 const put = (env, tail, method, body) => http(method, `/api/envs/${e(env)}/drafts${tail}`, body);
 
 const remote = {
@@ -110,18 +112,18 @@ const remote = {
   flowNames: (env) => get(`/api/envs/${e(env)}/flow-names`),
   comments: (env, anchor) => get(`/api/envs/${e(env)}/comments${qs({ anchor })}`),
   commentCounts: (env) => get(`/api/envs/${e(env)}/comments/counts`),
-  addComment: (env, body) => http('POST', `/api/envs/${e(env)}/comments${qs({ draft: state.draft })}`, body),
+  addComment: (env, body) => http('POST', `/api/envs/${e(env)}/comments${qs({ draft: draftOf(env) })}`, body),
   editComment: (env, id, body) => http('PATCH', `/api/envs/${e(env)}/comments/${id}`, body),
   resolveComment: (env, id, body) => http('PATCH', `/api/envs/${e(env)}/comments/${id}`, body), // { actor, resolved } (0.29.2)
   deleteComment: (env, id, author) => http('DELETE', `/api/envs/${e(env)}/comments/${id}${qs({ author })}`),
   notes: (env, anchor, version) => get(`/api/envs/${e(env)}/notes${qs({ anchor, version })}`), // 0.34.0: a flow's Notes, kept as versions
   notesHistory: (env, anchor) => get(`/api/envs/${e(env)}/notes/history${qs({ anchor })}`),
-  saveNotes: (env, body) => http('PUT', `/api/envs/${e(env)}/notes${qs({ draft: state.draft })}`, body), // { anchor, body, baseVersion, author }
-  restoreNotes: (env, body) => http('POST', `/api/envs/${e(env)}/notes/restore${qs({ draft: state.draft })}`, body),
+  saveNotes: (env, body) => http('PUT', `/api/envs/${e(env)}/notes${qs({ draft: draftOf(env) })}`, body), // { anchor, body, baseVersion, author }
+  restoreNotes: (env, body) => http('POST', `/api/envs/${e(env)}/notes/restore${qs({ draft: draftOf(env) })}`, body),
   actionItems: (env, anchor) => get(`/api/envs/${e(env)}/action-items${qs({ anchor })}`),
   actionCounts: (env) => get(`/api/envs/${e(env)}/action-items/counts`),
-  addActionItem: (env, body) => http('POST', `/api/envs/${e(env)}/action-items${qs({ draft: state.draft })}`, body),
-  editActionItem: (env, id, body) => http('PATCH', `/api/envs/${e(env)}/action-items/${id}${qs({ draft: state.draft })}`, body),
+  addActionItem: (env, body) => http('POST', `/api/envs/${e(env)}/action-items${qs({ draft: draftOf(env) })}`, body),
+  editActionItem: (env, id, body) => http('PATCH', `/api/envs/${e(env)}/action-items/${id}${qs({ draft: draftOf(env) })}`, body),
   deleteActionItem: (env, id, actor) => http('DELETE', `/api/envs/${e(env)}/action-items/${id}${qs({ actor })}`),
   mentions: (q = {}) => http('GET', `/api/mentions${qs({ user: q.user, unread: q.unread ? 1 : null, env: q.env, anchor: q.anchor, limit: q.limit })}`),
   seenMentions: (user, commentIds) => http('POST', '/api/mentions/seen', { user, commentIds }),
