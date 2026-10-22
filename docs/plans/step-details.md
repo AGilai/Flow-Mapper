@@ -44,3 +44,10 @@ and the arrows `…&sd=tad`. CHANGELOG, version 0.30.0.
   Scroll-into-view uses the bar's real height from the DOM.
 - Double-click on the bar's detail block also opens the editor.
 - No "AI draft available" strip in this release.
+
+## Maintainer amendment (2026-10-22): two sections in the panel
+"Step details ▾" holds two sections, each with Title / API / Description checkboxes: **Step bar** (default all three)
+and **Arrows** (default API only). The viewer chooses what shows where. Remembered per viewer and in the URL: `sb=`
+(bar) and `sd=` (arrows), letters t,a,d, each omitted at its default; `sb=-` means nothing in the bar but the stepper.
+Arrows keep at least one field (falls back to API). The button label summarises both, e.g. "Step details: bar 3 ·
+arrows API".
