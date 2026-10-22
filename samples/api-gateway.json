@@ -26,7 +26,36 @@
         {
           "seq": 1,
           "type": "egress",
-          "target": "orders.create"
+          "target": "orders.create",
+          "alternatives": [
+            {
+              "group_id": "6f1c2a0e-8f55-5a52-9c1e-0d6f2b7a1c01",
+              "name": "when the body is valid -> orders.create, else -> reject with 422",
+              "name_source": "template",
+              "llm_name": null,
+              "llm_provenance": null,
+              "depends_on": "message",
+              "guard": { "text": "isValidOrder(body)", "file": "routes/orders.ts", "line": 14 },
+              "arms": [
+                { "arm": "then", "label": "orders.create", "guard_text": "isValidOrder(body)", "step_ids": ["api-gateway:routeCreateOrder#1"] },
+                { "arm": "else", "label": "reject 422", "step_ids": ["api-gateway:rejectOrder#1"] }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rejectOrder",
+      "name": "reject an invalid order",
+      "file": "routes/orders.ts",
+      "line": 21,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "kind": "leaf",
+          "operation": "reject 422"
         }
       ]
     },

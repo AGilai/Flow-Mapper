@@ -21,7 +21,7 @@ export { entryPoints } from './entry-points.ts';
 import { codeLink, sourceLink, type SourceLink } from './endpoint-info.ts';
 import { refKey, unresolvedTarget } from './resolve.ts';
 import { assumedOn, storeOn, unknownOn } from './step-notes.ts';
-import type { Step, StepField, Unresolved } from './types.ts';
+import type { Step, StepAlternative, StepFix, StepField, Unresolved } from './types.ts';
 import { stepExtras } from './step-marks.ts';
 import { altCtxOf, altGroups, type Alt, type AltCtx } from './alt.ts';
 import { egressVia, ingressVia, type LinkedHop } from './via.ts';
@@ -39,7 +39,7 @@ export interface Message {
   from: string; to: string; label: string; mode: Mode;
   kind: 'entry' | 'call' | 'egress' | 'deliver' | 'resource' | 'leaf' | 'frontier';
   depth: number; internal?: boolean; broken?: boolean; cycle?: boolean;
-  condition?: string; loop?: boolean;
+  condition?: string; loop?: boolean; alternatives?: StepAlternative[]; fixes?: StepFix[]; stepId?: string; // 0.36.1 (#82): the step's either/or groups as sent, and the id `arms[].step_ids` use (`<service>:<fn>#<seq>`)
   mark?: 'new' | 'changed'; changed?: string; over?: string[]; real?: string; returns?: { label: string; detail?: string }; self?: boolean; // 0.33.2: what the call returns (#81); 0.33.1: a mermaid import's `%% real:` bind key, the return's label, a self-message; 0.32.2: the step's mark and its details.changed text (#75), the components a leaf note spans (#74)
   alt?: Alt;                                                 // the step is one of several alternatives (an alt frame): group, branch (1-based), number of branches; the message keeps its `condition` note?: string; fn?: string; service?: string; transport?: string; protocol?: 'tls' | 'tcp' | 'ws';
   event?: string; unhandled?: boolean; operation?: string; // operation: a call out's own words (`POST /token`); `label` is that plus the bind key
@@ -195,7 +195,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
         }
         continue;
       }
-      const base = { depth, condition: st.condition, ...(alt ? { alt } : {}), loop: st.loop, note: st.note, fn: f.id, service, seq: st.seq, ...stepExtras(st), ...(st.origin === 'frontier' ? { origin: 'frontier' as const } : {}) };
+      const base = { depth, condition: st.condition, ...(alt ? { alt } : {}), loop: st.loop, note: st.note, fn: f.id, service, seq: st.seq, ...stepExtras(st, `${service}:${f.id}#${st.seq}`), ...(st.origin === 'frontier' ? { origin: 'frontier' as const } : {}) };
       // A gap the harvester reported: the step's own target, or the egress it goes through, is unresolved.
       const out = st.type === 'egress' && st.target ? g.egress.get(sid(service, st.target)) : undefined;
       const gap = (!st.target ? st.unresolved?.find((u) => u.what === 'target') : undefined) ?? (out ? unresolvedTarget(out) : undefined);

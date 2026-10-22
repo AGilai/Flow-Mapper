@@ -13,7 +13,7 @@ export function createValidator(root: Record<string, any>) {
     return ref.slice(2).split('/').reduce((n: any, k) => n?.[k], root);
   };
   const typeOf = (v: unknown) => (v === null ? 'null' : Array.isArray(v) ? 'array' : Number.isInteger(v) ? 'integer' : typeof v);
-  const typeOk = (t: string, v: unknown) => t === typeOf(v) || (t === 'number' && typeof v === 'number');
+  const typeOk = (t: string | string[], v: unknown): boolean => Array.isArray(t) ? t.some((x) => typeOk(x, v)) : t === typeOf(v) || (t === 'number' && typeof v === 'number');
 
   // Collect property names a schema declares, following $ref and allOf.
   const declared = (s: Schema, acc = new Set<string>()): Set<string> => {
@@ -28,7 +28,7 @@ export function createValidator(root: Record<string, any>) {
     if (s === true) return;
     if (s === false) { errs.push({ path, message: 'not allowed' }); return; }
     if (s.$ref) check(resolveRef(s.$ref), v, path, errs);
-    if (s.type && !typeOk(s.type, v)) { errs.push({ path, message: `must be ${s.type}` }); return; }
+    if (s.type && !typeOk(s.type, v)) { errs.push({ path, message: `must be ${[s.type].flat().join(' or ')}` }); return; }
     if ('const' in s && v !== s.const) errs.push({ path, message: `must equal ${JSON.stringify(s.const)}` });
     if (s.enum && !s.enum.includes(v)) errs.push({ path, message: `must be one of ${s.enum.join(', ')}` });
     if (typeof v === 'string') {
