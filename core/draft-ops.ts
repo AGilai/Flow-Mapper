@@ -70,12 +70,23 @@ export function applyOp(rows: Map<string, ItemRow>, o: Pick<DraftOp, 'op' | 'ser
   rows.set(id, { service: o.service, list: o.list, key: o.key, data });
 }
 
-/** The environment as the draft would leave it. */
-export function overlayRows(rows: ItemRow[], net: NetOp[]): ItemRow[] {
-  const map = new Map(rows.map((r) => [rowId(r), r]));
-  for (const o of net) applyOp(map, o);
-  return [...map.values()];
+const idMaps = new WeakMap<ItemRow[], Map<string, ItemRow>>();
+/** rowId -> row of `rows`, built once per array (the memoised environment rows come back as the same array on every call). Read-only: callers copy it before they change it. */
+export function rowMap(rows: ItemRow[]): ReadonlyMap<string, ItemRow> {
+  let m = idMaps.get(rows);
+  if (!m) idMaps.set(rows, (m = new Map(rows.map((r) => [rowId(r), r]))));
+  return m;
 }
+
+/** The environment as the draft would leave it, as a map (a copy: the caller may change it). */
+export function overlayMap(rows: ItemRow[], net: NetOp[]): Map<string, ItemRow> {
+  const map = new Map(rowMap(rows));
+  for (const o of net) applyOp(map, o);
+  return map;
+}
+
+/** The environment as the draft would leave it. */
+export const overlayRows = (rows: ItemRow[], net: NetOp[]): ItemRow[] => [...overlayMap(rows, net).values()];
 
 /** Does the draft's item differ from the environment's? Headers compare whole (group path and details are design content), so do subsystem settings (order included). */
 export function differs(list: string, a: unknown, b: unknown): boolean {
@@ -85,7 +96,7 @@ export function differs(list: string, a: unknown, b: unknown): boolean {
 
 /** What the draft changes in the environment. Children of an added or removed component are listed (`under`) but not counted. */
 export function draftChanges(envRows: ItemRow[], net: NetOp[], all: DraftOp[] = net): DraftChanges {
-  const env = new Map(envRows.map((r) => [rowId(r), r]));
+  const env = rowMap(envRows);
   const after = new Map(env);
   for (const o of net) applyOp(after, o);
   const touched = new Map<string, DraftOp>();

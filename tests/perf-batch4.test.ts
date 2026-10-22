@@ -8,6 +8,8 @@ import { entryPoints, trace } from '../core/trace.ts';
 import { viewCounts, viewOf } from '../core/trace-view.ts';
 import { flowDecisions } from '../core/flow-decisions.ts';
 import { bodyCacheStats, sendJsonFor, setBodyCacheBudget } from '../server/http/json-body.ts';
+import { applyOp, draftChanges, netOps, overlayMap, overlayRows, rowMap, type DraftOp } from '../core/draft-ops.ts';
+import { rowId, type ItemRow } from '../core/item-rows.ts';
 import { sampleModel } from './helpers.ts';
 
 const VIEWS = [{}, { choose: { '*': 'both' } }, { detail: 'full' as const }, { detail: 'full' as const, choose: { '*': 'both' } }, { group: false }, { open: ['api-gateway'] }];
@@ -89,4 +91,30 @@ test('body cache: a kept body is served again without a new serialisation', asyn
   let n = 0; (v as any).toJSON = () => { n++; return { tag: 'z' }; };
   await send(v);
   assert.equal(n, 0, 'no stringify on a hit');
+});
+
+// ---- draft append: the shared id map gives the same overlay and changes as building the maps afresh
+test('draft overlay and changes with the shared row map equal the maps built afresh, on random op sequences; the shared map is never changed', () => {
+  let seed = 12345;
+  const rnd = (n: number) => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed % n; };
+  const lists = ['header', 'ingress', 'functions', 'egress'];
+  const rows: ItemRow[] = [];
+  for (let s = 0; s < 8; s++) for (const l of lists) for (let k = 0; k < (l === 'header' ? 1 : 4); k++) rows.push({ service: `svc${s}`, list: l, key: l === 'header' ? '' : `${l}${k}`, data: { n: s * 10 + k, kind: 'service', version: 3 } } as ItemRow);
+  const fresh = (rs: ItemRow[]) => new Map(rs.map((r) => [rowId(r), r]));
+  const before = [...rowMap(rows)];
+  for (let round = 0; round < 60; round++) {
+    const ops: DraftOp[] = [];
+    for (let i = 0, n = 1 + rnd(8); i < n; i++) {
+      const l = lists[rnd(lists.length)], service = `svc${rnd(10)}`, key = l === 'header' ? '' : `${l}${rnd(6)}`;
+      ops.push({ seq: i + 1, op: rnd(4) === 0 ? 'delete' : 'upsert', anchor: '', service, list: l, key, ...(rnd(4) ? { data: { n: rnd(5), kind: 'service' } } : {}), baseHash: null, author: 'a', byAi: false, at: 't' } as DraftOp);
+    }
+    for (const o of ops) if (o.op === 'delete') delete (o as any).data;
+    const net = netOps(ops);
+    const old = fresh(rows); for (const o of net) applyOp(old, o);
+    assert.deepEqual([...overlayMap(rows, net)], [...old], `round ${round}`);
+    assert.deepEqual(overlayRows(rows, net), [...old.values()]);
+    const a = draftChanges(rows, net, ops), b = draftChanges([...rows], net, ops); // a copy of the array has no shared map yet
+    assert.deepEqual(a, b);
+  }
+  assert.deepEqual([...rowMap(rows)], before, 'the shared map was not changed by any of it');
 });
