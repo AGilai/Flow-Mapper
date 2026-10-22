@@ -102,8 +102,8 @@ export function openMermaidImport({ text = '' } = {}) {
         h('div.r', h('button.btn', { type: 'button', on: { click: close } }, 'Cancel'), h('button.btn.primary', { type: 'button', disabled: S.busy, 'data-qa': 'mermaid-preview', on: { click: toPreview } }, 'Preview'))] };
   }
 
-  /** What the text holds beyond calls (0.33.1): frames, changed steps, links. */
-  const constructs = (x) => { const l = [x?.groups && plural(x.groups, 'frame'), x?.marked && `${x.marked} changed ${x.marked === 1 ? 'step' : 'steps'}`, x?.links && plural(x.links, 'link')].filter(Boolean); return l.length ? ` Also read: ${l.join(', ')}.` : ''; };
+  /** What the text holds beyond calls (0.33.1): frames, marked (new or changed) steps, links. */
+  const constructs = (x) => { const l = [x?.groups && plural(x.groups, 'frame'), x?.marked && `${x.marked} marked ${x.marked === 1 ? 'step' : 'steps'}`, x?.links && plural(x.links, 'link')].filter(Boolean); return l.length ? ` Also read: ${l.join(', ')}.` : ''; };
 
   // ---- step 3: preview, then import
   function previewStep() {

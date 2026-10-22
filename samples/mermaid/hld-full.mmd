@@ -51,7 +51,9 @@ sequenceDiagram
                 end
             end
             break batch is rejected
+                rect rgb(214, 245, 214)
                 SYNC->>AUD: POST /events: batch rejected
+                end
             end
         end
     end

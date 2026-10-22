@@ -8,7 +8,14 @@ export type MmKind = 'sync' | 'return' | 'async';
 /** One frame a statement sits in (0.33.1, #72): `id` is unique in the text; `condition` is the section (`alt`/`else`/`and`/`option` text). */
 export interface MmGroup { id: string; kind: 'alt' | 'opt' | 'loop' | 'par' | 'critical' | 'break'; condition: string }
 /** What a statement inherits from its place: the frames around it (outermost first), `rect` (any colour) as changed, `%% real:` as the bind key it really calls. */
-export interface MmCtx { groups?: MmGroup[]; mark?: 'changed'; real?: string }
+export interface MmCtx { groups?: MmGroup[]; mark?: 'changed' | 'new'; real?: string }
+/** A `rect` colour that reads as green (`rgb(r, g, b)`, `#rgb`, `#rrggbb`, a colour name with green in it) marks `new`; any other colour marks `changed`. */
+export function rectMark(colour: string): 'new' | 'changed' {
+  const c = colour.trim().toLowerCase();
+  const rgb = /^rgba?\(\s*(\d+)\D+(\d+)\D+(\d+)/.exec(c) ?? (/^#([0-9a-f]{3}|[0-9a-f]{6})\b/.exec(c) ? (() => { const h = /^#([0-9a-f]+)/.exec(c)![1], d = h.length === 3 ? [...h].map((x) => x + x) : h.match(/../g)!; return ['', ...d.map((x) => String(parseInt(x, 16)))]; })() : null);
+  if (rgb) return +rgb[2] > +rgb[1] && +rgb[2] > +rgb[3] ? 'new' : 'changed';
+  return /green/.test(c) ? 'new' : 'changed';
+}
 export interface MmMessage extends MmCtx { from: string; to: string; label: string; kind: MmKind; line: number; block?: string; response?: string; inner?: boolean }   // response: the label of the return that answers a sync call
 export interface MmNote extends MmCtx { over: string[]; text: string; line: number; after: number }   // after: how many messages came before it
 export interface MmLink { label: string; url: string }
@@ -53,7 +60,7 @@ export const clean = (s: string) => s.replace(/<br\s*\/?>/gi, ' ').replace(/#(\d
 export function parseMermaid(text: string): MmParsed {
   const out: MmParsed = { participants: [], messages: [], notes: [], links: [], warnings: [] };
   const byId = new Map<string, MmParticipant>();
-  const stack: { kind: string; branch: string; id: string; cond: string }[] = [], open: MmMessage[] = [];
+  const stack: { kind: string; branch: string; id: string; cond: string; mark?: 'new' | 'changed' }[] = [], open: MmMessage[] = [];
   let pendingReal: string | undefined;
   const descLines: string[] = [];
   let header = false, inDesc = false, inInit = false;
@@ -66,9 +73,10 @@ export function parseMermaid(text: string): MmParsed {
     return p;
   };
   const block = () => { const b = [...stack].reverse().find((x) => x.kind !== 'box' && x.kind !== 'rect'); return b ? b.branch : undefined; };
+  const rectOf = () => [...stack].reverse().find((x) => x.kind === 'rect')?.mark;   // the innermost rect decides
   const ctx = (): MmCtx => {
     const groups = stack.filter((x) => BLOCKS.has(x.kind)).map((x) => ({ id: x.id, kind: x.kind as MmGroup['kind'], condition: x.cond }));
-    return { ...(groups.length ? { groups } : {}), ...(stack.some((x) => x.kind === 'rect') ? { mark: 'changed' as const } : {}) };
+    return { ...(groups.length ? { groups } : {}), ...(rectOf() ? { mark: rectOf() } : {}) };
   };
 
   const all = text.replace(/^﻿/, '').split(/\r?\n/);
@@ -118,7 +126,7 @@ export function parseMermaid(text: string): MmParsed {
           const inner = (mm.groups?.length ?? 0) > (open[k].groups?.length ?? 0);   // a return in a branch of a frame the call is not in (one per branch): the first answers, the call stays open
           if (mm.label && mm.label.toLowerCase() !== 'return' && !(inner && open[k].response)) open[k].response = mm.label;
           if (inner) mm.inner = true; else open.length = k;
-        }
+        } else if (mm.groups?.length && mm.label && mm.label.toLowerCase() !== 'return') warn(n, `return '${mm.label.slice(0, 40)}' in a branch answers no open call (a branch that holds only returns has no step to carry it): skipped`);
       }
       return;
     }
@@ -126,7 +134,7 @@ export function parseMermaid(text: string): MmParsed {
     const w = /^([A-Za-z]+)(?:\s+(.*))?$/.exec(ln), k = w?.[1].toLowerCase() ?? '', rest = w?.[2] ?? '';
     if (w && BLOCKS.has(k)) { stack.push({ kind: k, branch: `${k}${rest ? `: ${clean(rest)}` : ''}`, id: `g${n}`, cond: clean(rest) }); return; }
     if (w && BRANCH.has(k) && stack.length) { const top = stack[stack.length - 1]; top.branch = `${k === 'and' ? 'par' : k}${rest ? `: ${clean(rest)}` : ''}`; top.cond = clean(rest); return; }
-    if (w && k === 'rect') { stack.push({ kind: k, branch: '', id: '', cond: '' }); return; }   // any colour: the steps inside are marked changed
+    if (w && k === 'rect') { stack.push({ kind: k, branch: '', id: '', cond: '', mark: rectMark(rest) }); return; }   // the steps inside are marked: green = new, any other colour = changed
     if (w && k === 'box') { stack.push({ kind: k, branch: '', id: '', cond: '' }); warn(n, `'box' block is only visual: ignored (its messages are kept)`); return; }
     if (/^end\s*$/i.test(ln)) { if (stack.length) stack.pop(); else warn(n, `'end' without an open block: ignored`); return; }
     warn(n, `not understood, skipped: '${ln.length > 60 ? ln.slice(0, 57) + '...' : ln}'`);

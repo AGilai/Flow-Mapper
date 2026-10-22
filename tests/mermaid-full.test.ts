@@ -60,14 +60,15 @@ test('import: the sample into a blank design: steps, nested groups, spanning not
   const labelled = (re: RegExp) => ms.find((m) => re.test(m.label));
   // returns are the response of the call they answer, never steps; self messages are internal steps; notes are leaf steps with `over`
   assert.ok(!ms.some((m) => /^(certificate|registered|ok)$/.test(m.label)));
-  assert.equal(labelled(/device-registry.*devices|register the device/)?.response, 'existing device');
+  assert.equal(labelled(/device-registry.*devices|register the device/)?.returns?.label, 'existing device');
   assert.equal(labelled(/device-registry.*devices|register the device/)?.real, 'http:POST device-registry/v2/devices');
   const selfs = ms.filter((m) => m.self); assert.deepEqual(selfs.map((m) => m.label), ['validate serial number', 'sign policy bundle']);
   const notes = ms.filter((m) => m.kind === 'leaf' && !m.self);
   assert.deepEqual(notes.map((m) => m.over), [['onboarding-gw'], ['device-registry', 'cert-authority'], ['onboarding-gw'], ['onboarding-gw', 'policy-engine'], ['audit-trail']]);
   // changed marks: the three steps of the rect block (the call, the note and the self step), nothing else
   assert.deepEqual(ms.filter((m) => m.mark === 'changed').map((m) => m.label.replace(/^.*\/ ?/, '')).length, 3);
-  assert.ok(ms.filter((m) => m.mark).every((m) => ['fetch the first policy', 'the policy is signed', 'sign policy bundle'].some((x) => m.label.includes(x) || (m.note ?? '').includes(x))), JSON.stringify(ms.filter((m) => m.mark).map((m) => m.label)));
+  assert.deepEqual(ms.filter((m) => m.mark === 'new').map((m) => m.label.slice(0, 22)), ['http:POST audit-trail/'], 'the green rect (#71 gap b): one new step');   // a green rect reads back as new
+  assert.ok(ms.filter((m) => m.mark).every((m) => ['fetch the first policy', 'the policy is signed', 'sign policy bundle', 'events'].some((x) => m.label.includes(x) || (m.note ?? '').includes(x))), JSON.stringify(ms.filter((m) => m.mark).map((m) => m.label)));
   // nested frames: critical in par in opt in loop (outermost first), and the sections of an alt
   const deep = ms.find((m) => m.alt?.kind === 'critical' && m.alt.condition === 'certificate is valid');
   const chain: string[] = []; for (let a = deep.alt; a; a = a.parent) chain.unshift(`${a.kind ?? 'alt'}:${a.condition}`);
@@ -102,7 +103,7 @@ test('export writes the same constructs back, and import -> export -> import -> 
   assert.equal(strip(e2), strip(e1), 'the same participants, arrows, frames and directives');
   // and the steps survive: the marks, the spans, the groups
   const t2 = (await traceOf('blank-b', b, second.body.flow)).messages, t3 = (await traceOf('blank-c', c, third.body.flow)).messages;
-  const shape = (ms: any[]) => ms.map((m) => [m.kind, m.label, m.mark ?? '', (m.over ?? []).join(), m.real ?? '', m.response ?? '', m.alt ? `${m.alt.kind ?? 'alt'}/${m.alt.condition ?? ''}/${m.alt.branch}` : '']);
+  const shape = (ms: any[]) => ms.map((m) => [m.kind, m.label, m.mark ?? '', (m.over ?? []).join(), m.real ?? '', m.returns?.label ?? '', m.alt ? `${m.alt.kind ?? 'alt'}/${m.alt.condition ?? ''}/${m.alt.branch}` : '']);
   assert.deepEqual(shape(t3).filter((x) => x[0] !== 'entry'), shape(t2).filter((x) => x[0] !== 'entry'));
   assert.ok(t2.some((m: any) => m.mark === 'changed') && t2.some((m: any) => m.over?.length > 1));
 });
