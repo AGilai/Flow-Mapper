@@ -14,13 +14,13 @@ const dot = (c) => { const v = colVar(c); return v ? h('span.cdot', { style: { '
  * createStepbar({ store, root, onMove(action), onEdit(anchor), sb() }) -> { el, show(step|null, n, total), refresh(), dispose }
  * root: { service, ingress } the step texts belong to, or null (a function tab: the API line only, no editing). sb(): the letters shown in the bar.
  */
-export function createStepbar({ store, root, onMove, onEdit, sb = () => 'tad', readOnly = false }) { // readOnly: a tab of another environment shows the step texts without the way to edit them
+export function createStepbar({ store, root, onMove, onEdit, sb = () => 'tad', extra = () => '', readOnly = false }) { // readOnly: a tab of another environment shows the step texts without the way to edit them
   const btn = (action, glyph, label) => h('button.stepnav', { type: 'button', 'aria-label': label, title: label, on: { click: () => onMove(action) } }, glyph);
   const prev = btn('prev', '‹', 'Previous step'), next = btn('next', '›', 'Next step');
-  const count = h('span.stepcnt'), live = h('div.sr-only', { role: 'status', 'aria-live': 'polite' });
+  const count = h('span.stepcnt'), ext = h('span.stepext.xs.muted', { 'data-qa': 'step-range' }), live = h('div.sr-only', { role: 'status', 'aria-live': 'polite' });
   const detail = h('div.sb-det', { 'data-qa': 'step-detail' });
   const edit = root && !readOnly ? h('button.btn.sm.sb-edit', { type: 'button', 'data-qa': 'edit-step', title: 'Edit this step (E)', on: { click: () => onEdit?.(bar) } }, 'Edit step') : null;
-  const bar = h('div.stepbar', { role: 'group', 'aria-label': 'Step walk' }, h('div.sb-nav', prev, count, next), detail, edit, live);
+  const bar = h('div.stepbar', { role: 'group', 'aria-label': 'Step walk' }, h('div.sb-nav', prev, count, next, ext), detail, edit, live);
   const el = h('div.stepwalk', { hidden: true }, bar);
   let last = null, data = null, expanded = false, shownKey = null;
   const unwatch = root ? store.watch(root, (d) => { data = d; if (last) paint(); }) : () => {};
@@ -46,6 +46,7 @@ export function createStepbar({ store, root, onMove, onEdit, sb = () => 'tad', r
   }
 
   function show(step, n, total) {
+    ext.textContent = extra(); // "6–7 steps per path" while Both is chosen somewhere (0.38.0)
     el.hidden = !step && !(total > 0); // step 0 (none selected): the bar shows "Step 0 of N" with Next only
     if (!step) { last = null; shownKey = null; count.textContent = `Step 0 of ${total}`; prev.disabled = true; next.disabled = false; detail.replaceChildren(); detail.hidden = true; bar.classList.add('plain'); live.textContent = ''; if (edit) edit.style.display = 'none'; return; }
     if (edit) edit.style.display = '';

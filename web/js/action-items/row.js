@@ -7,6 +7,7 @@ import { isOpen } from '../../core/action-items.js';
 import { STATUS, CHIP, isLate, fmtDue } from './pure.js';
 import { userAvatar } from '../users/avatar.js';
 import { isMe } from '../users/directory.js';
+import { hiddenPill } from '../views/flow-hidden-pill.js';
 
 /**
  * actionRow(item, x) -> { el }
@@ -27,7 +28,8 @@ export function actionRow(item, x) {
   function stepPill() {
     if (!item.step) return null;
     const s = x.stepOf(item.step);
-    return s ? h('button.spill', { type: 'button', title: `Go to step ${s.n} in the walk`, 'data-qa': 'ai-step', on: { click: () => x.jump(s.n) } }, `step ${s.n}`) : h('span.spill.gone', { title: 'The flow has changed: that step is no longer in it' }, 'step (gone)');
+    const hid = s ? null : x.hidden?.(item.step);
+    return s ? h('button.spill', { type: 'button', title: `Go to step ${s.n} in the walk`, 'data-qa': 'ai-step', on: { click: () => x.jump(s.n) } }, `step ${s.n}`) : hid ? hiddenPill(hid) : h('span.spill.gone', { title: 'The flow has changed: that step is no longer in it' }, 'step (gone)');
   }
   function show() {
     act.replaceChildren(...[h('button.lnk', { type: 'button', 'data-qa': 'ai-edit', 'aria-label': `Edit #${item.number}`, on: { click: () => x.edit(item) } }, 'Edit'),

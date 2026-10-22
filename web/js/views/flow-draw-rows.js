@@ -9,9 +9,13 @@ import { arrowMarkSvg } from './flow-marks-draw.js';
 import { isDesign } from '../state.js';
 import { refNoteSvg } from './flow-refs-draw.js';
 import { noteSvg } from './flow-draw-notes.js';
+import { decisionSvg } from './flow-decision-draw.js';
+
+/** "⌄ group": folds an expanded run of DB operations again (0.38.0); a folded run opens with a click on its row. */
+const dbToggle = (key, x, y0) => s('g', { class: 'dbtog', 'data-db': key, tabindex: 0, role: 'button', 'aria-label': 'Group these database operations again' }, s('rect', { x, y: y0 + 5, width: 58, height: 15, rx: 7.5 }), s('text', { x: x + 29, y: y0 + 16, 'text-anchor': 'middle' }, '⌄ group'), s('title', {}, 'Group these operations into one row again'));
 
 /** drawRows(layout) -> one element per event, in order. */
-export function drawRows({ events, colX, ys, barX, edge, marks, refs, stacked, folded, idx, groups = [], noApi = null, th = true }) {
+export function drawRows({ events, colX, ys, barX, edge, marks, refs, stacked, folded, idx, groups = [], noApi = null, th = true, width = 0, decide = null }) {
   return events.map((e, r) => {
     const y0 = ys[r], lab = (v) => (noApi?.has(e) ? null : v); // step details: an arrow that shows title / description only has no API label
     const g = (cls, ...kids) => s('g', { class: `msg ${cls}`, 'data-e': r, tabindex: e.msg ? 0 : null, role: e.msg ? 'button' : null }, ...kids);
@@ -46,6 +50,11 @@ export function drawRows({ events, colX, ys, barX, edge, marks, refs, stacked, f
       return g('hop', ...kids, e.marker ? marker(e.marker, mid, y0, mc) : null, e.end ? stop(e.end, x2, 1, y0, mc, r) : null, ...(e.publish ? [trunkHit(x1, tx, y0, e), hit(tx, x2)] : [hit(left, x2)]), s('title', {}, [e.msg.label, e.marker?.full].filter(Boolean).join('\n')));
     }
     if (e.type === 'note') return noteSvg(e, y0, { colX, idx, groups });
+    if (e.type === 'decision') return decisionSvg(e, y0, { width, ...decide });
+    if (e.type === 'icall') { // a call inside the service (0.38.0): a ring on its bar, the name, and a grey "internal" tag; a step like the arrows
+      const x0 = barX(e.bar, 1), tx = x0 + 44, name = String(e.label), room = Math.max(8, Math.floor((width - tx - 76) / 7.2)), t = name.length > room ? `${name.slice(0, room - 1)}…` : name;
+      return g(`icall${e.msg.gap || e.msg.broken ? ' warn' : ''}`, s('circle', { class: 'idot', cx: x0, cy: y0, r: 3.6 }), s('text', { class: 'ilab', x: tx, y: y0 + 4 }, t), s('rect', { class: 'itag', x: tx + t.length * 7.2 + 8, y: y0 - 7, width: 52, height: 15, rx: 7.5 }), s('text', { class: 'itagt', x: tx + t.length * 7.2 + 34, y: y0 + 4, 'text-anchor': 'middle' }, 'internal'), s('rect', { class: 'hit', x: x0 - 6, y: y0 - 14, width: Math.max(60, width - x0 - 12), height: 28 }), s('title', {}, `${e.msg.label}\n${e.msg.fn ? `in ${e.msg.service}:${e.msg.fn}` : 'a call inside the service'}`));
+    }
     if (e.type === 'amqpnote') { // the bindings that do not route this publish, under the fork; the exchange page lists them
       const x0 = colX.get(e.col) + 10;
       return s('g', { class: 'amqpnote' }, s('text', { x: x0, y: y0 + 4 }, e.text),
@@ -53,7 +62,7 @@ export function drawRows({ events, colX, ys, barX, edge, marks, refs, stacked, f
     }
     if (e.type === 'store') { // an arrow to the lifeline of the collection: a read keeps a bar and a dashed return, a write is heavier with a shorter bar and no return (0.27.1)
       const x1 = barX(e.bar, 1), inFold = folded.has(idx.get(e.col)), x2 = inFold ? colX.get(e.col) : colX.get(e.col) - BAR / 2, mc = colorOf('res'), bx = colX.get(e.col) - BAR / 2;
-      return g(`store${e.write ? ' write' : ''}`, arrow(x1, x2, y0, { label: lab(e.label), color: mc }),
+      return g(`store${e.write ? ' write' : ''}`, arrow(x1, x2, y0, { label: lab(e.msg.dbGroup ? `› ${e.label}` : e.label), color: mc }), e.dbOpen ? dbToggle(e.msg.key, Math.min(x1, x2) + 6, y0) : null,
         s('rect', { class: 'sbar', x: bx, y: y0 - 5, width: BAR, height: e.write ? 16 : 28, rx: 2 }),
         e.write ? null : s('g', { class: 'sret' }, arrow(bx, x1, y0 + 17, { dashed: true, open: true, color: mc, bare: false })),
         hit(x1, x2), ...arrowMarkSvg(marks, e.msg, x1, x2, y0, stacked?.has(e), th), s('title', {}, `${e.msg.label}\n${e.msg.store ?? ''}${e.write ? '\nwrite' : ''}`));

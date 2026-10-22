@@ -27,7 +27,7 @@ export function createNotesEditor({ env, anchor, doc, template = false, walk, pa
   const stepNow = () => { const s = walk?.picked() ? walk.steps()[walk.current() - 1] : null; return s ? { n: s.n } : null; };
   let ed, tb, nt;
   ed = createEditor({ html: '', label: 'Notes', placeholder: 'Write the story of this flow…', notes: true, onSubmit: () => save(), onEscape: () => cancel(), onChange: () => { tb?.update(); nt?.update(); dirtyNote(); } });
-  tb = createToolbar(ed); nt = notesTools(ed, tb, { stepNow });
+  tb = createToolbar(ed); nt = notesTools(ed, tb, { stepNow, keyOf: (n) => walk?.steps()[n - 1]?.key ?? null });
   tb.el.append(saved);
   if (template) { ed.setHtml(templateHtml()); hints(); } else ed.setHtml(useDraft ? draft.html : doc.body);
   const start = ed.getHtml();

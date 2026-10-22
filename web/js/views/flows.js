@@ -38,7 +38,8 @@ import { createStepMenu, stored, storedHl, storedCb } from './step-details-menu.
 import { decodeZoom, encodeZoom, percentOf } from './flow-zoom-pure.js';
 import { createZoomControl } from './flow-zoom.js';
 import { decodeHints, encodeHints } from './flow-hints-pure.js';
-import { sqStored, bandStored, bandSave, sqSave } from './flow-prefs.js';
+import { sqStored, bandStored, bandSave, sqSave, detailStored } from './flow-prefs.js';
+import { createScenarios } from './flow-scenario-state.js';
 
 export async function render({ main, query }) {
   const marks = await loadMarks(); // the marks of a design environment (sparks on heads and arrows, the removed list; a mark on each entry point)
@@ -49,6 +50,7 @@ export async function render({ main, query }) {
     sb: decodeBar(query) ?? stored('bar', BAR_DEFAULT), sd: decodeArrows(query, arrowsDefault(isDesign())) ?? stored('arrows', arrowsDefault(isDesign())), th: decodeHints(query, isDesign()), hl: decodeHl(query) ?? storedHl(), cb: decodeCb(query) ?? storedCb() ?? isDesign() }; // step details (0.30.0): what the step bar and the arrows show; // steps the harvester marked as frontier (call trees that reach no sink)
   let S = T.decodeUrl(query, state.env); // the tabs of the link, each with its environment (a key without one is the page's)
   const urlCount = T.urlKeys(query, state.env).length; // a link with more tabs than the cap is trimmed (toast below)
+  const scen = createScenarios(query, S.active, detailStored); // 0.38.0 (#82): per tab: the arms chosen, External | Full, the services opened; `ch=`, `detail=full`, `open=` of the active tab
   let stepParam = decodeStep(query); // `step=`: the walk's step in the active tab; a link opens on it (0.20.0)
   const stepTab = S.active; // ...and only that tab, once
   const views = new Map(), slots = new Map(), stale = new Set();
@@ -115,11 +117,11 @@ export async function render({ main, query }) {
   mainPane.append(toolbar, strip.el, empty);
 
   function persist() {
-    setQuery({ ...T.encodeUrl(S, state.env), ...(S.keys.length ? { service: null } : {}), stores: opts.stores ? null : '0', queues: null, depth: opts.depth === 'all' ? null : opts.depth, frontier: opts.frontier ? '1' : null, sb: encodeBar(opts.sb), sd: encodeArrows(opts.sd, arrowsDefault(isDesign())), th: encodeHints(opts.th, isDesign()), hl: encodeHl(opts.hl), cb: encodeCb(opts.cb, isDesign()), zoom: encodeZoom(zooms.get(S.active)), step: encodeStep(stepParam) });
+    setQuery({ ...T.encodeUrl(S, state.env), ...(S.keys.length ? { service: null } : {}), stores: opts.stores ? null : '0', queues: null, depth: opts.depth === 'all' ? null : opts.depth, frontier: opts.frontier ? '1' : null, sb: encodeBar(opts.sb), sd: encodeArrows(opts.sd, arrowsDefault(isDesign())), th: encodeHints(opts.th, isDesign()), hl: encodeHl(opts.hl), cb: encodeCb(opts.cb, isDesign()), zoom: encodeZoom(zooms.get(S.active)), step: encodeStep(stepParam), ...scen.query(S.active) });
   }
   const max = createMax({ onChange: () => views.get(S.active)?.el.scrollTo?.(0, 0) });
   const host = {
-    env: state.env, marks, design: isDesign(), readOnly: false, opts, subs, panel, flowsEl, traceFor: data.traceFor, describe: data.describe, desc, rootOf: (k) => T.flowRoot(k), isActive: (k) => S.active === k,
+    env: state.env, marks, design: isDesign(), readOnly: false, opts, subs, panel, flowsEl, traceFor: data.traceFor, baseFor: data.baseFor, scen, onScenario: (k) => { if (k === S.active) persist(); }, describe: data.describe, desc, rootOf: (k) => T.flowRoot(k), isActive: (k) => S.active === k,
     openTab: (key, o) => { if (room(key)) commit(T.openTab(S, key, o)); },
     openSub: (row, origin) => { const k = T.subKey(row, origin); if (room(k)) back.drill(k); },
     openFull: (row, origin) => { const k = T.fullKey(row.service, row.ingress, origin, row.event); if (room(k)) back.drill(k); },
@@ -174,7 +176,7 @@ export async function render({ main, query }) {
     mainPane.insertBefore(slot, empty);
     const ctx = ctxOf(key);
     if (!ctx) { slot.replaceChildren(unavailableBox(envOfTab(key), () => commit(T.closeTab(S, key)))); return; }
-    ctx.ready.then(() => ctx.data.load(key)).then((d) => {
+    ctx.ready.then(() => ctx.data.load(key, scen.initial(key))).then((d) => {
       if (disposed || slots.get(key) !== slot) return;
       const v = createTabView(d, hostFor(ctx));
       views.set(key, v);

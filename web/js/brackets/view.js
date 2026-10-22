@@ -9,6 +9,7 @@ import { icon } from '../icons.js';
 import { rangeLook, rangeText } from '../comments/range.js';
 import { assignColumns, groupRanges, bubbleTops, COL_W, GUTTER, GUTTER_NARROW } from './layout.js';
 import { createSelect } from './select.js';
+import { stepOfKey } from '../views/flow-scenario-pure.js';
 
 const narrow = () => { try { return matchMedia('(max-width: 760px)').matches; } catch { return false; } };
 
@@ -21,7 +22,7 @@ export function createBrackets({ walk, factor = () => 1, on = () => true, hl = (
   let list = [], box = null, shown = null;
   const gutter = h('div.cb-gutter', { 'data-qa': 'cb-gutter', 'aria-label': 'Comments on ranges of steps' });
   const width = () => (on() ? (narrow() ? GUTTER_NARROW : GUTTER) : 0);
-  const nOf = (key) => walk.steps().find((s) => s.key === key)?.n ?? null;
+  const nOf = (key) => stepOfKey(walk.steps(), key)?.n ?? null; // a step on a hidden arm has no number: its end of the range is not drawn (0.38.0)
   const svg = () => box?.querySelector('svg.seq-body');
   const y0 = () => { const v = svg(); return v && box ? v.getBoundingClientRect().top - box.getBoundingClientRect().top : 0; }; // where the body starts under the heads (the rects move together while scrolling)
   const span = (from, to) => { const a = walk.rowSpan(from), b = walk.rowSpan(to), z = factor(), o = y0(); return a && b ? { top: o + a.top * z, bottom: o + b.bottom * z } : null; };

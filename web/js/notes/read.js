@@ -5,6 +5,7 @@ import { h } from '../dom.js';
 import { sanitize } from '../../core/rich-text.js';
 import { parseStepRef, stepRefText, clampRef } from '../../core/notes.js';
 import { renderChips } from '../users/chips.js';
+import { stepOfKey } from '../views/flow-scenario-pure.js';
 
 /** The label of a chip for a flow of `n` steps (0: not known yet): { text, gone, title }. */
 export function chipLook(ref, n) {
@@ -18,14 +19,23 @@ export function chipLook(ref, n) {
  * docView(body, { steps() -> number of steps, onStep(ref) }) -> { el, outline, relabel(), dispose() }
  * outline: a <nav> of the headings (null when there are none); `relabel()` after the walk's steps changed.
  */
-export function docView(body, { steps = () => 0, onStep }) {
+export function docView(body, { steps = () => 0, onStep, list = () => [], hidden = () => null }) { // list(): the walk's steps; hidden(key): a step the scenario does not show ({ text, show() }) or null (0.38.0)
   const el = renderChips(h('div.nt-doc.cm-body', { html: sanitize(body, { notes: true }) }));
   const chips = [...el.querySelectorAll('span[data-step]')].map((s) => {
-    const ref = parseStepRef(s.dataset.step), b = h('button.nt-sc', { type: 'button', 'data-qa': 'nt-step', on: { click: () => { if (!b.classList.contains('gone')) onStep?.(clampRef(ref, steps()) ?? ref, ref); } } });
+    const ref = parseStepRef(s.dataset.step), key = s.dataset.key || null, keyTo = s.dataset.keyTo || null, b = h('button.nt-sc', { type: 'button', 'data-qa': 'nt-step', on: { click: () => { const hid = key && !stepOfKey(list(), key) ? hidden(key) : null; if (hid) hid.show(); else if (!b.classList.contains('gone')) onStep?.(look(ref, key, keyTo).ref ?? clampRef(ref, steps()) ?? ref, ref); } } });
     s.replaceWith(b);
-    return { b, ref };
+    return { b, ref, key, keyTo };
   }).filter((c) => c.ref);
-  const relabel = () => { for (const { b, ref } of chips) { const l = chipLook(ref, steps()); b.textContent = l.text; b.title = l.title; b.classList.toggle('gone', l.gone); b.setAttribute('aria-disabled', String(l.gone)); } };
+  /** A chip with a key follows its step: its number in the walk now; "not in this scenario" when an arm hides it (a click shows it); else the number-only look. */
+  const look = (ref, key, keyTo) => {
+    if (!key) return { ...chipLook(ref, steps()), ref: null };
+    const a = stepOfKey(list(), key), z = keyTo ? stepOfKey(list(), keyTo) : null;
+    if (a) { const r = { from: a.n, to: z && z.n >= a.n ? z.n : a.n }; return { text: stepRefText(r), gone: false, title: `Go to ${stepRefText(r)} in the walk`, ref: r }; }
+    const hid = hidden(key);
+    if (hid) return { text: `${stepRefText(ref)} · ${hid.text}`, gone: false, hid: true, title: hid.locked ? 'A fixed decision keeps this step out' : 'Click to show it: the decision switches to the arm that holds this step', ref: null };
+    return { ...chipLook(ref, steps()), ref: null };
+  };
+  const relabel = () => { for (const { b, ref, key, keyTo } of chips) { const l = look(ref, key, keyTo); b.textContent = l.text; b.title = l.title; b.classList.toggle('gone', l.gone); b.classList.toggle('hid', !!l.hid); b.setAttribute('aria-disabled', String(l.gone)); } };
   relabel();
   const heads = [...el.querySelectorAll('h2, h3')].filter((x) => x.textContent.trim());
   let outline = null, io = null;

@@ -12,11 +12,12 @@ import { headIconOf } from './flow-draw-icons.js';
 import { FOLD_W, COL_NARROW, displayCols, foldGroups, planSqueeze } from './flow-squeeze.js';
 
 export const COL = 138, COL_MIN = 132, PAD = 16, GUTTER = 8, BAR = 12, NEST = 8, CH_HEAD = 116; // CH_HEAD: a topic or queue head is narrower than a service head
-const ROWH = { call: 46, return: 36, pill: 32, mw: 34, store: 46, hop: 48, unresolved: 42, frontier: 32, amqpnote: 26, note: 34 };
-const rowH = (e) => (e.type === 'hop' && e.marker ? 56 : e.type === 'call' && (e.rpc?.chip || e.msg?.reference) ? 58 : e.type === 'unresolved' && e.chip ? 56 : ROWH[e.type]); // an RPC's "amqp rpc" chip sits under its arrow
-const LINE = { call: 30, return: 22, pill: 16, mw: 17, store: 23, hop: 30, unresolved: 28, frontier: 16, amqpnote: 14, note: 20 };
+const ROWH = { call: 46, return: 36, pill: 32, mw: 34, store: 46, hop: 48, unresolved: 42, frontier: 32, amqpnote: 26, note: 34, decision: 40, icall: 30 };
+const rowH = (e) => (e.type === 'decision' && e.kind === 'caption' ? 28 : e.type === 'hop' && e.marker ? 56 : e.type === 'call' && (e.rpc?.chip || e.msg?.reference) ? 58 : e.type === 'unresolved' && e.chip ? 56 : ROWH[e.type]); // an RPC's "amqp rpc" chip sits under its arrow
+const LINE = { call: 30, return: 22, pill: 16, mw: 17, store: 23, hop: 30, unresolved: 28, frontier: 16, amqpnote: 14, note: 20, decision: 22, icall: 18 };
 const T_VAR = { http: '--t-http', rpc: '--t-rpc', grpc: '--t-http', eventbridge: '--t-eb', sns: '--t-sns', sqs: '--t-sqs', amqp: '--t-amqp', cron: '--t-cron', socket: '--t-socket', undecided: '--ink-2', res: '--t-res' };
 export const colorOf = (t) => `var(${T_VAR[t] ?? '--ink-2'})`;
+export const INT_H = 15; // 0.38.0: the room under a head for its "⊕ internal" control (flow-draw-heads.js)
 export const SUB_CH = 19, LINE_H = 14, TILE_PX = 6.6;
 // Async jump tiles carry a ↓ glyph before the number ("jump to async flow N below"), so they never read as a step number.
 export const tileW = (t) => Math.max(32, Math.ceil(String(t).length * TILE_PX) + 24);
@@ -66,7 +67,7 @@ export function layoutLane(lane, fit = 0, sq = null, marks = null, edit = false,
   const subCh = COLW < COL_MIN ? Math.max(10, Math.floor((COLW - 22) / 5.8)) : SUB_CH; // narrowed heads (Squeeze, last stage) wrap the sub line shorter
   const heads = columns.map((c) => (c.sub === 'queue delivery' ? { name: clampLines(wrapId(c.label.replace(/^[^:]+:/, ''), nameCh(c)), nameCh(c)), sub: [] } : { name: clampLines(wrapId(c.label, nameCh(c)), nameCh(c)), sub: isCh(c) ? [c.sub] : wrapId(c.sub ?? '', c.kind === 'resource' ? Math.max(10, Math.floor((headW(c, COLW) - 38) / 5.8)) : subCh) }));
   const boxH = 12 + Math.max(...heads.map((x) => x.name.length * LINE_H + x.sub.length * 13)) + 6, grp = lane.group ?? null, subRuns = grp ? subBands(columns, folded, grp.subOf) : [], hasStore = columns.some((c) => c.kind === 'resource');
-  const bandH = BAND_H * ((subRuns.length ? 1 : 0) + (hasStore ? 1 : 0)), HEAD = boxH + 16 + bandH; // bandH: the band rows over the heads (flow-draw-bands.js): subsystems on top, data stores under them
+  const bandH = BAND_H * ((subRuns.length ? 1 : 0) + (hasStore ? 1 : 0)), HEAD = boxH + 16 + bandH + (lane.internal ? INT_H : 0); // bandH: the band rows over the heads (flow-draw-bands.js): subsystems on top, data stores under them
   const subRow = subRuns.map((r) => ({ ...r, sub: true, row: 0, label: r.key === SHARED ? 'Shared' : grp.info(r.key)?.label ?? r.key, icon: grp.info(r.key)?.icon ?? null, mark: grp.markOf(r.key) }));
   const bands = [...subRow, ...bandsOf(columns, folded).map((b) => ({ ...b, row: subRuns.length ? 1 : 0 }))];
   const frames = altFrames(lane.altMsgs), strips = stripsByRow(frames, lane.altRows);
@@ -77,12 +78,12 @@ export function layoutLane(lane, fit = 0, sq = null, marks = null, edit = false,
   const stacked = new Set(events.filter((e) => e.type === 'call' && e.msg && chipsStack(markChips(marks, e.msg, th), Math.abs(colX.get(e.to) - colX.get(e.from)) - 12)));
   // Edit: room under the last row of each bar for its "+ call" chip, so it never meets the next arrow or label
   const addRows = new Set(edit ? lane.bars.filter((b) => !b.msg.reference && b.msg.target?.fn).map((b) => b.end) : []);
-  events.forEach((e, r) => { const dp = det?.parts.get(e), up = dp?.extraUp ?? 0; top[r] = y; ys[r] = y + nStrips(r) * STRIP + up + LINE[e.type]; y += nStrips(r) * STRIP + up + (dp?.extraDown ?? 0) + rowH(e) + (stacked.has(e) ? 19 * (markChips(marks, e.msg, th).length - 1) : 0) + (addRows.has(r) ? 20 : 0); });
+  events.forEach((e, r) => { const dp = det?.parts.get(e), up = dp?.extraUp ?? 0; top[r] = y; ys[r] = y + nStrips(r) * STRIP + up + (e.type === 'decision' && e.kind === 'caption' ? 14 : LINE[e.type]); y += nStrips(r) * STRIP + up + (dp?.extraDown ?? 0) + rowH(e) + (stacked.has(e) ? 19 * (markChips(marks, e.msg, th).length - 1) : 0) + (addRows.has(r) ? 20 : 0); });
   top[events.length] = y;
   const height = y + PAD;
   const barX = (bar, dir) => (folded.has(idx.get(bar.col)) ? colX.get(bar.col) + (dir < 0 ? 0 : fw) : colX.get(bar.col) + bar.level * NEST + dir * BAR / 2); // in a fold: its edge on that side
   const groups = foldGroups(columns.length, folded).map((g) => ({ ...g, x: xs[g.from], w: fw, names: g.cols.map((c) => columns[c].service ?? columns[c].label), cc: sharedVar(g.cols.map((c) => columns[c])) }));
   const edge = (bar, col, dir) => (bar ? barX(bar, dir) : colX.get(col));
   const headBox = (c) => headW(c, COLW);
-  return { th, columns, events, bars, idx, stacked, folded, groups, plan, sig, foldW: fw, fit, isCh, headW, headBox, xs, COLW, width, height, colX, heads, boxH, HEAD, bandH, bands, frames, strips, top, ys, barX, edge };
+  return { th, internal: lane.internal ?? null, columns, events, bars, idx, stacked, folded, groups, plan, sig, foldW: fw, fit, isCh, headW, headBox, xs, COLW, width, height, colX, heads, boxH, HEAD, bandH, bands, frames, strips, top, ys, barX, edge };
 }

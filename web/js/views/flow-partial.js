@@ -7,7 +7,8 @@ import { href } from '../router.js';
 import { partialItems, partialLead, partialLabel } from './flow-refs.js';
 
 /** createPartial({ trace, editing, onImport(anchor, source), onStep(n) }) -> { el, update(steps) } */
-export function createPartial({ trace, editing = false, onImport, onStep }) {
+export function createPartial({ trace: traceOf, editing = false, onImport, onStep }) {
+  const trace = { get partial() { return (typeof traceOf === 'function' ? traceOf() : traceOf).partial; }, get messages() { return (typeof traceOf === 'function' ? traceOf() : traceOf).messages; } }; // 0.38.0: a function: the tab's view changes
   const el = h('div.info.partial', { role: 'note', 'data-qa': 'partial-line', hidden: true });
   function update(steps) {
     const items = partialItems(trace.partial, trace.messages, steps);

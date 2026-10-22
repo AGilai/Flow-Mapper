@@ -42,16 +42,17 @@ export function createFlowRender({ trace, tree, key, ancestors = [], sticky = tr
     onNum: (label) => { if (index) index.reveal(label); }, // a number tile at a queue: open that row of the list below (a card opens in place)
     onNumHover: (labels, on) => labels.forEach((l) => index?.rowNode(l)?.classList.toggle('hl', on)),
     onFan: (topic) => { if (!fanOpen.delete(topic)) fanOpen.add(topic); drawLane(); },
-    onMessage: (m, g, e, trunk) => { if (!depth && e) sh.walk?.hit(e); if (m.kind === 'frontier') host.setFrontier(); else if (trunk && e?.publish) sh.openPublish(e.publish, g, trace); else sh.openMessage(m, g, trace); },
+    onMessage: (m, g, e, trunk) => { if (!depth && e) sh.walk?.hit(e); if (m.dbGroup && !depth && sh.onDb) sh.onDb(m.key); else if (m.kind === 'frontier') host.setFrontier(); else if (trunk && e?.publish) sh.openPublish(e.publish, g, trace); else sh.openMessage(m, g, trace); },
   };
 
   function drawLane() {
     const lo = laneOpts();
     const msgs = trace.messages.filter((m) => m.depth <= lo.maxDepth);
-    const built = buildLane(msgs, { mwOpen, fanOpen, numbers: deliveryNumbers(tree), stores: lo.stores, scope: 'full', participants: trace.participants, trigger: depth ? null : sh.trigger?.() ?? null });
+    const built = buildLane(msgs, { mwOpen, fanOpen, numbers: deliveryNumbers(tree), stores: lo.stores, scope: 'full', participants: trace.participants, trigger: depth ? null : sh.trigger?.() ?? null, icalls: depth ? false : sh.icalls?.() ?? false, decisions: depth ? [] : trace.decisions ?? [], dbOpen: depth ? null : sh.dbOpen?.() ?? null });
+    built.internal = depth ? null : sh.internal?.() ?? null; // 0.38.0: the lazy "⊕ internal" control under each service head (null: everything is loaded)
     groupLane(built, host.subs, opts.bands, marks(), (cols) => laneSlots(cols, undefined, host.env), host.env); // 0.28.1: the components of one subsystem together and the bands over them; a colour per flow (before Squeeze, the walk and the drawing see the columns)
     const sq = sh.squeeze?.() ? { keep: (!depth && sh.walk?.endsOf(built)) || firstStepCols(built) } : null; // Squeeze: the current step's lifelines (a card: its first step's)
-    lane = renderLane(built, { ...handlers, marks: laneMarks(marks()) ?? stepMarksOnly, edit: sh.addCall ? { onAddCall: sh.addCall, onAddInBand: sh.addInBand } : null, refs: createRefs(trace, { editing: !host.readOnly && state.mode === 'edit' && !!state.draft, onImport: sh.importRef }), sticky, squeeze: sq, onSqueeze: sh.squeezeOpen, details: depth ? null : sh.details?.(built) ?? null, onEditStep: sh.editStep, zoom: sh.zoom?.() ?? 1, hints: opts.th ?? true, fit: Math.max(0, (sh.fit?.() ?? 0) - (depth ? 40 + depth * 28 : 0)) });
+    lane = renderLane(built, { ...handlers, onChoose: depth ? null : sh.onChoose, srcUrl: (at) => trace.code?.[`step:${at}`]?.url ?? null, onInternal: depth ? null : sh.onInternal, onDb: depth ? null : sh.onDb, marks: laneMarks(marks()) ?? stepMarksOnly, edit: sh.addCall ? { onAddCall: sh.addCall, onAddInBand: sh.addInBand } : null, refs: createRefs(trace, { editing: !host.readOnly && state.mode === 'edit' && !!state.draft, onImport: sh.importRef }), sticky, squeeze: sq, onSqueeze: sh.squeezeOpen, details: depth ? null : sh.details?.(built) ?? null, onEditStep: sh.editStep, zoom: sh.zoom?.() ?? 1, hints: opts.th ?? true, fit: Math.max(0, (sh.fit?.() ?? 0) - (depth ? 40 + depth * 28 : 0)) });
     if (!depth) sh.walk?.decorate(lane, built); // numbered steps are the top lane's only (0.20.0)
     laneBox.replaceChildren(lane.el);
     if (!depth) sh.afterLane?.(laneBox); // Fit measures the new lane (flow-tab-view.js); the comment brackets go back in front of it

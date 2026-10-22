@@ -35,7 +35,7 @@ export function createNotes({ env, root, walk, pane, onStep }) {
         h('div.cm-hint.nt-tp', 'Template: Purpose · How it works · Decisions · Open questions')));
       return;
     }
-    view = docView(cur.body, { steps, onStep: (ref) => onStep?.(ref) });
+    view = docView(cur.body, { steps, list: () => walk.steps(), hidden: (k) => walk.hiddenOf?.(k), onStep: (ref) => onStep?.(ref) });
     const meta = h('div.nt-meta', h('span', 'Edited by ', h('b', cur.author ?? 'someone'), ' · ', h('span', { title: fullDate(cur.createdAt) }, relTime(cur.createdAt)), ` · version ${cur.version}${cur.restoredFrom ? ` (restored from ${cur.restoredFrom})` : ''}`),
       h('button.abtn', { type: 'button', 'data-qa': 'nt-history', on: { click: history } }, 'History'));
     el.replaceChildren(meta, h('div.nt-wrap', view.el, view.outline));

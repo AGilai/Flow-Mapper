@@ -7,7 +7,9 @@ import { createFlowRender } from './flow-render.js';
 import { createInside } from './flow-inside-panel.js';
 import { messagePanel } from './flow-panel.js';
 import { publishPanel } from './flow-panel-publish.js';
-import { plural } from './flow-async.js';
+import { plural, asyncTree } from './flow-async.js';
+import { createTabScenario } from './flow-tab-scenario.js';
+import { stepByKey } from './flow-steps.js';
 import { descBlock, descLine } from './flow-desc.js';
 import { descDetails } from './flow-head.js';
 import { createWalkView } from './flow-walk-view.js';
@@ -48,7 +50,7 @@ const kindOf = (key) => String(key).split(':')[0].replace('amqp-queue', 'amqp');
  *         openEntry(spec), isOpen(row, origin), setFrontier(), isActive(key), desc (the description store), rootOf(key) -> {service, ingress} | null }
  */
 export function createTabView(data, host) {
-  const { trace, tree, key } = data;
+  let { trace, tree } = data; const { key } = data; // 0.38.0: `trace` is the view of the tab's scenario (flow-tab-scenario.js), replaced when the viewer chooses an arm, opens a service or switches detail
   const opts = host.opts, mwOpen = new Set(); // keys of the bars whose long middleware chain is unfolded
   let zoomV = host.zoomOf?.(key) ?? 100, factor = zoomV === 'fit' ? 1 : clampRange(zoomV) / 100; // zoom (0.30.3): a percent or 'fit'; factor: the scale it gives
   let render = null, saved = 0, sqOff = false; // sqOff: a fold was opened in this tab, so Squeeze is off here until it is switched on again
@@ -60,21 +62,24 @@ export function createTabView(data, host) {
   const flowPen = () => (!editing && root ? host.pen?.button('panel-flow', 'flow', { form: 'flow', service: root.service, ingress: root.ingress, name: host.nameOf?.(root.service, root.ingress) ?? '' }) : null); // View mode (0.31.1): the same form, through the draft step
   const editFlow = () => (editing && host.edit && root ? h('button.btn.sm', { type: 'button', 'data-qa': 'edit-flow', on: { click: (e) => { e.preventDefault(); e.stopPropagation(); host.edit.flow(root.service, root.ingress, host.nameOf?.(root.service, root.ingress) ?? '', trace.start?.fn || null); } } }, 'Edit flow') : flowPen());
   const descs = [];
+  const ts = createTabScenario({ data, host, key, visible: (k) => !!stepByKey(walk.steps(), k), onView: (v) => { const g = body.contains(document.activeElement) ? document.activeElement.dataset?.g : null; trace = v; tree = asyncTree(v.messages); render = null; draw(); host.paintChrome?.(); if (g) body.querySelector(`select[data-g="${CSS.escape(g)}"]`)?.focus({ preventScroll: true }); } });
+  trace = ts.view; tree = asyncTree(trace.messages);
   const label = host.describe(key);
   // The flow's description sits under its title, full width and collapsible (0.20.0); a sub-flow tab keeps its one line.
   const flowBox = root && data.kind !== 'sub' ? descDetails(host.desc, root, null, { cls: 'flowhead', remember: 'flowhead-open', title: 'What this flow is for', onGenerate: () => generate(null), pen: host.pen,
     summary: [root ? nameEditor({ root, name: host.nameOf?.(root.service, root.ingress) ?? '', fallback: label.title, readOnly: host.readOnly }).el : h('span.fh-t', label.title), label.sub ? h('span.mono.xs.muted', label.sub) : null, linksRow(trace.start?.links), editFlow(), editing ? importButton() : null,
-      exportButton({ ...root, env: host.env, name: host.nameOf?.(root.service, root.ingress) || label.title }), host.max?.button()] }) : null;
+      exportButton({ ...root, env: host.env, name: host.nameOf?.(root.service, root.ingress) || label.title, view: () => ts.scen.exportView() }), ts.ui.el, host.max?.button()] }) : null;
   const related = root && data.kind !== 'sub' ? createRelations({ host, root, editing }) : null; // 0.28.2: typed links to other flows, under the description
   const subLine = root && data.kind === 'sub' ? descLine(host.desc, root, [`${data.service}:${data.name}`, data.service], { onGenerate: () => generate(data.service) }) : null;
   descs.push(flowBox, subLine);
   // Comments under the description (0.27.0): the flow's own discussion; a sub-flow or function tab has none.
   let comments = null;
   // The step walk: numbered arrows, the bar and the step's description. Step descriptions belong to the flow, so a sub-flow or function tab walks without them.
-  const partial = createPartial({ trace, editing, onImport: (anchor, source) => host.importRef?.(anchor, source) });
+  const partial = createPartial({ trace: () => trace, editing, onImport: (anchor, source) => host.importRef?.(anchor, source) });
   const noHint = trace.noHandler ? h('div.noh-hint', { role: 'note', 'data-qa': 'no-handler' }, `No handler function. This entry point has no behaviour in ${host.env} yet.`) : null; // #59
   let brackets = null; // comment brackets in the left gutter (0.34.0): made once the walk and the comments exist
-  const walk = createWalkView({ store: host.desc, messages: () => trace.messages, root: data.kind === 'sub' ? null : root, initial: host.initialStep?.(key) ?? null, sb: () => opts.sb, hl: () => opts.hl, zoom: () => factor, readOnly: host.readOnly, onStep: (n) => host.setStep?.(key, n), onRestep: (cols) => render?.restep(cols), onSteps: (st) => partial.update(st), onPick: (n, ev) => brackets?.pick(n, ev) });
+  const walk = createWalkView({ store: host.desc, messages: () => trace.messages, root: data.kind === 'sub' ? null : root, initial: host.initialStep?.(key) ?? null, sb: () => opts.sb, hl: () => opts.hl, extra: ts.range, zoom: () => factor, readOnly: host.readOnly, onStep: (n) => host.setStep?.(key, n), onRestep: (cols) => render?.restep(cols), onSteps: (st) => partial.update(st), onPick: (n, ev) => brackets?.pick(n, ev) });
+  walk.hiddenOf = (k) => ts.scen.hiddenOf(k); // comments, action items and notes on a step this scenario hides say so and offer "Show"
   const stepRoot = data.kind === 'sub' ? null : root, sdet = createStepDetails({ store: host.desc, root: stepRoot, opts }); // 0.30.0: title / description on the arrows (opts.sd)
   const unDesc = stepRoot ? host.desc.watch(stepRoot, () => { if (render && opts.sd !== 'a') draw(); }) : null; // a saved or loaded step text redraws the lane when the arrows show it
   const tip = root ? createTip(host.desc, root) : null;
@@ -141,7 +146,7 @@ export function createTabView(data, host) {
   const lookInside = (bar, tr) => { inside.open(bar, tr); };
   const flash = (g) => { g?.scrollIntoView({ block: 'center', behavior: 'smooth' }); g?.classList.add('flash'); setTimeout(() => g?.classList.remove('flash'), 1600); };
   const ed = editing && host.edit ? host.edit : null; // Edit with a draft: heads, arrows and "+ call" open forms (design/edit-open.js)
-  const shared = { host, opts, tip, walk, details: (built) => sdet.forLane(built, trace.messages), editStep: (k) => walk.editKey(k), editHead: ed ? (service) => { ed.head(service); return true; } : null, addCall: ed ? (bar) => ed.addCall(bar.service, bar.msg.target.fn) : null, addInBand: ed ? (key) => ed.addComponent(key) : null, trigger: () => data.trigger, importRef: (anchor, m) => host.importRef?.(anchor, m?.reference?.source), zoom: () => factor, afterLane: (box) => { if (box) brackets?.attach(box); if (render && zoomV === 'fit') recompute(); }, squeeze: () => opts.squeeze && !sqOff, squeezeOpen: () => { sqOff = true; host.paintChrome?.(); render?.relane(); edge(); walk.reveal(true); }, fit: () => scroller.clientWidth - (brackets?.width() ?? 0), select, lookInside, flash, traceFor: host.traceFor,
+  const shared = { ...ts.hooks, host, opts, tip, walk, details: (built) => sdet.forLane(built, trace.messages), editStep: (k) => walk.editKey(k), editHead: ed ? (service) => { ed.head(service); return true; } : null, addCall: ed ? (bar) => ed.addCall(bar.service, bar.msg.target.fn) : null, addInBand: ed ? (key) => ed.addComponent(key) : null, trigger: () => data.trigger, importRef: (anchor, m) => host.importRef?.(anchor, m?.reference?.source), zoom: () => factor, afterLane: (box) => { if (box) brackets?.attach(box); if (render && zoomV === 'fit') recompute(); }, squeeze: () => opts.squeeze && !sqOff, squeezeOpen: () => { sqOff = true; host.paintChrome?.(); render?.relane(); edge(); walk.reveal(true); }, fit: () => scroller.clientWidth - (brackets?.width() ?? 0), select, lookInside, flash, traceFor: host.traceFor,
     openMessage: (m, g, tr) => { // clicking an arrow opens the message panel (in Edit: its form); one side panel at a time
       body.querySelectorAll('.msg.active').forEach((e) => e.classList.remove('active'));
       g.classList.add('active');
@@ -191,7 +196,7 @@ export function createTabView(data, host) {
   const maxBar = paintEnv(h('div.max-bar', backBtn('.in-max'), envChip(host.env), host.readOnly ? maxReadOnly(host.env, host.switchEnv) : null, h('span.fh-t', (root && host.nameOf?.(root.service, root.ingress)) || label.title), label.sub ? h('span.mono.xs.muted', label.sub) : null, zctl.el), host.env); // shown only while maximized (flow-max.css)
   if (comments) { pane = createPane({ panels: { notes, comments, actions }, diagram: body }); for (const [id, d] of Object.entries(counts)) pane.setCount(id, d); }
   const xnote = host.readOnly ? foreignNote(host.env, host.design, host.switchEnv) : null; // "Viewing <env>. Switch to it to edit."
-  const el = h('div.flow-tab', maxBar, backBar, xnote, h('div.flow-top', flowBox?.el, related?.el, walk.el, partial.el), body, pane?.splitter, pane?.el); // the pane sits under the diagram (0.27.5); the border between them is a drag handle (0.34.0)
+  const el = h('div.flow-tab', maxBar, backBar, xnote, h('div.flow-top', flowBox ? null : h('div.scn-row', ts.ui.el), flowBox?.el, related?.el, walk.el, partial.el), body, pane?.splitter, pane?.el); // the pane sits under the diagram (0.27.5); the border between them is a drag handle (0.34.0)
   // maximized, the pane's tab row sticks under the title bar and the step bar, whatever height the step bar has (its description wraps): --max-stick is their height
   const stick = () => el.style.setProperty('--max-stick', `${maxBar.offsetHeight + (el.querySelector('.stepbar')?.offsetHeight ?? 0)}px`);
   const roStick = typeof ResizeObserver === 'function' ? new ResizeObserver(stick) : null;
@@ -205,7 +210,7 @@ export function createTabView(data, host) {
   const sp = comments && data.kind !== 'sub' ? stepsParam(parseHash().query) : null; // `steps=4-9`: a link opens the composer with that range attached, in the active tab only
   if (sp) requestAnimationFrame(() => requestAnimationFrame(() => { if (host.isActive(key) && walk.steps().length >= sp.to) comments.startRange(sp.from, sp.to); }));
   return {
-    el, key, data, draw, insideOpen: () => inside.isOpen(), dispose: () => { unWheel(); clearTimeout(resizeTimer); document.removeEventListener('fm:layout', onLayout); inside.dispose(); ro?.disconnect(); roStick?.disconnect(); tip?.dispose(); descs.forEach((d) => d?.dispose()); comments?.dispose(); actions?.dispose(); notes?.dispose(); brackets?.dispose(); unBr?.(); pane?.dispose(); items?.dispose(); related?.dispose(); walk.dispose(); unDesc?.(); },
+    el, key, data, draw, insideOpen: () => inside.isOpen(), dispose: () => { ts.ui.dispose(); unWheel(); clearTimeout(resizeTimer); document.removeEventListener('fm:layout', onLayout); inside.dispose(); ro?.disconnect(); roStick?.disconnect(); tip?.dispose(); descs.forEach((d) => d?.dispose()); comments?.dispose(); actions?.dispose(); notes?.dispose(); brackets?.dispose(); unBr?.(); pane?.dispose(); items?.dispose(); related?.dispose(); walk.dispose(); unDesc?.(); },
     refreshBar: () => walk.refreshBar(), refreshHl: () => walk.refreshHl(), refreshBrackets: () => brackets?.refresh(),
     step: () => (walk.picked() ? walk.current() || null : null), goStep: (n) => walk.go(n), // the step the viewer is on (when they chose one) / put the walk on a step
     steps: () => walk.steps(), // the steps of the lane (n, from, to, label, transport): the info pane's "In this flow"
@@ -215,7 +220,7 @@ export function createTabView(data, host) {
     restore: () => { scroller.scrollTop = saved; edge(); requestAnimationFrame(edge); },
     refreshDots: () => render?.index()?.refresh(),
     clearMessage: () => body.querySelectorAll('.msg.active').forEach((e) => e.classList.remove('active')),
-    info: () => { const services = new Set(trace.messages.map((m) => m.service).filter(Boolean)); return `${trace.start.event ? `${trace.start.event}: ` : ''}${plural(trace.messages.length, 'step')}, ${plural(services.size, 'service')}${trace.truncated ? ', truncated' : ''}`; },
+    info: () => { const services = new Set(trace.messages.map((m) => m.service).filter(Boolean)); return `${trace.start.event ? `${trace.start.event}: ` : ''}${ts.counts(trace) || plural(trace.messages.length, 'step')}, ${plural(services.size, 'service')}${trace.truncated ? ', truncated' : ''}`; },
     closeInside: () => inside.close(),
   };
 }
