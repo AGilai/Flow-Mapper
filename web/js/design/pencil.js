@@ -52,13 +52,13 @@ async function chooseDraft(anchor, target) {
 export function pencils(host) {
   const design = isDesign();
   return {
-    /** The pencil of `item` ('header', 'endpoint', ... see pencil-pure.js), labelled "Edit <thing>"; null where the environment gives none. `text`: a text button ("Edit") instead of the bare pencil. */
-    button(item, thing, target, { cls = '', text = null } = {}) {
+    /** The pencil of `item` ('header', 'endpoint', ... see pencil-pure.js), labelled "Edit <thing>"; null where the environment gives none. `text`: a text button ("Edit") instead of the bare pencil; `glyph`: another icon (the entry-point row's flow button wears the flow icon, so it is told from the endpoint pencil). */
+    button(item, thing, target, { cls = '', text = null, glyph = 'edit' } = {}) {
       if (!pencilAllowed(item, design)) return null;
       const label = pencilLabel(thing);
       return h(text ? 'button.btn' : 'button.pen', { type: 'button', class: `${editing() ? 'on ' : ''}${cls}`.trim(), 'data-qa': `pen-${item}`, 'aria-label': label, title: label, 'aria-haspopup': editing() ? null : 'menu',
         on: { click: (e) => { e.preventDefault(); e.stopPropagation(); if (editing()) openTarget(target, host); else chooseDraft(e.currentTarget, target); },
-          keydown: (e) => { if (e.key === 'Enter' || e.key === ' ') e.stopPropagation(); } } }, icon('edit'), text);
+          keydown: (e) => { if (e.key === 'Enter' || e.key === ' ') e.stopPropagation(); } } }, icon(glyph), text);
     },
     /** An annotation pencil (flow and step descriptions): it does `fn` at once in every environment, no draft step. */
     note(thing, fn) {
@@ -70,7 +70,7 @@ export function pencils(host) {
     about(owner, target) {
       if (!pencilAllowed('about', design)) return null;
       const t = (section) => ({ ...target, at: 'about', section });
-      return { whole: this.button('about', `${owner} About`, t(null)), section: (title) => this.button('about-section', `${owner} About section ${title}`, t(title)) };
+      return { whole: this.button('about', `${owner} About`, t(null)), empty: this.button('about', `${owner} About`, t(null), { text: 'Add about' }), section: (title) => this.button('about-section', `${owner} About section ${title}`, t(title)) };
     },
     /** The muted "Harvested — edit at the source" line of a harvested page (null in a design environment). */
     hint() {

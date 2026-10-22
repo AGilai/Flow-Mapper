@@ -7,7 +7,7 @@ import { h } from '../dom.js';
  *  the pencil of the title bar (the whole text) and one per `##` section; absent in a harvested environment. */
 export function aboutBlock(md, { pen = null } = {}) {
   const html = typeof md === 'string' && md.trim() !== '';
-  const whole = pen?.whole ?? null;
+  const whole = html ? pen?.whole ?? null : pen?.empty ?? pen?.whole ?? null; // an empty About offers a visible "Add about" button (0.31.1)
   if (!html && !whole) return null;
   const body = h('div.about-body', { 'data-qa': 'about-body' });
   if (html) import('../../core/markdown-lite.js').then((m) => {
