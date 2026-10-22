@@ -246,6 +246,45 @@
             }
           }
         },
+        "alternatives": {
+          "type": "array",
+          "description": "0.36.1 (#82): either/or groups this step belongs to or opens (if/else, switch). Stored with the step and returned verbatim on its trace message (`alternatives`, with `stepId`); no drawing change yet. `group_id` is stable across runs; each arm lists the `step_ids` it contains, as `<service>:<function>#<seq>` (the `stepId` of the trace message). `depends_on`: data (decided by stored state or a runtime value) or message (decided by a message field). `llm_name` / `llm_provenance` stay null until a name is resolved. Extra fields are allowed.",
+          "items": {
+            "type": "object", "required": ["group_id", "arms"], "additionalProperties": true,
+            "properties": {
+              "group_id": { "type": "string", "minLength": 1 },
+              "name": { "type": "string" },
+              "name_source": { "type": "string" },
+              "llm_name": { "type": ["string", "null"] },
+              "llm_provenance": { "type": ["object", "null"] },
+              "depends_on": { "enum": ["data", "message"] },
+              "guard": { "type": "object", "properties": { "text": { "type": "string" }, "file": { "type": "string" }, "line": { "type": "integer" } } },
+              "arms": {
+                "type": "array",
+                "items": {
+                  "type": "object", "required": ["arm", "step_ids"], "additionalProperties": true,
+                  "properties": {
+                    "arm": { "type": "string" }, "label": { "type": "string" }, "guard_text": { "type": "string" },
+                    "step_ids": { "type": "array", "items": { "type": "string" } }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "fixes": {
+          "type": "array",
+          "description": "0.36.1 (#82): the caller's literal fixes an arm of an alternatives group (`group_id`, `arm`), e.g. a call that passes a constant the callee branches on. `source` says where; `literal` is the value. Scoped to the path like `bind`. Stored with the step and returned verbatim on its trace message. Extra fields are allowed.",
+          "items": {
+            "type": "object", "required": ["group_id", "arm"], "additionalProperties": true,
+            "properties": {
+              "group_id": { "type": "string", "minLength": 1 },
+              "arm": { "type": "string" },
+              "source": { "type": "object", "additionalProperties": true, "properties": { "file": { "type": "string" }, "line": { "type": "integer" } } },
+              "literal": {}
+            }
+          }
+        },
         "mark": { "enum": ["new", "changed"], "description": "A step the design adds (new) or changes (changed): drawn as a coloured band on its arrow with the same mark icon as components and flows, and counted by \"Changed only\". `details.changed` (free text) stays the tooltip." },
         "over": { "type": "array", "items": { "type": "string" }, "description": "On a leaf step: the components (or data stores, by their instance or database name) its note spans. The note is drawn from the leftmost to the rightmost of them (one component: under that lifeline)." },
         "returns": {

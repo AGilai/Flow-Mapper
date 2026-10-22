@@ -68,6 +68,10 @@ export interface Step {
   over?: string[];
   /** 0.33.2 (#81): what the call returns: the label of the dashed return arrow and a longer detail for the step panel. */
   returns?: { label: string; detail?: string };
+  /** 0.36.1 (#82): either/or groups of this step, stored as given (`details.alternatives` is read when this is absent, see `altsOf`). */
+  alternatives?: StepAlternative[];
+  /** 0.36.1 (#82): the caller's literal fixes an arm of a group; scoped to the path like `bind`. `details.fixes` is read when absent (`fixesOf`). */
+  fixes?: StepFix[];
   loop?: boolean;
   note?: string;
   /** Event type this egress step publishes (one of the egress's `events`). */
@@ -91,6 +95,11 @@ export interface Step {
 /** A step with no target that the harvester classified: `kind: 'leaf'`, or a call with an operation or note. */
 export const isLeaf = (st: Pick<Step, 'type' | 'target' | 'kind' | 'operation' | 'note'>) =>
   !st.target && (st.kind === 'leaf' || (st.type === 'call' && !!(st.operation || st.note)));
+
+/** An either/or group (#82). Extra fields are kept and returned as they came. */
+export interface StepAlternative { group_id: string; arms: { arm: string; label?: string; guard_text?: string; step_ids: string[]; [k: string]: unknown }[]; name?: string; name_source?: string; llm_name?: string | null; llm_provenance?: object | null; depends_on?: 'data' | 'message'; guard?: { text?: string; file?: string; line?: number }; [k: string]: unknown }
+
+export interface StepFix { group_id: string; arm: string; source?: { file?: string; line?: number; [k: string]: unknown }; literal?: unknown; [k: string]: unknown }
 
 export interface StepField { role: 'filter' | 'projection' | 'update' | 'sort'; path: string; operator?: string; inDdl?: boolean; ddlRef?: string; flag?: string }
 
