@@ -18,7 +18,7 @@ import { badRequest, conflict, HttpError, notFound } from '../errors.ts';
 import { cached } from '../design-rows.ts';
 import { getEnvRow, guardEnv } from './envs.ts';
 import { appendOps, getDraft, loadOps } from './drafts.ts';
-import { envItemRows } from './item-rows.ts';
+import { envRowsOf } from './env-rows-cache.ts';
 import { prepareOps } from './draft-validate.ts';
 
 export interface MermaidInput { text: string; matches?: Record<string, unknown>; groupPath?: string }
@@ -34,11 +34,11 @@ function plan(ctx: Ctx, env: string, slug: string, i: MermaidInput) {
   if (i.matches !== undefined && (typeof i.matches !== 'object' || i.matches === null || Array.isArray(i.matches))) throw badRequest('matches must be an object: participant id -> component name | {create} | {fromSource} | {client}');
   if (i.groupPath !== undefined && typeof i.groupPath !== 'string') throw badRequest('groupPath must be a string');
   const env0 = getEnvRow(db, env)!;
-  const envRows = envItemRows(db, env), base = overlayRows(envRows, netOps(loadOps(db, d.id)));
+  const envRows = envRowsOf(db, env), base = overlayRows(envRows, netOps(loadOps(db, d.id)));
   const groups = base.filter((r) => r.list === 'subsystem').map((r) => r.key);   // the draft's own subsystems count
   if (i.groupPath && !groups.includes(i.groupPath)) throw new HttpError(422, 'NO_GROUP', `groupPath '${i.groupPath}' is not one of this environment's subsystems (${groups.join(', ') || 'none'})`);
   const source = env0.source && getEnvRow(db, env0.source) ? env0.source : null;
-  const srcRows = source ? cached<ItemRow[]>(`rows:${source}`, [source], () => envItemRows(db, source)) : [];
+  const srcRows = source ? cached<ItemRow[]>(`rows:${source}`, [source], () => envRowsOf(db, source)) : [];
 
   const parsed = parseMermaid(i.text);
   const rows = matchParticipants(parsed.participants, names(base), names(srcRows));

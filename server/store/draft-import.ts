@@ -13,7 +13,7 @@ import { badRequest, HttpError, notFound } from '../errors.ts';
 import { cached } from '../design-rows.ts';
 import { getEnvRow, guardEnv } from './envs.ts';
 import { appendOps, getDraft, loadOps } from './drafts.ts';
-import { envItemRows } from './item-rows.ts';
+import { envRowsOf } from './env-rows-cache.ts';
 
 export interface ImportRequest { source: string; anchor: string; groupPath?: string }
 
@@ -27,8 +27,8 @@ function plan(ctx: Ctx, env: string, slug: string, i: ImportRequest): { set: Imp
   if (i.source === env) throw badRequest(`source must be another environment than '${env}' (the one being designed)`);
   if (typeof i.anchor !== 'string') throw badRequest('anchor is required: ing:<service>/<id> or svc:<service>');
   if (i.groupPath !== undefined && typeof i.groupPath !== 'string') throw badRequest('groupPath must be a string');
-  const here = overlayRows(envItemRows(db, env), netOps(loadOps(db, d.id)));
-  const srcRows = cached<ItemRow[]>(`rows:${i.source}`, [i.source], () => envItemRows(db, i.source));
+  const here = overlayRows(envRowsOf(db, env), netOps(loadOps(db, d.id)));
+  const srcRows = cached<ItemRow[]>(`rows:${i.source}`, [i.source], () => envRowsOf(db, i.source));
   try {
     const set = importSet({
       source: i.source, anchor: i.anchor, srcRows, srcGraph: ctx.view(i.source).g,

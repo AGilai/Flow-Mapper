@@ -9,7 +9,7 @@ import * as drafts from '../store/drafts.ts';
 import { runApply } from '../store/draft-apply.ts';
 import { ingestPlan } from '../store/draft-plan.ts';
 import { requireEnv } from '../store/envs.ts';
-import { envItemRows } from '../store/item-rows.ts';
+import { envRowsOf } from '../store/env-rows-cache.ts';
 
 export const flag = (q: URLSearchParams, k: string) => ['1', 'true'].includes(q.get(k) ?? '');
 
@@ -51,7 +51,7 @@ export function registerDrafts(r: Router, ctx: Ctx) {
   });
   r.get(`${base}/:slug/changes`, (req) => {
     const d = drafts.getDraft(db, req.params.env, req.params.slug);
-    return drafts.changesOf(envItemRows(db, req.params.env), drafts.loadOps(db, d.id));
+    return drafts.changesOf(envRowsOf(db, req.params.env), drafts.loadOps(db, d.id));
   });
   r.post(`${base}/:slug/apply`, async (req) => {
     const b = await req.json();

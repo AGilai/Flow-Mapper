@@ -15,7 +15,7 @@ import { cleanOwners } from '../../core/owners.ts';
 import { resolveOwners, resolveAbout } from './owners.ts';
 import { getEnvRow, type EnvGroup } from './envs.ts';
 import { appendOps, getDraft, loadOps } from './drafts.ts';
-import { envItemRows } from './item-rows.ts';
+import { envRowsOf } from './env-rows-cache.ts';
 
 export interface SubsystemInput { key: string; label: string; icon?: string | null; about?: string | null; owners?: unknown }
 
@@ -60,7 +60,7 @@ export function putDraftSubsystems(db: DB, env: string, slug: string, list: unkn
     const d = getDraft(db, env, slug);
     const clean = cleanSubsystems(list, db);
     try {
-      const ops = settingsOps(clean, overlayRows(envItemRows(db, env), netOps(loadOps(db, d.id))));
+      const ops = settingsOps(clean, overlayRows(envRowsOf(db, env), netOps(loadOps(db, d.id))));
       if (!ops.length) throw new EditError('NO_CHANGE', 'this changes no subsystem');
       return { ...appendOps(db, env, slug, ops, who), ops };
     } catch (e) {
