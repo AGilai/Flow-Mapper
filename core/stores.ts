@@ -3,7 +3,7 @@
 // the key before the first '/' is its group: the cluster or database (`mongodb:orders-db`,
 // `redis:cache-main`). Each use is classified as a read or a write from its operation.
 
-import type { GraphIndex } from './graph-index.ts';
+import { itemsOf, type GraphIndex } from './graph-index.ts';
 import { codeLink, sourceLink, type SourceLink } from './endpoint-info.ts';
 import { entryPointsReaching, type EntryHit } from './reach.ts';
 import { unresolvedTarget } from './resolve.ts';
@@ -37,8 +37,7 @@ export interface StoreView extends StoreSummary {
   details: Record<string, unknown>; uses: StoreUse[]; entryPoints: EntryHit[]; siblings: StoreSummary[];
 }
 
-export const usesOf = (g: GraphIndex, r: Resource) => g.model.functions
-  .filter((f) => f.service === r.service)
+export const usesOf = (g: GraphIndex, r: Resource) => itemsOf(g, r.service).functions
   .map((f) => ({ f, steps: f.steps.filter((s) => s.type === 'resource' && s.target === r.id) }))
   .filter((x) => x.steps.length);
 
@@ -51,8 +50,11 @@ export function instanceDef(g: GraphIndex, r: Resource): boolean {
   return g.services.get(r.service)?.kind === 'infra' || !usesOf(g, r).length;
 }
 
-/** Every store with who reads and who writes it. */
+const storesCache = new WeakMap<GraphIndex, StoreSummary[]>();
+/** Every store with who reads and who writes it (memoised per graph: do not mutate). */
 export function stores(g: GraphIndex): StoreSummary[] {
+  const hit = storesCache.get(g);
+  if (hit) return hit;
   const by = new Map<string, StoreSummary>();
   for (const r of g.model.resources) {
     if (instanceDef(g, r)) continue;
@@ -71,7 +73,9 @@ export function stores(g: GraphIndex): StoreSummary[] {
       }
     }
   }
-  return [...by.values()].sort((a, b) => a.group.localeCompare(b.group) || a.key.localeCompare(b.key));
+  const out = [...by.values()].sort((a, b) => a.group.localeCompare(b.group) || a.key.localeCompare(b.key));
+  storesCache.set(g, out);
+  return out;
 }
 
 export function storeView(g: GraphIndex, key: string): StoreView | null {

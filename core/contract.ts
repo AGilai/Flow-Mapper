@@ -2,10 +2,10 @@
 // its data before filing a bug. Pure; never a rejection. See docs/HARVESTER-GUIDE.md ("Contract report").
 // Add a check by writing a `Rule` and listing it in RULES; give it a new code and a one-sentence fix.
 
-import type { GraphIndex } from './graph-index.ts';
+import { itemsOf, type GraphIndex } from './graph-index.ts';
 import { boundValues } from './events.ts';
 import { filterAllows, keyMatches } from './glob.ts';
-import { drift, mixedCommits } from './harvest-quality.ts';
+import { driftOf, mixedCommitsOf } from './harvest-quality.ts';
 import type { Assumed, ClientInfo, Source, Unresolved } from './types.ts';
 import { assumedField } from './assumed.ts';
 
@@ -128,8 +128,7 @@ const egressNoEvents: Rule = ({ m, g, add }) => {
 
 /** An egress step that takes its event from a caller's bind (#42) when no call step in the service binds that name: the trace treats it as untyped. */
 const eventFromUnbound: Rule = ({ m, g, add }) => {
-  const fns = g.model.functions.filter((f) => f.service === m.service);
-  for (const f of fns) for (const s of f.steps) if (s.eventFrom && !boundValues(g, f.service, f.id, s.eventFrom).size) add({
+  for (const f of itemsOf(g, m.service).functions) for (const s of f.steps) if (s.eventFrom && !boundValues(g, f.service, f.id, s.eventFrom).size) add({
     level: 'info', code: 'eventfrom-unbound', kind: 'step', id: `${f.id}#${s.seq}`,
     message: `step ${f.id}#${s.seq} takes its event from '${s.eventFrom}' but no call step binds '${s.eventFrom}', so it is traced as a publish with no event type`,
     fix: `Add bind: {"${s.eventFrom}": "<event type>"} to the call steps that reach this function, or drop eventFrom and send event / unresolved what "event".`,
@@ -147,7 +146,7 @@ const dangling: Rule = ({ m, g, add }) => {
 const filterMatchesNothing: Rule = ({ m, g, add }) => {
   for (const b of m.bindings ?? []) {
     if (!Array.isArray(b.events) || !b.events.length) continue;
-    const published = g.model.egress.filter((e) => keyMatches(b.from, b.match, e.bindKey))
+    const published = (b.match === 'glob' || b.match === 'amqp-topic' ? g.model.egress.filter((e) => keyMatches(b.from, b.match, e.bindKey)) : g.egressByKey.get(b.from) ?? [])
       .flatMap((e) => [...(e.events ?? []), ...(e.unresolved ?? []).flatMap((u) => (u.what === 'event' ? u.candidates ?? [] : []))]);
     if (published.length && !published.some((t) => filterAllows(b.events as string[], t))) add({
       level: 'warn', code: 'filter-matches-nothing', kind: 'binding', id: b.id,
@@ -159,12 +158,12 @@ const filterMatchesNothing: Rule = ({ m, g, add }) => {
 
 const KINDS = new Set(['ingress', 'egress', 'binding', 'channel']);
 const harvestQuality: Rule = ({ m, g, add }) => {
-  for (const x of mixedCommits(g)) if (x.service === m.service) add({
+  for (const x of [mixedCommitsOf(g, m.service)]) if (x) add({
     level: 'info', code: 'mixed-commit', kind: 'service', id: m.service,
     message: `items were scanned at other commits than the manifest's: ${x.others.map((o) => `${o.commit} (${o.items})`).join(', ')}`,
     fix: "Scan every item at the commit you send in the manifest, or set source.commit on the items that differ.",
   });
-  for (const d of drift(g)) if (d.service === m.service) add({
+  for (const d of driftOf(g, m.service)) add({
     level: 'info', code: 'drift', kind: KINDS.has(d.kind) ? (d.kind as Finding['kind']) : 'service', id: d.id,
     message: `${d.kind} '${d.id}' was checked against the live system and differs (provenance.verified: drift)`,
     fix: 'Align the code and the deployed system, or re-run the live check; Flow-Mapper keeps what you sent.',

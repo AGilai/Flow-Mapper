@@ -70,7 +70,7 @@ test('graph cache: LRU bound, size(), invalidation', () => {
 });
 
 test('graph cache: weight budget evicts least recently used, keeps the newest', () => {
-  assert.equal(config.graphCacheItems, 250_000); // default; FLOW_GRAPH_CACHE_ITEMS overrides it
+  assert.equal(config.graphCacheItems, 150_000); // default; FLOW_GRAPH_CACHE_ITEMS overrides it
   const db = openDb(':memory:');
   for (const e of ['a', 'b', 'c']) for (const m of sampleManifests()) ingest(db, { ...m, env: e });
   setMax(8);
@@ -84,5 +84,5 @@ test('graph cache: weight budget evicts least recently used, keeps the newest', 
   assert.equal(graphFor(db, 'c'), c, 'c survived');
   setBudget(1);
   assert.equal(size(), 1, 'a graph over the budget on its own stays: the newest is never evicted');
-  setBudget(250_000);
+  setBudget(150_000);
 });

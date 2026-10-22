@@ -8,6 +8,7 @@ import { badRequest, notFound } from '../errors.ts';
 import { isList, keyOf, LISTS } from '../schema.ts';
 import * as store from '../store/snapshots.ts';
 import { health } from '../../core/health.ts';
+import type { GraphIndex } from '../../core/graph-index.ts';
 import { draftPrelude } from '../store/draft-prelude.ts';
 
 export function registerMap(r: Router, ctx: Ctx) {
@@ -23,9 +24,10 @@ export function registerMap(r: Router, ctx: Ctx) {
     const dryRun = req.query.get('dryRun') === '1' || req.query.get('dryRun') === 'true';
     const draft = req.query.get('draft');
     if (draft && !dryRun) throw badRequest('draft is for dry runs only (dryRun=1): a real ingest does not go through a draft');
-    const results = store.ingestBatch(db, manifests, source(req.query), { dryRun, prelude: draft ? draftPrelude(db, manifests, draft) : undefined }); // one transaction: all or nothing
+    const graphs = new Map<string, GraphIndex>(); // the graph the contract report was built on, per env: the cache takes it instead of building it again
+    const results = store.ingestBatch(db, manifests, source(req.query), { dryRun, prelude: draft ? draftPrelude(db, manifests, draft) : undefined, graphs }); // one transaction: all or nothing
     if (dryRun) return { dryRun: true, results };
-    new Set(results.map((x: any) => x.env)).forEach((env) => ctx.changed(env as string));
+    new Set(results.map((x: any) => x.env)).forEach((env) => ctx.changed(env as string, graphs.get(env as string)));
     return created({ results });
   });
 

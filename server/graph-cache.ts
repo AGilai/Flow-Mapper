@@ -6,7 +6,7 @@
 
 import type { DB } from './db/connection.ts';
 import { buildIndex, type GraphIndex } from '../core/graph-index.ts';
-import { health } from '../core/health.ts';
+import { healthCounts } from '../core/health.ts';
 import { rowsToModel } from '../core/item-rows.ts';
 import { dbReader, rowsReader, type DataReader } from './draft-reader.ts';
 import { draftView } from './store/drafts.ts';
@@ -95,15 +95,21 @@ export function memoSet<T>(key: string, value: T, deps: string[]): T {
   return value;
 }
 
-/** Call after a write to `service` in `env`. Stores health for every service whose numbers changed. */
-export function afterWrite(db: DB, env: string) {
+/**
+ * Call after a write to `env`. Stores health for every service whose numbers changed.
+ * `built`: the graph the writer already built from the committed data (an ingest does, for its contract report);
+ * it goes into the cache instead of being built a second time. Never pass one built from uncommitted or dry-run data.
+ */
+export function afterWrite(db: DB, env: string, built?: GraphIndex) {
   invalidate(env);
-  const report = health(graphFor(db, env));
+  if (built) dropIfChangedElsewhere(db);
+  const g = built ? lru(env, () => ({ g: built, weight: weightOf(built) })).g : graphFor(db, env);
+  const services = healthCounts(g);
   const at = new Date().toISOString();
   const last = db.prepare('SELECT egress, dangling, orphans, unbound FROM health_history WHERE env = ? AND service = ? ORDER BY version DESC LIMIT 1');
   const ins = db.prepare(`INSERT INTO health_history (env, service, version, at, egress, dangling, orphans, unbound) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT (env, service, version) DO UPDATE SET at = excluded.at, egress = excluded.egress, dangling = excluded.dangling, orphans = excluded.orphans, unbound = excluded.unbound`);
-  for (const s of report.services) {
+  for (const s of services) {
     const prev = last.get(env, s.service) as any;
     if (prev && prev.egress === s.egress && prev.dangling === s.dangling && prev.orphans === s.orphans && prev.unbound === s.unbound) continue;
     ins.run(env, s.service, s.version, at, s.egress, s.dangling, s.orphans, s.unbound);

@@ -1,7 +1,7 @@
 // What harvesters say about their own data: items they could not resolve (with the reason and
 // candidates), services scanned at more than one commit, and items that drift from the live system.
 
-import type { GraphIndex } from './graph-index.ts';
+import { itemsOf, type GraphIndex } from './graph-index.ts';
 import { keyMatches } from './glob.ts';
 import { unresolvedTarget } from './resolve.ts';
 import type { Assumed, Provenance, Unresolved } from './types.ts';
@@ -29,31 +29,42 @@ export function unresolvedItems(g: GraphIndex): UnresolvedItem[] {
   ];
 }
 
+type Mixed = { service: string; commit?: string; others: { commit: string; items: number }[] };
+/** One service's mixed-commit entry, or null (what `mixedCommits(g)` lists for it). Reads only that service's items. */
+export function mixedCommitsOf(g: GraphIndex, service: string): Mixed | null {
+  const s = g.services.get(service);
+  if (!s) return null;
+  const counts = new Map<string, number>();
+  const add = (c?: string) => { if (c && c !== s.commit) counts.set(c, (counts.get(c) ?? 0) + 1); };
+  const m = itemsOf(g, s.name);
+  for (const f of m.functions) add(f.commit);
+  for (const x of [...m.ingress, ...m.egress, ...m.resources, ...m.channels, ...m.bindings]) add(x.source?.commit);
+  return counts.size ? { service: s.name, commit: s.commit, others: [...counts].map(([commit, items]) => ({ commit, items })) } : null;
+}
+
 /** Services whose items were scanned at a commit other than the manifest's. */
-export function mixedCommits(g: GraphIndex): { service: string; commit?: string; others: { commit: string; items: number }[] }[] {
-  const out = [];
-  for (const s of g.model.services) {
-    const counts = new Map<string, number>();
-    const add = (c?: string) => { if (c && c !== s.commit) counts.set(c, (counts.get(c) ?? 0) + 1); };
-    const mine = <T extends { service: string }>(xs: T[]) => xs.filter((x) => x.service === s.name);
-    for (const f of mine(g.model.functions)) add(f.commit);
-    for (const x of [...mine(g.model.ingress), ...mine(g.model.egress), ...mine(g.model.resources), ...mine(g.model.channels), ...mine(g.model.bindings)]) add(x.source?.commit);
-    if (counts.size) out.push({ service: s.name, commit: s.commit, others: [...counts].map(([commit, items]) => ({ commit, items })) });
-  }
+export function mixedCommits(g: GraphIndex): Mixed[] {
+  const out: Mixed[] = [];
+  for (const s of g.model.services) { const x = mixedCommitsOf(g, s.name); if (x) out.push(x); }
   return out;
 }
 
+type Drift = { service: string; kind: string; id: string; provenance: Provenance };
+const driftRows = (m: ReturnType<typeof itemsOf>) => [
+  ...m.ingress.map((x) => ({ service: x.service, kind: 'ingress', id: x.id, provenance: x.provenance })),
+  ...m.egress.map((x) => ({ service: x.service, kind: 'egress', id: x.id, provenance: x.provenance })),
+  ...m.resources.map((x) => ({ service: x.service, kind: 'resource', id: x.id, provenance: x.provenance })),
+  ...m.channels.map((x) => ({ service: x.service, kind: 'channel', id: x.bindKey, provenance: x.provenance })),
+  ...m.bindings.map((x) => ({ service: x.service, kind: 'binding', id: x.id, provenance: x.provenance })),
+].filter((r) => r.provenance?.verified === 'drift') as Drift[];
+
+/** The drifted items of one service, in the order `drift(g)` lists them. */
+export const driftOf = (g: GraphIndex, service: string): Drift[] => driftRows(itemsOf(g, service));
+
 /** Items the harvester checked against the live system and found different. */
-export function drift(g: GraphIndex): { service: string; kind: string; id: string; provenance: Provenance }[] {
+export function drift(g: GraphIndex): Drift[] {
   const m = g.model;
-  const rows: { service: string; kind: string; id: string; provenance?: Provenance }[] = [
-    ...m.ingress.map((x) => ({ service: x.service, kind: 'ingress', id: x.id, provenance: x.provenance })),
-    ...m.egress.map((x) => ({ service: x.service, kind: 'egress', id: x.id, provenance: x.provenance })),
-    ...m.resources.map((x) => ({ service: x.service, kind: 'resource', id: x.id, provenance: x.provenance })),
-    ...m.channels.map((x) => ({ service: x.service, kind: 'channel', id: x.bindKey, provenance: x.provenance })),
-    ...m.bindings.map((x) => ({ service: x.service, kind: 'binding', id: x.id, provenance: x.provenance })),
-  ];
-  return rows.filter((r) => r.provenance?.verified === 'drift') as any;
+  return driftRows({ functions: [], ingress: m.ingress, egress: m.egress, resources: m.resources, channels: m.channels, bindings: m.bindings });
 }
 
 /** A value a harvester filled by a rule (#47). Informational: shown beside `unresolved`, never a problem. */

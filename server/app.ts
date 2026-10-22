@@ -46,7 +46,7 @@ export function createContext(opts: AppOptions): Ctx {
     graphOf: (req) => viewFor(db, req.params.env, req.query.get('draft')).g,
     readerOf: (req) => viewFor(db, req.params.env, req.query.get('draft')).reader,
     view: (env, draft) => viewFor(db, env, draft ?? null),
-    changed: (env) => afterWrite(db, env),
+    changed: (env, built) => afterWrite(db, env, built),
     changedDraft: (env, slug) => invalidateDraft(env, slug),
   };
 }

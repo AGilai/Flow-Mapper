@@ -17,8 +17,8 @@ export interface Ctx {
   /** DTOs, event DTOs, schemas, flow texts and service rows for a request (database, or the draft's overlay). */
   readerOf: (req: EnvReq) => DataReader;
   view: (env: string, draft?: string | null) => { g: GraphIndex; reader: DataReader };
-  /** Call after any write to the map in `env`. */
-  changed: (env: string) => void;
+  /** Call after any write to the map in `env`. `built`: a graph of the committed data the caller already has (see afterWrite). */
+  changed: (env: string, built?: GraphIndex) => void;
   /** Call after a draft's ops change (or it is closed): drops that draft's cached view. */
   changedDraft: (env: string, slug: string) => void;
 }

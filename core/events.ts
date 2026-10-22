@@ -9,10 +9,12 @@
 // shown, never counted as unhandled, and enough to keep a consumer off "never arrives".
 
 import type { GraphIndex } from './graph-index.ts';
-import { linksFrom, sid } from './graph-index.ts';
+import { itemsOf, linksFrom, sid } from './graph-index.ts';
 import { refKey } from './resolve.ts';
 import { compareSpecificity, eventMatches, filterAllows, specificity } from './glob.ts';
-import type { Binding, Ingress, Link, Ref } from './types.ts';
+import type { Ingress, Link, Ref } from './types.ts';
+import { subscriptionConflicts } from './event-pairs.ts';
+export { deliveriesBetween } from './event-pairs.ts';
 
 export interface Delivery {
   event: string;
@@ -69,7 +71,7 @@ export function boundValues(g: GraphIndex, service: string, fn: string, name: st
   let byName = m.get(key);
   if (!byName) {
     byName = new Map();
-    const fns = g.model.functions.filter((f) => f.service === service);
+    const fns = itemsOf(g, service).functions;
     const reach = new Set([fn]); // fn and every function with a call step into the set
     for (let grew = true; grew;) {
       grew = false;
@@ -87,8 +89,8 @@ export const egressEvents = (g: GraphIndex, e: { service: string; id: string; ev
 /** Event types an egress gets from `eventFrom` steps: the union of the values bound to those names by callers that reach the step's function, in its service. Conservative: not per path. */
 export function eventFromTypes(g: GraphIndex, e: { service: string; id: string }): string[] {
   const out = new Set<string>();
-  for (const f of g.model.functions) if (f.service === e.service) for (const st of f.steps) {
-    if (st.type === 'egress' && st.target === e.id && st.eventFrom) for (const v of boundValues(g, f.service, f.id, st.eventFrom)) out.add(v);
+  for (const { fn: f, step: st } of g.stepsToEgress.get(sid(e.service, e.id)) ?? []) {
+    if (st.eventFrom) for (const v of boundValues(g, f.service, f.id, st.eventFrom)) out.add(v);
   }
   return [...out];
 }
@@ -119,6 +121,7 @@ export function handlerFor(i: Ingress, event: string): string | null {
 }
 
 const cache = new WeakMap<GraphIndex, EventReport>();
+const ck = (service: string, id: string) => `${service}\u0000${id}`;
 
 export function eventReport(g: GraphIndex): EventReport {
   const hit = cache.get(g);
@@ -155,9 +158,11 @@ export function eventReport(g: GraphIndex): EventReport {
 
   const neverArrives: EventReport['neverArrives'] = [];
   const declaredNotSeen: EventReport['declaredNotSeen'] = [];
+  const toConsumer = new Map<string, Delivery[]>();
+  for (const d of deliveries) { const k = ck(d.consumer.service, d.consumer.ingress); const l = toConsumer.get(k); if (l) l.push(d); else toConsumer.set(k, [d]); }
   for (const i of g.model.ingress) {
     for (const ie of i.events ?? []) {
-      const derived = deliveries.filter((d) => d.consumer.service === i.service && d.consumer.ingress === i.id && eventMatches(ie.type, d.event));
+      const derived = (toConsumer.get(ck(i.service, i.id)) ?? []).filter((d) => eventMatches(ie.type, d.event));
       for (const p of ie.producers ?? []) {
         if (g.services.has(p) && !derived.some((d) => d.producer.service === p)) declaredNotSeen.push({ service: i.service, ingress: i.id, event: ie.type, producer: p });
       }
@@ -172,19 +177,6 @@ export function eventReport(g: GraphIndex): EventReport {
   };
   cache.set(g, report);
   return report;
-}
-
-function subscriptionConflicts(bindings: Binding[]): EventReport['conflicts'] {
-  const norm = (b: Binding) => (!b.events || b.events === '*' ? '*' : [...b.events].sort());
-  const groups = new Map<string, Binding[]>();
-  for (const b of bindings) {
-    const k = `${b.from}\u0000${b.to}`;
-    if (!groups.has(k)) groups.set(k, []);
-    groups.get(k)!.push(b);
-  }
-  return [...groups.values()]
-    .filter((bs) => new Set(bs.map((b) => JSON.stringify(norm(b)))).size > 1)
-    .map((bs) => ({ from: bs[0].from, to: bs[0].to, declarations: bs.map((b) => ({ service: b.service, id: b.id, events: norm(b) })) }));
 }
 
 export interface EventRow {
@@ -232,8 +224,12 @@ export function ingressEvents(g: GraphIndex, i: Ingress): EventRow[] {
 }
 const order = (r: EventRow) => ({ unhandled: 0, never: 1, possible: 2, 'declared-only': 3, ok: 4 })[r.status];
 
-/** All event types in the environment with who produces and who consumes them. */
-export function eventTypes(g: GraphIndex) {
+type EventTypeRow = { type: string; producers: { service: string; egress: string }[]; consumers: { service: string; ingress: string; handler: string | null }[] };
+const typesCache = new WeakMap<GraphIndex, EventTypeRow[]>();
+/** All event types in the environment with who produces and who consumes them (memoised per graph: do not mutate). */
+export function eventTypes(g: GraphIndex): EventTypeRow[] {
+  const hit = typesCache.get(g);
+  if (hit) return hit;
   const types = new Map<string, { type: string; producers: { service: string; egress: string }[]; consumers: { service: string; ingress: string; handler: string | null }[] }>();
   const t = (type: string) => { if (!types.has(type)) types.set(type, { type, producers: [], consumers: [] }); return types.get(type)!; };
   for (const e of g.model.egress) {
@@ -252,7 +248,9 @@ export function eventTypes(g: GraphIndex) {
     const x = types.get(ie.type);
     if (x && !x.consumers.some((c) => c.service === i.service && c.ingress === i.id)) x.consumers.push({ service: i.service, ingress: i.id, handler: ie.handler });
   }
-  return [...types.values()].sort((a, b) => a.type.localeCompare(b.type));
+  const out = [...types.values()].sort((a, b) => a.type.localeCompare(b.type));
+  typesCache.set(g, out);
+  return out;
 }
 
 /** One event type: who publishes it, every delivery (consumer, handler, route), and its problems. */

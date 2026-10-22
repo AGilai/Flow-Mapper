@@ -1,11 +1,9 @@
 // System view data: services, channels, resources and missing targets as nodes; aggregated edges.
 // The UI filters this client-side (name, function, transport, team, broken only).
 
-import type { GraphIndex } from './graph-index.ts';
-import { downstreamIngress, sid } from './graph-index.ts';
+import { downstreamIngress, itemsOf, sid, subscriptionsOf, type GraphIndex } from './graph-index.ts';
 import type { Mode, Ref, Transport } from './types.ts';
 import { eventReport } from './events.ts';
-import { keyMatches } from './glob.ts';
 
 export type NodeKind = 'service' | 'gateway' | 'infra' | 'channel' | 'resource' | 'missing';
 
@@ -49,7 +47,15 @@ export interface SystemGraph { nodes: GraphNode[]; edges: GraphEdge[]; collapsed
 const svcNode = (name: string) => `svc:${name}`;
 const chNode = (key: string) => `ch:${key}`;
 
+const cache = new WeakMap<GraphIndex, SystemGraph>();
+/** The system map of a graph (memoised per graph: do not mutate). */
 export function systemGraph(g: GraphIndex): SystemGraph {
+  let out = cache.get(g);
+  if (!out) cache.set(g, (out = build(g)));
+  return out;
+}
+
+function build(g: GraphIndex): SystemGraph {
   const nodes = new Map<string, GraphNode>();
   const r = g.resolution;
   const danglingSet = new Set(r.dangling.map((e) => sid(e.service, e.id)));
@@ -57,14 +63,14 @@ export function systemGraph(g: GraphIndex): SystemGraph {
 
   for (const s of g.model.services) {
     if (s.kind === 'infra') continue; // infra manifests only declare channels
-    const of = <T extends { service: string }>(xs: T[]) => xs.filter((x) => x.service === s.name);
-    const ins = of(g.model.ingress), outs = of(g.model.egress);
+    const mine = itemsOf(g, s.name);
+    const ins = mine.ingress, outs = mine.egress;
     nodes.set(svcNode(s.name), {
       id: svcNode(s.name), kind: s.kind === 'lambda' || s.kind === 'client-app' ? 'service' : s.kind, svcKind: s.kind, label: s.name, sub: s.team, service: s.name, team: s.team, tags: s.tags, ...(s.about ? { about: s.about } : {}), ...(s.details?.runtime ? { runtime: String(s.details.runtime) } : {}), // runtime: the Kubernetes mark on the map (0.26.0, #49)
-      functions: of(g.model.functions).map((f) => f.name),
+      functions: mine.functions.map((f) => f.name),
       transports: [...new Set([...ins, ...outs].map((x) => x.transport))],
       stats: {
-        ingress: ins.length, egress: outs.length, functions: of(g.model.functions).length,
+        ingress: ins.length, egress: outs.length, functions: mine.functions.length,
         dangling: outs.filter((e) => danglingSet.has(sid(e.service, e.id))).length,
         orphans: ins.filter((i) => orphanSet.has(sid(i.service, i.id))).length,
       },
@@ -74,8 +80,8 @@ export function systemGraph(g: GraphIndex): SystemGraph {
     const conflicted = new Set(eventReport(g).conflicts.filter((x) => x.from === key).map((x) => x.to));
     nodes.set(chNode(key), {
       id: chNode(key), kind: 'channel', label: c.name ?? key, sub: c.kind, transports: [c.kind.split('-')[0]],
-      events: [...new Set(g.model.egress.filter((e) => e.bindKey === key).flatMap((e) => e.events ?? []))].sort(),
-      subscriptions: g.model.bindings.filter((b) => keyMatches(b.from, b.match, key))
+      events: [...new Set((g.egressByKey.get(key) ?? []).flatMap((e) => e.events ?? []))].sort(),
+      subscriptions: subscriptionsOf(g, key)
         .map((b) => ({ id: b.id, service: b.service, to: b.to, events: b.events ?? '*', conflict: conflicted.has(b.to) })),
     });
   }
@@ -115,7 +121,7 @@ export function systemGraph(g: GraphIndex): SystemGraph {
   for (const res of g.model.resources) {
     const id = `res:${res.bindKey ?? `${res.service}:${res.id}`}`;
     if (!nodes.has(id)) nodes.set(id, { id, kind: 'resource', label: res.name, sub: res.kind });
-    const fns = g.model.functions.filter((f) => f.service === res.service);
+    const fns = itemsOf(g, res.service).functions;
     const ops = fns.flatMap((f) => f.steps.filter((s) => s.type === 'resource' && s.target === res.id).map((s) => s.operation ?? 'use'));
     addEdge(svcNode(res.service), id, 'other', 'sync', { from: res.service, to: res.name, bindKey: res.bindKey ?? res.id, via: [...new Set(ops)].join(', ') || 'use' });
   }

@@ -46,7 +46,7 @@ export function createHistory({ env, anchor, current, onBack, onRestored }) {
   function drawSide() {
     const rows = list.versions.map((v) => h('button.nt-hv', { type: 'button', role: 'option', 'aria-selected': String(v.version === pick), class: v.version === pick ? 'on' : '', 'data-qa': 'nt-version', on: { click: () => { pick = v.version; drawSide(); drawMain(); } } },
       h('b', `Version ${v.version}`), v.version === current ? h('span.nt-cur', 'current') : null, h('span.cm-hint', `${v.author} · ${relTime(v.createdAt)}`, v.restoredFrom ? ` · restored from ${v.restoredFrom}` : '')));
-    side.replaceChildren(...rows, list.total > list.versions.length ? h('div.cm-hint.nt-older', `${list.total - list.versions.length} older versions`) : null);
+    side.replaceChildren(...rows, ...(list.total > list.versions.length ? [h('div.cm-hint.nt-older', `${list.total - list.versions.length} older versions`)] : [])); // a null child would be written as the text "null"
   }
   api.notesHistory(env, anchor).then((l) => { if (!alive) return; list = l; if (!l.versions.some((v) => v.version === pick)) pick = l.current; drawSide(); drawMain(); }).catch((e) => { main.replaceChildren(h('div.cm-err', e.message)); });
   return { el, dispose: () => { alive = false; } };
