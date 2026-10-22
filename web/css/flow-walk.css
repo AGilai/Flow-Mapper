@@ -48,7 +48,7 @@ details.stepdesc > summary { font-size: var(--fs-xs); color: var(--muted); font-
 .steptile:hover rect { stroke: var(--accent); }
 .steptile.cur rect { fill: var(--ink); stroke: var(--ink); }
 .steptile.cur text { fill: var(--surface); }
-.stephalo { fill: color-mix(in srgb, var(--mc, var(--accent)) 8%, transparent); stroke: var(--mc, var(--accent)); stroke-width: 2.2; stroke-opacity: .85; }
+.stepband { fill: var(--step-hl); stroke: none; } /* 0.32.5: filled, never a border */
 
 /* Squeeze (0.20.1): fold columns. Own names (sq-), apart from the middleware .fold / data-mwfold. */
 .sq-fold { cursor: pointer; }

@@ -15,6 +15,7 @@ import { loadSchemas } from '../server/store/schemas.ts';
 import { loadDescriptions } from '../server/store/descriptions.ts';
 import { loadComments } from '../server/store/comments.ts';
 import { loadActionItems } from '../server/store/action-items-io.ts';
+import { listFlowNames, putFlowName } from '../server/store/flow-names.ts';
 import { putKeys } from '../server/store/keys.ts';
 import { stores } from '../core/stores.ts';
 import { seedEnvRecipes } from './seed-envs.ts';
@@ -73,6 +74,13 @@ if (mockIdx < 0) {
   // Design environments exist only now: their descriptions (titles) load on this run, not on a second seed.
   for (const f of readDir(join(import.meta.dirname, '../samples/descriptions')).filter((x) => !envs.has(x.env))) {
     console.log(`loaded ${loadDescriptions(ctx.db, ctx.graph(f.env), f.env, f.descriptions, () => {})} descriptions into ${f.env}`);
+  }
+  // 0.32.5: flow names of a design (a name someone already gave is kept); they show the natural order of the Flows list.
+  for (const f of readDir(join(import.meta.dirname, '../samples/flow-names'))) {
+    const have = new Set(listFlowNames(ctx.db, f.env).map((n) => `${n.service}/${n.ingress}`));
+    let n = 0;
+    for (const x of f.names) if (!have.has(`${x.service}/${x.ingress}`)) { putFlowName(ctx.db, ctx.graph(f.env), f.env, { ...x, author: 'seed' }); n++; }
+    console.log(`loaded ${n} flow names into ${f.env}`);
   }
 }
 console.log(`seeded ${manifests.length} manifests into ${[...envs].join(', ')} (${config.dbPath})`);

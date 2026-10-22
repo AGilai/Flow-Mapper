@@ -1,0 +1,8 @@
+{
+  "env": "hld-drawing",
+  "names": [
+    { "service": "api-gateway", "ingress": "in.createOrder", "name": "ARL_10 Create an order" },
+    { "service": "api-gateway", "ingress": "in.getOrder", "name": "ARL_2 Get an order" },
+    { "service": "orders-svc", "ingress": "in.remove", "name": "ARL_1 Refund and remove an order" }
+  ]
+}

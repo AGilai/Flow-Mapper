@@ -38,8 +38,9 @@ export function renderLane(lane, { marks = null, refs = null, edit = null, onMes
   const { rects, segs } = drawBars(c, { selected, onBarTip });
   const body = s('svg', { width, height, class: 'seq-body', role: 'group', 'aria-label': `Flow with ${bars.length} calls across ${columns.length} lifelines` },
     s('defs', {}, s('pattern', { id: 'mwh', width: 6, height: 6, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' }, s('rect', { width: 6, height: 6, fill: 'var(--mw-bg)' }), s('rect', { width: 2.4, height: 6, fill: 'var(--mw)' }))),
+    foldBands(c.groups, height), // the fold columns' fills come first: the current-step band (flow-step-tiles.js) goes right after them, under the frames
     drawFrames(frames, lane.altRows, strips, (r) => top[r], (r) => top[r + 1], width, GUTTER),
-    foldBands(c.groups, height), drawLifelines(c), rects, segs, drawn, details ? detailTexts(c, details, onEditStep) : null, edit ? addCallChips(c, edit) : null);
+    drawLifelines(c), rects, segs, drawn, details ? detailTexts(c, details, onEditStep) : null, edit ? addCallChips(c, edit) : null);
   sizeSvg(head, width, c.HEAD, zoom); sizeSvg(body, width, height, zoom); // the vector box of each SVG: zoom only changes its size (flow-zoom.js)
   const mark = wireEvents(head, body, c, { onMessage, onBar, onBarMenu, onParticipant, onNum, onNumHover, onFan, onMw, onBarTip, onSqueeze, onBand });
   body.__events = events;

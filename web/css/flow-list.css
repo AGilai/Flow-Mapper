@@ -1,6 +1,9 @@
 /* The Flows list (0.26.0): filter groups (Subsystem, Component), "Changed only", names, locks, marks, ↗ links; the flow's name as a title with its pencil. Prefix fg-, fl-. */
 .fl-filters { display: grid; gap: 0; border-bottom: 1px solid var(--line); }
 .fl-filters:empty { display: none; }
+.fl-group-row { display: flex; align-items: center; gap: var(--s2); padding: 6px var(--s3); border-bottom: 1px solid var(--line); font-size: var(--fs-sm); } /* 0.32.5 (#79) */
+.fl-group-row label { color: var(--ink-2); white-space: nowrap; }
+.fl-group-row select { flex: 1; min-width: 0; }
 .fg { border-top: 1px solid var(--line); }
 .fg:first-child { border-top: 0; }
 .fg-head { display: flex; align-items: baseline; gap: var(--s2); width: 100%; padding: 7px var(--s3); border: 0; background: transparent; cursor: pointer; text-align: left; color: var(--ink); font: inherit; font-size: var(--fs-sm); }

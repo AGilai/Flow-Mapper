@@ -25,7 +25,7 @@ const calm = () => { try { return matchMedia('(prefers-reduced-motion: reduce)')
 
 /** createWalkView({ store, root, messages, initial, onStep(n), onRestep(cols) }) -> { el, decorate(res, built), endsOf(built), hit(event), onKey(ev), move(action), current(), dispose }
  *  onSteps(steps): the numbering of the lane just drawn (the partial-flow line reads it). onRestep(cols): the viewer moved to a step whose lifelines are the columns `cols` (Squeeze folds again for it). endsOf(built): the columns of the current step, before the lane is drawn. */
-export function createWalkView({ store, root, messages = () => null, initial = null, sb = () => 'tad', zoom = () => 1, onStep, onRestep, onSteps }) {
+export function createWalkView({ store, root, messages = () => null, initial = null, sb = () => 'tad', hl = () => true, zoom = () => 1, onStep, onRestep, onSteps }) {
   let steps = [], built = null, tiles = null, cur = initial ?? 1, curKey = null, jumpOnDraw = initial != null;
   let picked = initial != null; // a step the viewer chose (a click, a key, a link with step=): the comments' "Attach to step N" only offers one then
   const watchers = new Set(); // the comments section reads the steps and the current one (0.27.0)
@@ -51,7 +51,7 @@ export function createWalkView({ store, root, messages = () => null, initial = n
     built = lane;
     steps = stepsOf(built, stepKeys, messages());
     onSteps?.(steps);
-    tiles = steps.length ? drawStepTiles(res, built, steps, (n) => go(n), root ? (n) => { go(n, { scroll: false }); edit(steps[n - 1], tiles?.rowEl(n)); } : null) : null;
+    tiles = steps.length ? drawStepTiles(res, built, steps, (n) => go(n), root ? (n) => { go(n, { scroll: false }); edit(steps[n - 1], tiles?.rowEl(n)); } : null, hl) : null;
     if (root && steps.length) res.body.addEventListener('contextmenu', (ev) => { // right-click an arrow: Edit step description…
       const g = ev.target.closest?.('.msg[data-e]'), st = g && !ev.defaultPrevented ? stepAtRow(steps, Number(g.getAttribute('data-e'))) : null;
       if (!st) return;
@@ -68,7 +68,7 @@ export function createWalkView({ store, root, messages = () => null, initial = n
     return st ? colsOfEvent(lane, st.event) : [];
   }
   return {
-    el: bar.el, decorate, endsOf, refreshBar: () => bar.refresh(),
+    el: bar.el, decorate, endsOf, refreshBar: () => bar.refresh(), refreshHl: () => tiles?.setCurrent(cur),
     /** A double-click on a step's text on its arrow, by key. */
     editKey(key) { const st = steps.find((x) => x.key === key); if (st) { go(st.n, { scroll: false }); edit(st, tiles?.rowEl(st.n)); } },
     steps: () => steps, picked: () => picked, go: (n) => go(n), watch: (f) => { watchers.add(f); return () => watchers.delete(f); },
