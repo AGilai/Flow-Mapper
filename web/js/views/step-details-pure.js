@@ -24,6 +24,10 @@ export function decodeArrows(query, dflt = ARROWS_DEFAULT) {
 export const encodeBar = (set) => (set === BAR_DEFAULT ? null : set === '' ? '-' : set);
 export const encodeArrows = (set, dflt = ARROWS_DEFAULT) => (set === dflt ? null : set);
 
+/** 0.32.5: "Highlight current step". `hl=0` is off; absent = null (use the remembered one, default on). Nothing but `0` turns it off. */
+export const decodeHl = (query) => { const v = query.get('hl'); return v == null ? null : v !== '0'; };
+export const encodeHl = (on) => (on ? null : '0');
+
 const words = (set) => (set === 'tad' ? '3' : [...set].map((c) => NAMES[c]).join(' + '));
 /** The toolbar button text: "Step details: bar 3 · arrows API". */
 export const summary = (bar, arrows) => `Step details: bar ${bar === '' ? 'stepper only' : words(bar)} · arrows ${words(arrows)}`;

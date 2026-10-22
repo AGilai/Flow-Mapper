@@ -25,6 +25,7 @@
   --t-gateway: #1b2233;
   --mw: #3d4558; --mw-bg: #e6e9f0; /* ingress middleware hatch on an activation bar (stripe and ground); neutral, not a transport colour */
 
+  --step-hl: #fff4b8; /* 0.32.5: band behind the current step; ink (#1b2233) on it is 15:1 */
   --new: #f6c431; --new-ink: #8f6a00; /* status marks of a design (New spark, Changed ring): never on a problem, and --warn never on a mark */
   --draft: var(--accent); /* "in draft": the one non-link use of the accent */
 
@@ -59,7 +60,7 @@
     --t-http: #6a9cff; --t-rpc: #b9c84a; --t-eb: #ff5c9d; --t-sns: #f0a537; --t-sqs: #36c3b1; --t-amqp: #c58cff; --t-cron: #96a0b5; --t-socket: #c9906b; --t-res: #79819a;
     --t-broken: #ff6b6b; --t-gateway: #e7e9f0; --mw: #b4bdd2; --mw-bg: #2a3042;
     --flow-1: #ff7a6b; --flow-2: #e2c23a; --flow-3: #5fd070; --flow-4: #4cc9ee; --flow-5: #8a85ff; --flow-6: #f06ad9; --flow-7: #d49a5e; --flow-8: #8fb0dd;
-    --new: #f7cf55; --new-ink: #f7cf55;
+    --new: #f7cf55; --new-ink: #f7cf55; --step-hl: #3b3818;
     --cmp-1: #e095c7; --cmp-2: #5dbee9; --cmp-3: #96bd96; --cmp-4: #aaa7f4; --cmp-5: #ef9494; --cmp-6: #64c3c3; --cmp-7: #c2a4d0; --cmp-8: #e79e6b;
     --shadow-panel: 0 12px 32px -12px rgba(0, 0, 0, 0.6);
     color-scheme: dark;
@@ -71,7 +72,7 @@
   --t-http: #6a9cff; --t-rpc: #b9c84a; --t-eb: #ff5c9d; --t-sns: #f0a537; --t-sqs: #36c3b1; --t-amqp: #c58cff; --t-cron: #96a0b5; --t-socket: #c9906b; --t-res: #79819a;
   --t-broken: #ff6b6b; --t-gateway: #e7e9f0; --mw: #b4bdd2; --mw-bg: #2a3042;
   --flow-1: #ff7a6b; --flow-2: #e2c23a; --flow-3: #5fd070; --flow-4: #4cc9ee; --flow-5: #8a85ff; --flow-6: #f06ad9; --flow-7: #d49a5e; --flow-8: #8fb0dd;
-  --new: #f7cf55; --new-ink: #f7cf55;
+  --new: #f7cf55; --new-ink: #f7cf55; --step-hl: #3b3818;
   --cmp-1: #e095c7; --cmp-2: #5dbee9; --cmp-3: #96bd96; --cmp-4: #aaa7f4; --cmp-5: #ef9494; --cmp-6: #64c3c3; --cmp-7: #c2a4d0; --cmp-8: #e79e6b;
   --shadow-panel: 0 12px 32px -12px rgba(0, 0, 0, 0.6);
   color-scheme: dark;

@@ -1,9 +1,9 @@
 // Step tiles and the halo of the current step, drawn over a lane (0.20.0) from the geometry renderLane returns: x per lifeline, y per row.
-// A tile sits at the start of its arrow; the current one is solid, and a halo in the arrow's transport colour surrounds that arrow.
+// A tile sits at the start of its arrow; the current one is solid ink (always), and the highlight band (when on) sits behind its row.
 // Not the async number tiles (.numtile at the end of a queue arrow, square with a ↓): steps are round pills, so the two never look alike.
 
 import { s } from '../dom.js';
-import { colorOf, NEST, BAR } from './flow-draw-layout.js';
+import { NEST, BAR } from './flow-draw-layout.js';
 
 const H = 16, tw = (n) => Math.max(20, String(n).length * 7 + 12);
 
@@ -20,10 +20,11 @@ export function arrowSpan(step, { columns, geometry }) {
  * drawStepTiles(res, built, steps, onPick(n), onEdit(n)) -> { setCurrent(n), rowEl(n), span(n) -> { x1, x2 } (lane pixels) }
  * res: what renderLane returned; built: what buildLane returned (its columns); steps: stepsOf(built).
  */
-export function drawStepTiles(res, built, steps, onPick, onEdit = null) {
-  const halo = s('rect', { class: 'stephalo', rx: 9, height: 38, visibility: 'hidden', 'pointer-events': 'none' });
+export function drawStepTiles(res, built, steps, onPick, onEdit = null, hl = () => true) {
+  // 0.32.5: the current step's row is a soft filled band (no border), the first thing in the body so frames, arrows and text sit over it
+  const band = s('rect', { class: 'stepband', x: 0, visibility: 'hidden', 'pointer-events': 'none', 'aria-hidden': 'true' });
   const tiles = new Map(), spans = new Map(), grps = new Map();
-  const g = s('g', { class: 'steptiles' }, halo, ...steps.map((st) => {
+  const g = s('g', { class: 'steptiles' }, ...steps.map((st) => {
     const sp = arrowSpan(st, { columns: built.columns, geometry: res.geometry }), w = tw(st.n), cx = sp.x1 + sp.dir * (w / 2 + 3), y = res.geometry.y[st.row];
     spans.set(st.n, sp);
     const t = s('g', { class: 'steptile', 'data-step': st.n, 'aria-hidden': 'true' },
@@ -41,6 +42,7 @@ export function drawStepTiles(res, built, steps, onPick, onEdit = null) {
     return grp;
   }));
   res.body.append(g);
+  const defs = res.body.querySelector('defs'); if (defs) defs.after(band); else res.body.prepend(band);
   let cur = 0;
   return {
     setCurrent(n) {
@@ -48,12 +50,9 @@ export function drawStepTiles(res, built, steps, onPick, onEdit = null) {
       cur = n;
       const st = steps[n - 1], sp = spans.get(n);
       tiles.get(n)?.classList.add('cur'); grps.get(n)?.classList.add('cur');
-      if (!st || !sp) { halo.setAttribute('visibility', 'hidden'); return; }
-      const x = Math.min(sp.x1, sp.x2) - 8, y = res.geometry.y[st.row];
-      // 0.30.0: step details drawn on the arrow (title above, description below) stay inside the halo
-      const up = res.body.querySelector(`.sdt.t[data-step="${n}"]`) ? 14 : 0, down = res.body.querySelector(`.sdt.d[data-step="${n}"]`) ? 7 : 0;
-      halo.setAttribute('x', x); halo.setAttribute('y', y - 22 - up); halo.setAttribute('height', 38 + up + down); halo.setAttribute('width', Math.abs(sp.x2 - sp.x1) + 16);
-      halo.setAttribute('style', `--mc:${colorOf(st.transport)}`); halo.setAttribute('visibility', 'visible');
+      const top = res.geometry.top;
+      if (!hl() || !st || !sp || top?.[st.row] == null || top[st.row + 1] == null) { band.setAttribute('visibility', 'hidden'); return; }
+      band.setAttribute('y', top[st.row]); band.setAttribute('height', top[st.row + 1] - top[st.row]); band.setAttribute('width', res.geometry.width); band.setAttribute('visibility', 'visible');
     },
     span: (n) => spans.get(n) ?? null,
     rowEl: (n) => res.body.querySelector(`[data-e="${steps[n - 1]?.row}"]`),
