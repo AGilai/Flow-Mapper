@@ -38,3 +38,9 @@ Migration on a copy of the live DB; title validation and the human-wins rule; MC
 row-height model per option; URL `sd=` parse/encode; Mermaid export with a title. Sample titles on 3 steps of
 `api-gateway/in.createOrder` (samples/descriptions). DEMOS rows: the bar `#/flows?env=prod&tabs=api-gateway/in.createOrder`
 and the arrows `…&sd=tad`. CHANGELOG, version 0.30.0.
+
+## Lead decisions after the 17g revision (2026-10-22)
+- The bar may show 4 text lines (title, API, 2 description lines); "… more" expands inline and "less" folds it.
+  Scroll-into-view uses the bar's real height from the DOM.
+- Double-click on the bar's detail block also opens the editor.
+- No "AI draft available" strip in this release.
