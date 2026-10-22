@@ -15,6 +15,6 @@ export function registerDescriptions(r: Router, ctx: Ctx) {
 
   r.put('/api/envs/:env/descriptions', async (req) => {
     const b = await req.json();
-    return desc.putHuman(ctx.db, ctx.view(req.params.env).g, req.params.env, { service: b?.service, ingress: b?.ingress, callee: b?.callee, text: b?.text, editedBy: b?.editedBy });
+    return desc.putHuman(ctx.db, ctx.view(req.params.env).g, req.params.env, { service: b?.service, ingress: b?.ingress, callee: b?.callee, text: b?.text, title: b?.title, editedBy: b?.editedBy });
   });
 }

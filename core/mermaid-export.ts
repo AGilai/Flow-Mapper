@@ -2,10 +2,10 @@
 // full trace (core/description.ts HASH_TRACE) and, optionally, the flow's name and descriptions.
 //   participants  every lifeline a kept message touches, in lifeline order: `participant <id> as <label>` (the entry client is an `actor`)
 //   messages      sync `->>` with its return `-->>` (when the callee is a component), async `-)`; calls inside one component are left out
-//   notes         the step description (human, else AI, else the step's own note) as `Note over A,B: text`
+//   notes         a step with a title: the title is the message and its API a note; the step description (human, else AI, else the step's own note) as `Note over A,B: text`
 // Text is one line; `;` and `#` are written as Mermaid entities.
 
-import { lineText, stepKeys, type FlowDescriptions } from './description.ts';
+import { lineText, titleOf, stepKeys, type FlowDescriptions } from './description.ts';
 import type { Message, Participant, Trace } from './trace.ts';
 
 export interface MermaidOpts { name?: string; description?: string; descriptions?: FlowDescriptions | null }
@@ -53,7 +53,9 @@ export function exportMermaid(t: Pick<Trace, 'start' | 'participants' | 'message
     close(m.depth);
     const a = ids.get(m.from)!, b = ids.get(m.to)!;
     if (m.kind === 'leaf') { out.push(`Note over ${a}: ${esc(m.label)}`); continue; }   // a step that ends the tree (its own operation): a note on the lifeline, not an arrow
-    out.push(`${a}${m.mode === 'async' ? '-)' : '->>'}${b}: ${esc(messageLabel(m)) || '(call)'}`);
+    const title = titleOf(opts.descriptions?.callees[key]).trim(); // 0.30.0: a step title is the message text, and the API moves into a note
+    out.push(`${a}${m.mode === 'async' ? '-)' : '->>'}${b}: ${esc(title || messageLabel(m)) || '(call)'}`);
+    if (title) out.push(`Note over ${a === b ? a : `${a},${b}`}: ${esc(messageLabel(m))}`);
     const note = lineText(opts.descriptions?.callees[key])?.text ?? m.note;
     if (note) out.push(`Note over ${a === b ? a : `${a},${b}`}: ${esc(note)}`);
     if (m.mode !== 'async' && m.from !== m.to && ['service', 'client', 'function'].includes(kind.get(m.to) ?? '')) open.push({ from: m.from, to: m.to, depth: m.depth });

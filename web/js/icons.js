@@ -9,6 +9,7 @@ const P = {
   chev: '<path d="M15 6l-6 6 6 6"/>',
   search: '<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/>',
   close: '<path d="M6 6l12 12M18 6L6 18"/>',
+  edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
   fit: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
   arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>',

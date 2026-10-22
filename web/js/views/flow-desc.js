@@ -13,7 +13,7 @@ const OPEN_KEY = 'flow-mapper.desc-ai-open';
 const aiOpen = () => { try { const v = localStorage.getItem(OPEN_KEY); return v === null ? null : v === '1'; } catch { return null; } }; // null: the user never chose
 const setAiOpen = (v) => { try { localStorage.setItem(OPEN_KEY, v ? '1' : '0'); } catch { /* storage unavailable */ } };
 
-/** createDescStore(env) -> { watch(root, fn) -> unwatch, peek(root), save(root, callee, text), refresh(root) }. root: { service, ingress }. fn(data|null, error?) */
+/** createDescStore(env) -> { watch(root, fn) -> unwatch, peek(root), save(root, callee, text, title?), refresh(root) }. root: { service, ingress }. fn(data|null, error?) */
 export function createDescStore(env) {
   const slot = new Map();
   const key = (r) => `${r.service}\t${r.ingress}`;
@@ -33,9 +33,9 @@ export function createDescStore(env) {
       if (s.data || s.error) fn(s.data, s.error); else if (!s.loading) refresh(r);
       return () => s.subs.delete(fn);
     },
-    async save(r, callee, text) {
+    async save(r, callee, text, title) { // title (a step): omitted keeps the stored one, '' clears it
       const s = get(r);
-      s.data = await api.putDescription(env, { service: r.service, ingress: r.ingress, callee: callee || undefined, text });
+      s.data = await api.putDescription(env, { service: r.service, ingress: r.ingress, callee: callee || undefined, text, title });
       s.error = null; emit(s);
     },
   };
