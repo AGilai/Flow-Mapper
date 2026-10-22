@@ -99,3 +99,9 @@ select.dec-sel:not(.set) { color: var(--accent); }
 /* ---- the Flows list: "2 decisions" ---- */
 .fl-dec { display: inline-flex; align-items: center; height: 18px; padding: 0 7px; margin-left: 6px; border-radius: 9px; border: 1px solid var(--accent); color: var(--accent); background: var(--surface); font: 600 10.5px var(--font); white-space: nowrap; vertical-align: middle; cursor: help; }
 .dec-t, .dec-g, .dec-arm { background: var(--surface); padding: 0 4px; border-radius: 3px; }
+
+/* ---- a tight header row (QA 0.38.0): the chip and the switch added ~220 px, so the Maximize button wrapped alone onto a second row (long flow names at 1440, any flow at 760).
+   The status text goes first, then the gaps shrink; the chip and the switch stay. ---- */
+.flowhead > summary { container-type: inline-size; }
+@container (max-width: 1000px) { .fh-src { display: none; } }
+@media (max-width: 800px) { details.flowhead > summary { gap: 6px; } .scn-ctl { gap: 6px; } }

@@ -25,7 +25,7 @@ function framesOf(m: Message, both: Map<string, Decision> = new Map()): Frame[] 
   for (let a: Alt | undefined = m.alt; a; a = a.parent) chain.unshift(a);
   const arms: Frame[] = (m.arms ?? []).flatMap((e) => {   // 0.38.0: a decision shown with "Both" is an `alt <decision>` / `else <arm>` frame around its arms (the chosen ones are not frames: the view has only that arm)
     const i = e.indexOf(':'), d = both.get(e.slice(0, i)), arm = e.slice(i + 1);
-    return d ? [{ key: `arms:${d.group_id}`, kind: 'alt', cond: d.arms.find((x) => x.arm === arm)?.label ?? arm, open: `alt ${esc(d.name || d.group_id)}`, depth: m.depth }] : [];
+    return d ? [{ key: `arms:${d.group_id}`, kind: 'alt', cond: d.arms.find((x) => x.arm === arm)?.label ?? arm, open: `alt ${esc(d.name || d.group_id)}`, depth: Infinity }] : [];   // Infinity: a decision frame covers its arm's whole subtree, never skipped as "opened by a step above"
   });
   const out = arms.concat(chain.map((a) => ({ key: a.group, kind: a.kind ?? 'alt', cond: a.condition ?? '', open: `${a.kind ?? 'alt'}${a.condition ? ` ${esc(a.condition)}` : ''}`, depth: m.depth })));
   if (m.mark === 'changed') out.push({ key: 'rect', kind: 'rect', cond: '', open: 'rect rgb(255, 244, 214)', depth: m.depth });

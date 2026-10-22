@@ -229,3 +229,11 @@ test('Mermaid of a Both view: the decision is an alt / else frame around its arm
   assert.equal(both.split('\n').filter((l) => l === 'end').length, (both.match(/^(alt|else)\b/gm) ?? []).length - (both.match(/^else\b/gm) ?? []).length);
   assert.doesNotMatch(exportMermaid(viewOf(run(nest()), { detail: 'full', choose: { g1: 'x' } }) as any), /\balt\b/);
 });
+
+test('Mermaid of a Both view: nested decisions are written once each (no repeated alt line for a deeper step)', async () => {
+  const { exportMermaid } = await import('../core/mermaid-export.ts');
+  const text = exportMermaid(viewOf(run(nest()), { detail: 'full', choose: { '*': 'both' } }) as any).split('\n');
+  assert.equal(text.filter((l) => l === 'alt name g1').length, 1, text.join('\n'));
+  assert.equal(text.filter((l) => l === 'alt name g2').length, 1, text.join('\n'));
+  assert.equal(text.filter((l) => l === 'end').length, text.filter((l) => l.startsWith('alt ')).length, 'every alt is closed');
+});
