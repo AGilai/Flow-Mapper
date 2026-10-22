@@ -96,3 +96,11 @@ test('MCP edit_design takes about on a component and on a subsystem', async () =
   assert.equal(b.isError, false, b.text);
   assert.equal((await app.mcp('get_service', { env: 'hld', draft: slug, service: 'auth-svc' })).json.service.about, 'MCP text');
 });
+
+test('aboutHtml: pathological 20 000-character inputs render fast (no quadratic backtracking)', () => {
+  for (const bad of ['['.repeat(20000), '[a]('.repeat(5000), '*a '.repeat(6666)]) {
+    const t = performance.now(); aboutHtml(bad);
+    assert.ok(performance.now() - t < 500, `slow render for ${bad.slice(0, 6)}`);
+  }
+  assert.equal(aboutHtml('\u00000\u0000'), '<p>0</p>');
+});

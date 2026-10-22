@@ -13,9 +13,9 @@ export const aboutProblem = (v: unknown): string | null =>
 
 function inline(raw: string): string {
   const codes: string[] = [];
-  let s = raw.replace(/`([^`\n]+)`/g, (_m, c) => { codes.push(`<code>${esc(c)}</code>`); return `\u0000${codes.length - 1}\u0000`; });
+  let s = raw.replace(/\u0000/g, '').replace(/`([^`\n]+)`/g, (_m, c) => { codes.push(`<code>${esc(c)}</code>`); return `\u0000${codes.length - 1}\u0000`; });
   s = esc(s)
-    .replace(/\[([^\]\n]+)\]\(([^)\s]+)\)/g, (_m, t, u) => { const href = safeHref(u.replace(/&amp;/g, '&')); return href ? `<a href="${esc(href).replace(/"/g, '&quot;')}">${t}</a>` : t; })
+    .replace(/\[([^\][\n]{1,500})\]\(([^)\s]{1,2000})\)/g, (_m, t, u) => { const href = safeHref(u.replace(/&amp;/g, '&')); return href ? `<a href="${esc(href).replace(/"/g, '&quot;')}">${t}</a>` : t; })
     .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
     .replace(/(^|[^*\w])\*([^*\s][^*\n]*?)\*(?![*\w])/g, '$1<em>$2</em>')
     .replace(/~~([^~\n]+)~~/g, '<s>$1</s>');
