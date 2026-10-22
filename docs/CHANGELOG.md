@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased: #82 comment 225, the Loader's rule change (step markers)
+## 0.38.1 (2026-10-22)
 The Loader now exports `alternatives` only where BOTH arms lead to a flow. Two step markers under `details` (no schema change):
 - `details.can_fail: [{when, error, source: {file, line}}]` on a step that succeeds but can fail; `details.only_when: {guard, source}` on each step of the arm that remains.
 - **API (additive).** `GET /api/envs/:env/trace` and MCP `trace_flow` return them on the message as `canFail` and `onlyWhen`; a DB-group row carries its members' entries together. The Mermaid export writes each as a `Note over` line.
