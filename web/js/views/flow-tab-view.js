@@ -21,6 +21,7 @@ import { marksNow } from '../design/marks-store.js';
 import { createPartial } from './flow-partial.js';
 import { nameEditor } from './flow-name.js';
 import { createComments } from '../comments/thread.js';
+import { createPane } from '../flow-pane/pane.js';
 import { createActionItems } from '../action-items/section.js';
 import { createItemStore } from '../action-items/store.js';
 import { flowAnchor } from '../../core/comments.js';
@@ -70,8 +71,10 @@ export function createTabView(data, host) {
   const tip = root ? createTip(host.desc, root) : null;
   // Action items (0.29.0): a section above Comments; they share a store ("Make action item", the events under a comment)
   const items = root && data.kind !== 'sub' ? createItemStore({ env: host.env, anchor: flowAnchor(root.service, root.ingress) }) : null;
-  const actions = items ? createActionItems({ store: items, walk }) : null;
-  comments = items ? createComments({ env: host.env, root, walk, store: items }) : null;
+  let pane = null; const counts = {}; // 0.34.0: Comments and Action items are tabs of the bottom pane; their hubs bind late (the pane needs the diagram element)
+  const hub = (id) => ({ shown: () => !!pane && pane.shown(id), reveal: () => pane?.show(id), set: (d) => { counts[id] = d; pane?.setCount(id, d); } });
+  const actions = items ? createActionItems({ store: items, walk, pane: hub('actions') }) : null;
+  comments = items ? createComments({ env: host.env, root, walk, store: items, pane: hub('comments') }) : null;
   items?.refresh();
   const scroller = h('div.seq-scroll');
   const hint = h('span.seq-hint', 'More to the right. Scroll sideways ›');
@@ -81,10 +84,10 @@ export function createTabView(data, host) {
   scroller.addEventListener('scroll', () => { edge(); tip?.hide(); }, { passive: true });
   let sized = false; // the first time the tab has a width (it is drawn before it is attached, or while hidden), lay the lanes out to fit it
   let lastW = 0, resizeTimer = 0; // Squeeze folds for the width the tab has: a new width folds again (debounced)
-  const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(() => { edge(); loose(); const w = scroller.clientWidth; if (zoomV === 'fit' && w !== lastW && render) recompute(); if (sized && w > 0 && w !== lastW && shared.squeeze()) { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { render?.relane(); edge(); }, 150); } lastW = w; if (!sized && scroller.clientWidth > 0 && render) { sized = true; render.relane(); render.laneBox.style.visibility = ''; edge(); } }) : null;
+  const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(() => { pane?.refit(); edge(); loose(); const w = scroller.clientWidth; if (zoomV === 'fit' && w !== lastW && render) recompute(); if (sized && w > 0 && w !== lastW && shared.squeeze()) { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { render?.relane(); edge(); }, 150); } lastW = w; if (!sized && scroller.clientWidth > 0 && render) { sized = true; render.relane(); render.laneBox.style.visibility = ''; edge(); } }) : null;
   ro?.observe(scroller);
   // a side panel was collapsed or expanded: this tab has another width, so its lanes lay themselves out again (a hidden tab does so when it is shown)
-  const onLayout = () => { if (!render) return; if (scroller.clientWidth > 0) { render.relane(); edge(); } else sized = false; };
+  const onLayout = () => { pane?.refit(); if (!render) return; if (scroller.clientWidth > 0) { render.relane(); edge(); } else sized = false; };
   document.addEventListener('fm:layout', onLayout);
   // ---- zoom (0.30.3, #69): the lane SVGs change size, nothing is laid out again; a point under the pointer stays under it ----
   const maxed = () => document.body.classList.contains('is-max');
@@ -170,10 +173,11 @@ export function createTabView(data, host) {
   }
   draw();
   const maxBar = h('div.max-bar', h('span.fh-t', (root && host.nameOf?.(root.service, root.ingress)) || label.title), label.sub ? h('span.mono.xs.muted', label.sub) : null, zctl.el); // shown only while maximized (flow-max.css)
-  const el = h('div.flow-tab', maxBar, h('div.flow-top', flowBox?.el, related?.el, walk.el, partial.el), body, comments ? h('div.flow-bottom', actions.el, comments.el) : null); // comments sit under the diagram (maintainer, 0.27.5)
+  if (comments) { pane = createPane({ panels: { comments, actions }, diagram: body }); for (const [id, d] of Object.entries(counts)) pane.setCount(id, d); }
+  const el = h('div.flow-tab', maxBar, h('div.flow-top', flowBox?.el, related?.el, walk.el, partial.el), body, pane?.splitter, pane?.el); // the pane sits under the diagram (0.27.5); the border between them is a drag handle (0.34.0)
   el.addEventListener('keydown', (ev) => walk.onKey(ev)); // ← → Home End, while focus is in the flow view and not in a text box
   return {
-    el, key, data, draw, insideOpen: () => inside.isOpen(), dispose: () => { unWheel(); clearTimeout(resizeTimer); document.removeEventListener('fm:layout', onLayout); inside.dispose(); ro?.disconnect(); tip?.dispose(); descs.forEach((d) => d?.dispose()); comments?.dispose(); actions?.dispose(); items?.dispose(); related?.dispose(); walk.dispose(); unDesc?.(); },
+    el, key, data, draw, insideOpen: () => inside.isOpen(), dispose: () => { unWheel(); clearTimeout(resizeTimer); document.removeEventListener('fm:layout', onLayout); inside.dispose(); ro?.disconnect(); tip?.dispose(); descs.forEach((d) => d?.dispose()); comments?.dispose(); actions?.dispose(); pane?.dispose(); items?.dispose(); related?.dispose(); walk.dispose(); unDesc?.(); },
     refreshBar: () => walk.refreshBar(), refreshHl: () => walk.refreshHl(),
     steps: () => walk.steps(), // the steps of the lane (n, from, to, label, transport): the info pane's "In this flow"
     setZoom, zoomScale: () => factor, zoomValue: () => zoomV,

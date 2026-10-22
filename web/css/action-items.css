@@ -1,7 +1,6 @@
 /* Action items under each flow (0.29.0). Mockup: design/mockups/design-env.html, frame 15 (15a-15g). Tokens only; light and dark come from them.
    The section is a .cm-sec like Comments (comments.css), so the header, the fold arrow and the focus ring are shared. */
 
-.flow-bottom > .cm-sec:first-child { border-top: 0; }
 .abtn { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); background: var(--surface); color: var(--accent); font: 500 var(--fs-xs) var(--font); white-space: nowrap; cursor: pointer; }
 .abtn:hover { background: var(--accent-soft); }
 .abtn:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }

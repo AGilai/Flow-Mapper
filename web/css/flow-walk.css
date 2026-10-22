@@ -4,8 +4,6 @@
 .flow-tab { flex: 1; min-height: 0; display: flex; flex-direction: column; min-width: 0; }
 .flow-top { flex: none; max-height: 48vh; overflow-y: auto; background: var(--surface); border-bottom: 1px solid var(--line); }
 .flow-top:empty { display: none; }
-.flow-bottom { flex: 0 1 auto; min-height: 0; max-height: 40vh; overflow-y: auto; padding-right: 64px; background: var(--surface); border-top: 1px solid var(--line); } /* comments under the diagram (0.27.5); collapsed it is one line */
-.flow-bottom:not(:has(.cm-sec[open])) { overflow: hidden; flex: none; } /* every section collapsed: just the header lines (0.29.0: with two sections it is "none open", not "one closed") */
 .flow-tab > .flow-body { min-height: 260px; } /* the diagram keeps room; the panes above and below scroll instead */
 
 /* both boxes are <details>: the summary is the control, the text box sits under it */

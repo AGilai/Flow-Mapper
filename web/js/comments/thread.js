@@ -25,22 +25,24 @@ const plural = (n, w) => `${n} ${n === 1 ? w : w === 'reply' ? 'replies' : `${w}
 /**
  * createComments({ env, root: { service, ingress }, walk, store, onCount(n) }) -> { el, refresh(), dispose() }
  * store: the flow's action item store (0.29.0): "+ Action item", "Make action item", the events under a comment and the outline of the comment an item is being made from.
+ * pane (0.34.0): the tab pane's hub ({ shown(), reveal(), set(data) }); the thread is then a tab panel (no summary, no fold) and the label is the tab's.
  * walk: the tab's step walk ({ steps(), current(), picked(), go(n), watch(fn) }): the pills, "Attach to step N" and the jump.
  */
-export function createComments({ env, root, walk, store, onCount }) {
+export function createComments({ env, root, walk, store, onCount, pane = null }) {
   const anchor = flowAnchor(root.service, root.ingress);
   let thread = { count: 0, resolvedThreads: 0, comments: [] }, showResolved = false, items = [], composer = null, replying = null, loaded = false, seq = 0, own = false, flash = 0, wait = 0, hl = 0, t0 = 0, mineOnly = false, considered = false, target = commentParam(parseHash().query); // target: `comment=<id>` of the URL, until it was shown
   const fresh = new Set(); // comment ids that mention me and were unread when this thread opened: they carry a "new" mark until the page is left
   const title = h('span.cm-t', 'Comments'), count = h('span.muted.sm', '(0)'), hint = h('span.cm-hint.cm-sum');
   const list = h('div.cm-list'), tail = h('div.cm-tail');
-  const addAi = h('button.abtn', { type: 'button', 'data-qa': 'cm-add-action', on: { click: (e) => { e.preventDefault(); store.startNew(); } } }, '+ Action item');
+  const addAi = pane ? h('span', { hidden: true }) : h('button.abtn', { type: 'button', 'data-qa': 'cm-add-action', on: { click: (e) => { e.preventDefault(); store.startNew(); } } }, '+ Action item');
   // 0.29.2: resolved threads are hidden until the viewer asks (not remembered: a new visit starts with the open discussions)
   const showBtn = h('button.abtn.cm-showres', { type: 'button', 'data-qa': 'cm-show-resolved', 'aria-pressed': 'false', on: { click: (e) => { e.preventDefault(); showResolved = !showResolved; draw(); } } });
   // 0.32.0: only the threads that mention the signed-in user
   const meBtn = h('button.abtn.cm-mentioned', { type: 'button', 'data-qa': 'cm-mentioned', 'aria-pressed': 'false', hidden: true, on: { click: (e) => { e.preventDefault(); mineOnly = !mineOnly; draw(); } } });
-  const el = h('details.cm-sec', { open: false, 'data-qa': 'comments' }, h('summary', title, count, hint, showBtn, meBtn, addAi), list, tail);
+  const el = pane ? h('div.cm-sec.cm-pane', { 'data-qa': 'comments' }, h('div.cm-tools', hint, showBtn, meBtn), list, tail) : h('details.cm-sec', { open: false, 'data-qa': 'comments' }, h('summary', title, count, hint, showBtn, meBtn, addAi), list, tail);
   let auto = false; // the toggle the first load makes itself is not the viewer's choice
-  el.addEventListener('toggle', () => { consider(); if (auto) { auto = false; return; } if (visibleThread(thread, showResolved).count) write(el.open); });
+  const shown = () => (pane ? pane.shown() : el.open), reveal = () => { if (pane) pane.reveal(); else if (!el.open) { auto = true; el.open = true; } };
+  if (!pane) el.addEventListener('toggle', () => { consider(); if (auto) { auto = false; return; } if (visibleThread(thread, showResolved).count) write(el.open); });
 
   const stepOf = (key) => { const s = walk.steps().find((x) => x.key === key); return s ? { n: s.n } : null; };
   const stepNow = () => { const s = walk.picked() ? walk.steps()[walk.current() - 1] : null; return s ? { n: s.n, key: s.key } : null; };
@@ -86,7 +88,7 @@ export function createComments({ env, root, walk, store, onCount }) {
     list.replaceChildren(...(nodes.length ? nodes : loaded ? [h('div.cm-empty', hiddenN ? 'No open comments: every discussion is resolved.' : 'No comments yet. Start the discussion.')] : []));
     list.hidden = !nodes.length && !loaded;
     const top = vis.comments.filter((c) => !c.deleted).length, replies = vis.count - top;
-    count.textContent = `(${vis.count})`;
+    count.textContent = `(${vis.count})`; pane?.set({ n: visibleThread(thread, showResolved).count });
     showBtn.hidden = !hiddenN; showBtn.setAttribute('aria-pressed', String(showResolved)); showBtn.textContent = `${showResolved ? 'Hide' : 'Show'} resolved (${hiddenN})`;
     hint.textContent = vis.count ? `${plural(top, 'comment')}${replies ? ` and ${plural(replies, 'reply')}` : ''}, oldest first` : loaded ? '· Add' : '';
     if (!composer) {
@@ -100,7 +102,7 @@ export function createComments({ env, root, walk, store, onCount }) {
   /** The first time the thread is open and loaded: the mentions of me that are unread get a "new" mark, and are marked seen after 2 seconds on screen. */
   async function consider() {
     const u = me();
-    if (considered || !el.open || !loaded || !u) return;
+    if (considered || !shown() || !loaded || !u) return;
     considered = true;
     const r = await api.mentions({ user: u.id, unread: true, env, anchor }).catch(() => null);
     if (!r?.mentions.length) return;
@@ -118,7 +120,6 @@ export function createComments({ env, root, walk, store, onCount }) {
     if (c && el.offsetParent) {
       hl ||= (t0 = Date.now(), setTimeout(() => { target = null; hl = 0; list.querySelectorAll(`.cm[data-id="${id}"]`).forEach((x) => x.classList.remove('flash')); }, 2600));
       c.classList.add('flash');
-      const pane = el.closest('.flow-bottom'); if (pane && pane.clientHeight < 160 && pane.scrollHeight > pane.clientHeight) pane.style.minHeight = '200px'; // a short window leaves the pane no room: make some, or the comment is outlined out of sight
       if (Date.now() - t0 < 1000) c.scrollIntoView({ block: 'center' });
       wait = setTimeout(() => showTarget(tries), 250);
     } else if (tries > 0 && el.isConnected) wait = setTimeout(() => showTarget(tries - 1), 300); // the tab's slot is still hidden while its diagram loads
@@ -131,9 +132,9 @@ export function createComments({ env, root, walk, store, onCount }) {
       const t = await api.comments(env, anchor);
       if (mine !== seq) return;
       thread = t; own = true; store.setComments(t.comments); own = false;
-      if (!loaded) { const open = startsOpen({ count: visibleThread(t, false).count, remembered: read(), stepKey: walk.picked() ? walk.steps()[walk.current() - 1]?.key : null, comments: t.comments }); if (open !== el.open) { auto = true; el.open = open; } }
+      if (!loaded && !pane) { const open = startsOpen({ count: visibleThread(t, false).count, remembered: read(), stepKey: walk.picked() ? walk.steps()[walk.current() - 1]?.key : null, comments: t.comments }); if (open !== el.open) { auto = true; el.open = open; } }
       loaded = true;
-      if (target != null) { const at = locateComment(t, target); if (at) { if (at.resolved) showResolved = true; if (!el.open) { auto = true; el.open = true; } force = true; } }
+      if (target != null) { const at = locateComment(t, target); if (at) { if (at.resolved) showResolved = true; reveal(); force = true; } }
       if (force || !busy()) draw();
       consider();
       onCount?.(t.count);
@@ -153,9 +154,11 @@ export function createComments({ env, root, walk, store, onCount }) {
   });
   const off = store.on(() => { // the items changed: events and the button redraw the list (not over an open reply or edit); a "#n" or "from X" link scrolls here
     if (own) return;
-    if (store.commentFocus != null) { if (!el.open) el.open = true; const c = list.querySelector(`.cm[data-id="${store.commentFocus}"]`); if (c) { c.scrollIntoView({ block: 'nearest' }); c.classList.add('flash'); clearTimeout(flash); flash = setTimeout(() => c.classList.remove('flash'), 2200); } return; }
+    if (store.commentFocus != null) { reveal(); const c = list.querySelector(`.cm[data-id="${store.commentFocus}"]`); if (c) { c.scrollIntoView({ block: 'nearest' }); c.classList.add('flash'); clearTimeout(flash); flash = setTimeout(() => c.classList.remove('flash'), 2200); } return; }
     if (loaded && !busy()) draw(); else mark();
   });
   refresh(true);
-  return { el, refresh, dispose: () => { off(); offUsers(); clearTimeout(flash); clearTimeout(wait); clearTimeout(hl); window.removeEventListener('focus', onFocus); document.removeEventListener('visibilitychange', onFocus); unwatch(); items.forEach((i) => i.dispose()); composer?.dispose(); } };
+  /** The Add button of the tab row: show the tab and put the cursor in the composer. */
+  const add = () => { reveal(); composer?.focus?.(); };
+  return { el, refresh, add, onShow: () => { consider(); showTarget(); }, dispose: () => { off(); offUsers(); clearTimeout(flash); clearTimeout(wait); clearTimeout(hl); window.removeEventListener('focus', onFocus); document.removeEventListener('visibilitychange', onFocus); unwatch(); items.forEach((i) => i.dispose()); composer?.dispose(); } };
 }

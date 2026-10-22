@@ -65,5 +65,5 @@ export function createComposer({ mode = 'new', html = '', step = () => null, peo
   let seen = false;
   const off = watchUsers(() => { if (el.isConnected) { seen = true; if (!open) draw(); else drawWho(); } else if (seen) off(); }); // "Commenting as X" follows a switch of user
   draw();
-  return { el, refreshStep: syncStep, focus: () => ed?.focus?.(), dispose };
+  return { el, refreshStep: syncStep, focus: () => { if (!open) { open = true; draw(); } ed?.focus?.(); }, dispose };
 }
