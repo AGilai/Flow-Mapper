@@ -198,3 +198,21 @@ Steps 1–3 change no drawing for flows without lambdas or alternatives when `de
   step** (path-scoped like `bind`). Until it exists, nothing is locked. Ask the Loader to add it.
 - Q3 Lambda detection: **`details.callback: {when}` on the function from the Loader**, with the name patterns as fallback.
 - Q4 Design `alt` frames (`altGroup` / `groups`, #41/#72): **stay frames for now**; making them dropdowns too is a later step.
+
+## Maintainer decisions, 2026-10-22 (these override the sections above)
+1. **No new row above the flow.** The scenario choice lives where the decision happens:
+   - The either/or divider row in the diagram carries an inline dropdown with the arms, plus "Both". A nested decision's dropdown appears on its own divider once its parent arm is visible.
+   - The existing flow header row gets one compact chip, `Scenario ▾ (2)`, with nothing new under it. It opens a popover listing every decision (and the locked ones with their reason), plus "Reset". On 760 px the chip is all there is.
+2. **The default arm is the first arm, not "Both".**
+   - "Both" is still an option, for anyone who wants it.
+   - With every decision on a single arm, counts are exact. min–max shows only when "Both" is chosen somewhere.
+   - `choose=` in the URL lists only the choices that differ from the default.
+3. **External is the default everywhere, and internal calls are lazy.**
+   - The trace API and MCP return external only unless asked (`detail=full`, or `open=<service>` per service).
+   - There is no "+N internal" count: the server doesn't compute what it doesn't send.
+   - A service lifeline gets a plain expand control that fetches that service's internal calls on demand. "Full" fetches everything.
+   - The REST default changes to external. Callers that need full pass `detail=full`; list them in the CHANGELOG.
+4. **Lambdas and callbacks are ordinary internal calls.**
+   - The scraper names them by `file:line`.
+   - Drop the lambda folding step (0.37.0 as planned) and the `details.callback` ask. They hide with the other internal calls in External.
+   - The build steps renumber: 0.37.0 arms in the trace and locks, 0.37.1 views (external/full lazy, choose, DB grouping, counts), 0.38.0 scenario UI after frame 21 is approved.
