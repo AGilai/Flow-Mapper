@@ -2,6 +2,7 @@
 // which runs the same core/ modules in the browser against bundled data.
 
 import { state } from './state.js';
+import { currentId } from './users/me.js';
 
 const PREVIEW = !!globalThis.FLOW_PREVIEW;
 let local = null;
@@ -10,7 +11,7 @@ const backend = async () => (local ??= await import('./api-local.js'));
 async function http(method, path, body, raw) {
   const res = await fetch(path, {
     method,
-    headers: body === undefined ? {} : { 'content-type': raw ? raw.type || 'application/octet-stream' : 'application/json' },
+    headers: { ...(currentId() ? { 'x-flow-user': currentId() } : {}), ...(body === undefined ? {} : { 'content-type': raw ? raw.type || 'application/octet-stream' : 'application/json' }) },
     body: body === undefined ? undefined : raw ? body : JSON.stringify(body),
   });
   const text = await res.text();
@@ -27,7 +28,7 @@ async function http(method, path, body, raw) {
 
 /** A GET that answers text (a Mermaid export): the body as a string; an error comes back as JSON like the others. */
 async function httpText(path) {
-  const res = await fetch(path), text = await res.text();
+  const res = await fetch(path, currentId() ? { headers: { 'x-flow-user': currentId() } } : undefined), text = await res.text();
   if (res.ok) return text;
   let data = null; try { data = JSON.parse(text); } catch { /* not JSON */ }
   const err = new Error(data?.error?.message ?? `HTTP ${res.status}`);
@@ -114,6 +115,10 @@ const remote = {
   addActionItem: (env, body) => http('POST', `/api/envs/${e(env)}/action-items${qs({ draft: state.draft })}`, body),
   editActionItem: (env, id, body) => http('PATCH', `/api/envs/${e(env)}/action-items/${id}${qs({ draft: state.draft })}`, body),
   deleteActionItem: (env, id, actor) => http('DELETE', `/api/envs/${e(env)}/action-items/${id}${qs({ actor })}`),
+  users: () => http('GET', '/api/users'),
+  createUser: (body) => http('POST', '/api/users', body),
+  renameUser: (id, body) => http('PATCH', `/api/users/${e(id)}`, body),
+  mergeUser: (id, into) => http('POST', `/api/users/${e(id)}/merge`, { into }),
   setFlowName: (env, body) => http('PUT', `/api/envs/${e(env)}/flow-names`, body),
   discardDraft: (env, slug, by) => put(env, `/${e(slug)}${qs({ by })}`, 'DELETE'),
   bugs: (filter = {}) => http('GET', `/api/bugs${qs(filter)}`),

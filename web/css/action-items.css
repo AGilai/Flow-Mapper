@@ -14,12 +14,13 @@
 .cm-act .lnk.mkai { color: var(--accent); }
 
 .ai-t { margin-top: var(--s2); border: 1px solid var(--line); border-radius: var(--r-sm); font-size: var(--fs-sm); max-width: 110ch; }
-.ai-r { display: grid; grid-template-columns: 34px 110px minmax(0, 1fr) 112px 92px 74px; gap: var(--s3); align-items: baseline; padding: 7px var(--s3); border-top: 1px solid var(--line); position: relative; }
+.ai-r { display: grid; grid-template-columns: 34px 150px minmax(0, 1fr) 112px 92px 74px; gap: var(--s3); align-items: baseline; padding: 7px var(--s3); border-top: 1px solid var(--line); position: relative; }
 .ai-r:first-child { border-top: 0; }
 .ai-r.h { background: var(--surface-2); color: var(--muted); font-size: var(--fs-xs); font-weight: 600; padding: 5px var(--s3); border-radius: var(--r-sm) var(--r-sm) 0 0; }
 .ai-r:last-child { border-radius: 0 0 var(--r-sm) var(--r-sm); }
 .ai-n { font: 500 var(--fs-xs) var(--mono); color: var(--muted); }
-.ai-o { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ai-o { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.ai-on { overflow: hidden; text-overflow: ellipsis; }
 .ai-d { overflow-wrap: anywhere; white-space: pre-wrap; }
 .ai-d small { display: flex; gap: 6px; align-items: center; font-size: var(--fs-xs); color: var(--muted); margin-top: 2px; white-space: normal; }
 .ai-d .bl { color: var(--accent); white-space: normal; }

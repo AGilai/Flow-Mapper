@@ -1,6 +1,8 @@
-// Who is acting. There is no login: the name is whatever this browser remembers (localStorage 'fm:author'), else 'anonymous'.
+// Who is acting: the user this browser is signed in as (users/directory.js), else 'anonymous'.
 
-export const me = () => { try { return localStorage.getItem('fm:author') || 'anonymous'; } catch { return 'anonymous'; } };
+import { myName } from '../users/directory.js';
+
+export const me = () => myName() || 'anonymous';
 
 /** "A", "A and B", "A, B and C". */
 export const names = (list) => (list.length < 2 ? list.join('') : `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`);

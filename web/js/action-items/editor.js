@@ -1,9 +1,9 @@
 // The editing row of an action item (0.29.0, frames 15b and 15d), for a new item and for Edit: owner with name suggestions, a description
 // textarea, status, due date, the step pill, Save / Cancel. Enter saves, Shift+Enter is a new line, Esc cancels (the suggestions first).
-// The acting name is the remembered one (the bug dialog's reporter name); when there is none it is asked here, once.
+// It never asks for a name (0.31.0): Save acts as the signed-in user (the sign-in opens first when nobody is).
 
 import { h } from '../dom.js';
-import { remembered, remember } from '../comments/composer.js';
+import { ensureUser } from '../users/signin.js';
 import { STATUS, suggest } from './pure.js';
 
 /**
@@ -13,18 +13,17 @@ import { STATUS, suggest } from './pure.js';
  */
 export function createEditor({ item, number, prefill = {}, names = [], stepNow = () => null, stepOf = () => null, onSave, onCancel }) {
   const fresh = !item;
-  let stepKey = fresh ? (prefill.commentId != null ? prefill.step ?? null : prefill.step ?? stepNow()?.key ?? null) : item.step, busy = false, pick = -1, name = remembered();
+  let stepKey = fresh ? (prefill.commentId != null ? prefill.step ?? null : prefill.step ?? stepNow()?.key ?? null) : item.step, busy = false, pick = -1;
   const owner = h('input.ai-in', { type: 'text', value: item?.owner ?? '', placeholder: 'Owner', maxLength: 80, autocomplete: 'off', 'aria-label': 'Owner', 'data-qa': 'ai-owner', role: 'combobox', 'aria-expanded': 'false' });
   const desc = h('textarea.ai-in.ta', { rows: 2, value: item?.description ?? prefill.description ?? '', placeholder: 'What needs doing?', maxLength: 2000, 'aria-label': 'Description', 'data-qa': 'ai-desc' });
   const status = h('select.ai-in.ai-sel', { 'aria-label': 'Status', 'data-qa': 'ai-status' }, ...Object.entries(STATUS).map(([k, v]) => h('option', { value: k, selected: (item?.status ?? 'open') === k }, v)));
   const due = h('input.ai-in.ai-date', { type: 'date', value: item?.due ?? '', 'aria-label': 'Due date (optional)', 'data-qa': 'ai-due' });
-  const nameIn = h('input.ai-in', { type: 'text', value: name, placeholder: 'Your name', maxLength: 80, 'aria-label': 'Your name', 'data-qa': 'ai-name', on: { input: () => { name = nameIn.value.trim(); sync(); } } });
   const err = h('div.cm-err', { role: 'alert' });
   const sug = h('div.ai-sug', { role: 'listbox', hidden: true });
   const meta = h('div.ai-meta');
   const save = h('button.btn.sm.primary', { type: 'button', 'data-qa': 'ai-save', on: { click: () => submit() } }, 'Save');
   const cancel = h('button.btn.sm', { type: 'button', 'data-qa': 'ai-cancel', on: { click: () => onCancel() } }, 'Cancel');
-  const keys = h('div.ai-keys', save, cancel, h('span', 'Enter saves · Esc cancels'), remembered() ? null : h('span.ai-as', 'Your name ', nameIn));
+  const keys = h('div.ai-keys', save, cancel, h('span', 'Enter saves · Esc cancels'));
   const el = h('div.ai-r.edit', { 'data-qa': 'ai-editor', 'data-number': fresh ? '' : item.number },
     h('span.ai-n', { style: { paddingTop: '6px' } }, `#${fresh ? number : item.number}`),
     h('div', { style: { position: 'relative' } }, owner, sug),
@@ -38,7 +37,7 @@ export function createEditor({ item, number, prefill = {}, names = [], stepNow =
       stepKey && fresh && !prefill.step && stepKey === now?.key ? h('span', 'attached to the selected step') : null,
       prefill.commentAuthor ? h('span', `from ${prefill.commentAuthor}’s comment`) : null].filter(Boolean));
   }
-  function sync() { save.disabled = busy || !owner.value.trim() || !desc.value.trim() || !name; cancel.disabled = busy; }
+  function sync() { save.disabled = busy || !owner.value.trim() || !desc.value.trim(); cancel.disabled = busy; }
 
   function drawSug() {
     const list = suggest(names, owner.value).slice(0, 6);
@@ -52,8 +51,7 @@ export function createEditor({ item, number, prefill = {}, names = [], stepNow =
   async function submit() {
     if (save.disabled) return;
     busy = true; err.textContent = ''; sync();
-    if (!remembered()) remember(name);
-    try { await onSave({ owner: owner.value.trim(), description: desc.value.trim(), status: status.value, due: due.value || null, step: stepKey, name }); } catch (e) { busy = false; err.textContent = e.message || 'Could not save the action item.'; sync(); }
+    try { const user = await ensureUser('Sign in to save. There are no passwords yet: picking a user only labels what you write.'); await onSave({ owner: owner.value.trim(), description: desc.value.trim(), status: status.value, due: due.value || null, step: stepKey, name: user.name }); } catch (e) { busy = false; err.textContent = e.cancelled ? '' : e.message || 'Could not save the action item.'; sync(); }
   }
   const onKey = (e) => {
     if (e.isComposing) return;

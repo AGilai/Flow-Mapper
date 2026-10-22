@@ -4,7 +4,10 @@
 
 import { h } from '../dom.js';
 import { sanitize } from '../../core/rich-text.js';
-import { avatar, createComposer, remember } from './composer.js';
+import { createComposer } from './composer.js';
+import { userAvatar } from '../users/avatar.js';
+import { ensureUser } from '../users/signin.js';
+import { isMe } from '../users/directory.js';
 import { relTime, fullDate as full } from './pure.js';
 
 /** The body element: sanitized HTML, set once. */
@@ -17,10 +20,10 @@ export const bodyEl = (html) => h('div.cm-body', { html: sanitize(html) });
  */
 export function commentItem(node, x) {
   const parts = [];
-  const mine = !node.deleted && !!x.me() && node.author === x.me();
+  const mine = !node.deleted && isMe(node.authorId, node.author);
   const head = h('div.cm-head');
   const body = h('div.cm-slot');
-  const el = h('div.cm', { 'data-id': node.id, class: `${node.deleted ? 'deleted' : ''} ${node.resolved ? 'resolved' : ''}`.trim() }, node.deleted ? h('div.av.gone', { 'aria-hidden': 'true' }) : avatar(node.author), h('div', head, body));
+  const el = h('div.cm', { 'data-id': node.id, class: `${node.deleted ? 'deleted' : ''} ${node.resolved ? 'resolved' : ''}`.trim() }, node.deleted ? h('div.u-av.gone', { 'aria-hidden': 'true' }) : userAvatar({ name: node.author, id: node.authorId }), h('div', head, body));
   const time = h('span.tm', { title: full(node.createdAt) }, relTime(node.createdAt));
 
   function pill() {
@@ -41,15 +44,9 @@ export function commentItem(node, x) {
       : [h('b', node.author), mine ? h('span.you', 'you') : null, time, node.externalSource ? h('span.imp', { title: `Imported from ${node.externalSource}${node.externalId ? `, id ${node.externalId}` : ''}` }, 'imported') : null, node.editedAt ? h('span.ed', { title: `Edited ${full(node.editedAt)}` }, 'edited') : null, pill(), act]).filter(Boolean));
     body.replaceChildren(...(node.deleted ? [] : [bodyEl(node.body), x.top && node.resolved ? h('div.cm-resolved', { 'data-qa': 'cm-resolved' }, `Resolved${node.resolvedBy ? ` by ${node.resolvedBy}` : ''} \u00b7 `, h('span', { title: full(node.resolvedAt) }, relTime(node.resolvedAt))) : null].filter(Boolean)));
   }
-  /** Resolve or reopen; without a remembered name the line asks for one first (it is kept like the commenter's). */
-  function toggle(act) {
-    const go = async (name) => { try { await x.api.resolve(node.id, !node.resolved, name); } catch (er) { act.replaceChildren(h('span.cm-err', er.message)); } };
-    if (x.me()) return go(x.me());
-    const input = h('input.input', { type: 'text', placeholder: 'Your name', maxLength: 80, 'aria-label': 'Your name', 'data-qa': 'cm-resolve-name' });
-    const ok = () => { const n = input.value.trim(); if (n) { remember(n); go(n); } };
-    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') ok(); if (e.key === 'Escape') show(); });
-    act.replaceChildren(input, h('button.lnk', { type: 'button', 'data-qa': 'cm-resolve-ok', on: { click: ok } }, node.resolved ? 'Reopen' : 'Resolve'), h('button.lnk', { type: 'button', on: { click: show } }, 'Cancel'));
-    input.focus();
+  /** Resolve or reopen as the signed-in user (the sign-in opens first when nobody is). */
+  async function toggle(act) {
+    try { const u = await ensureUser('Sign in to resolve. There are no passwords yet: picking a user only labels what you do.'); await x.api.resolve(node.id, !node.resolved, u.name); } catch (er) { if (!er.cancelled) act.replaceChildren(h('span.cm-err', er.message)); }
   }
   function edit() {
     const c = createComposer({ mode: 'edit', html: node.body, onSubmit: async ({ html }) => { await x.api.edit(node.id, html); }, onCancel: () => { c.dispose(); el.classList.remove('cm-editing'); show(); } });

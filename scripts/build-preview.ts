@@ -17,6 +17,7 @@ import * as descriptions from '../server/store/descriptions.ts';
 import * as keys from '../server/store/keys.ts';
 import * as comments from '../server/store/comments.ts';
 import * as actionItems from '../server/store/action-items-io.ts';
+import { listUsers } from '../server/store/users.ts';
 import { seedEnvRecipes } from './seed-envs.ts';
 import { listEnvMeta } from '../server/store/envs.ts';
 import { envItemRows, baselineRows } from '../server/store/item-rows.ts';
@@ -62,6 +63,7 @@ const data = {
   eventDtos: Object.fromEntries(store.listEnvs(ctx.db).map((env) => [env, dtos.listEventDtos(ctx.db, env)])),
   descriptions: Object.fromEntries(store.listEnvs(ctx.db).map((env) => [env, descriptions.allRows(ctx.db, env)])),
   comments: Object.fromEntries(store.listEnvs(ctx.db).map((env) => [env, comments.allRows(ctx.db, env)])),
+  users: listUsers(ctx.db),
   actionItems: Object.fromEntries(store.listEnvs(ctx.db).map((env) => [env, actionItems.allRows(ctx.db, env)])),
   keys: Object.fromEntries(store.listEnvs(ctx.db).map((env) => [env, keys.allForPreview(ctx.db, env)])),
   schemas: Object.fromEntries(store.listEnvs(ctx.db).map((env) => [env, schemas.listSchemas(ctx.db, env)])),

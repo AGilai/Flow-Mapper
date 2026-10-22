@@ -6,10 +6,10 @@ import { created } from '../http/router.ts';
 import type { Ctx } from '../context.ts';
 import { badRequest } from '../errors.ts';
 import { headerUser } from '../identity.ts';
-import { ensureUser, getUser, listUsers, mergeUser, renameUser, createUser, userName } from '../store/users.ts';
+import { ensureUser, getUser, listUsers, mergeUser, renameUser, createUser, userName, userCounts } from '../store/users.ts';
 
 export function registerUsers(r: Router, ctx: Ctx) {
-  r.get('/api/users', () => ({ users: listUsers(ctx.db) }));
+  r.get('/api/users', () => { const c = userCounts(ctx.db); return { users: listUsers(ctx.db).map((u) => ({ ...u, counts: c[u.id] ?? { comments: 0, items: 0, mentions: 0 } })) }; });
   r.get('/api/users/:id', (req) => getUser(ctx.db, req.params.id));
   r.post('/api/users', async (req) => {
     const b = await req.json(), name = userName(b?.name);

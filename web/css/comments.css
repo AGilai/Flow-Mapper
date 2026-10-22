@@ -128,7 +128,7 @@ button.spill:hover { background: var(--accent-soft); }
   .tb-more { display: inline-grid; }
   .cm-reply { margin-left: 18px; padding-left: 10px; }
   .cm-compose { grid-template-columns: minmax(0, 1fr); }
-  .cm-compose > .av { display: none; }
+  .cm-compose > .cm-me { display: none; }
   .rte-foot .keys { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { .cm-sec > summary::before, .tog i::after { transition: none; } }

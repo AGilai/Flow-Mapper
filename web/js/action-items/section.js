@@ -3,9 +3,8 @@
 // the comments thread: "Make action item" there opens the new row here, and the events here show under the comment there.
 
 import { h } from '../dom.js';
-import { cleanName } from '../../core/comments.js';
 import { isOpen } from '../../core/action-items.js';
-import { remembered } from '../comments/composer.js';
+import { myName, users } from '../users/directory.js';
 import { actionRow } from './row.js';
 import { createEditor } from './editor.js';
 import { todayLocal, ownerNames } from './pure.js';
@@ -28,10 +27,10 @@ export function createActionItems({ store, walk }) {
 
   const stepNow = () => { const s = walk.picked() ? walk.steps()[walk.current() - 1] : null; return s ? { n: s.n, key: s.key } : null; };
   const stepOf = (key) => { const s = walk.steps().find((x) => x.key === key); return s ? { n: s.n } : null; };
-  const me = () => cleanName(remembered());
+  const me = () => myName();
   const commentOf = (id) => { let f = null; const walkc = (c) => { if (c.id === id) f = c; (c.replies ?? []).forEach(walkc); }; store.comments.forEach(walkc); return f; };
   const focusEditor = () => { editor?.focus(); };
-  const names = () => ownerNames({ me: me(), comments: store.comments, items: store.items });
+  const names = () => { const seen = ownerNames({ me: me(), comments: store.comments, items: store.items }); for (const u of users()) if (!seen.includes(u.name)) seen.push(u.name); return seen; };
 
   function draw() {
     const items = store.items, d = store.draft;
@@ -40,7 +39,7 @@ export function createActionItems({ store, walk }) {
     const open = items.filter((i) => isOpen(i.status)).length + (d ? 1 : 0), all = items.length + (d ? 1 : 0);
     count.textContent = items.length || !d ? `(${open} open · ${all})` : '(1 open)';
     add.style.opacity = d ? '.5' : '';
-    const x = { me, today: todayLocal(), commentOf, stepOf, jump: (n) => walk.go(n), toComment: (id) => store.focusComment(id), edit: (it) => { editing = it.id; draw(); editors.get(it.id)?.focus(); }, remove: (it) => store.remove(it.id, me()) };
+    const x = { today: todayLocal(), commentOf, stepOf, jump: (n) => walk.go(n), toComment: (id) => store.focusComment(id), edit: (it) => { editing = it.id; draw(); editors.get(it.id)?.focus(); }, remove: (it) => store.remove(it.id, me()) };
     const rows = (showClosed ? items : items.filter((i) => isOpen(i.status) || i.id === editing)).map((it) => {
       if (editing !== it.id) return actionRow(it, x).el;
       if (!editors.has(it.id)) editors.set(it.id, createEditor({ item: it, names: names(), stepNow, stepOf, onCancel: () => { editors.delete(it.id); editing = null; draw(); }, onSave: async (b) => { await store.update(it.id, { actor: b.name, owner: b.owner, description: b.description, status: b.status, due: b.due, step: b.step }); editors.delete(it.id); editing = null; draw(); } }));

@@ -5,9 +5,11 @@
 
 import { h } from '../dom.js';
 import { api } from '../api.js';
-import { flowAnchor, cleanName } from '../../core/comments.js';
+import { flowAnchor } from '../../core/comments.js';
 import { commentItem } from './comment.js';
-import { createComposer, avatar, remembered } from './composer.js';
+import { createComposer } from './composer.js';
+import { userAvatar } from '../users/avatar.js';
+import { myName, me, watchUsers } from '../users/directory.js';
 import { startsOpen, relTime, fullDate, visibleThread } from './pure.js';
 import { prefill, stripTables, eventParts } from '../action-items/pure.js';
 import { sanitize, plainText } from '../../core/rich-text.js';
@@ -38,7 +40,7 @@ export function createComments({ env, root, walk, store, onCount }) {
   const stepNow = () => { const s = walk.picked() ? walk.steps()[walk.current() - 1] : null; return s ? { n: s.n, key: s.key } : null; };
   const busy = () => !!list.querySelector('.cm-editing, .cm-composer.reply');
   const run = async (fn) => { await fn(); await refresh(true); };
-  const author = () => cleanName(remembered()); // as the server stores and compares it
+  const author = () => myName(); // the signed-in user (the server takes the id from X-Flow-User; the name is for the preview and old clients)
   const api_ = {
     edit: (id, html) => run(() => api.editComment(env, id, { author: author(), body: html })),
     remove: (id) => run(() => api.deleteComment(env, id, author())),
@@ -52,6 +54,9 @@ export function createComments({ env, root, walk, store, onCount }) {
   });
   /** The outline of the comment a new action item is being made from, and the "from X's comment" jump. */
   const mark = () => { addAi.hidden = !!store.items.length || !!store.draft || !loaded || !store.loaded; list.querySelectorAll('.cm[data-id]').forEach((c) => c.classList.toggle('hl', Number(c.dataset.id) === store.draft?.commentId)); };
+
+  const drawMe = () => { const m = tail.querySelector('.cm-me'); if (m) m.replaceChildren(me() ? userAvatar(me()) : userAvatar({ name: '?' })); };
+  const offUsers = watchUsers(drawMe);
 
   function draw() {
     items.forEach((i) => i.dispose()); items = [];
@@ -75,7 +80,7 @@ export function createComments({ env, root, walk, store, onCount }) {
     hint.textContent = vis.count ? `${plural(top, 'comment')}${replies ? ` and ${plural(replies, 'reply')}` : ''}, oldest first` : loaded ? '· Add' : '';
     if (!composer) {
       composer = createComposer({ mode: 'new', step: stepNow, onSubmit: async ({ html, step, name }) => { await api.addComment(env, { anchor, step, author: name, body: html }); await refresh(true); } });
-      tail.replaceChildren(h('div.cm-compose', avatar(remembered()), composer.el));
+      tail.replaceChildren(h('div.cm-compose', h('span.cm-me'), composer.el)); drawMe();
     }
     mark();
     const r = replying !== null ? list.querySelector('.cm-composer.reply') : null; r?.querySelector('[data-qa=rte]')?.focus();
@@ -112,5 +117,5 @@ export function createComments({ env, root, walk, store, onCount }) {
     if (loaded && !busy()) draw(); else mark();
   });
   refresh(true);
-  return { el, refresh, dispose: () => { off(); clearTimeout(flash); window.removeEventListener('focus', onFocus); document.removeEventListener('visibilitychange', onFocus); unwatch(); items.forEach((i) => i.dispose()); composer?.dispose(); } };
+  return { el, refresh, dispose: () => { off(); offUsers(); clearTimeout(flash); window.removeEventListener('focus', onFocus); document.removeEventListener('visibilitychange', onFocus); unwatch(); items.forEach((i) => i.dispose()); composer?.dispose(); } };
 }

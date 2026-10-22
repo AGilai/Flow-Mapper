@@ -119,6 +119,16 @@ export function mergeUser(db: DB, from: string, into: string, by = 'unknown'): U
   return getUser(db, b.id);
 }
 
+/** What each user has written and been given, for the sign-in list and the Users page: live comments, live action items owned, live comments that mention them. */
+export function userCounts(db: DB): Record<string, { comments: number; items: number; mentions: number }> {
+  const out: Record<string, { comments: number; items: number; mentions: number }> = {};
+  const add = (sql: string, k: 'comments' | 'items' | 'mentions') => { for (const r of db.prepare(sql).all() as unknown as { id: string; n: number }[]) (out[r.id] ??= { comments: 0, items: 0, mentions: 0 })[k] = r.n; };
+  add('SELECT author_id AS id, COUNT(*) AS n FROM comments WHERE deleted_at IS NULL AND author_id IS NOT NULL GROUP BY author_id', 'comments');
+  add('SELECT owner_id AS id, COUNT(*) AS n FROM action_items WHERE deleted_at IS NULL AND owner_id IS NOT NULL GROUP BY owner_id', 'items');
+  add('SELECT m.user_id AS id, COUNT(*) AS n FROM comment_mentions m JOIN comments c ON c.id = m.comment_id WHERE c.deleted_at IS NULL GROUP BY m.user_id', 'mentions');
+  return out;
+}
+
 /** Id -> {name, color} for every user, merged ones included (they read as the user they went into). For display of stored ids. */
 export function nameIndex(db: DB): Map<string, { id: string; name: string; color: number }> {
   const rows = db.prepare('SELECT id, name, color, merged_into FROM users').all() as unknown as UR[];

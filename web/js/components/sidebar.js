@@ -4,6 +4,7 @@ import { h, clear, fill } from '../dom.js';
 import { icon, brandMark } from '../icons.js';
 import { state } from '../state.js';
 import { envPicker } from './env-picker.js';
+import { userButton } from '../users/user-button.js';
 import { KEYS, SLIDE_MS, readCollapsed, writeCollapsed, toggleLabel, envShort } from '../collapse.js';
 
 let collapsed = readCollapsed(KEYS.rail);
@@ -40,6 +41,7 @@ export function renderRail(rail, activePath, counts = {}) {
       h('button.env-chip', { type: 'button', title: `Environment ${state.env}. Click to expand the sidebar and change it.`, 'aria-label': `Environment ${state.env}, expand the sidebar`, on: { click: () => { if (collapsed) toggle(); } } }, envShort(state.env)),
       h('span.env-label', 'Environment'),
       envPicker(),
+      userButton(),
       h('span.xs.muted', state.version ? `v${state.version}` : '')),
   );
 }

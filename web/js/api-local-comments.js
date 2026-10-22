@@ -6,7 +6,7 @@ import { HASH_TRACE, isStepKey, hasStep } from '../core/description.js';
 import { buildThread, parseFlowAnchor, MAX_AUTHOR, cleanName } from '../core/comments.js';
 import { sanitize, tooLong, plainText } from '../core/rich-text.js';
 
-export function createComments(data, g) {
+export function createComments(data, g, U) {
   const fail = (message, status) => { const e = new Error(message); e.status = status; throw e; };
   const rows = (env) => ((data.comments ??= {})[env] ??= []);
   const author = (a) => { const s = typeof a === 'string' ? cleanName(a) : ''; if (!s) fail('author is required', 400); if (s.length > MAX_AUTHOR) fail(`author is longer than ${MAX_AUTHOR} characters`, 400); return s; };
@@ -30,7 +30,7 @@ export function createComments(data, g) {
         if (p.deletedAt) fail('the comment you reply to was deleted', 422);
         parentId = p.parentId ?? p.id;
       }
-      const r = { id: Math.max(0, ...rows(env).map((x) => x.id)) + 1, anchor: i.anchor, step, parentId, author: a, body: b, createdAt: new Date().toISOString(), editedAt: null, deletedAt: null, externalId: null, externalSource: null, authorExternalId: null, resolvedAt: null, resolvedBy: null };
+      const r = { id: Math.max(0, ...rows(env).map((x) => x.id)) + 1, anchor: i.anchor, step, parentId, author: a, authorId: U.userFor(null, a).id, body: b, createdAt: new Date().toISOString(), editedAt: null, deletedAt: null, externalId: null, externalSource: null, authorExternalId: null, resolvedAt: null, resolvedBy: null };
       rows(env).push(r);
       return structuredClone(r);
     },

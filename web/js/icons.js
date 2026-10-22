@@ -31,6 +31,8 @@ const P = {
   warn: '<path d="M12 4 21 20H3z"/><path d="M12 10v4.5M12 17.4h.01"/>',
   maximize: '<path d="M3 9V3h6M15 3h6v6M21 15v6h-6M9 21H3v-6"/>',
   unmax: '<path d="M9 3v6H3M21 9h-6V3M15 21v-6h6M3 15h6v6"/>',
+  user: '<circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c.9-3.7 3.9-5.6 7.5-5.6s6.6 1.9 7.5 5.6"/>',
+  at: '<circle cx="12" cy="12" r="3.6"/><path d="M15.6 8.4v5.2c0 1.7 1.2 2.7 2.6 2.7 1.5 0 2.3-1.6 2.3-4.3A8.5 8.5 0 1 0 16 19.7"/>',
   external: '<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
 };
 

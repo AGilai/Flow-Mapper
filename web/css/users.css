@@ -1,0 +1,57 @@
+/* Users (0.31.0, frame 18): avatars, the rail's sign-in button and menu, the sign-in dialog. Colours come from tokens only. */
+.u-av { width: 30px; height: 30px; border-radius: 50%; flex: none; display: grid; place-items: center; font: 700 11.5px var(--font); color: var(--c, var(--ink-2)); background: color-mix(in srgb, var(--c, var(--ink-2)) 16%, var(--surface)); border: 1px solid color-mix(in srgb, var(--c, var(--ink-2)) 45%, var(--surface)); }
+.u-av.s { width: 22px; height: 22px; font-size: 9.5px; }
+.u-av.l { width: 40px; height: 40px; font-size: 14px; }
+.u-av.gone { border-style: dashed; background: transparent; }
+.u-av.out { background: transparent; border: 1.5px solid var(--line-strong); color: var(--ink-2); }
+.u-av.out svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.6; }
+.cm.resolved .u-av { background: transparent; }
+.cm-me { display: inline-grid; }
+
+/* the rail button, under the environment picker */
+.u-btn-wrap { position: relative; }
+.u-btn { display: flex; align-items: center; gap: 10px; width: 100%; padding: 4px 6px; border: 0; border-radius: var(--r-sm); background: none; color: var(--ink); font: 500 var(--fs-sm) var(--font); text-align: left; cursor: pointer; min-width: 0; }
+.u-btn:hover { background: var(--surface-2); }
+.u-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.u-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.rail-c .u-btn { justify-content: center; padding: 4px 0; }
+.rail-c .u-name { display: none; }
+.rail-c .rail-foot .u-btn-wrap { display: block; }
+.u-menu { position: fixed; z-index: 40; width: 232px; background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-md); box-shadow: var(--shadow-panel); padding: 4px; display: grid; }
+.u-menu-who { display: flex; gap: 10px; align-items: center; padding: 8px 10px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+.u-menu-who b { font-weight: 600; display: block; } .u-menu-who small { color: var(--muted); font-size: var(--fs-xs); }
+.u-mi { display: block; width: 100%; text-align: left; padding: 7px 10px; border: 0; border-radius: var(--r-sm); background: none; color: var(--ink); font: 500 var(--fs-sm) var(--font); cursor: pointer; }
+.u-mi:hover, .u-mi:focus-visible { background: var(--surface-2); outline: none; }
+.u-mi.d { color: var(--bad); }
+
+/* the sign-in dialog (frame 18e) */
+.u-dialog { border: 1px solid var(--line-strong); border-radius: var(--r-md); background: var(--surface); color: var(--ink); padding: 0; width: min(460px, calc(100vw - 24px)); max-height: calc(100vh - 32px); box-shadow: var(--shadow-panel); }
+.u-dialog::backdrop { background: color-mix(in srgb, var(--ink) 38%, transparent); }
+.u-dialog[open] { display: flex; flex-direction: column; }
+.u-dialog > header { padding: var(--s4) var(--s4) var(--s2); }
+.u-dialog h3 { font-size: var(--fs-lg); }
+.u-dialog > header p { margin-top: 4px; font-size: var(--fs-sm); color: var(--ink-2); }
+.u-dialog .bd { padding: var(--s2) var(--s4) var(--s3); display: grid; gap: var(--s3); overflow-y: auto; min-height: 0; }
+.u-dialog > footer { display: flex; gap: var(--s2); justify-content: flex-end; align-items: center; padding: var(--s3) var(--s4); border-top: 1px solid var(--line); }
+.u-dialog > footer .hint { margin-right: auto; font-size: var(--fs-xs); color: var(--muted); }
+.u-sug { display: flex; gap: 8px; font-size: var(--fs-xs); color: var(--ink-2); background: color-mix(in srgb, var(--warn) 9%, var(--surface)); border: 1px solid color-mix(in srgb, var(--warn) 35%, var(--line)); border-radius: var(--r-sm); padding: 7px 10px; }
+.u-sug[hidden] { display: none; }
+.u-who { display: grid; gap: 2px; max-height: 230px; overflow-y: auto; }
+.u-wr { display: grid; grid-template-columns: 15px 30px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 6px 8px; border-radius: var(--r-sm); border: 1px solid transparent; cursor: pointer; }
+.u-wr:hover { background: var(--surface-2); }
+.u-wr.on { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+.u-wr:focus-visible { outline: 2px solid var(--focus); outline-offset: -1px; }
+.u-wr b { font-weight: 600; font-size: var(--fs-sm); } .u-wr small { display: block; color: var(--muted); font-size: var(--fs-xs); }
+.u-wr.u-new { grid-template-columns: 15px auto minmax(0, 1fr); cursor: default; }
+.u-wr.u-new:hover { background: none; }
+.u-tag { color: var(--accent); font: 600 var(--fs-xs) var(--font); }
+.u-rad { width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid var(--line-strong); flex: none; position: relative; background: var(--surface); }
+.u-rad.on { border-color: var(--accent); }
+.u-rad.on::after { content: ''; position: absolute; inset: 2.5px; border-radius: 50%; background: var(--accent); }
+.u-or { display: flex; align-items: center; gap: 10px; font-size: var(--fs-xs); color: var(--muted); }
+.u-or::before, .u-or::after { content: ''; height: 1px; background: var(--line); flex: 1; }
+.u-none { padding: 10px; color: var(--muted); font-size: var(--fs-sm); }
+@media (max-width: 760px) {
+  .u-name { display: none; }
+  .u-btn { width: auto; }
+}

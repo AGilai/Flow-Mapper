@@ -5,14 +5,16 @@
 import { h } from '../dom.js';
 import { isOpen } from '../../core/action-items.js';
 import { STATUS, CHIP, isLate, fmtDue } from './pure.js';
+import { userAvatar } from '../users/avatar.js';
+import { isMe } from '../users/directory.js';
 
 /**
  * actionRow(item, x) -> { el }
- * x: { me() -> name, today, commentOf(id) -> node | null, stepOf(key) -> { n } | null, jump(n), toComment(id), edit(item), remove(item) -> Promise }
+ * x: { today, commentOf(id) -> node | null, stepOf(key) -> { n } | null, jump(n), toComment(id), edit(item), remove(item) -> Promise }
  */
 export function actionRow(item, x) {
   const closed = !isOpen(item.status), late = isLate(item, x.today);
-  const mine = !!x.me() && item.createdBy === x.me();
+  const mine = isMe(item.createdById, item.createdBy);
   const act = h('span.ai-act', { role: 'group', 'aria-label': `Actions for #${item.number}` });
   const el = h('div.ai-r', { 'data-qa': 'ai-row', 'data-number': item.number, class: closed ? 'closed' : '' });
 
@@ -46,7 +48,7 @@ export function actionRow(item, x) {
   const extra = [stepPill(), ai].filter(Boolean);
   el.append(
     h('span.ai-n', `#${item.number}`),
-    h('span.ai-o', { title: item.owner }, item.owner),
+    h('span.ai-o', { title: item.owner }, userAvatar({ name: item.owner, id: item.ownerId }, 's'), h('span.ai-on', item.owner)),
     h('span.ai-d', item.description, origin(), extra.length ? h('small', extra) : null),
     h('span.ai-due', { class: late ? 'late' : '' }, item.due ? (late ? `${fmtDue(item.due, x.today)} · overdue` : fmtDue(item.due, x.today)) : h('span.muted', '—')),
     h('span', h('span.ai-st', { class: CHIP[item.status] }, STATUS[item.status] ?? item.status)),
