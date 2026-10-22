@@ -69,7 +69,7 @@ export function chainOf(msgs, p) {
   const legs = ex
     ? [{ msg: pub, from: null, to: ex, delivers: [], filter: null, first: true }, { msg: pub, from: ex, to: pub.to.slice(3), delivers: [], filter: pub.filter ?? null, first: false }]
     : [{ msg: pub, from: null, to: pub.to.slice(3), delivers: [], filter: pub.filter ?? null, first: true }];
-  for (let j = p.i + 1; j <= p.end; j++) {
+  for (let j = p.i + 1; j <= p.hopEnd; j++) {
     const x = msgs[j];
     if (x.depth !== pub.depth || !isChannel(x.from)) continue;
     const from = x.from.slice(3);

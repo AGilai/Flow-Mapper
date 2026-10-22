@@ -19,8 +19,8 @@ test('status events from erasers A (three sites) and B: the controller is expand
   assert.match(d[1].label, new RegExp(`↩ seen at step ${first}$`));
   assert.equal(t.messages.filter((m: any) => m.egress === 'advance.again' && !m.from.startsWith('ch:') && m.fn === 'on_status').length, 1, 'the controller publishes once');
   for (const m of d.slice(1)) {
-    const next = t.messages[t.messages.indexOf(m) + 1];
-    assert.ok(!next || next.depth <= m.depth, 'nothing is expanded below a repeat');
+    assert.equal(m.n, undefined, 'a repeat starts no work');
+    assert.ok(!t.messages.some((x: any) => x.of === t.messages.indexOf(m) + 1), 'nothing is expanded below a repeat (#73: by tag, the work no longer sits right after it)');
   }
 });
 
