@@ -21,11 +21,11 @@ export function parseTyped(text) {
   return m ? clampZoom(m[1]) : null;
 }
 
-/** The scale (1 = 100%) that Fit gives: the diagram's width to the viewport; a short diagram (no taller than the viewport at 100%) is fitted whole, so the smaller of the width, height and 100% scales.
+/** The scale (1 = 100%) that Fit gives: the diagram's width to the viewport; a short diagram (no taller than the viewport at 100%) is fitted whole, so the smaller of the width, height and 200% scales.
  *  { w, h }: the diagram at 100% (head included), { vw, vh }: the room. Clamped to the zoom range; null while there is no size. */
 export function fitScale({ w, h, vw, vh }) {
   if (!(w > 0) || !(h > 0) || !(vw > 0)) return null;
-  const zw = vw / w, zh = vh > 0 ? vh / h : Infinity, z = h <= vh ? Math.min(zw, zh, 1) : zw; // a short diagram is never blown up past 100% (QA, 0.30.4)
+  const zw = vw / w, zh = vh > 0 ? vh / h : Infinity, z = h <= vh ? Math.min(zw, zh, 2) : zw; // a short diagram is enlarged to fill the panel, up to 200% (#69 follow-up, 0.31.1)
   return Math.min(ZMAX, Math.max(ZMIN, z * 100)) / 100;
 }
 

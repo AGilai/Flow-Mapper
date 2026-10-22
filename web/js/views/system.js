@@ -14,6 +14,7 @@ import { createCanvasGraph } from '../graph/canvas-graph.js';
 import { layout } from '../graph/layout.js';
 import { withinHops } from '../../core/subgraph.js';
 import { nodePanel } from './system-panel.js';
+import { pencils } from '../design/pencil.js';
 import { loadMarks } from '../design/marks-store.js';
 import { legend } from './system-legend.js';
 import { loadSubsystems } from '../design/subsystems-store.js';
@@ -49,6 +50,7 @@ export async function render({ main, query }) {
   const content = h('div.content.flush', h('div.stage-wrap', stage, legend(marks, data, { regions })));
   let selected = null;
   const panel = createPanel(content, { onClose: () => { selected = null; graph.select(null); setQuery({ sel: null }); apply(); } });
+  const pen = pencils({ panel, flowsEl: null });
   const search = h('input.input', { type: 'search', placeholder: 'Filter by service, team or function', value: opts.q, 'aria-label': 'Filter map' });
   const filt = (key, label) => h('label.check', h('input', { type: 'checkbox', 'data-qa': `map-${key}`, checked: opts[key], on: { change: (e) => { opts[key] = e.target.checked; persist(); apply(); } } }), label);
   const toggle = (key, label) => h('label.check', h('input', { type: 'checkbox', checked: opts[key], on: { change: (e) => { opts[key] = e.target.checked; persist(); rebuild(); } } }), label);
@@ -169,7 +171,7 @@ export async function render({ main, query }) {
     graph.select(id);
     setQuery({ sel: id });
     apply();
-    panel.open(...nodePanel(n, current.edges, byId));
+    panel.open(...nodePanel(n, current.edges, byId, pen));
   }
 
   search.addEventListener('input', debounce(() => { opts.q = search.value; persist(); apply(); }, 120));
@@ -183,5 +185,6 @@ export async function render({ main, query }) {
   rebuild();
   const sel = query.get('sel');
   if (sel && byId.has(sel)) { selectNode(sel); graph.zoomTo(sel); }
+  pen.resume();
   return { dispose: () => { graph.dispose(); panel.dispose(); } };
 }

@@ -22,6 +22,7 @@ import { linksRow, runtimeGlyph, runtimeOf } from '../components/ext-links.js';
 import { openImport } from '../design/import-panel.js';
 import { editing } from '../design/edit-open.js';
 import { aboutBlock } from '../components/about.js';
+import { pencils } from '../design/pencil.js';
 
 export async function render({ main, params, query }) {
   const name = params.name;
@@ -46,7 +47,8 @@ export async function render({ main, params, query }) {
   const body = h('div');
   const host = h('div.panel-host');
   const panel = createPanel(host, { onClose: () => setQuery({ ep: null }) });
-  const imp = { editing: editing(), onImport: (anchor, source) => openImport({ panel, flowsEl: null, anchor, source }) }; // a reference's "Import into design" opens the preview in this page's panel
+  const pen = pencils({ panel, flowsEl: null }), comp = { form: 'component', service: name };
+  const imp = { editing: editing(), pen, onImport: (anchor, source) => openImport({ panel, flowsEl: null, anchor, source }) }; // a reference's "Import into design" opens the preview in this page's panel
   const refs = marks.componentRefs(name);
   async function showEndpoint(id) {
     setQuery({ ep: id });
@@ -62,13 +64,15 @@ export async function render({ main, params, query }) {
   }
 
   main.append(
-    pageHead(h('span.row', titled('service', s.kind, name), runtimeGlyph(runtimeOf(s)), markBadge(mine, { store: marks }), refs?.refs ? lockChip(null, { text: `${refs.refs} reference ${refs.refs === 1 ? 'endpoint' : 'endpoints'}`, title: `${refs.refs} of its ${refs.endpoints} endpoints are references: their behaviour is in another environment.` }) : null, linksRow(s.links)), mine && wasText(mine) ? [s.description, h('span.mk-what', ` ${wasText(mine)}`)] : s.description ?? null,
+    pageHead(h('span.row.has-pen', titled('service', s.kind, name), pen.button('header', name, comp), runtimeGlyph(runtimeOf(s)), markBadge(mine, { store: marks }), refs?.refs ? lockChip(null, { text: `${refs.refs} reference ${refs.refs === 1 ? 'endpoint' : 'endpoints'}`, title: `${refs.refs} of its ${refs.endpoints} endpoints are references: their behaviour is in another environment.` }) : null, linksRow(s.links), pen.button('docs', `${name} docs links`, { ...comp, at: 'links' })), mine && wasText(mine) ? [s.description, h('span.mk-what', ` ${wasText(mine)}`)] : s.description ?? null,
+      pen.button('header', `${name} (header)`, comp, { text: 'Edit' }),
       h('a.btn', { href: href('/system', { sel: `svc:${name}` }) }, icon('system'), 'Show on map'),
       h('button.btn', { type: 'button', on: { click: (e) => openBugDialog(e.currentTarget) } }, icon('bug'), 'Report a bug'),
       h('a.btn.primary', { href: href('/flows', { service: name }) }, icon('flow'), 'Trace a flow')),
     host);
-  host.prepend(h('div.content', h('div.page-grid', h('div.svc-head', meta, aboutBlock(s.about), figures), h('div', tabs, body))));
+  host.prepend(h('div.content', h('div.page-grid', h('div.svc-head', meta, pen.hint(), aboutBlock(s.about, { pen: pen.about(name, comp) }), figures), h('div', tabs, body))));
   show(tab);
+  pen.resume();
   if (query.get('ep')) showEndpoint(query.get('ep'));
 }
 

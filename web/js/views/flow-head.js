@@ -18,11 +18,12 @@ const statusText = (d, callee) => {
   const parts = [p.human ? `Human, edited ${fmtDate(p.human.editedAt)}` : null, p.ai ? (p.ai.outdated ? 'AI version outdated' : 'AI version available') : null].filter(Boolean);
   return parts.length ? `Description · ${parts.join(' · ')}` : 'No description yet';
 };
-export function descDetails(store, root, callee, { cls, remember, summary, title, quiet = false, onGenerate }) {
+export function descDetails(store, root, callee, { cls, remember, summary, title, quiet = false, onGenerate, pen = null }) {
   const block = descBlock(store, root, callee, { title, wholeFlow: callee === null, onGenerate, wide: true, quiet });
   const open = read(remember, true);
   const status = h('span.xs.muted.fh-src');
-  const el = h(`details.${cls}`, { open, 'aria-label': title }, h('summary', summary, status), block.el);
+  const note = pen?.note('flow description', () => { el.open = true; block.edit(); }); // an annotation pencil: any environment (0.31.1)
+  const el = h(`details.${cls}`, { open, 'aria-label': title }, h('summary', summary, status, note), block.el);
   const unwatch = store.watch(root, (d) => { status.textContent = statusText(d, callee); });
   el.addEventListener('toggle', () => write(remember, el.open));
   return { el, dispose: () => { unwatch(); block.dispose(); } };

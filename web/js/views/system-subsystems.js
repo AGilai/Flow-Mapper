@@ -11,7 +11,7 @@ import { createPanel } from '../components/panel.js';
 import { editing } from '../design/edit-target.js';
 import { openLinkPanel } from '../design/link-panel.js';
 import { openLinkForm } from '../design/forms/link-form.js';
-import { openSubsystemForm } from '../design/forms/subsystem-form.js';
+import { pencils } from '../design/pencil.js';
 import { layoutBoxes, gridFor, MANY } from '../graph/subsystem-layout.js';
 import { drawSubsystems } from './subsystem-draw.js';
 import { linePanel, boxPanel } from './subsystem-panel.js';
@@ -39,8 +39,8 @@ export async function renderSubsystems({ main, query, subs, marks }) {
   const pick = (sel, q) => { selected = sel; setQuery({ box: null, line: null, link: null, ...q }); paint(); };
   const openLink = (v) => { pick(`link:${v.id}`, { link: v.id }); openLinkPanel(v, { panel, subs, marks, map, editing: edit }); };
   const openLine = (l) => { pick(l.id, { line: l.id }); panel.open(...linePanel(l, { map, label, onLink: openLink })); };
-  const openBox = (key) => { pick(`box:${key}`, { box: key }); panel.open(...boxPanel(map.boxes.find((b) => b.key === key), { map, marks, label, onGo: goDown, onLink: openLink, onEdit })); };
-  const onEdit = edit && state.draft ? (box) => openSubsystemForm({ panel, box }) : null;
+  const openBox = (key) => { pick(`box:${key}`, { box: key }); panel.open(...boxPanel(map.boxes.find((b) => b.key === key), { map, marks, label, onGo: goDown, onLink: openLink, pen })); };
+  const pen = pencils({ panel, flowsEl: null });
   const goDown = (service) => go('/system', { sel: `svc:${service}` });
 
   const boxSel = () => (selected?.startsWith('box:') ? selected.slice(4) : null), lineSel = () => (selected && !selected.startsWith('box:') && !selected.startsWith('link:') ? selected : null);
@@ -63,7 +63,8 @@ export async function renderSubsystems({ main, query, subs, marks }) {
   paint();
   // Reopen the panel of the selection the URL names (a refine, a reload, a link).
   if (selected?.startsWith('link:')) { const v = map.abstract.find((x) => x.id === selected.slice(5)); if (v) openLinkPanel(v, { panel, subs, marks, map, editing: edit }); }
-  else if (selected?.startsWith('box:')) { const b = map.boxes.find((x) => x.key === selected.slice(4)); if (b) panel.open(...boxPanel(b, { map, marks, label, onGo: goDown, onLink: openLink, onEdit })); }
+  else if (selected?.startsWith('box:')) { const b = map.boxes.find((x) => x.key === selected.slice(4)); if (b) panel.open(...boxPanel(b, { map, marks, label, onGo: goDown, onLink: openLink, pen })); }
   else if (selected) { const l = map.lines.find((x) => x.id === selected); if (l) panel.open(...linePanel(l, { map, label, onLink: openLink })); }
+  pen.resume();
   return { dispose: () => { ro.disconnect(); panel.dispose(); } };
 }
