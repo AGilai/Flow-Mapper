@@ -66,6 +66,8 @@ export interface Step {
   mark?: 'new' | 'changed';
   /** 0.32.2 (#74): on a leaf step, the components (or data stores) its note spans (leftmost to rightmost). */
   over?: string[];
+  /** 0.33.2 (#81): what the call returns: the label of the dashed return arrow and a longer detail for the step panel. */
+  returns?: { label: string; detail?: string };
   loop?: boolean;
   note?: string;
   /** Event type this egress step publishes (one of the egress's `events`). */

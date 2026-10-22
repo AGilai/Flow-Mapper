@@ -1,0 +1,59 @@
+%% Demo for the fuller Mermaid import (0.33.1): a Confluence-style HLD sequence diagram with every construct the importer reads.
+%% Import it into a draft of sase-hld (or a blank design) with "Import Mermaid...".
+%% flow: Device onboarding and first sync (from Confluence)
+%% link: Confluence page https://wiki.example.com/display/SASE/Device+onboarding
+%% link: Threat model https://wiki.example.com/display/SASE/Onboarding+threat+model
+%% Description: A new device enrols, gets a certificate and its first policy, then syncs its posture. Frames, notes and changed steps follow the page.
+sequenceDiagram
+    title Device onboarding
+    actor Admin as Admin console
+    participant GW as onboarding-gw
+    participant REG as device-registry
+    participant CA as cert-authority
+    participant POL as policy-engine
+    participant SYNC as sync-worker
+    participant AUD as audit-trail
+
+    Admin->>GW: POST /devices: enrol a new device
+    Note over GW: the gateway rate-limits enrolments per tenant
+    %% real: http:POST device-registry/v2/devices
+    GW->>REG: POST /devices: register the device
+    REG->>REG: validate serial number
+    alt device is known
+        REG-->>GW: existing device
+    else device is new
+        REG->>CA: POST /certificates: issue a device certificate
+        CA-->>REG: certificate
+        Note over REG,CA: the certificate is valid for 90 days
+        REG-->>GW: registered
+    end
+    Note right of GW: enrolment is acknowledged to the console
+    GW-->>Admin: 201 enrolled
+
+    rect rgb(255, 244, 214)
+        GW->>POL: GET /policies/default: fetch the first policy %% real: http:GET policy-engine/policies/{tenantId}/default
+        Note over GW,POL: new in v2: the policy is signed
+        POL->>POL: sign policy bundle
+    end
+
+    loop for each pending sync batch
+        opt batch is not empty
+            GW-)SYNC: Sync: queue the batch
+            par audit the batch
+                SYNC->>AUD: POST /events: batch received
+                Note left of AUD: the audit trail keeps the events for a year
+            and verify the batch
+                SYNC->>POL: POST /verify: check the posture rules
+                critical certificate is valid
+                    SYNC->>CA: GET /certificates/{id}: check the revocation list
+                option certificate is revoked
+                    SYNC->>AUD: POST /events: revoked certificate used
+                end
+            end
+            break batch is rejected
+                rect rgb(214, 245, 214)
+                SYNC->>AUD: POST /events: batch rejected
+                end
+            end
+        end
+    end

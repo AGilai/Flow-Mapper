@@ -9,6 +9,9 @@ export const STEP_MARKS = ['new', 'changed'] as const;
 export const stepExtras = (st: Step) => ({
   ...(st.mark ? { mark: st.mark, ...(typeof st.details?.changed === 'string' && st.details.changed ? { changed: st.details.changed } : {}) } : {}),
   ...(st.over?.length ? { over: st.over } : {}),
+  ...(typeof st.details?.real === 'string' && st.details.real ? { real: st.details.real } : {}),                 // 0.33.1: the bind key a mermaid import was told it really calls
+  ...(st.returns?.label ? { returns: st.returns } : {}),                                                            // 0.33.2 (#81): the label (and detail) of the return that answers the call
+  ...(st.details?.self === true ? { self: true } : {}),                                                              // an internal step that was a self-message
 });
 
 /** Id of a marked step inside `componentSets` (prefix `m:`; the counts skip it). */

@@ -3,8 +3,9 @@
 
 import type { DraftOpInput } from './draft-ops.ts';
 import { endpointBuild } from './edit-forms.ts';
-import { EditError, renumber, setField, slug, unique, type CallEdit, type DeleteCallEdit, type Idx } from './edit-kit.ts';
+import { EditError, renumber, setField, slug, unique, type CallEdit, type DeleteCallEdit, type Idx, type LeafEdit, type StepGroupEdit } from './edit-kit.ts';
 import { STEP_MARKS } from './step-marks.ts';
+import { cleanReturns, returnsProblem, type StepReturns } from './step-returns.ts';
 import type { Mode, Transport } from './types.ts';
 
 const up = (anchor: string, data: unknown): DraftOpInput => ({ op: 'upsert', anchor, data });
@@ -20,6 +21,41 @@ const serviceOfKey = (bindKey: string) => /^[^:]+:(?:[A-Za-z]+ )?([^/]+)\//.exec
 /** `out.<target component>.<operation or endpoint id>`, unique among the calling component's egress. */
 export function egressIdFor(service: string, target: { service?: string; label: string }, x: Idx): string {
   return unique(`out.${target.service ?? 'ext'}.${slug(target.label)}`, new Set(x.list(service, 'egress').map((r) => r.key)));
+}
+
+/** `groups`, `details.real` and `returns` of an edit onto a step (undefined keeps, null / '' clears). */
+function stepExtrasOf(step: Record<string, any>, e: { groups?: StepGroupEdit[] | null; real?: string; returns?: StepReturns | null }) {
+  if (e.groups !== undefined) {
+    if (e.groups !== null && (!Array.isArray(e.groups) || e.groups.some((g) => !g?.id || typeof g.id !== 'string'))) throw new EditError('INVALID', 'groups is a list of {id, kind?, condition?}', 'groups');
+    if (e.groups === null || !e.groups.length) delete step.groups; else step.groups = e.groups.map((g) => ({ id: g.id, ...(g.kind && g.kind !== 'alt' ? { kind: g.kind } : {}), ...(g.condition ? { condition: g.condition } : {}) }));
+  }
+  const d = { ...(step.details ?? {}) };
+  setField(d, 'real', e.real);
+  if (e.returns !== undefined) {
+    const bad = returnsProblem(e.returns);
+    if (bad) throw new EditError('INVALID', bad, 'returns');
+    if (e.returns === null) delete step.returns; else step.returns = cleanReturns(e.returns);
+  }
+  if (Object.keys(d).length) step.details = d; else delete step.details;
+}
+
+/** A leaf step (a note over components, or an internal step of one function) appended to a function, or inserted before step `before`. */
+export function leafOps(e: LeafEdit, x: Idx): DraftOpInput[] {
+  const { service, fn } = e.from;
+  if (!x.get(service, 'header')) throw new EditError('NO_SERVICE', `component '${service}' does not exist in this design`, 'from');
+  if (!e.operation && !e.note) throw new EditError('INVALID', 'a leaf step needs an operation or a note', 'note');
+  if (e.over !== undefined && (!Array.isArray(e.over) || e.over.some((o) => typeof o !== 'string' || !x.get(o, 'header')))) throw new EditError('NO_SERVICE', 'over names components of this design', 'over');
+  const f = x.get(service, 'functions', fn)?.data ?? { id: fn, name: fn, steps: [] };
+  const steps = sorted(f.steps ?? []);
+  const step: Record<string, any> = { type: 'call', kind: 'leaf' };
+  for (const k of ['operation', 'note'] as const) setField(step, k, e[k]);
+  if (e.over?.length) step.over = [...new Set(e.over)];
+  if (e.mark) { if (!STEP_MARKS.includes(e.mark)) throw new EditError('INVALID', `mark is 'new' or 'changed'`, 'mark'); step.mark = e.mark; }
+  stepExtrasOf(step, e);
+  if (e.self) step.details = { ...(step.details ?? {}), self: true };
+  const at = e.before === undefined ? steps.length : steps.findIndex((s) => s.seq === e.before);
+  if (at < 0) throw new EditError('NO_STEP', `${fn} has no step ${e.before} to insert before`, 'before');
+  return [up(`fn:${service}/${fn}`, { ...f, steps: renumber([...steps.slice(0, at), step, ...steps.slice(at)]) })];
 }
 
 export function callOps(e: CallEdit, x: Idx): DraftOpInput[] {
@@ -60,6 +96,7 @@ export function callOps(e: CallEdit, x: Idx): DraftOpInput[] {
   for (const k of ['operation', 'condition', 'event', 'note'] as const) setField(step, k, e[k]);
   if (e.mark !== undefined && e.mark !== null && !STEP_MARKS.includes(e.mark)) throw new EditError('INVALID', `mark is 'new', 'changed' or null`, 'mark');
   setField(step, 'mark', e.mark);
+  stepExtrasOf(step, e);
   let next: any[];
   if (old) next = steps.map((s) => (s === old ? step : s));
   else {

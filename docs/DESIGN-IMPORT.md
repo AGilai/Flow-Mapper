@@ -374,7 +374,13 @@ When the documentation is a Mermaid `sequenceDiagram` (one flow, a few component
 4. Name things in the diagram the way the code does. `POST /token` becomes the http endpoint `http:POST <callee>/token` (a harvester's endpoint with that bind key is reused, so it links); `Evaluate` becomes an `undecided` endpoint (`tbd:<callee>/Evaluate`, shown dashed) that someone decides later in the call's form. Put the text a reader needs after `: ` in the label (`Score: how risky`) or in a `Note over`: it becomes the step's note.
 5. The first message starts the flow. From an `actor` it is the entry endpoint of the callee; `title` names the flow and `%% Description:` describes it. Importing the same text again adds nothing, so a diagram can be re-sent after a fix.
 
-What it does not do: calls inside one component, `rect` blocks, other participants' internals. A flow the diagram only hints at belongs in a plan.
+Since 0.33.1 the import reads the rest of a Confluence diagram too, so write the diagram as the page has it and do not flatten it:
+- `-->>` returns become `returns.label` of the call they answer (not steps; #81); `A->>A` self-messages are internal steps of A.
+- `Note over A,B: text` (also `left of` / `right of`) is a note step spanning those components. `rect <colour>` ... `end` marks the steps inside `changed` (a green colour: `new`). `alt`/`else`, `opt`, `loop`, `par`/`and`, `critical`/`option`, `break` become nested `groups` with their conditions.
+- `%% real: <bind key>` (line before a message, or at its end) records the bind key the message really calls (`details.real`): use it where the diagram's words are not the code's. `%% flow: <name>` names the flow; `%% link: <label> <https url>` adds the flow's links.
+- Known limits: a note is placed in the function that made the last call, after it, so it can come after the callee's own calls in the drawn order; an `else` branch with only returns has no step, so it shows no section (the import warns with the line instead of dropping the return silently); titles of steps (0.30.0) are a separate store and are not set by the import.
+
+What it does not do: other participants' internals (calls between two lifelines of one component are internal steps only when written as a self-message). A flow the diagram only hints at belongs in a plan.
 
 ## 10. Checklist
 

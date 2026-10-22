@@ -40,7 +40,7 @@ export interface Message {
   kind: 'entry' | 'call' | 'egress' | 'deliver' | 'resource' | 'leaf' | 'frontier';
   depth: number; internal?: boolean; broken?: boolean; cycle?: boolean;
   condition?: string; loop?: boolean;
-  mark?: 'new' | 'changed'; changed?: string; over?: string[]; // 0.32.2: the step's mark and its details.changed text (#75), the components a leaf note spans (#74)
+  mark?: 'new' | 'changed'; changed?: string; over?: string[]; real?: string; returns?: { label: string; detail?: string }; self?: boolean; // 0.33.2: what the call returns (#81); 0.33.1: a mermaid import's `%% real:` bind key, the return's label, a self-message; 0.32.2: the step's mark and its details.changed text (#75), the components a leaf note spans (#74)
   alt?: Alt;                                                 // the step is one of several alternatives (an alt frame): group, branch (1-based), number of branches; the message keeps its `condition` note?: string; fn?: string; service?: string; transport?: string; protocol?: 'tls' | 'tcp' | 'ws';
   event?: string; unhandled?: boolean; operation?: string; // operation: a call out's own words (`POST /token`); `label` is that plus the bind key
   eventFrom?: { name: string; boundAt?: string };            // the event came from a caller's bind (#42): the name, and where it was bound (`<caller fn>:<seq>`); no boundAt: nothing on this path binds it

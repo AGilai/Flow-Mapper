@@ -30,6 +30,8 @@ export async function openCallForm({ panel, flowsEl, from: from0, egress = null,
   const services = (await api.services(state.env).catch(() => [])).map((s) => s.name);
   const fields = createFields(), seg = h('div.fwide'), toSel = select(services.map((n) => [n, n]), tgt0?.service ?? (services.find((n) => n !== from.service) ?? services[0]));
   const mode = select([['', 'Default for the transport'], ['sync', 'sync'], ['async', 'async']], view?.egress.mode ?? ''), op = input(step?.operation ?? operation ?? ''), cond = input(''), mark = select([['', 'None'], ['new', 'New'], ['changed', 'Changed']], step?.mark ?? '');
+  const retLabel = input(step?.returns?.label ?? '', { placeholder: 'return' }), retDetail = h('textarea.textarea', { rows: 2, maxLength: 500, 'aria-label': 'Returns detail', placeholder: 'What comes back, in a few words (shows in the step panel).' }, step?.returns?.detail ?? '');
+  retLabel.maxLength = 80;
   const epSel = select([], '');
   let nested = null, ingress = [];
   const paintEndpoint = async () => { // the endpoints of the chosen component, then the part the choice needs
@@ -53,12 +55,13 @@ export async function openCallForm({ panel, flowsEl, from: from0, egress = null,
   fields.field('from', 'From', h('span.mono', `${from.service} · ${from.fn}`));
   fields.field('to', 'To', toSel); fields.field('endpoint', 'Endpoint', epSel); fields.wide(seg);
   fields.field('mode', 'Mode', mode); fields.field('operation', 'Operation', op, 'The call\'s own words on the arrow.'); fields.field('condition', 'Condition', cond, 'Only when…'); fields.field('mark', 'Mark', mark, 'Draws a band on this step\'s arrow (new or changed).');
+  fields.field('returns', 'Returns', retLabel, 'The label of the dashed return arrow (up to 80 characters). Empty: it says "return".'); fields.field('returnsDetail', 'Returns detail', retDetail, 'Shown in the step panel (up to 500 characters).');
   const lock = (on) => fields.rows.forEach((r) => r.classList?.toggle('f-locked', on));
   const top = ref ? refCallout(ref, { onImport: () => onImport?.(`ing:${ref.service}/${ref.ingress}`, ref.source), onEditOnly: () => lock(false) }) : null;
   await paintEndpoint();
   if (ref) lock(true);
   openForm({ panel, flowsEl, fields, top, chips: [tag(egress ? 'call' : 'new call', view?.egress.transport)], title: title ?? (egress ? `Call · ${from.service} → ${tgt0?.service ?? toSel.value}` : `New call from ${from.service}`),
     sub: egress ? `Draft ${state.draft}` : `Added at the end of ${from.fn}`,
-    build: () => (wrap ?? ((e) => e))({ kind: 'call', from, ...(step ? { edit: { egress, seq: step.seq } } : {}), to: callTo(toSel.value, epSel.value, nested?.() ?? null), ...(mode.value ? { mode: mode.value } : {}), operation: op.value.trim(), ...(cond.value.trim() ? { condition: cond.value.trim() } : {}), ...(mark.value || step?.mark ? { mark: mark.value || null } : {}) }),
+    build: () => (wrap ?? ((e) => e))({ kind: 'call', from, ...(step ? { edit: { egress, seq: step.seq } } : {}), to: callTo(toSel.value, epSel.value, nested?.() ?? null), ...(mode.value ? { mode: mode.value } : {}), operation: op.value.trim(), ...(cond.value.trim() ? { condition: cond.value.trim() } : {}), ...(mark.value || step?.mark ? { mark: mark.value || null } : {}), ...(retLabel.value.trim() ? { returns: { label: retLabel.value.trim(), ...(retDetail.value.trim() ? { detail: retDetail.value.trim() } : {}) } } : step?.returns ? { returns: null } : {}) }),
     remove: step ? { label: 'Delete call', title: `Delete this call to ${tgt0?.service ?? 'its target'}?`, body: 'The step goes, and its egress when nothing else in the component uses it.', edit: { kind: 'delete-call', service: from.service, fn: step.fn, seq: step.seq } } : null });
 }
