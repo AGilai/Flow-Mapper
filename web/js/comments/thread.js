@@ -118,6 +118,7 @@ export function createComments({ env, root, walk, store, onCount }) {
     if (c && el.offsetParent) {
       hl ||= (t0 = Date.now(), setTimeout(() => { target = null; hl = 0; list.querySelectorAll(`.cm[data-id="${id}"]`).forEach((x) => x.classList.remove('flash')); }, 2600));
       c.classList.add('flash');
+      const pane = el.closest('.flow-bottom'); if (pane && pane.clientHeight < 160 && pane.scrollHeight > pane.clientHeight) pane.style.minHeight = '200px'; // a short window leaves the pane no room: make some, or the comment is outlined out of sight
       if (Date.now() - t0 < 1000) c.scrollIntoView({ block: 'center' });
       wait = setTimeout(() => showTarget(tries), 250);
     } else if (tries > 0 && el.isConnected) wait = setTimeout(() => showTarget(tries - 1), 300); // the tab's slot is still hidden while its diagram loads

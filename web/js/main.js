@@ -60,7 +60,7 @@ async function boot() {
   };
   const noEnv = (name) => {
     refreshRail();
-    fill(main, h('div.content', h('div.error-box', { 'data-qa': 'env-missing' }, h('b', `No environment ${name}`), h('p', 'It does not exist (or was deleted). Check the link, or choose one of the environments.'),
+    fill(main, h('div.content', h('div.env-missing', { 'data-qa': 'env-missing' }, h('b', `No environment ${name}`), h('p', 'It does not exist (or was deleted). Check the link, or choose one of the environments.'),
       h('button.btn.primary', { type: 'button', 'data-qa': 'env-missing-pick', on: { click: () => document.querySelector('.env-trigger')?.click() } }, 'Choose an environment'))));
   };
 
