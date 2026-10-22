@@ -20,8 +20,8 @@ export function createTabScenario({ data, host, key, visible, onView }) {
     hooks: { onChoose: scen.choose, onInternal: scen.toggleOpen, onDb: scen.toggleDb, dbOpen: () => st.dbOpen, srcUrl, icalls: () => scen.isFull() || st.open.size > 0,
       internal: () => (lazy() ? { state: (svc) => (scen.loading.has(svc) ? 'loading' : st.open.has(svc) ? 'open' : 'closed') } : null) },
     /** The header's "6 steps" / "6–7 steps": exact, or a range only while "Both" is chosen somewhere. */
-    counts: (trace) => (trace.counts?.messages ? stepsText(trace.counts) : ''),
-    /** The step bar's note: "6–7 steps per path" while a range stands. */
+    counts: (trace, laneSteps) => { const c = trace.counts?.messages; return c && c.min !== c.max ? stepsText(trace.counts) : laneSteps != null ? `${laneSteps} ${laneSteps === 1 ? 'step' : 'steps'}` : c ? stepsText(trace.counts) : ''; },
+    /** The step bar's note: "6–7 messages per path" while a range stands. */
     range: () => { const c = scen.view().counts?.messages; return c && c.min !== c.max ? stepsText(scen.view().counts, true) : ''; },
   };
 }

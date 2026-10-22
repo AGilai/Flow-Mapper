@@ -53,7 +53,7 @@ export function createStepbar({ store, root, onMove, onEdit, sb = () => 'tad', e
   }
 
   function show(step, n, total) {
-    ext.textContent = extra(); // "6–7 steps per path" while Both is chosen somewhere (0.38.0)
+    ext.textContent = extra(); // "6–7 messages per path" while Both is chosen somewhere (0.38.0)
     el.hidden = !step && !(total > 0); // step 0 (none selected): the bar shows "Step 0 of N" with Next only
     if (!step) { last = null; shownKey = null; count.textContent = `Step 0 of ${total}`; setNav(0, total); detail.replaceChildren(); detail.hidden = true; bar.classList.add('plain'); live.textContent = ''; if (edit) edit.style.display = 'none'; return; }
     if (edit) edit.style.display = '';

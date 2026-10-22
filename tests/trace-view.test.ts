@@ -220,3 +220,12 @@ test('scope intra ignores detail (its lifelines are the functions)', () => {
   const t = run({ main: [call(1, 'a'), leaf(2)], a: [leaf(1)] }, { scope: 'intra' });
   assert.equal(viewOf(t, { detail: 'external', group: false }), t);
 });
+
+test('Mermaid of a Both view: the decision is an alt / else frame around its arms; a chosen arm has no frame', async () => {
+  const { exportMermaid } = await import('../core/mermaid-export.ts');
+  const both = exportMermaid(viewOf(run(nest()), { detail: 'full', choose: { g1: 'both' } }) as any);
+  assert.match(both, /alt name g1\n[\s\S]*\nelse x?y\n/, both);
+  assert.equal((both.match(/\balt name g1\b/g) ?? []).length, 1);
+  assert.equal(both.split('\n').filter((l) => l === 'end').length, (both.match(/^(alt|else)\b/gm) ?? []).length - (both.match(/^else\b/gm) ?? []).length);
+  assert.doesNotMatch(exportMermaid(viewOf(run(nest()), { detail: 'full', choose: { g1: 'x' } }) as any), /\balt\b/);
+});

@@ -12,6 +12,7 @@ import { lineText, titleOf, stepKeys, type FlowDescriptions } from './descriptio
 import type { Links } from './links.ts';
 import type { Alt } from './alt.ts';
 import type { Message, Participant, Trace } from './trace.ts';
+import type { Decision } from './trace-types.ts';
 import { rangeBlocks, type RangeNote } from './mermaid-ranges.ts';
 
 export interface MermaidOpts { name?: string; description?: string; descriptions?: FlowDescriptions | null; links?: Links | null; ranges?: RangeNote[] /* 0.34.0: step-range comments, as rect + Note (core/mermaid-ranges.ts) */ }
@@ -19,10 +20,14 @@ export interface MermaidOpts { name?: string; description?: string; descriptions
 const BRANCH = { par: 'and', critical: 'option' } as Record<string, string>;
 interface Frame { key: string; open: string; kind: string; cond: string; depth: number }
 /** The frames around a message, outermost first (its alt chain, then `rect` when it is marked changed). */
-function framesOf(m: Message): Frame[] {   // a frame covers its own messages and the calls below them (the view draws it so)
+function framesOf(m: Message, both: Map<string, Decision> = new Map()): Frame[] {   // a frame covers its own messages and the calls below them (the view draws it so)
   const chain: Alt[] = [];
   for (let a: Alt | undefined = m.alt; a; a = a.parent) chain.unshift(a);
-  const out = chain.map((a) => ({ key: a.group, kind: a.kind ?? 'alt', cond: a.condition ?? '', open: `${a.kind ?? 'alt'}${a.condition ? ` ${esc(a.condition)}` : ''}`, depth: m.depth }));
+  const arms: Frame[] = (m.arms ?? []).flatMap((e) => {   // 0.38.0: a decision shown with "Both" is an `alt <decision>` / `else <arm>` frame around its arms (the chosen ones are not frames: the view has only that arm)
+    const i = e.indexOf(':'), d = both.get(e.slice(0, i)), arm = e.slice(i + 1);
+    return d ? [{ key: `arms:${d.group_id}`, kind: 'alt', cond: d.arms.find((x) => x.arm === arm)?.label ?? arm, open: `alt ${esc(d.name || d.group_id)}`, depth: m.depth }] : [];
+  });
+  const out = arms.concat(chain.map((a) => ({ key: a.group, kind: a.kind ?? 'alt', cond: a.condition ?? '', open: `${a.kind ?? 'alt'}${a.condition ? ` ${esc(a.condition)}` : ''}`, depth: m.depth })));
   if (m.mark === 'changed') out.push({ key: 'rect', kind: 'rect', cond: '', open: 'rect rgb(255, 244, 214)', depth: m.depth });
   if (m.mark === 'new') out.push({ key: 'rect-new', kind: 'rect', cond: '', open: 'rect rgb(214, 245, 214)', depth: m.depth });   // #71: green reads back as new
   return out;
@@ -44,7 +49,8 @@ function labelOf(p: Participant): string {
   return p.kind === 'channel' || p.kind === 'resource' ? p.id.replace(/^(ch|res):/, '') : p.kind === 'service' ? p.service ?? p.label : p.label;
 }
 
-export function exportMermaid(t: Pick<Trace, 'start' | 'participants' | 'messages'>, opts: MermaidOpts = {}): string {
+export function exportMermaid(t: Pick<Trace, 'start' | 'participants' | 'messages'> & { decisions?: Decision[] }, opts: MermaidOpts = {}): string {
+  const both = new Map((t.decisions ?? []).filter((d) => d.chosen === 'both').map((d) => [d.group_id, d]));
   const name = (opts.name ?? (t.start as { name?: string }).name ?? '').trim();
   const keys = t.messages.every((m) => m.key) ? t.messages.map((m) => m.key!) : stepKeys(t.messages);   // 0.38.0: a view of the trace keeps the canonical keys (a `~2` is counted over every arm and every internal call), so descriptions still find their step
   const kept = t.messages.map((m, i) => ({ m, key: keys[i], index: i })).filter(({ m }) => !m.internal && m.kind !== 'frontier');
@@ -88,7 +94,7 @@ export function exportMermaid(t: Pick<Trace, 'start' | 'participants' | 'message
   };
   const openAt = new Map<number, number>(); // #73: deferred work (`of`) returns to the frame its async call started in, whatever its depth says
   // A range is a rect that must nest with the frames written around the messages: it is left out when a message in it is marked (its own rect) or sits in another alt chain than the first.
-  const chainOf = (m: Message) => framesOf(m).map((f) => f.key + '|' + f.cond).join('>');
+  const chainOf = (m: Message) => framesOf(m, both).map((f) => f.key + '|' + f.cond).join('>');
   const clean = (r: { from: string; to: string }) => {
     const f = keys.indexOf(r.from), e = keys.indexOf(r.to), span = kept.filter((k) => k.index >= f && k.index <= e);
     return span.every(({ m }) => !m.mark && chainOf(m) === chainOf(span[0].m));
@@ -99,7 +105,7 @@ export function exportMermaid(t: Pick<Trace, 'start' | 'participants' | 'message
     const back = m.of === undefined ? undefined : openAt.get(m.of);
     if (back !== undefined) while (open.length > back) ret(open.pop()!);
     close(m.depth);
-    frames(framesOf(m), m.depth);
+    frames(framesOf(m, both), m.depth);
     if (m.n !== undefined) openAt.set(m.n, open.length);
     const a = ids.get(m.from)!, b = ids.get(m.to)!;
     out.push(...(rb?.before.get(pos) ?? []));

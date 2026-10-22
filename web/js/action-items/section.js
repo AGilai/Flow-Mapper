@@ -47,12 +47,12 @@ export function createActionItems({ store, walk, pane = null }) {
     const x = { today: todayLocal(), commentOf, stepOf, hidden: (k) => walk.hiddenOf?.(k), jump: (n) => walk.go(n), toComment: (id) => store.focusComment(id), edit: (it) => { editing = it.id; draw(); editors.get(it.id)?.focus(); }, remove: (it) => store.remove(it.id, me()) };
     const rows = (showClosed ? items : items.filter((i) => isOpen(i.status) || i.id === editing)).map((it) => {
       if (editing !== it.id) return actionRow(it, x).el;
-      if (!editors.has(it.id)) editors.set(it.id, createEditor({ item: it, names: names(), stepNow, stepOf, onCancel: () => { editors.delete(it.id); editing = null; draw(); }, onSave: async (b) => { await store.update(it.id, { actor: b.name, owner: b.owner, description: b.description, status: b.status, due: b.due, step: b.step }); editors.delete(it.id); editing = null; draw(); } }));
+      if (!editors.has(it.id)) editors.set(it.id, createEditor({ item: it, names: names(), stepNow, stepOf, hidden: (k) => walk.hiddenOf?.(k), onCancel: () => { editors.delete(it.id); editing = null; draw(); }, onSave: async (b) => { await store.update(it.id, { actor: b.name, owner: b.owner, description: b.description, status: b.status, due: b.due, step: b.step }); editors.delete(it.id); editing = null; draw(); } }));
       return editors.get(it.id).el;
     });
     for (const id of [...editors.keys()]) if (id !== editing) editors.delete(id);
     if (d) {
-      if (draftRef !== d) { draftRef = d; editor = createEditor({ item: null, number: store.next, prefill: d, names: names(), stepNow, stepOf, onCancel: () => { editor = null; draftRef = null; store.cancelNew(); }, onSave: async (b) => { await store.add({ owner: b.owner, description: b.description, status: b.status, due: b.due, step: b.step, commentId: d.commentId ?? null, actor: b.name }); editor = null; draftRef = null; } }); reveal(); setTimeout(() => editor?.focus(), 0); }
+      if (draftRef !== d) { draftRef = d; editor = createEditor({ item: null, number: store.next, prefill: d, names: names(), stepNow, stepOf, hidden: (k) => walk.hiddenOf?.(k), onCancel: () => { editor = null; draftRef = null; store.cancelNew(); }, onSave: async (b) => { await store.add({ owner: b.owner, description: b.description, status: b.status, due: b.due, step: b.step, commentId: d.commentId ?? null, actor: b.name }); editor = null; draftRef = null; } }); reveal(); setTimeout(() => editor?.focus(), 0); }
       rows.push(editor.el);
     } else { editor = null; draftRef = null; }
     table.replaceChildren(h('div.ai-r.h', h('span', '#'), h('span', 'Owner'), h('span', 'Description'), h('span', 'Due'), h('span', 'Status'), h('span')), ...rows);

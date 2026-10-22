@@ -1,4 +1,5 @@
 // The editing row of an action item (0.29.0, frames 15b and 15d), for a new item and for Edit: owner with name suggestions, a description
+import { hiddenPill } from '../views/flow-hidden-pill.js';
 // textarea, status, due date, the step pill, Save / Cancel. Enter saves, Shift+Enter is a new line, Esc cancels (the suggestions first).
 // It never asks for a name (0.32.0): Save acts as the signed-in user (the sign-in opens first when nobody is).
 
@@ -11,7 +12,7 @@ import { STATUS, suggest } from './pure.js';
  * item: the item being edited, or null for a new one. prefill: { description, step, commentId, commentAuthor } for a new one.
  * stepNow(): the walk's selected step { n, key } or null. stepOf(key): { n } | null. onSave may throw: the message is shown and the row stays.
  */
-export function createEditor({ item, number, prefill = {}, names = [], stepNow = () => null, stepOf = () => null, onSave, onCancel }) {
+export function createEditor({ item, number, prefill = {}, names = [], stepNow = () => null, stepOf = () => null, hidden = () => null, onSave, onCancel }) {
   const fresh = !item;
   let stepKey = fresh ? (prefill.commentId != null ? prefill.step ?? null : prefill.step ?? stepNow()?.key ?? null) : item.step, busy = false, pick = -1;
   const owner = h('input.ai-in', { type: 'text', value: item?.owner ?? '', placeholder: 'Owner', maxLength: 80, autocomplete: 'off', 'aria-label': 'Owner', 'data-qa': 'ai-owner', role: 'combobox', 'aria-expanded': 'false' });
@@ -30,9 +31,9 @@ export function createEditor({ item, number, prefill = {}, names = [], stepNow =
     h('div', { style: { gridColumn: '3 / -1' } }, desc, meta, keys, err));
 
   function drawMeta() {
-    const s = stepKey ? stepOf(stepKey) : null, now = stepNow();
+    const s = stepKey ? stepOf(stepKey) : null, hid = stepKey && !s ? hidden(stepKey) : null, now = stepNow();
     meta.replaceChildren(...[status, due,
-      stepKey ? h('span.spill', { title: s ? `Step ${s.n}` : 'A step that is no longer in the flow' }, s ? `step ${s.n}` : 'step (gone)') : null,
+      stepKey ? (s ? h('span.spill', { title: `Step ${s.n}` }, `step ${s.n}`) : hid ? hiddenPill(hid) : h('span.spill', { title: 'A step that is no longer in the flow' }, 'step (gone)')) : null,
       stepKey ? h('button.lnk', { type: 'button', 'data-qa': 'ai-unstep', on: { click: () => { stepKey = null; drawMeta(); } } }, 'remove step') : now ? h('button.lnk', { type: 'button', 'data-qa': 'ai-attach', on: { click: () => { stepKey = now.key; drawMeta(); } } }, `attach to step ${now.n}`) : null,
       stepKey && fresh && !prefill.step && stepKey === now?.key ? h('span', 'attached to the selected step') : null,
       prefill.commentAuthor ? h('span', `from ${prefill.commentAuthor}’s comment`) : null].filter(Boolean));

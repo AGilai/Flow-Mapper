@@ -102,7 +102,8 @@ export function stepsText(counts, per = false) {
   const c = counts?.messages ?? counts;
   if (!c || c.min == null) return '';
   const n = c.min === c.max ? `${c.min}` : `${c.min}–${c.max}`;
-  return `${n} ${c.max === 1 ? 'step' : 'steps'}${c.min !== c.max && per ? ' per path' : ''}`;
+  const range = c.min !== c.max; // a range counts messages (the paths differ in length); an exact count is the lane's steps, as the step bar counts them
+  return `${n} ${range ? 'messages' : c.max === 1 ? 'step' : 'steps'}${range && per ? ' per path' : ''}`;
 }
 
 /**
@@ -133,5 +134,5 @@ export const stepOfKey = (steps, key) => steps.find((s) => s.key === key || s.ke
 /** The tooltip of the Flows list chip "N decisions": the default view's steps (External, first arms), the range with Both, the Full count. */
 export function decisionsTitle(c) {
   const n = c.decisions, both = c.both && c.both.min !== c.both.max ? `${c.both.min}–${c.both.max}` : `${c.both?.min ?? c.steps}`;
-  return `${n} either / or ${n === 1 ? 'decision' : 'decisions'} in this flow. The list counts the default view: ${c.steps} steps (External, first arm of each). With Both: ${both} steps per path. Full: ${c.full} steps.`;
+  return `${n} either / or ${n === 1 ? 'decision' : 'decisions'} in this flow. The list counts the default view: ${c.steps} steps (External, first arm of each). With Both: ${both} messages per path. Full: ${c.full} steps.`;
 }

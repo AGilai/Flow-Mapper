@@ -116,8 +116,8 @@ test('Show: a step on the other arm of a locked decision cannot be shown', () =>
 test('counts read exact, or min-max with "per path"', () => {
   assert.equal(P.stepsText({ messages: { min: 6, max: 6 } }), '6 steps');
   assert.equal(P.stepsText({ messages: { min: 1, max: 1 } }), '1 step');
-  assert.equal(P.stepsText({ messages: { min: 6, max: 7 } }), '6–7 steps');
-  assert.equal(P.stepsText({ messages: { min: 6, max: 7 } }, true), '6–7 steps per path');
+  assert.equal(P.stepsText({ messages: { min: 6, max: 7 } }), '6–7 messages');
+  assert.equal(P.stepsText({ messages: { min: 6, max: 7 } }, true), '6–7 messages per path');
   assert.equal(P.stepsText(undefined), '');
 });
 

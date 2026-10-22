@@ -146,7 +146,8 @@ export function createTabView(data, host) {
   const lookInside = (bar, tr) => { inside.open(bar, tr); };
   const flash = (g) => { g?.scrollIntoView({ block: 'center', behavior: 'smooth' }); g?.classList.add('flash'); setTimeout(() => g?.classList.remove('flash'), 1600); };
   const ed = editing && host.edit ? host.edit : null; // Edit with a draft: heads, arrows and "+ call" open forms (design/edit-open.js)
-  const shared = { ...ts.hooks, host, opts, tip, walk, details: (built) => sdet.forLane(built, trace.messages), editStep: (k) => walk.editKey(k), editHead: ed ? (service) => { ed.head(service); return true; } : null, addCall: ed ? (bar) => ed.addCall(bar.service, bar.msg.target.fn) : null, addInBand: ed ? (key) => ed.addComponent(key) : null, trigger: () => data.trigger, importRef: (anchor, m) => host.importRef?.(anchor, m?.reference?.source), zoom: () => factor, afterLane: (box) => { if (box) brackets?.attach(box); if (render && zoomV === 'fit') recompute(); }, squeeze: () => opts.squeeze && !sqOff, squeezeOpen: () => { sqOff = true; host.paintChrome?.(); render?.relane(); edge(); walk.reveal(true); }, fit: () => scroller.clientWidth - (brackets?.width() ?? 0), select, lookInside, flash, traceFor: host.traceFor,
+  const shared = { ...ts.hooks, host, opts, tip, walk, details: (built) => sdet.forLane(built, trace.messages), editStep: (k) => walk.editKey(k), editHead: ed ? (service) => { ed.head(service); return true; } : null, addCall: ed ? (bar) => ed.addCall(bar.service, bar.msg.target.fn) : null, addInBand: ed ? (key) => ed.addComponent(key) : null, trigger: () => data.trigger, importRef: (anchor, m) => host.importRef?.(anchor, m?.reference?.source), zoom: () => factor, afterLane: (box) => { if (box) brackets?.attach(box); if (render && zoomV === 'fit') recompute(); }, squeeze: () => opts.squeeze && !sqOff, squeezeOpen: () => { sqOff = true; host.paintChrome?.(); render?.relane(); edge(); walk.reveal(true); }, fit: () => scroller.clientWidth - (brackets?.width() ?? 0), select, lookInside, flash, traceFor: (q) => host.traceFor(ts.scen.isFull() && !q.detail ? { ...q, detail: 'full' } : q), // a sub-flow card follows the tab's External | Full (0.38.0)
+   
     openMessage: (m, g, tr) => { // clicking an arrow opens the message panel (in Edit: its form); one side panel at a time
       body.querySelectorAll('.msg.active').forEach((e) => e.classList.remove('active'));
       g.classList.add('active');
@@ -220,7 +221,7 @@ export function createTabView(data, host) {
     restore: () => { scroller.scrollTop = saved; edge(); requestAnimationFrame(edge); },
     refreshDots: () => render?.index()?.refresh(),
     clearMessage: () => body.querySelectorAll('.msg.active').forEach((e) => e.classList.remove('active')),
-    info: () => { const services = new Set(trace.messages.map((m) => m.service).filter(Boolean)); return `${trace.start.event ? `${trace.start.event}: ` : ''}${ts.counts(trace) || plural(trace.messages.length, 'step')}, ${plural(services.size, 'service')}${trace.truncated ? ', truncated' : ''}`; },
+    info: () => { const services = new Set(trace.messages.map((m) => m.service).filter(Boolean)); return `${trace.start.event ? `${trace.start.event}: ` : ''}${ts.counts(trace, walk.steps().length || null) || plural(trace.messages.length, 'step')}, ${plural(services.size, 'service')}${trace.truncated ? ', truncated' : ''}`; },
     closeInside: () => inside.close(),
   };
 }
