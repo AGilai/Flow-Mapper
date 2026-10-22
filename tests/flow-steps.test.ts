@@ -104,13 +104,15 @@ test('flowDescriptions: a step row is a callee with its own outdated flag', () =
 });
 
 test('walk state: clamp, move without wrap, first and last', () => {
-  assert.equal(clampStep(0, 5), 1); assert.equal(clampStep(9, 5), 5); assert.equal(clampStep('x', 5), 1); assert.equal(clampStep(3, 0), 0);
-  assert.equal(moveStep(1, 5, 'prev'), 1); assert.equal(moveStep(5, 5, 'next'), 5); assert.equal(moveStep(2, 5, 'next'), 3);
+  assert.equal(clampStep(0, 5), 0); assert.equal(clampStep(9, 5), 5); assert.equal(clampStep('x', 5), 0); assert.equal(clampStep(-3, 5), 0); assert.equal(clampStep(3, 0), 0);
+  // 0.36.1: step 0 = no step selected (a flow opens there): next goes to 1, prev from 1 returns to 0, prev at 0 stays
+  assert.equal(moveStep(0, 5, 'next'), 1); assert.equal(moveStep(1, 5, 'prev'), 0); assert.equal(moveStep(0, 5, 'prev'), 0); assert.equal(moveStep(0, 0, 'next'), 0);
+  assert.equal(moveStep(0, 5, 'first'), 1); assert.equal(moveStep(0, 5, 'last'), 5); assert.equal(moveStep(5, 5, 'next'), 5); assert.equal(moveStep(2, 5, 'next'), 3);
   assert.equal(moveStep(3, 5, 'first'), 1); assert.equal(moveStep(3, 5, 'last'), 5);
 });
 
 test('walk URL: step= round trip, junk ignored', () => {
-  assert.equal(encodeStep(3), '3'); assert.equal(encodeStep(0), null);
+  assert.equal(encodeStep(3), '3'); assert.equal(encodeStep(0), null); assert.equal(encodeStep(null), null); // step 0: no step= in the URL
   assert.equal(decodeStep(new URLSearchParams('step=4')), 4);
   for (const bad of ['', 'x', '0', '-2', '1.5', '99999']) assert.equal(decodeStep(new URLSearchParams(`step=${bad}`)), null);
   assert.equal(decodeStep(new URLSearchParams('tabs=a')), null);

@@ -26,8 +26,9 @@ const calm = () => { try { return matchMedia('(prefers-reduced-motion: reduce)')
 /** createWalkView({ store, root, messages, initial, onStep(n), onRestep(cols) }) -> { el, decorate(res, built), endsOf(built), hit(event), onKey(ev), move(action), current(), dispose }
  *  onSteps(steps): the numbering of the lane just drawn (the partial-flow line reads it). onRestep(cols): the viewer moved to a step whose lifelines are the columns `cols` (Squeeze folds again for it). endsOf(built): the columns of the current step, before the lane is drawn. */
 export function createWalkView({ store, root, messages = () => null, initial = null, sb = () => 'tad', hl = () => true, zoom = () => 1, onStep, onRestep, onSteps, onPick, readOnly = false }) {
-  let steps = [], built = null, tiles = null, cur = initial ?? 1, curKey = null, jumpOnDraw = initial != null, rng = null; // rng: the range band (0.34.0), kept across a redraw
+  let steps = [], built = null, tiles = null, cur = initial ?? 0, curKey = null, jumpOnDraw = initial != null, rng = null; // rng: the range band (0.34.0), kept across a redraw
   let picked = initial != null; // a step the viewer chose (a click, a key, a link with step=): the comments' "Attach to step N" only offers one then
+  const pickedNow = () => picked && cur >= 1; // ...and not at step 0
   const watchers = new Set(); // the comments section reads the steps and the current one (0.27.0)
   const bar = createStepbar({ store, root, sb, readOnly, onMove: (a) => move(a), onEdit: (anchor) => edit(steps[cur - 1], anchor) });
   /** The step editor (0.30.0) for a step, hanging under `anchor` (the bar, or the step's row). */
@@ -41,7 +42,7 @@ export function createWalkView({ store, root, messages = () => null, initial = n
     tiles?.setCurrent(cur);
     bar.show(st, cur, steps.length);
     watchers.forEach((f) => f(cur, st));
-    if (user && st) { onStep?.(cur); if (built) onRestep?.(colsOfEvent(built, st.event)); } // before the scroll: a fold redraws the lane and its tiles
+    if (user) { onStep?.(cur); if (st && built) onRestep?.(colsOfEvent(built, st.event)); } // before the scroll: a fold redraws the lane and its tiles
     if (scroll && st) reveal(tiles, cur, calm() ? 'auto' : 'smooth', bar.el, zoom());
   }
   function move(action) { go(moveStep(cur, steps.length, action)); }
@@ -65,14 +66,14 @@ export function createWalkView({ store, root, messages = () => null, initial = n
     jumpOnDraw = false;
   }
   function endsOf(lane) { // the step Squeeze keeps on screen: the current one (by key), else the first
-    const all = stepsOf(lane, stepKeys, messages()), st = all.find((x) => x.key === curKey) ?? all[clampStep(cur, all.length) - 1];
+    const all = stepsOf(lane, stepKeys, messages()), st = all.find((x) => x.key === curKey) ?? all[Math.max(1, clampStep(cur, all.length)) - 1];
     return st ? colsOfEvent(lane, st.event) : [];
   }
   return {
     el: bar.el, decorate, endsOf, refreshBar: () => bar.refresh(), refreshHl: () => tiles?.setCurrent(cur),
     /** A double-click on a step's text on its arrow, by key. */
     editKey(key) { const st = steps.find((x) => x.key === key); if (st) { go(st.n, { scroll: false }); edit(st, tiles?.rowEl(st.n)); } },
-    steps: () => steps, picked: () => picked, rowSpan: (n) => tiles?.rowSpan(n) ?? null,
+    steps: () => steps, picked: pickedNow, rowSpan: (n) => tiles?.rowSpan(n) ?? null,
     /** The band over a range of steps (a hovered or chosen bracket); hlRange(null) takes it away. */
     hlRange: (from, to) => { rng = from == null ? null : [from, to]; tiles?.setRange(from, to); }, go: (n) => go(n), watch: (f) => { watchers.add(f); return () => watchers.delete(f); },
     /** Scroll the current step into view and (focus) put focus on its arrow: a fold the viewer had focused was just redrawn away. */
