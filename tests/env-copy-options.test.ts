@@ -60,3 +60,13 @@ test('#64 the synthetic infra service gets a groupPath: "infra" by default, or i
   assert.equal((await create({ name: 'ig-none', source: 'prod', mode: 'components', infraGroupPath: '', services: pick })).status, 201);
   assert.equal(JSON.parse(infra('ig-none')[0].meta).groupPath, undefined);
 });
+
+test('#65 a Components copy lists no copied entry points by default; a Full copy keeps them; both diff as unchanged', async () => {
+  const eps = (env: string) => entryPoints(app.ctx.graph(env)).filter((e) => PICK.includes(e.service));
+  assert.equal((await create({ name: 'ep-def', source: 'prod', mode: 'components', services: pick })).status, 201);
+  assert.equal(eps('ep-def').length, 0, 'components default: none');
+  const f = await create({ name: 'ep-full65', source: 'prod', mode: 'full' }); assert.equal(f.status, 201, JSON.stringify(f.body));
+  assert.ok(eps('ep-full65').length > 0, 'full default: keep');
+  const marks = (await app.call('GET', '/api/envs/ep-def/marks')).body;
+  assert.equal(marks.counts.endpoints.changed + marks.counts.endpoints.new, 0);
+});

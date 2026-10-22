@@ -6,6 +6,10 @@ import { relPasses } from './flow-relations-pure.js';
 
 export const NONE = '';
 export const NONE_LABEL = '(none)';
+/** #65: in a design the list shows flows only (a name, a description or `entryPoint: true`); `endpoints=all` lists every endpoint. */
+export const isFlowPoint = (p) => !!(p.name || p.summary || p.entryPoint);
+export const scopePoints = (points, { design, service, all }) => (!design || service || all ? points : points.filter(isFlowPoint));
+
 export const topOf = (groupPath) => String(groupPath ?? '').split('/')[0];
 
 /** Selection from a URL parameter: null (absent: all) or a Set; `-` is the "(none)" subsystem alone. */

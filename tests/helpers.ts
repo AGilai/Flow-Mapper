@@ -51,7 +51,7 @@ export async function startDesign(name = 'hld') {
     if (d.status !== 201) throw new Error(`seed dtos: ${JSON.stringify(d.body)}`);
   }
   const e = await app.call('POST', '/api/envs', { name, source: 'prod', mode: 'components', groups: [{ key: 'platform', label: 'Platform' }, { key: 'agent', label: 'Agent' }],
-    services: [{ name: 'users-svc', groupPath: 'platform' }, { name: 'auth-svc', groupPath: 'platform' }] });
+    entryPoints: 'keep', services: [{ name: 'users-svc', groupPath: 'platform' }, { name: 'auth-svc', groupPath: 'platform' }] });
   if (e.status !== 201) throw new Error(`copy: ${JSON.stringify(e.body)}`);
   const mcp = async (tool: string, args: any) => {
     const x = await app.call('POST', '/mcp', { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: tool, arguments: args } });
