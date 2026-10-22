@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 // @ts-ignore plain JS modules shared with the browser
-import { designFromQuery, designQuery, isDesign } from '../web/js/state.js';
+import { designFromQuery, designQuery, isDesign, pageEnv } from '../web/js/state.js';
 // @ts-ignore
 import { createMarks } from '../web/js/design/marks-store.js';
 // @ts-ignore
@@ -106,4 +106,11 @@ test('draft bar, picker and discard wording', () => {
   assert.equal(items[0].label, 'New draft…');
   assert.ok(items.some((i: any) => i.label === 'A (open)' && /\+1 −0 ~2/.test(i.hint)));
   assert.ok(items.some((i: any) => i.label === 'No draft'), 'with a draft open, the way out is listed');
+});
+
+test('pageEnv: env-specific pages always carry env=, global pages never gain it', () => {
+  for (const p of ['system', 'inventory', 'services', 'stores', 'instances', 'channels', 'events', 'flows', 'questions', 'health']) assert.equal(pageEnv([p, 'x'], 'prod'), 'prod', p);
+  for (const p of ['bugs', 'users', 'mentions', 'envs']) assert.equal(pageEnv([p], 'prod'), null, p);
+  assert.equal(pageEnv([], 'prod'), 'prod');
+  assert.equal(pageEnv(['system'], null), null);
 });

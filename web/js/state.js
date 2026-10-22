@@ -24,6 +24,12 @@ const DESIGN_KEYS = { mode: 'view', draft: null, compare: 'baseline' };
 /** Is `name` a design environment? (Only those have drafts, Edit and marks.) */
 export const isDesign = (name = state.env, meta = state.envMeta) => meta.some((m) => m.name === name && m.kind === 'design');
 
+/** Pages that do not depend on an environment (global lists, the bug tracker, the env forms; env settings name theirs in the path): they never gain `env=`. */
+const ENV_FREE = new Set(['bugs', 'users', 'mentions', 'envs']);
+
+/** The `env=` a page URL carries: always the current env, except on a page that is not env-specific (then null). */
+export const pageEnv = (parts, env) => (ENV_FREE.has(parts[0]) ? null : env || null);
+
 /** The query parameters that carry the design state; defaults are left out. */
 export function designQuery(s = state) {
   return { env: s.draft || s.mode === 'edit' ? s.env : null, draft: s.draft || null, mode: s.mode === 'edit' ? 'edit' : null, compare: s.compare === 'source' ? 'source' : null };
@@ -54,7 +60,7 @@ export function setEnv(env, silent = false) {
   const tabs = silent || env === state.env ? {} : tabsPatch(state.env, env);
   state.env = env;
   Object.assign(state, DESIGN_KEYS);
-  setQuery({ env: null, draft: null, mode: null, compare: null, ...tabs });
+  setQuery({ env: pageEnv(parseHash().parts, env), draft: null, mode: null, compare: null, ...tabs });
   try { localStorage.setItem(KEY, env); } catch { /* storage unavailable */ }
   if (!silent) listeners.forEach((fn) => fn());
 }
