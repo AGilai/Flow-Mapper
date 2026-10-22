@@ -42,7 +42,7 @@ export function createMax({ onChange } = {}) {
   }
   const onKey = (e) => {
     const a = maxKeyAction(e, { maximized: on, dialogOpen: dialogOpen() });
-    if (!a || !document.querySelector('.flow-tab')) return;
+    if (!a || (a === 'toggle' && !document.querySelector('.flow-tab'))) return;
     if (a === 'toggle' && !document.querySelector('.flows')) return;
     e.preventDefault(); set(a === 'toggle' ? !on : false);
   };

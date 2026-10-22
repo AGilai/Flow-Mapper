@@ -168,6 +168,7 @@ export async function render({ main, query }) {
     S = to ? T.activate(next, to) : next;
     for (const k of [...slots.keys()]) if (!S.keys.includes(k)) drop(k);
     S.keys.forEach(ensure);
+    if (!S.keys.length && max.isOn()) max.set(false); // the last tab closed while maximized: nothing left to fill the window
     persist(); strip.render(S);
     const my = ++token, act = S.active, v = views.get(act);
     if (v && stale.delete(act)) v.draw();
