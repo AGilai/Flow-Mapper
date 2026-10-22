@@ -1,0 +1,9 @@
+/* Zoom of the flow diagram (0.30.3, #69). Tokens only (light and dark). */
+.zoomc { display: inline-flex; align-items: center; gap: 2px; flex: none; }
+.zoomc .btn.sm { height: 26px; min-width: 26px; padding: 0 7px; font-size: var(--fs-xs); }
+.zoomc .zoom-out, .zoomc .zoom-in { font-size: 15px; line-height: 1; padding: 0 6px; }
+.zoomc .zoom-fit[aria-pressed='true'] { background: var(--surface-2); border-color: var(--ink-2); font-weight: 650; }
+.zoomc .zoom-pct { width: 52px; height: 26px; box-sizing: border-box; text-align: center; font: 600 var(--fs-xs) var(--mono); color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 6px; padding: 0 4px; }
+.zoomc .zoom-pct:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.zoomc button:disabled, .zoomc input:disabled { opacity: .45; cursor: default; }
+.max-bar .zoomc { margin-left: auto; margin-right: 14px; }

@@ -28,6 +28,8 @@ import { createRelations } from './flow-relations.js';
 import { linksRow } from '../components/ext-links.js';
 import { exportButton, importButton } from '../design/mermaid-export.js';
 import { state } from '../state.js';
+import { clampRange, fitScale, scaleOf, percentOf, anchorDelta } from './flow-zoom-pure.js';
+import { createZoomControl, applyScale, naturalSize, wireWheel } from './flow-zoom.js';
 
 const tc = (t, label) => h('span.tc', { class: t, title: label }, label);
 const kindOf = (key) => String(key).split(':')[0].replace('amqp-queue', 'amqp');
@@ -40,6 +42,7 @@ const kindOf = (key) => String(key).split(':')[0].replace('amqp-queue', 'amqp');
 export function createTabView(data, host) {
   const { trace, tree, key } = data;
   const opts = host.opts, mwOpen = new Set(); // keys of the bars whose long middleware chain is unfolded
+  let zoomV = host.zoomOf?.(key) ?? 100, factor = zoomV === 'fit' ? 1 : clampRange(zoomV) / 100; // zoom (0.30.3): a percent or 'fit'; factor: the scale it gives
   let render = null, saved = 0, sqOff = false; // sqOff: a fold was opened in this tab, so Squeeze is off here until it is switched on again
   // Descriptions belong to the flow (service + ingress of its entry point; a sub-flow tab belongs to the flow it came from). A function tab has none.
   const root = host.desc ? host.rootOf(key) : null, services = [...new Set(trace.participants.filter((p) => p.kind === 'service').map((p) => p.label))];
@@ -60,7 +63,7 @@ export function createTabView(data, host) {
   // The step walk: numbered arrows, the bar and the step's description. Step descriptions belong to the flow, so a sub-flow or function tab walks without them.
   const partial = createPartial({ trace, editing, onImport: (anchor, source) => host.importRef?.(anchor, source) });
   const noHint = trace.noHandler ? h('div.noh-hint', { role: 'note', 'data-qa': 'no-handler' }, `No handler function. This entry point has no behaviour in ${host.env} yet.`) : null; // #59
-  const walk = createWalkView({ store: host.desc, messages: () => trace.messages, root: data.kind === 'sub' ? null : root, initial: host.initialStep?.(key) ?? null, sb: () => opts.sb, onStep: (n) => host.setStep?.(key, n), onRestep: (cols) => render?.restep(cols), onSteps: (st) => partial.update(st) });
+  const walk = createWalkView({ store: host.desc, messages: () => trace.messages, root: data.kind === 'sub' ? null : root, initial: host.initialStep?.(key) ?? null, sb: () => opts.sb, zoom: () => factor, onStep: (n) => host.setStep?.(key, n), onRestep: (cols) => render?.restep(cols), onSteps: (st) => partial.update(st) });
   const stepRoot = data.kind === 'sub' ? null : root, sdet = createStepDetails({ store: host.desc, root: stepRoot, opts }); // 0.30.0: title / description on the arrows (opts.sd)
   const unDesc = stepRoot ? host.desc.watch(stepRoot, () => { if (render && opts.sd !== 'a') draw(); }) : null; // a saved or loaded step text redraws the lane when the arrows show it
   const tip = root ? createTip(host.desc, root) : null;
@@ -77,11 +80,34 @@ export function createTabView(data, host) {
   scroller.addEventListener('scroll', () => { edge(); tip?.hide(); }, { passive: true });
   let sized = false; // the first time the tab has a width (it is drawn before it is attached, or while hidden), lay the lanes out to fit it
   let lastW = 0, resizeTimer = 0; // Squeeze folds for the width the tab has: a new width folds again (debounced)
-  const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(() => { edge(); const w = scroller.clientWidth; if (sized && w > 0 && w !== lastW && shared.squeeze()) { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { render?.relane(); edge(); }, 150); } lastW = w; if (!sized && scroller.clientWidth > 0 && render) { sized = true; render.relane(); render.laneBox.style.visibility = ''; edge(); } }) : null;
+  const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(() => { edge(); const w = scroller.clientWidth; if (zoomV === 'fit' && w !== lastW && render) recompute(); if (sized && w > 0 && w !== lastW && shared.squeeze()) { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { render?.relane(); edge(); }, 150); } lastW = w; if (!sized && scroller.clientWidth > 0 && render) { sized = true; render.relane(); render.laneBox.style.visibility = ''; edge(); } }) : null;
   ro?.observe(scroller);
   // a side panel was collapsed or expanded: this tab has another width, so its lanes lay themselves out again (a hidden tab does so when it is shown)
   const onLayout = () => { if (!render) return; if (scroller.clientWidth > 0) { render.relane(); edge(); } else sized = false; };
   document.addEventListener('fm:layout', onLayout);
+  // ---- zoom (0.30.3, #69): the lane SVGs change size, nothing is laid out again; a point under the pointer stays under it ----
+  const maxed = () => document.body.classList.contains('is-max');
+  const zctl = createZoomControl({ onZoom: (v) => setZoom(v) });
+  function recompute() {
+    const nat = naturalSize(render?.laneBox), fitS = nat ? fitScale({ ...nat, vw: scroller.clientWidth, vh: maxed() ? innerHeight - 130 : scroller.clientHeight }) : null;
+    factor = scaleOf(zoomV, fitS);
+    applyScale(scroller, factor);
+    zctl.show(percentOf(factor), zoomV === 'fit');
+    host.onZoomPaint?.(key); edge();
+  }
+  function setZoom(v, at = null) {
+    const before = factor, svg = scroller.querySelector('svg.seq-body'), r0 = svg?.getBoundingClientRect(), vs = scroller.getBoundingClientRect();
+    const p = at ?? { x: vs.left + vs.width / 2, y: maxed() ? innerHeight / 2 : vs.top + vs.height / 2 }; // buttons and the box zoom around the middle of the view
+    zoomV = v === 'fit' ? 'fit' : clampRange(v);
+    recompute();
+    host.setZoom?.(key, zoomV);
+    if (zoomV === 'fit') { scroller.scrollLeft = 0; if (!maxed()) scroller.scrollTop = 0; return; }
+    if (!r0) return;
+    const r1 = svg.getBoundingClientRect(), up = maxed() ? el : scroller;
+    scroller.scrollLeft += anchorDelta({ origin0: r0.left, origin1: r1.left, at: p.x, from: before, to: factor });
+    up.scrollTop += anchorDelta({ origin0: r0.top, origin1: r1.top, at: p.y, from: before, to: factor });
+  }
+  const unWheel = wireWheel(body, { get: () => factor, to: (sc, at) => setZoom(sc * 100, at) });
   const select = (bar) => { body.querySelectorAll('.act.selected').forEach((e) => e.classList.remove('selected')); bar?.el?.classList.add('selected'); };
   const inside = createInside(body, { env: host.env, isActive: () => host.isActive(key),
     desc: root ? (bar) => descBlock(host.desc, root, bar.service, { title: `What ${bar.service} does here`, onGenerate: () => generate(bar.service) }) : null,
@@ -96,7 +122,7 @@ export function createTabView(data, host) {
   const lookInside = (bar, tr) => { inside.open(bar, tr); };
   const flash = (g) => { g?.scrollIntoView({ block: 'center', behavior: 'smooth' }); g?.classList.add('flash'); setTimeout(() => g?.classList.remove('flash'), 1600); };
   const ed = editing && host.edit ? host.edit : null; // Edit with a draft: heads, arrows and "+ call" open forms (design/edit-open.js)
-  const shared = { host, opts, tip, walk, details: (built) => sdet.forLane(built, trace.messages), editStep: (k) => walk.editKey(k), editHead: ed ? (service) => { ed.head(service); return true; } : null, addCall: ed ? (bar) => ed.addCall(bar.service, bar.msg.target.fn) : null, addInBand: ed ? (key) => ed.addComponent(key) : null, trigger: () => data.trigger, importRef: (anchor, m) => host.importRef?.(anchor, m?.reference?.source), squeeze: () => opts.squeeze && !sqOff, squeezeOpen: () => { sqOff = true; host.paintChrome?.(); render?.relane(); edge(); walk.reveal(true); }, fit: () => scroller.clientWidth, select, lookInside, flash, traceFor: host.traceFor,
+  const shared = { host, opts, tip, walk, details: (built) => sdet.forLane(built, trace.messages), editStep: (k) => walk.editKey(k), editHead: ed ? (service) => { ed.head(service); return true; } : null, addCall: ed ? (bar) => ed.addCall(bar.service, bar.msg.target.fn) : null, addInBand: ed ? (key) => ed.addComponent(key) : null, trigger: () => data.trigger, importRef: (anchor, m) => host.importRef?.(anchor, m?.reference?.source), zoom: () => factor, afterLane: () => { if (render && zoomV === 'fit') recompute(); }, squeeze: () => opts.squeeze && !sqOff, squeezeOpen: () => { sqOff = true; host.paintChrome?.(); render?.relane(); edge(); walk.reveal(true); }, fit: () => scroller.clientWidth, select, lookInside, flash, traceFor: host.traceFor,
     openMessage: (m, g, tr) => { // clicking an arrow opens the message panel (in Edit: its form); one side panel at a time
       body.querySelectorAll('.msg.active').forEach((e) => e.classList.remove('active'));
       g.classList.add('active');
@@ -137,15 +163,16 @@ export function createTabView(data, host) {
       if (!scroller.clientWidth) render.laneBox.style.visibility = 'hidden'; // drawn before it has a width: show it once laid out to fit
       fill(scroller, head(), noHint, render.laneBox, removedList(marksNow(), servicesOf(trace), { draft: state.draft }), render.idxBox);
     }
-    edge(); requestAnimationFrame(edge);
+    recompute(); requestAnimationFrame(edge);
   }
   draw();
-  const maxBar = h('div.max-bar', h('span.fh-t', (root && host.nameOf?.(root.service, root.ingress)) || label.title), label.sub ? h('span.mono.xs.muted', label.sub) : null); // shown only while maximized (flow-max.css)
+  const maxBar = h('div.max-bar', h('span.fh-t', (root && host.nameOf?.(root.service, root.ingress)) || label.title), label.sub ? h('span.mono.xs.muted', label.sub) : null, zctl.el); // shown only while maximized (flow-max.css)
   const el = h('div.flow-tab', maxBar, h('div.flow-top', flowBox?.el, related?.el, walk.el, partial.el), body, comments ? h('div.flow-bottom', actions.el, comments.el) : null); // comments sit under the diagram (maintainer, 0.27.5)
   el.addEventListener('keydown', (ev) => walk.onKey(ev)); // ← → Home End, while focus is in the flow view and not in a text box
   return {
-    el, key, data, draw, insideOpen: () => inside.isOpen(), dispose: () => { clearTimeout(resizeTimer); document.removeEventListener('fm:layout', onLayout); inside.dispose(); ro?.disconnect(); tip?.dispose(); descs.forEach((d) => d?.dispose()); comments?.dispose(); actions?.dispose(); items?.dispose(); related?.dispose(); walk.dispose(); unDesc?.(); },
+    el, key, data, draw, insideOpen: () => inside.isOpen(), dispose: () => { unWheel(); clearTimeout(resizeTimer); document.removeEventListener('fm:layout', onLayout); inside.dispose(); ro?.disconnect(); tip?.dispose(); descs.forEach((d) => d?.dispose()); comments?.dispose(); actions?.dispose(); items?.dispose(); related?.dispose(); walk.dispose(); unDesc?.(); },
     refreshBar: () => walk.refreshBar(),
+    setZoom, zoomScale: () => factor, zoomValue: () => zoomV,
     squeezeOff: () => sqOff, resetSqueeze: () => { sqOff = false; },
     save: () => { saved = scroller.scrollTop; },
     restore: () => { scroller.scrollTop = saved; edge(); requestAnimationFrame(edge); },

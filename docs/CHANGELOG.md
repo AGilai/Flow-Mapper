@@ -5,6 +5,9 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## 0.30.3 (2026-10-22)
+UI only (#69): the flow diagram zooms: a "- [100%] + Fit Reset" control in the flow toolbar (and in the bar of a maximized flow), Ctrl/Cmd + wheel and pinch around the pointer; per tab, `zoom=` in the URL (25 to 400, or `fit`; left out at 100).
+
 ## 0.30.1 (2026-10-22)
 UI only (#67): in the flow view with Group by subsystem, a data store is drawn inside the subsystem band of the component that declares it (its collections too); a store with no owner in a subsystem goes to a "Shared" band at the end. Resource-step trace messages carry an additive `owner` (the declaring component).
 
