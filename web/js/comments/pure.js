@@ -43,3 +43,6 @@ export function mentionedOnly(vis, id) {
 }
 /** How many live comments (replies included) in a thread mention the user. */
 export const countMentions = (thread, id) => thread.comments.reduce((n, c) => n + (!c.deleted && mentionsUser(c.body, id) ? 1 : 0) + c.replies.filter((r) => mentionsUser(r.body, id)).length, 0);
+
+/** Should a popup of height `need` open above the caret? Only when it does not fit below and there is more room above. */
+export const placeAbove = (need, below, above) => need > below && above > below;
