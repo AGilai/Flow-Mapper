@@ -7,3 +7,4 @@
 .zoomc .zoom-pct:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
 .zoomc button:disabled, .zoomc input:disabled { opacity: .45; cursor: default; }
 .max-bar .zoomc { margin-left: auto; margin-right: 14px; }
+.seq-scroll.zoom-loose .seq-sticky { position: static; backdrop-filter: none; }

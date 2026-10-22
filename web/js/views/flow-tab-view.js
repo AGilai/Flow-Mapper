@@ -80,7 +80,7 @@ export function createTabView(data, host) {
   scroller.addEventListener('scroll', () => { edge(); tip?.hide(); }, { passive: true });
   let sized = false; // the first time the tab has a width (it is drawn before it is attached, or while hidden), lay the lanes out to fit it
   let lastW = 0, resizeTimer = 0; // Squeeze folds for the width the tab has: a new width folds again (debounced)
-  const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(() => { edge(); const w = scroller.clientWidth; if (zoomV === 'fit' && w !== lastW && render) recompute(); if (sized && w > 0 && w !== lastW && shared.squeeze()) { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { render?.relane(); edge(); }, 150); } lastW = w; if (!sized && scroller.clientWidth > 0 && render) { sized = true; render.relane(); render.laneBox.style.visibility = ''; edge(); } }) : null;
+  const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(() => { edge(); loose(); const w = scroller.clientWidth; if (zoomV === 'fit' && w !== lastW && render) recompute(); if (sized && w > 0 && w !== lastW && shared.squeeze()) { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { render?.relane(); edge(); }, 150); } lastW = w; if (!sized && scroller.clientWidth > 0 && render) { sized = true; render.relane(); render.laneBox.style.visibility = ''; edge(); } }) : null;
   ro?.observe(scroller);
   // a side panel was collapsed or expanded: this tab has another width, so its lanes lay themselves out again (a hidden tab does so when it is shown)
   const onLayout = () => { if (!render) return; if (scroller.clientWidth > 0) { render.relane(); edge(); } else sized = false; };
@@ -88,10 +88,12 @@ export function createTabView(data, host) {
   // ---- zoom (0.30.3, #69): the lane SVGs change size, nothing is laid out again; a point under the pointer stays under it ----
   const maxed = () => document.body.classList.contains('is-max');
   const zctl = createZoomControl({ onZoom: (v) => setZoom(v) });
+  const loose = () => { const sk = scroller.querySelector('.seq-sticky'); scroller.classList.toggle('zoom-loose', !!sk && sk.offsetHeight > scroller.clientHeight * 0.35); }; // a zoomed head that would cover the view scrolls away with the diagram
   function recompute() {
     const nat = naturalSize(render?.laneBox), fitS = nat ? fitScale({ ...nat, vw: scroller.clientWidth, vh: maxed() ? innerHeight - 130 : scroller.clientHeight }) : null;
     factor = scaleOf(zoomV, fitS);
     applyScale(scroller, factor);
+    loose();
     zctl.show(percentOf(factor), zoomV === 'fit');
     host.onZoomPaint?.(key); edge();
   }

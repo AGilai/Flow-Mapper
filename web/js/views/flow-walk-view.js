@@ -15,7 +15,7 @@ function reveal(tiles, n, behavior, barEl = null, z = 1) {
   const row = tiles?.rowEl(n), sp = tiles?.span(n), box = row?.closest('.seq-scroll');
   if (!row || !box) return;
   const r = row.getBoundingClientRect(), b = box.getBoundingClientRect(), svg = row.ownerSVGElement?.getBoundingClientRect();
-  const cover = Math.max(0, Math.min(b.height / 2, (barEl?.getBoundingClientRect().bottom ?? 0) - b.top)) + (box.querySelector('.seq-sticky')?.offsetHeight ?? 0); // what sits over the top of the diagram: the bar when maximized (its real height) and the sticky heads
+  const cover = Math.max(0, Math.min(b.height / 2, (barEl?.getBoundingClientRect().bottom ?? 0) - b.top)) + (box.classList.contains('zoom-loose') ? 0 : box.querySelector('.seq-sticky')?.offsetHeight ?? 0); // what sits over the top of the diagram: the bar when maximized (its real height) and the sticky heads
   const top = box.scrollTop + (r.top + r.height / 2) - (b.top + cover + Math.max(0, b.height - cover) / 2);
   const off = svg ? svg.left - b.left + box.scrollLeft : 0, left = sp && svg ? scrollLeftFor({ from: sp.x1 * z + off, to: sp.x2 * z + off, left: box.scrollLeft, view: box.clientWidth }) : box.scrollLeft;
   box.scrollTo({ top: Math.max(0, top), left, behavior });
