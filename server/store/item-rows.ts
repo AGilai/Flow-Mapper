@@ -13,7 +13,7 @@ export function envItemRows(db: DB, env: string): ItemRow[] {
   for (const r of db.prepare('SELECT * FROM snapshots WHERE env = ? ORDER BY service').all(env) as any[]) {
     out.push({ service: r.service, list: 'header', key: '', data: { kind: r.kind, ...JSON.parse(r.meta), version: r.version, harvestedAt: r.harvested_at, ...(r.commit_sha ? { commit: r.commit_sha } : {}) } });
   }
-  for (const r of db.prepare('SELECT service, list, key, data FROM entities WHERE env = ?').all(env) as any[]) out.push({ service: r.service, list: r.list, key: r.key, data: JSON.parse(r.data) });
+  for (const r of db.prepare('SELECT service, list, key, data FROM entities WHERE env = ? ORDER BY service, list, key').all(env) as any[]) out.push({ service: r.service, list: r.list, key: r.key, data: JSON.parse(r.data) });
   for (const r of db.prepare('SELECT service, ingress, role, status, content, meta FROM endpoint_dtos WHERE env = ?').all(env) as any[]) {
     out.push({ service: r.service, list: 'dto', key: `${r.ingress}|${r.role}|${r.status}`, data: { content: JSON.parse(r.content), meta: parse(r.meta) } });
   }
@@ -47,7 +47,7 @@ export interface BaselineRow extends ItemRow { sourceEnv: string; sourceVersion:
 
 /** The rows the design was copied from, frozen at copy time. */
 export function baselineRows(db: DB, env: string): BaselineRow[] {
-  const out = (db.prepare('SELECT service, list, key, data, source_env, source_version, taken_at FROM baseline_items WHERE env = ?').all(env) as any[])
+  const out = (db.prepare('SELECT service, list, key, data, source_env, source_version, taken_at FROM baseline_items WHERE env = ? ORDER BY service, list, key').all(env) as any[])
     .map((r) => ({ service: r.service, list: r.list, key: r.key, data: JSON.parse(r.data), sourceEnv: r.source_env, sourceVersion: r.source_version, takenAt: r.taken_at }));
   // The subsystems the design started with (envs.baseline_groups); none when the column is NULL (a sealed environment, or a design from before 0.28 that was never copied).
   const e = db.prepare('SELECT source, copied_at, baseline_groups FROM envs WHERE name = ?').get(env) as { source: string | null; copied_at: string | null; baseline_groups: string | null } | undefined;

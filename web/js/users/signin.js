@@ -43,7 +43,7 @@ export function signIn({ reason = '' } = {}) {
         return h('div.u-wr', { role: 'radio', 'aria-checked': String(on), tabindex: 0, class: on ? 'on' : '', 'data-qa': 'su-user', 'data-id': u.id,
           on: { click: () => { pick = u.id; fresh = ''; nameIn.value = ''; draw(); }, keydown: (e) => { if (e.key === ' ') { e.preventDefault(); pick = u.id; draw(); } } } },
           h('span.u-rad', { class: on ? 'on' : '' }), userAvatar(u), h('div', h('b', u.name), h('small', detail(u, guess?.id === u.id))), guess?.id === u.id ? h('span.u-tag', 'suggested') : null);
-      }), !shown.length ? h('div.u-none', users().length ? 'No user matches.' : 'No users yet.') : null);
+      }), ...(!shown.length ? [h('div.u-none', users().length ? 'No user matches.' : 'No users yet.')] : [])); // replaceChildren writes a null as the text "null"
       else list.querySelectorAll('.u-wr').forEach((r) => { const on = r.dataset.id === pick; r.classList.toggle('on', on); r.setAttribute('aria-checked', String(on)); r.querySelector('.u-rad')?.classList.toggle('on', on); });
       sug.hidden = !guess || !!me(); if (guess) sug.replaceChildren('From this browser: you were “', h('b', old), '” (the name remembered before users existed). Is that you? Pick it below, or pick another user.');
       const who = fresh.trim() ? fresh.trim() : users().find((u) => u.id === pick)?.name;
