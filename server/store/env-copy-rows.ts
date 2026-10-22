@@ -9,9 +9,12 @@ import type { SnapshotRow } from './snapshots-read.ts';
 
 export interface CopyCtx { db: DB; from: string; to: string; at: string; fromKind: 'sealed' | 'design'; mode: 'components' | 'full'; behaviour?: boolean }
 
-const base = (c: CopyCtx, service: string, list: string, key: string, data: unknown, version: number | null) =>
-  c.db.prepare('INSERT OR REPLACE INTO baseline_items (env, service, list, key, data, source_env, source_version, taken_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-    .run(c.to, service, list, key, JSON.stringify(data), c.from, version, c.at);
+const baseStmt = new WeakMap<CopyCtx, ReturnType<DB['prepare']>>(); // prepared once per copy (it was once per baseline row: 197k prepares for a 1,000-service source)
+const base = (c: CopyCtx, service: string, list: string, key: string, data: unknown, version: number | null) => {
+  let st = baseStmt.get(c);
+  if (!st) baseStmt.set(c, (st = c.db.prepare('INSERT OR REPLACE INTO baseline_items (env, service, list, key, data, source_env, source_version, taken_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')));
+  st.run(c.to, service, list, key, JSON.stringify(data), c.from, version, c.at);
+};
 
 /** A design source keeps its own baseline for the rows that come along; a sealed source's copied rows become the baseline. */
 function copyBaseline(c: CopyCtx, where: string, args: (string | number)[]) {

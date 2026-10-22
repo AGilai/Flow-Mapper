@@ -4,7 +4,6 @@
 // comments, sealed ones too: they are annotations, like descriptions.
 
 import type { DB } from '../db/connection.ts';
-import { tx } from '../db/connection.ts';
 import type { GraphIndex } from '../../core/graph-index.ts';
 import { isStepKey } from '../../core/description.ts';
 import { requireFlow, flowSteps, hasStepIn } from './flow-check.ts';
@@ -16,7 +15,7 @@ import { commentCreated, commentEdited, commentDeleted } from '../events/emitter
 import { type R, toRow, out, forbidden, getRow, checkEnv, bodyOf } from './comments-rows.ts';
 import { identify, type Caller } from '../identity.ts';
 import { nameIndex } from './users.ts';
-import { resolveMentions, syncMentions, markSeen } from './mentions.ts';
+import { resolveMentions, syncMentions } from './mentions.ts';
 
 const bodyIn = (db: DB, b: unknown) => bodyOf(typeof b === 'string' ? resolveMentions(db, b) : b); // `@{Name}` becomes `@[id]` before the sanitizer sees it
 import { checkRange } from './comments-range.ts';
@@ -100,17 +99,7 @@ export function deleteComment(db: DB, env: string, id: number, author: unknown, 
   return { deleted: r.id };
 }
 
-/** A Full copy keeps the discussion: authors, times, the importer's ids, the resolved state and the reply structure (new ids). Soft-deleted rows come too, empty, so replies keep their parent. */
-export function copyComments(db: DB, from: string, to: string): Map<number, number> {
-  const ids = new Map<number, number>();
-  const ins = db.prepare('INSERT INTO comments (env, anchor, step, parent_id, author, author_id, body, created_at, edited_at, deleted_at, external_id, external_source, author_external_id, resolved_at, resolved_by, steps_from, steps_to) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
-  tx(db, () => { for (const r of db.prepare('SELECT * FROM comments WHERE env = ? ORDER BY id').all(from) as unknown as R[]) {
-    const nid = Number(ins.run(to, r.anchor, r.step, r.parent_id == null ? null : ids.get(r.parent_id) ?? null, r.author, r.author_id, r.body, r.created_at, r.edited_at, r.deleted_at, r.external_id, r.external_source, r.author_external_id, r.resolved_at, r.resolved_by, r.steps_from, r.steps_to).lastInsertRowid);
-    ids.set(r.id, nid);
-    if (!r.deleted_at) { syncMentions(db, nid, r.body, r.author_id); for (const u of (db.prepare('SELECT user_id FROM comment_mentions WHERE comment_id = ?').all(nid) as unknown as { user_id: string }[])) markSeen(db, u.user_id, [nid]); } // a copy's mentions are not news
-  } });
-  return ids;
-}
+export { copyComments } from './comments-copy.ts'; // a Full copy (perf batch 3: set-wise)
 
 /** Every row of an env, for the static preview build. */
 export const allRows = (db: DB, env: string): CommentRow[] => (db.prepare('SELECT * FROM comments WHERE env = ? ORDER BY id').all(env) as unknown as R[]).map(toRow);
