@@ -7,6 +7,7 @@ import { trace, entryPoints } from '../core/trace.ts';
 import { flowCounts, markedReached } from '../core/flow-counts.ts';
 import { decorateEntries } from '../core/flow-text.ts';
 import { designEditOps, EditError, type DesignEdit } from '../core/design-edit.ts';
+import { callView } from '../core/call-view.ts';
 import { sampleModel } from './helpers.ts';
 // @ts-ignore plain JS modules shared with the browser
 import { buildLane } from '../web/js/views/flow-lane.js';
@@ -88,3 +89,9 @@ test('the sample: orders-svc in.get has a loop frame holding an alt frame, marke
   assert.deepEqual(lane.events.find((e: any) => e.type === 'note').cols.map((c: any) => c.label), ['orders-svc', 'order:{id}', 'orders']);
 });
 
+
+test('#75: the call form reads the step mark (so Mark shows it and None can clear it)', () => {
+  const v = callView(build(steps), { endpoints: {} } as any, 'a', 'out.b')!;
+  assert.equal(v.steps[0].mark, 'new');
+  assert.equal(callView(build(steps), { endpoints: {} } as any, 'a', 'out.c')!.steps[0].mark, 'changed');
+});

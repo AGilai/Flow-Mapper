@@ -68,7 +68,13 @@ if (mockIdx < 0) {
     console.log(`loaded ${loadSchemas(ctx.db, f.env, f.schemas, (k) => keys.has(k)).loaded} store schemas into ${f.env}`);
   }
 }
-if (mockIdx < 0) seedEnvRecipes(ctx, join(import.meta.dirname, '../samples/envs'), console.log);
+if (mockIdx < 0) {
+  seedEnvRecipes(ctx, join(import.meta.dirname, '../samples/envs'), console.log);
+  // Design environments exist only now: their descriptions (titles) load on this run, not on a second seed.
+  for (const f of readDir(join(import.meta.dirname, '../samples/descriptions')).filter((x) => !envs.has(x.env))) {
+    console.log(`loaded ${loadDescriptions(ctx.db, ctx.graph(f.env), f.env, f.descriptions, () => {})} descriptions into ${f.env}`);
+  }
+}
 console.log(`seeded ${manifests.length} manifests into ${[...envs].join(', ')} (${config.dbPath})`);
 
 if (args.includes('--bugs')) {
