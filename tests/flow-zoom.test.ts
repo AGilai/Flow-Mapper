@@ -43,15 +43,16 @@ test('the % box: digits with or without %, clamped, anything else is refused', (
 test('Fit: the width of a tall diagram, the whole of a short one', () => {
   // wide and tall: fit the width (it scrolls down)
   assert.equal(fitScale({ w: 2000, h: 3000, vw: 1000, vh: 600 }), 0.5);
-  // short and narrower than the window: the whole diagram, by the smaller scale (height 200 in 600, width 500 in 1000 -> 2)
-  assert.equal(fitScale({ w: 500, h: 200, vw: 1000, vh: 600 }), 2);
+  // short and narrower than the window: shown whole, but never blown up past 100%
+  assert.equal(fitScale({ w: 500, h: 200, vw: 1000, vh: 600 }), 1);
   // short but its width is the limit: the width scale is also the smaller one
   assert.equal(fitScale({ w: 2000, h: 300, vw: 1000, vh: 600 }), 0.5);
-  // a short diagram never goes past the height of the window
-  assert.equal(fitScale({ w: 400, h: 500, vw: 1600, vh: 600 }), 1.2);
+  assert.equal(fitScale({ w: 400, h: 500, vw: 1600, vh: 600 }), 1);
+  // a tall diagram still fits its width, even when that enlarges it
+  assert.equal(fitScale({ w: 500, h: 900, vw: 1000, vh: 600 }), 2);
   // clamped to the range
   assert.equal(fitScale({ w: 100000, h: 10, vw: 1000, vh: 600 }), 0.25);
-  assert.equal(fitScale({ w: 10, h: 10, vw: 1000, vh: 600 }), 4);
+  assert.equal(fitScale({ w: 10, h: 1000, vw: 1000, vh: 600 }), 4);
   // nothing to measure yet
   assert.equal(fitScale({ w: 0, h: 10, vw: 1000, vh: 600 }), null);
   assert.equal(fitScale({ w: 100, h: 10, vw: 0, vh: 600 }), null);
