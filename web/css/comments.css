@@ -110,6 +110,15 @@ button.spill:hover { background: var(--accent-soft); }
 .om:hover { background: var(--surface-2); } .om[disabled] { opacity: .4; cursor: default; }
 .om svg { width: 15px; height: 15px; }
 
+/* Resolve and import (0.29.2): a resolved thread is muted, with who resolved it; an imported comment has a small hint */
+.cm-sec > summary .cm-showres { margin-left: 0; }
+.cm-showres[aria-pressed='true'] { background: var(--accent-soft); }
+.cm.resolved .cm-body { color: var(--ink-2); }
+.cm.resolved .av { background: transparent; color: var(--muted); }
+.cm-resolved { margin-top: 4px; font-size: var(--fs-xs); color: var(--muted); }
+.cm-head .imp { font-size: 10.5px; color: var(--muted); border: 1px dashed var(--line-strong); border-radius: 8px; padding: 0 5px; cursor: help; }
+.cm-act .input { height: 24px; width: 150px; font-size: var(--fs-xs); }
+
 /* the Flows list: a comment count after the entry key */
 .fl-cm { display: inline-flex; align-items: center; gap: 3px; margin-left: 8px; font-size: var(--fs-xs); color: var(--ink-2); vertical-align: middle; }
 .fl-cm svg { width: 13px; height: 13px; }

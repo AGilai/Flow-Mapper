@@ -8,14 +8,14 @@ import { api } from '../api.js';
 import { flowAnchor, cleanName } from '../../core/comments.js';
 import { commentItem } from './comment.js';
 import { createComposer, avatar, remembered } from './composer.js';
-import { startsOpen, relTime, fullDate } from './pure.js';
+import { startsOpen, relTime, fullDate, visibleThread } from './pure.js';
 import { prefill, stripTables, eventParts } from '../action-items/pure.js';
 import { sanitize, plainText } from '../../core/rich-text.js';
 
 const OPEN = 'flow-mapper.comments-open';
 const read = () => { try { const v = localStorage.getItem(OPEN); return v === null ? true : v === '1'; } catch { return true; } };
 const write = (v) => { try { localStorage.setItem(OPEN, v ? '1' : '0'); } catch { /* storage unavailable */ } };
-const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+const plural = (n, w) => `${n} ${n === 1 ? w : w === 'reply' ? 'replies' : `${w}s`}`;
 
 /**
  * createComments({ env, root: { service, ingress }, walk, store, onCount(n) }) -> { el, refresh(), dispose() }
@@ -24,13 +24,15 @@ const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
  */
 export function createComments({ env, root, walk, store, onCount }) {
   const anchor = flowAnchor(root.service, root.ingress);
-  let thread = { count: 0, comments: [] }, items = [], composer = null, replying = null, loaded = false, seq = 0, own = false, flash = 0;
+  let thread = { count: 0, resolvedThreads: 0, comments: [] }, showResolved = false, items = [], composer = null, replying = null, loaded = false, seq = 0, own = false, flash = 0;
   const title = h('span.cm-t', 'Comments'), count = h('span.muted.sm', '(0)'), hint = h('span.cm-hint.cm-sum');
   const list = h('div.cm-list'), tail = h('div.cm-tail');
   const addAi = h('button.abtn', { type: 'button', 'data-qa': 'cm-add-action', on: { click: (e) => { e.preventDefault(); store.startNew(); } } }, '+ Action item');
-  const el = h('details.cm-sec', { open: false, 'data-qa': 'comments' }, h('summary', title, count, hint, addAi), list, tail);
+  // 0.29.2: resolved threads are hidden until the viewer asks (not remembered: a new visit starts with the open discussions)
+  const showBtn = h('button.abtn.cm-showres', { type: 'button', 'data-qa': 'cm-show-resolved', 'aria-pressed': 'false', on: { click: (e) => { e.preventDefault(); showResolved = !showResolved; draw(); } } });
+  const el = h('details.cm-sec', { open: false, 'data-qa': 'comments' }, h('summary', title, count, hint, showBtn, addAi), list, tail);
   let auto = false; // the toggle the first load makes itself is not the viewer's choice
-  el.addEventListener('toggle', () => { if (auto) { auto = false; return; } if (thread.count) write(el.open); });
+  el.addEventListener('toggle', () => { if (auto) { auto = false; return; } if (visibleThread(thread, showResolved).count) write(el.open); });
 
   const stepOf = (key) => { const s = walk.steps().find((x) => x.key === key); return s ? { n: s.n } : null; };
   const stepNow = () => { const s = walk.picked() ? walk.steps()[walk.current() - 1] : null; return s ? { n: s.n, key: s.key } : null; };
@@ -40,6 +42,7 @@ export function createComments({ env, root, walk, store, onCount }) {
   const api_ = {
     edit: (id, html) => run(() => api.editComment(env, id, { author: author(), body: html })),
     remove: (id) => run(() => api.deleteComment(env, id, author())),
+    resolve: (id, resolved, name) => run(() => api.resolveComment(env, id, { actor: name, resolved })),
     reply: (id) => { replying = replying === id ? null : id; draw(); },
     make: (n) => store.startNew({ description: prefill(plainText(stripTables(sanitize(n.body)))), step: n.step, commentId: n.id, commentAuthor: n.author }),
   };
@@ -53,7 +56,8 @@ export function createComments({ env, root, walk, store, onCount }) {
   function draw() {
     items.forEach((i) => i.dispose()); items = [];
     const x = (top) => ({ me: author, step: stepOf, jump: (n) => walk.go(n), top, api: api_ });
-    const nodes = thread.comments.map((c) => {
+    const vis = visibleThread(thread, showResolved), hiddenN = thread.resolvedThreads ?? 0;
+    const nodes = vis.comments.map((c) => {
       const it = commentItem(c, x(true)); items.push(it);
       const rep = c.replies.flatMap((r) => { const ri = commentItem(r, x(false)); items.push(ri); return [ri.el, ...events(r.id)]; });
       let rc = null;
@@ -63,11 +67,12 @@ export function createComments({ env, root, walk, store, onCount }) {
       }
       return h('div.cm-thread', it.el, ...events(c.id), rep.length || rc ? h('div.cm-reply', rep, rc?.el) : null);
     });
-    list.replaceChildren(...(nodes.length ? nodes : loaded ? [h('div.cm-empty', 'No comments yet. Start the discussion.')] : []));
+    list.replaceChildren(...(nodes.length ? nodes : loaded ? [h('div.cm-empty', hiddenN ? 'No open comments: every discussion is resolved.' : 'No comments yet. Start the discussion.')] : []));
     list.hidden = !nodes.length && !loaded;
-    const top = thread.comments.filter((c) => !c.deleted).length, replies = thread.count - top;
-    count.textContent = `(${thread.count})`;
-    hint.textContent = thread.count ? `${plural(top, 'comment')}${replies ? ` and ${plural(replies, 'reply')}` : ''}, oldest first` : loaded ? '· Add' : '';
+    const top = vis.comments.filter((c) => !c.deleted).length, replies = vis.count - top;
+    count.textContent = `(${vis.count})`;
+    showBtn.hidden = !hiddenN; showBtn.setAttribute('aria-pressed', String(showResolved)); showBtn.textContent = `${showResolved ? 'Hide' : 'Show'} resolved (${hiddenN})`;
+    hint.textContent = vis.count ? `${plural(top, 'comment')}${replies ? ` and ${plural(replies, 'reply')}` : ''}, oldest first` : loaded ? '· Add' : '';
     if (!composer) {
       composer = createComposer({ mode: 'new', step: stepNow, onSubmit: async ({ html, step, name }) => { await api.addComment(env, { anchor, step, author: name, body: html }); await refresh(true); } });
       tail.replaceChildren(h('div.cm-compose', avatar(remembered()), composer.el));
@@ -83,7 +88,7 @@ export function createComments({ env, root, walk, store, onCount }) {
       const t = await api.comments(env, anchor);
       if (mine !== seq) return;
       thread = t; own = true; store.setComments(t.comments); own = false;
-      if (!loaded) { const open = startsOpen({ count: t.count, remembered: read(), stepKey: walk.picked() ? walk.steps()[walk.current() - 1]?.key : null, comments: t.comments }); if (open !== el.open) { auto = true; el.open = open; } }
+      if (!loaded) { const open = startsOpen({ count: visibleThread(t, false).count, remembered: read(), stepKey: walk.picked() ? walk.steps()[walk.current() - 1]?.key : null, comments: t.comments }); if (open !== el.open) { auto = true; el.open = open; } }
       loaded = true;
       if (force || !busy()) draw();
       onCount?.(t.count);
