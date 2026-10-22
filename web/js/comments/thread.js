@@ -91,7 +91,7 @@ export function createComments({ env, root, walk, store, onCount, onThread, pane
     const top = vis.comments.filter((c) => !c.deleted).length, replies = vis.count - top;
     count.textContent = `(${vis.count})`; pane?.set({ n: visibleThread(thread, showResolved).count });
     showBtn.hidden = !hiddenN; showBtn.setAttribute('aria-pressed', String(showResolved)); showBtn.textContent = `${showResolved ? 'Hide' : 'Show'} resolved (${hiddenN})`;
-    hint.textContent = vis.count ? `${plural(top, 'comment')}${replies ? ` and ${plural(replies, 'reply')}` : ''}, oldest first` : loaded ? '· Add' : '';
+    hint.textContent = vis.count ? `${plural(top, 'comment')}${replies ? ` and ${plural(replies, 'reply')}` : ''}, oldest first` : loaded && !pane ? '· Add' : '';
     if (!composer) {
       composer = createComposer({ mode: 'new', people, step: stepNow, onSubmit: async ({ html, step, steps, name }) => { await api.addComment(env, { anchor, step, ...(steps && { steps }), author: name, body: html }); if (steps) setQuery({ steps: null }); await refresh(true); } });
       tail.replaceChildren(h('div.cm-compose', h('span.cm-me'), composer.el)); drawMe();
