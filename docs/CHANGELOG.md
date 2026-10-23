@@ -5,6 +5,13 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+**Fix #83: Mermaid import of a branch that holds only a return.** No schema or migration change.
+- A return inside a frame the call it answers is not in (`alt ok ... else fail`: `B-->>A: 403 denied`), in a branch with no other step or note, is now a step of that branch: a leaf (`kind: "leaf"`, `operation` = the label, `details.return_to` = the component it goes back to; the trace message carries `returnTo`). So the `alt` keeps both branches (arms `b1`, `b2` as decisions) and the group closes at its `end`; the export writes it back as `B-->>A: 403 denied` inside `else`. A branch that also holds a call or note keeps the old reading (the first such return is the call's `returns.label`).
+- Nothing after `end` belongs to the group: after a return the callee is back in the function it was in before the call, so later calls, async calls, notes and returns go there, not into the answered call's subtree.
+- Export: a return is written right after the call it answers (after that call's own subtree), and a return of a call made outside a frame comes after the frame's `end`, not before it.
+- `leaf` design edits take `returnTo` (a component name, or `client`).
+
 ## 0.41.0 (2026-10-23)
 Performance batch 4 (docs/plans/perf-review.md F6, F8, body cache). No schema change, no new dependency; every response body stays identical (`tests/perf-batch4.test.ts`, plus an old-vs-new run of the equality harness and of `flows/counts` on the 1,003-service perf database).
 - **Flows list.** The decision counts of a cold graph (`flows/counts`, the "N decisions" chip) no longer build three full views per flow: a counts-only trace (`TraceOptions.countsOnly`: no lifeline layout, no source links, no per-arm counts or keys) and `viewCounts` (the same `plan` as `viewOf`, so they cannot disagree). At 1,003 services (2,295 decision flows): the decision pass takes about 14 s instead of about 45 s.

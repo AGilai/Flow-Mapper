@@ -16,7 +16,7 @@ export function rectMark(colour: string): 'new' | 'changed' {
   if (rgb) return +rgb[2] > +rgb[1] && +rgb[2] > +rgb[3] ? 'new' : 'changed';
   return /green/.test(c) ? 'new' : 'changed';
 }
-export interface MmMessage extends MmCtx { from: string; to: string; label: string; kind: MmKind; line: number; block?: string; response?: string; inner?: boolean }   // response: the label of the return that answers a sync call
+export interface MmMessage extends MmCtx { from: string; to: string; label: string; kind: MmKind; line: number; block?: string; response?: string; inner?: boolean; leaf?: boolean }   // response: the label of the return that answers a sync call; leaf (0.41.1, #83): an `inner` return in a branch that holds nothing else, kept as a step of its own
 export interface MmNote extends MmCtx { over: string[]; text: string; line: number; after: number }   // after: how many messages came before it
 export interface MmLink { label: string; url: string }
 export interface MmWarning { line: number; text: string }
@@ -60,7 +60,10 @@ export const clean = (s: string) => s.replace(/<br\s*\/?>/gi, ' ').replace(/#(\d
 export function parseMermaid(text: string): MmParsed {
   const out: MmParsed = { participants: [], messages: [], notes: [], links: [], warnings: [] };
   const byId = new Map<string, MmParticipant>();
-  const stack: { kind: string; branch: string; id: string; cond: string; mark?: 'new' | 'changed' }[] = [], open: MmMessage[] = [];
+  const stack: { kind: string; branch: string; id: string; cond: string; sec: number; mark?: 'new' | 'changed' }[] = [], open: MmMessage[] = [];
+  const held = new Map<string, number>(), deferred: { mm: MmMessage; call: MmMessage; key: string }[] = [];   // #83: what each section of a frame holds besides returns; the returns in a deeper frame than their call, decided at the end
+  const secs = () => stack.filter((x) => BLOCKS.has(x.kind)).map((x) => `${x.id}#${x.sec}`);
+  const hold = () => { for (const k of secs()) held.set(k, (held.get(k) ?? 0) + 1); };
   let pendingReal: string | undefined;
   const descLines: string[] = [];
   let header = false, inDesc = false, inInit = false;
@@ -104,7 +107,7 @@ export function parseMermaid(text: string): MmParsed {
     if ((m = /^note\s+(left of|right of|over)\s+([^:]+):\s*(.*)$/i.exec(ln))) {
       const over = m[2].split(',').map((s) => s.trim()).filter(Boolean);
       over.forEach((id) => declare(id));
-      out.notes.push({ over, text: clean(m[3]), line: n, after: out.messages.length, ...ctx() });
+      hold(); out.notes.push({ over, text: clean(m[3]), line: n, after: out.messages.length, ...ctx() });
       return;
     }
     let real = pendingReal;
@@ -117,28 +120,33 @@ export function parseMermaid(text: string): MmParsed {
       const b = block();
       const mm: MmMessage = { from: msg.from, to: msg.to, label: clean(msg.text), kind: msg.kind, line: n, ...(b ? { block: b } : {}), ...ctx(), ...(real ? { real } : {}) };
       pendingReal = undefined;
+      if (msg.kind !== 'return') hold();
       out.messages.push(mm);
       if (msg.kind === 'sync' && msg.from !== msg.to) { open.push(mm); if (open.length > 100) open.shift(); }   // bounded: a return looks at most 100 calls back
       else if (msg.kind === 'return') {   // a return answers the latest open call the other way round: its label is that call's response
         let k = open.length - 1;
         while (k >= 0 && !(open[k].from === msg.to && open[k].to === msg.from)) k--;
         if (k >= 0) {
-          const inner = (mm.groups?.length ?? 0) > (open[k].groups?.length ?? 0);   // a return in a branch of a frame the call is not in (one per branch): the first answers, the call stays open
-          if (mm.label && mm.label.toLowerCase() !== 'return' && !(inner && open[k].response)) open[k].response = mm.label;
-          if (inner) mm.inner = true; else open.length = k;
+          const inner = (mm.groups?.length ?? 0) > (open[k].groups?.length ?? 0);   // a return in a branch of a frame the call is not in (one per branch): the call stays open
+          if (inner) { mm.inner = true; deferred.push({ mm, call: open[k], key: secs().at(-1)! }); }
+          else { if (mm.label && mm.label.toLowerCase() !== 'return') open[k].response = mm.label; open.length = k; }
         } else if (mm.groups?.length && mm.label && mm.label.toLowerCase() !== 'return') warn(n, `return '${mm.label.slice(0, 40)}' in a branch answers no open call (a branch that holds only returns has no step to carry it): skipped`);
       }
       return;
     }
     if (IGNORED.test(ln)) return;
     const w = /^([A-Za-z]+)(?:\s+(.*))?$/.exec(ln), k = w?.[1].toLowerCase() ?? '', rest = w?.[2] ?? '';
-    if (w && BLOCKS.has(k)) { stack.push({ kind: k, branch: `${k}${rest ? `: ${clean(rest)}` : ''}`, id: `g${n}`, cond: clean(rest) }); return; }
-    if (w && BRANCH.has(k) && stack.length) { const top = stack[stack.length - 1]; top.branch = `${k === 'and' ? 'par' : k}${rest ? `: ${clean(rest)}` : ''}`; top.cond = clean(rest); return; }
-    if (w && k === 'rect') { stack.push({ kind: k, branch: '', id: '', cond: '', mark: rectMark(rest) }); return; }   // the steps inside are marked: green = new, any other colour = changed
-    if (w && k === 'box') { stack.push({ kind: k, branch: '', id: '', cond: '' }); warn(n, `'box' block is only visual: ignored (its messages are kept)`); return; }
+    if (w && BLOCKS.has(k)) { stack.push({ kind: k, branch: `${k}${rest ? `: ${clean(rest)}` : ''}`, id: `g${n}`, cond: clean(rest), sec: 0 }); return; }
+    if (w && BRANCH.has(k) && stack.length) { const top = stack[stack.length - 1]; top.branch = `${k === 'and' ? 'par' : k}${rest ? `: ${clean(rest)}` : ''}`; top.cond = clean(rest); top.sec++; return; }
+    if (w && k === 'rect') { stack.push({ kind: k, branch: '', id: '', cond: '', sec: 0, mark: rectMark(rest) }); return; }   // the steps inside are marked: green = new, any other colour = changed
+    if (w && k === 'box') { stack.push({ kind: k, branch: '', id: '', cond: '', sec: 0 }); warn(n, `'box' block is only visual: ignored (its messages are kept)`); return; }
     if (/^end\s*$/i.test(ln)) { if (stack.length) stack.pop(); else warn(n, `'end' without an open block: ignored`); return; }
     warn(n, `not understood, skipped: '${ln.length > 60 ? ln.slice(0, 57) + '...' : ln}'`);
   });
+  for (const { mm, call, key } of deferred) {   // #83: a branch that holds only a return keeps it as a step; in a branch with other steps the first answer is the call's response
+    if (!held.get(key)) mm.leaf = true;
+    else if (mm.label && mm.label.toLowerCase() !== 'return' && !call.response) call.response = mm.label;
+  }
   if (stack.some((s) => s.kind !== 'box' && s.kind !== 'rect')) warn(all.length, `a block was not closed with 'end'`);
   const desc = descLines.join('\n').trim();
   if (desc) out.description = desc;

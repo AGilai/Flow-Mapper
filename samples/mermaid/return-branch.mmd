@@ -1,0 +1,15 @@
+%% Demo for Fix #83: an alt whose else branch holds only a return keeps both branches; nothing after `end` belongs to the group.
+%% Import it into a draft of sase-hld (or a blank design) with "Import Mermaid...": all three participants are components.
+sequenceDiagram
+    title Do work with a denied branch
+    A->>B: do work
+    alt ok
+        B->>A: GET /x
+        A-->>B: x-data
+    else fail
+        B-->>A: 403 denied
+    end
+    A-)B: notify later
+    A->>U: after async
+    Note over A,B: runs after the group
+    B-->>A: work done

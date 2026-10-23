@@ -53,6 +53,7 @@ export function leafOps(e: LeafEdit, x: Idx): DraftOpInput[] {
   if (e.mark) { if (!STEP_MARKS.includes(e.mark)) throw new EditError('INVALID', `mark is 'new' or 'changed'`, 'mark'); step.mark = e.mark; }
   stepExtrasOf(step, e);
   if (e.self) step.details = { ...(step.details ?? {}), self: true };
+  if (e.returnTo) step.details = { ...(step.details ?? {}), return_to: e.returnTo };   // 0.41.1 (#83): a return that is a step of its own: a leaf whose operation is the label, drawn back to this component
   const at = e.before === undefined ? steps.length : steps.findIndex((s) => s.seq === e.before);
   if (at < 0) throw new EditError('NO_STEP', `${fn} has no step ${e.before} to insert before`, 'before');
   return [up(`fn:${service}/${fn}`, { ...f, steps: renumber([...steps.slice(0, at), step, ...steps.slice(at)]) })];

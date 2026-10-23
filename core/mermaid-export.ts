@@ -84,19 +84,20 @@ export function exportMermaid(t: Pick<Trace, 'start' | 'participants' | 'message
   if (name) out.push(`title ${esc(name)}`);
   for (const p of parts) out.push(`${p.kind === 'client' ? 'actor' : 'participant'} ${ids.get(p.id)} as ${esc(labelOf(p)) || ids.get(p.id)}`);
 
-  const open: { from: string; to: string; depth: number; response?: string }[] = [];
+  const open: { from: string; to: string; depth: number; frames: number; response?: string }[] = [];   // frames: how many frames were open around the call (its return is written before the frame it was made in closes, after the ones that closed before it)
   const ret = (o: { from: string; to: string; response?: string }) => out.push(`${ids.get(o.to)}-->>${ids.get(o.from)}: ${esc(o.response ?? '') || 'return'}`);
   const close = (depth: number) => { while (open.length && open[open.length - 1].depth >= depth) ret(open.pop()!); };
   const idByLabel = new Map(parts.map((p) => [labelOf(p), ids.get(p.id)!]));
   const stack: Frame[] = [];   // the frames written and not yet closed
+  const closeIn = (depth: number, level: number) => { while (open.length && open[open.length - 1].depth >= depth && open[open.length - 1].frames > level) ret(open.pop()!); };   // #83: returns of calls made inside the frame at `level`, before its `end` or `else`
   const frames = (want: Frame[], depth: number) => {
     let base = 0;   // frames opened by a step above this one cover it too (a rect only covers its own step)
     while (base < stack.length && stack[base].depth < depth && !stack[base].key.startsWith('rect')) base++;
     let k = base;
     while (k < stack.length && k - base < want.length && stack[k].key === want[k - base].key) k++;
     const branched = k > base && !stack[k - 1].key.startsWith('rect') && stack[k - 1].cond !== want[k - 1 - base].cond;   // the same frame, another section
-    while (stack.length > k) { out.push('end'); stack.pop(); }
-    if (branched) { const w = want[k - 1 - base]; out.push(`${BRANCH[w.kind] ?? 'else'}${w.cond ? ` ${esc(w.cond)}` : ''}`); stack[k - 1] = w; }
+    while (stack.length > k) { closeIn(depth, stack.length - 1); out.push('end'); stack.pop(); }
+    if (branched) { closeIn(depth, k - 1); const w = want[k - 1 - base]; out.push(`${BRANCH[w.kind] ?? 'else'}${w.cond ? ` ${esc(w.cond)}` : ''}`); stack[k - 1] = w; }
     for (let i = k - base; i < want.length; i++) { out.push(want[i].open); stack.push(want[i]); }
   };
   const openAt = new Map<number, number>(); // #73: deferred work (`of`) returns to the frame its async call started in, whatever its depth says
@@ -111,13 +112,14 @@ export function exportMermaid(t: Pick<Trace, 'start' | 'participants' | 'message
   for (const [pos, { m, key }] of kept.entries()) {
     const back = m.of === undefined ? undefined : openAt.get(m.of);
     if (back !== undefined) while (open.length > back) ret(open.pop()!);
-    close(m.depth);
     frames(framesOf(m, both), m.depth);
+    close(m.depth);
     if (m.n !== undefined) openAt.set(m.n, open.length);
     const a = ids.get(m.from)!, b = ids.get(m.to)!;
     out.push(...(rb?.before.get(pos) ?? []));
     if (m.kind === 'leaf') {   // a step that ends the tree: a note over the lifelines it spans (`over`), or an internal step (a self-message), not an arrow between two
       if (m.self) { if (m.real) out.push(`%% real: ${esc(m.real)}`); out.push(`${a}->>${a}: ${esc(m.label)}`); out.push(...(rb?.after.get(pos) ?? [])); continue; }
+      if (m.returnTo) { const to = idByLabel.get(m.returnTo); if (to) { out.push(`${a}-->>${to}: ${esc(m.label) || 'return'}`); out.push(...(rb?.after.get(pos) ?? [])); continue; } }   // #83: a return that is a step of its branch
       const over = [...new Set((m.over ?? []).map((o) => idByLabel.get(o)).filter((x): x is string => !!x))];
       out.push(`Note over ${over.length ? over.join(',') : a}: ${esc(m.label)}`);
       out.push(...markerNotes(m, over.length ? over.join(',') : a));
@@ -132,9 +134,9 @@ export function exportMermaid(t: Pick<Trace, 'start' | 'participants' | 'message
     if (note) out.push(`Note over ${a === b ? a : `${a},${b}`}: ${esc(note)}`);
     out.push(...markerNotes(m, a === b ? a : `${a},${b}`));
     out.push(...(rb?.after.get(pos) ?? []));
-    if (m.mode !== 'async' && m.from !== m.to && ['service', 'client', 'function'].includes(kind.get(m.to) ?? '')) open.push({ from: m.from, to: m.to, depth: m.depth, response: m.returns?.label });
+    if (m.mode !== 'async' && m.from !== m.to && ['service', 'client', 'function'].includes(kind.get(m.to) ?? '')) open.push({ from: m.from, to: m.to, depth: m.depth, frames: stack.length, response: m.returns?.label });
   }
-  close(-1);
   frames([], -1);
+  close(-1);
   return out.join('\n') + '\n';
 }

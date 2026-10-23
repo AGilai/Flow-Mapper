@@ -30,7 +30,7 @@ test('parser: the sample gives frames, marks, notes, returns, links and directiv
   const by = (label: string) => p.messages.find((m) => m.label.includes(label))!;
   assert.equal(by('register the device').real, 'http:POST device-registry/v2/devices');      // the line before
   assert.equal(by('fetch the first policy').real, 'http:GET policy-engine/policies/{tenantId}/default');   // the end of the line
-  assert.equal(by('register the device').response, 'existing device');
+  assert.equal(by('register the device').response, 'registered'); assert.equal(p.messages.find((m) => m.label === 'existing device')?.leaf, true);   // #83: the return-only branch is a step of its own
   assert.equal(by('fetch the first policy').mark, 'changed'); assert.equal(by('sign policy bundle').mark, 'changed'); assert.equal(by('register the device').mark, undefined);
   assert.deepEqual(by('check the revocation list').groups?.map((g) => [g.kind, g.condition]), [['loop', 'for each pending sync batch'], ['opt', 'batch is not empty'], ['par', 'verify the batch'], ['critical', 'certificate is valid']]);
   assert.deepEqual(by('revoked certificate used').groups?.at(-1), { id: by('check the revocation list').groups!.at(-1)!.id, kind: 'critical', condition: 'certificate is revoked' });
@@ -60,10 +60,11 @@ test('import: the sample into a blank design: steps, nested groups, spanning not
   const labelled = (re: RegExp) => ms.find((m) => re.test(m.label));
   // returns are the response of the call they answer, never steps; self messages are internal steps; notes are leaf steps with `over`
   assert.ok(!ms.some((m) => /^(certificate|registered|ok)$/.test(m.label)));
-  assert.equal(labelled(/device-registry.*devices|register the device/)?.returns?.label, 'existing device');
+  assert.equal(labelled(/device-registry.*devices|register the device/)?.returns?.label, 'registered');
   assert.equal(labelled(/device-registry.*devices|register the device/)?.real, 'http:POST device-registry/v2/devices');
   const selfs = ms.filter((m) => m.self); assert.deepEqual(selfs.map((m) => m.label), ['validate serial number', 'sign policy bundle']);
-  const notes = ms.filter((m) => m.kind === 'leaf' && !m.self);
+  const notes = ms.filter((m) => m.kind === 'leaf' && !m.self && !m.returnTo);
+  assert.deepEqual(ms.filter((m) => m.returnTo).map((m) => [m.label, m.returnTo]), [['existing device', 'onboarding-gw']]);   // #83: the return-only branch
   assert.deepEqual(notes.map((m) => m.over), [['onboarding-gw'], ['device-registry', 'cert-authority'], ['onboarding-gw'], ['onboarding-gw', 'policy-engine'], ['audit-trail']]);
   // changed marks: the three steps of the rect block (the call, the note and the self step), nothing else
   assert.deepEqual(ms.filter((m) => m.mark === 'changed').map((m) => m.label.replace(/^.*\/ ?/, '')).length, 3);
@@ -90,7 +91,7 @@ test('export writes the same constructs back, and import -> export -> import -> 
   const e1 = await exp('blank-a', a, first.body.flow);
   if (process.env.SHOW) console.log(e1);
   for (const re of [/^%% flow: Device onboarding and first sync/m, /^%% real: http:POST device-registry\/v2\/devices$/m, /^ *rect rgb\(/m, /^loop for each pending sync batch$/m, /^opt batch is not empty$/m, /^par audit the batch$/m,
-    /^critical certificate is valid$/m, /^option certificate is revoked$/m, /^break batch is rejected$/m, /^alt device is new$/m, /^and verify the batch$/m, /^Note over \S+,\S+: the certificate is valid for 90 days$/m, /->>onboarding_gw: validate serial|->>device_registry: validate serial number/m]) assert.match(e1, re);
+    /^critical certificate is valid$/m, /^option certificate is revoked$/m, /^break batch is rejected$/m, /^alt device is known$/m, /^else device is new$/m, /^ *device_registry-->>onboarding_gw: existing device$/m, /^and verify the batch$/m, /^Note over \S+,\S+: the certificate is valid for 90 days$/m, /->>onboarding_gw: validate serial|->>device_registry: validate serial number/m]) assert.match(e1, re);
   assert.equal(e1.split('\n').filter((l) => /^(alt|opt|loop|par|critical|break|rect)\b/.test(l)).length, e1.split('\n').filter((l) => l === 'end').length, 'every frame is closed');
   // A step's own note (the text after `: ` of a message) comes back as a note step on the next pass, after the callee's work; from there on the text is a fixed point.
   const b = await draft('blank-b'), second = await imp('blank-b', b, e1);

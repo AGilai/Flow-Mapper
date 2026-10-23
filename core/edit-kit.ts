@@ -22,7 +22,7 @@ export type CallEdit = {
   returns?: { label: string; detail?: string } | null;                               // 0.33.2 (#81): what the call returns (null clears)
 };
 /** 0.33.1: a step with no target in a function: a note (`over`: the components it spans, #74) or an internal step (a self-message). */
-export type LeafEdit = { kind: 'leaf'; from: { service: string; fn: string }; operation?: string; note?: string; over?: string[]; self?: boolean; mark?: 'new' | 'changed' | null; groups?: StepGroupEdit[] | null; real?: string; before?: number };
+export type LeafEdit = { kind: 'leaf'; from: { service: string; fn: string }; operation?: string; note?: string; over?: string[]; self?: boolean; returnTo?: string; mark?: 'new' | 'changed' | null; groups?: StepGroupEdit[] | null; real?: string; before?: number };
 export type DeleteCallEdit = { kind: 'delete-call'; service: string; fn: string; seq: number };
 export type DesignEdit =
   | { kind: 'component'; name: string; serviceKind: 'service' | 'gateway' | 'lambda' | 'infra' | 'client-app'; groupPath?: string; team?: string; description?: string; about?: string; owners?: string[] | null; links?: Links | null; runtime?: 'k8s-pod' | 'k8s-deployment' | 'k8s-daemonset' | 'k8s-operator' | 'k8s-job' | null }
