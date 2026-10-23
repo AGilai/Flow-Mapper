@@ -26,6 +26,7 @@ export const stepExtras = (st: Step, id?: string) => ({
   ...(st.over?.length ? { over: st.over } : {}),
   ...(typeof st.details?.real === 'string' && st.details.real ? { real: st.details.real } : {}),                 // 0.33.1: the bind key a mermaid import was told it really calls
   ...(st.returns?.label ? { returns: st.returns } : {}),                                                            // 0.33.2 (#81): the label (and detail) of the return that answers the call
+  ...(typeof st.details?.return_to === 'string' && st.details.return_to ? { returnTo: st.details.return_to } : {}),   // 0.41.1 (#83): a return kept as a step of its own (a branch that holds only a return): the component it goes back to
   ...(st.details?.self === true ? { self: true } : {}),                                                              // an internal step that was a self-message
 });
 

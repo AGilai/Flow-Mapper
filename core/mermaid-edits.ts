@@ -81,6 +81,7 @@ export function mermaidPlan(parsed: MmParsed, targets: Record<string, Target>, r
   const seenCount = new Map<string, number>(), skipped = new Set<string>(), noFn = new Set<string>();
   let lastHost = '';   // the component whose function made the last call (a return gives it back to the caller): a note goes into that function, after the call. Never into the callee's: an endpoint's function runs for every call to it, a note there would show once, at the first.
   let pending: MmNote[] = [];
+  const calls: { caller: string; callee: string; prev?: string; async: boolean }[] = [];   // the sync calls not answered yet
 
   /** An endpoint of `service` with this bind key: the one that is there, or a new one. */
   function ensureEndpoint(service: string, l: ReturnType<typeof readLabel>, entryPoint: boolean, description?: string) {
@@ -102,9 +103,9 @@ export function mermaidPlan(parsed: MmParsed, targets: Record<string, Target>, r
   const seen = (key: string) => (seenCount.set(key, (seenCount.get(key) ?? 0) + 1), seenCount.get(key)! - 1);
 
   /** A step with no target (a note, or a self-message) in the function the lifeline `host` is in. Re-importing finds it by its words and adds nothing. */
-  function leaf(host: string, e: { operation?: string; note?: string; over?: string[]; self?: boolean; real?: string } & MmCtx) {
-    const fn = cur.get(host)!, same = (s: any) => s.kind === 'leaf' && s.operation === e.operation && s.note === e.note && JSON.stringify(s.over ?? null) === JSON.stringify(e.over ?? null);
-    if (fnSteps(host, fn).filter(same).length > seen(`${host}/${fn}|leaf|${e.operation}|${e.note}|${e.over}`)) { plan.counts.reused++; return; }
+  function leaf(host: string, e: { operation?: string; note?: string; over?: string[]; self?: boolean; real?: string; returnTo?: string } & MmCtx) {
+    const fn = cur.get(host)!, same = (s: any) => s.kind === 'leaf' && s.operation === e.operation && s.note === e.note && JSON.stringify(s.over ?? null) === JSON.stringify(e.over ?? null) && (s.details?.return_to ?? null) === (e.returnTo ?? null);
+    if (fnSteps(host, fn).filter(same).length > seen(`${host}/${fn}|leaf|${e.operation}|${e.note}|${e.over}|${e.returnTo}`)) { plan.counts.reused++; return; }
     const { groups, mark, ...rest } = e;
     emit({ kind: 'leaf', from: { service: host, fn }, ...rest, ...ctxOf({ groups, mark }, `${host}/${fn}`) });
     plan.counts.notes++;
@@ -157,7 +158,23 @@ export function mermaidPlan(parsed: MmParsed, targets: Record<string, Target>, r
         ...ctxOf(m, `${S.name}/${fn}`), ...(m.real ? { real: m.real } : {}), ...(m.response ? { returns: { label: m.response.slice(0, MAX_RETURN_LABEL) } } : {}) });
       plan.counts.calls++; if (note0) plan.counts.notes++;
     }
+    calls.push({ caller: S.name, callee: R.name, prev: cur.get(R.name), async: mode === 'async' });
     cur.set(R.name, e.handler); lastHost = S.name;
+  }
+
+  /** A return (#83): the call it answers is over, so the callee is back in the function it was in before that call (later steps of the caller and of the callee go there, not inside the call's subtree). A return in a branch of a frame the call is not in leaves the call open; when its branch holds nothing else it is a step of the callee, carrying its label. */
+  function answer(m: MmMessage) {
+    const from = targets[m.from], to = targets[m.to];
+    if (!from || !('name' in from)) return;
+    const k = calls.map((c) => c.callee === from.name && c.caller === (to && 'name' in to ? to.name : '') && !c.async).lastIndexOf(true);
+    if (m.leaf) {
+      if (k < 0 || !cur.has(from.name)) return;
+      leaf(from.name, { operation: m.label || 'return', returnTo: to && 'name' in to ? to.name : 'client', groups: m.groups, mark: m.mark });
+      return;
+    }
+    if (k < 0 || m.inner) return;
+    const c = calls[k]; calls.length = k;
+    if (c.prev) cur.set(c.callee, c.prev);
   }
 
   // messages and notes in the order they were written (a note's `after` counts the messages before it); a return closes the call it answers
@@ -165,6 +182,7 @@ export function mermaidPlan(parsed: MmParsed, targets: Record<string, Target>, r
   parsed.messages.forEach((m, i) => {
     while (ni < parsed.notes.length && parsed.notes[ni].after <= i) { const n = parsed.notes[ni++]; if (!note(n)) pending.push(n); }
     if (m.kind === 'return') {
+      answer(m);
       const to = targets[m.to];
       if (to && 'name' in to && cur.has(to.name)) lastHost = to.name;
     } else message(m);
