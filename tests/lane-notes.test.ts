@@ -46,3 +46,12 @@ test('#74: the note box spans leftmost to rightmost lifeline, out to the edge of
   assert.ok(noteBox([cols[0], cols[0]], 10, geo).w <= 260, 'the same lifeline twice is one lifeline');
 });
 
+
+test('#83: a return leaf (a branch that holds only a return) is drawn as a return arrow back to its component', () => {
+  const t = run(build([steps[0], { seq: 2, type: 'call', kind: 'leaf', operation: '403 denied', details: { return_to: 'a' } }]));
+  assert.equal(t.messages.find((m: any) => m.label === '403 denied')?.returnTo, 'a');
+  const lane = buildLane(t.messages, { scope: t.scope, participants: t.participants });
+  const back = lane.events.filter((e: any) => e.type === 'return' && e.label === '403 denied');
+  assert.equal(back.length, 1);
+  assert.equal(back[0].to.service, 'a');
+});

@@ -178,6 +178,7 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
     if (m.kind === 'call') { top.internal.n++; if (m.gap || m.broken) top.internal.gaps++; return; }
     if (m.kind === 'leaf') { // a leaf is a note on its component; one that names `over` is drawn (0.32.2, #74), over one lifeline or spanning several
       const over = [...new Set((m.over ?? []).flatMap((n) => (byService.has(n) ? [byService.get(n)] : cols.filter((c) => c.kind === 'resource' && c.store === n))))]; // a component, or a data store by its instance / db name
+      if (m.returnTo) { const to = byService.get(m.returnTo) ?? top.caller; if (to) push({ type: 'return', bar: top, to, label: m.label || 'return', returns: null, msg: m }); return; } // 0.41.1 (#83): a return that is a step of its branch (a branch that holds only a return): the arrow back, drawn like the return of a call
       if (m.over?.length) push({ type: 'note', msg: m, bar: top, cols: over.length ? over : [top.col], text: m.label });
       return;
     }
