@@ -111,7 +111,7 @@ export function armChain(ix: AltIndex, path: string[]) {
 }
 
 /** The trace with its decisions and stable keys (stamped once, over the canonical, all-arm message list). */
-export function withDecisions(ix: AltIndex, book: Book, t: Trace): Trace {
+export function withDecisions(ix: AltIndex, book: Book, t: Trace, countsOnly = false): Trace {
   const decisions: Decision[] = [];
   for (const [id, rec] of book.places) {
     const { def, arms } = ix.groups.get(id)!;
@@ -126,6 +126,7 @@ export function withDecisions(ix: AltIndex, book: Book, t: Trace): Trace {
       arms: arms.map((a) => ({ arm: a, label: labels.get(a)?.label, guard_text: labels.get(a)?.guard_text, steps: { min: 0, max: 0 } })),
     });
   }
+  if (countsOnly) return { ...t, decisions }; // the Flows list counts through `viewCounts`: no per-arm steps, no keys
   for (const d of decisions) for (const a of d.arms) a.steps = decisionCounts(t.messages, decisions, d.group_id, a.arm);
   const keys = stepKeys(t.messages);
   t.messages.forEach((m: Message, i) => { m.key = keys[i]; });
