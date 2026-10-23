@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased
+## 0.41.1 (2026-10-23)
 **Fix #83: Mermaid import of a branch that holds only a return.** No schema or migration change.
 - A return inside a frame the call it answers is not in (`alt ok ... else fail`: `B-->>A: 403 denied`), in a branch with no other step or note, is now a step of that branch: a leaf (`kind: "leaf"`, `operation` = the label, `details.return_to` = the component it goes back to; the trace message carries `returnTo`). So the `alt` keeps both branches (arms `b1`, `b2` as decisions) and the group closes at its `end`; the export writes it back as `B-->>A: 403 denied` inside `else`. A branch that also holds a call or note keeps the old reading (the first such return is the call's `returns.label`).
 - Nothing after `end` belongs to the group: after a return the callee is back in the function it was in before the call, so later calls, async calls, notes and returns go there, not into the answered call's subtree.
