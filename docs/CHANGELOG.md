@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased
+## 0.41.0 (2026-10-23)
 Performance batch 4 (docs/plans/perf-review.md F6, F8, body cache). No schema change, no new dependency; every response body stays identical (`tests/perf-batch4.test.ts`, plus an old-vs-new run of the equality harness and of `flows/counts` on the 1,003-service perf database).
 - **Flows list.** The decision counts of a cold graph (`flows/counts`, the "N decisions" chip) no longer build three full views per flow: a counts-only trace (`TraceOptions.countsOnly`: no lifeline layout, no source links, no per-arm counts or keys) and `viewCounts` (the same `plan` as `viewOf`, so they cannot disagree). At 1,003 services (2,295 decision flows): the decision pass takes about 14 s instead of about 45 s.
 - **Body cache.** The kept JSON and gzip bodies of memoised reports are bounded together by a byte budget, env `FLOW_BODY_CACHE_MB` (default 64); over it, the least recently used go first and are simply serialised again on the next request.
