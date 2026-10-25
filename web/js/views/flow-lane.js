@@ -3,7 +3,7 @@
 // delivery first, then what the consumer does); output is columns, events (one row each, in order) and bars.
 //
 //  - a call into a service (entry, or a sync/async egress to a service) opens a bar; the bar closes when the trace
-//    returns to a message at its depth or above; a second call is a second bar;
+//    returns to a message at its depth or above, or when the next message comes from a service lower on the stack (#89: `from` decides, not depth alone); a second call is a second bar;
 //  - calls inside a service ("call" steps) are not drawn: they are counted on the bar (the pill);
 //  - a publish is one arrow through the topic / bus / exchange that forks to each subscribed queue (flow-chain.js). It stops at the queue: an end
 //    marker with the number of each async flow that starts there (the row of the async index); the consumer's work is not in the lane (flow-async.js);
@@ -164,6 +164,10 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
     const m = msgs[idx];
     if (n === 0) { open(m, source, null, root, rootCol, isSyncCall(m), isRpc(m) ? { chip: false, glyph: false, reply: m.rpc?.timeoutMs ? plan1(0, root, m.rpc).reply : 'reply' } : null); return; }
     while (stack.length && stack[stack.length - 1].depth >= m.depth) close(stack.pop());
+    // #89: a message starts inside the bar of the service it comes from (`from`), not inside whatever callee the depth says is open: a caller's next call after a deferred (async) call
+    // or after a hidden internal call has a deeper depth than the previous callee's, and must not nest in that callee's bar (a false self-call, two stacked bars).
+    const fromSvc = m.kind === 'entry' ? null : svcOf(m.from);
+    if (fromSvc && stack.some((b) => b.service === fromSvc)) while (stack[stack.length - 1].service !== fromSvc) close(stack.pop());
     const top = stack[stack.length - 1];
     if (!top) return;
     top.msgs.push(m);

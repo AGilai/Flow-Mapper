@@ -15,6 +15,20 @@
   "commit": "a88c0de",
   "functions": [
     {
+      "id": "authApp",
+      "name": "authApp",
+      "file": "api/auth.ts",
+      "line": 5,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "kind": "leaf",
+          "operation": "issue an app token"
+        }
+      ]
+    },
+    {
       "id": "membership",
       "name": "membership",
       "file": "api/membership.ts",
@@ -30,6 +44,16 @@
     }
   ],
   "ingress": [
+    {
+      "id": "in.appAuth",
+      "bindKey": "http:POST ext-checkpoint-cloud/v2/auth/app",
+      "transport": "http",
+      "handler": "authApp",
+      "details": {
+        "method": "POST",
+        "path": "/v2/auth/app"
+      }
+    },
     {
       "id": "in.membership",
       "bindKey": "http:GET ext-checkpoint-cloud/api/v1/user/tenant/membership",
