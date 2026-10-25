@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased
+## 0.41.2 (2026-10-25)
 **Fix #85 item 6: `unresolved[]` entries accept `gap` and `plain`.** Schema change, additive (old manifests stay valid; no migration).
 - Every `unresolved[]` entry (ingress, egress, function, step, resource) takes optional `gap` (boolean; `false` = not a real missing hop, such as a built-in receiver) and `plain` (string; the reason in plain English). They no longer get a 422 "unknown property"; a non-boolean `gap` or non-string `plain` still does.
 - Returned as sent by `GET /api/envs/:env/trace` (`messages[].gap`), `GET .../health` and `.../link-health` (`items.unresolved[]`), and MCP `trace_flow`, `link_health`, `get_endpoint_info`. Nothing counts on them: totals, health and the trace are unchanged. Display of `gap: false` and the incomplete badge come later.
