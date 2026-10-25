@@ -88,5 +88,5 @@ export function layoutLane(lane, fit = 0, sq = null, marks = null, edit = false,
   const groups = foldGroups(columns.length, folded).map((g) => ({ ...g, x: xs[g.from], w: fw, names: g.cols.map((c) => columns[c].service ?? columns[c].label), cc: sharedVar(g.cols.map((c) => columns[c])) }));
   const edge = (bar, col, dir) => (bar ? barX(bar, dir) : colX.get(col));
   const headBox = (c) => headW(c, COLW);
-  return { th, runs, internal: lane.internal ?? null, columns, events, bars, idx, stacked, folded, groups, plan, sig, foldW: fw, fit, isCh, headW, headBox, xs, COLW, width, height, colX, heads, boxH, HEAD, bandH, bands, frames, strips, top, ys, barX, edge };
+  return { th, runs, internal: lane.internal ?? null, storeOn: !!lane.storeOn, columns, events, bars, idx, stacked, folded, groups, plan, sig, foldW: fw, fit, isCh, headW, headBox, xs, COLW, width, height, colX, heads, boxH, HEAD, bandH, bands, frames, strips, top, ys, barX, edge };
 }

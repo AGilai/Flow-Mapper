@@ -52,7 +52,7 @@ export async function render({ main, query }) {
   const urlCount = T.urlKeys(query, state.env).length; // a link with more tabs than the cap is trimmed (toast below)
   const scen = createScenarios(query, S.active, detailStored); // 0.38.0 (#82): per tab: the arms chosen, External | Full, the services opened; `ch=`, `detail=full`, `open=` of the active tab
   let stepParam = decodeStep(query); // `step=`: the walk's step in the active tab; a link opens on it (0.20.0)
-  const stepTab = S.active; // ...and only that tab, once
+  const stepTab = S.active; let storeParam = query.get('store'); // ...and only that tab, once; #86 `store=`: the store panel of the active tab
   const views = new Map(), slots = new Map(), stale = new Set();
   const zooms = new Map(); // zoom per tab (0.30.3): a percent or 'fit'; the URL carries the active tab's
   const zoomParam = decodeZoom(query);
@@ -117,7 +117,7 @@ export async function render({ main, query }) {
   mainPane.append(toolbar, strip.el, empty);
 
   function persist() {
-    setQuery({ ...T.encodeUrl(S, state.env), ...(S.keys.length ? { service: null } : {}), stores: opts.stores ? null : '0', queues: null, depth: opts.depth === 'all' ? null : opts.depth, frontier: opts.frontier ? '1' : null, sb: encodeBar(opts.sb), sd: encodeArrows(opts.sd, arrowsDefault(isDesign())), th: encodeHints(opts.th, isDesign()), hl: encodeHl(opts.hl), cb: encodeCb(opts.cb, isDesign()), zoom: encodeZoom(zooms.get(S.active)), step: encodeStep(stepParam), ...scen.query(S.active) });
+    setQuery({ ...T.encodeUrl(S, state.env), store: storeParam, ...(S.keys.length ? { service: null } : {}), stores: opts.stores ? null : '0', queues: null, depth: opts.depth === 'all' ? null : opts.depth, frontier: opts.frontier ? '1' : null, sb: encodeBar(opts.sb), sd: encodeArrows(opts.sd, arrowsDefault(isDesign())), th: encodeHints(opts.th, isDesign()), hl: encodeHl(opts.hl), cb: encodeCb(opts.cb, isDesign()), zoom: encodeZoom(zooms.get(S.active)), step: encodeStep(stepParam), ...scen.query(S.active) });
   }
   const max = createMax({ onChange: () => views.get(S.active)?.el.scrollTo?.(0, 0) });
   const host = {
@@ -144,6 +144,7 @@ export async function render({ main, query }) {
     nameOf, relType: query.get('relType'), max,
     edit: null, // set below: the form opener (Edit with a draft)
     initialStep: (k) => (back.stepFor(k) ?? (k === stepTab ? stepParam : null)),
+    initialStore: (k) => (k === stepTab ? storeParam : null), setStore: (k, v) => { if (k === S.active) { storeParam = v; persist(); } },
     setStep: (k, n) => { if (k === S.active) { stepParam = n; persist(); } },
     setFrontier: () => { opts.frontier = true; frontierCheck.querySelector('input').checked = true; persist(); reloadAll(); },
   };
@@ -151,8 +152,7 @@ export async function render({ main, query }) {
   // The info pane (0.33.0): a lifeline head or a subsystem band opens it (View mode; Edit with a draft: the head opens the form, the head's menu has Show details).
   host.pen = pencils(host); // 0.31.1: the pencils of the flow head; the hint of a harvested page sits under the toolbar
   const pane = createPane(panel, { pen: host.pen, ctx: (t) => { const root = T.flowRoot(S.active), other = t.env && t.env !== state.env; return { ...(other ? { pen: penRO } : {}), fromFlow: root && { ...root, name: ctxOf(S.active)?.nameOf(root.service, root.ingress) ?? '', steps: views.get(S.active)?.steps?.() ?? [] } }; }, onSelect: (sel, t) => { flowsEl.classList.add('mp-open'); setQuery({ sel: t?.env && t.env !== state.env ? null : sel }); } }); // a component of another env is not in the URL: `sel=` names it in the page's env
-  host.openPane = (target) => pane.show(target);
-  host.pane = pane;
+  host.openPane = (target) => { views.get(S.active)?.clearStore?.(); pane.show(target); }; host.pane = pane;
   toolbar.after(...[host.pen.hint()].filter(Boolean));
   const { hostFor, penRO } = createHostFor(host, { drillIn: (e, env) => back.drill(entryOf(e, env)), openIn: (e, env) => openEntry(e, env), paneIn: (t, env) => pane.show({ ...t, env }) }); // tabs of other envs (flow-tab-host.js)
   const entryOf = ({ service: s, ingress, fn, event, scope }, env = state.env) => (ingress ? T.entryKey(s, ingress, event, scope, env) : T.fnKey(s, fn, event, scope, env));
@@ -182,7 +182,7 @@ export async function render({ main, query }) {
       views.set(key, v);
       slot.replaceChildren(v.el);
       if (max.isOn()) max.sync();
-      if (S.active === key) { v.restore(); paintChrome(); }
+      if (S.active === key) { v.restore(); v.restoreStore?.(); paintChrome(); }
       renderStrip();
     }).catch((err) => { if (slots.get(key) === slot) { slot.replaceChildren(boundaryNote(err, { editing: !ctx.foreign && state.mode === 'edit' && !!state.draft, onImport: host.importRef }) ?? h('div.content', h('div.error-box', err.message))); renderStrip(); } });
   }
@@ -212,11 +212,11 @@ export async function render({ main, query }) {
     for (const k of [...slots.keys()]) if (!S.keys.includes(k)) drop(k);
     S.keys.forEach(ensure);
     if (!S.keys.length && max.isOn()) max.set(false); // the last tab closed while maximized: nothing left to fill the window
-    if (prev !== S.active) stepParam = null; // the step belongs to the tab it was set in: not in the URL of another
+    if (prev !== S.active) { stepParam = null; storeParam = null; } // the step belongs to the tab it was set in: not in the URL of another
     persist(); renderStrip();
     const my = ++token, act = S.active, v = views.get(act);
     if (v && stale.delete(act)) v.draw();
-    if (prev !== act) { panel.close(); flowsEl.classList.toggle('fi-open', !!v?.insideOpen()); }
+    if (prev !== act) { views.get(prev)?.clearStore?.(); panel.close(); flowsEl.classList.toggle('fi-open', !!v?.insideOpen()); }
     paintChrome();
     if (prev !== act && act) {
       await swap(slots.get(prev) ?? null, slots.get(act), { opening: added.length === 1 && added[0] === act && S.keys.length > 1, tabEl: strip.tabEl(act) });

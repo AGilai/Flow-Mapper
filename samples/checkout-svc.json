@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "checkout-svc",
+    "kind": "service",
+    "team": "commerce",
+    "repo": "github.com/acme/checkout-svc",
+    "language": "typescript",
+    "description": "Turns a cart into an order (demo of the store panel, #86)"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-25T09:00:00Z",
+  "commit": "5be10c2",
+  "functions": [
+    {
+      "id": "CheckoutController.checkout",
+      "name": "CheckoutController.checkout",
+      "file": "src/checkout.ts",
+      "line": 20,
+      "steps": [
+        { "seq": 1, "type": "resource", "target": "cartsDb", "operation": "findOne", "access": "read", "source": { "file": "src/checkout.ts", "line": 24 },
+          "fields": [{ "role": "filter", "path": "userId", "operator": "$eq", "inDdl": true }, { "role": "projection", "path": "items", "inDdl": true }] },
+        { "seq": 2, "type": "resource", "target": "cache", "operation": "GET", "access": "read", "source": { "file": "src/cart-cache.ts", "line": 12 }, "details": { "keyTemplate": "cart:{userId}", "dbIndex": 0, "ttlSeconds": 1800 } },
+        { "seq": 3, "type": "call", "target": "CheckoutController.priceLines" },
+        { "seq": 4, "type": "resource", "target": "cache", "operation": "SET", "access": "write", "source": { "file": "src/lock.ts", "line": 18 }, "details": { "keyTemplate": "checkout:lock:{cartId}", "dbIndex": 0, "ttlSeconds": 30 } },
+        { "seq": 5, "type": "resource", "target": "cache", "operation": "GET", "access": "read", "source": { "file": "src/idempotency.ts", "line": 9 }, "details": { "keyPattern": "checkout:idem:{key}", "dbIndex": 0 } },
+        { "seq": 6, "type": "resource", "target": "cache", "operation": "SETEX", "access": "write", "source": { "file": "src/idempotency.ts", "line": 21 }, "details": { "keyPattern": "checkout:idem:{key}", "dbIndex": 0, "ttlSeconds": 86400 } },
+        { "seq": 7, "type": "resource", "target": "cache", "operation": "GET", "access": "read", "source": { "file": "src/flags.ts", "line": 31 }, "details": { "dbIndex": 0 },
+          "unresolved": [{ "what": "detail", "detail": "details.keyTemplate", "reason": "key_unresolved:computed" }] },
+        { "seq": 8, "type": "resource", "target": "cartsDb", "operation": "updateOne", "access": "write", "source": { "file": "src/checkout.ts", "line": 71 },
+          "fields": [{ "role": "filter", "path": "_id", "operator": "$eq", "inDdl": true }, { "role": "update", "path": "status", "operator": "$set", "inDdl": true }, { "role": "update", "path": "checkedOutAt", "operator": "$set", "inDdl": false, "flag": "added by the code, no column in the schema" }] },
+        { "seq": 9, "type": "resource", "target": "cache", "operation": "DEL", "access": "write", "source": { "file": "src/lock.ts", "line": 40 }, "details": { "keyTemplate": "checkout:lock:{cartId}", "dbIndex": 0 } },
+        { "seq": 10, "type": "resource", "target": "cache", "operation": "DEL", "access": "write", "source": { "file": "src/cart-cache.ts", "line": 33 }, "details": { "keyTemplate": "cart:{userId}", "dbIndex": 0 } }
+      ]
+    },
+    {
+      "id": "CheckoutController.priceLines",
+      "name": "CheckoutController.priceLines",
+      "file": "src/pricing.ts",
+      "line": 8,
+      "steps": [
+        { "seq": 1, "type": "resource", "target": "cache", "operation": "HGET", "access": "read", "source": { "file": "src/pricing.ts", "line": 14 }, "details": { "keyTemplate": "cart:{userId}", "dbIndex": 0 } },
+        { "seq": 2, "type": "resource", "target": "cache", "operation": "HGET", "access": "read", "source": { "file": "src/pricing.ts", "line": 14 }, "details": { "keyTemplate": "cart:{userId}", "dbIndex": 0 } },
+        { "seq": 3, "type": "resource", "target": "cache", "operation": "HGET", "access": "read", "source": { "file": "src/pricing.ts", "line": 14 }, "details": { "keyTemplate": "cart:{userId}", "dbIndex": 0 } },
+        { "seq": 4, "type": "resource", "target": "cache", "operation": "HGET", "access": "read", "source": { "file": "src/pricing.ts", "line": 14 }, "details": { "keyTemplate": "cart:{userId}", "dbIndex": 0 } },
+        { "seq": 5, "type": "resource", "target": "cache", "operation": "HGET", "access": "read", "source": { "file": "src/pricing.ts", "line": 14 }, "details": { "keyTemplate": "cart:{userId}", "dbIndex": 0 } },
+        { "seq": 6, "type": "resource", "target": "cache", "operation": "HGET", "access": "read", "source": { "file": "src/pricing.ts", "line": 14 }, "details": { "keyTemplate": "cart:{userId}", "dbIndex": 0 } },
+        { "seq": 7, "type": "resource", "target": "cache", "operation": "HGET", "access": "read", "source": { "file": "src/pricing.ts", "line": 14 }, "details": { "keyTemplate": "cart:{userId}", "dbIndex": 0 } },
+        { "seq": 8, "type": "resource", "target": "cache", "operation": "HGET", "access": "read", "source": { "file": "src/pricing.ts", "line": 14 }, "details": { "keyTemplate": "cart:{userId}", "dbIndex": 0 } },
+        { "seq": 9, "type": "resource", "target": "cache", "operation": "HGET", "access": "read", "source": { "file": "src/pricing.ts", "line": 14 }, "details": { "keyTemplate": "cart:{userId}", "dbIndex": 0 } }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.checkout",
+      "bindKey": "http:POST checkout-svc/checkout",
+      "transport": "http",
+      "handler": "CheckoutController.checkout",
+      "entryPoint": true,
+      "details": { "method": "POST", "path": "/checkout" }
+    }
+  ],
+  "egress": [],
+  "resources": [
+    { "id": "cache", "kind": "redis", "name": "checkout-cache", "bindKey": "redis:checkout-cache",
+      "client": { "accessMode": "direct_driver", "accessId": "checkout-svc/src/redis.ts:5", "databases": [0], "driver": { "package": "ioredis", "version": "5.3.2", "versionSource": "lockfile" } } },
+    { "id": "cartsDb", "kind": "mongodb", "name": "checkout-db.carts", "bindKey": "mongodb:checkout-db/carts" }
+  ]
+}
