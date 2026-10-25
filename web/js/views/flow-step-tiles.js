@@ -6,6 +6,7 @@ import { s } from '../dom.js';
 import { NEST, BAR } from './flow-draw-layout.js';
 
 const H = 16, tw = (n) => Math.max(20, String(n).length * 7 + 12);
+const blocked = (st) => !!st.event?.msg?.blocked; // #85: a blocked step's tile is an amber "!" bubble, not a number
 
 /** Where a step's arrow starts and ends: { x1, x2, dir } in lane pixels (x1 is the start, just outside the bar it leaves). */
 export function arrowSpan(step, { columns, geometry }) {
@@ -26,10 +27,10 @@ export function drawStepTiles(res, built, steps, onPick, onEdit = null, hl = () 
   const band = s('rect', { class: 'stepband', x: 0, visibility: 'hidden', 'pointer-events': 'none', 'aria-hidden': 'true' }), rband = s('rect', { class: 'stepband', x: 0, visibility: 'hidden', 'pointer-events': 'none', 'aria-hidden': 'true' });
   const tiles = new Map(), spans = new Map(), grps = new Map();
   const g = s('g', { class: 'steptiles' }, ...steps.map((st) => {
-    const sp = arrowSpan(st, { columns: built.columns, geometry: res.geometry }), w = tw(st.n), cx = sp.x1 + sp.dir * (w / 2 + 3), y = res.geometry.y[st.row];
+    const sp = arrowSpan(st, { columns: built.columns, geometry: res.geometry }), w = blocked(st) ? 18 : tw(st.n), cx = sp.x1 + sp.dir * (w / 2 + 3), y = res.geometry.y[st.row];
     spans.set(st.n, sp);
-    const t = s('g', { class: 'steptile', 'data-step': st.n, 'aria-hidden': 'true' },
-      s('rect', { x: cx - w / 2, y: y - 6, width: w, height: H, rx: H / 2 }), s('text', { x: cx, y: y + 6, 'text-anchor': 'middle' }, st.n), s('title', {}, `Step ${st.n}: ${st.label}`));
+    const t = s('g', { class: `steptile${blocked(st) ? ' blk' : ''}`, 'data-step': st.n, 'aria-hidden': 'true' },
+      s('rect', { x: cx - w / 2, y: y - 6, width: w, height: blocked(st) ? 18 : H, rx: blocked(st) ? 9 : H / 2 }), s('text', { x: cx, y: y + (blocked(st) ? 7 : 6), 'text-anchor': 'middle' }, blocked(st) ? '!' : st.n), s('title', {}, `Step ${st.n}${blocked(st) ? ' (blocked)' : ''}: ${st.label}`));
     t.addEventListener('click', (ev) => { ev.stopPropagation(); onPick(st.n, ev); });
     tiles.set(st.n, t);
     if (!onEdit) return t;

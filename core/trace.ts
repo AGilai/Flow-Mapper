@@ -22,7 +22,7 @@ import { codeLink, sourceLink, type SourceLink } from './endpoint-info.ts';
 import { refKey, unresolvedTarget } from './resolve.ts';
 import { assumedOn, storeOn, unknownOn } from './step-notes.ts';
 import type { Step, StepAlternative, StepFix, StepField, Unresolved } from './types.ts';
-import { stepExtras } from './step-marks.ts';
+import { stepExtras } from './step-marks.ts'; import { blockedField, coverageFor, frontierBlocked } from './incomplete.ts';
 import { altCtxOf, altGroups, type Alt, type AltCtx } from './alt.ts';
 import { egressVia, ingressVia, type LinkedHop } from './via.ts';
 import { bindingKeyOf, splitAmqpKey } from './amqp.ts';
@@ -146,11 +146,11 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
       if (st.origin === 'frontier' && !showFrontier) {
         if (!folded) { // one marker per function, where its first frontier step would be
           folded = true;
-          push({ from: me, to: me, label: `frontier: ${frontierCount(service, fn)} steps`, mode: 'sync', kind: 'frontier', depth, service, fn: f.id, seq: st.seq, frontierSteps: frontierCount(service, fn) });
+          push({ from: me, to: me, label: `frontier: ${frontierCount(service, fn)} steps`, mode: 'sync', kind: 'frontier', depth, service, fn: f.id, seq: st.seq, frontierSteps: frontierCount(service, fn), ...frontierBlocked(g, service, fn) }); // #85: `frontierBlocked` / `frontierSites`: the folded steps that are blocked (`gap: true`)
         }
         continue;
       }
-      const base = { depth, condition: st.condition, ...(alt ? { alt } : {}), loop: st.loop, note: st.note, fn: f.id, service, seq: st.seq, ...stepExtras(st, `${service}:${f.id}#${st.seq}`), ...(st.origin === 'frontier' ? { origin: 'frontier' as const } : {}) };
+      const base = { depth, condition: st.condition, ...blockedField(g, service, f.id, st), ...(alt ? { alt } : {}), loop: st.loop, note: st.note, fn: f.id, service, seq: st.seq, ...stepExtras(st, `${service}:${f.id}#${st.seq}`), ...(st.origin === 'frontier' ? { origin: 'frontier' as const } : {}) };
       // A gap the harvester reported: the step's own target, or the egress it goes through, is unresolved.
       const out = st.type === 'egress' && st.target ? g.egress.get(sid(service, st.target)) : undefined;
       const gap = (!st.target ? st.unresolved?.find((u) => u.what === 'target') : undefined) ?? (out ? unresolvedTarget(out) : undefined);
@@ -326,7 +326,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
     }
     if (e?.source && !(`egress:${m.service}:${e.id}` in code)) code[`egress:${m.service}:${e.id}`] = codeLink(g.services.get(m.service!)!, e.source);
   }
-  const out: Trace = { code, start: { service: root, ingress: ing?.id, fn: fnId, event: start.event }, scope, participants: opts.countsOnly ? [...participants.values()] : deliveryOrder([...participants.values()], messages), messages, truncated };
+  const out: Trace = { code, start: { service: root, ingress: ing?.id, fn: fnId, event: start.event }, scope, participants: opts.countsOnly ? [...participants.values()] : deliveryOrder([...participants.values()], messages), messages, truncated, ...(ing && !opts.countsOnly ? coverageFor(g, ing) : {}) };
   return withAltDecisions(altIx && book.places.size ? withDecisions(altIx, book, out, !!opts.countsOnly) : out, !!opts.countsOnly); // 0.38.2: alt frames are decisions too
 }
 

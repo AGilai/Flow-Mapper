@@ -11,10 +11,11 @@ import { subBands, SHARED } from './flow-bands.js';
 import { BAND_H } from './flow-draw-bands.js';
 import { headIconOf } from './flow-draw-icons.js';
 import { FOLD_W, COL_NARROW, displayCols, foldGroups, planSqueeze } from './flow-squeeze.js';
+import { BLOCKED_H, BLOCKED_LINE, isBlockedEvent, blockedNeed, frontierNeed } from './flow-draw-incomplete.js';
 
 export const COL = 138, COL_MIN = 132, PAD = 16, GUTTER = 8, BAR = 12, NEST = 8, CH_HEAD = 116; // CH_HEAD: a topic or queue head is narrower than a service head
 const ROWH = { call: 46, return: 36, pill: 32, mw: 34, store: 46, hop: 48, unresolved: 42, frontier: 32, amqpnote: 26, note: 34, decision: 40, icall: 30 };
-const rowH = (e) => (e.type === 'decision' && e.kind === 'caption' ? 28 : e.type === 'hop' && e.marker ? 56 : e.type === 'call' && (e.rpc?.chip || e.msg?.reference) ? 58 : e.type === 'unresolved' && e.chip ? 56 : ROWH[e.type]); // an RPC's "amqp rpc" chip sits under its arrow
+const rowH = (e) => (isBlockedEvent(e) ? BLOCKED_H : e.type === 'decision' && e.kind === 'caption' ? 28 : e.type === 'hop' && e.marker ? 56 : e.type === 'call' && (e.rpc?.chip || e.msg?.reference) ? 58 : e.type === 'unresolved' && e.chip ? 56 : ROWH[e.type]); // an RPC's "amqp rpc" chip sits under its arrow
 const LINE = { call: 30, return: 22, pill: 16, mw: 17, store: 23, hop: 30, unresolved: 28, frontier: 16, amqpnote: 14, note: 20, decision: 22, icall: 18 };
 const T_VAR = { http: '--t-http', rpc: '--t-rpc', grpc: '--t-http', eventbridge: '--t-eb', sns: '--t-sns', sqs: '--t-sqs', amqp: '--t-amqp', cron: '--t-cron', socket: '--t-socket', undecided: '--ink-2', res: '--t-res' };
 export const colorOf = (t) => `var(${T_VAR[t] ?? '--ink-2'})`;
@@ -55,7 +56,7 @@ export function layoutLane(lane, fit = 0, sq = null, marks = null, edit = false,
     const dsp = spans.map((p) => ({ a: di.get(p.a), b: di.get(p.b), need: p.need + room(p.a) + room(p.b) }));
     const dx = centres(PAD + GUTTER + (dc[0].fold ? fw : col) / 2, columnGaps(dc.length, dsp, (i) => Math.round((hw(dc[i]) + hw(dc[i + 1])) / 2 + 8)));
     const xs = columns.map((_, c) => dx[di.get(c)] - room(c)), last = dc[dc.length - 1];
-    const reach = Math.max(dx[dx.length - 1] + (last.fold ? fw / 2 + 20 : isCh(columns[last.cols[0]]) ? 92 : 200), ...events.filter((e) => e.type === 'amqpnote').map((e) => xs[idx.get(e.col)] + 10 + e.text.length * 5.6 + 100));
+    const reach = Math.max(dx[dx.length - 1] + (last.fold ? fw / 2 + 20 : isCh(columns[last.cols[0]]) ? 92 : 200), ...events.filter((e) => e.type === 'amqpnote').map((e) => xs[idx.get(e.col)] + 10 + e.text.length * 5.6 + 100), ...events.filter(isBlockedEvent).map((e) => xs[idx.get(e.bar.col)] + blockedNeed(e)), ...events.filter((e) => e.type === 'frontier').map((e) => xs[idx.get(e.bar.col)] + frontierNeed(e)));
     return { xs, col, width: Math.ceil(reach + PAD) };
   };
   const fitted = (folded, fw = FOLD_W, min = COL_MIN) => { let M = layout(COL, folded, fw); for (let col = COL - 6; fit && M.width > fit && col >= min; col -= 6) M = layout(col, folded, fw); return M; };
@@ -80,7 +81,7 @@ export function layoutLane(lane, fit = 0, sq = null, marks = null, edit = false,
   const stacked = new Set(events.filter((e) => e.type === 'call' && e.msg && chipsStack(chipsOf(e), Math.abs(colX.get(e.to) - colX.get(e.from)) - 12)));
   // Edit: room under the last row of each bar for its "+ call" chip, so it never meets the next arrow or label
   const addRows = new Set(edit ? lane.bars.filter((b) => !b.msg.reference && b.msg.target?.fn).map((b) => b.end) : []);
-  events.forEach((e, r) => { const dp = det?.parts.get(e), up = dp?.extraUp ?? 0; top[r] = y; ys[r] = y + nStrips(r) * STRIP + up + (e.type === 'decision' && e.kind === 'caption' ? 14 : LINE[e.type]); y += nStrips(r) * STRIP + up + (dp?.extraDown ?? 0) + rowH(e) + (stacked.has(e) ? 19 * (chipsOf(e).length - 1) : 0) + (addRows.has(r) ? 20 : 0); });
+  events.forEach((e, r) => { const dp = det?.parts.get(e), up = dp?.extraUp ?? 0; top[r] = y; ys[r] = y + nStrips(r) * STRIP + up + (e.type === 'decision' && e.kind === 'caption' ? 14 : isBlockedEvent(e) ? BLOCKED_LINE[e.type] : LINE[e.type]); y += nStrips(r) * STRIP + up + (dp?.extraDown ?? 0) + rowH(e) + (stacked.has(e) ? 19 * (chipsOf(e).length - 1) : 0) + (addRows.has(r) ? 20 : 0); });
   top[events.length] = y;
   const height = y + PAD;
   const barX = (bar, dir) => (folded.has(idx.get(bar.col)) ? colX.get(bar.col) + (dir < 0 ? 0 : fw) : colX.get(bar.col) + bar.level * NEST + dir * BAR / 2); // in a fold: its edge on that side

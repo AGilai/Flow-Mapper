@@ -13,6 +13,9 @@ import { stepByKey } from './flow-steps.js';
 import { descBlock, descLine } from './flow-desc.js';
 import { descDetails } from './flow-head.js';
 import { createWalkView } from './flow-walk-view.js';
+import { headBadge } from './incomplete-badge.js';
+import { whySection } from './incomplete-why.js';
+import { traceBlocked } from '../../core/incomplete.js';
 import { createStepDetails } from './flow-step-details.js';
 import { createTip } from './flow-desc-tip.js';
 import { openGenerate } from './flow-desc-dialog.js';
@@ -62,13 +65,16 @@ export function createTabView(data, host) {
   const flowPen = () => (!editing && root ? host.pen?.button('panel-flow', 'flow', { form: 'flow', service: root.service, ingress: root.ingress, name: host.nameOf?.(root.service, root.ingress) ?? '' }) : null); // View mode (0.31.1): the same form, through the draft step
   const editFlow = () => (editing && host.edit && root ? h('button.btn.sm', { type: 'button', 'data-qa': 'edit-flow', on: { click: (e) => { e.preventDefault(); e.stopPropagation(); host.edit.flow(root.service, root.ingress, host.nameOf?.(root.service, root.ingress) ?? '', trace.start?.fn || null); } } }, 'Edit flow') : flowPen());
   const descs = [];
-  const ts = createTabScenario({ data, host, key, editAll: editing, visible: (k) => !!stepByKey(walk.steps(), k), onView: (v) => { const g = body.contains(document.activeElement) ? document.activeElement.dataset?.g : null; trace = v; tree = asyncTree(v.messages); render = null; draw(); host.paintChrome?.(); if (g) body.querySelector(`select[data-g="${CSS.escape(g)}"]`)?.focus({ preventScroll: true }); } });
+  const ts = createTabScenario({ data, host, key, editAll: editing, visible: (k) => !!stepByKey(walk.steps(), k), onView: (v) => { const g = body.contains(document.activeElement) ? document.activeElement.dataset?.g : null; trace = v; tree = asyncTree(v.messages); render = null; paintInc(); draw(); host.paintChrome?.(); if (g) body.querySelector(`select[data-g="${CSS.escape(g)}"]`)?.focus({ preventScroll: true }); } });
   trace = ts.view; tree = asyncTree(trace.messages);
+  const inc = headBadge({ onOpen: () => openWhy() }); // #85: the amber badge before the Scenario chip; N is counted over the trace on screen
+  const paintInc = () => { const { n, source } = traceBlocked(trace, trace.coverage); inc.update(n, source, trace.start?.service, trace.coverage?.status); };
+  paintInc();
   const label = host.describe(key);
   // The flow's description sits under its title, full width and collapsible (0.20.0); a sub-flow tab keeps its one line.
   const flowBox = root && data.kind !== 'sub' ? descDetails(host.desc, root, null, { cls: 'flowhead', remember: 'flowhead-open', title: 'What this flow is for', onGenerate: () => generate(null), pen: host.pen,
     summary: [root ? nameEditor({ root, name: host.nameOf?.(root.service, root.ingress) ?? '', fallback: label.title, readOnly: host.readOnly }).el : h('span.fh-t', label.title), label.sub ? h('span.mono.xs.muted', label.sub) : null, linksRow(trace.start?.links), editFlow(), editing ? importButton() : null,
-      exportButton({ ...root, env: host.env, name: host.nameOf?.(root.service, root.ingress) || label.title, view: () => ts.scen.exportView() }), ts.ui.el, host.max?.button()] }) : null;
+      exportButton({ ...root, env: host.env, name: host.nameOf?.(root.service, root.ingress) || label.title, view: () => ts.scen.exportView() }), inc.el, ts.ui.el, host.max?.button()] }) : null;
   const related = root && data.kind !== 'sub' ? createRelations({ host, root, editing }) : null; // 0.28.2: typed links to other flows, under the description
   const subLine = root && data.kind === 'sub' ? descLine(host.desc, root, [`${data.service}:${data.name}`, data.service], { onGenerate: () => generate(data.service) }) : null;
   descs.push(flowBox, subLine);
@@ -167,6 +173,14 @@ export function createTabView(data, host) {
   }
   shared.openPublish = openPublish;
 
+  function openWhy() { // #85: the header badge opens the info pane on the flow and puts focus on "Why incomplete"
+    body.querySelectorAll('.msg.active').forEach((e) => e.classList.remove('active'));
+    inside.close();
+    host.flowsEl.classList.add('mp-open');
+    host.panel.open(h('div.ep-head', h('div.ep-title', h('span.ep-target', 'Flow')), h('div.ep-sub', h('span.key', label.title))), whySection(trace));
+    requestAnimationFrame(() => { const t = document.getElementById('why-incomplete-h'); t?.scrollIntoView({ block: 'nearest' }); t?.focus({ preventScroll: true }); });
+  }
+
   function head() { // breadcrumb and lane summary: sub-flow and full-flow tabs only
     if (!data.originKey) return null;
     const o = host.describe(data.originKey), sub = data.kind === 'sub';
@@ -197,7 +211,7 @@ export function createTabView(data, host) {
   const maxBar = paintEnv(h('div.max-bar', backBtn('.in-max'), envChip(host.env), host.readOnly ? maxReadOnly(host.env, host.switchEnv) : null, h('span.fh-t', (root && host.nameOf?.(root.service, root.ingress)) || label.title), label.sub ? h('span.mono.xs.muted', label.sub) : null, zctl.el), host.env); // shown only while maximized (flow-max.css)
   if (comments) { pane = createPane({ panels: { notes, comments, actions }, diagram: body }); for (const [id, d] of Object.entries(counts)) pane.setCount(id, d); }
   const xnote = host.readOnly ? foreignNote(host.env, host.design, host.switchEnv) : null; // "Viewing <env>. Switch to it to edit."
-  const el = h('div.flow-tab', maxBar, backBar, xnote, h('div.flow-top', flowBox ? null : h('div.scn-row', ts.ui.el), flowBox?.el, related?.el, walk.el, partial.el), body, pane?.splitter, pane?.el); // the pane sits under the diagram (0.27.5); the border between them is a drag handle (0.34.0)
+  const el = h('div.flow-tab', maxBar, backBar, xnote, h('div.flow-top', flowBox ? null : h('div.scn-row', inc.el, ts.ui.el), flowBox?.el, related?.el, walk.el, partial.el), body, pane?.splitter, pane?.el); // the pane sits under the diagram (0.27.5); the border between them is a drag handle (0.34.0)
   // maximized, the pane's tab row sticks under the title bar and the step bar, whatever height the step bar has (its description wraps): --max-stick is their height
   const stick = () => el.style.setProperty('--max-stick', `${maxBar.offsetHeight + (el.querySelector('.stepbar')?.offsetHeight ?? 0)}px`);
   const roStick = typeof ResizeObserver === 'function' ? new ResizeObserver(stick) : null;

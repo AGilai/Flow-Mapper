@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "safer-lookup",
+    "kind": "service",
+    "team": "identity",
+    "repo": "github.com/acme/safer-lookup",
+    "language": "typescript",
+    "description": "#85 demo: an unresolved call that is not a real gap (gap: false), so the flow is complete and shows no incomplete badge"
+  },
+  "version": 1,
+  "commit": "b85b85b",
+  "harvestedAt": "2026-10-25T08:00:00Z",
+  "functions": [
+    {
+      "id": "Lookup.find", "name": "Lookup.find", "file": "src/lookup.ts", "line": 5,
+      "steps": [
+        { "seq": 1, "type": "call", "note": "JSON.parse", "origin": "frontier", "unresolved": [{ "what": "target", "reason": "builtin-receiver", "detail": "JSON.parse(body)", "gap": false, "plain": "built-in function" }] },
+        { "seq": 2, "type": "call", "target": "Lookup.format", "origin": "frontier" }
+      ]
+    },
+    { "id": "Lookup.format", "name": "Lookup.format", "file": "src/lookup.ts", "line": 20, "steps": [] }
+  ],
+  "ingress": [
+    {
+      "id": "in.find", "bindKey": "http:GET safer-lookup/api/v1/lookup", "transport": "http",
+      "handler": "Lookup.find", "entryPoint": true,
+      "details": { "method": "GET", "path": "/api/v1/lookup", "coverage": { "status": "complete", "blocked": 0, "more": 0, "sites": [] } }
+    }
+  ],
+  "egress": [],
+  "resources": []
+}

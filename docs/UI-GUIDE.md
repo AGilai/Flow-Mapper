@@ -249,6 +249,9 @@ bottom in the order of the jump bar (Overview, About, Flows, Connections; a subs
 - **Read-only where the data is harvested.** No pencils, the empty About says where a description comes from; in a design the empty About offers "Add about" and the section template.
 - **Unsaved text is never lost silently**: closing the pane or picking another item while an About is being edited asks "Discard changes?" inline.
 
+## Incomplete flows (#85)
+Amber means "unknown, not wrong" (red, `--t-broken`, is a known broken link). Tokens `--inc` (strokes and stripes), `--inc-ink` (text) and `--inc-bg` (fill) in `tokens.css`; `--warn` is never used for text (3.4:1). The badge `incomplete · N blocked`, the frontier marker with `· M blocked`, the blocked step row (tint, 3 px stripe, "!" bubble, a dotted stub ending in a stop bar) and the "Why incomplete" section share them. The three dash rhythms stay apart: return = grey 5/3, blocked stub = amber 2/3, reserved inferred (LLM) = dash-dot in the hop's colour. Spec: `docs/plans/incomplete-flows.md`, mockup `design/mockups/frames/frame-22.html`.
+
 ## Checklist before merge
 
 - [ ] Screenshot at 1440px and at 760px, in light and dark. Can you state the page's answer in
