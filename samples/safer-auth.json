@@ -8,7 +8,7 @@
     "team": "identity",
     "repo": "github.com/acme/safer-auth",
     "language": "typescript",
-    "description": "Internal authentication (#84 demo: a handler whose whole call tree is a frontier, with two unresolved calls)"
+    "description": "Internal authentication (#84 and #85 demo: a handler whose whole call tree is a frontier, with two blocked calls)"
   },
   "version": 1,
   "commit": "a84a84a",
@@ -24,9 +24,9 @@
     {
       "id": "AuthService.isAuthenticated", "name": "AuthService.isAuthenticated", "file": "src/auth.service.ts", "line": 8,
       "steps": [
-        { "seq": 1, "type": "call", "note": "this.checkSecretIsValid", "origin": "frontier", "unresolved": [{ "what": "target", "reason": "unknown_receiver", "detail": "this.checkSecretIsValid" }] },
+        { "seq": 1, "type": "call", "note": "this.checkSecretIsValid", "origin": "frontier", "source": { "file": "src/auth.service.ts", "line": 21 }, "unresolved": [{ "what": "target", "reason": "no-receiver-type", "detail": "this.checkSecretIsValid(secret)", "gap": true, "plain": "receiver type unknown" }] },
         { "seq": 2, "type": "call", "target": "UnauthorizedException.constructor", "origin": "frontier" },
-        { "seq": 3, "type": "call", "note": "mw.extractOrgAuthData", "origin": "frontier", "unresolved": [{ "what": "target", "reason": "class_not_in_repo", "detail": "mw.extractOrgAuthData" }] }
+        { "seq": 3, "type": "call", "note": "mw.extractOrgAuthData", "origin": "frontier", "source": { "file": "src/auth.service.ts", "line": 34 }, "unresolved": [{ "what": "target", "reason": "class-not-in-repo", "detail": "mw.extractOrgAuthData(req)", "gap": true, "plain": "class not in this repository" }] }
       ]
     },
     { "id": "UnauthorizedException.constructor", "name": "UnauthorizedException.constructor", "file": "src/errors.ts", "line": 3, "steps": [] },
@@ -40,7 +40,16 @@
     {
       "id": "in.authenticate", "bindKey": "http:POST safer-auth/api/v1/api-internal/authenticate", "transport": "http",
       "handler": "AuthHandler.authenticate", "entryPoint": true,
-      "details": { "method": "POST", "path": "/api/v1/api-internal/authenticate" }
+      "details": {
+        "method": "POST", "path": "/api/v1/api-internal/authenticate",
+        "coverage": {
+          "status": "incomplete", "blocked": 2, "more": 0,
+          "sites": [
+            { "fn": "AuthService.isAuthenticated", "seq": 1, "file": "src/auth.service.ts", "line": 21, "call": "this.checkSecretIsValid(secret)", "reason": "no-receiver-type", "plain": "receiver type unknown" },
+            { "fn": "AuthService.isAuthenticated", "seq": 3, "file": "src/auth.service.ts", "line": 34, "call": "mw.extractOrgAuthData(req)", "reason": "class-not-in-repo", "plain": "class not in this repository" }
+          ]
+        }
+      }
     }
   ],
   "egress": [],

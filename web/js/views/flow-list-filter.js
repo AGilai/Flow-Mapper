@@ -50,8 +50,8 @@ export function summaryText(sel, rows) {
 }
 
 /** "platform · 3 of 9": what the collapsed list strip says about the filters (nothing when nothing is applied). */
-export function filterSummary({ subs, comps, subRows, compRows, changed, q, rel = null }) {
-  const parts = [subs ? `subsystems ${summaryText(subs, subRows)}` : null, comps ? `components ${summaryText(comps, compRows)}` : null, changed ? 'changed' : null, rel ? (rel === 'any' ? 'related' : rel) : null, q ? `"${q}"` : null].filter(Boolean);
+export function filterSummary({ subs, comps, subRows, compRows, changed, q, rel = null, incomplete = false }) {
+  const parts = [subs ? `subsystems ${summaryText(subs, subRows)}` : null, comps ? `components ${summaryText(comps, compRows)}` : null, changed ? 'changed' : null, incomplete ? 'incomplete' : null, rel ? (rel === 'any' ? 'related' : rel) : null, q ? `"${q}"` : null].filter(Boolean);
   return parts.join(' · ');
 }
 
@@ -65,12 +65,13 @@ export function markOfPoint(marks, p) {
 }
 
 /** The points that pass every filter. `changed`: null | '1' (New or Changed) | 'all' (also Removed: those are ghosts, listed by `removedPoints`). */
-export function filterPoints(points, { q = '', subs = null, comps = null, changed = null, rel = null, relBy = new Map(), marks = null, groupOf = new Map() } = {}) {
+export function filterPoints(points, { q = '', subs = null, comps = null, changed = null, rel = null, relBy = new Map(), marks = null, groupOf = new Map(), incomplete = false } = {}) {
   const t = q.trim().toLowerCase();
   return points.filter((p) => {
     if (t && !(p.bindKey.toLowerCase().includes(t) || p.service.includes(t) || p.handler.toLowerCase().includes(t) || (p.name ?? '').toLowerCase().includes(t) || (p.summary ?? '').toLowerCase().includes(t))) return false;
     if (subs && !subs.has(topOf(groupOf.get(p.service)))) return false;
     if (comps && !comps.has(p.service)) return false;
+    if (incomplete && !isIncompletePoint(p)) return false;   // #85: only flows the harvester reports as incomplete
     if (rel && !relPasses(relBy.get(`${p.service}/${p.id}`), rel)) return false;   // 0.28.2: a relation of this type (or any)
     if (changed) { const m = markOfPoint(marks, p)?.mark; if (m !== 'new' && m !== 'changed') return false; }
     return true;
@@ -82,3 +83,12 @@ export function removedPoints(marks, { subs = null, comps = null, groupOf = new 
   const t = q.trim().toLowerCase();
   return (marks?.ghostsUnder?.('ing:') ?? []).filter((g) => g.service && (!subs || subs.has(topOf(groupOf.get(g.service)))) && (!comps || comps.has(g.service)) && (!t || `${g.service} ${g.label}`.toLowerCase().includes(t)));
 }
+
+// #85, "Incomplete flows only": a point carries `coverage` ({ status, blocked }) when its ingress reports it. The filter is offered only where some flow does.
+export const hasCoverage = (points) => points.some((p) => p.coverage);
+export const isIncompletePoint = (p) => p.coverage?.status === 'incomplete' || (p.coverage?.blocked ?? 0) > 0;
+/** How many of `points` are incomplete (the checkbox's count: ignores the filter itself, follows the scope). */
+export const incompleteCount = (points) => points.filter(isIncompletePoint).length;
+/** `incomplete=1` in the URL turns the filter on, only where some flow reports coverage (else it is ignored); the parameter written for a state. */
+export const incompleteOn = (query, covered) => covered && query.get('incomplete') === '1';
+export const incompleteParam = (on) => (on ? '1' : null);

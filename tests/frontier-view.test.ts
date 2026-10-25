@@ -27,7 +27,7 @@ const folded = trace(g, start, { scope: 'full', maxMessages: 800 })!;
 
 test('the demo: frontier=1 makes 7 messages, two unresolved; without it one folded marker', () => {
   assert.equal(unfolded.messages.length, 7);
-  assert.deepEqual(unfolded.messages.filter((m: any) => m.gap).map((m: any) => m.gap.reason), ['unknown_receiver', 'class_not_in_repo']);
+  assert.deepEqual(unfolded.messages.filter((m: any) => m.gap).map((m: any) => m.gap.reason), ['no-receiver-type', 'class-not-in-repo']);
   assert.deepEqual(kinds(folded).map((k: string) => k.split(':')[0]), ['entry', 'frontier']);
 });
 

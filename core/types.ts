@@ -13,7 +13,7 @@ export type Details = Record<string, unknown>;
 /** Where an item is defined: code or IaC file and line. `commit`/`repo` override the service's for this item's link. */
 export interface Source { file?: string; line?: number; col?: number; url?: string; repo?: string; commit?: string }
 /** Which harvester run produced an item, and whether it was checked against the live system. */
-export interface Provenance { producer?: string; runId?: string; verified?: 'match' | 'drift' | 'code-only' }
+export interface Provenance { producer?: string; runId?: string; verified?: 'match' | 'drift' | 'code-only'; /** #85 (reserved): 'llm' = inferred by a model, not proven by a call in the code. Drawn dash-dot with an "inferred (LLM)" tag; nothing sends it yet. */ kind?: 'llm' }
 /** Something the harvester found but could not resolve: the target (call or consumer) or the event type. */
 /** what=caller (on a function): the backward walk stopped here because nothing could be resolved as its caller. */
 export interface Unresolved { what: 'target' | 'event' | 'caller' | 'client' | 'instance' | 'detail'; reason: string; detail?: string; candidates?: string[];

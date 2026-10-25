@@ -13,6 +13,7 @@ import { markOfPoint } from './flow-list-filter.js';
 import { safeUrl } from '../components/ext-links.js';
 import { relTitle, relTotal } from './flow-relations-pure.js';
 import { decisionsTitle } from './flow-scenario-pure.js';
+import { rowBadge } from './incomplete-badge.js';
 
 const countBadge = (c) => (c ? [h('span.count', { title: describeCount(c) }, ` (${c.total})`), decBadge(c)] : null);
 /** "2 decisions" (0.38.0, #82): the flow has either/or decisions; the tooltip names the steps of the default view, the range with Both and the Full count. */
@@ -41,7 +42,7 @@ const markTip = (info, marks) => [markTitle(info, marks), info.what].filter(Bool
 
 /** entryRow(p, { marks, counts, onPick, onPickTab, design }) -> the row element. */
 export function entryRow(p, { marks, counts, cmts = {}, acts = {}, ments = {}, relBy = new Map(), onPick, onPickTab, design, flat = false }) {
-  const cm = [cmtBadge(cmts[`flow:${p.service}/${p.id}`]), actBadge(acts[`flow:${p.service}/${p.id}`]), mnBadge(ments[`flow:${p.service}/${p.id}`]), relBadge(relBy.get(`${p.service}/${p.id}`))];
+  const cm = [rowBadge(p.coverage, p.service), cmtBadge(cmts[`flow:${p.service}/${p.id}`]), actBadge(acts[`flow:${p.service}/${p.id}`]), mnBadge(ments[`flow:${p.service}/${p.id}`]), relBadge(relBy.get(`${p.service}/${p.id}`))];
   const info = design ? markOfPoint(marks, p) : null, rest = splitKey(p.bindKey).rest, lock = p.reference || p.partial ? lockChip({ source: p.reference?.source ?? null }, { short: true, text: p.reference ? null : 'partial', title: p.reference ? 'This entry point is a reference: its behaviour is in another environment.' : `This flow runs into ${p.partial} reference${p.partial === 1 ? '' : 's'}.` }) : null;
   const name = p.name || p.bindKey;
   const link = h('a.entry', { href: href('/flows', { service: p.service, ingress: p.id }), 'data-key': entryKey(p.service, p.id), on: { click: (e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button) return; e.preventDefault(); onPick(p); } } },

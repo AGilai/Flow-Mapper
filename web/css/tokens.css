@@ -31,6 +31,7 @@
 
   --ok: #1f9d55;
   --warn: #c27c00;
+  --inc: #b06f00; --inc-ink: #7a4a00; --inc-bg: #f6eddb; --inf: var(--accent); /* #85 incomplete flows: amber (unknown, not wrong: red is a known broken link). --inc strokes, --inc-ink text, --inc-bg fill; --warn is never text here (3.4:1) */
   --bad: #d63a3a;
   --p0: #d63a3a; --p1: #e07a1f; --p2: #4a4fd6; --p3: #8b93a7;
 
@@ -65,6 +66,7 @@
     --new: #f7cf55; --new-ink: #f7cf55; --step-hl: #31291a;
     --cmp-1: #e095c7; --cmp-2: #5dbee9; --cmp-3: #96bd96; --cmp-4: #aaa7f4; --cmp-5: #ef9494; --cmp-6: #64c3c3; --cmp-7: #c2a4d0; --cmp-8: #e79e6b;
     --env-1: #3cc4c6; --env-1-ink: color-mix(in srgb, #3cc4c6 40%, var(--ink)); --env-2: #ff9a4d; --env-2-ink: color-mix(in srgb, #ff9a4d 40%, var(--ink)); --env-3: #b093ff; --env-3-ink: color-mix(in srgb, #b093ff 40%, var(--ink)); --env-4: #ff7aa8; --env-4-ink: color-mix(in srgb, #ff7aa8 40%, var(--ink)); --env-5: #7bd07b; --env-5-ink: color-mix(in srgb, #7bd07b 40%, var(--ink)); --env-6: #d4a373; --env-6-ink: color-mix(in srgb, #d4a373 40%, var(--ink)); --env-7: #9bb7d4; --env-7-ink: color-mix(in srgb, #9bb7d4 40%, var(--ink)); --env-8: #d98ad9; --env-8-ink: color-mix(in srgb, #d98ad9 40%, var(--ink)); --env-9: #4fc79a; --env-9-ink: color-mix(in srgb, #4fc79a 40%, var(--ink)); --env-10: #7f93ff; --env-10-ink: color-mix(in srgb, #7f93ff 40%, var(--ink));
+    --inc: #e0a030; --inc-ink: #f2b84b; --inc-bg: #36302a;
     --shadow-panel: 0 12px 32px -12px rgba(0, 0, 0, 0.6);
     color-scheme: dark;
   }
@@ -78,6 +80,7 @@
   --new: #f7cf55; --new-ink: #f7cf55; --step-hl: #31291a;
   --cmp-1: #e095c7; --cmp-2: #5dbee9; --cmp-3: #96bd96; --cmp-4: #aaa7f4; --cmp-5: #ef9494; --cmp-6: #64c3c3; --cmp-7: #c2a4d0; --cmp-8: #e79e6b;
   --env-1: #3cc4c6; --env-1-ink: color-mix(in srgb, #3cc4c6 40%, var(--ink)); --env-2: #ff9a4d; --env-2-ink: color-mix(in srgb, #ff9a4d 40%, var(--ink)); --env-3: #b093ff; --env-3-ink: color-mix(in srgb, #b093ff 40%, var(--ink)); --env-4: #ff7aa8; --env-4-ink: color-mix(in srgb, #ff7aa8 40%, var(--ink)); --env-5: #7bd07b; --env-5-ink: color-mix(in srgb, #7bd07b 40%, var(--ink)); --env-6: #d4a373; --env-6-ink: color-mix(in srgb, #d4a373 40%, var(--ink)); --env-7: #9bb7d4; --env-7-ink: color-mix(in srgb, #9bb7d4 40%, var(--ink)); --env-8: #d98ad9; --env-8-ink: color-mix(in srgb, #d98ad9 40%, var(--ink)); --env-9: #4fc79a; --env-9-ink: color-mix(in srgb, #4fc79a 40%, var(--ink)); --env-10: #7f93ff; --env-10-ink: color-mix(in srgb, #7f93ff 40%, var(--ink));
+  --inc: #e0a030; --inc-ink: #f2b84b; --inc-bg: #36302a;
   --shadow-panel: 0 12px 32px -12px rgba(0, 0, 0, 0.6);
   color-scheme: dark;
 }

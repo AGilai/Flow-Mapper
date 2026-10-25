@@ -11,6 +11,8 @@ import { refNoteSvg } from './flow-refs-draw.js';
 import { noteSvg } from './flow-draw-notes.js';
 import { decisionSvg } from './flow-decision-draw.js';
 import { inlineMarks } from './flow-markers-draw.js';
+import { frontierSvg, blockedBand, blockedLines, blockedIcall, isBlockedEvent, inferredTag, BLOCKED_LINE } from './flow-draw-incomplete.js';
+import { isInferred } from './incomplete-pure.js';
 
 /** "⌄ group": folds an expanded run of DB operations again (0.38.0); a folded run opens with a click on its row. */
 const dbToggle = (key, x, y0) => s('g', { class: 'dbtog', 'data-db': key, tabindex: 0, role: 'button', 'aria-label': 'Group these database operations again' }, s('rect', { x, y: y0 + 5, width: 58, height: 15, rx: 7.5 }), s('text', { x: x + 29, y: y0 + 16, 'text-anchor': 'middle' }, '⌄ group'), s('title', {}, 'Group these operations into one row again'));
@@ -28,7 +30,8 @@ export function drawRows({ events, colX, ys, barX, edge, marks, refs, stacked, f
       const dir = Math.sign(colX.get(e.to) - colX.get(e.from)) || 1;
       const x1 = edge(e.fromBar, e.from, dir), x2 = e.bar ? barX(e.bar, -dir) : colX.get(e.to);
       const mc = colorOf(e.tr ?? e.msg.transport);
-      return g(e.rpc ? 'rpc' : '', arrow(x1, x2, y0, { label: lab(e.label), color: mc, dashed: e.msg.mode === 'async' && !e.bar }), e.rpc?.chip ? rpcChip('amqp rpc', (x1 + x2) / 2, y0, mc) : null, e.rpc?.glyph ? s('text', { class: 'rpcglyph', x: Math.min(x1, x2) + 4, y: y0 - 5, style: `--mc:${mc}` }, '⇄') : null, hit(x1, x2), ...arrowMarkSvg(marks, e.msg, x1, x2, y0, stacked?.has(e), th, mk()), e.bar ? refNoteSvg(refs, e, barX(e.bar, 1), y0) : null, s('title', {}, e.rpc ? `${e.label} (RPC over AMQP)` : e.msg.label));
+      const inf = isInferred(e.msg); // reserved (#85 ask 5): a hop a model inferred is dash-dot with a tag, never amber, solid or grey
+      return g(`${e.rpc ? 'rpc' : ''}${inf ? ' inferred' : ''}`, arrow(x1, x2, y0, { label: lab(e.label), color: mc, dashed: e.msg.mode === 'async' && !e.bar }), inf ? inferredTag(Math.min(x1, x2) + 8, y0) : null, e.rpc?.chip ? rpcChip('amqp rpc', (x1 + x2) / 2, y0, mc) : null, e.rpc?.glyph ? s('text', { class: 'rpcglyph', x: Math.min(x1, x2) + 4, y: y0 - 5, style: `--mc:${mc}` }, '⇄') : null, hit(x1, x2), ...arrowMarkSvg(marks, e.msg, x1, x2, y0, stacked?.has(e), th, mk()), e.bar ? refNoteSvg(refs, e, barX(e.bar, 1), y0) : null, s('title', {}, e.rpc ? `${e.label} (RPC over AMQP)` : e.msg.label));
     }
     if (e.type === 'return') {
       const dir = Math.sign(colX.get(e.to) - colX.get(e.bar.col)) || 1;
@@ -37,8 +40,8 @@ export function drawRows({ events, colX, ys, barX, edge, marks, refs, stacked, f
     }
     if (e.type === 'unresolved') {
       const x1 = barX(owner, 1), x2 = colX.get(e.col) - 8;
-      const gap = isDesign(e.col?.env); // in a design a missing target is not a fault: neutral, no cross
-      return g('broken', arrow(x1, x2, y0, { dashed: true, label: lab(e.label), color: gap ? 'var(--ink-2)' : 'var(--t-broken)', cross: !gap }), e.chip ? rpcChip(e.chip, (x1 + x2) / 2, y0, 'var(--t-broken)', true) : arrowMarkSvg(null, e.msg, x1, x2, y0, false, th, mk()), hit(x1, x2), s('title', {}, e.msg.label));
+      const gap = isDesign(e.col?.env), blk = isBlockedEvent(e); // in a design a missing target is not a fault: neutral, no cross; a blocked call (gap: true) is amber (#85)
+      return g(blk ? 'broken blocked' : 'broken', ...(blk ? [...blockedBand(y0, width, BLOCKED_LINE.unresolved), ...blockedLines(e, x1 + 14, y0 + 3, width).slice(1)] : []), arrow(x1, x2, y0, { dashed: true, label: lab(e.label), color: blk ? 'var(--inc)' : gap ? 'var(--ink-2)' : 'var(--t-broken)', cross: !gap && !blk }), e.chip ? rpcChip(e.chip, (x1 + x2) / 2, y0, 'var(--t-broken)', true) : arrowMarkSvg(null, e.msg, x1, x2, y0, false, th, mk()), hit(x1, x2), s('title', {}, e.msg.label));
     }
     if (e.type === 'hop') { // one arrow through the topic: its colour changes exactly on the topic lifeline; the event type reads like a REST path
       const x1 = edge(e.fromBar, e.from, 1), x2 = colX.get(e.to), tx = e.via ? colX.get(e.via) : e.fork ? colX.get(e.from) : null, mc = colorOf(e.transport), tc = colorOf(e.trunkTransport), hl = e.sub ? [e.label, e.sub] : e.label;
@@ -52,6 +55,7 @@ export function drawRows({ events, colX, ys, barX, edge, marks, refs, stacked, f
     }
     if (e.type === 'note') return noteSvg(e, y0, { colX, idx, groups });
     if (e.type === 'decision') return decisionSvg(e, y0, { width, ...decide });
+    if (e.type === 'icall' && isBlockedEvent(e)) return blockedIcall(e, g, y0, { barX, width });
     if (e.type === 'icall') { // a call inside the service (0.38.0): a ring on its bar, the name, and a grey "internal" tag; a step like the arrows
       const x0 = barX(e.bar, 1), tx = x0 + 44, name = String(e.label), room = Math.max(8, Math.floor((width - tx - 76) / 7.2)), t = name.length > room ? `${name.slice(0, room - 1)}…` : name;
       return g(`icall${e.msg.gap || e.msg.broken ? ' warn' : ''}`, s('circle', { class: 'idot', cx: x0, cy: y0, r: 3.6 }), s('text', { class: 'ilab', x: tx, y: y0 + 4 }, t), s('rect', { class: 'itag', x: tx + t.length * 7.2 + 8, y: y0 - 7, width: 52, height: 15, rx: 7.5 }), s('text', { class: 'itagt', x: tx + t.length * 7.2 + 34, y: y0 + 4, 'text-anchor': 'middle' }, 'internal'), ...inlineMarks(e.msg, tx + t.length * 7.2 + 66, y0, width - 12, runs?.byMsg.get(e.msg)?.first), s('rect', { class: 'hit', x: x0 - 6, y: y0 - 14, width: Math.max(60, width - x0 - 12), height: 28 }), s('title', {}, `${e.msg.label}\n${e.msg.fn ? `in ${e.msg.service}:${e.msg.fn}` : 'a call inside the service'}`));
@@ -70,7 +74,7 @@ export function drawRows({ events, colX, ys, barX, edge, marks, refs, stacked, f
     }
     if (e.type === 'frontier') {
       const x0 = barX(e.bar, 1);
-      return g('frontier', s('path', { class: 'stub', d: `M${x0} ${y0} h10` }), s('text', { class: 'label', x: x0 + 16, y: y0 + 4 }, `${e.msg.label}  (click to show)`));
+      return frontierSvg(e, r, x0, y0); // #85: a real button, "frontier: N steps" and "· M blocked" in amber
     }
     if (e.type === 'mw') {
       const x0 = barX(e.bar, 1), text = mwLabel(e.seg, e.internal), fold = isLongChain(e.bar.mw.chain), chev = e.seg.folded || e.seg.collapse, w = text.length * 6.4 + 16 + (chev ? 18 : 0), cx = x0 + 12 + w - 14;

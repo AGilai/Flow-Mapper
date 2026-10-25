@@ -23,6 +23,7 @@ import { splitStore, opLabel } from './flow-stores-pure.js';
 import { isRpc, rpcCommand } from './flow-amqp.js';
 import { markersCard } from './flow-markers-draw.js';
 import { rpcCard, rpcMissing, routingRows } from './flow-panel-amqp.js';
+import { whySection, stepIdOf } from './incomplete-why.js';
 
 const KIND = { entry: 'Entry', call: 'Function call', egress: 'Call', deliver: 'Delivery from queue', resource: 'Data store access', leaf: 'Leaf step (classified by the harvester)', frontier: 'Frontier steps (folded)' };
 
@@ -38,7 +39,7 @@ export function messagePanel(m, trace, env, scope = 'full', openEntry = null, ma
   const dto = h('div.stack', { style: { gap: 'var(--s3)' } }, h('p.small.muted', 'Loading…'));
   loadDto(m, env, marks).then((cards) => fill(dto, cards)).catch((err) => fill(dto, h('p.small.muted', err.message)));
 
-  return [head,
+  return [head, whySection(trace, { me: stepIdOf(m) }), // #85: Why incomplete leads the pane body (nothing for a complete flow)
     flow ? h('div.ep-pad', openEntry ? h('button.btn', { type: 'button', on: { click: () => openEntry({ service: flow.service, ingress: flow.ingress, scope }) } }, 'Open the async flow in a tab') : h('a.btn', { href: href('/flows', { service: flow.service, ingress: flow.ingress, scope }) }, 'Open the async flow'), h('span.xs.muted', ` ${flow.service} · ${flow.ingress}`)) : null,
     m.gap ? gapCard(m.gap) : null,
     codeCard(m, trace, env),

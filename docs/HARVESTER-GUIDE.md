@@ -313,7 +313,7 @@ Unresolved items are never counted as broken links; they have their own section 
 `gap` (boolean: `false` = not a real missing hop, e.g. a call on a built-in receiver; `true` or absent = a real gap) and `plain` (string: the reason in
 plain English; `reason` stays the stable code). Both are returned exactly as sent in the trace (`messages[].gap`), link health (`items.unresolved[]`) and
 the MCP tools; counting and health ignore them, and old manifests are unchanged. `details.coverage` on an ingress (`{status: "complete"|"incomplete",
-blocked, sites: [{fn, seq, file, line, call, reason, plain}], more}`) needs no schema: `details` is free-form and is returned as sent.
+blocked, sites: [{fn, seq, file, line, call, reason, plain}], more}`) needs no schema: `details` is free-form and is returned as sent. Since #85 the UI reads these: only `gap: true` counts as a blocked call (`gap` absent or `false` is drawn as before), the trace shows the amber "incomplete · N blocked" badge from it (falling back to `coverage.blocked` when no step of the trace carries a `gap`), and the Flows list filters on `coverage.status` / `blocked`.
 Example: `{"what": "target", "reason": "receiver_unknown", "gap": false, "plain": "A call on a built-in object, not a missing hop."}`.
 
 **Assumed values (#47, 0.25.2).** `unresolved` says "I could not tell"; `assumed` says "I filled this in by a rule, it is not read from code". Send it on the same objects as `unresolved` (ingress, egress, functions, steps, resources) and on Redis key entries:

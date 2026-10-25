@@ -5,6 +5,7 @@ import type { Alt } from './alt.ts';
 import type { SourceLink } from './endpoint-info.ts';
 import type { LinkedHop } from './via.ts';
 import type { AmqpRoute, RpcInfo } from './amqp-route.ts';
+import type { BlockedSite, Coverage } from './incomplete.ts';
 import type { Mode, StepAlternative, StepFix, StepField, Unresolved } from './types.ts';
 
 export interface Participant {
@@ -35,6 +36,9 @@ export interface Message {
   assumed?: { field: string; value: unknown; basis: string; reason: string }[]; // #47: details of a resource step the harvester filled by a rule
   unknown?: { field: string; reason: string }[];            // on a resource step: details the harvester could not read (`unresolved` what=detail: keyTemplate, dbIndex, ttlSeconds) and why
   gap?: Unresolved;                                          // the harvester could not resolve this call; why
+  provenance?: { kind?: 'llm' };                              // #85 (reserved): a step or edge a model inferred (drawn dash-dot with a tag); nothing sends it yet
+  blocked?: BlockedSite;                                     // #85: the step has an unresolved entry with `gap: true` (a call the flow could not follow)
+  frontierBlocked?: number; frontierSites?: BlockedSite[];   // #85, on a kind 'frontier' marker: how many of its folded steps are blocked, and the first 20
   group?: string;                                            // SNS fan-out: id of the publish (`m<index of the publish message>`), on the publish and on each of its deliveries
   deliveries?: number;                                       // on the publish message of a fan-out: how many deliveries follow it
   matched?: string[];                                        // on deliveries of an untyped publish: the event types (its events / candidates) that the subscription's filter let through
@@ -74,6 +78,8 @@ export interface Trace {
   noHandler?: true;
   /** Code location of every function on the trace, by `${service}:${fn}`, of call sites, by `egress:${service}:${id}`, and of steps that carry a `source`, by `step:${service}:${fn}#${seq}`. */
   code: Record<string, SourceLink | null>;
+  /** #85: `details.coverage` of the entry ingress (what its harvester reports about its own service), when it has one; each site carries its repository `url` when known. */
+  coverage?: Coverage;
   /** 0.37.0: the either/or decisions the flow reaches, in first-seen order. Absent when there are none. */
   decisions?: Decision[];
   /** 0.37.1, on a view only (viewOf): what was applied. */
