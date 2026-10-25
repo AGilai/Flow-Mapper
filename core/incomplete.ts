@@ -12,6 +12,8 @@ export interface BlockedSite { id: string; service: string; fn: string; seq: num
 /** `details.coverage` of an ingress: what the harvester knows about the flow's own service. */
 export interface Coverage { status?: 'complete' | 'incomplete'; blocked?: number; sites?: Omit<BlockedSite, 'id' | 'service'>[]; more?: number }
 export const SITE_CAP = 20;
+/** A repository link is shown only when it is http(s); a harvester-supplied `source.url` such as `javascript:` is dropped. */
+const httpUrl = (u: string | null | undefined) => (u && /^https?:\/\//i.test(u) ? u : null);
 
 const num = (x: unknown) => (typeof x === 'number' && Number.isFinite(x) && x >= 0 ? Math.floor(x) : undefined);
 const str = (x: unknown) => (typeof x === 'string' ? x : undefined);
@@ -30,7 +32,7 @@ export function coverageOf(details: Details | undefined | null): Coverage | null
 export function coverageFor(g: GraphIndex, ing: Ingress): { coverage?: Coverage } {
   const c = coverageOf(ing.details), svc = g.services.get(ing.service);
   if (!c) return {};
-  return { coverage: c.sites ? { ...c, sites: c.sites.map((s) => { const u = svc && s.file ? codeLink(svc, { file: s.file, line: s.line })?.url : null; return u ? { ...s, url: u } : s; }) } : c };
+  return { coverage: c.sites ? { ...c, sites: c.sites.map((s) => { const u = httpUrl(svc && s.file ? codeLink(svc, { file: s.file, line: s.line })?.url : null); return u ? { ...s, url: u } : s; }) } : c };
 }
 
 /** The blocked entry of a step (its own, else its egress's), or undefined. */
@@ -42,7 +44,7 @@ export function stepBlocked(g: GraphIndex, service: string, fnId: string, st: St
   const u = gapEntry(g, service, st);
   if (!u) return null;
   const src = g.services.has(service) && st.source ? codeLink(g.services.get(service)!, st.source) : null, call = u.detail ?? st.operation ?? st.note;
-  return { id: `${service}:${fnId}#${st.seq}`, service, fn: fnId, seq: st.seq, ...(call ? { call } : {}), reason: u.reason, ...(u.plain ? { plain: u.plain } : {}), ...(st.source?.file ? { file: st.source.file.replace(/^\.?\/+/, '') } : {}), ...(st.source?.line ? { line: st.source.line } : {}), ...(src?.url ? { url: src.url } : {}) };
+  return { id: `${service}:${fnId}#${st.seq}`, service, fn: fnId, seq: st.seq, ...(call ? { call } : {}), reason: u.reason, ...(u.plain ? { plain: u.plain } : {}), ...(st.source?.file ? { file: st.source.file.replace(/^\.?\/+/, '') } : {}), ...(st.source?.line ? { line: st.source.line } : {}), ...(httpUrl(src?.url) ? { url: src!.url } : {}) };
 }
 
 /** The blocked steps in a function's frontier (its own frontier steps and those of the functions its frontier calls reach, each once): how many, and the first `SITE_CAP`. */

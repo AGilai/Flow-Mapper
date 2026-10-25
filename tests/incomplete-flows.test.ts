@@ -211,3 +211,11 @@ test('filter: offered only where some flow has coverage; incomplete=1 is ignored
   assert.equal(incompleteParam(true), '1');
   assert.equal(incompleteParam(false), null);
 });
+
+test('XSS: a harvester source.url that is not http(s) never becomes a link on a blocked site', async () => {
+  const { stepBlocked } = await import('../core/incomplete.ts');
+  const fake: any = { services: new Map([['s', { name: 's', repo: 'github.com/o/r' }]]), egress: new Map() };
+  const st = (url: string): any => ({ seq: 1, type: 'call', unresolved: [{ what: 'target', reason: 'r', gap: true }], source: { file: 'a.ts', line: 3, url } });
+  assert.equal(stepBlocked(fake, 's', 'f', st('javascript:alert(1)'))!.url, undefined);
+  assert.equal(stepBlocked(fake, 's', 'f', st('https://example.com/x'))!.url, 'https://example.com/x');
+});
