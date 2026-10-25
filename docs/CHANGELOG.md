@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased
+## 0.41.3 (2026-10-25)
 **Fix #84: Frontier steps are drawn in the External view, and the folded "N internal calls" marker opens on a click.** No schema or migration change.
 - `GET /trace?detail=external` (and MCP `trace_flow`) now keeps every message with `origin: "frontier"` and the folded frontier marker (`kind: "frontier"`). Until now it kept only the unresolved ones (`frontier=1`: entry plus 2 messages) and dropped the marker (`frontier=0`), so the page folded the two into "2 internal calls · 2 unresolved" and the rest was gone. `detail=full` is unchanged. Without `frontier=1` the trace has no frontier steps, only the marker.
 - The page: with "Frontier steps" ticked each step is a row of its own (an internal call, in either detail); the marker "N internal calls" opens those calls on a click, Enter or Space (the same as "⊕ internal" under the head, "⊖ internal" folds them again).
