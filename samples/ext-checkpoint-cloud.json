@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "ext-checkpoint-cloud",
+    "kind": "service",
+    "team": "vendor",
+    "repo": "github.com/acme/ext-checkpoint-cloud",
+    "language": "typescript",
+    "description": "The vendor cloud behind tenant-gateway (a stub: its two endpoints, nothing else)",
+    "details": {
+      "external": true
+    }
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-25T16:00:00Z",
+  "commit": "a88c0de",
+  "functions": [
+    {
+      "id": "authApp",
+      "name": "authApp",
+      "file": "api/auth.ts",
+      "line": 5,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "kind": "leaf",
+          "operation": "issue an app token"
+        }
+      ]
+    },
+    {
+      "id": "membership",
+      "name": "membership",
+      "file": "api/membership.ts",
+      "line": 9,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "kind": "leaf",
+          "operation": "look up the membership"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.appAuth",
+      "bindKey": "http:POST ext-checkpoint-cloud/v2/auth/app",
+      "transport": "http",
+      "handler": "authApp",
+      "details": {
+        "method": "POST",
+        "path": "/v2/auth/app"
+      }
+    },
+    {
+      "id": "in.membership",
+      "bindKey": "http:GET ext-checkpoint-cloud/api/v1/user/tenant/membership",
+      "transport": "http",
+      "handler": "membership",
+      "details": {
+        "method": "GET",
+        "path": "/api/v1/user/tenant/membership"
+      }
+    }
+  ]
+}

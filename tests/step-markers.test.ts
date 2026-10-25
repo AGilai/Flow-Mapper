@@ -54,7 +54,7 @@ test('REST and MCP trace_flow return canFail and onlyWhen', async () => {
 
 test('external view: the DB group aggregates its members', () => {
   const v = viewOf(full(), { detail: 'external' });
-  const g = v.messages.find((m) => m.dbGroup && m.label.includes('members'))!;
+  const g = v.messages.find((m) => m.dbGroup)!;
   assert.ok(g, 'update + insert fold into one row');
   assert.equal(g.dbGroup!.count, 2);
   assert.deepEqual(g.canFail!.map((c) => c.error), ['409 email already taken']);

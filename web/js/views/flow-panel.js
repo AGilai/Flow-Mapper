@@ -24,11 +24,12 @@ import { isRpc, rpcCommand } from './flow-amqp.js';
 import { markersCard } from './flow-markers-draw.js';
 import { rpcCard, rpcMissing, routingRows } from './flow-panel-amqp.js';
 import { whySection, stepIdOf } from './incomplete-why.js';
+import { callsCard } from './flow-panel-calls.js';
 
 const KIND = { entry: 'Entry', call: 'Function call', egress: 'Call', deliver: 'Delivery from queue', resource: 'Data store access', leaf: 'Leaf step (classified by the harvester)', frontier: 'Frontier steps (folded)' };
 
 /** Returns [head, ...content] for panel.open(). */
-export function messagePanel(m, trace, env, scope = 'full', openEntry = null, marks) { // marks: the marks of `env` (a tab of another env passes its own; the field marks of the DTO read them)
+export function messagePanel(m, trace, env, scope = 'full', openEntry = null, marks, db = null) { // marks: the marks of `env` (a tab of another env passes its own; the field marks of the DTO read them); db (#88, a merged store node): { n, expand(k) }
   const flow = asyncFlowOf(m);
   const p = (id) => trace.participants.find((x) => x.id === id);
   const rpc = isRpc(m), kind = rpc ? (m.kind === 'entry' ? 'Entry (RPC over AMQP)' : 'RPC call over AMQP') : m.kind === 'egress' && m.mode === 'async' ? 'Publish / async call' : KIND[m.kind];
@@ -42,6 +43,7 @@ export function messagePanel(m, trace, env, scope = 'full', openEntry = null, ma
   return [head, whySection(trace, { me: stepIdOf(m) }), // #85: Why incomplete leads the pane body (nothing for a complete flow)
     flow ? h('div.ep-pad', openEntry ? h('button.btn', { type: 'button', on: { click: () => openEntry({ service: flow.service, ingress: flow.ingress, scope }) } }, 'Open the async flow in a tab') : h('a.btn', { href: href('/flows', { service: flow.service, ingress: flow.ingress, scope }) }, 'Open the async flow'), h('span.xs.muted', ` ${flow.service} · ${flow.ingress}`)) : null,
     m.gap ? gapCard(m.gap) : null,
+    m.dbGroup?.calls?.length ? callsCard(m, trace, db ?? {}) : null,
     codeCard(m, trace, env),
     markersCard(m),
     rpcCard(m),
@@ -103,7 +105,7 @@ function codeCard(m, trace, env) {
   if (m.via?.length) rows.push(h('div.ep-pad.stack', { style: { gap: 'var(--s1)' } }, h('span.ep-label', 'Goes through'), viaChip(m.via)));
   if (m.handlerVia?.length) rows.push(h('div.ep-pad.stack', { style: { gap: 'var(--s1)' } }, h('span.ep-label', 'Handler resolved through'), viaChip(m.handlerVia)));
   if (m.store) rows.push(h('div.ep-pad.stack', { style: { gap: '2px' } }, h('span.ep-label', 'Data store'), storeLink(m.store, m.store, env)));
-  if (m.kind === 'resource') { // 0.27.1: the operation as harvested and the collection this arrow touches (a folded store lifeline names none)
+  if (m.kind === 'resource' && !m.dbGroup) { // 0.27.1: the operation as harvested and the collection this arrow touches (a folded store lifeline names none)
     const { collection, store, kind } = splitStore(m), acc = { write: 'write', read: 'read', read_write: 'read and write' }[m.access] ?? 'access not reported';
     rows.push(h('div.ep-pad.stack', { style: { gap: '2px' } }, h('span.ep-label', collection ? 'Collection' : 'Store'), h('span.mono', collection ?? store), h('span.small.muted', `${kind} · ${store}`)),
       h('div.ep-pad.stack', { style: { gap: '2px' } }, h('span.ep-label', 'Operation'), h('span.mono', opLabel(m)), h('span.small.muted', acc)));

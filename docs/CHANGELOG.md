@@ -5,6 +5,18 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+
+**Fix #88: consecutive store calls are one node `*N op, op`.** No schema or migration change; Viz-only (the harvester keeps one step per call).
+- Trace API / MCP `trace_flow` (`detail=external`, or `group=1`): the run of consecutive resource messages to one store and instance (same function or service, same arm path) is one row labelled `*3 get, hget`: the count, then the distinct operations in order of first use. This replaces `DB: 3 ops (users, devices)` in the lane, the Mermaid export (`detail=external`) and `dbGroup`. A per-step guard (`details.only_when`) and a message that carries `alternatives` (a decision point) no longer split a run (they did before: safer-auth `get`, `hget`, `get` and `tryGetCacheData` `setex`, `setex`, `del` stayed three arrows). A different arm of a decision, an external call or any other visible message still splits.
+- `dbGroup` keeps `{count, collections, access, members}` and adds `calls`: each member with `label` (the operation), `store`, `access`, `stepId`, `service`, `fn`, `seq` and, when sent, `keyTemplate`, `dbIndex`, `ttlSeconds`, `keyUnresolved`, `unknown`, `fields`, `onlyWhen`, `canFail`. The row's `onlyWhen` is still the members' guards together.
+- UI: a click on the `*N` arrow opens the Info pane (it used to expand the run) with one row per call: its step number `5.1`, the operation, key template (or "key not reported" with the reason), db, TTL, access, guard and `file:line` (a link only for http / https); a `5.1` button opens the run and goes to that call, and "Show the N calls as separate arrows" opens it. The expanded run folds again from its first row, as before. The store panel (#86) now lists a folded run's calls with their own chips `5.1`, `5.2` (the step the diagram draws, then the place in the run); every chip still jumps to the run's row. See `docs/plans/store-panel.md`.
+- Demo: `session-gateway` `POST /api/v1/session/validate`.
+
+**Fix #89: activation bars follow `from`.** UI and docs only; the API order is unchanged.
+- A message starts inside the bar of the service it comes from, not inside the previous callee's bar because its depth is greater. A caller's next call after a deferred (`mode: async`) internal call used to nest in the callee's bar (a false self-call on the callee, two stacked bars). Demo: `tenant-gateway` `GET /api/v1/tenants/{tenantId}/users`.
+- "seen at step N" is the number in the view the API returns (renumbered like `n`, tested on a flow with hidden calls before the first expansion). The External view only filters and folds the canonical order, it never reorders: a `sync` call to a function puts that function's calls first, in Full and External. A call marked `mode: async` runs after the caller's own remaining steps (0.32.4, #73), so its POST comes after the caller's GET. If `appAuth` is awaited, send it as `mode: sync`.
+
 ## 0.43.1 (2026-10-25)
 **#87: external services.** No schema change (the manifest schema now documents `details.external`) and no migration.
 - A service header with `details.external: true` (only the boolean) is an external, third-party service. Harvesters declare it on `ext-*` hosts they model only as a call target (HARVESTER-GUIDE "Service header").

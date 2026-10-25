@@ -15,7 +15,10 @@ export function createStorePanel({ body, host, trace, walk, label, inside, isAct
   let active = null, view = null, cur = null, band = null, timer = 0, want = null;
   const refocus_ = () => want && heads().find((x) => x.dataset.store === want.group && x.dataset.coll === want.coll)?.focus({ preventScroll: true });
   const lane = () => body.querySelector('.flow-lane svg.seq-body');
-  const stepNo = (m) => { const all = walk.steps(); return (all.find((x) => x.event.msg === m) ?? (m.key ? stepByKey(all, m.key) : null))?.n ?? null; };
+  const stepNo = (m) => { // a message of the ungrouped trace: its own arrow, or call k of the folded run (#88) that stands for it, read as `n.k`
+    const all = walk.steps(), own = all.find((x) => x.event.msg === m), st = own ?? (m.key ? stepByKey(all, m.key) : null), k = !own && st?.keys ? st.keys.indexOf(m.key) : -1;
+    return st ? (k >= 0 ? { n: st.n, sub: k + 1 } : st.n) : null;
+  };
   const model = (t) => storePanel(trace(), t, { stepNo, total: walk.steps().length });
   const heads = () => [...body.querySelectorAll('svg.seq-head g.store-hd')];
   const colOf = (g) => ({ kind: 'resource', group: g.dataset.store, collection: g.dataset.coll || null, stack: g.dataset.stack === '1', storeKind: g.dataset.kind });

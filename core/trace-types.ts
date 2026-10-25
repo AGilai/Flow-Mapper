@@ -59,13 +59,16 @@ export interface Message {
   key?: string;                                              // 0.37.0: the stable step key (core/description.ts stepKeys) over the canonical trace; stamped when the trace has decisions and on every view that drops messages
   canFail?: CanFail[];                                       // 0.38.1 (#82): the step succeeds but can fail (`details.can_fail`): when, error, source. On a DB-group row: the members' entries together
   onlyWhen?: OnlyWhen;                                       // 0.38.1: the step is in the only arm that leads to a flow (`details.only_when`): the guard. On a DB-group row: the members' guards
-  dbGroup?: DbGroup;                                         // 0.37.1: a run of consecutive DB operations of one store folded into this one row (viewOf); `label` reads `DB: 3 ops (users, devices)`
+  dbGroup?: DbGroup;                                         // 0.37.1: a run of consecutive DB operations of one store folded into this one row (viewOf); `label` reads `*3 get, hget` (0.43.2, #88: the count, then the distinct operations)
   filter?: HopFilter;                                        // on a hop that goes through a subscription, rule or binding (topic -> queue, bus -> target, exchange -> queue): what it declares
 }
 /** The subscription behind a hop: its id, the key it listens on (SNS topic, bus, `exchange/routing-key`) and the event types it lets through (absent: all). */
 export interface HopFilter { id: string; service: string; from: string; events?: '*' | string[]; /** An AMQP binding: its key as written in code (`details.bindingKey`, else the part of `from` after the exchange). */ bindingKey?: string; match?: string; /** Headers exchange: the binding's headers and x-match. */ headers?: Record<string, unknown>; xMatch?: 'all' | 'any' }
 /** 0.37.1: consecutive DB operations folded into one row: how many, the collections in order of first use, the access of the run, and the keys of the members (in the canonical numbering). */
-export interface DbGroup { count: number; collections: string[]; access: 'read' | 'write' | 'read_write' | 'unknown'; members: string[] }
+export interface DbGroup { count: number; collections: string[]; access: 'read' | 'write' | 'read_write' | 'unknown'; members: string[];
+  /** 0.43.2 (#88): the member calls, in order, each as the fields of its own message that the Info pane and the store panel read (`label` is the operation). */
+  calls?: DbCall[] }
+export type DbCall = Pick<Message, 'label' | 'store'> & Partial<Pick<Message, 'key' | 'access' | 'stepId' | 'service' | 'fn' | 'seq' | 'keyTemplate' | 'dbIndex' | 'ttlSeconds' | 'keyUnresolved' | 'unknown' | 'fields' | 'onlyWhen' | 'canFail'>>
 /** 0.37.0: one either/or decision of a flow. `name` is `llm_name` when there is one, else the template name (`template_name`). `parent`: the arm of another decision it sits in. `lock`: every place that reaches it fixes the same arm (`at` = the first fixing step, `<service>:<fn>#<seq>`); `lock_places` when only some places fix it. */
 export interface Decision {
   group_id: string; /** 0.38.2: 'alt' on a decision made from an alt frame (altGroup, file:line or design frame); its arms are `b1..bN`. */ from?: 'alt'; name?: string; template_name?: string; llm_name?: string | null; depends_on?: 'data' | 'message'; guard?: { text?: string; file?: string; line?: number };

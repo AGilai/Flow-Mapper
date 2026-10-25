@@ -18,7 +18,9 @@ const ROLE_WORD: Record<string, string> = { filter: 'filter', projection: 'proje
 export interface Target { group: string; collection?: string | null }
 export interface CodeLink { key: string; file: string; line?: number; url: string | null; steps: number[] }
 export interface FieldGroup { role: string; label: string; items: { path: string; operator?: string; inDdl?: boolean }[] }
-export interface OpRow { access: Access; op: string; steps: number[]; links: CodeLink[]; fields: FieldGroup[] }
+/** A step chip: the arrow's number, and `sub` (1-based) for one call inside a folded run (`*3 get, hget` is step 5; its calls are 5.1, 5.2, 5.3). */
+export interface Chip { n: number; sub?: number }
+export interface OpRow { access: Access; op: string; steps: number[]; chips: Chip[]; links: CodeLink[]; fields: FieldGroup[] }
 export interface Ttl { values: number[] }
 export interface Card { id: string; kind: 'key' | 'collection' | 'unreported'; title: string | null; template: string | null; dbs: number[]; ttl: Ttl; ops: OpRow[]; steps: number[]; reason: string | null }
 export interface Panel { kind: 'redis' | 'mongodb'; group: string; store: string; title: string; sub: string; db: number | null; cards: Card[]; stepCount: number; total: number; keyCount: number; unreported: boolean; folded: boolean }
@@ -51,10 +53,11 @@ export function accessClass(m: Message): Access {
   return m.access === 'read' ? 'read' : m.access === 'write' ? 'write' : m.access === 'read_write' ? 'rw' : 'unknown';
 }
 
+const chipsOf = (rows: { n: number; sub?: number }[]): Chip[] => [...new Map(rows.map((r) => [`${r.n}.${r.sub ?? 0}`, { n: r.n, ...(r.sub ? { sub: r.sub } : {}) }])).values()].sort((a, b) => a.n - b.n || (a.sub ?? 0) - (b.sub ?? 0));
 const asc = (a: number[]) => [...new Set(a)].sort((x, y) => x - y);
 const why = (r: string) => { const x = r.replace(/^key_unresolved:/, ''); return x === 'computed' ? 'computed at runtime' : x; };
 /** The reason(s) a step has no key: `keyUnresolved` (a string, a list of strings, or entries with a `reason`). */
-const reasonText = (m: Message): string | null => {
+export const reasonText = (m: Message): string | null => {
   const k = m.keyUnresolved, list = (Array.isArray(k) ? k : k == null ? [] : [k]).map((x: any) => (typeof x === 'string' ? x : x?.reason ?? x?.why ?? '')).filter(Boolean) as string[];
   const old = (m.unknown ?? []).filter((u) => u.field === 'keyTemplate' || u.field === 'details.keyTemplate').map((u) => u.reason); // an `unresolved` entry (what: detail) says the same
   const all = list.length ? list : old;
@@ -71,7 +74,7 @@ function fieldsOf(msgs: Message[]): FieldGroup[] {
   }
   return [...ROLES.filter((r) => by.has(r)).map((r) => by.get(r)!), ...[...by.values()].filter((g) => !(ROLES as readonly string[]).includes(g.role))];
 }
-type Row = { m: Message; n: number };
+type Row = { m: Message; n: number; sub?: number };
 function linksOf(trace: Trace, rows: Row[]): CodeLink[] {
   const by = new Map<string, CodeLink>();
   for (const { m, n } of rows) {
@@ -87,16 +90,18 @@ function linksOf(trace: Trace, rows: Row[]): CodeLink[] {
 /**
  * storePanel(trace, target, { stepNo, total }) -> Panel | null
  * target: the lifeline clicked: { group, collection } (collection null: the folded lifeline, or every collection). stepNo(m, i): the number of the arrow the diagram draws for message `m` (index `i` in trace.messages),
- * null when it draws none; the default is the message's place in the trace (the step pane's "Step"). total: how many steps the diagram numbers.
+ * null when it draws none; `{ n, sub }` when `m` is call `sub` (1-based) of a folded run drawn as step `n` (#88, chips read `n.sub`); the default is the message's place in the trace (the step pane's "Step"). total: how many steps the diagram numbers.
  */
-export function storePanel(trace: Trace, target: Target, { stepNo = (_m: Message, i: number) => i + 1, total = trace.messages.length }: { stepNo?: (m: Message, i: number) => number | null; total?: number } = {}): Panel | null {
+export function storePanel(trace: Trace, target: Target, { stepNo = (_m: Message, i: number) => i + 1, total = trace.messages.length }: { stepNo?: (m: Message, i: number) => number | { n: number; sub?: number } | null; total?: number } = {}): Panel | null {
   const rows: Row[] = [];
+  const storeOk = (m: Message) => { const p = storeParts(m); return panelKind(m) && p.group === target.group && !(target.collection && p.collection !== target.collection); };
   trace.messages.forEach((m, i) => {
-    if (m.kind !== 'resource' || !panelKind(m)) return;
-    const p = storeParts(m);
-    if (p.group !== target.group || (target.collection && p.collection !== target.collection)) return;
-    const n = stepNo(m, i);
-    if (n != null) rows.push({ m, n });
+    if (m.kind !== 'resource' || !panelKind(m) || (!m.dbGroup?.calls?.length && !storeOk(m))) return;
+    const got = stepNo(m, i), n = got != null && typeof got === 'object' ? got.n : got, sub = got != null && typeof got === 'object' ? got.sub : undefined;
+    if (n == null) return;
+    // 0.43.2 (#88): a folded run (`*3 get, hget`) stands for its calls: each is a row of its own, shown as <run's step>.<k>
+    if (m.dbGroup?.calls?.length) m.dbGroup.calls.forEach((c, k) => { const mm = { ...m, ...c, dbGroup: undefined } as Message; if (storeOk(mm)) rows.push({ m: mm, n, sub: k + 1 }); });
+    else rows.push({ m, n, ...(sub ? { sub } : {}) });
   });
   if (!rows.length) return null;
   const { store } = storeParts(rows[0].m), kind = panelKind(rows[0].m)!, redis = kind === 'redis';
@@ -119,7 +124,7 @@ export function storePanel(trace: Trace, target: Target, { stepNo = (_m: Message
     const reasons = [...new Set(c.rows.map((r) => reasonText(r.m)).filter((x): x is string => !!x))];
     return { id, ...c.head, dbs: asc(c.rows.flatMap((r) => (r.m.dbIndex != null ? [r.m.dbIndex] : []))), ttl: { values: asc(c.rows.flatMap((r) => (r.m.ttlSeconds != null ? [r.m.ttlSeconds] : []))) },
       steps: asc(c.rows.map((r) => r.n)), reason: c.head.kind === 'unreported' ? reasons.join(', ') || null : null,
-      ops: [...ops.values()].map((o) => ({ access: o.access, op: o.op, steps: asc(o.rows.map((r) => r.n)), fields: redis ? [] : fieldsOf(o.rows.map((r) => r.m)), links: linksOf(trace, o.rows) }))
+      ops: [...ops.values()].map((o) => ({ access: o.access, op: o.op, steps: asc(o.rows.map((r) => r.n)), chips: chipsOf(o.rows), fields: redis ? [] : fieldsOf(o.rows.map((r) => r.m)), links: linksOf(trace, o.rows) }))
         .sort((a, b) => a.steps[0] - b.steps[0]) };
   }).sort((a, b) => a.steps[0] - b.steps[0]);
   if (redis) { const u = out.findIndex((c) => c.kind === 'unreported'); if (u >= 0) out.push(...out.splice(u, 1)); } // "Key not reported" is last
@@ -131,7 +136,7 @@ export function storePanel(trace: Trace, target: Target, { stepNo = (_m: Message
 }
 
 /** The first CHIP_CAP steps, or all of them when expanded; `more` is how many are hidden. */
-export const capSteps = (steps: number[], expanded: boolean, cap = CHIP_CAP) => (expanded || steps.length <= cap ? { shown: steps, more: 0 } : { shown: steps.slice(0, cap), more: steps.length - cap });
+export const capSteps = <T>(steps: T[], expanded: boolean, cap = CHIP_CAP) => (expanded || steps.length <= cap ? { shown: steps, more: 0 } : { shown: steps.slice(0, cap), more: steps.length - cap });
 
 /** "1 h", "30 min", "90 s": the whole-unit form of a TTL in seconds. */
 export const humanTtl = (s: number) => (s >= 3600 && s % 3600 === 0 ? `${s / 3600} h` : s >= 120 && s % 60 === 0 ? `${s / 60} min` : `${s} s`);

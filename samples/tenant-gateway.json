@@ -1,0 +1,118 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "tenant-gateway",
+    "kind": "service",
+    "team": "identity",
+    "repo": "github.com/acme/tenant-gateway",
+    "language": "typescript",
+    "description": "Lists a tenant's users through a vendor API (demo of activation bars that follow `from`, #89)"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-25T16:00:00Z",
+  "commit": "a88c0de",
+  "functions": [
+    {
+      "id": "TenantController.list",
+      "name": "TenantController.list",
+      "file": "src/TenantController.ts",
+      "line": 12,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "ext.appAuth",
+          "operation": "POST",
+          "source": {
+            "file": "src/TenantController.ts",
+            "line": 15
+          }
+        },
+        {
+          "seq": 2,
+          "type": "call",
+          "target": "CheckpointApiService.getTenantUsers",
+          "source": {
+            "file": "src/TenantController.ts",
+            "line": 19
+          }
+        }
+      ]
+    },
+    {
+      "id": "CheckpointApiService.getTenantUsers",
+      "name": "CheckpointApiService.getTenantUsers",
+      "file": "src/CheckpointApiService.ts",
+      "line": 270,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "CheckpointApiService.appAuth",
+          "mode": "async",
+          "source": {
+            "file": "src/CheckpointApiService.ts",
+            "line": 283
+          }
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "ext.membership",
+          "operation": "GET",
+          "source": {
+            "file": "src/CheckpointApiService.ts",
+            "line": 300
+          }
+        }
+      ]
+    },
+    {
+      "id": "CheckpointApiService.appAuth",
+      "name": "CheckpointApiService.appAuth",
+      "file": "src/CheckpointApiService.ts",
+      "line": 120,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "ext.appAuth",
+          "operation": "POST",
+          "source": {
+            "file": "src/CheckpointApiService.ts",
+            "line": 131
+          }
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.tenantUsers",
+      "bindKey": "http:GET tenant-gateway/api/v1/tenants/{tenantId}/users",
+      "transport": "http",
+      "handler": "TenantController.list",
+      "entryPoint": true,
+      "details": {
+        "method": "GET",
+        "path": "/api/v1/tenants/{tenantId}/users"
+      }
+    }
+  ],
+  "egress": [
+    {
+      "id": "ext.appAuth",
+      "bindKey": "http:POST ext-checkpoint-cloud/v2/auth/app",
+      "transport": "http",
+      "mode": "sync"
+    },
+    {
+      "id": "ext.membership",
+      "bindKey": "http:GET ext-checkpoint-cloud/api/v1/user/tenant/membership",
+      "transport": "http",
+      "mode": "sync"
+    }
+  ]
+}

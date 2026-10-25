@@ -1,0 +1,714 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "session-gateway",
+    "kind": "service",
+    "team": "identity",
+    "repo": "github.com/acme/session-gateway",
+    "language": "typescript",
+    "description": "Validates a session against Redis (demo of merged store calls, #88)"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-25T16:00:00Z",
+  "commit": "a88c0de",
+  "functions": [
+    {
+      "id": "SessionController.validate",
+      "name": "SessionController.validate",
+      "file": "src/SessionController.ts",
+      "line": 10,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "cache",
+          "operation": "get",
+          "access": "read",
+          "source": {
+            "file": "src/SessionController.ts",
+            "line": 21
+          },
+          "details": {
+            "keyTemplate": "session:{sessionId}",
+            "dbIndex": 1
+          },
+          "alternatives": [
+            {
+              "group_id": "5d0c2b7a-3f64-5a52-9c11-0a88b1d2e001",
+              "name": "when sessionId is set -> read the session, else -> anonymous",
+              "name_source": "template",
+              "llm_name": null,
+              "llm_provenance": null,
+              "depends_on": "data",
+              "guard": {
+                "text": "sessionId",
+                "file": "src/SessionController.ts",
+                "line": 18
+              },
+              "arms": [
+                {
+                  "arm": "then",
+                  "label": "read the session",
+                  "guard_text": "sessionId is set",
+                  "step_ids": [
+                    "session-gateway:SessionController.validate#1",
+                    "session-gateway:SessionController.validate#2",
+                    "session-gateway:SessionController.validate#3"
+                  ]
+                },
+                {
+                  "arm": "else",
+                  "label": "anonymous",
+                  "step_ids": [
+                    "session-gateway:SessionController.validate#4"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "type": "resource",
+          "target": "cache",
+          "operation": "hget",
+          "access": "read",
+          "source": {
+            "file": "src/SessionController.ts",
+            "line": 24
+          },
+          "details": {
+            "keyTemplate": "session:{sessionId}:user",
+            "dbIndex": 1,
+            "only_when": {
+              "guard": "sessionId is set",
+              "source": {
+                "file": "src/SessionController.ts",
+                "line": 18
+              }
+            }
+          },
+          "alternatives": [
+            {
+              "group_id": "5d0c2b7a-3f64-5a52-9c11-0a88b1d2e001",
+              "name": "when sessionId is set -> read the session, else -> anonymous",
+              "name_source": "template",
+              "llm_name": null,
+              "llm_provenance": null,
+              "depends_on": "data",
+              "guard": {
+                "text": "sessionId",
+                "file": "src/SessionController.ts",
+                "line": 18
+              },
+              "arms": [
+                {
+                  "arm": "then",
+                  "label": "read the session",
+                  "guard_text": "sessionId is set",
+                  "step_ids": [
+                    "session-gateway:SessionController.validate#1",
+                    "session-gateway:SessionController.validate#2",
+                    "session-gateway:SessionController.validate#3"
+                  ]
+                },
+                {
+                  "arm": "else",
+                  "label": "anonymous",
+                  "step_ids": [
+                    "session-gateway:SessionController.validate#4"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 3,
+          "type": "resource",
+          "target": "cache",
+          "operation": "get",
+          "access": "read",
+          "source": {
+            "file": "src/SessionController.ts",
+            "line": 29
+          },
+          "details": {
+            "keyTemplate": "{unresolved:computed}",
+            "dbIndex": 1
+          },
+          "alternatives": [
+            {
+              "group_id": "5d0c2b7a-3f64-5a52-9c11-0a88b1d2e001",
+              "name": "when sessionId is set -> read the session, else -> anonymous",
+              "name_source": "template",
+              "llm_name": null,
+              "llm_provenance": null,
+              "depends_on": "data",
+              "guard": {
+                "text": "sessionId",
+                "file": "src/SessionController.ts",
+                "line": 18
+              },
+              "arms": [
+                {
+                  "arm": "then",
+                  "label": "read the session",
+                  "guard_text": "sessionId is set",
+                  "step_ids": [
+                    "session-gateway:SessionController.validate#1",
+                    "session-gateway:SessionController.validate#2",
+                    "session-gateway:SessionController.validate#3"
+                  ]
+                },
+                {
+                  "arm": "else",
+                  "label": "anonymous",
+                  "step_ids": [
+                    "session-gateway:SessionController.validate#4"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 4,
+          "type": "call",
+          "kind": "leaf",
+          "operation": "anonymous session",
+          "alternatives": [
+            {
+              "group_id": "5d0c2b7a-3f64-5a52-9c11-0a88b1d2e001",
+              "name": "when sessionId is set -> read the session, else -> anonymous",
+              "name_source": "template",
+              "llm_name": null,
+              "llm_provenance": null,
+              "depends_on": "data",
+              "guard": {
+                "text": "sessionId",
+                "file": "src/SessionController.ts",
+                "line": 18
+              },
+              "arms": [
+                {
+                  "arm": "then",
+                  "label": "read the session",
+                  "guard_text": "sessionId is set",
+                  "step_ids": [
+                    "session-gateway:SessionController.validate#1",
+                    "session-gateway:SessionController.validate#2",
+                    "session-gateway:SessionController.validate#3"
+                  ]
+                },
+                {
+                  "arm": "else",
+                  "label": "anonymous",
+                  "step_ids": [
+                    "session-gateway:SessionController.validate#4"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 5,
+          "type": "call",
+          "target": "SessionCache.tryGetCacheData"
+        },
+        {
+          "seq": 6,
+          "type": "egress",
+          "target": "ex.posture",
+          "operation": "GET",
+          "source": {
+            "file": "src/SessionController.ts",
+            "line": 40
+          }
+        },
+        {
+          "seq": 7,
+          "type": "resource",
+          "target": "cache",
+          "operation": "get",
+          "access": "read",
+          "source": {
+            "file": "src/SessionController.ts",
+            "line": 44
+          },
+          "details": {
+            "keyTemplate": "posture:{userId}",
+            "dbIndex": 1
+          }
+        },
+        {
+          "seq": 8,
+          "type": "resource",
+          "target": "cache",
+          "operation": "set",
+          "access": "write",
+          "source": {
+            "file": "src/SessionController.ts",
+            "line": 47
+          },
+          "details": {
+            "keyTemplate": "posture:{userId}",
+            "dbIndex": 1,
+            "ttlSeconds": 300
+          }
+        },
+        {
+          "seq": 9,
+          "type": "resource",
+          "target": "cache",
+          "operation": "get",
+          "access": "read",
+          "source": {
+            "file": "src/SessionController.ts",
+            "line": 63
+          },
+          "details": {
+            "keyTemplate": "audit:last:{userId}",
+            "dbIndex": 1
+          },
+          "alternatives": [
+            {
+              "group_id": "5d0c2b7a-3f64-5a52-9c11-0a88b1d2e003",
+              "name": "switch (mode): refresh / purge",
+              "name_source": "template",
+              "llm_name": null,
+              "llm_provenance": null,
+              "depends_on": "data",
+              "guard": {
+                "text": "mode",
+                "file": "src/SessionController.ts",
+                "line": 61
+              },
+              "arms": [
+                {
+                  "arm": "refresh",
+                  "label": "refresh",
+                  "guard_text": "mode === 'refresh'",
+                  "step_ids": [
+                    "session-gateway:SessionController.validate#9",
+                    "session-gateway:SessionController.validate#10"
+                  ]
+                },
+                {
+                  "arm": "purge",
+                  "label": "purge",
+                  "guard_text": "mode === 'purge'",
+                  "step_ids": [
+                    "session-gateway:SessionController.validate#11",
+                    "session-gateway:SessionController.validate#12"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 10,
+          "type": "resource",
+          "target": "cache",
+          "operation": "hget",
+          "access": "read",
+          "source": {
+            "file": "src/SessionController.ts",
+            "line": 64
+          },
+          "details": {
+            "keyTemplate": "audit:last:{userId}",
+            "dbIndex": 1
+          },
+          "alternatives": [
+            {
+              "group_id": "5d0c2b7a-3f64-5a52-9c11-0a88b1d2e003",
+              "name": "switch (mode): refresh / purge",
+              "name_source": "template",
+              "llm_name": null,
+              "llm_provenance": null,
+              "depends_on": "data",
+              "guard": {
+                "text": "mode",
+                "file": "src/SessionController.ts",
+                "line": 61
+              },
+              "arms": [
+                {
+                  "arm": "refresh",
+                  "label": "refresh",
+                  "guard_text": "mode === 'refresh'",
+                  "step_ids": [
+                    "session-gateway:SessionController.validate#9",
+                    "session-gateway:SessionController.validate#10"
+                  ]
+                },
+                {
+                  "arm": "purge",
+                  "label": "purge",
+                  "guard_text": "mode === 'purge'",
+                  "step_ids": [
+                    "session-gateway:SessionController.validate#11",
+                    "session-gateway:SessionController.validate#12"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 11,
+          "type": "resource",
+          "target": "cache",
+          "operation": "set",
+          "access": "write",
+          "source": {
+            "file": "src/SessionController.ts",
+            "line": 70
+          },
+          "details": {
+            "keyTemplate": "audit:last:{userId}",
+            "dbIndex": 1,
+            "ttlSeconds": 86400
+          },
+          "alternatives": [
+            {
+              "group_id": "5d0c2b7a-3f64-5a52-9c11-0a88b1d2e003",
+              "name": "switch (mode): refresh / purge",
+              "name_source": "template",
+              "llm_name": null,
+              "llm_provenance": null,
+              "depends_on": "data",
+              "guard": {
+                "text": "mode",
+                "file": "src/SessionController.ts",
+                "line": 61
+              },
+              "arms": [
+                {
+                  "arm": "refresh",
+                  "label": "refresh",
+                  "guard_text": "mode === 'refresh'",
+                  "step_ids": [
+                    "session-gateway:SessionController.validate#9",
+                    "session-gateway:SessionController.validate#10"
+                  ]
+                },
+                {
+                  "arm": "purge",
+                  "label": "purge",
+                  "guard_text": "mode === 'purge'",
+                  "step_ids": [
+                    "session-gateway:SessionController.validate#11",
+                    "session-gateway:SessionController.validate#12"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 12,
+          "type": "resource",
+          "target": "cache",
+          "operation": "del",
+          "access": "write",
+          "source": {
+            "file": "src/SessionController.ts",
+            "line": 71
+          },
+          "details": {
+            "keyTemplate": "audit:pending:{userId}",
+            "dbIndex": 1
+          },
+          "alternatives": [
+            {
+              "group_id": "5d0c2b7a-3f64-5a52-9c11-0a88b1d2e003",
+              "name": "switch (mode): refresh / purge",
+              "name_source": "template",
+              "llm_name": null,
+              "llm_provenance": null,
+              "depends_on": "data",
+              "guard": {
+                "text": "mode",
+                "file": "src/SessionController.ts",
+                "line": 61
+              },
+              "arms": [
+                {
+                  "arm": "refresh",
+                  "label": "refresh",
+                  "guard_text": "mode === 'refresh'",
+                  "step_ids": [
+                    "session-gateway:SessionController.validate#9",
+                    "session-gateway:SessionController.validate#10"
+                  ]
+                },
+                {
+                  "arm": "purge",
+                  "label": "purge",
+                  "guard_text": "mode === 'purge'",
+                  "step_ids": [
+                    "session-gateway:SessionController.validate#11",
+                    "session-gateway:SessionController.validate#12"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "SessionCache.tryGetCacheData",
+      "name": "SessionCache.tryGetCacheData",
+      "file": "src/SessionCache.ts",
+      "line": 30,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "cache",
+          "operation": "setex",
+          "access": "write",
+          "source": {
+            "file": "src/SessionCache.ts",
+            "line": 50
+          },
+          "details": {
+            "keyTemplate": "cache:{key}",
+            "dbIndex": 1,
+            "ttlSeconds": 600,
+            "only_when": {
+              "guard": "!raw",
+              "source": {
+                "file": "src/SessionCache.ts",
+                "line": 40
+              }
+            }
+          },
+          "alternatives": [
+            {
+              "group_id": "5d0c2b7a-3f64-5a52-9c11-0a88b1d2e002",
+              "name": "when lockAcquired -> fetch and cache, else -> poll",
+              "name_source": "template",
+              "llm_name": null,
+              "llm_provenance": null,
+              "depends_on": "data",
+              "guard": {
+                "text": "lockAcquired",
+                "file": "src/SessionCache.ts",
+                "line": 46
+              },
+              "arms": [
+                {
+                  "arm": "then",
+                  "label": "fetchData + setex",
+                  "guard_text": "lockAcquired",
+                  "step_ids": [
+                    "session-gateway:SessionCache.tryGetCacheData#1",
+                    "session-gateway:SessionCache.tryGetCacheData#2",
+                    "session-gateway:SessionCache.tryGetCacheData#3"
+                  ]
+                },
+                {
+                  "arm": "else",
+                  "label": "poll the cache",
+                  "step_ids": [
+                    "session-gateway:SessionCache.tryGetCacheData#4"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "type": "resource",
+          "target": "cache",
+          "operation": "setex",
+          "access": "write",
+          "source": {
+            "file": "src/SessionCache.ts",
+            "line": 54
+          },
+          "details": {
+            "keyTemplate": "cache:{key}:meta",
+            "dbIndex": 1,
+            "ttlSeconds": 600,
+            "only_when": {
+              "guard": "!raw",
+              "source": {
+                "file": "src/SessionCache.ts",
+                "line": 40
+              }
+            }
+          },
+          "alternatives": [
+            {
+              "group_id": "5d0c2b7a-3f64-5a52-9c11-0a88b1d2e002",
+              "name": "when lockAcquired -> fetch and cache, else -> poll",
+              "name_source": "template",
+              "llm_name": null,
+              "llm_provenance": null,
+              "depends_on": "data",
+              "guard": {
+                "text": "lockAcquired",
+                "file": "src/SessionCache.ts",
+                "line": 46
+              },
+              "arms": [
+                {
+                  "arm": "then",
+                  "label": "fetchData + setex",
+                  "guard_text": "lockAcquired",
+                  "step_ids": [
+                    "session-gateway:SessionCache.tryGetCacheData#1",
+                    "session-gateway:SessionCache.tryGetCacheData#2",
+                    "session-gateway:SessionCache.tryGetCacheData#3"
+                  ]
+                },
+                {
+                  "arm": "else",
+                  "label": "poll the cache",
+                  "step_ids": [
+                    "session-gateway:SessionCache.tryGetCacheData#4"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 3,
+          "type": "resource",
+          "target": "cache",
+          "operation": "del",
+          "access": "write",
+          "source": {
+            "file": "src/SessionCache.ts",
+            "line": 61
+          },
+          "details": {
+            "keyTemplate": "cache:{key}:lock",
+            "dbIndex": 1,
+            "only_when": {
+              "guard": "!raw",
+              "source": {
+                "file": "src/SessionCache.ts",
+                "line": 40
+              }
+            }
+          },
+          "alternatives": [
+            {
+              "group_id": "5d0c2b7a-3f64-5a52-9c11-0a88b1d2e002",
+              "name": "when lockAcquired -> fetch and cache, else -> poll",
+              "name_source": "template",
+              "llm_name": null,
+              "llm_provenance": null,
+              "depends_on": "data",
+              "guard": {
+                "text": "lockAcquired",
+                "file": "src/SessionCache.ts",
+                "line": 46
+              },
+              "arms": [
+                {
+                  "arm": "then",
+                  "label": "fetchData + setex",
+                  "guard_text": "lockAcquired",
+                  "step_ids": [
+                    "session-gateway:SessionCache.tryGetCacheData#1",
+                    "session-gateway:SessionCache.tryGetCacheData#2",
+                    "session-gateway:SessionCache.tryGetCacheData#3"
+                  ]
+                },
+                {
+                  "arm": "else",
+                  "label": "poll the cache",
+                  "step_ids": [
+                    "session-gateway:SessionCache.tryGetCacheData#4"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 4,
+          "type": "call",
+          "kind": "leaf",
+          "operation": "poll the cache",
+          "alternatives": [
+            {
+              "group_id": "5d0c2b7a-3f64-5a52-9c11-0a88b1d2e002",
+              "name": "when lockAcquired -> fetch and cache, else -> poll",
+              "name_source": "template",
+              "llm_name": null,
+              "llm_provenance": null,
+              "depends_on": "data",
+              "guard": {
+                "text": "lockAcquired",
+                "file": "src/SessionCache.ts",
+                "line": 46
+              },
+              "arms": [
+                {
+                  "arm": "then",
+                  "label": "fetchData + setex",
+                  "guard_text": "lockAcquired",
+                  "step_ids": [
+                    "session-gateway:SessionCache.tryGetCacheData#1",
+                    "session-gateway:SessionCache.tryGetCacheData#2",
+                    "session-gateway:SessionCache.tryGetCacheData#3"
+                  ]
+                },
+                {
+                  "arm": "else",
+                  "label": "poll the cache",
+                  "step_ids": [
+                    "session-gateway:SessionCache.tryGetCacheData#4"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.validate",
+      "bindKey": "http:POST session-gateway/api/v1/session/validate",
+      "transport": "http",
+      "handler": "SessionController.validate",
+      "entryPoint": true,
+      "details": {
+        "method": "POST",
+        "path": "/api/v1/session/validate"
+      }
+    }
+  ],
+  "egress": [
+    {
+      "id": "ex.posture",
+      "bindKey": "http:GET ext-checkpoint-cloud/api/v1/user/tenant/membership",
+      "transport": "http",
+      "mode": "sync"
+    }
+  ],
+  "resources": [
+    {
+      "id": "cache",
+      "kind": "redis",
+      "name": "p81-sessions",
+      "bindKey": "redis:p81-sessions"
+    }
+  ]
+}

@@ -137,3 +137,23 @@ test('interaction rules: which heads are pressed, press toggles, chip scroll pla
   assert.equal(flashMs(false), 1500); assert.equal(flashMs(true), null);
   assert.equal(headLabel(redisHead), 'Show what this flow touches in c, redis'); assert.equal(headLabel(coll('accounts')), 'Show what this flow touches in accounts, mongodb');
 });
+
+test('#88: a folded run `*3 get, hget` is listed by its calls: each key and op counts, the chips read 5.1, 5.2, 5.3 and all jump to the run\'s step', () => {
+  const call = (label: string, seq: number, tpl: string | null) => ({ label, store: 'redis:checkout-cache', access: label === 'get' ? 'read' : 'write', service: 'svc', fn: 'f', seq, ...(tpl ? { keyTemplate: tpl } : {}) });
+  const run = msg({ label: '*3 get, hset', seq: 1, dbGroup: { count: 3, collections: ['checkout-cache'], access: 'read_write', members: ['k1', 'k2', 'k3'], calls: [call('get', 1, 'a:{id}'), call('hset', 2, 'a:{id}'), call('get', 3, 'b:{id}')] } });
+  const t = tr([msg({ kind: 'call', store: undefined }), redis(1, 'get', 'read', 'a:{id}'), run], { 'step:svc:f#2': { file: 'x.ts', line: 7, url: 'https://x/x.ts#L7' } });
+  const p = storePanel(t, { group: 'redis:checkout-cache' }, { stepNo: (_m, i) => i, total: 2 })!;
+  assert.deepEqual(p.cards.map((c) => c.title), ['a:{id}', 'b:{id}']);
+  assert.deepEqual(p.cards[0].ops.map((o) => [o.op, o.steps, o.chips]), [['get', [1, 2], [{ n: 1 }, { n: 2, sub: 1 }]], ['hset', [2], [{ n: 2, sub: 2 }]]]);
+  assert.deepEqual(p.cards[1].ops[0].chips, [{ n: 2, sub: 3 }]);
+  assert.deepEqual(p.cards[0].ops[1].links.map((l) => [l.key, l.steps]), [['x.ts:7', [2]]], 'a call keeps its own code link');
+  assert.equal(p.stepCount, 2);
+});
+
+test('#88: the diagram maps the calls of a folded run (an ungrouped trace) to { n, sub }: chips n.sub, the run is one step', () => {
+  const t = tr([redis(1, 'get', 'read', 'a:{id}'), redis(2, 'hget', 'read', 'a:{id}'), redis(3, 'get', 'read', 'b:{id}'), redis(4, 'set', 'write', 'a:{id}')]);
+  const p = storePanel(t, { group: 'redis:checkout-cache' }, { stepNo: (_m, i) => (i < 3 ? { n: 5, sub: i + 1 } : 6), total: 6 })!;
+  assert.deepEqual(p.cards[0].ops.map((o) => [o.op, o.steps, o.chips.map((c) => (c.sub ? `${c.n}.${c.sub}` : `${c.n}`))]), [['get', [5], ['5.1']], ['hget', [5], ['5.2']], ['set', [6], ['6']]]);
+  assert.deepEqual(p.cards[1].ops[0].chips, [{ n: 5, sub: 3 }]);
+  assert.equal(p.stepCount, 2);
+});

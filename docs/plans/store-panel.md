@@ -92,5 +92,10 @@ Add a sample case in `samples/` (env `prod`): a flow with the three Redis keys (
 6. **Collapse threshold 8.** Recommend 8; tune after real flows (a 31-step checkout is the stress case in 23d).
 7. **Other store kinds** (SQL, S3, DynamoDB): out of scope; heads stay non-interactive. The panel code takes the kind from `storeKind`, so adding one later is a new card builder.
 
-## Known limit: folded DB runs
-While a run of DB operations is folded ("DB: N ops") every member shares the run's step number, so the panel's chips for those operations show that one number (and "+N more" never appears for them). The chip still jumps to the folded row; expanding the run on the diagram renumbers the steps and the panel follows. Listing the members by their own numbers would need the run expanded, which changes the numbering the arrows use; left as is.
+## Folded DB runs (0.43.2, #88: the known limit is fixed)
+A run of consecutive store calls is drawn as one node `*3 get, hget` and is one numbered step (say step 5). The panel lists the run's calls
+as rows of their own (the panel reads the ungrouped trace, so each call is a message), and a chip reads `5.1`, `5.2`, `5.3`: the step the diagram draws, then
+the call's place in the run. Every chip jumps to the run's row (the one arrow that exists); "own numbers" in the sense of 6, 7, 8 would only be true once the run is
+expanded, and expanding renumbers every arrow after it, so the panel never shows numbers the diagram does not currently draw. The Info pane of the node lists the
+same calls with a `5.1` button each: it opens the run and goes to that call (which is then step 5, 6, 7). `storePanel`'s `stepNo(m, i)` may return `{ n, sub }`; an op row
+carries `chips: [{ n, sub? }]` next to `steps: number[]` (still the distinct drawn steps, used to dim and highlight).

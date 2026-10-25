@@ -20,14 +20,14 @@ import { drawNode } from '../web/js/graph/graph-style.js';
 // @ts-ignore
 import { drawLabels } from '../web/js/graph/graph-draw-labels.js';
 
-const EXT = 'ext-payments-gateway';
+const EXT = 'ext-payments-gateway', CHK = 'ext-checkpoint-cloud';
 const g = buildIndex(sampleModel());
 
 test('classification: only the boolean true is external', () => {
   assert.equal(isExternal({ external: true }), true);
   for (const v of [false, 'true', 1, null, undefined, {}]) assert.equal(isExternal({ external: v }), false, String(v));
   assert.equal(isExternal(undefined), false);
-  assert.deepEqual([...externalSet(g)], [EXT]);
+  assert.deepEqual([...externalSet(g)].sort(), [CHK, EXT]); // ext-checkpoint-cloud: the #89 demo stub
   assert.deepEqual(externalField(g, EXT), { external: true });
   assert.deepEqual(externalField(g, 'payments-svc'), {});
   assert.deepEqual(externalField(g, undefined), {});
@@ -63,7 +63,7 @@ test('link health: a call to an external service is not a problem, nor is its en
   const h = health(g);
   assert.ok(!h.items.dangling.some((d) => String(d.bindKey).includes(EXT)));
   assert.ok(!h.items.orphans.some((o) => o.service === EXT));
-  assert.equal(h.totals.external, 1);
+  assert.equal(h.totals.external, 2);
   assert.equal(h.services.find((s) => s.service === EXT)!.external, true);
   assert.equal(h.services.find((s) => s.service === 'payments-svc')!.external, undefined);
   // an external endpoint nobody harvested a caller for is still no problem (a plain service's would be an orphan)
@@ -85,11 +85,11 @@ const get = async (path: string) => (await app.call('GET', `/api/envs/prod${path
 
 test('API: map, inventory, service view, entry points, flow counts carry `external` on the external service only', async () => {
   const map = await get('/views/system');
-  assert.deepEqual(map.nodes.filter((n: any) => n.external).map((n: any) => n.label), [EXT]);
+  assert.deepEqual(map.nodes.filter((n: any) => n.external).map((n: any) => n.label).sort(), [CHK, EXT]);
   assert.equal(map.nodes.find((n: any) => n.label === 'payments-svc').external, undefined);
   assert.equal(map.edges.some((e: any) => e.broken && (e.to === `svc:${EXT}` || e.from === `svc:${EXT}`)), false);
   const inv = await get('/inventory');
-  assert.deepEqual(inv.filter((x: any) => x.external).map((x: any) => x.id), [EXT]);
+  assert.deepEqual(inv.filter((x: any) => x.external).map((x: any) => x.id).sort(), [CHK, EXT]);
   const sv = await get(`/views/service/${EXT}`);
   assert.equal(sv.external, true);
   assert.equal(sv.service.external, undefined, 'the header itself is as stored');
@@ -98,24 +98,24 @@ test('API: map, inventory, service view, entry points, flow counts carry `extern
   assert.deepEqual(sv.ingress[0].callers.map((c: any) => c.service), ['payments-svc']);
   assert.equal((await get('/views/service/payments-svc')).external, undefined);
   const eps = await get('/entry-points');
-  assert.ok(eps.filter((e: any) => e.external).every((e: any) => e.service === EXT));
+  assert.ok(eps.filter((e: any) => e.external).every((e: any) => e.service === EXT || e.service === CHK));
   assert.ok(eps.every((e: any) => e.external === undefined || e.external === true));
   const counts = await get('/flows/counts');
   assert.equal(counts.find((c: any) => c.service === 'api-gateway' && c.ingress === 'in.createOrder').external, 1);
   const tr = await get('/trace?service=api-gateway&ingress=in.createOrder');
   assert.equal(tr.participants.find((p: any) => p.service === EXT).external, true);
   const hl = await get('/health');
-  assert.equal(hl.totals.external, 1);
+  assert.equal(hl.totals.external, 2);
 });
 
 test('MCP: list_services, get_service, list_entry_points, inventory and trace_flow carry the field', async () => {
   const tool = async (name: string, args: any) => JSON.parse((await app.call('POST', '/mcp', { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: { env: 'prod', ...args } } })).body.result.content[0].text);
-  assert.deepEqual((await tool('list_services', {})).filter((s: any) => s.external).map((s: any) => s.service), [EXT]);
+  assert.deepEqual((await tool('list_services', {})).filter((s: any) => s.external).map((s: any) => s.service).sort(), [CHK, EXT]);
   assert.equal((await tool('get_service', { service: EXT })).external, true);
   assert.equal((await tool('get_service', { service: 'payments-svc' })).external, undefined);
   assert.ok((await tool('inventory', { type: 'service' })).some((x: any) => x.id === EXT && x.external === true));
   assert.ok((await tool('trace_flow', { service: 'api-gateway', ingress: 'in.createOrder' })).participants.some((p: any) => p.service === EXT && p.external === true));
-  assert.ok((await tool('list_entry_points', {})).every((e: any) => e.external === undefined || e.service === EXT));
+  assert.ok((await tool('list_entry_points', {})).every((e: any) => e.external === undefined || e.service === EXT || e.service === CHK));
 });
 
 test('a non-boolean `external` is internal everywhere', async () => {
