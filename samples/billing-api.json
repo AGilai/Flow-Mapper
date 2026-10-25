@@ -31,7 +31,9 @@
       "unresolved": [
         {
           "what": "target",
-          "reason": "the topic ARN is read from EVENT_BUS_ARN at runtime"
+          "reason": "the topic ARN is read from EVENT_BUS_ARN at runtime",
+          "gap": true,
+          "plain": "The topic is chosen from an environment variable at runtime, so the harvester cannot tell which topic this publishes to."
         }
       ]
     }

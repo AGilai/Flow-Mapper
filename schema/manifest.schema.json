@@ -158,7 +158,9 @@
           "what": { "enum": ["target", "event", "caller", "client", "instance", "detail"] },
           "reason": { "type": "string", "minLength": 1 },
           "detail": { "type": "string" },
-          "candidates": { "type": "array", "items": { "type": "string" }, "description": "Possible bind keys (target) or event types (event)." }
+          "candidates": { "type": "array", "items": { "type": "string" }, "description": "Possible bind keys (target) or event types (event)." },
+          "gap": { "type": "boolean", "description": "Optional (#85). false = not a real missing hop (e.g. a built-in receiver); true or absent = a real gap. Returned as sent; counting and health ignore it." },
+          "plain": { "type": "string", "description": "Optional (#85). The reason in plain English, for people (`reason` stays the stable code). Returned as sent." }
         }
       }
     },

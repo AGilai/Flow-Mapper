@@ -16,7 +16,9 @@ export interface Source { file?: string; line?: number; col?: number; url?: stri
 export interface Provenance { producer?: string; runId?: string; verified?: 'match' | 'drift' | 'code-only' }
 /** Something the harvester found but could not resolve: the target (call or consumer) or the event type. */
 /** what=caller (on a function): the backward walk stopped here because nothing could be resolved as its caller. */
-export interface Unresolved { what: 'target' | 'event' | 'caller' | 'client' | 'instance' | 'detail'; reason: string; detail?: string; candidates?: string[] }
+export interface Unresolved { what: 'target' | 'event' | 'caller' | 'client' | 'instance' | 'detail'; reason: string; detail?: string; candidates?: string[];
+  /** #85: false = not a real missing hop (built-in receiver, ...). Display only: nothing counts on it. */ gap?: boolean;
+  /** #85: the reason in plain English. */ plain?: string }
 /** A value the harvester filled by a rule (a default, a convention), not from code (#47, 0.25.2). The mirror of `Unresolved`: `what` is a first-class name or 'detail' with `detail` the field path. */
 export interface Assumed { what: string; value: unknown; basis: string; reason: string; detail?: string }
 
