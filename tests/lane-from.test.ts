@@ -77,3 +77,34 @@ test('#89 the sample: tenant-gateway GET /tenants/{id}/users draws POST, GET, PO
   const lane = buildLane(v.messages, { scope: v.scope, participants: v.participants });
   assert.deepEqual(lane.bars.filter((b: any) => b.service === 'ext-checkpoint-cloud').map((b: any) => b.level), [0, 0, 0]);
 });
+
+/** Services a and b over http; `eXY` is an egress of X to ingress `in.Y...` (the table below). */
+function model2(fns: Record<string, any[]>) {
+  const ing = (service: string, id: string, path: string, handler: string) => ({ service, id, bindKey: `http:GET ${service}/${path}`, transport: 'http', handler });
+  const eg = (service: string, id: string, to: string) => ({ service, id, bindKey: `http:GET ${to}`, transport: 'http', mode: 'sync' });
+  const fn = (service: string, id: string) => ({ service, id, name: id, steps: fns[`${service}.${id}`] ?? [leaf(1)] });
+  const model: any = { env: 't', services: [svc('a'), svc('b')],
+    functions: [fn('a', 'h'), fn('a', 'back'), fn('a', 'z'), fn('b', 'h'), fn('b', 'h2')],
+    ingress: [ing('a', 'in.a', 'x', 'h'), ing('a', 'in.back', 'back', 'back'), ing('a', 'in.z', 'z', 'z'), ing('b', 'in.b', 'x', 'h'), ing('b', 'in.b2', 'x2', 'h2')],
+    egress: [eg('a', 'eab', 'b/x'), eg('a', 'eab2', 'b/x2'), eg('b', 'eba', 'a/back'), eg('a', 'eaz', 'a/z')], resources: [], channels: [], bindings: [] };
+  const t = trace(buildIndex(model), { service: 'a', ingress: 'in.a' }, { scope: 'full', maxMessages: 500 })!, v = viewOf(t, { detail: 'external' });
+  return { v, lane: buildLane(v.messages, { scope: v.scope, participants: v.participants }) };
+}
+const callsOf = (lane: any) => lane.events.filter((e: any) => e.type === 'call' && e.bar);
+
+test('#89 A -> B -> A: B\'s call back into A opens an inner A bar; a self-call inside it stays in the inner bar; the outer A\'s next call is from the outer bar', () => {
+  const { v, lane } = model2({ 'a.h': [egress(1, 'eab'), egress(2, 'eab2')], 'b.h': [egress(1, 'eba')], 'a.back': [egress(1, 'eaz'), leaf(2)] });
+  assert.deepEqual(v.messages.map((m) => `${m.from}>${m.to}`), ['client>svc:a', 'svc:a>svc:b', 'svc:b>svc:a', 'svc:a>svc:a', 'svc:a>svc:b']);
+  assert.deepEqual(callsOf(lane).map((e: any) => `${e.from.service ?? 'client'}>${e.to.service}`), ['client>a', 'a>b', 'b>a', 'a>a', 'a>b'], lane.events.map((e: any) => e.type).join());
+  const c = callsOf(lane).slice(1);
+  assert.equal(c[1].bar.level, 1, 'the inner a is a real second bar on a\'s lifeline (level 1), nested while the outer a is open');
+  assert.equal(c[2].fromBar, c[1].bar, 'the self-call a>a starts in the inner a bar (the deepest a), not the outer one');
+  assert.equal(c[3].fromBar.level, 0, 'the outer a makes its second call once b and the inner a are closed');
+});
+
+test('#89 a plain self-call (a -> a) is one call into a bar of its own, and the caller\'s next call is still on the caller', () => {
+  const { v, lane } = model2({ 'a.h': [egress(1, 'eaz'), egress(2, 'eab')] });
+  assert.deepEqual(v.messages.map((m) => `${m.from}>${m.to}`), ['client>svc:a', 'svc:a>svc:a', 'svc:a>svc:b']);
+  assert.deepEqual(callsOf(lane).map((e: any) => `${e.from.service ?? 'client'}>${e.to.service}`), ['client>a', 'a>a', 'a>b']);
+  assert.equal(callsOf(lane)[2].fromBar.level, 0);
+});
