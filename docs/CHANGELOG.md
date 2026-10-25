@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased
+## 0.43.3 (2026-10-25)
 
 UI only: merged store runs can be grouped again from the Info pane (an expanded call's pane lists "Calls in this run" and a "Group the N calls into one arrow again" button); the lane's "⌄ group" control is readable and no longer sits on the return arrow.
 
