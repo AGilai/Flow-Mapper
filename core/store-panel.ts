@@ -56,7 +56,9 @@ const why = (r: string) => { const x = r.replace(/^key_unresolved:/, ''); return
 /** The reason(s) a step has no key: `keyUnresolved` (a string, a list of strings, or entries with a `reason`). */
 const reasonText = (m: Message): string | null => {
   const k = m.keyUnresolved, list = (Array.isArray(k) ? k : k == null ? [] : [k]).map((x: any) => (typeof x === 'string' ? x : x?.reason ?? x?.why ?? '')).filter(Boolean) as string[];
-  return list.length ? [...new Set(list.map(why))].join(', ') : null;
+  const old = (m.unknown ?? []).filter((u) => u.field === 'keyTemplate' || u.field === 'details.keyTemplate').map((u) => u.reason); // an `unresolved` entry (what: detail) says the same
+  const all = list.length ? list : old;
+  return all.length ? [...new Set(all.map(why))].join(', ') : null;
 };
 function fieldsOf(msgs: Message[]): FieldGroup[] {
   const seen = new Set<string>(), by = new Map<string, FieldGroup>();

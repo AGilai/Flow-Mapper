@@ -119,7 +119,7 @@ test('end to end on the demo sample (needs the 0.42.1 trace fields; skipped befo
   if (!res.some((m: any) => m.keyTemplate)) return ctx.skip('trace has no top-level keyTemplate yet');
   const p = storePanel(t as any, { group: 'redis:checkout-cache' })!;
   assert.deepEqual(p.cards.map((c) => c.title), ['cart:{userId}', 'checkout:lock:{cartId}', 'checkout:idem:{key}', null]); // checkout:idem is sent as keyPattern: the alias
-  assert.equal(p.cards[3].reason, 'computed at runtime');
+  assert.equal(p.cards[3].reason, 'computed at runtime'); // sent as the {unresolved:computed} value
   const mg = storePanel(t as any, { group: 'mongodb:checkout-db', collection: 'carts' })!;
   assert.ok(mg.cards[0].ops.some((o) => o.fields.length));
 });
