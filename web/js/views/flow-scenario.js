@@ -7,6 +7,7 @@
 //   sc.hiddenOf(key) -> { text, show() } | null: a step the view does not show (an arm, or a detail that has not been loaded).
 
 import { viewOf } from '../../core/trace-view.js';
+import { dbRunOf } from '../../core/db-run.js';
 import { toast } from '../dom.js';
 import { detailSave } from './flow-prefs.js';
 import { setChoice, chooseObject, applyChoose, decodeChoose, hiddenByArm, showChoices, prune, seedAll } from './flow-scenario-pure.js';
@@ -68,6 +69,8 @@ export function createScenario({ st, base: first, req, baseFor, visible = () => 
     editAll: () => editAll,
     /** #86: the view with no DB runs folded: every operation is a message (the store panel lists them one by one). */
     ungrouped: () => viewOf(base, { choose: chooseObject(st.chosen), detail: intra() ? 'full' : st.detail, open: [...st.open], dbOpen: [], group: false }),
+    /** The run holding the message `key` (core/db-run.ts), found in the view with no run expanded: its key, members and calls; null when it is no run member. */
+    runOf: (key) => dbRunOf(viewOf(base, { choose: chooseObject(st.chosen), detail: intra() ? 'full' : st.detail, open: [...st.open], dbOpen: [], group: true }).messages, key),
     toggleDb(key) { if (!st.dbOpen.delete(key)) st.dbOpen.add(key); changed(); },
     /** A step the view does not show: on an arm that is not in force ("Not in this scenario"), or in a detail that is not loaded ("Not in this view"); null when it is shown or gone. */
     hiddenOf(key) {

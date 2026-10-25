@@ -5,6 +5,10 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+
+UI only: merged store runs can be grouped again from the Info pane (an expanded call's pane lists "Calls in this run" and a "Group the N calls into one arrow again" button); the lane's "⌄ group" control is readable and no longer sits on the return arrow.
+
 ## 0.43.2 (2026-10-25)
 
 **Fix #88: consecutive store calls are one node `*N op, op`.** No schema or migration change; Viz-only (the harvester keeps one step per call).

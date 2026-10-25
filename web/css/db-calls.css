@@ -11,3 +11,6 @@ button.dc-no:focus-visible { outline: 2px solid var(--focus); outline-offset: 2p
 .dc-key { color: var(--ink-2); overflow-wrap: anywhere; }
 .dc-m b { color: var(--ink); font-weight: 600; }
 .dc-l a { color: var(--accent); overflow-wrap: anywhere; }
+.dc-run .dc-no { min-width: 36px; }
+.dc-run.is-current { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+.dc-run.is-current .dc-no { border-color: var(--accent); color: var(--accent); }
