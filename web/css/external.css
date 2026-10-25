@@ -1,0 +1,11 @@
+/* External services (#87): one look everywhere. Dashed even border in --muted (3:1 on the paper, light and dark),
+   muted fill --surface-2, and the real-text tag "external" in --ink-2 (4.5:1 on --surface-2). Tokens only, borders only (never arrows). */
+.ext-tag { display: inline-flex; align-items: center; height: 16px; padding: 0 6px; margin-left: 6px; border: 1px dashed var(--muted); border-radius: 8px; background: var(--surface-2); color: var(--ink-2); font-size: 10.5px; font-weight: 600; line-height: 1; letter-spacing: .02em; white-space: nowrap; vertical-align: middle; }
+.ext-note { margin: 0 0 12px; padding: 8px 12px; border: 1px dashed var(--muted); border-radius: 8px; background: var(--surface-2); color: var(--ink-2); font-size: 13px; }
+tr.is-external > td { background: color-mix(in srgb, var(--surface-2) 60%, transparent); }
+.list-item.is-external { background: color-mix(in srgb, var(--surface-2) 60%, transparent); }
+/* a lane head: dashed grey box, muted fill, grey stripe; the tag sits under it (flow-draw-external.js). More specific than cmp.css / sequence.css. */
+.seq-part.k-service.ext rect:first-child { fill: var(--surface-2); stroke: var(--muted); stroke-dasharray: 5 3; }
+.seq-part.k-service.ext .stripe { fill: var(--muted); }
+.seq-part .ext-pill rect { fill: var(--surface-2); stroke: var(--muted); stroke-dasharray: 3 2; }
+.seq-part .ext-pill text { font: 600 10.5px var(--font); fill: var(--ink-2); }

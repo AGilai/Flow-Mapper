@@ -3,6 +3,7 @@
 import type { GraphIndex } from './graph-index.ts';
 import { sid } from './graph-index.ts';
 import type { Ingress } from './types.ts';
+import { externalField } from './external.ts';
 import { rpcServed } from './amqp-route.ts';
 import type { Trace, Participant } from './trace.ts';
 import { coverageOf } from './incomplete.ts';
@@ -18,7 +19,7 @@ export function entryPoints(g: GraphIndex) {
   const orphan = new Set(g.resolution.orphans.map((i) => sid(i.service, i.id)));
   return g.model.ingress
     .filter((i) => i.entryPoint !== false && (i.entryPoint || orphan.has(sid(i.service, i.id)) || !!rpcServed(i))) // an RPC command can always be traced from (0.19.0)
-    .map((i) => ({ service: i.service, id: i.id, bindKey: i.bindKey, transport: i.transport, handler: i.handler, ...(i.middleware?.length ? { middleware: i.middleware } : {}), ...(i.links ? { links: i.links } : {}), ...coverageField(i), entryPoint: !!i.entryPoint }));
+    .map((i) => ({ service: i.service, id: i.id, bindKey: i.bindKey, transport: i.transport, handler: i.handler, ...(i.middleware?.length ? { middleware: i.middleware } : {}), ...(i.links ? { links: i.links } : {}), ...coverageField(i), ...externalField(g, i.service), entryPoint: !!i.entryPoint }));
 }
 
 

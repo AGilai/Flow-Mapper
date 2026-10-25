@@ -220,7 +220,7 @@
         "tags": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
         "groupPath": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*(/[a-z0-9][a-z0-9-]*)*$", "description": "Optional. The subsystem the service belongs to, as a path: \"platform\", later \"platform/identity\". Harvesters may leave it out; design environments set it." },
         "links": { "$ref": "#/$defs/links" },
-        "details": { "type": "object", "additionalProperties": true, "properties": { "runtime": { "enum": ["k8s-pod", "k8s-deployment", "k8s-daemonset", "k8s-operator", "k8s-job"], "description": "How the component runs (0.25.1)." } }, "description": "Free-form. `runtime`: k8s-pod | k8s-deployment | k8s-daemonset | k8s-operator | k8s-job. In a design (an HLD import): `doc` (file, section, quote, confidence) says where the component comes from." }
+        "details": { "type": "object", "additionalProperties": true, "properties": { "runtime": { "enum": ["k8s-pod", "k8s-deployment", "k8s-daemonset", "k8s-operator", "k8s-job"], "description": "How the component runs (0.25.1)." }, "external": { "description": "#87: true marks an external (third-party) service, such as an `ext-*` host the harvester models only as a call target. Only the boolean true counts; any other value is internal. Calls to it are normal links, never gaps; it is drawn dashed grey with an \"external\" tag and has no inside view." } }, "description": "Free-form. `external`: true for a third-party host (#87). `runtime`: k8s-pod | k8s-deployment | k8s-daemonset | k8s-operator | k8s-job. In a design (an HLD import): `doc` (file, section, quote, confidence) says where the component comes from." }
       }
     },
 

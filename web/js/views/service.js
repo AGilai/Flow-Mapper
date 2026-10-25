@@ -21,6 +21,7 @@ import { lockChip } from '../components/lock.js';
 import { linksRow, runtimeGlyph, runtimeOf } from '../components/ext-links.js';
 import { openImport } from '../design/import-panel.js';
 import { editing } from '../design/edit-open.js';
+import { externalNote, externalTag } from '../components/external-tag.js';
 import { aboutBlock } from '../components/about.js';
 import { pencils } from '../design/pencil.js';
 
@@ -29,7 +30,7 @@ export async function render({ main, params, query }) {
   const [v, log, marks] = await Promise.all([api.service(state.env, name), api.changelog(state.env, name, 30), loadMarks()]);
   const mine = marks.markOf(`svc:${name}`);
   const s = v.service;
-  const tab = query.get('tab') ?? 'connections';
+  const tab = query.get('tab') === 'functions' && v.external ? 'connections' : query.get('tab') ?? 'connections';
   const broken = v.egress.filter((e) => e.dangling).length;
   const orphans = v.ingress.filter((i) => i.orphan).length;
 
@@ -41,7 +42,7 @@ export async function render({ main, params, query }) {
     s.repo ? h('span.muted.truncate', s.repo) : null);
 
   const figures = h('div.figures',
-    fig(v.ingress.length, 'Ingress'), fig(v.egress.length, 'Egress'), fig(v.functions.length, 'Functions'),
+    fig(v.ingress.length, 'Ingress'), fig(v.egress.length, 'Egress'), v.external ? null : fig(v.functions.length, 'Functions'),
     fig(broken, 'Broken calls', broken > 0), fig(orphans, 'Never called'), fig(v.openBugs, 'Open bugs', v.openBugs > 0));
 
   const body = h('div');
@@ -55,22 +56,23 @@ export async function render({ main, params, query }) {
     try { panel.open(...endpointPanel(await api.endpoint(state.env, name, id), state.env)); }
     catch (err) { panel.open('Endpoint', h('p.small.muted', err.message)); }
   }
-  const tabs = h('div.tabs', { role: 'tablist' }, [['connections', 'Connections'], ['functions', `Functions (${v.functions.length})`], ['changes', 'Changes']].map(([id, label]) =>
+  const ext = !!v.external; // #87: an external service has no functions or flows to show
+  const tabs = h('div.tabs', { role: 'tablist' }, [['connections', 'Connections'], ...(ext ? [] : [['functions', `Functions (${v.functions.length})`]]), ['changes', 'Changes']].map(([id, label]) =>
     h('button', { role: 'tab', 'aria-selected': String(id === tab), on: { click: () => { setQuery({ tab: id }); show(id); } } }, label)));
 
   function show(id) {
-    tabs.querySelectorAll('button').forEach((b, i) => b.setAttribute('aria-selected', String(['connections', 'functions', 'changes'][i] === id)));
-    fill(body, id === 'functions' ? functionsTab(v, name) : id === 'changes' ? changesTab(log) : connectionsTab(v, name, query, showEndpoint, marks, imp));
+    tabs.querySelectorAll('button').forEach((b, i) => b.setAttribute('aria-selected', String((ext ? ['connections', 'changes'] : ['connections', 'functions', 'changes'])[i] === id)));
+    fill(body, id === 'functions' && !ext ? functionsTab(v, name) : id === 'changes' ? changesTab(log) : connectionsTab(v, name, query, showEndpoint, marks, imp));
   }
 
   main.append(
-    pageHead(h('span.row.has-pen', titled('service', s.kind, name), pen.button('header', name, comp), runtimeGlyph(runtimeOf(s)), markBadge(mine, { store: marks }), refs?.refs ? lockChip(null, { text: `${refs.refs} reference ${refs.refs === 1 ? 'endpoint' : 'endpoints'}`, title: `${refs.refs} of its ${refs.endpoints} endpoints are references: their behaviour is in another environment.` }) : null), [mine && wasText(mine) ? [s.description, h('span.mk-what', ` ${wasText(mine)}`)] : s.description ?? null, h('span.head-links', linksRow(s.links), pen.button('docs', `${name} docs links`, { ...comp, at: 'links' }))], // #80: name and badges on one line, the description under it, the doc links on a row of their own
+    pageHead(h('span.row.has-pen', titled('service', s.kind, name), pen.button('header', name, comp), externalTag(v), runtimeGlyph(runtimeOf(s)), markBadge(mine, { store: marks }), refs?.refs ? lockChip(null, { text: `${refs.refs} reference ${refs.refs === 1 ? 'endpoint' : 'endpoints'}`, title: `${refs.refs} of its ${refs.endpoints} endpoints are references: their behaviour is in another environment.` }) : null), [mine && wasText(mine) ? [s.description, h('span.mk-what', ` ${wasText(mine)}`)] : s.description ?? null, h('span.head-links', linksRow(s.links), pen.button('docs', `${name} docs links`, { ...comp, at: 'links' }))], // #80: name and badges on one line, the description under it, the doc links on a row of their own
       pen.button('header', `${name} (header)`, comp, { text: 'Edit' }),
       h('a.btn', { href: href('/system', { sel: `svc:${name}` }) }, icon('system'), 'Show on map'),
       h('button.btn', { type: 'button', on: { click: (e) => openBugDialog(e.currentTarget) } }, icon('bug'), 'Report a bug'),
-      h('a.btn.primary', { href: href('/flows', { service: name }) }, icon('flow'), 'Trace a flow')),
+      ext ? null : h('a.btn.primary', { href: href('/flows', { service: name }) }, icon('flow'), 'Trace a flow')),
     host);
-  host.prepend(h('div.content', h('div.page-grid', h('div.svc-head', meta, pen.hint(), aboutBlock(s.about, { pen: pen.about(name, comp) }), figures), h('div', tabs, body))));
+  host.prepend(h('div.content', h('div.page-grid', h('div.svc-head', ext ? externalNote() : null, meta, pen.hint(), aboutBlock(s.about, { pen: pen.about(name, comp) }), figures), h('div', tabs, body))));
   show(tab);
   pen.resume();
   if (query.get('ep')) showEndpoint(query.get('ep'));

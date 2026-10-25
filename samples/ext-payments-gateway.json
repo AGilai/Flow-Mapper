@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "ext-payments-gateway",
+    "kind": "service",
+    "team": "payments",
+    "description": "The card processor's public API (third party): payments-svc authorises charges against it",
+    "details": {
+      "external": true
+    }
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-25T08:00:00Z",
+  "functions": [
+    { "id": "authorize", "name": "authorize", "steps": [] }
+  ],
+  "ingress": [
+    {
+      "id": "in.authorize",
+      "bindKey": "http:POST ext-payments-gateway/v1/authorize",
+      "transport": "http",
+      "handler": "authorize",
+      "details": {
+        "method": "POST",
+        "path": "/v1/authorize"
+      }
+    }
+  ],
+  "egress": [],
+  "resources": []
+}

@@ -2,6 +2,7 @@
 // data stores and event types — with a short "connections" line and a problem count for filtering.
 
 import { itemsOf, type GraphIndex } from './graph-index.ts';
+import { externalField } from './external.ts';
 import { health } from './health.ts';
 import { channelSummaries } from './channels.ts';
 import { eventReport, eventTypes } from './events.ts';
@@ -16,6 +17,8 @@ export interface InventoryItem {
   group?: string; team?: string; /** Services: the subsystem path, where set. */ groupPath?: string; connections: string; size: number; problems: number;
   /** Event types only: whether the event type has a message DTO. */
   hasDto?: boolean;
+  /** Services: an external (third-party) service (#87). */
+  external?: true;
   /** Data stores: this row is a Redis cluster or instance (its page is /instances/<id>), not one key pattern. `kind` stays 'redis'. */
   instance?: 'cluster' | 'instance';
   /** RabbitMQ (0.19.0): the exchange type; RPC plumbing the page folds; where an RPC command or a reply-queue row opens. */
@@ -47,7 +50,7 @@ function build(g: GraphIndex, withDto: Set<string>, keySummaries: Map<string, Ke
     if (svc.kind === 'infra') continue;
     const ingress = itemsOf(g, s.service).ingress.length;
     out.push({
-      type: 'service', id: s.service, label: s.service, kind: svc.kind, team: svc.team, ...(svc.groupPath ? { groupPath: svc.groupPath } : {}),
+      type: 'service', id: s.service, label: s.service, kind: svc.kind, team: svc.team, ...(svc.groupPath ? { groupPath: svc.groupPath } : {}), ...externalField(g, s.service),
       connections: `${n(ingress, 'endpoint')}, ${n(s.egress, 'call')}`, size: ingress + s.egress,
       problems: s.dangling + s.orphans + s.unbound + s.ambiguous + s.eventIssues,
     });

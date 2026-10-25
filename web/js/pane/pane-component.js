@@ -12,6 +12,7 @@ import { cmpVar } from '../design/component-colors.js';
 import { envQuery } from '../views/inventory-links.js';
 import { markBadge } from '../components/status-mark.js';
 import { subIcon } from '../icons.js';
+import { externalNote } from '../components/external-tag.js';
 import { connectionSections } from '../views/system-panel.js';
 import { markOfPoint } from '../views/flow-list-filter.js';
 import { block, facts, docLinks, endpointText, flowsList, inFlowBlock } from './pane-parts.js';
@@ -46,7 +47,7 @@ export async function componentSpec(name, ctx) {
   const ownerPen = () => ctx.pen?.button('owners', `${name} owners`, { form: 'component', service: name, at: 'owners' }) ?? null;
 
   const subLink = () => (subKey ? h('button.pane-sub-link', { type: 'button', 'data-qa': 'pane-sub', on: { click: () => ctx.onSub?.(subKey) } }, subIcon(subs.info(subKey)?.icon, 14), subs.labelOf(subKey)) : subs.has ? 'Not set' : null);
-  const overview = () => [ctx.pen?.hint() ?? null, facts([
+  const overview = () => [view?.external ? externalNote() : null, ctx.pen?.hint() ?? null, facts([
     ['Subsystem', subLink()], ['Kind', KIND[kind] ?? kind], ['Team', svc.team], ['Description', svc.description],
     ['Endpoints', ep.total ? [`${ep.total} `, h('small', `· ${ep.text} `), h('a.pane-more', { href: open }, 'Open service')] : h('a.pane-more', { href: open }, 'Open service')],
     ['Owners', owners.length || design ? ownersValue(owners, ownerPen()) : null], ['Docs', docLinks(svc.links)],
@@ -57,11 +58,11 @@ export async function componentSpec(name, ctx) {
   const connBody = () => (conn.length ? connectionSections(sys.node, sys.edges, sys.byId) : h('p.pane-none', 'No connections on the map.'));
 
   const spec = {
-    kind: 'component', key: `svc:${name}`, target, title: name, mono: true, tile: () => tile(cmpVar(name, kind, null, env)), sub: [KIND[kind] ?? kind, subKey ? subs.labelOf(subKey) : null],
+    kind: 'component', key: `svc:${name}`, target, title: name, mono: true, tile: () => tile(cmpVar(name, kind, null, env)), sub: [KIND[kind] ?? kind, view?.external ? 'external' : null, subKey ? subs.labelOf(subKey) : null], // #87: the tag is text
     marks: (goQuestions) => [markBadge(mk, { store: marks }), questionsButton(about.questions, goQuestions)], questions: about.questions,
     sections: {
       overview: block('overview', '', {}, overview()), about: aboutSection(about, { pen: aboutPen, design }),
-      flows: block('flows', 'Flows through it', { count: flows.length, right: h('a', { href: href('/flows', envQuery(env, { service: name })) }, 'Trace flows') }, flowsBody()),
+      flows: block('flows', 'Flows through it', { count: flows.length, right: view?.external ? null : h('a', { href: href('/flows', envQuery(env, { service: name })) }, 'Trace flows') }, flowsBody()),
       connections: block('connections', 'Connections', { count: nConn }, connBody()),
     },
     lead: [inFlowBlock(ctx.fromFlow, name)].filter(Boolean), counts: { flows: flows.length, connections: nConn },

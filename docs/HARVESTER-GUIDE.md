@@ -106,6 +106,14 @@ Design environments: harvesters only write to sealed environments. Posting a man
 
 ## What to extract from a service
 
+**Service header: `details.external` (#87).** A third-party host you only model as a call target (the card
+processor's API, a SaaS, an `ext-*` service) is declared in the header: `"service": {"name": "ext-payments-gateway", ..., "details": {"external": true}}`.
+Only the boolean `true` counts; any other value, or none, means an internal service. Give it its ingress (the endpoints
+your services call) and the callers' egress as usual: the bind key links them like any other call. An external service
+is drawn dashed grey with an "external" tag, has no inside view, and a call to it is never a gap, a broken link or a
+Link health problem (nor is its endpoint "never called"). Its ingress are not listed as flows on the Flows page. Counts read
+"N services · M external". If the service has functions or steps, the flag still wins and nothing inside is shown.
+
 **Functions**: every function that handles a request or is on the way to an outgoing call or a
 data store. `id` is stable across harvests (e.g. `OrderService.place`), `file` is relative to the
 repo root, `line` is where the function starts.

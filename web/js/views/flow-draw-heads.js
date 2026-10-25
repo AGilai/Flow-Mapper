@@ -10,6 +10,7 @@ import { colVar } from '../design/component-colors.js';
 import { headRefSvg, headRefSub } from './flow-refs-draw.js';
 import { runtimeFor, runtimeSvg } from '../design/service-info.js';
 import { drawBands, storeIcon } from './flow-draw-bands.js';
+import { externalCls, externalTag } from './flow-draw-external.js';
 import { headIcon, headIconOf, TEXT_X } from './flow-draw-icons.js';
 
 export function drawHead({ columns, heads, boxH, HEAD, bandH, bands, width, colX, isCh, headBox, folded, groups, marks, refs, edit, internal }) {
@@ -20,7 +21,7 @@ export function drawHead({ columns, heads, boxH, HEAD, bandH, bands, width, colX
       s('rect', { width: headBox(c), height: boxH, rx: 8 }), s('rect', { class: 'stripe', width: 4, height: boxH, rx: 2 }), headIcon(c) ?? (c.kind === 'resource' ? storeIcon(12, 10, c.stack) : null), headMarkSvg(marks, c, headBox(c)), headRefSvg(refs, c, headBox(c)), c.kind === 'service' ? runtimeSvg(runtimeFor(c.service, c.env), headBox(c) - (refs?.locked(c) ? 40 : 22), 5) : null,
       heads[i].name.map((t, k) => s('text', { x: tx(c), y: 18 + k * LINE_H, class: 'name' }, t)),
       isCh(c) ? headChip(c, heads[i].name.length * LINE_H + 5) : (c.kind === 'unresolved' && isDesign(c.env) ? ['not designed yet'] : headRefSub(refs, c, heads[i].sub)).map((t, k) => s('text', { x: tx(c), y: 18 + heads[i].name.length * LINE_H + 1 + k * 13, class: 'sub' }, t)),
-      internal && c.kind === 'service' ? internalCtl(c, internal.state(c.service)) : null,
+      externalTag(c, headBox(c), boxH), internal && c.kind === 'service' && !c.external ? internalCtl(c, internal.state(c.service)) : null,
       s('title', {}, c.trigger ? `${c.label}: a client app. Starts when: ${c.trigger}` : c.kind === 'resource' ? (c.stack ? `${c.label}: ${c.sub}` : `${c.label}\n${c.sub}`) : c.folded ? `${c.folded.length} more queues: ${c.folded.map(chName).join(', ')}. Click to show them all.` : c.fan?.open ? `${c.label}. Click to fold the healthy queues again.` : c.label))));
   /** "⊕ internal" (0.38.0): the lazy control under a service head: loads that service's internal calls; "⟳ loading…", then "⊖ internal" to fold them again. Shown on hover or focus, always on touch (CSS). */
   function internalCtl(c, st) {
@@ -30,7 +31,7 @@ export function drawHead({ columns, heads, boxH, HEAD, bandH, bands, width, colX
   }
   function look(c) { // the component's colour (a service with a slot), a locked head (a reference), a client app
     const cc = colVar(c), mc = isCh(c) || c.transport ? `--mc:${colorOf(c.transport)}` : null;
-    return { style: [mc, cc ? `--cc:${cc}` : null].filter(Boolean).join(';') || null, cls: `${cc ? ' cmp' : ''}${c.serviceKind === 'client-app' ? ' ca' : ''}${refs?.locked(c) ? ' locked' : ''}` };
+    return { style: [mc, cc ? `--cc:${cc}` : null].filter(Boolean).join(';') || null, cls: `${cc ? ' cmp' : ''}${c.serviceKind === 'client-app' ? ' ca' : ''}${refs?.locked(c) ? ' locked' : ''}${externalCls(c)}` };
   }
   function headChip(c, y) { // the transport of a topic or queue, as a chip; a big fan-out adds its fold control
     const w = c.sub.length * 6.4 + 12;

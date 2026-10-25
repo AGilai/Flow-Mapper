@@ -13,7 +13,7 @@ export function readTheme() {
   return {
     font: v('--font') || 'sans-serif', ink: v('--ink'), ink2: v('--ink-2'), muted: v('--muted'), surface: v('--surface'),
     paper: v('--paper'), line: v('--line-strong'), accent: v('--accent'), broken: isDesign() ? v('--ink-2') : v('--t-broken'), halo: v('--paper'),
-    cmp: [1, 2, 3, 4, 5, 6, 7, 8].map((i) => v(`--cmp-${i}`)), district: v('--muted'), region: v('--surface-2'), newc: v('--new'), newInk: v('--new-ink'),
+    cmp: [1, 2, 3, 4, 5, 6, 7, 8].map((i) => v(`--cmp-${i}`)), district: v('--muted'), extLine: v('--muted'), extFill: v('--surface-2'), extInk: v('--ink-2'), region: v('--surface-2'), newc: v('--new'), newInk: v('--new-ink'),
     t: { http: v('--t-http'), rpc: v('--t-rpc'), grpc: v('--t-http'), eventbridge: v('--t-eb'), sns: v('--t-sns'), sqs: v('--t-sqs'), amqp: v('--t-amqp'), cron: v('--t-cron'), socket: v('--t-socket'), other: v('--t-res'), undecided: v('--ink-2'), res: v('--t-res') },
   };
 }
@@ -51,12 +51,13 @@ export function drawNode(ctx, n, [x, y], k, degree, theme, { dim, selected, hove
     ctx.fillStyle = theme.ink; ctx.strokeStyle = selected ? theme.accent : theme.ink;
     roundRect(ctx, x - r, y - r, r * 2, r * 2, r * 0.35); ctx.fill(); if (selected) ctx.stroke();
   } else {
-    const broken = n.stats && (n.stats.dangling > 0);
-    ctx.fillStyle = theme.surface;
+    const broken = n.stats && (n.stats.dangling > 0), lw = ctx.lineWidth;
+    ctx.fillStyle = n.external ? theme.extFill : theme.surface; // #87: an external service: muted fill, even dashed grey outline (the label carries the "external" tag)
     const slot = slotOf(state.envMeta, state.env, n.service, n.svcKind); // the component's colour ring (frame 11); client apps and infra stay neutral
     ctx.strokeStyle = selected ? theme.accent : broken ? theme.broken : slot ? theme.cmp[slot - 1] : theme.ink2;
     if (slot && !selected && !broken) ctx.lineWidth = 2.4;
-    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    if (n.external) { ctx.strokeStyle = selected ? theme.accent : theme.extLine; ctx.lineWidth = Math.max(lw, 1.8); ctx.setLineDash([4, 3]); }
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.setLineDash([]);
     // inner dot sized by function count: a quick sense of how much is inside
     const f = n.stats?.functions ?? 0;
     if (f && r > 6) { ctx.fillStyle = selected ? theme.accent : theme.ink2; ctx.beginPath(); ctx.arc(x, y, Math.min(r - 3, 1.5 + Math.sqrt(f) * 0.45), 0, Math.PI * 2); ctx.fill(); }

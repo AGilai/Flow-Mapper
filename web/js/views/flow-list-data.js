@@ -7,8 +7,9 @@ import { relCounts } from './flow-relations-pure.js';
 
 /** loadListData(env, service, design) -> { points, counts, cmts, acts, ments, relBy, names (Map `service/ingress` -> name), svcs }. `service`: only that component's ingress. */
 export async function loadListData(env, service, design) {
+  const svcView = service ? await api.service(env, service) : null, ext = !!svcView?.external;
   const points = service
-    ? (await api.service(env, service)).ingress.map((i) => ({ service, id: i.id, bindKey: i.bindKey, transport: i.transport, handler: i.handler, entryPoint: i.entryPoint }))
+    ? svcView.ingress.map((i) => ({ service, id: i.id, bindKey: i.bindKey, transport: i.transport, handler: i.handler, entryPoint: i.entryPoint, ...(ext ? { external: true } : {}) }))
     : await api.entryPoints(env);
   const counts = new Map((await api.flowCounts(env).catch(() => [])).map((c) => [`${c.service}:${c.ingress}`, c]));
   const cmts = await api.commentCounts(env).catch(() => ({})); // comments per flow, for the 💬 count of the list
