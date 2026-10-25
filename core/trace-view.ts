@@ -22,7 +22,8 @@ export interface ViewOptions { choose?: ReadonlyMap<string, string> | Record<str
 type Item = { m: Message; i: number };
 
 const KEEP = new Set(['entry', 'egress', 'deliver', 'resource']);
-const external = (m: Message) => KEEP.has(m.kind) || !!m.gap || !!m.broken || !!m.unhandled;
+// 0.41.2 (#84): a frontier step (a trace made with frontier=1) and the folded frontier marker are what the viewer asked for: the external detail keeps them
+const external = (m: Message) => KEEP.has(m.kind) || !!m.gap || !!m.broken || !!m.unhandled || m.origin === 'frontier' || m.kind === 'frontier';
 const opens = (o: string[], m: Message) => o.some((t) => { const [s, f] = [t.split(':')[0], t.includes(':') ? t.slice(t.indexOf(':') + 1) : '']; return m.service === s && (!f || m.fn === f || m.calls === f); });
 
 /** The messages the detail leaves visible: `open` brings back internal ones; an arm that would show nothing keeps its outcome (a leaf, else its first message). */

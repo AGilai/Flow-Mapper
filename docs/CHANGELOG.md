@@ -5,6 +5,11 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+**Fix #84: Frontier steps are drawn in the External view, and the folded "N internal calls" marker opens on a click.** No schema or migration change.
+- `GET /trace?detail=external` (and MCP `trace_flow`) now keeps every message with `origin: "frontier"` and the folded frontier marker (`kind: "frontier"`). Until now it kept only the unresolved ones (`frontier=1`: entry plus 2 messages) and dropped the marker (`frontier=0`), so the page folded the two into "2 internal calls · 2 unresolved" and the rest was gone. `detail=full` is unchanged. Without `frontier=1` the trace has no frontier steps, only the marker.
+- The page: with "Frontier steps" ticked each step is a row of its own (an internal call, in either detail); the marker "N internal calls" opens those calls on a click, Enter or Space (the same as "⊕ internal" under the head, "⊖ internal" folds them again).
+
 ## 0.41.1 (2026-10-23)
 **Fix #83: Mermaid import of a branch that holds only a return.** No schema or migration change.
 - A return inside a frame the call it answers is not in (`alt ok ... else fail`: `B-->>A: 403 denied`), in a branch with no other step or note, is now a step of that branch: a leaf (`kind: "leaf"`, `operation` = the label, `details.return_to` = the component it goes back to; the trace message carries `returnTo`). So the `alt` keeps both branches (arms `b1`, `b2` as decisions) and the group closes at its `end`; the export writes it back as `B-->>A: 403 denied` inside `else`. A branch that also holds a call or note keeps the old reading (the first such return is the call's `returns.label`).

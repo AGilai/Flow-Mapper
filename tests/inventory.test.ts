@@ -29,7 +29,7 @@ test('access is read or write from the operation, unless the step says', () => {
 test('inventory lists every kind of object', async () => {
   const items = (await app.call('GET', '/api/envs/prod/inventory')).body as any[];
   const of = (t: string) => items.filter((x) => x.type === t);
-  assert.equal(of('service').length, 58, 'infra is not a service (50 + the 5 RabbitMQ demo services of 0.18.0 + identity-svc of 0.27.1 + member-api and member-notifier of 0.37.0)');
+  assert.equal(of('service').length, 59, 'infra is not a service (safer-auth of 0.41.2 + 50 + the 5 RabbitMQ demo services of 0.18.0 + identity-svc of 0.27.1 + member-api and member-notifier of 0.37.0)');
   assert.ok(of('service').some((x) => x.id === 'catalog-svc' && x.connections.startsWith('50 endpoints')));
   assert.ok(of('channel').some((x) => x.id === 'eventbridge:acme-bus' && x.kind === 'eventbridge-bus'));
   assert.ok(of('store').some((x) => x.id === 'redis:cache-main' && x.kind === 'redis' && x.instance === 'cluster' && x.label === 'cache-main'), 'a Redis instance is one row');

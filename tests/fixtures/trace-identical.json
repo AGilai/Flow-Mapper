@@ -70,6 +70,7 @@
  "payments-svc/in.legacyRefund": "82a0a86fdc691e9c2a0dd57d1de24c3c0208bd37",
  "reports-api/in.exportReport": "bb75f1fd2b061479bbd8897968964fe5fb275db5",
  "reports-api/in.getReport": "637d7be109d1cd5e13e6f269e47d3f8ae8e31f00",
+ "safer-auth/in.authenticate": "3403d26ed21f9a58a4694e05cc5e0910312ccf2a",
  "saga-controller/in.start": "5cafe32b4ac7ae3a93c47e8019c74ec04ee60ece",
  "saga2-eraser-entry/in.erase": "f06200f88245d77152788c2ae6cf62cd81de0578",
  "sdp-controller/in.deviceConnect": "0b04f089870811134717ea30b4edb33ed0ef66c8",
