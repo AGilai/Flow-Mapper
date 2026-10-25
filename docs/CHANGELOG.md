@@ -9,6 +9,11 @@ in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.m
 
 - Flow view (#86, UI only): clicking a Redis or Mongo participant head in an open flow opens a panel in the right-hand pane with only what this flow touches in that store (per key template or collection: operations, steps, code links, TTL, Mongo fields, and the keys-registry row). `&store=<store key>` on the flows hash restores it. It reads the resource message fields `keyTemplate`, `dbIndex`, `ttlSeconds` and `keyUnresolved` (0.42.1; `details.keyPattern` is an alias of `details.keyTemplate`). Nothing to change for harvesters: send `details.keyTemplate` (or `keyPattern`), `dbIndex`, `ttlSeconds` on Redis resource steps as before. Demo: `checkout-svc`.
 
+## 0.42.1 (2026-10-25)
+**#86 backend: key fields on resource steps.** No schema or migration change.
+- `details.keyPattern` is an alias of `details.keyTemplate` wherever key templates are read (keys-registry join by service + dbIndex + keyTemplate, instance pages and key flows, contract `details.keyPattern` path); `keyTemplate` wins if both are sent. A value `{unresolved:a,b}` is not a key.
+- Trace API / MCP `trace_flow` (additive): a resource-step message carries `keyTemplate`, `dbIndex`, `ttlSeconds` when present and `keyUnresolved: string[]` when the key is unresolved. Absent means omitted; `details` is not passed whole.
+
 ## 0.42.0 (2026-10-25)
 **#85 items 1 to 5: show broken flows.** No schema or migration change. Only `gap: true` counts; `gap` absent or `false` never does (this supersedes "true or absent = a real gap" in the harvester guide).
 - Trace API / MCP `trace_flow` (additive): a message of a step that has an `unresolved[]` entry with `gap: true` (or whose egress has one) carries `blocked: {id, service, fn, seq, call?, reason?, plain?, file?, line?, url?}` (`id` = `<service>:<fn>#<seq>`; `call` is the entry's `detail`, else the step's `operation` / `note`; `url` the repository link). The folded `kind: "frontier"` marker carries `frontierBlocked: M` and `frontierSites` (the first 20) when some of its `frontierSteps` are blocked; `label` is unchanged. The trace carries `coverage` (the entry ingress's `details.coverage`, each site with its `url`) when the ingress has one.

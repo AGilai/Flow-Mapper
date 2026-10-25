@@ -37,7 +37,7 @@ test('traces of every sample entry without frontier steps are unchanged (0.37.0:
   const h = createHash('sha256');
   let n = 0;
   for (const i of m.ingress.filter((x) => !x.service.startsWith('stress-') && !x.service.startsWith('saga') && !['reports-api', 'auth-svc', 'safer-auth', 'safer-lookup', 'sdp-controller', 'cp-middleware', 'swg-api', 'dpc-worker', 'activitylog', 'sxdns', 'member-api', 'member-notifier', 'identity-svc'].includes(x.service) && ![demo, demo35, demo26, demo36, ...demo40, demo41, ...demo42, ...demo44, demo45, demoPosture, demoLoop].some((d) => x.service === d.service && x.id === d.ingress))) for (const scope of ['intra', 'full'] as const) {
-    h.update(JSON.stringify([i.service, i.id, scope, trace(g, { service: i.service, ingress: i.id }, { scope })], (k, v) => (k === 'alternatives' || k === 'arms' || k === 'key' || k === 'decisions' || k === 'fixes' || k === 'stepId' || k === 'filter' || k === 'amqp' || k === 'rpc' || k === 'operation' || k === 'assumed' || k === 'storeKind' || k === 'owner' || k === 'access' || k === 'n' || k === 'of' ? undefined : v)));
+    h.update(JSON.stringify([i.service, i.id, scope, trace(g, { service: i.service, ingress: i.id }, { scope })], (k, v) => (k === 'alternatives' || k === 'arms' || k === 'key' || k === 'decisions' || k === 'fixes' || k === 'stepId' || k === 'filter' || k === 'amqp' || k === 'rpc' || k === 'operation' || k === 'assumed' || k === 'storeKind' || k === 'owner' || k === 'keyTemplate' || k === 'dbIndex' || k === 'ttlSeconds' || k === 'keyUnresolved' || k === 'access' || k === 'n' || k === 'of' ? undefined : v)));
     n++;
   }
   assert.equal(n, 150);

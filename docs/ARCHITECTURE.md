@@ -52,6 +52,7 @@ UI / agent ── GET /api/envs/:env/... ─► server/routes/queries.ts ─► 
 | `stores.ts` | data stores: keys and groups, read/write access, store view |
 | `clients.ts` | how services reach stores (`client`): rows, driver majors, mixed-major flag, counts |
 | `keys.ts` | Redis key templates (#29): validation of what a harvester sends, rows per template and db, groups by owner (shared, no harvested writer), TTL disagreement, summary |
+| `key-template.ts` | #86: `keyTemplateOf(step)` (`details.keyTemplate`, else the alias `details.keyPattern`; `{unresolved:a,b}` is no key, its reasons) and `keyFieldsOn` (the trace message fields) |
 | `instances.ts` | Redis instances: the group of a bind key (`redis:cache-main`), who connects (access, client, databases), key flows from steps with `details.keyTemplate`, the keys view |
 | `amqp-exchange.ts`, `amqp-inventory.ts`, `rpc-endpoint.ts` | Environments (0.21.0): the rail's picker is `components/env-picker.js` (rows from `state.envMeta`, text from the pure `env-info.js`); `#/envs/new` is `views/env-new.js` (page and submit), `env-new-groups.js` (subsystem chips, levels), `env-new-table.js` (component table, neighbours), CSS `css/envs.css`. The preview bundles `envMeta` and answers components and neighbours locally (`api-local-envs.js`); creating is refused there.
 

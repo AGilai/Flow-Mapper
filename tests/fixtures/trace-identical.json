@@ -25,7 +25,7 @@
  "catalog-svc/in.get.pricelists": "1c57cc0486a4c7b60a245dd9c436f61cec215fc1",
  "catalog-svc/in.get.products": "008af123758aae05b00ebed943347b5c055cbe5e",
  "catalog-svc/in.get.products.id": "30ab0c2eb7fd5820a220f430e31be47b1f23397b",
- "catalog-svc/in.get.products.id.availability": "8917b75deca072ce117912bf53edcdefb2f8a45c",
+ "catalog-svc/in.get.products.id.availability": "8cf1928191653822e2433eac177243f8e2829ceb",
  "catalog-svc/in.get.products.id.images": "fc7a478522110756c057101edd4be6fcb72bc595",
  "catalog-svc/in.get.products.id.prices": "d3559f4891c8f07686ae5886f15b91bbd0cca4d9",
  "catalog-svc/in.get.products.id.related": "9e3698377fd910250e6b46e68b8c08667717b7e8",
@@ -68,8 +68,8 @@
  "orders-svc/in.remove": "83a3d15a961c2ce561963ca72b6da8a2f30d93d8",
  "orders-svc/in.touch": "8cdee6efd4a062f9f7e2d69ca38c16d239b115f8",
  "payments-svc/in.legacyRefund": "82a0a86fdc691e9c2a0dd57d1de24c3c0208bd37",
- "reports-api/in.exportReport": "bb75f1fd2b061479bbd8897968964fe5fb275db5",
- "reports-api/in.getReport": "637d7be109d1cd5e13e6f269e47d3f8ae8e31f00",
+ "reports-api/in.exportReport": "4337e090442b44eeaf70c021f8bbf8569b33f2fa",
+ "reports-api/in.getReport": "bde486976086f7989ba01068e360be6f7584e5b8",
  "safer-auth/in.authenticate": "047b86437242bfd6d259248035db6b7f9298092c",
  "safer-lookup/in.find": "d2d56d9982a829501e9f640a2d090d1c873007c9",
  "saga-controller/in.start": "5cafe32b4ac7ae3a93c47e8019c74ec04ee60ece",
@@ -81,5 +81,5 @@
  "swg-api/in.policyCheck": "a61e86762646b320e530b72a7777a6db2277914c",
  "sxdns/in.rpcResolve": "d2b67c3e7075a64470fb67a262ee4251340d8a3f",
  "sxdns/in.rpcReverse": "7c6cc754ad033f46c7375c4297deff6654457146",
- "users-svc/in.getPosture": "5430f1df94d0b60e0527f220e68fc046985315b2"
+ "users-svc/in.getPosture": "0799fb8014f444aa54c8e1d472d5d0f5d45169bd"
 }

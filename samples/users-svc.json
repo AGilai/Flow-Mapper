@@ -75,7 +75,7 @@
       "line": 12,
       "steps": [
         { "seq": 1, "type": "call", "target": "load_devices" },
-        { "seq": 2, "type": "resource", "target": "cache", "operation": "GET posture:{id}", "details": { "keyTemplate": "user:{id}" } },
+        { "seq": 2, "type": "resource", "target": "cache", "operation": "GET posture:{id}", "details": { "keyPattern": "user:{id}" } },
         { "seq": 3, "type": "egress", "target": "out.auth.verify", "operation": "POST /verify", "mode": "sync" }
       ]
     },
