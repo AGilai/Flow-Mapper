@@ -7,7 +7,7 @@ export function wireEvents(head, body, { columns, events, bars }, { onMessage, o
   const numOf = (t) => t?.closest?.('[data-num]');
   const foldOf = (t) => t.closest?.('[data-mwfold]');
   const fold = (el) => onMw?.(bars[Number(el.dataset.mwfold)], el.classList.contains('mwlab') ? '.mwlab' : '.mwseg'); // the redraw replaces the element: the caller refocuses by this selector
-  const ipillOf = (t) => !!t.closest?.('[data-ipill]'); // the folded "N internal calls" marker (0.41.2, #84); a middleware label is also a pill
+  const ipillOf = (t) => !!t.closest?.('[data-ipill]'); // the folded "N internal calls" marker (#84); a middleware label is also a pill
   const pillOf = (t) => { const b = t.closest?.('[data-pill]'); return b ? bars[Number(b.dataset.pill)] : null; };
   const pm = (ev) => {
     const g = ev.target.closest?.('[data-p]'), c = g && columns[Number(g.dataset.p)];

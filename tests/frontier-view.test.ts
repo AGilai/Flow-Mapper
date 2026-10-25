@@ -1,4 +1,4 @@
-// 0.41.2 (#84): "Frontier steps" ticked draws every frontier message, in the External view too, and the folded
+// #84: "Frontier steps" ticked draws every frontier message, in the External view too, and the folded
 // "N internal calls" marker opens on a click or a key. Demo: samples/safer-auth.json (7 frontier messages, two unresolved).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

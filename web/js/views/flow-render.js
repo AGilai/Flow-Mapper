@@ -37,7 +37,7 @@ export function createFlowRender({ trace, tree, key, ancestors = [], sticky = tr
     onBarTip: sh.tip ? (bar, el) => (bar ? sh.tip.show(bar, el) : sh.tip.hide()) : undefined,
     onMw: (bar, sel) => { const k = bar?.mw?.key; if (!k) return; if (!mwOpen.delete(k)) mwOpen.add(k); drawLane(); laneBox.querySelector(`${sel ?? '.mwlab'}[data-mwfold="${bar.id}"]`)?.focus(); },
     onBar: (bar, mode) => { if (mode === 'select') sh.select(bar); else { sh.select(bar); sh.lookInside(bar, trace); } },
-    // 0.41.2 (#84): the folded "N internal calls" marker opens those calls (the same as "⊕ internal" under the head); where nothing is lazy (a card, Full, intra) it looks inside as before
+    // #84: the folded "N internal calls" marker opens those calls (the same as "⊕ internal" under the head); where nothing is lazy (a card, Full, intra) it looks inside as before
     onPill: (bar) => { if (sh.onInternal && bar.service && pillAction(depth, !!sh.internal?.()) === 'open') sh.onInternal(bar.service); else { sh.select(bar); sh.lookInside(bar, trace); } },
     onBarMenu: (bar, x, y) => barMenu(bar, x, y, { trace, openEntry: host.openEntry, inside: () => { sh.select(bar); sh.lookInside(bar, trace); }, toIndex: index ? () => index.el.scrollIntoView({ behavior: 'smooth' }) : null }),
     onParticipant: (p, x, y, type) => (type === 'click' && sh.editHead?.(p.service)) || (type === 'click' && p.kind === 'service' && host.openPane?.({ kind: 'component', name: p.service })) || participantMenu(p, x, y, { trace, openEntry: host.openEntry, openPane: host.openPane }), // Edit with a draft: a click on a head opens its form; otherwise the info pane (0.33.0), the menu stays on right-click
