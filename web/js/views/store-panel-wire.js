@@ -56,8 +56,8 @@ export function createStorePanel({ body, host, trace, walk, label, inside, isAct
   /** The panel is gone (closed, or another panel took the pane): un-press the head, undim, drop `store=`. `focus`: the pane or the page had focus, so it goes back to the head. */
   function clear(refocus = false) {
     if (!active) return;
-    const back = host.panel.el.contains(document.activeElement) || document.activeElement === document.body;
     const g = heads().find((x) => x.getAttribute('aria-pressed') === 'true');
+    const back = host.panel.el.contains(document.activeElement) || document.activeElement === document.body || !!g?.contains(document.activeElement); // the head itself (Enter / Space / click on the pressed head) counts: closing draws the heads again and would drop its focus
     active = null; view = null; cur = null; unflash(); paint(); onKey(null);
     if (refocus && back && g) { // closing widens the diagram, which draws the heads again: focus the new head too
       want = { group: g.dataset.store, coll: g.dataset.coll };

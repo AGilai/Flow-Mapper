@@ -91,3 +91,6 @@ Add a sample case in `samples/` (env `prod`): a flow with the three Redis keys (
 5. **Mongo: also show indexes or schema?** Recommend no; the store page has them.
 6. **Collapse threshold 8.** Recommend 8; tune after real flows (a 31-step checkout is the stress case in 23d).
 7. **Other store kinds** (SQL, S3, DynamoDB): out of scope; heads stay non-interactive. The panel code takes the kind from `storeKind`, so adding one later is a new card builder.
+
+## Known limit: folded DB runs
+While a run of DB operations is folded ("DB: N ops") every member shares the run's step number, so the panel's chips for those operations show that one number (and "+N more" never appears for them). The chip still jumps to the folded row; expanding the run on the diagram renumbers the steps and the panel follows. Listing the members by their own numbers would need the run expanded, which changes the numbering the arrows use; left as is.

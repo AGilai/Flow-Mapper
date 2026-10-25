@@ -9,6 +9,7 @@ const cache = new Map();
 const one = (env, instance, service) => {
   const k = `${env}|${instance}|${service}`;
   if (!cache.has(k)) {
+    if (cache.size >= 60) cache.delete(cache.keys().next().value); // bounded: the oldest entry goes
     cache.set(k, api.instanceKeys(env, instance, { service }).then((r) => (r?.source === 'none' ? { none: true } : { groups: r?.groups ?? [], templates: r?.summary?.templates ?? null }))
       .catch((e) => { cache.delete(k); return e?.status === 404 ? { none: true } : null; })); // 404: no such list; any other failure: nothing is shown
   }
