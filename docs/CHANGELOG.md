@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased
+## 0.43.1 (2026-10-25)
 **#87: external services.** No schema change (the manifest schema now documents `details.external`) and no migration.
 - A service header with `details.external: true` (only the boolean) is an external, third-party service. Harvesters declare it on `ext-*` hosts they model only as a call target (HARVESTER-GUIDE "Service header").
 - API / MCP (additive, omitted when false): `external: true` on system-map nodes, inventory service rows, the service view (`get_service`), `entry-points` rows, trace participants (`trace_flow`), and `list_services` / `link_health` service rows. `flows/counts` rows and `health.totals` gain a number `external` (a subset of `services`).
