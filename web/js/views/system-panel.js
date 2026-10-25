@@ -7,6 +7,7 @@ import { chip, filterText } from '../format.js';
 import { section } from '../components/panel.js';
 import { channelPath, storePath } from './inventory-links.js';
 import { objectIcon } from '../components/object-icon.js';
+import { externalNote, externalTag } from '../components/external-tag.js';
 import { aboutBlock } from '../components/about.js';
 
 const MAX = 12;
@@ -42,9 +43,10 @@ export function nodePanel(n, edges, byId, pen = null) {
   const kindLabel = { service: 'Service', gateway: 'Gateway', channel: n.sub, resource: `Data store (${n.sub})`, missing: 'No match' }[n.kind] ?? n.kind;
   const type = n.kind === 'channel' ? 'channel' : n.kind === 'resource' ? 'store' : n.kind === 'missing' ? null : 'service';
   const kind = type === 'service' ? n.svcKind ?? n.kind : n.sub;
-  const head = h('div.stack', { style: { gap: '2px' } }, h('h2.titled', { class: n.kind === 'missing' ? 'key' : '' }, type ? objectIcon(type, kind, 24) : null, h('span', n.label), type === 'service' ? pen?.button('panel-component', n.label, { form: 'component', service: n.label }) : null), h('span.small.muted', kindLabel, n.team ? `, team ${n.team}` : ''));
+  const head = h('div.stack', { style: { gap: '2px' } }, h('h2.titled', { class: n.kind === 'missing' ? 'key' : '' }, type ? objectIcon(type, kind, 24) : null, h('span', n.label), externalTag(n), type === 'service' ? pen?.button('panel-component', n.label, { form: 'component', service: n.label }) : null), h('span.small.muted', kindLabel, n.team ? `, team ${n.team}` : ''));
 
   const body = [];
+  if (n.external) body.push(externalNote());
   if (type === 'service') { const hint = pen?.hint(); if (hint) body.push(hint); }
   if (n.about || type === 'service') { const a = aboutBlock(n.about, { pen: type === 'service' ? pen?.about(n.label, { form: 'component', service: n.label }) : null }); if (a) body.push(a); }
   if (n.stats) {
@@ -56,7 +58,7 @@ export function nodePanel(n, edges, byId, pen = null) {
       h('dt', 'Never called'), h('dd', String(n.stats.orphans))));
     body.push(h('div.row',
       h('a.btn.primary', { href: href(`/services/${encodeURIComponent(n.label)}`) }, 'Open service'),
-      h('a.btn', { href: href('/flows', { service: n.label }) }, 'Trace flows')));
+      n.external ? null : h('a.btn', { href: href('/flows', { service: n.label }) }, 'Trace flows'))); // #87: an external service has no flows of its own
   }
   if (n.kind === 'channel') body.push(h('div.row', h('a.btn.primary', { href: href(channelPath(svcName(n.id))) }, 'Open details')));
   if (n.kind === 'resource') body.push(h('div.row', h('a.btn.primary', { href: href(storePath(svcName(n.id))) }, 'Open details')));

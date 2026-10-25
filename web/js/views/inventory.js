@@ -22,16 +22,18 @@ import { editing } from '../design/edit-open.js';
 import { pencils } from '../design/pencil.js';
 import { loadSubsystems } from '../design/subsystems-store.js';
 import { openComponentForm } from '../design/forms/component-form.js';
+import { externalTag } from '../components/external-tag.js';
 import { metaOf } from '../env-info.js';
 import { subsystemOptions, inSubsystem, subsystemSelect, subsystemLabel } from './inventory-subsystem.js';
 
+const EXTERNAL = ['external', 'External'];
 const TYPES = [['', 'All'], ['service', 'Services'], ['channel', 'Topics and queues'], ['event', 'Event types']];
 const RPC = ['rpc', 'RPC commands']; // listed only when the env has RPC commands (0.19.0)
 const isAmqp = (x) => x.type === 'rpc' || /^(amqp|rpc)-/.test(x.kind);
 const DB = { mongodb: 'MongoDB', redis: 'Redis', dynamodb: 'DynamoDB', postgres: 'Postgres', mysql: 'MySQL', s3: 'S3', elasticsearch: 'Elasticsearch', 'external-http': 'External HTTP' };
 const DB_ORDER = Object.keys(DB);
 /** Type filter values: '', service, channel, event, or `store:<kind>` for one database type. */
-const matches = (x, t) => !t || (t.startsWith('store:') ? x.type === 'store' && x.kind === t.slice(6) : t === 'amqp' ? isAmqp(x) : x.type === t);
+const matches = (x, t) => !t || (t === 'external' ? !!x.external : t.startsWith('store:') ? x.type === 'store' && x.kind === t.slice(6) : t === 'amqp' ? isAmqp(x) : x.type === t);
 /** Redis clusters and instances say which; other stores say their database. */
 const KIND = { 'rpc-command-queue': 'rpc command queue', 'rpc-reply-queue': 'rpc reply queue', 'rpc-reply-queues': 'rpc reply queues', 'amqp-rpc': 'rpc command' };
 const kindLabel = (x) => (x.exchangeType ? `${x.kind} · ${x.exchangeType}` : KIND[x.kind] ? KIND[x.kind] : x.type !== 'store' ? x.kind : x.instance ? `${DB[x.kind] ?? x.kind} ${x.instance}` : DB[x.kind] ?? x.kind);
@@ -53,9 +55,10 @@ export async function render({ main, query }) {
   const pick1 = () => { items = f.rpcq ? all : all.filter((x) => !x.plumbing); };
   pick1();
   const count = (t) => items.filter((x) => matches(x, t)).length;
+  const countText = (t) => { const n = count(t), e = t === 'service' ? items.filter((x) => x.external).length : 0; return e ? ` ${n - e} \u00b7 ${e} external` : ` ${n}`; }; // #87: "N services · M external"
   const dbKinds = [...new Set(items.filter((x) => x.type === 'store').map((x) => x.kind))]
     .sort((a, b) => (DB_ORDER.indexOf(a) + 1 || 99) - (DB_ORDER.indexOf(b) + 1 || 99) || a.localeCompare(b));
-  const typeList = hasRpc ? [...TYPES, RPC] : TYPES;
+  const typeList = [...TYPES, ...(all.some((x) => x.external) ? [EXTERNAL] : []), ...(hasRpc ? [RPC] : [])]; // #87: an External facet only when there are external services
   const types = [...dbKinds.map((k) => [`store:${k}`, DB[k] ?? k])];
 
   const subBox = (label) => { const key = groups.find((g) => g.label === label)?.key ?? ''; return subs?.info(key) ?? { key, label }; };
@@ -63,9 +66,9 @@ export async function render({ main, query }) {
   const table = dataTable({
     rows: [], pageSize: 50, sortKey: 'label', groupBy: design && subOpts.length ? (x) => subsystemLabel(x, groups) : null,
     groupExtra: (label) => [subBox(label).key ? pen.button('subsystem', `subsystem ${label}`, { form: 'subsystem', box: subBox(label) }) : null, editing() ? addBtn(label) : null],
-    onRow: (x) => go(...openTarget(x)), rowClass: (x) => `has-pen ${x.plumbing ? 'plumb' : statusOf(x, marks) === 'removed' ? 'gone' : ''}`,
+    onRow: (x) => go(...openTarget(x)), rowClass: (x) => `has-pen ${x.external ? 'is-external ' : ''}${x.plumbing ? 'plumb' : statusOf(x, marks) === 'removed' ? 'gone' : ''}`,
     columns: [
-      { key: 'label', label: 'Name', sort: (x) => (f.type === 'amqp' ? `${KRANK[x.kind] ?? 5}${x.label}` : x.label), render: (x) => h('div.name-cell', objectIcon(x.type, x.kind, 22), h('div.stack', { style: { gap: 0 } }, h('span.row.mk-name', h('b', { class: x.type === 'service' ? '' : x.type === 'rpc' || x.plumbing ? 'key nowrap' : 'key' }, x.label), design ? markBadge(marks.markOf(anchorOfItem(x) ?? ''), { store: marks }) : null, x.type === 'service' ? pen.button('inventory', x.label, { form: 'component', service: x.id }) : null), x.group && x.group !== x.id ? h('span.xs.muted', x.group) : null)) },
+      { key: 'label', label: 'Name', sort: (x) => (f.type === 'amqp' ? `${KRANK[x.kind] ?? 5}${x.label}` : x.label), render: (x) => h('div.name-cell', objectIcon(x.type, x.kind, 22), h('div.stack', { style: { gap: 0 } }, h('span.row.mk-name', h('b', { class: x.type === 'service' ? '' : x.type === 'rpc' || x.plumbing ? 'key nowrap' : 'key' }, x.label), externalTag(x), design ? markBadge(marks.markOf(anchorOfItem(x) ?? ''), { store: marks }) : null, x.type === 'service' ? pen.button('inventory', x.label, { form: 'component', service: x.id }) : null), x.group && x.group !== x.id ? h('span.xs.muted', x.group) : null)) },
       { key: 'type', label: 'Type', render: (x) => h('span.small.nowrap', TYPE_LABEL[x.type]) },
       { key: 'kind', label: 'Kind', render: (x) => h('span.pill.kind-pill', { class: isAmqp(x) ? (x.type === 'rpc' || /^rpc-/.test(x.kind) ? 'rpc' : 'amqp') : '' }, x.type === 'store' ? objectIcon('store', x.kind, 14) : null, kindLabel(x)) },
       ...(subOpts.length ? [{ key: 'groupPath', label: 'Subsystem', render: (x) => h('span.small.muted', subsystemLabel(x, groups) ?? '') }] : []),
@@ -92,12 +95,12 @@ export async function render({ main, query }) {
   const pick = (t) => { f.type = t; dtoSel.hidden = t !== 'event'; buttons.forEach(([v, b]) => b.setAttribute('aria-pressed', String(v === t))); fillKinds(); if (!t.startsWith('store:')) f.driver = ''; fillFacet(); apply(); };
   const button = ([t, label]) => {
     const b = h('button', { 'aria-pressed': String(f.type === t), on: { click: () => pick(t) } },
-      t.startsWith('store:') ? objectIcon('store', t.slice(6), 16) : null, label, h('span.muted', ` ${count(t)}`));
+      t.startsWith('store:') ? objectIcon('store', t.slice(6), 16) : null, label, h('span.muted', countText(t)));
     buttons.push([t, b]);
     return b;
   };
   const st = design ? statusFilter(f.status, (v) => { f.status = v; apply(); }) : null;
-  const recount = () => { buttons.forEach(([t, b]) => { b.lastChild.textContent = ` ${count(t)}`; }); total.textContent = `${items.length} objects in ${state.env}`; };
+  const recount = () => { buttons.forEach(([t, b]) => { b.lastChild.textContent = countText(t); }); const ext = items.filter((x) => x.external).length; total.textContent = `${items.length - ext} objects${ext ? ` \u00b7 ${ext} external` : ''} in ${state.env}`; }; // #87
   /** The fold row for RPC plumbing: what is hidden, and the switch (the commands are listed as entry points of their servers). */
   const fold = h('label.check.rpc-fold');
   const drawFold = () => {

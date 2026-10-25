@@ -23,6 +23,7 @@ import { createTip } from './flow-desc-tip.js';
 import { openGenerate } from './flow-desc-dialog.js';
 import { flowId } from './flow-sub.js';
 import { removedList } from './flow-removed.js';
+import { servicesText } from '../../core/external.js';
 import { servicesOf } from './flow-marks.js';
 import { marksNow } from '../design/marks-store.js';
 import { foreignNote, maxReadOnly } from './flow-xenv-ui.js';
@@ -234,17 +235,16 @@ export function createTabView(data, host) {
   if (sp) requestAnimationFrame(() => requestAnimationFrame(() => { if (host.isActive(key) && walk.steps().length >= sp.to) comments.startRange(sp.from, sp.to); }));
   return {
     el, key, data, draw, insideOpen: () => inside.isOpen(), dispose: () => { ts.ui.dispose(); unWheel(); clearTimeout(resizeTimer); document.removeEventListener('fm:layout', onLayout); inside.dispose(); ro?.disconnect(); roStick?.disconnect(); tip?.dispose(); descs.forEach((d) => d?.dispose()); comments?.dispose(); actions?.dispose(); notes?.dispose(); brackets?.dispose(); unBr?.(); pane?.dispose(); items?.dispose(); related?.dispose(); walk.dispose(); unDesc?.(); },
-    refreshBar: () => walk.refreshBar(), refreshHl: () => walk.refreshHl(), refreshBrackets: () => brackets?.refresh(),
+    refreshBar: () => walk.refreshBar(), refreshHl: () => walk.refreshHl(), refreshBrackets: () => brackets?.refresh(), refreshDots: () => render?.index()?.refresh(),
     step: () => (walk.picked() ? walk.current() || null : null), goStep: (n) => walk.go(n), // the step the viewer is on (when they chose one) / put the walk on a step
     steps: () => walk.steps(), // the steps of the lane (n, from, to, label, transport): the info pane's "In this flow"
     setZoom, zoomScale: () => factor, zoomValue: () => zoomV,
     squeezeOff: () => sqOff, resetSqueeze: () => { sqOff = false; },
     save: () => { saved = scroller.scrollTop; },
     restore: () => { scroller.scrollTop = saved; edge(); requestAnimationFrame(edge); },
-    refreshDots: () => render?.index()?.refresh(),
     clearMessage: () => { body.querySelectorAll('.msg.active').forEach((e) => e.classList.remove('active')); stp?.clear(true); },
     clearStore: () => stp?.clear(), restoreStore: () => stp?.restore(host.initialStore?.(key) ?? null), // #86
-    info: () => { const services = new Set(trace.messages.map((m) => m.service).filter(Boolean)); return `${trace.start.event ? `${trace.start.event}: ` : ''}${ts.counts(trace, walk.steps().length || null) || plural(trace.messages.length, 'step')}, ${plural(services.size, 'service')}${trace.truncated ? ', truncated' : ''}`; },
+    info: () => { const extNames = trace.participants.filter((x) => x.external).map((x) => x.service), services = new Set([...trace.messages.map((m) => m.service).filter(Boolean), ...extNames]); return `${trace.start.event ? `${trace.start.event}: ` : ''}${ts.counts(trace, walk.steps().length || null) || plural(trace.messages.length, 'step')}, ${servicesText(services.size - extNames.length, extNames.length)}${trace.truncated ? ', truncated' : ''}`; },
     closeInside: () => inside.close(),
   };
 }

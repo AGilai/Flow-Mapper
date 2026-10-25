@@ -8,7 +8,10 @@
     "team": "vendor",
     "repo": "github.com/acme/ext-checkpoint-cloud",
     "language": "typescript",
-    "description": "The vendor cloud behind tenant-gateway (a stub: its two endpoints, nothing else)"
+    "description": "The vendor cloud behind tenant-gateway (a stub: its two endpoints, nothing else)",
+    "details": {
+      "external": true
+    }
   },
   "version": 1,
   "harvestedAt": "2026-10-25T16:00:00Z",

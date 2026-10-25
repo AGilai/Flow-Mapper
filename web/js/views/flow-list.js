@@ -49,7 +49,7 @@ export function createList({ env = '', points: allPoints, counts, cmts = {}, act
   const groupRow = service ? null : h('div.fl-group-row', h('label', { for: 'fl-group' }, 'Group by'), groupSel);
   const filters = h('div.fl-filters', subRows.length > 1 ? subG.el : null, cmpG.el);
 
-  const vis = () => componentRows(points, groupOf, fs.subs).map((r) => ({ key: r.name, label: r.name, count: r.count }));
+  const vis = () => componentRows(points, groupOf, fs.subs).map((r) => ({ key: r.name, label: r.name, count: r.count, external: r.external }));
   const summary = () => filterSummary({ subs: fs.subs, comps: fs.comps, subRows, compRows: vis(), changed: fs.changed, rel: fs.rel, incomplete: fs.inc, q: filter.value.trim() });
   const paint = () => {
     btn.setAttribute('aria-expanded', String(!collapsed)); btn.setAttribute('aria-label', toggleLabel('the entry point list', collapsed)); btn.title = toggleLabel('the entry point list', collapsed);

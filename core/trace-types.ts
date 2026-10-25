@@ -12,6 +12,8 @@ export interface Participant {
   id: string; label: string; kind: 'client' | 'function' | 'service' | 'channel' | 'resource' | 'missing' | 'unresolved'; service?: string;
   /** Service lifelines: function calls inside that service on this trace (what expanding would show). */
   internalCalls?: number;
+  /** #87: a service lifeline of an external (third-party) service. */
+  external?: true;
 }
 export interface Message {
   from: string; to: string; label: string; mode: Mode;

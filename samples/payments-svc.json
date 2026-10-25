@@ -42,6 +42,13 @@
           "mode": "async",
           "operation": "publish",
           "event": "PaymentCaptured"
+        },
+        {
+          "seq": 4,
+          "type": "egress",
+          "target": "gateway.authorize",
+          "mode": "sync",
+          "operation": "POST /v1/authorize"
         }
       ]
     },
@@ -116,6 +123,17 @@
     }
   ],
   "egress": [
+    {
+      "id": "gateway.authorize",
+      "bindKey": "http:POST ext-payments-gateway/v1/authorize",
+      "transport": "http",
+      "mode": "sync",
+      "details": {
+        "method": "POST",
+        "path": "/v1/authorize",
+        "timeoutMs": 3000
+      }
+    },
     {
       "id": "paymentEvents.publish",
       "bindKey": "sns:payment-events",

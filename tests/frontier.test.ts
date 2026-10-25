@@ -40,8 +40,8 @@ test('traces of every sample entry without frontier steps are unchanged (0.37.0:
     h.update(JSON.stringify([i.service, i.id, scope, trace(g, { service: i.service, ingress: i.id }, { scope })], (k, v) => (k === 'alternatives' || k === 'arms' || k === 'key' || k === 'decisions' || k === 'fixes' || k === 'stepId' || k === 'filter' || k === 'amqp' || k === 'rpc' || k === 'operation' || k === 'assumed' || k === 'storeKind' || k === 'owner' || k === 'keyTemplate' || k === 'dbIndex' || k === 'ttlSeconds' || k === 'keyUnresolved' || k === 'access' || k === 'n' || k === 'of' ? undefined : v)));
     n++;
   }
-  assert.equal(n, 150);
-  assert.equal(h.digest('hex'), '77bdc0e284fe46b4e2b4b6b7566c40badc90f9cc07c307276cb86e5efa2fc9ea');
+  assert.equal(n, 152); // #87: ext-payments-gateway in.authorize (two scopes)
+  assert.equal(h.digest('hex'), '21ac541bcd115b425a54bb17b16d08346662c0264d2efa0e4432c5510b0d1b08'); // #87: retaken: the flows through payments-svc in.charge gain the gateway call (and the external flag on its lifeline)
 });
 
 test('origin "path" is the same as no origin', () => {

@@ -267,6 +267,14 @@ MCP: `get_flow_names {env, draft?}`, `set_flow_name {env, service, ingress, name
 `transport: "undecided"` (schema, `ingress` and `egress`) is for designs: the transport of a call or endpoint is not chosen yet. It resolves by bind key like any other transport (use a `tbd:<callee>/<operation>` key on both ends), reads as sync and unicast,
 counts as linked in link health when the keys match, and shows as a dangling call when the other end is missing. Harvesters never send it. `details` (a free object) is also accepted on a service header and on a function, for the `details.doc` provenance of an import.
 
+## External services (#87)
+A service whose header has `details.external: true` (only the boolean `true`) is an external, third-party service. Additive, omitted when
+false: `external: true` on the system map node, the inventory row (service), the service view (top level), the `entry-points` rows of its
+ingress, trace participants of kind `service` (and so `trace_flow`), `link_health` / `list_services` service rows, and
+`flows/counts` rows carry `external` (a number: how many of `services` are external). `GET /health` `totals.external` is the
+number of external services. Link health never lists a call to one as a problem, and its endpoints are never in `orphans`. No schema
+change beyond documenting `details.external`; no migration; the MCP tool descriptions are unchanged.
+
 ## Subsystems (0.28.0)
 
 The **subsystem level** is the first segment of a component's `groupPath` (`platform/identity` -> `platform`). **A component belongs to exactly one subsystem** (maintainer decision: no `alsoIn`).
@@ -335,10 +343,10 @@ With `?draft=` they read the overlay. **Removed in 0.25.0: edit a design through
 
 | Path | Returns |
 |---|---|
-| `GET /api/envs/:env/views/system` | nodes (a service node carries `runtime` when its header has `details.runtime`, 0.26.0), edges (with channels), collapsedEdges (service to service). Each edge lists its `endpoints`; those carry `egress` / `ingress` ids (within the edge's from / to service) and, through a subscription, its event `filter` |
-| `GET /api/envs/:env/views/service/:service` | ingress with callers, egress with targets, resources, functions. Each egress has `via` (wrapper hops, caller to SDK call, each with a code `link`) and `callSites[]` (`file`, `line`, `function`, `link`, `via`), read from the egress fields or `details.via` / `details.callSites`. A wrapper is display data: never a producer, node or edge. Each ingress has `via` (the hops that resolved its handler, kind `registration` / `bind`; from `via` or `details.handlerVia`), and each function its `unresolved` gaps |
-| `GET /api/envs/:env/entry-points` | where flows start |
-| `GET /api/envs/:env/flows/counts` | (0.38.0: a flow that reaches either/or decisions also carries `decisions`, `steps` (default view), `both: {min, max}` and `full`; see CHANGELOG) per entry point: distinct components its full flow reaches (`total`, `services`, `topics`, `queues`, `buses`, `stores`, `otherChannels`); reachability, no trace; cached per graph |
+| `GET /api/envs/:env/views/system` | nodes (a service node carries `external: true` when its header has `details.external: true`, #87, and omits it otherwise; it carries `runtime` when its header has `details.runtime`, 0.26.0), edges (with channels), collapsedEdges (service to service). Each edge lists its `endpoints`; those carry `egress` / `ingress` ids (within the edge's from / to service) and, through a subscription, its event `filter` |
+| `GET /api/envs/:env/views/service/:service` | `external: true` for an external service (#87; absent otherwise, and its endpoints are never `orphan`); ingress with callers, egress with targets, resources, functions. Each egress has `via` (wrapper hops, caller to SDK call, each with a code `link`) and `callSites[]` (`file`, `line`, `function`, `link`, `via`), read from the egress fields or `details.via` / `details.callSites`. A wrapper is display data: never a producer, node or edge. Each ingress has `via` (the hops that resolved its handler, kind `registration` / `bind`; from `via` or `details.handlerVia`), and each function its `unresolved` gaps |
+| `GET /api/envs/:env/entry-points` | where flows start (a row of an external service carries `external: true`, #87) |
+| `GET /api/envs/:env/flows/counts` | (0.38.0: a flow that reaches either/or decisions also carries `decisions`, `steps` (default view), `both: {min, max}` and `full`; see CHANGELOG) per entry point: distinct components its full flow reaches (`total`, `services`, `external` (#87: how many of `services` are external), `topics`, `queues`, `buses`, `stores`, `otherChannels`); reachability, no trace; cached per graph |
 | `GET /api/envs/:env/trace?service=&ingress=\|fn=&scope=intra\|full&maxDepth=&maxMessages=&frontier=1&detail=external\|full&choose=&open=&dbOpen=&group=` | participants and ordered messages; an egress message carries `via` (the wrapper hops of that call, for the call site when the egress lists one for the calling function); a message that reaches an ingress carries `handlerVia` (its handler-resolution hops). `code` also maps `step:<service>:<fn>#<seq>` to the link of a step's `source`. Messages of steps that are mutually exclusive alternatives carry `alt: {group, branch, of}` (see below) Either/or **decisions** and the view parameters are in "Trace views" below (0.37.0 and 0.37.1, #82) |
 | `GET /api/envs/:env/paths?from=&to=&limit=` | service-level paths, including through queues |
 | `GET /api/envs/:env/search?q=&limit=` | services, functions, endpoints, channels, resources |

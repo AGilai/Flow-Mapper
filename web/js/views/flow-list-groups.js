@@ -2,6 +2,7 @@
 // expanded: "Select all · Deselect all" and one checkbox per row in a fieldset with a legend. Open or closed is remembered per viewer (try/catch).
 // Selection model: a Set, or null for "all" (flow-list-filter.js).
 
+import { externalTag } from '../components/external-tag.js';
 import { h, fill } from '../dom.js';
 import { summaryText } from './flow-list-filter.js';
 
@@ -31,7 +32,7 @@ export function createGroup({ id, title, onChange }) {
     const draw = () => fill(body, h('fieldset.fg-set', h('legend.sr-only', `${title}: choose which to show`),
       h('div.fg-acts', h('button.linkish', { type: 'button', 'data-qa': `${id}-all`, on: { click: () => onChange(null) } }, 'Select all'), ' · ', h('button.linkish', { type: 'button', 'data-qa': `${id}-none`, on: { click: () => onChange(new Set()) } }, 'Deselect all')),
       rows.length ? rows.map((r) => h('label.fg-row', h('input', { type: 'checkbox', checked: on.has(r.key), 'data-key': r.key, on: { change: (e) => { focusKey = r.key; const n = effective(); if (e.target.checked) n.add(r.key); else n.delete(r.key); set(n); } } }),
-        h('span.fg-l', r.label), h('span.fg-n', String(r.count)))) : h('p.xs.muted', 'Nothing to choose.')));
+        h('span.fg-l', r.label, externalTag(r)), h('span.fg-n', String(r.count)))) : h('p.xs.muted', 'Nothing to choose.')));
     draw();
     if (focusKey != null) { [...body.querySelectorAll('input[data-key]')].find((i) => i.dataset.key === focusKey)?.focus(); focusKey = null; }
   }

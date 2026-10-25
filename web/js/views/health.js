@@ -1,5 +1,6 @@
 // Link health: what does not connect. Totals, worst services first, and every broken item, paged.
 
+import { externalTag } from '../components/external-tag.js';
 import { h, fill } from '../dom.js';
 import { api } from '../api.js';
 import { state } from '../state.js';
@@ -63,7 +64,7 @@ export async function render({ main, query }) {
     sortKey: 'dangling', sortDir: 'desc', onRow: (s) => go(`/services/${encodeURIComponent(s.service)}`),
     empty: 'Every service connects cleanly.',
     columns: [
-      { key: 'service', label: 'Service', render: (s) => h('b', s.service) },
+      { key: 'service', label: 'Service', render: (s) => [h('b', s.service), externalTag(s)] },
       { key: 'coverage', label: 'Resolved calls', render: (s) => coverageBar(s.coverage), sort: (s) => s.coverage ?? 2 },
       { key: 'dangling', label: 'No match', num: true },
       { key: 'orphans', label: 'Never called', num: true },

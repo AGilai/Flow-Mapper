@@ -8,7 +8,8 @@ export const NONE = '';
 export const NONE_LABEL = '(none)';
 /** #65: in a design the list shows flows only (a name, a description or `entryPoint: true`); `endpoints=all` lists every endpoint. */
 export const isFlowPoint = (p) => !!(p.name || p.summary || p.entryPoint);
-export const scopePoints = (points, { design, service, all }) => (!design || service || all ? points : points.filter(isFlowPoint));
+/** #87: an external service's ingress are targets, not flows to open: hidden unless "All endpoints" is on. */
+export const scopePoints = (points, { design, service, all }) => (all ? points : points.filter((p) => !p.external && (!design || service || isFlowPoint(p))));
 
 export const topOf = (groupPath) => String(groupPath ?? '').split('/')[0];
 
@@ -37,7 +38,8 @@ export function subsystemRows(points, groupOf, groups = []) {
 export function componentRows(points, groupOf, subs) {
   const counts = new Map();
   for (const p of points) if (!subs || subs.has(topOf(groupOf.get(p.service)))) counts.set(p.service, (counts.get(p.service) ?? 0) + 1);
-  return [...counts].map(([name, count]) => ({ name, count })).sort((a, b) => a.name.localeCompare(b.name));
+  const ext = new Set(points.filter((p) => p.external).map((p) => p.service)); // #87
+  return [...counts].map(([name, count]) => ({ name, count, ...(ext.has(name) ? { external: true } : {}) })).sort((a, b) => a.name.localeCompare(b.name));
 }
 
 /** "All", "platform, network" (up to 2) or "3 of 5". */

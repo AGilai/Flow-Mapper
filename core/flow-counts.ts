@@ -23,10 +23,12 @@ import { refKey, unresolvedTarget } from './resolve.ts';
 import { splitAmqpKey } from './amqp.ts';
 import { routeKey, rpcOf } from './amqp-route.ts';
 import { entryPoints } from './trace.ts';
+import { externalSet, servicesText } from './external.ts';
 import { markedId } from './step-marks.ts';
 
 export interface FlowCount {
   service: string; ingress: string; total: number;
+  /** #87: how many of `services` are external (third-party). */ external: number;
   services: number; topics: number; queues: number; buses: number; stores: number; otherChannels: number;
 }
 interface Node { local: Set<string>; next: string[] }
@@ -131,13 +133,13 @@ export function componentSets(g: GraphIndex, mark?: (i: Ingress) => string | und
 export function flowCounts(g: GraphIndex): FlowCount[] {
   const done = counted.get(g);
   if (done) return done;
-  const sets = componentSets(g);
+  const sets = componentSets(g), ext = externalSet(g);
   const res = entryPoints(g).map((e) => {
-    const c: FlowCount = { service: e.service, ingress: e.id, total: 0, services: 0, topics: 0, queues: 0, buses: 0, stores: 0, otherChannels: 0 };
+    const c: FlowCount = { service: e.service, ingress: e.id, total: 0, external: 0, services: 0, topics: 0, queues: 0, buses: 0, stores: 0, otherChannels: 0 };
     const reached = new Set([e.handler, ...(e.middleware ?? [])].flatMap((fn) => sets.get(sid(e.service, fn)) ?? []));
     for (const id of reached) {
       if (id[0] === 'm') continue;                  // a marked step (step-marks.ts), not a component
-      if (id[0] === 's') c.services++;
+      if (id[0] === 's') { c.services++; if (ext.has(id.slice(2))) c.external++; }
       else if (id[0] === 'r') c.stores++;
       else {
         const kind = g.channels.get(id.slice(2))?.kind;
@@ -157,7 +159,8 @@ export function flowCounts(g: GraphIndex): FlowCount[] {
 /** The same breakdown as a tooltip: "4 services, 2 topics, 2 queues, 1 store". */
 export function describeCount(c: FlowCount): string {
   const part = (n: number, one: string, many = one + 's') => (n ? `${n} ${n === 1 ? one : many}` : '');
-  return [part(c.services, 'service'), part(c.topics, 'topic'), part(c.queues, 'queue'), part(c.buses, 'bus', 'buses'), part(c.otherChannels, 'other channel'), part(c.stores, 'store')]
+  const ext = c.external ?? 0; // #87: "3 services · 1 external"
+  return [c.services ? servicesText(c.services - ext, ext) : '', part(c.topics, 'topic'), part(c.queues, 'queue'), part(c.buses, 'bus', 'buses'), part(c.otherChannels, 'other channel'), part(c.stores, 'store')]
     .filter(Boolean).join(', ');
 }
 
