@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased
+## 0.43.2 (2026-10-25)
 
 **Fix #88: consecutive store calls are one node `*N op, op`.** No schema or migration change; Viz-only (the harvester keeps one step per call).
 - Trace API / MCP `trace_flow` (`detail=external`, or `group=1`): the run of consecutive resource messages to one store and instance (same function or service, same arm path) is one row labelled `*3 get, hget`: the count, then the distinct operations in order of first use. This replaces `DB: 3 ops (users, devices)` in the lane, the Mermaid export (`detail=external`) and `dbGroup`. A per-step guard (`details.only_when`) and a message that carries `alternatives` (a decision point) no longer split a run (they did before: safer-auth `get`, `hget`, `get` and `tryGetCacheData` `setex`, `setex`, `del` stayed three arrows). A different arm of a decision, an external call or any other visible message still splits.
