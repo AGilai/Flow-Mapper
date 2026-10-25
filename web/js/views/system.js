@@ -23,6 +23,7 @@ import { levelControl } from './system-toolbar.js';
 import { renderSubsystems } from './system-subsystems.js';
 import { regionsOf, regionCells } from '../graph/graph-regions.js';
 import { edgePanel } from './edge-panel.js';
+import { servicesText } from '../../core/external.js';
 import { createPane } from '../pane/pane.js';
 import { parseSel } from '../pane/pane-pure.js';
 
@@ -45,7 +46,7 @@ export async function render({ main, query }) {
     fromProd: query.get('prod') !== '0', onlyNew: query.get('new') === '1',
   };
   const teams = [...new Set(data.nodes.map((n) => n.team).filter(Boolean))].sort();
-  const services = data.nodes.filter((n) => n.kind === 'service' || n.kind === 'gateway').length;
+  const services = data.nodes.filter((n) => n.kind === 'service' || n.kind === 'gateway').length, external = data.nodes.filter((n) => n.external).length; // #87: "N services · M external"
 
   const stage = h('div.graph-stage');
   const count = h('span.small.muted');
@@ -68,7 +69,7 @@ export async function render({ main, query }) {
   const toggle = (key, label) => h('label.check', h('input', { type: 'checkbox', checked: opts[key], on: { change: (e) => { opts[key] = e.target.checked; persist(); rebuild(); } } }), label);
 
   main.append(
-    pageHead('System map', `${n1(services, 'service')}, ${n1(data.edges.length, 'connection')}`,
+    pageHead('System map', `${servicesText(services - external, external)}, ${n1(data.edges.length, 'connection')}`,
       h('div.search', icon('search'), search),
       h('select.select', { 'aria-label': 'Team', on: { change: (e) => { opts.team = e.target.value; persist(); apply(); } } },
         h('option', { value: '' }, 'All teams'), teams.map((t) => h('option', { value: t, selected: t === opts.team }, t))),

@@ -22,6 +22,7 @@ import { createTip } from './flow-desc-tip.js';
 import { openGenerate } from './flow-desc-dialog.js';
 import { flowId } from './flow-sub.js';
 import { removedList } from './flow-removed.js';
+import { servicesText } from '../../core/external.js';
 import { servicesOf } from './flow-marks.js';
 import { marksNow } from '../design/marks-store.js';
 import { foreignNote, maxReadOnly } from './flow-xenv-ui.js';
@@ -243,7 +244,7 @@ export function createTabView(data, host) {
     refreshDots: () => render?.index()?.refresh(),
     clearMessage: () => { body.querySelectorAll('.msg.active').forEach((e) => e.classList.remove('active')); stp?.clear(true); },
     clearStore: () => stp?.clear(), restoreStore: () => stp?.restore(host.initialStore?.(key) ?? null), // #86
-    info: () => { const services = new Set(trace.messages.map((m) => m.service).filter(Boolean)); return `${trace.start.event ? `${trace.start.event}: ` : ''}${ts.counts(trace, walk.steps().length || null) || plural(trace.messages.length, 'step')}, ${plural(services.size, 'service')}${trace.truncated ? ', truncated' : ''}`; },
+    info: () => { const extNames = trace.participants.filter((x) => x.external).map((x) => x.service), services = new Set([...trace.messages.map((m) => m.service).filter(Boolean), ...extNames]); return `${trace.start.event ? `${trace.start.event}: ` : ''}${ts.counts(trace, walk.steps().length || null) || plural(trace.messages.length, 'step')}, ${servicesText(services.size - extNames.length, extNames.length)}${trace.truncated ? ', truncated' : ''}`; },
     closeInside: () => inside.close(),
   };
 }

@@ -1,6 +1,7 @@
 // Link-health summary per environment and per service. See docs/DESIGN.md §5.
 
 import { itemsOf, type GraphIndex } from './graph-index.ts';
+import { externalField, externalSet } from './external.ts';
 import { eventReport } from './events.ts';
 import { stores } from './stores.ts';
 import { assumedItems, drift, mixedCommits, unresolvedItems, type AssumedItem, type UnresolvedItem } from './harvest-quality.ts';
@@ -19,12 +20,13 @@ export interface ServiceHealth {
   unresolved: number;      // items its harvester could not resolve (reported, with a reason)
   assumed: number;         // values its harvester filled by a rule (informational: not a problem, not in coverage)
   assumedByBasis: Record<string, number>;
+  external?: true;         // #87: an external (third-party) service; its calls are normal links and its own endpoints are never orphans
   coverage: number | null; // resolved egress / egress, null when the service has no egress
 }
 
 export interface HealthReport {
   env: string;
-  totals: Omit<ServiceHealth, 'service' | 'version' | 'eventIssues' | 'storeIssues' | 'unresolved' | 'assumedByBasis'> & { services: number; links: number; brokenBindings: number } & Record<EventKind, number>;
+  totals: Omit<ServiceHealth, 'service' | 'version' | 'eventIssues' | 'storeIssues' | 'unresolved' | 'assumedByBasis' | 'external'> & { services: number; /** #87: how many of `services` are external (third-party) */ external: number; links: number; brokenBindings: number } & Record<EventKind, number>;
   services: ServiceHealth[];
   /** Assumed values (#47) per basis, over the environment. */
   assumedByBasis: Record<string, number>;
@@ -58,7 +60,7 @@ type EventKind = (typeof EVENT_KINDS)[number] | (typeof STORE_KINDS)[number] | (
 export function healthCounts(g: GraphIndex): { service: string; version: number; egress: number; dangling: number; orphans: number; unbound: number }[] {
   const r = g.resolution;
   const tally = (names: string[]) => { const m = new Map<string, number>(); for (const n of names) m.set(n, (m.get(n) ?? 0) + 1); return m; };
-  const dangling = tally(r.dangling.map((e) => e.service)), orphans = tally(r.orphans.map((i) => i.service)), unbound = tally(r.unbound.map((u) => u.channel.service));
+  const dangling = tally(r.dangling.map((e) => e.service)), orphans = tally(r.orphans.filter((i) => !externalSet(g).has(i.service)).map((i) => i.service)), unbound = tally(r.unbound.map((u) => u.channel.service));
   return g.model.services.map((s) => {
     const egress = itemsOf(g, s.name).egress.length, d = dangling.get(s.name) ?? 0;
     return { service: s.name, version: s.version, egress, dangling: d, orphans: orphans.get(s.name) ?? 0, unbound: unbound.get(s.name) ?? 0, coverage: egress ? (egress - d) / egress : null };
@@ -76,6 +78,7 @@ export function health(g: GraphIndex): HealthReport {
 function build(g: GraphIndex): HealthReport {
   const r = g.resolution;
   const ev = eventReport(g);
+  const ext = externalSet(g); // #87: nobody harvests an external service's callers, so its endpoints are targets, never orphans
   const items: HealthReport['items'] = {
     unhandledEvents: ev.unhandled.map((d) => ({ service: d.consumer.service, ingress: d.consumer.ingress, event: d.event, producer: d.producer.service, egress: d.producer.egress })),
     undeliveredEvents: ev.undelivered,
@@ -93,7 +96,7 @@ function build(g: GraphIndex): HealthReport {
     mixedCommits: mixedCommits(g),
     drift: drift(g),
     dangling: r.dangling.map((e) => ({ service: e.service, id: e.id, bindKey: e.bindKey, transport: e.transport })),
-    orphans: r.orphans.map((i) => ({ service: i.service, id: i.id, bindKey: i.bindKey, transport: i.transport })),
+    orphans: r.orphans.filter((i) => !ext.has(i.service)).map((i) => ({ service: i.service, id: i.id, bindKey: i.bindKey, transport: i.transport })),
     unbound: r.unbound.map((u) => ({ service: u.channel.service, bindKey: u.channel.bindKey, kind: u.channel.kind, reason: u.reason })),
     brokenBindings: r.brokenBindings.map((b) => ({ service: b.service, id: b.id, from: b.from, to: b.to })),
     ambiguous: r.ambiguous.map((a) => ({
@@ -123,13 +126,14 @@ function build(g: GraphIndex): HealthReport {
       assumed: count(items.assumed, s.name),
       assumedByBasis: byBasis(assumedBy.get(s.name) ?? []),
       coverage: egress ? (egress - dangling) / egress : null,
+      ...externalField(g, s.name),
     };
   });
   const egressTotal = g.model.egress.length;
   return {
     env: g.model.env,
     totals: {
-      services: services.length,
+      services: services.length, external: ext.size,
       links: r.links.length,
       egress: egressTotal,
       dangling: items.dangling.length,

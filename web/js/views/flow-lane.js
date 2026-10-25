@@ -55,7 +55,8 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
   const kind = new Map(participants.map((p) => [p.id, p.kind])), skind = (service) => participants.find((p) => p.id === `svc:${service}`)?.serviceKind;
   const cols = [], byService = new Map(), stack = [], bars = [], events = [];
   const keys = new Map();
-  const mk = (c) => { c.ci = cols.length; cols.push(c); return c; };
+  const ext = new Set(participants.filter((p) => p.external).map((p) => p.service)); // #87: an external service's lifeline
+  const mk = (c) => { if (c.kind === 'service' && ext.has(c.service)) c.external = true; c.ci = cols.length; cols.push(c); return c; };
   const special = (id, label, sub, k) => cols.find((c) => c.id === id) ?? mk({ id, label, sub, kind: k, ci: Infinity });
   const unresolvedCol = (rpc) => special('unresolved', 'unresolved', rpc ? 'no harvested target' : 'no match / gap', 'unresolved');
   if (!msgs.length) { // an entry point with no handler (`noHandler`, 0.25.1): the caller and the component, no rows
@@ -174,8 +175,9 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
         if (m.kind === 'call') { seg.internal++; if (m.gap || m.broken) seg.gaps++; return; }
       }
     }
-    if (m.kind === 'call' && (icalls || m.origin === 'frontier')) { push({ type: 'icall', msg: m, bar: top, from: top.col, to: top.col, fromBar: top, label: m.label }); return; }
-    if (m.kind === 'call') { top.internal.n++; if (m.gap || m.broken) top.internal.gaps++; return; }
+    if (m.kind === 'call' && (icalls || m.origin === 'frontier') && !ext.has(top.service)) { push({ type: 'icall', msg: m, bar: top, from: top.col, to: top.col, fromBar: top, label: m.label }); return; }
+    if (m.kind === 'call') { top.internal.n++; // #87: an external service's pill is dropped below (no inside view)
+    if (m.gap || m.broken) top.internal.gaps++; return; }
     if (m.kind === 'leaf') { // a leaf is a note on its component; one that names `over` is drawn (0.32.2, #74), over one lifeline or spanning several
       const over = [...new Set((m.over ?? []).flatMap((n) => (byService.has(n) ? [byService.get(n)] : cols.filter((c) => c.kind === 'resource' && c.store === n))))]; // a component, or a data store by its instance / db name
       if (m.returnTo) { const to = byService.get(m.returnTo) ?? top.caller; if (to) push({ type: 'return', bar: top, to, label: m.label || 'return', returns: null, msg: m }); return; } // 0.41.1 (#83): a return that is a step of its branch (a branch that holds only a return): the arrow back, drawn like the return of a call
@@ -204,7 +206,7 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
 
   // Pills only where something was folded; rows follow the order of what is left.
   const entry = clientApp ? events.find((e) => e.type === 'call' && e.from === source) : null;
-  const kept = events.filter((e) => (e.type !== 'pill' || e.bar.internal.n) && e !== entry && !(clientApp && e.type === 'return' && e.to === source));
+  const kept = events.filter((e) => (e.type !== 'pill' || (e.bar.internal.n && !ext.has(e.bar.service))) && e !== entry && !(clientApp && e.type === 'return' && e.to === source));
   const remap = new Map(events.map((e) => [e, kept.indexOf(e)]));
   kept.forEach((e, i) => { e.row = i; });
   for (const b of bars) { b.start = Math.max(0, remap.get(events[b.start]) ?? b.start); }

@@ -4,6 +4,7 @@
 import type { GraphIndex } from './graph-index.ts';
 import { downstreamIngress, itemsOf, sid, upstreamEgress } from './graph-index.ts';
 import type { Ref } from './types.ts';
+import { externalField } from './external.ts';
 import { codeLink } from './endpoint-info.ts';
 import { deliveriesBetween } from './event-pairs.ts';
 import { egressVia, ingressVia } from './via.ts';
@@ -37,7 +38,7 @@ export function serviceView(g: GraphIndex, name: string) {
       ...(rpc ? { rpc, noCaller: !callers.length } : {}), // an RPC command (0.19.0): a command nobody harvested calls is not a problem
       at: codeLink(s, i.source),
       via: ingressVia(s, i), // how the handler was resolved (registration / bind hops), with code links
-      orphan: orphans.has(sid(i.service, i.id)) && !rpc,
+      orphan: orphans.has(sid(i.service, i.id)) && !rpc && !externalField(g, name).external, // #87: an external service's endpoint is a target, not an orphan
       callers,
       maybeCallers: all.filter((c) => c.state === 'maybe').map((c) => c.caller),
     };
@@ -76,6 +77,7 @@ export function serviceView(g: GraphIndex, name: string) {
 
   return {
     service: s,
+    ...externalField(g, name),
     ingress,
     egress,
     resources,

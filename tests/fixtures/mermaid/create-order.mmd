@@ -17,6 +17,7 @@ participant dynamodb_payments as dynamodb:payments
 participant sns_payment_events as sns:payment-events
 participant sqs_analytics_all_events as sqs:analytics-all-events
 participant analytics_svc as analytics-svc
+participant ext_payments_gateway as ext-payments-gateway
 participant s3_acme_event_lake as s3:acme-event-lake
 participant mongodb_orders_db_orders as mongodb:orders-db/orders
 participant unresolved_method_or_path_unresolved as unresolved: method_or_path_unresolved
@@ -43,6 +44,8 @@ payments_svc->>dynamodb_payments: PutItem
 payments_svc-)sns_payment_events: publish sns:payment-events · PaymentCaptured
 sns_payment_events-)sqs_analytics_all_events: sns:payment-events · PaymentCaptured
 sqs_analytics_all_events-)analytics_svc: sqs:analytics-all-events · PaymentCaptured → ingest_event
+payments_svc->>ext_payments_gateway: POST /v1/authorize
+ext_payments_gateway-->>payments_svc: return
 analytics_svc->>s3_acme_event_lake: PutObject
 payments_svc-->>orders_svc: return
 orders_svc->>mongodb_orders_db_orders: insertOne

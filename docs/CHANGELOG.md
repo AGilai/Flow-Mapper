@@ -5,6 +5,13 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+**#87: external services.** No schema change (the manifest schema now documents `details.external`) and no migration.
+- A service header with `details.external: true` (only the boolean) is an external, third-party service. Harvesters declare it on `ext-*` hosts they model only as a call target (HARVESTER-GUIDE "Service header").
+- API / MCP (additive, omitted when false): `external: true` on system-map nodes, inventory service rows, the service view (`get_service`), `entry-points` rows, trace participants (`trace_flow`), and `list_services` / `link_health` service rows. `flows/counts` rows and `health.totals` gain a number `external` (a subset of `services`).
+- Link health: a call to an external service is a normal resolved link (never `dangling`), and an external service's endpoints are never `orphans`.
+- UI: "N services · M external" in the Flows list tooltip, the flow header, the map header and Inventory; a dashed grey outline, muted fill and an "external" tag on the map, flow lifeline heads and lists; no inside view; a note on the service page; its ingress are hidden from the Flows entry list unless "All endpoints" is ticked.
+
 ## 0.43.0 (2026-10-25)
 
 - Flow view (#86, UI only): clicking a Redis or Mongo participant head in an open flow opens a panel in the right-hand pane with only what this flow touches in that store (per key template or collection: operations, steps, code links, TTL, Mongo fields, and the keys-registry row). `&store=<store key>` on the flows hash restores it. It reads the resource message fields `keyTemplate`, `dbIndex`, `ttlSeconds` and `keyUnresolved` (0.42.1; `details.keyPattern` is an alias of `details.keyTemplate`). Nothing to change for harvesters: send `details.keyTemplate` (or `keyPattern`), `dbIndex`, `ttlSeconds` on Redis resource steps as before. Demo: `checkout-svc`.

@@ -32,7 +32,7 @@ import { fanOutOrder } from './trace-order.ts';
 import { withAltDecisions } from './alt-decisions.ts'; import { altIndex, armChain, covers, enterStep, newBook, NO_ARMS, withDecisions, type ArmState } from './alternatives.ts';
 
 export type { Participant, Message, HopFilter, Trace, TraceOptions } from './trace-types.ts';
-import type { Message, Participant, HopFilter, Trace, TraceOptions } from './trace-types.ts';
+import type { Message, Participant, HopFilter, Trace, TraceOptions } from './trace-types.ts'; import { externalField } from './external.ts';
 
 export function trace(g: GraphIndex, start: { service: string; ingress?: string; fn?: string; event?: string }, opts: TraceOptions = {}): Trace | null {
   const scope = opts.scope ?? 'full';
@@ -305,8 +305,8 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
   push({ from: client, to: fnPart(root, fnId), label: (ing?.bindKey ?? fnId) + (start.event ? ` · ${start.event}` : ''), event: start.event, mode: 'sync', kind: 'entry', depth: 0, service: root, fn: fnId, transport: ing?.transport, ...(ing?.transport === 'socket' ? { protocol: socketProtocol(ing) } : {}), target: ing ? { service: root, ingress: ing.id, fn: fnId } : undefined, ...(ing && chainOf(ing).length ? { middlewareChain: chainOf(ing) } : {}) });
   if (ing) runIngress(ing, fnId, 1, [sid(root, fnId)]); else visitFn(root, fnId, 1, [sid(root, fnId)]);
 
-  for (const p of opts.countsOnly ? [] : participants.values()) {
-    if (p.kind === 'service') p.internalCalls = messages.filter((m) => m.kind === 'call' && m.service === p.service).length;
+  for (const p of participants.values()) {
+    if (p.kind === 'service') { Object.assign(p, externalField(g, p.service)); if (!opts.countsOnly) p.internalCalls = messages.filter((m) => m.kind === 'call' && m.service === p.service).length; } // #87: external
   }
   const code: Trace['code'] = {};
   for (const m of opts.countsOnly ? [] : messages) { // countsOnly: no source links, no `via` (nothing that counts reads them)
