@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased
+## 0.43.0 (2026-10-25)
 
 - Flow view (#86, UI only): clicking a Redis or Mongo participant head in an open flow opens a panel in the right-hand pane with only what this flow touches in that store (per key template or collection: operations, steps, code links, TTL, Mongo fields, and the keys-registry row). `&store=<store key>` on the flows hash restores it. It reads the resource message fields `keyTemplate`, `dbIndex`, `ttlSeconds` and `keyUnresolved` (0.42.1; `details.keyPattern` is an alias of `details.keyTemplate`). Nothing to change for harvesters: send `details.keyTemplate` (or `keyPattern`), `dbIndex`, `ttlSeconds` on Redis resource steps as before. Demo: `checkout-svc`.
 
