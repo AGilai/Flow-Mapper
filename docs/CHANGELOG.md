@@ -12,6 +12,10 @@ in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.m
 - Link health: a call to an external service is a normal resolved link (never `dangling`), and an external service's endpoints are never `orphans`.
 - UI: "N services · M external" in the Flows list tooltip, the flow header, the map header and Inventory; a dashed grey outline, muted fill and an "external" tag on the map, flow lifeline heads and lists; no inside view; a note on the service page; its ingress are hidden from the Flows entry list unless "All endpoints" is ticked.
 
+## 0.43.0 (2026-10-25)
+
+- Flow view (#86, UI only): clicking a Redis or Mongo participant head in an open flow opens a panel in the right-hand pane with only what this flow touches in that store (per key template or collection: operations, steps, code links, TTL, Mongo fields, and the keys-registry row). `&store=<store key>` on the flows hash restores it. It reads the resource message fields `keyTemplate`, `dbIndex`, `ttlSeconds` and `keyUnresolved` (0.42.1; `details.keyPattern` is an alias of `details.keyTemplate`). Nothing to change for harvesters: send `details.keyTemplate` (or `keyPattern`), `dbIndex`, `ttlSeconds` on Redis resource steps as before. Demo: `checkout-svc`.
+
 ## 0.42.1 (2026-10-25)
 **#86 backend: key fields on resource steps.** No schema or migration change.
 - `details.keyPattern` is an alias of `details.keyTemplate` wherever key templates are read (keys-registry join by service + dbIndex + keyTemplate, instance pages and key flows, contract `details.keyPattern` path); `keyTemplate` wins if both are sent. A value `{unresolved:a,b}` is not a key.

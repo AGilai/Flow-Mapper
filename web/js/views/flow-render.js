@@ -41,6 +41,7 @@ export function createFlowRender({ trace, tree, key, ancestors = [], sticky = tr
     onPill: (bar) => { if (sh.onInternal && bar.service && pillAction(depth, !!sh.internal?.()) === 'open') sh.onInternal(bar.service); else { sh.select(bar); sh.lookInside(bar, trace); } },
     onBarMenu: (bar, x, y) => barMenu(bar, x, y, { trace, openEntry: host.openEntry, inside: () => { sh.select(bar); sh.lookInside(bar, trace); }, toIndex: index ? () => index.el.scrollIntoView({ behavior: 'smooth' }) : null }),
     onParticipant: (p, x, y, type) => (type === 'click' && sh.editHead?.(p.service)) || (type === 'click' && p.kind === 'service' && host.openPane?.({ kind: 'component', name: p.service })) || participantMenu(p, x, y, { trace, openEntry: host.openEntry, openPane: host.openPane }), // Edit with a draft: a click on a head opens its form; otherwise the info pane (0.33.0), the menu stays on right-click
+    onStore: sh.onStore && !depth ? (c, ev) => sh.onStore(c, ev) : undefined, // #86: a Redis or Mongo head opens the store panel (the top lane's only)
     onBand: host.openPane ? (key) => host.openPane({ kind: 'subsystem', key }) : undefined,
     onNum: (label) => { if (index) index.reveal(label); }, // a number tile at a queue: open that row of the list below (a card opens in place)
     onNumHover: (labels, on) => labels.forEach((l) => index?.rowNode(l)?.classList.toggle('hl', on)),
@@ -52,6 +53,7 @@ export function createFlowRender({ trace, tree, key, ancestors = [], sticky = tr
     const lo = laneOpts();
     const msgs = trace.messages.filter((m) => m.depth <= lo.maxDepth);
     const built = buildLane(msgs, { mwOpen, fanOpen, numbers: deliveryNumbers(tree), stores: lo.stores, scope: 'full', participants: trace.participants, trigger: depth ? null : sh.trigger?.() ?? null, icalls: depth ? false : sh.icalls?.() ?? false, decisions: depth ? [] : trace.decisions ?? [], dbOpen: depth ? null : sh.dbOpen?.() ?? null });
+    built.storeOn = !depth && !!sh.onStore;
     built.internal = depth ? null : sh.internal?.() ?? null; // 0.38.0: the lazy "⊕ internal" control under each service head (null: everything is loaded)
     groupLane(built, host.subs, opts.bands, marks(), (cols) => laneSlots(cols, undefined, host.env), host.env); // 0.28.1: the components of one subsystem together and the bands over them; a colour per flow (before Squeeze, the walk and the drawing see the columns)
     const sq = sh.squeeze?.() ? { keep: (!depth && sh.walk?.endsOf(built)) || firstStepCols(built) } : null; // Squeeze: the current step's lifelines (a card: its first step's)

@@ -63,7 +63,7 @@ export function layoutLane(lane, fit = 0, sq = null, marks = null, edit = false,
   const plan = (keep) => planSqueeze({ n: columns.length, ends: keep, fit, widthOf: (f, o) => layout(o.narrow ? COL_NARROW : COL_MIN, f, o.foldW).width });
   let L = fitted(new Set()), folded = new Set(), fw = FOLD_W, sig = '';
   if (sq && fit && L.width > fit) { const P = plan(sq.keep); ({ folded, foldW: fw, key: sig } = P); if (folded.size) L = fitted(folded, fw, P.narrow ? COL_NARROW : COL_MIN); }
-  const { xs, col: COLW, width } = L, HEAD_BOX = COLW - 8, nameCh = (c) => Math.max(9, Math.floor((headW(c, COLW) - (c.kind === 'resource' || headIconOf(c) ? 34 : 14)) / 6.6)); // a store head, or one with a product icon, has it before the name
+  const { xs, col: COLW, width } = L, HEAD_BOX = COLW - 8, nameCh = (c) => Math.max(9, Math.floor((headW(c, COLW) - (c.kind === 'resource' || headIconOf(c) ? 34 : 14) - (lane.storeOn && c.kind === 'resource' && (c.storeKind === 'redis' || c.storeKind === 'mongodb') ? 24 : 0)) / 6.6)); // a store head, or one with a product icon, has it before the name; a Redis or Mongo head (#86) keeps a 24 px slot at its right edge for the list glyph
   const colX = new Map(columns.map((c, i) => [c, xs[i]]));
   // a queue head drops its transport prefix and the 'queue delivery' line (the title keeps both): two lines at most
   const subCh = COLW < COL_MIN ? Math.max(10, Math.floor((COLW - 22) / 5.8)) : SUB_CH; // narrowed heads (Squeeze, last stage) wrap the sub line shorter
@@ -88,5 +88,5 @@ export function layoutLane(lane, fit = 0, sq = null, marks = null, edit = false,
   const groups = foldGroups(columns.length, folded).map((g) => ({ ...g, x: xs[g.from], w: fw, names: g.cols.map((c) => columns[c].service ?? columns[c].label), cc: sharedVar(g.cols.map((c) => columns[c])) }));
   const edge = (bar, col, dir) => (bar ? barX(bar, dir) : colX.get(col));
   const headBox = (c) => headW(c, COLW);
-  return { th, runs, internal: lane.internal ?? null, columns, events, bars, idx, stacked, folded, groups, plan, sig, foldW: fw, fit, isCh, headW, headBox, xs, COLW, width, height, colX, heads, boxH, HEAD, bandH, bands, frames, strips, top, ys, barX, edge };
+  return { th, runs, internal: lane.internal ?? null, storeOn: !!lane.storeOn, columns, events, bars, idx, stacked, folded, groups, plan, sig, foldW: fw, fit, isCh, headW, headBox, xs, COLW, width, height, colX, heads, boxH, HEAD, bandH, bands, frames, strips, top, ys, barX, edge };
 }

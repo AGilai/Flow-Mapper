@@ -60,6 +60,7 @@
  "catalog-svc/in.put.products.id.prices.currency": "0ea75d68739333",
  "catalog-svc/in.put.products.id.variants.variantId": "1e6a1a417e3e28",
  "catalog-svc/in.put.reviews.reviewId": "15c7aaa374a4b2",
+ "checkout-svc/in.checkout": "02951c8d03d46a",
  "cp-middleware/in.deviceAudit": "0c73679dfc1070",
  "cp-middleware/in.deviceLogout": "00e5091a7bae9f",
  "cp-middleware/in.deviceSync": "0edf18856c02ae",
