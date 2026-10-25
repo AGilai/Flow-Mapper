@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased
+## 0.42.1 (2026-10-25)
 **#86 backend: key fields on resource steps.** No schema or migration change.
 - `details.keyPattern` is an alias of `details.keyTemplate` wherever key templates are read (keys-registry join by service + dbIndex + keyTemplate, instance pages and key flows, contract `details.keyPattern` path); `keyTemplate` wins if both are sent. A value `{unresolved:a,b}` is not a key.
 - Trace API / MCP `trace_flow` (additive): a resource-step message carries `keyTemplate`, `dbIndex`, `ttlSeconds` when present and `keyUnresolved: string[]` when the key is unresolved. Absent means omitted; `details` is not passed whole.
