@@ -309,6 +309,13 @@ Do not invent a key and do not drop the item. Say what you found and why it is u
 
 Unresolved items are never counted as broken links; they have their own section in link health.
 
+**`gap` and `plain` on an unresolved entry (#85).** Every `unresolved[]` entry (ingress, egress, function, step, resource) takes two optional fields:
+`gap` (boolean: `false` = not a real missing hop, e.g. a call on a built-in receiver; `true` or absent = a real gap) and `plain` (string: the reason in
+plain English; `reason` stays the stable code). Both are returned exactly as sent in the trace (`messages[].gap`), link health (`items.unresolved[]`) and
+the MCP tools; counting and health ignore them, and old manifests are unchanged. `details.coverage` on an ingress (`{status: "complete"|"incomplete",
+blocked, sites: [{fn, seq, file, line, call, reason, plain}], more}`) needs no schema: `details` is free-form and is returned as sent.
+Example: `{"what": "target", "reason": "receiver_unknown", "gap": false, "plain": "A call on a built-in object, not a missing hop."}`.
+
 **Assumed values (#47, 0.25.2).** `unresolved` says "I could not tell"; `assumed` says "I filled this in by a rule, it is not read from code". Send it on the same objects as `unresolved` (ingress, egress, functions, steps, resources) and on Redis key entries:
 `"assumed": [{ "what": "detail", "detail": "client.databases", "value": [0], "basis": "client_default", "reason": "no db option and the URL has no path, so ioredis/node-redis select db 0 (approved by Asaf 2026-10-20)" }]`.
 - `what` follows the #45 convention: a first-class name when there is one (`database`, `ttl`), otherwise `"detail"` with `detail` = the field path (`client.databases`, `details.databases`, `details.dbIndex`, `details.ttlSeconds`, `details.keyTemplate`). `value` is the value you actually put in the manifest (any JSON, `null` allowed), so readers can show and compare it.

@@ -8,7 +8,7 @@ import type { Assumed, Provenance, Unresolved } from './types.ts';
 
 export interface UnresolvedItem {
   service: string; kind: 'ingress' | 'egress' | 'step' | 'resource' | 'function'; id: string; fn?: string;
-  what: Unresolved['what']; reason: string; detail?: string; candidates: string[];
+  what: Unresolved['what']; reason: string; detail?: string; candidates: string[]; gap?: boolean; plain?: string;
   /** For target candidates: the endpoints each candidate key would reach. */
   possible: { candidate: string; service: string; ingress: string }[];
 }
@@ -17,8 +17,8 @@ export function unresolvedItems(g: GraphIndex): UnresolvedItem[] {
   const consumers = g.model.ingress.filter((i) => !unresolvedTarget(i));
   const possible = (u: Unresolved) => (u.what !== 'target' ? [] : (u.candidates ?? []).flatMap((c) =>
     consumers.filter((i) => keyMatches(i.bindKey, i.match, c)).map((i) => ({ candidate: c, service: i.service, ingress: i.id }))));
-  const item = (base: Omit<UnresolvedItem, 'what' | 'reason' | 'detail' | 'candidates' | 'possible'>, u: Unresolved): UnresolvedItem =>
-    ({ ...base, what: u.what, reason: u.reason, detail: u.detail, candidates: u.candidates ?? [], possible: possible(u) });
+  const item = (base: Omit<UnresolvedItem, 'what' | 'reason' | 'detail' | 'candidates' | 'possible' | 'gap' | 'plain'>, u: Unresolved): UnresolvedItem =>
+    ({ ...base, what: u.what, reason: u.reason, detail: u.detail, candidates: u.candidates ?? [], ...(u.gap !== undefined ? { gap: u.gap } : {}), ...(u.plain !== undefined ? { plain: u.plain } : {}), possible: possible(u) });
   return [
     ...g.model.ingress.flatMap((i) => (i.unresolved ?? []).map((u) => item({ service: i.service, kind: 'ingress', id: i.id }, u))),
     ...g.model.egress.flatMap((e) => (e.unresolved ?? []).map((u) => item({ service: e.service, kind: 'egress', id: e.id }, u))),

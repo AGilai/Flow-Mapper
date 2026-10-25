@@ -5,6 +5,12 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## 0.41.2 (2026-10-25)
+**Fix #85 item 6: `unresolved[]` entries accept `gap` and `plain`.** Schema change, additive (old manifests stay valid; no migration).
+- Every `unresolved[]` entry (ingress, egress, function, step, resource) takes optional `gap` (boolean; `false` = not a real missing hop, such as a built-in receiver) and `plain` (string; the reason in plain English). They no longer get a 422 "unknown property"; a non-boolean `gap` or non-string `plain` still does.
+- Returned as sent by `GET /api/envs/:env/trace` (`messages[].gap`), `GET .../health` and `.../link-health` (`items.unresolved[]`), and MCP `trace_flow`, `link_health`, `get_endpoint_info`. Nothing counts on them: totals, health and the trace are unchanged. Display of `gap: false` and the incomplete badge come later.
+- `details.coverage` on an ingress needs nothing (`details` is free-form and returned as sent).
+
 ## 0.41.1 (2026-10-23)
 **Fix #83: Mermaid import of a branch that holds only a return.** No schema or migration change.
 - A return inside a frame the call it answers is not in (`alt ok ... else fail`: `B-->>A: 403 denied`), in a branch with no other step or note, is now a step of that branch: a leaf (`kind: "leaf"`, `operation` = the label, `details.return_to` = the component it goes back to; the trace message carries `returnTo`). So the `alt` keeps both branches (arms `b1`, `b2` as decisions) and the group closes at its `end`; the export writes it back as `B-->>A: 403 denied` inside `else`. A branch that also holds a call or note keeps the old reading (the first such return is the call's `returns.label`).
