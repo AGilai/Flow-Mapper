@@ -78,9 +78,11 @@ select.dec-sel:not(.set) { color: var(--accent); }
 .msg.icall.warn .idot { stroke: var(--bad); } .msg.icall.warn .ilab { fill: var(--bad); }
 .msg.icall:focus-visible .itag, .msg.icall:hover .itag { stroke: var(--accent); }
 .dbtog { cursor: pointer; outline: none; }
-.dbtog rect { fill: var(--surface-2); stroke: var(--line-strong); }
-.dbtog text { font: 600 10.5px var(--font); fill: var(--ink-2); }
-.dbtog:hover rect, .dbtog:focus-visible rect { stroke: var(--accent); }
+.dbtog .pad { fill: transparent; stroke: none; }
+.dbtog .chip { fill: var(--surface); stroke: var(--accent); stroke-width: 1.2; }
+.dbtog text { font: 600 11px var(--font); fill: var(--accent); pointer-events: none; }
+.dbtog:hover .chip { fill: var(--accent-soft); }
+.dbtog:focus-visible .chip { stroke-width: 2.2; fill: var(--accent-soft); }
 .msg.store .label { cursor: pointer; }
 
 /* ---- the step bar and the pills of a step this scenario hides ---- */

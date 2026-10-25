@@ -4,6 +4,7 @@
 import { h } from '../dom.js';
 import { icon } from '../icons.js';
 import { reasonText, humanTtl } from '../../core/store-panel.js';
+import { runCardModel } from '../../core/db-run.js';
 
 const web = (u) => (/^https?:\/\//i.test(u ?? '') ? u : null);
 const ACC = { read: 'read', write: 'write', read_write: 'read and write' };
@@ -35,4 +36,16 @@ export function callsCard(m, trace, { n = null, expand = null } = {}) {
 export function dbContext(m, { walk, host, onDb }) {
   const n = walk.steps().find((x) => x.event.msg === m)?.n ?? null;
   return { n, expand: (k) => { host.panel.close(); onDb?.(m.key); if (k && n) walk.go(n + k - 1); } };
+}
+
+/**
+ * #88 follow-up: the pane of a call of an EXPANDED run: "Calls in this run" (its calls, this one marked) and the way back, the mirror of "Show the N calls as separate arrows".
+ * run: core/db-run.ts `dbRunOf`; n: this call's drawn step; group(): fold the run and keep the pane open on the merged node.
+ */
+export function runCard(run, { n = null, group = null } = {}) {
+  const md = runCardModel(run, n);
+  const rows = md.rows.map((r) => h('li.dc-row.dc-run' + (r.current ? '.is-current' : ''), { 'data-call': r.no, 'aria-current': r.current ? 'true' : null },
+    h('span.dc-no', r.no), h('div.dc-b', h('div.dc-h', h('b.mono', r.label), r.key ? h('span.mono.dc-key', r.key) : null, r.current ? h('span.xs.muted', 'this call') : null))));
+  return h('section.ep-card.dc', { 'data-qa': 'db-run' }, h('header', h('h3', md.title), h('span.ep-meta', `${rows.length} calls`)),
+    h('ol.dc-list', rows), group ? h('div.ep-pad', h('button.btn.sm', { type: 'button', 'data-qa': 'db-regroup', on: { click: group } }, md.button)) : null);
 }

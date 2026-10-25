@@ -6,7 +6,7 @@ import { h, fill } from '../dom.js';
 import { createFlowRender } from './flow-render.js';
 import { createInside } from './flow-inside-panel.js';
 import { messagePanel } from './flow-panel.js';
-import { dbContext } from './flow-panel-calls.js';
+import { createRegroup } from './flow-regroup.js';
 import { publishPanel } from './flow-panel-publish.js';
 import { plural, asyncTree } from './flow-async.js';
 import { createTabScenario } from './flow-tab-scenario.js';
@@ -166,9 +166,9 @@ export function createTabView(data, host) {
       inside.close();
       if (ed?.arrow(m)) return;
       host.flowsEl.classList.add('mp-open');
-      host.panel.open(...messagePanel(m, tr, host.env, 'full', host.openEntry, marks(), m.dbGroup && !g.closest('.flow-idx') ? dbContext(m, { walk, host, onDb: shared.onDb }) : null));
+      host.panel.open(...messagePanel(m, tr, host.env, 'full', host.openEntry, marks(), regroup.contextOf(m, g)));
     } };
-
+  const regroup = createRegroup({ scen: ts.scen, walk, body, host, trace: () => trace, openMessage: (m, g, tr) => shared.openMessage(m, g, tr) }); // #88
   function openPublish(pub, g, tr) { // the shared trunk of a fan-out: the publish, then its deliveries (each opens its own arrow)
     stp?.clear();
     body.querySelectorAll('.msg.active').forEach((e) => e.classList.remove('active'));

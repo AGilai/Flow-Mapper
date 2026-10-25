@@ -15,7 +15,8 @@ import { frontierSvg, blockedBand, blockedLines, blockedIcall, isBlockedEvent, i
 import { isInferred } from './incomplete-pure.js';
 
 /** "⌄ group": folds an expanded run of DB operations again (0.38.0); a folded run opens with a click on its row. */
-const dbToggle = (key, x, y0) => s('g', { class: 'dbtog', 'data-db': key, tabindex: 0, role: 'button', 'aria-label': 'Group these database operations again' }, s('rect', { x, y: y0 + 5, width: 58, height: 15, rx: 7.5 }), s('text', { x: x + 29, y: y0 + 16, 'text-anchor': 'middle' }, '⌄ group'), s('title', {}, 'Group these operations into one row again'));
+// Drawn above the arrow's right end (the store side), never on the dashed return below it; the invisible `pad` makes the whole chip, with a margin, the click target.
+const dbToggle = (key, x, y0) => s('g', { class: 'dbtog', 'data-db': key, tabindex: 0, role: 'button', 'aria-label': 'Group these database operations again' }, s('rect', { class: 'pad', x: x - 4, y: y0 - 27, width: 80, height: 26 }), s('rect', { class: 'chip', x, y: y0 - 23, width: 72, height: 18, rx: 9 }), s('text', { x: x + 36, y: y0 - 10, 'text-anchor': 'middle' }, '⌄ group'), s('title', {}, 'Group these operations into one row again'));
 
 /** drawRows(layout) -> one element per event, in order. */
 export function drawRows({ events, colX, ys, barX, edge, marks, refs, stacked, folded, idx, groups = [], noApi = null, th = true, width = 0, decide = null, runs = null }) {
@@ -67,7 +68,7 @@ export function drawRows({ events, colX, ys, barX, edge, marks, refs, stacked, f
     }
     if (e.type === 'store') { // an arrow to the lifeline of the collection: a read keeps a bar and a dashed return, a write is heavier with a shorter bar and no return (0.27.1)
       const x1 = barX(e.bar, 1), inFold = folded.has(idx.get(e.col)), x2 = inFold ? colX.get(e.col) : colX.get(e.col) - BAR / 2, mc = colorOf('res'), bx = colX.get(e.col) - BAR / 2;
-      return g(`store${e.write ? ' write' : ''}`, arrow(x1, x2, y0, { label: lab(e.msg.dbGroup ? `› ${e.label}` : e.label), color: mc }), e.dbOpen ? dbToggle(e.msg.key, Math.min(x1, x2) + 6, y0) : null,
+      return g(`store${e.write ? ' write' : ''}`, arrow(x1, x2, y0, { label: lab(e.msg.dbGroup ? `› ${e.label}` : e.label), color: mc }), e.dbOpen ? dbToggle(e.msg.key, Math.max(x1, x2) - 80, y0) : null,
         s('rect', { class: 'sbar', x: bx, y: y0 - 5, width: BAR, height: e.write ? 16 : 28, rx: 2 }),
         e.write ? null : s('g', { class: 'sret' }, arrow(bx, x1, y0 + 17, { dashed: true, open: true, color: mc, bare: false })),
         hit(x1, x2), ...arrowMarkSvg(marks, e.msg, x1, x2, y0, stacked?.has(e), th, mk()), s('title', {}, `${e.msg.label}\n${e.msg.store ?? ''}${e.write ? '\nwrite' : ''}`));
