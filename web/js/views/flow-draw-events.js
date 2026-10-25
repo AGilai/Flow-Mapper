@@ -1,12 +1,13 @@
 // Event wiring of a drawn lane: clicks, keys, menus, hover and the number tiles. Returns mark(label, on).
 
-export function wireEvents(head, body, { columns, events, bars }, { onMessage, onBar, onBarMenu, onParticipant, onNum, onNumHover, onFan, onMw, onBarTip, onSqueeze, onBand, onInternal, onDb }) {
+export function wireEvents(head, body, { columns, events, bars }, { onMessage, onBar, onBarMenu, onParticipant, onNum, onNumHover, onFan, onMw, onBarTip, onSqueeze, onBand, onInternal, onDb, onPill }) {
   const sqOf = (t) => t.closest?.('[data-sqfold]'); // a fold column: click opens it (squeeze off for the tab)
   const eventOf = (t) => events[Number(t.closest?.('[data-e]')?.dataset.e)];
   const barOf = (t) => { const r = t?.closest?.('[data-bar]'); return r ? bars[Number(r.dataset.bar)] : null; };
   const numOf = (t) => t?.closest?.('[data-num]');
   const foldOf = (t) => t.closest?.('[data-mwfold]');
   const fold = (el) => onMw?.(bars[Number(el.dataset.mwfold)], el.classList.contains('mwlab') ? '.mwlab' : '.mwseg'); // the redraw replaces the element: the caller refocuses by this selector
+  const ipillOf = (t) => !!t.closest?.('[data-ipill]'); // the folded "N internal calls" marker (#84); a middleware label is also a pill
   const pillOf = (t) => { const b = t.closest?.('[data-pill]'); return b ? bars[Number(b.dataset.pill)] : null; };
   const pm = (ev) => {
     const g = ev.target.closest?.('[data-p]'), c = g && columns[Number(g.dataset.p)];
@@ -33,7 +34,7 @@ export function wireEvents(head, body, { columns, events, bars }, { onMessage, o
     if (dbOf(ev.target)) return onDb?.(dbOf(ev.target).dataset.db);
     if (sqOf(ev.target)) return onSqueeze?.();
     const bd = numOf(ev.target), pill = pillOf(ev.target), b = barOf(ev.target), e = eventOf(ev.target);
-    if (foldOf(ev.target)) { if (ev.detail <= 1) { const f = foldOf(ev.target); clearTimeout(foldTimer); foldTimer = setTimeout(() => fold(f), 200); } } else if (bd) { ev.stopPropagation(); onNum?.(bd.dataset.num); } else if (pill) onBar?.(pill); else if (b) onBar?.(b, 'select'); else if (e?.msg) onMessage?.(e.msg, ev.target.closest('[data-e]'), e, !!(e.publish && ev.target.classList?.contains('trunk')));
+    if (foldOf(ev.target)) { if (ev.detail <= 1) { const f = foldOf(ev.target); clearTimeout(foldTimer); foldTimer = setTimeout(() => fold(f), 200); } } else if (bd) { ev.stopPropagation(); onNum?.(bd.dataset.num); } else if (pill) (onPill && ipillOf(ev.target) ? onPill : onBar)?.(pill); else if (b) onBar?.(b, 'select'); else if (e?.msg) onMessage?.(e.msg, ev.target.closest('[data-e]'), e, !!(e.publish && ev.target.classList?.contains('trunk')));
   });
   body.addEventListener('keydown', (ev) => {
     if (ev.key !== 'Enter' && ev.key !== ' ') return;
@@ -41,7 +42,7 @@ export function wireEvents(head, body, { columns, events, bars }, { onMessage, o
     ev.preventDefault();
     if (dbOf(ev.target)) return onDb?.(dbOf(ev.target).dataset.db);
     const bd = numOf(ev.target), pill = pillOf(ev.target), b = barOf(ev.target), e = eventOf(ev.target);
-    if (foldOf(ev.target)) fold(foldOf(ev.target)); else if (bd) onNum?.(bd.dataset.num); else if (pill) onBar?.(pill); else if (b) onBar?.(b); else if (e?.msg) onMessage?.(e.msg, ev.target.closest('[data-e]'), e, !!(e.publish && ev.target.classList?.contains('trunk')));
+    if (foldOf(ev.target)) fold(foldOf(ev.target)); else if (bd) onNum?.(bd.dataset.num); else if (pill) (onPill && ipillOf(ev.target) ? onPill : onBar)?.(pill); else if (b) onBar?.(b); else if (e?.msg) onMessage?.(e.msg, ev.target.closest('[data-e]'), e, !!(e.publish && ev.target.classList?.contains('trunk')));
   });
   // a tile and its list row light up together
   const own = (el) => (el.dataset.own ?? '').split(' ').filter(Boolean);

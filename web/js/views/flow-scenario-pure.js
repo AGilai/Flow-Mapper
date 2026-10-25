@@ -145,3 +145,6 @@ export function decisionsTitle(c) {
   const n = c.decisions, both = c.both && c.both.min !== c.both.max ? `${c.both.min}–${c.both.max}` : `${c.both?.min ?? c.steps}`;
   return `${n} either / or ${n === 1 ? 'decision' : 'decisions'} in this flow. The list counts the default view: ${c.steps} steps (External, first arm of each). With Both: ${both} messages per path. Full: ${c.full} steps.`;
 }
+
+/** What a click on the folded "N internal calls" marker does (#84): open those calls where the view is lazy (External, top lane), else look inside the service. */
+export const pillAction = (depth, lazy) => (!depth && lazy ? 'open' : 'inside');

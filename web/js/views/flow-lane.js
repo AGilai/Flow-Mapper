@@ -174,7 +174,7 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
         if (m.kind === 'call') { seg.internal++; if (m.gap || m.broken) seg.gaps++; return; }
       }
     }
-    if (m.kind === 'call' && icalls) { push({ type: 'icall', msg: m, bar: top, from: top.col, to: top.col, fromBar: top, label: m.label }); return; }
+    if (m.kind === 'call' && (icalls || m.origin === 'frontier')) { push({ type: 'icall', msg: m, bar: top, from: top.col, to: top.col, fromBar: top, label: m.label }); return; }
     if (m.kind === 'call') { top.internal.n++; if (m.gap || m.broken) top.internal.gaps++; return; }
     if (m.kind === 'leaf') { // a leaf is a note on its component; one that names `over` is drawn (0.32.2, #74), over one lifeline or spanning several
       const over = [...new Set((m.over ?? []).flatMap((n) => (byService.has(n) ? [byService.get(n)] : cols.filter((c) => c.kind === 'resource' && c.store === n))))]; // a component, or a data store by its instance / db name
