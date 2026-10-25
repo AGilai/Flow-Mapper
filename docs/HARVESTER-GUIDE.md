@@ -363,6 +363,8 @@ the service's resource points at it by `bindKey` and keeps carrying `client`; no
 
 **Per resource step** (cheap, and it makes "which flows write this key" work): `"details": {"keyTemplate": "session:{tenantId}:{userId}", "ttlSeconds": 1800}` on a `type: resource` step (`dbIndex` too if known).
 
+`details.keyPattern` is accepted as an alias of `keyTemplate` (#86); send `keyTemplate`, which wins when both are present. When the key cannot be resolved, send `{unresolved:<reasons>}` (e.g. `{unresolved:computed,call_result:keyFn}`, reasons comma-separated) in either field: it is not a key (no key row, no flow link) and the trace reports the reasons as `keyUnresolved`. The step's trace message carries `keyTemplate`, `dbIndex` and `ttlSeconds` when present.
+
 **Unknown values (#45).** When you know a field exists but cannot read it, leave it out and say why, e.g. on the instance resource `"unresolved": [{"what": "detail", "detail": "details.databases", "reason": "databases_not_in_cfg"}]`; on a service resource `{"what": "detail", "detail": "client.databases", "reason": "db_from_runtime_config"}`; on a resource step `{"what": "detail", "detail": "details.keyTemplate", "reason": "key_unresolved:computed"}` (same for `details.dbIndex`, `details.ttlSeconds`). An empty `detail` or `reason` gets the `unresolved-no-detail` warning; another path gets `unresolved-detail-unknown-path`. These entries show on the Redis instance page and in the step panel, not in Link health.
 
 **Keys, per instance, after the manifests** (optional, full replace each time):

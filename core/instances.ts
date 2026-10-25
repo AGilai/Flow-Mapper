@@ -5,7 +5,7 @@
 // the entries pushed per instance (core/keys.ts), or the interim inline `details.keys`. Pure.
 
 import type { GraphIndex } from './graph-index.ts';
-import { sid } from './graph-index.ts';
+import { sid } from './graph-index.ts'; import { keyTemplateOf } from './key-template.ts';
 import { clientRows, type ClientRow } from './clients.ts';
 import { codeLink, type SourceLink } from './endpoint-info.ts';
 import { entryPointsReaching } from './reach.ts';
@@ -190,7 +190,7 @@ function stepsByTemplate(g: GraphIndex, x: Group) {
   const ids = new Set(x.members.map((r) => sid(r.service, r.id)));
   const by = new Map<string, { fn: Fn; step: Fn['steps'][number] }[]>();
   for (const fn of g.model.functions) for (const step of fn.steps) {
-    const t = step.type === 'resource' && step.target && ids.has(sid(fn.service, step.target)) ? (step.details as any)?.keyTemplate : undefined;
+    const t = step.type === 'resource' && step.target && ids.has(sid(fn.service, step.target)) ? keyTemplateOf(step).key : undefined;
     if (typeof t === 'string') (by.get(t) ?? by.set(t, []).get(t)!).push({ fn, step });
   }
   return by;

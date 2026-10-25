@@ -248,3 +248,4 @@ Add a row here with every fix or feature (newest first). A row without a working
 | 0.3.2 | #12 | Ingress "from" lists only publishers whose events pass the filter; "maybe from" | `#/services/analytics-svc` |
 | 0.3.2 | #13 | An unresolved egress row with its id and reason | `#/services/orders-svc` (Unresolved by the harvester) |
 | 0.4.0 | — | Contract report: `POST /api/ingest?dryRun=1` with any sample returns `contract` findings | API only |
+| 0.42.1 | #86 | A Redis step sent as `details.keyPattern` (alias of `keyTemplate`) joins its key row and the trace message carries `keyTemplate` | `#/instances/redis%3Acache-main` (key `user:{id}`, flow users-svc GET /users/{id}/posture) |

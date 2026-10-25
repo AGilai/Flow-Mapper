@@ -34,7 +34,7 @@ const sample = (ids: string[]) => ids.slice(0, 3).join(', ') + (ids.length > 3 ?
 const FANOUT = new Set(['sns-topic', 'eventbridge-bus']);
 
 /** Field paths a `what: "detail"` entry may name (#45). Another path is kept but warned about. */
-export const DETAIL_PATHS = ['details.databases', 'client.databases', 'details.keyTemplate', 'details.dbIndex', 'details.ttlSeconds'];
+export const DETAIL_PATHS = ['details.databases', 'client.databases', 'details.keyTemplate', 'details.keyPattern', 'details.dbIndex', 'details.ttlSeconds'];
 
 const unresolvedNoDetail: Rule = ({ m, add }) => {
   const check = (kind: 'ingress' | 'egress' | 'step' | 'resource' | 'function', id: string, list?: Unresolved[]) => {

@@ -5,6 +5,11 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+**#86 backend: key fields on resource steps.** No schema or migration change.
+- `details.keyPattern` is an alias of `details.keyTemplate` wherever key templates are read (keys-registry join by service + dbIndex + keyTemplate, instance pages and key flows, contract `details.keyPattern` path); `keyTemplate` wins if both are sent. A value `{unresolved:a,b}` is not a key.
+- Trace API / MCP `trace_flow` (additive): a resource-step message carries `keyTemplate`, `dbIndex`, `ttlSeconds` when present and `keyUnresolved: string[]` when the key is unresolved. Absent means omitted; `details` is not passed whole.
+
 ## 0.42.0 (2026-10-25)
 **#85 items 1 to 5: show broken flows.** No schema or migration change. Only `gap: true` counts; `gap` absent or `false` never does (this supersedes "true or absent = a real gap" in the harvester guide).
 - Trace API / MCP `trace_flow` (additive): a message of a step that has an `unresolved[]` entry with `gap: true` (or whose egress has one) carries `blocked: {id, service, fn, seq, call?, reason?, plain?, file?, line?, url?}` (`id` = `<service>:<fn>#<seq>`; `call` is the entry's `detail`, else the step's `operation` / `note`; `url` the repository link). The folded `kind: "frontier"` marker carries `frontierBlocked: M` and `frontierSites` (the first 20) when some of its `frontierSteps` are blocked; `label` is unchanged. The trace carries `coverage` (the entry ingress's `details.coverage`, each site with its `url`) when the ingress has one.

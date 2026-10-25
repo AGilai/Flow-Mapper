@@ -22,7 +22,7 @@ import { codeLink, sourceLink, type SourceLink } from './endpoint-info.ts';
 import { refKey, unresolvedTarget } from './resolve.ts';
 import { assumedOn, storeOn, unknownOn } from './step-notes.ts';
 import type { Step, StepAlternative, StepFix, StepField, Unresolved } from './types.ts';
-import { stepExtras } from './step-marks.ts'; import { blockedField, coverageFor, frontierBlocked } from './incomplete.ts';
+import { stepExtras } from './step-marks.ts'; import { keyFieldsOn } from './key-template.ts'; import { blockedField, coverageFor, frontierBlocked } from './incomplete.ts';
 import { altCtxOf, altGroups, type Alt, type AltCtx } from './alt.ts';
 import { egressVia, ingressVia, type LinkedHop } from './via.ts';
 import { bindingKeyOf, splitAmqpKey } from './amqp.ts';
@@ -174,7 +174,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
       } else if (st.type === 'resource') {
         const r = g.resources.get(sid(service, st.target));
         const to = part({ id: `res:${r?.bindKey ?? sid(service, st.target)}`, label: r?.name ?? st.target, kind: 'resource' });
-        push({ ...base, from: me, to, label: st.operation ?? 'use', mode: st.mode ?? 'sync', kind: 'resource', transport: 'res', store: r?.bindKey ?? sid(service, st.target), ...storeOn(st, r, g), ...(st.fields?.length ? { fields: st.fields } : {}), ...unknownOn(st), ...assumedOn(st) });
+        push({ ...base, from: me, to, label: st.operation ?? 'use', mode: st.mode ?? 'sync', kind: 'resource', transport: 'res', store: r?.bindKey ?? sid(service, st.target), ...storeOn(st, r, g), ...(st.fields?.length ? { fields: st.fields } : {}), ...unknownOn(st), ...assumedOn(st), ...keyFieldsOn(st) });
       } else {
         const e = g.egress.get(sid(service, st.target));
         if (!e) continue;
