@@ -27,6 +27,14 @@
       ]
     },
     {
+      "instance": "redis:checkout-cache",
+      "producer": "redis-key-harvester",
+      "keys": [
+        { "keyTemplate": "cart:{userId}", "dbIndex": 0, "service": "checkout-svc", "access": "read_write", "commands": ["GET", "HGET", "DEL"], "opsPerHour": 8200, "ttlSeconds": 1800 },
+        { "keyTemplate": "checkout:lock:{cartId}", "dbIndex": 0, "service": "checkout-svc", "access": "write", "commands": ["SET", "DEL"], "opsPerHour": 3100, "ttlSeconds": 30 }
+      ]
+    },
+    {
       "instance": "redis:auth-cache",
       "producer": "redis-key-harvester",
       "keys": [

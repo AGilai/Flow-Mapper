@@ -66,6 +66,8 @@ export function createScenario({ st, base: first, req, baseFor, visible = () => 
     /** The scenario as trace-view parameters, for the Mermaid export of what the tab shows. */
     exportView: () => ({ detail: st.detail, choose: Object.entries(chooseObject(st.chosen)).map(([g, a]) => `${g}:${a}`).join(',') || null, open: [...st.open].join(',') || null, dbOpen: [...st.dbOpen].join(',') || null, group: '1' }),
     editAll: () => editAll,
+    /** #86: the view with no DB runs folded: every operation is a message (the store panel lists them one by one). */
+    ungrouped: () => viewOf(base, { choose: chooseObject(st.chosen), detail: intra() ? 'full' : st.detail, open: [...st.open], dbOpen: [], group: false }),
     toggleDb(key) { if (!st.dbOpen.delete(key)) st.dbOpen.add(key); changed(); },
     /** A step the view does not show: on an arm that is not in force ("Not in this scenario"), or in a detail that is not loaded ("Not in this view"); null when it is shown or gone. */
     hiddenOf(key) {

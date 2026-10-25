@@ -14,6 +14,7 @@ import { descBlock, descLine } from './flow-desc.js';
 import { descDetails } from './flow-head.js';
 import { createWalkView } from './flow-walk-view.js';
 import { headBadge } from './incomplete-badge.js';
+import { createStorePanel } from './store-panel-wire.js';
 import { whySection } from './incomplete-why.js';
 import { traceBlocked } from '../../core/incomplete.js';
 import { createStepDetails } from './flow-step-details.js';
@@ -65,7 +66,7 @@ export function createTabView(data, host) {
   const flowPen = () => (!editing && root ? host.pen?.button('panel-flow', 'flow', { form: 'flow', service: root.service, ingress: root.ingress, name: host.nameOf?.(root.service, root.ingress) ?? '' }) : null); // View mode (0.31.1): the same form, through the draft step
   const editFlow = () => (editing && host.edit && root ? h('button.btn.sm', { type: 'button', 'data-qa': 'edit-flow', on: { click: (e) => { e.preventDefault(); e.stopPropagation(); host.edit.flow(root.service, root.ingress, host.nameOf?.(root.service, root.ingress) ?? '', trace.start?.fn || null); } } }, 'Edit flow') : flowPen());
   const descs = [];
-  const ts = createTabScenario({ data, host, key, editAll: editing, visible: (k) => !!stepByKey(walk.steps(), k), onView: (v) => { const g = body.contains(document.activeElement) ? document.activeElement.dataset?.g : null; trace = v; tree = asyncTree(v.messages); render = null; paintInc(); draw(); host.paintChrome?.(); if (g) body.querySelector(`select[data-g="${CSS.escape(g)}"]`)?.focus({ preventScroll: true }); } });
+  const ts = createTabScenario({ data, host, key, editAll: editing, visible: (k) => !!stepByKey(walk.steps(), k), onView: (v) => { const g = body.contains(document.activeElement) ? document.activeElement.dataset?.g : null; trace = v; tree = asyncTree(v.messages); render = null; paintInc(); draw(); stp?.refresh(); host.paintChrome?.(); if (g) body.querySelector(`select[data-g="${CSS.escape(g)}"]`)?.focus({ preventScroll: true }); } });
   trace = ts.view; tree = asyncTree(trace.messages);
   const inc = headBadge({ onOpen: () => openWhy() }); // #85: the amber badge before the Scenario chip; N is counted over the trace on screen
   const paintInc = () => { const { n, source } = traceBlocked(trace, trace.coverage); inc.update(n, source, trace.start?.service, trace.coverage?.status); };
@@ -141,7 +142,7 @@ export function createTabView(data, host) {
   const select = (bar) => { body.querySelectorAll('.act.selected').forEach((e) => e.classList.remove('selected')); bar?.el?.classList.add('selected'); };
   const inside = createInside(body, { env: host.env, isActive: () => host.isActive(key),
     desc: root ? (bar) => descBlock(host.desc, root, bar.service, { title: `What ${bar.service} does here`, onGenerate: () => generate(bar.service) }) : null,
-    onOpen: () => { host.panel.close(); host.flowsEl.classList.add('fi-open'); }, onClose: () => { host.flowsEl.classList.remove('fi-open'); select(null); }, onStep: (m) => markArrow(m) });
+    onOpen: () => { stp?.clear(); host.panel.close(); host.flowsEl.classList.add('fi-open'); }, onClose: () => { host.flowsEl.classList.remove('fi-open'); select(null); }, onStep: (m) => markArrow(m) });
   function markArrow(m) { // a step in the drill-down marks its arrow
     body.querySelectorAll('.msg.active').forEach((e) => e.classList.remove('active'));
     const g = [...body.querySelectorAll('.seq-body')].map((b) => ({ b, k: b.__events?.findIndex((e) => e.msg === m) })).find((x) => x.k >= 0);
@@ -150,11 +151,14 @@ export function createTabView(data, host) {
     el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
   }
   const lookInside = (bar, tr) => { inside.open(bar, tr); };
+  let stp = null; // #86 the store panel of this tab (made below, once the walk and the diagram body exist)
   const flash = (g) => { g?.scrollIntoView({ block: 'center', behavior: 'smooth' }); g?.classList.add('flash'); setTimeout(() => g?.classList.remove('flash'), 1600); };
   const ed = editing && host.edit ? host.edit : null; // Edit with a draft: heads, arrows and "+ call" open forms (design/edit-open.js)
-  const shared = { ...ts.hooks, host, opts, tip, walk, details: (built) => sdet.forLane(built, trace.messages), editStep: (k) => walk.editKey(k), editHead: ed ? (service) => { ed.head(service); return true; } : null, addCall: ed ? (bar) => ed.addCall(bar.service, bar.msg.target.fn) : null, addInBand: ed ? (key) => ed.addComponent(key) : null, trigger: () => data.trigger, importRef: (anchor, m) => host.importRef?.(anchor, m?.reference?.source), zoom: () => factor, afterLane: (box) => { if (box) brackets?.attach(box); if (render && zoomV === 'fit') recompute(); }, squeeze: () => opts.squeeze && !sqOff, squeezeOpen: () => { sqOff = true; host.paintChrome?.(); render?.relane(); edge(); walk.reveal(true); }, fit: () => scroller.clientWidth - (brackets?.width() ?? 0), select, lookInside, flash, traceFor: (q) => host.traceFor(ts.scen.isFull() && !q.detail ? { ...q, detail: 'full' } : q), // a sub-flow card follows the tab's External | Full (0.38.0)
+  const shared = { ...ts.hooks, host, opts, tip, walk, details: (built) => sdet.forLane(built, trace.messages), editStep: (k) => walk.editKey(k), editHead: ed ? (service) => { ed.head(service); return true; } : null, addCall: ed ? (bar) => ed.addCall(bar.service, bar.msg.target.fn) : null, addInBand: ed ? (key) => ed.addComponent(key) : null, trigger: () => data.trigger, importRef: (anchor, m) => host.importRef?.(anchor, m?.reference?.source), zoom: () => factor, afterLane: (box) => { if (box) brackets?.attach(box); stp?.paint(); if (render && zoomV === 'fit') recompute(); }, squeeze: () => opts.squeeze && !sqOff, squeezeOpen: () => { sqOff = true; host.paintChrome?.(); render?.relane(); edge(); walk.reveal(true); }, fit: () => scroller.clientWidth - (brackets?.width() ?? 0), select, lookInside, flash, traceFor: (q) => host.traceFor(ts.scen.isFull() && !q.detail ? { ...q, detail: 'full' } : q), // a sub-flow card follows the tab's External | Full (0.38.0)
    
+    onStore: (c, ev) => stp?.press(c, ev),
     openMessage: (m, g, tr) => { // clicking an arrow opens the message panel (in Edit: its form); one side panel at a time
+      stp?.clear();
       body.querySelectorAll('.msg.active').forEach((e) => e.classList.remove('active'));
       g.classList.add('active');
       inside.close();
@@ -164,6 +168,7 @@ export function createTabView(data, host) {
     } };
 
   function openPublish(pub, g, tr) { // the shared trunk of a fan-out: the publish, then its deliveries (each opens its own arrow)
+    stp?.clear();
     body.querySelectorAll('.msg.active').forEach((e) => e.classList.remove('active'));
     g.classList.add('active');
     inside.close();
@@ -174,6 +179,7 @@ export function createTabView(data, host) {
   shared.openPublish = openPublish;
 
   function openWhy() { // #85: the header badge opens the info pane on the flow and puts focus on "Why incomplete"
+    stp?.clear();
     body.querySelectorAll('.msg.active').forEach((e) => e.classList.remove('active'));
     inside.close();
     host.flowsEl.classList.add('mp-open');
@@ -205,6 +211,7 @@ export function createTabView(data, host) {
     recompute(); requestAnimationFrame(edge);
   }
   draw();
+  stp = createStorePanel({ body, host, trace: () => ts.scen.ungrouped?.() ?? trace, walk, label: () => label.title, inside, isActive: () => host.isActive(key), onKey: (v) => host.setStore?.(key, v) });
   const back = host.backOf?.(key) ?? null; // a sub-flow: the way back to the flow it was opened from (also in the maximized bar)
   const backBtn = (cls) => back ? h(`button.btn.sm.back-main${cls}`, { type: 'button', 'data-qa': 'back-to-main', title: `Back to ${back.label}${back.step ? ` (step ${back.step})` : ''}`, on: { click: () => host.goBack(key) } }, h('span', { 'aria-hidden': 'true' }, '←'), ` Back to ${back.label}`) : null;
   const backBar = back ? h('div.backbar', backBtn(''), h('span.backtrail.xs.muted', `${back.label} › ${label.title}${label.sub ? ` · ${label.sub}` : ''}`)) : null;
@@ -234,7 +241,8 @@ export function createTabView(data, host) {
     save: () => { saved = scroller.scrollTop; },
     restore: () => { scroller.scrollTop = saved; edge(); requestAnimationFrame(edge); },
     refreshDots: () => render?.index()?.refresh(),
-    clearMessage: () => body.querySelectorAll('.msg.active').forEach((e) => e.classList.remove('active')),
+    clearMessage: () => { body.querySelectorAll('.msg.active').forEach((e) => e.classList.remove('active')); stp?.clear(true); },
+    clearStore: () => stp?.clear(), restoreStore: () => stp?.restore(host.initialStore?.(key) ?? null), // #86
     info: () => { const services = new Set(trace.messages.map((m) => m.service).filter(Boolean)); return `${trace.start.event ? `${trace.start.event}: ` : ''}${ts.counts(trace, walk.steps().length || null) || plural(trace.messages.length, 'step')}, ${plural(services.size, 'service')}${trace.truncated ? ', truncated' : ''}`; },
     closeInside: () => inside.close(),
   };

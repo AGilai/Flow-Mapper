@@ -1,6 +1,6 @@
 // Event wiring of a drawn lane: clicks, keys, menus, hover and the number tiles. Returns mark(label, on).
 
-export function wireEvents(head, body, { columns, events, bars }, { onMessage, onBar, onBarMenu, onParticipant, onNum, onNumHover, onFan, onMw, onBarTip, onSqueeze, onBand, onInternal, onDb, onPill }) {
+export function wireEvents(head, body, { columns, events, bars }, { onMessage, onBar, onBarMenu, onParticipant, onNum, onNumHover, onFan, onMw, onBarTip, onSqueeze, onBand, onInternal, onDb, onPill, onStore }) {
   const sqOf = (t) => t.closest?.('[data-sqfold]'); // a fold column: click opens it (squeeze off for the tab)
   const eventOf = (t) => events[Number(t.closest?.('[data-e]')?.dataset.e)];
   const barOf = (t) => { const r = t?.closest?.('[data-bar]'); return r ? bars[Number(r.dataset.bar)] : null; };
@@ -13,10 +13,11 @@ export function wireEvents(head, body, { columns, events, bars }, { onMessage, o
     const g = ev.target.closest?.('[data-p]'), c = g && columns[Number(g.dataset.p)];
     if (c?.service && onParticipant) { ev.preventDefault(); onParticipant({ id: `svc:${c.service}`, kind: 'service', service: c.service, label: c.label }, ev.clientX, ev.clientY, ev.type); }
     else if (c?.fan && onFan && ev.type === 'click') onFan(c.fan.topic);
+    else if (onStore && g?.classList.contains('store-hd') && ev.type === 'click' && !String(getSelection?.() ?? '')) onStore(c, ev); // #86: a Redis or Mongo head opens the store panel (a text selection is not a click)
   };
   const bandOf = (t) => (t.closest?.('.band-add') ? null : t.closest?.('.band.sub')); // a subsystem band (0.33.0): its click opens the subsystem's info pane
   const intOf = (t) => t.closest?.('[data-int]'); // "⊕ internal" under a service head (0.38.0)
-  head.addEventListener('keydown', (ev) => { if ((ev.key === 'Enter' || ev.key === ' ') && intOf(ev.target)) { ev.preventDefault(); onInternal?.(intOf(ev.target).dataset.int); return; } if ((ev.key === 'Enter' || ev.key === ' ') && onBand && bandOf(ev.target)) { ev.preventDefault(); onBand(bandOf(ev.target).dataset.sub); return; } if (ev.key === 'Enter' || ev.key === ' ') { if (sqOf(ev.target)) { ev.preventDefault(); onSqueeze?.(); return; } const g = ev.target.closest?.('[data-p]'), c = g && columns[Number(g.dataset.p)]; if (c?.fan) { ev.preventDefault(); onFan?.(c.fan.topic); } } });
+  head.addEventListener('keydown', (ev) => { if ((ev.key === 'Enter' || ev.key === ' ') && intOf(ev.target)) { ev.preventDefault(); onInternal?.(intOf(ev.target).dataset.int); return; } if ((ev.key === 'Enter' || ev.key === ' ') && onBand && bandOf(ev.target)) { ev.preventDefault(); onBand(bandOf(ev.target).dataset.sub); return; } if (ev.key === 'Enter' || ev.key === ' ') { if (sqOf(ev.target)) { ev.preventDefault(); onSqueeze?.(); return; } const g = ev.target.closest?.('[data-p]'), c = g && columns[Number(g.dataset.p)]; if (c?.fan) { ev.preventDefault(); onFan?.(c.fan.topic); } else if (onStore && g?.classList.contains('store-hd')) { ev.preventDefault(); onStore(c, ev); } } });
   head.addEventListener('contextmenu', pm);
   head.addEventListener('click', (ev) => { if (intOf(ev.target)) { ev.stopPropagation(); onInternal?.(intOf(ev.target).dataset.int); return; } if (sqOf(ev.target)) onSqueeze?.(); else if (onBand && bandOf(ev.target)) onBand(bandOf(ev.target).dataset.sub); else pm(ev); });
   let foldTimer = 0; // a fold click waits a beat so a double-click (look inside) never flips the fold
