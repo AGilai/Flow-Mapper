@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "ext-checkpoint-cloud",
+    "kind": "service",
+    "team": "vendor",
+    "repo": "github.com/acme/ext-checkpoint-cloud",
+    "language": "typescript",
+    "description": "The vendor cloud behind tenant-gateway (a stub: its two endpoints, nothing else)"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-25T16:00:00Z",
+  "commit": "a88c0de",
+  "functions": [
+    {
+      "id": "membership",
+      "name": "membership",
+      "file": "api/membership.ts",
+      "line": 9,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "kind": "leaf",
+          "operation": "look up the membership"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.membership",
+      "bindKey": "http:GET ext-checkpoint-cloud/api/v1/user/tenant/membership",
+      "transport": "http",
+      "handler": "membership",
+      "details": {
+        "method": "GET",
+        "path": "/api/v1/user/tenant/membership"
+      }
+    }
+  ]
+}

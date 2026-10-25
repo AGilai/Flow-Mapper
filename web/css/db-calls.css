@@ -1,0 +1,13 @@
+/* #88: the Info pane of a merged store node (`*3 get, hget`): the list of its calls. Tokens only (light and dark). */
+.dc-list { list-style: none; margin: 0; padding: 0; }
+.dc-row { display: grid; grid-template-columns: 42px 1fr; gap: var(--s2); padding: var(--s2) var(--s3); border-top: 1px solid var(--line); align-items: start; }
+.dc-row:first-child { border-top: 0; }
+.dc-no { font: 600 11px/1 var(--font); min-width: 36px; height: 22px; padding: 0 7px; display: inline-flex; align-items: center; justify-content: center; border-radius: 11px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); font-variant-numeric: tabular-nums; }
+button.dc-no { cursor: pointer; }
+button.dc-no:hover { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+button.dc-no:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.dc-b { min-width: 0; display: grid; gap: 2px; }
+.dc-h { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+.dc-key { color: var(--ink-2); overflow-wrap: anywhere; }
+.dc-m b { color: var(--ink); font-weight: 600; }
+.dc-l a { color: var(--accent); overflow-wrap: anywhere; }

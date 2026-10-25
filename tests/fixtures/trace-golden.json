@@ -82,6 +82,7 @@
  "saga2-eraser-entry/in.erase": "0244d86ffb1318",
  "sdp-controller/in.deviceConnect": "099406d8c7c148",
  "sdp-controller/in.deviceTimeout": "1216b976395a0c",
+ "session-gateway/in.validate": "030df1da8206b9",
  "stress-gateway/in.start": "0d5eb64919a06c",
  "stress-gateway/in.startChecked": "158c4b93ca2244",
  "swg-api/in.policyCheck": "183d18eae8696b",

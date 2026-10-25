@@ -27,7 +27,7 @@ test('REST: the default is external, first arm of each decision', async () => {
   const t = await get('');
   assert.equal(t.detail, 'external');
   assert.ok(t.messages.every((m: any) => ['entry', 'egress', 'deliver', 'resource'].includes(m.kind)));
-  assert.deepEqual(t.messages.map((m: any) => m.label), ['http:POST member-api/members/register', 'find by email', 'DB: 2 ops (members, devices)']);
+  assert.deepEqual(t.messages.map((m: any) => m.label), ['http:POST member-api/members/register', 'find by email', '*2 update, insert']);
   assert.deepEqual(Object.values(t.choose), ['createFromIdp', 'yes']);
   assert.deepEqual(t.decisions.map((d: any) => d.chosen), ['createFromIdp', 'yes']);
   assert.equal(t.counts.messages.min, t.counts.messages.max);

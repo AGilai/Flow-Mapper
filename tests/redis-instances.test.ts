@@ -175,7 +175,7 @@ test('Inventory: a Redis instance is one row with its connections line; key patt
   assert.deepEqual([auth.instance, auth.connections], ['instance', '2 services · 1 db']);
   assert.ok(!items.some((x: any) => x.id.startsWith('redis:') && x.id.includes('/')));
   assert.equal(items.find((x: any) => x.id === 'mongodb:orders-db/orders').instance, undefined, 'other stores are unchanged');
-  assert.deepEqual((await get('/instances')).map((i: any) => i.key), ['redis:auth-cache', CM, 'redis:checkout-cache']); // #86 demo: checkout-svc's own instance
+  assert.deepEqual((await get('/instances')).map((i: any) => i.key), ['redis:auth-cache', CM, 'redis:checkout-cache', 'redis:p81-sessions']); // #86 demo: checkout-svc's own instance; #88 demo: session-gateway's
 });
 
 test('the interim inline details.keys is read when nothing was pushed, and a push wins over it', async () => {

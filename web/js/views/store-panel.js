@@ -19,11 +19,11 @@ function stepsRow(op, ctx) {
   let open = false;
   const box = h('div.sp-steps', { role: 'group', 'aria-label': 'Steps' });
   const draw = () => {
-    const { shown, more } = capSteps(op.steps, open);
+    const chips = op.chips ?? op.steps.map((n) => ({ n })), { shown, more } = capSteps(chips, open);
     box.replaceChildren(...[h('span.lb', 'Steps'),
-      ...shown.map((n) => h('button.sp-sc', { type: 'button', 'data-n': n, 'aria-label': `Go to step ${n}`, class: ctx.current() === n ? 'cur' : '', on: { click: () => ctx.onStep(n) } }, String(n))),
+      ...shown.map(({ n, sub }) => h('button.sp-sc', { type: 'button', 'data-n': n, 'aria-label': sub ? `Go to step ${n}, call ${sub} of the folded run` : `Go to step ${n}`, title: sub ? `Call ${sub} of the folded run at step ${n}` : null, class: ctx.current() === n ? 'cur' : '', on: { click: () => ctx.onStep(n) } }, sub ? `${n}.${sub}` : String(n))),
       more ? h('button.sp-more', { type: 'button', 'aria-expanded': 'false', 'aria-label': `Show ${more} more steps`, on: { click: () => { open = true; draw(); box.querySelector('.sp-more')?.focus(); } } }, `+${more} more`)
-        : open && op.steps.length > 8 ? h('button.sp-more', { type: 'button', 'aria-expanded': 'true', on: { click: () => { open = false; draw(); box.querySelector('.sp-more')?.focus(); } } }, 'Show fewer') : null].filter(Boolean));
+        : open && chips.length > 8 ? h('button.sp-more', { type: 'button', 'aria-expanded': 'true', on: { click: () => { open = false; draw(); box.querySelector('.sp-more')?.focus(); } } }, 'Show fewer') : null].filter(Boolean));
   };
   draw();
   return box;

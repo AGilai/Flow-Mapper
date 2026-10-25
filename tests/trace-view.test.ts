@@ -92,12 +92,12 @@ test('open: brings back the internal calls of a service, or of one function', ()
   assert.deepEqual(labels(viewOf(t, { detail: 'external', open: ['t'] })), ['http:GET s/x', 'http:GET t/x', 'op1']);
 });
 
-test('DB grouping: consecutive ops of one store are one row; the label lists the collections', () => {
+test('DB grouping: consecutive ops of one store are one row; the label counts them and lists the distinct operations', () => {
   const t = run({ main: [res(1, 'r1'), res(2, 'r2', 'insert'), res(3, 'r1', 'update')] });
   const v = viewOf(t);
   assert.equal(v.messages.length, 2);
   const row = v.messages[1];
-  assert.equal(row.label, 'DB: 3 ops (users, devices)');
+  assert.equal(row.label, '*3 find, insert, update');
   assert.deepEqual([row.dbGroup!.count, row.dbGroup!.collections, row.dbGroup!.access], [3, ['users', 'devices'], 'read_write']);
   assert.deepEqual(row.dbGroup!.members, stepKeys(t.messages).slice(1));
   assert.equal(row.key, stepKeys(t.messages)[1], 'the row takes its first member\'s key');
