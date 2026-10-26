@@ -75,3 +75,16 @@ test('Flows list: the decisions tooltip counts Simple when the stored detail is 
   assert.match(decisionsTitle(c, 'simple'), /shown together in Simple: 6 steps/);
   assert.match(decisionsTitle(c, 'external'), /default view: 9 steps/);
 });
+
+test('unfold: sub-steps are numbered 7.1, 7.2 ... with no gaps (leaf notes the lane does not draw are not copied), and keys are stamped', () => {
+  const t = canon('roles-svc', 'in.removeUser');
+  const keys = stepKeys(t.messages), at = t.messages.findIndex((m: any) => m.repeatOf);
+  const v = viewOf(t, { detail: 'full', unfold: [keys[at]] });
+  const copies = v.messages.filter((m: any) => m.unfoldOf);
+  assert.ok(copies.length > 0);
+  assert.deepEqual(copies.map((m: any) => m.unfoldOf.sub.split('.')[1]), copies.map((_m: any, k: number) => String(k + 1)));
+  assert.ok(v.messages.every((m: any) => m.key), 'full + unfold stamps keys even with no decisions to make');
+  // a leaf with no `over` is not drawn, so it is not a copy
+  const hasLeaf = (msgs: any[]) => msgs.some((m) => m.kind === 'leaf' && !m.over?.length && !m.returnTo);
+  assert.ok(hasLeaf(t.messages) && !hasLeaf(copies));
+});

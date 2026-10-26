@@ -8,13 +8,16 @@ import { renumber } from './trace-renumber.ts';
 
 type Item = { m: Message; i: number };
 
+/** A leaf note the lane does not draw (no `over`, not a return) is no step: leaving it out keeps the sub-step numbers 7.1, 7.2 ... without gaps (flow-lane.js). */
+const drawn = (m: Message) => m.kind !== 'leaf' || !!m.over?.length || !!m.returnTo;
+
 /** The items of `kept` that make up the first expansion a marker (a `repeatOf` message at canonical index `at`) points to: what runs under it (deeper than it, in a row). */
 function expansionOf(kept: Item[], canonical: Message[], marker: Message): Item[] {
   const head = (marker.repeatOf ?? 0) - 1, h = canonical[head];
   if (!h) return [];
   let end = head + 1;
   while (end < canonical.length && canonical[end].depth > h.depth) end++;
-  return kept.filter((x) => x.i > head && x.i < end);
+  return kept.filter((x) => x.i > head && x.i < end && drawn(x.m));
 }
 
 /** `kept` renumbered (trace-renumber.ts) with the copies of the markers whose key is in `unfold` inserted under them. */
