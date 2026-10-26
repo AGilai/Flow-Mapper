@@ -10,3 +10,10 @@ const DETAILS = ['simple', 'external', 'full'];
 export const detailStored = () => { try { const d = localStorage.getItem('flow-mapper.detail'); return DETAILS.includes(d) ? d : 'simple'; } catch { return 'simple'; } };
 export const detailSave = (d) => { try { localStorage.setItem('flow-mapper.detail', DETAILS.includes(d) ? d : 'simple'); } catch { /* storage unavailable */ } };
 export const sqSave = (on) => { try { localStorage.setItem('flow-mapper.squeeze', on ? '1' : '0'); } catch { /* storage unavailable */ } };
+
+/** 0.44.0 (#90): Simple hides frontier steps, so the toolbar's Frontier checkbox (a label) does nothing there: disabled, with the reason as its tooltip. */
+export function frontierSimple(label, simple) {
+  label.dataset.tip ??= label.title;
+  label.querySelector('input').disabled = simple; label.classList.toggle('disabled', simple);
+  label.title = simple ? 'Frontier steps are hidden in Simple' : label.dataset.tip;
+}
