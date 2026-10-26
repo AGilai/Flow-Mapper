@@ -166,7 +166,7 @@ export function createTabView(data, host) {
       inside.close();
       if (ed?.arrow(m)) return;
       host.flowsEl.classList.add('mp-open');
-      host.panel.open(...messagePanel(m, tr, host.env, 'full', host.openEntry, marks(), regroup.contextOf(m, g)));
+      host.panel.open(...messagePanel(m, tr, host.env, 'full', host.openEntry, marks(), regroup.contextOf(m, g), { jump: (n) => { host.panel.close(); walk.go(n); }, expandHere: (k) => { host.panel.close(); ts.scen.expandHere(k); }, foldBack: (k) => { host.panel.close(); ts.scen.foldBack(k); }, unfolded: ts.hooks.unfolded, seenIn: ts.scen.externalSteps, openExternal: () => ts.scen.setDetail('external') }));
     } };
   const regroup = createRegroup({ scen: ts.scen, walk, body, host, trace: () => trace, openMessage: (m, g, tr) => shared.openMessage(m, g, tr) }); // #88
   function openPublish(pub, g, tr) { // the shared trunk of a fan-out: the publish, then its deliveries (each opens its own arrow)
@@ -220,7 +220,7 @@ export function createTabView(data, host) {
   const maxBar = paintEnv(h('div.max-bar', backBtn('.in-max'), envChip(host.env), host.readOnly ? maxReadOnly(host.env, host.switchEnv) : null, h('span.fh-t', (root && host.nameOf?.(root.service, root.ingress)) || label.title), label.sub ? h('span.mono.xs.muted', label.sub) : null, zctl.el), host.env); // shown only while maximized (flow-max.css)
   if (comments) { pane = createPane({ panels: { notes, comments, actions }, diagram: body }); for (const [id, d] of Object.entries(counts)) pane.setCount(id, d); }
   const xnote = host.readOnly ? foreignNote(host.env, host.design, host.switchEnv) : null; // "Viewing <env>. Switch to it to edit."
-  const el = h('div.flow-tab', maxBar, backBar, xnote, h('div.flow-top', flowBox ? null : h('div.scn-row', inc.el, ts.ui.el), flowBox?.el, related?.el, walk.el, partial.el), body, pane?.splitter, pane?.el); // the pane sits under the diagram (0.27.5); the border between them is a drag handle (0.34.0)
+  const el = h('div.flow-tab', maxBar, backBar, xnote, h('div.flow-top', flowBox ? null : h('div.scn-row', inc.el, ts.ui.el), flowBox?.el, ts.ui.extra, related?.el, walk.el, partial.el), body, pane?.splitter, pane?.el); // the pane sits under the diagram (0.27.5); the border between them is a drag handle (0.34.0)
   // maximized, the pane's tab row sticks under the title bar and the step bar, whatever height the step bar has (its description wraps): --max-stick is their height
   const stick = () => el.style.setProperty('--max-stick', `${maxBar.offsetHeight + (el.querySelector('.stepbar')?.offsetHeight ?? 0)}px`);
   const roStick = typeof ResizeObserver === 'function' ? new ResizeObserver(stick) : null;

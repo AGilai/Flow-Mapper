@@ -23,9 +23,17 @@ export function drawHead({ storeOn, columns, heads, boxH, HEAD, bandH, bands, wi
       s('rect', { width: headBox(c), height: boxH, rx: 8 }), s('rect', { class: 'stripe', width: 4, height: boxH, rx: 2 }), headIcon(c) ?? (c.kind === 'resource' ? storeIcon(12, 10, c.stack) : null), headMarkSvg(marks, c, headBox(c)), headRefSvg(refs, c, headBox(c)), c.kind === 'service' ? runtimeSvg(runtimeFor(c.service, c.env), headBox(c) - (refs?.locked(c) ? 40 : 22), 5) : null,
       heads[i].name.map((t, k) => s('text', { x: tx(c), y: 18 + k * LINE_H, class: 'name' }, t)),
       isCh(c) ? headChip(c, heads[i].name.length * LINE_H + 5) : (c.kind === 'unresolved' && isDesign(c.env) ? ['not designed yet'] : headRefSub(refs, c, heads[i].sub)).map((t, k) => s('text', { x: tx(c), y: 18 + heads[i].name.length * LINE_H + 1 + k * 13, class: 'sub' }, t)),
-      externalTag(c, headBox(c), boxH), internal && c.kind === 'service' && !c.external ? internalCtl(c, internal.state(c.service)) : null,
+      externalTag(c, headBox(c), boxH), internal && c.kind === 'service' && !c.external ? (internal.simple ? hiddenBadge(c, internal) : internalCtl(c, internal.state(c.service))) : null,
       storeOn && isStoreHead(c) ? s('path', { class: 'sp-aff', d: `M${headBox(c) - 19} 15h10M${headBox(c) - 19} 20h10M${headBox(c) - 19} 25h6` }) : null,
       s('title', {}, c.trigger ? `${c.label}: a client app. Starts when: ${c.trigger}` : c.kind === 'resource' ? (c.stack ? `${c.label}: ${c.sub}` : `${c.label}\n${c.sub}`) + (storeOn && isStoreHead(c) ? `\n${HEAD_TIP}` : '') : c.folded ? `${c.folded.length} more queues: ${c.folded.map(chName).join(', ')}. Click to show them all.` : c.fan?.open ? `${c.label}. Click to fold the healthy queues again.` : c.label))));
+  /** "N hidden" (0.44.0, #90): the Simple view's badge under a service head, in the pill's place: the internal steps the view left out. Click or Enter opens External with that service opened. */
+  function hiddenBadge(c, internal) {
+    const n = internal.hidden(c.service);
+    if (!n) return null;
+    const loading = internal.state(c.service) === 'loading', text = loading ? '⟳ loading…' : `${n} hidden`, w = text.length * 6.2 + 16, x = headBox(c) / 2 - w / 2, tip = `${n} internal ${n === 1 ? 'step' : 'steps'} hidden - open in External`;
+    return s('g', { class: 'hid-bdg', 'data-int': c.service, 'data-qa': 'hidden-badge', tabindex: 0, role: 'button', 'aria-label': `${n} hidden internal steps of ${c.label}. Open in External`, transform: `translate(${x},${boxH + 3})` },
+      s('rect', { class: 'pill', width: w, height: INT_H, rx: INT_H / 2 }), s('rect', { class: 'ring', x: -2, y: -2, width: w + 4, height: INT_H + 4, rx: INT_H / 2 + 2 }), s('text', { x: w / 2, y: INT_H - 4, 'text-anchor': 'middle' }, text), s('title', {}, tip));
+  }
   /** "⊕ internal" (0.38.0): the lazy control under a service head: loads that service's internal calls; "⟳ loading…", then "⊖ internal" to fold them again. Shown on hover or focus, always on touch (CSS). */
   function internalCtl(c, st) {
     const text = st === 'loading' ? '⟳ loading…' : st === 'open' ? '⊖ internal' : '⊕ internal', w = text.length * 6.2 + 14, x = headBox(c) / 2 - w / 2;

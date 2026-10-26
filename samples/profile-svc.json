@@ -8,7 +8,7 @@
     "team": "identity",
     "repo": "github.com/acme/profile-svc",
     "language": "typescript",
-    "description": "Demo of the Simple view (#90): one block (Redis get/set + Mongo findOne) is copied into three functions, one decision, and a call to audit-trail-svc reached twice"
+    "description": "Demo of the Simple view (#90): one block (Redis get/set + Mongo findOne) is copied into three functions, one decision, and a call to ledger-svc reached twice"
   },
   "version": 1,
   "harvestedAt": "2026-10-26T12:00:00Z",
@@ -305,7 +305,7 @@
     },
     {
       "id": "audit.write",
-      "bindKey": "http:POST audit-trail-svc/audit",
+      "bindKey": "http:POST ledger-svc/audit",
       "transport": "http",
       "mode": "sync",
       "details": {

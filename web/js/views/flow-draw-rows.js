@@ -4,6 +4,7 @@ import { s } from '../dom.js';
 import { href } from '../router.js';
 import { mwLabel, isLongChain } from './flow-mw.js';
 import { colorOf, BAR } from './flow-draw-layout.js';
+import { repeatRow } from './flow-draw-repeat.js';
 import { arrow, marker, rpcChip, stop } from './flow-draw-prims.js';
 import { arrowMarkSvg } from './flow-marks-draw.js';
 import { isDesign } from '../state.js';
@@ -31,6 +32,7 @@ export function drawRows({ events, colX, ys, barX, edge, marks, refs, stacked, f
       const dir = Math.sign(colX.get(e.to) - colX.get(e.from)) || 1;
       const x1 = edge(e.fromBar, e.from, dir), x2 = e.bar ? barX(e.bar, -dir) : colX.get(e.to);
       const mc = colorOf(e.tr ?? e.msg.transport);
+      if (e.repeat && !e.bar) return repeatRow(e, g, x1, x2, y0, mc, hit); // 0.44.0 (#90)
       const inf = isInferred(e.msg); // reserved (#85 ask 5): a hop a model inferred is dash-dot with a tag, never amber, solid or grey
       return g(`${e.rpc ? 'rpc' : ''}${inf ? ' inferred' : ''}`, arrow(x1, x2, y0, { label: lab(e.label), color: mc, dashed: e.msg.mode === 'async' && !e.bar }), inf ? inferredTag(Math.min(x1, x2) + 8, y0) : null, e.rpc?.chip ? rpcChip('amqp rpc', (x1 + x2) / 2, y0, mc) : null, e.rpc?.glyph ? s('text', { class: 'rpcglyph', x: Math.min(x1, x2) + 4, y: y0 - 5, style: `--mc:${mc}` }, '⇄') : null, hit(x1, x2), ...arrowMarkSvg(marks, e.msg, x1, x2, y0, stacked?.has(e), th, mk()), e.bar ? refNoteSvg(refs, e, barX(e.bar, 1), y0) : null, s('title', {}, e.rpc ? `${e.label} (RPC over AMQP)` : e.msg.label));
     }
@@ -59,7 +61,7 @@ export function drawRows({ events, colX, ys, barX, edge, marks, refs, stacked, f
     if (e.type === 'icall' && isBlockedEvent(e)) return blockedIcall(e, g, y0, { barX, width });
     if (e.type === 'icall') { // a call inside the service (0.38.0): a ring on its bar, the name, and a grey "internal" tag; a step like the arrows
       const x0 = barX(e.bar, 1), tx = x0 + 44, name = String(e.label), room = Math.max(8, Math.floor((width - tx - 76) / 7.2)), t = name.length > room ? `${name.slice(0, room - 1)}…` : name;
-      return g(`icall${e.msg.gap || e.msg.broken ? ' warn' : ''}`, s('circle', { class: 'idot', cx: x0, cy: y0, r: 3.6 }), s('text', { class: 'ilab', x: tx, y: y0 + 4 }, t), s('rect', { class: 'itag', x: tx + t.length * 7.2 + 8, y: y0 - 7, width: 52, height: 15, rx: 7.5 }), s('text', { class: 'itagt', x: tx + t.length * 7.2 + 34, y: y0 + 4, 'text-anchor': 'middle' }, 'internal'), ...inlineMarks(e.msg, tx + t.length * 7.2 + 66, y0, width - 12, runs?.byMsg.get(e.msg)?.first), s('rect', { class: 'hit', x: x0 - 6, y: y0 - 14, width: Math.max(60, width - x0 - 12), height: 28 }), s('title', {}, `${e.msg.label}\n${e.msg.fn ? `in ${e.msg.service}:${e.msg.fn}` : 'a call inside the service'}`));
+      return g(`icall${e.msg.gap || e.msg.broken ? ' warn' : ''}${e.repeat ? ' rep' : ''}`, s('circle', { class: 'idot', cx: x0, cy: y0, r: 3.6 }), s('text', { class: 'ilab', x: tx, y: y0 + 4, 'data-jump': e.repeat ?? null }, t), s('rect', { class: 'itag', x: tx + t.length * 7.2 + 8, y: y0 - 7, width: 52, height: 15, rx: 7.5 }), s('text', { class: 'itagt', x: tx + t.length * 7.2 + 34, y: y0 + 4, 'text-anchor': 'middle' }, 'internal'), ...inlineMarks(e.msg, tx + t.length * 7.2 + 66, y0, width - 12, runs?.byMsg.get(e.msg)?.first), s('rect', { class: 'hit', x: x0 - 6, y: y0 - 14, width: Math.max(60, width - x0 - 12), height: 28 }), s('title', {}, `${e.msg.label}\n${e.msg.fn ? `in ${e.msg.service}:${e.msg.fn}` : 'a call inside the service'}`));
     }
     if (e.type === 'amqpnote') { // the bindings that do not route this publish, under the fork; the exchange page lists them
       const x0 = colX.get(e.col) + 10;

@@ -74,6 +74,7 @@
  "orders-svc/in.remove": "0c2de978d672be",
  "orders-svc/in.touch": "1ea663a7aed717",
  "payments-svc/in.legacyRefund": "16523545ad48c2",
+ "profile-svc/in.updateProfile": "107c2650fae078",
  "reports-api/in.exportReport": "0cfdef139bf811",
  "reports-api/in.getReport": "02daba099fc1de",
  "roles-svc/in.removeUser": "128007bd339139",

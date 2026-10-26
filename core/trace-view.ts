@@ -77,6 +77,7 @@ const isSimple = (t: Trace, opts: ViewOptions) => t.scope !== 'intra' && opts.de
 
 /** The Simple view (0.44.0, #90): the post-pass of core/trace-simple.ts, renumbered; arms, alt frames and decisions are gone (`flattened` says how many). */
 function simpleView(t: Trace, opts: ViewOptions): Trace {
+  if (t.detail === 'simple') return t; // already a Simple view (the browser keeps the server's): nothing to do
   const { items, hidden, cut } = simplify(itemsOf(t, true), opts.maxMessages);
   const messages = renumber(items, t.messages).map(({ arms: _a, alt: _l, alternatives: _s, ...m }) => m as Message);
   const used = new Set(messages.flatMap((m) => [m.from, m.to]));

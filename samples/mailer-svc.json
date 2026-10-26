@@ -53,7 +53,7 @@
   "egress": [
     {
       "id": "audit.write",
-      "bindKey": "http:POST audit-trail-svc/audit",
+      "bindKey": "http:POST ledger-svc/audit",
       "transport": "http",
       "mode": "sync",
       "details": {

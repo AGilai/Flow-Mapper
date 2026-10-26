@@ -15,7 +15,7 @@ const mcp = async (a: object) => JSON.parse((await app.call('POST', '/mcp', { js
 test('REST: detail=simple draws each call once and flattens the decisions; the default is still external', async () => {
   const s = await get('&detail=simple');
   assert.equal(s.detail, 'simple');
-  assert.deepEqual(s.messages.map((m: any) => m.label), ['http:PATCH profile-svc/api/v1/profiles/{id}', '*3 get, set', '*3 findOne', 'http:POST mailer-svc/mail', 'http:POST audit-trail-svc/audit', 'http:POST audit-trail-svc/audit ↩ seen at step 5']);
+  assert.deepEqual(s.messages.map((m: any) => m.label), ['http:PATCH profile-svc/api/v1/profiles/{id}', '*3 get, set', '*3 findOne', 'http:POST mailer-svc/mail', 'http:POST ledger-svc/audit', 'http:POST ledger-svc/audit ↩ seen at step 5']);
   assert.equal(s.flattened, 1);
   assert.equal(s.decisions, undefined);
   assert.equal(s.truncated, false);

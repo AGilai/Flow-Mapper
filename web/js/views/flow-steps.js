@@ -9,7 +9,7 @@ import { stepLabel } from './flow-stores-pure.js';
 // Pure web modules cannot import core/*.js in node tests (those are .ts there), so the caller hands over stepKeys.
 
 const STEP_TYPES = new Set(['call', 'hop', 'unresolved', 'store', 'icall']); // icall (0.38.0): a call inside a service, drawn only when the view holds the internal calls
-export const isStep = (e) => STEP_TYPES.has(e.type) && !!e.msg;
+export const isStep = (e) => STEP_TYPES.has(e.type) && !!e.msg && !e.msg.unfoldOf; // 0.44.0: the copies an `unfold` draws under a repeat marker are sub-steps (7.1, 7.2), not numbered steps
 
 /** stepsOf(lane, stepKeys, all) -> [{ n (1-based), row, event, key, label, from, to, transport }]. from / to: display names ("pop-edge", "orders-queue"). */
 export function stepsOf(lane, stepKeys, all = null) {

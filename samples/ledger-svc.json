@@ -3,10 +3,10 @@
   "kind": "full",
   "env": "prod",
   "service": {
-    "name": "audit-trail-svc",
+    "name": "ledger-svc",
     "kind": "service",
     "team": "identity",
-    "repo": "github.com/acme/audit-trail-svc",
+    "repo": "github.com/acme/ledger-svc",
     "language": "typescript",
     "description": "Demo of the Simple view (#90): the service reached twice"
   },
@@ -32,7 +32,7 @@
   "ingress": [
     {
       "id": "in.audit",
-      "bindKey": "http:POST audit-trail-svc/audit",
+      "bindKey": "http:POST ledger-svc/audit",
       "transport": "http",
       "handler": "Audit.record",
       "details": {

@@ -14,10 +14,20 @@ const stop = (fn) => (ev) => { ev.preventDefault(); ev.stopPropagation(); fn(ev)
 export function createScenarioUi({ scen, st, srcUrl = () => null }) {
   let view = null, pop = null, off = null;
   const chip = h('button.scn-chip', { type: 'button', 'aria-haspopup': 'dialog', 'aria-expanded': 'false', 'data-qa': 'scenario-chip', hidden: true, on: { click: stop(() => (pop ? close() : open())) } });
-  const seg = h('div.seg.scn-seg', { role: 'group', 'aria-label': 'Detail', 'data-qa': 'detail-switch' }, [['external', 'External', 'Calls between components, database operations and problems. Open a service to see its internal calls.'], ['full', 'Full', 'Every call, inside the services too']].map(([id, label, title]) =>
+  const seg = h('div.seg.scn-seg', { role: 'group', 'aria-label': 'Detail', 'data-qa': 'detail-switch' }, [['simple', 'Simple', 'Each external call once, repeats counted, decisions shown together, internal steps hidden'], ['external', 'External', 'Calls between components, database operations and problems. Open a service to see its internal calls.'], ['full', 'Full', 'Every call, inside the services too']].map(([id, label, title]) =>
     h('button', { type: 'button', 'data-detail': id, title, on: { click: stop(() => scen.setDetail(id)) } }, label)));
   const resolve = h('button.btn.sm.scn-resolve', { type: 'button', hidden: true, 'data-qa': 'resolve-names' }, 'Resolve names'); // reserved: not offered in v1
   const el = h('span.scn-ctl', { on: { click: stop(() => {}) } }, chip, seg, resolve);
+  // 0.44.0 (#90), frame 24a: under the header, what Simple leaves out (the count links to External), and where the decisions bar was, the decisions folded into it
+  const toExt = (e) => { e.preventDefault(); scen.setDetail('external'); };
+  const cap = h('p.simple-cap', { 'data-qa': 'simple-caption', hidden: true }), note = h('div.simple-note', { 'data-qa': 'simple-note', hidden: true });
+  const extra = h('div.simple-extra', cap, note);
+  function paintSimple(v) {
+    const on = st.detail === 'simple' && v.detail === 'simple', hid = (v.participants ?? []).reduce((n, p) => n + (p.hiddenSteps ?? 0), 0), dn = v.flattened ?? 0;
+    cap.hidden = !on; note.hidden = !on || !dn;
+    cap.replaceChildren('Simple: each external call once, decisions flattened', ...(hid ? [' · ', h('a.simple-link', { href: '#', 'data-qa': 'simple-hidden', on: { click: toExt } }, `${hid} internal ${hid === 1 ? 'step' : 'steps'} hidden`)] : []));
+    note.replaceChildren(h('b', `${dn} ${dn === 1 ? 'decision' : 'decisions'} shown together`), ' · ', h('a.simple-link', { href: '#', 'data-qa': 'simple-choose', on: { click: toExt } }, 'choose in External'));
+  }
 
   function row(d, level) {
     const sel = armSelect(d, (g, arm) => { scen.choose(g, arm); requestAnimationFrame(() => pop?.querySelector(`[data-g="${CSS.escape(g)}"]`)?.focus()); }, { id: null });
@@ -47,9 +57,9 @@ export function createScenarioUi({ scen, st, srcUrl = () => null }) {
   function close() { off?.(); off = null; pop?.remove(); pop = null; chip.setAttribute('aria-expanded', 'false'); }
 
   return {
-    el,
+    el, extra,
     update(v) {
-      view = v;
+      view = v; paintSimple(v);
       const n = v.decisions?.length ?? 0, diff = changedCount(scen.decisions(), st.chosen, scen.editAll()) > 0;
       chip.hidden = !n; chip.classList.toggle('set', diff);
       chip.replaceChildren(`Scenario `, h('span.n', `(${n})`), icon('chev'));

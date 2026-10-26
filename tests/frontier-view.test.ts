@@ -91,7 +91,7 @@ test('request: Frontier steps goes on the trace request of a tab, as its own cac
   globalThis.fetch = (async (url: string) => { asked.push(new URL(url, 'http://x').searchParams); return { ok: true, text: async () => JSON.stringify(unfolded) }; }) as any;
   try {
     for (const frontier of [true, false]) await createTabData('prod', () => ({ frontier })).load(fullKey('safer-auth', 'in.authenticate'));
-    assert.deepEqual(asked.map((q) => [q.get('frontier'), q.get('detail'), q.get('scope'), q.get('choose'), q.get('group')]), [['1', 'external', 'full', '*:both', '0'], [null, 'external', 'full', '*:both', '0']]);
+    assert.deepEqual(asked.map((q) => [q.get('frontier'), q.get('detail'), q.get('scope'), q.get('choose'), q.get('group')]), [['1', 'simple', 'full', '*:both', '0'], [null, 'simple', 'full', '*:both', '0']]);
     const [a, b] = asked.map((q) => Object.fromEntries(q));
     assert.notEqual(requestKey(a), requestKey(b));
     await createTabData('prod', () => ({ frontier: true })).baseFor({ ...a, frontier: '1' }, 'external', ['safer-auth']);
