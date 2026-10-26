@@ -9,7 +9,7 @@ Mockup: frame 25 (needs the maintainer's approval before code). Files: web/js/vi
   - "Info" alone when there are no relations; "N related" alone when there is no description; no pill when there is neither.
 - The pill is a button with `aria-expanded` and `aria-controls`. It opens an **inline banner** under the title row, not a popover: it
   pushes content down only while open, never covers the diagram, and works on a phone.
-- **Banner, two columns (stacked below about 900px):**
+- **Banner, one column at every width (maintainer, 2026-10-26: related flows under the description, as frame 25h):**
   - **Description:** rendered with markdown-lite, clamped to 4 lines with "Show all". Author and date as today, plus Edit.
   - **Related flows:** one-line rows (relation phrase chip · link · note cut with an ellipsis), each with a chevron that expands its note.
     Notes stay plain text. More than six relations: the first six, then "Show N more".
