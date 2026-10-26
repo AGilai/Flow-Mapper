@@ -7,7 +7,7 @@ in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.m
 
 ## Unreleased
 
-- **UI fix (#94):** the Flows list card (and the activation-bar tooltip, the one-line description and the step text on the arrows) shows a flow or step description as a plain-text preview: Markdown syntax is stripped (`core/markdown-strip.ts`), the stored text is unchanged. No API change.
+- **UI fix (#94):** the Flows list card (and the info pane's "Flows through it" rows, the activation-bar tooltip, the one-line description and the step text on the arrows) shows a flow or step description as a plain-text preview: Markdown syntax is stripped (`core/markdown-strip.ts`), the stored text is unchanged. No API change.
 
 ## 0.45.0 (2026-10-26)
 

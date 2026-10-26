@@ -3,6 +3,7 @@
 // ctx: { pen, env?, system?: { node, edges, byId }, onSub(key), onComponent(name), fromFlow? }. `env`: the environment of the component (a flow tab of another env, 0.36.0); default the page's.
 
 import { h } from '../dom.js';
+import { plainSummaries } from './plain-summaries.js';
 import { api } from '../api.js';
 import { href } from '../router.js';
 import { state, isDesign } from '../state.js';
@@ -38,7 +39,7 @@ export async function systemFor(name, ctx) {
 
 export async function componentSpec(name, ctx) {
   const env = ctx.env ?? state.env;
-  const [view, subs, marks, flows, sys] = await Promise.all([api.service(env, name).catch(() => null), loadSubsystems(env), loadMarks(env), api.flowsThrough(env, [name]).catch(() => []), systemFor(name, ctx)]);
+  const [view, subs, marks, flows, sys] = await Promise.all([api.service(env, name).catch(() => null), loadSubsystems(env), loadMarks(env), api.flowsThrough(env, [name]).then(plainSummaries).catch(() => []), systemFor(name, ctx)]);
   const svc = view?.service ?? {}, node = sys?.node ?? null, kind = svc.kind ?? node?.svcKind ?? 'service';
   const about = await loadAbout(svc.about ?? node?.about), subKey = subs.subOf(name), design = isDesign(env);
   const aboutPen = ctx.pen?.about(name, { form: 'component', service: name }) ?? null;

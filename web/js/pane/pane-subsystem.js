@@ -2,6 +2,7 @@
 // `subsystemSpec(key, ctx)` -> the spec `pane-frame.js` draws and `pane-expanded.js` lays out as rows. ctx: { pen, env?, map?, onComponent(name), onLine(l)?, onLink(v)? }.
 
 import { h } from '../dom.js';
+import { plainSummaries } from './plain-summaries.js';
 import { api } from '../api.js';
 import { href } from '../router.js';
 import { state, isDesign } from '../state.js';
@@ -26,7 +27,7 @@ export async function subsystemSpec(key, ctx) {
   const box = map.boxes.find((b) => b.key === key);
   if (!box) return null;
   const label = (k) => subs.labelOf(k) || 'Not set', names = box.components.map((c) => c.name), aboutOf = new Map((sys?.nodes ?? []).map((n) => [n.label, n.about]));
-  const [flows, about] = await Promise.all([api.flowsThrough(env, names).catch(() => []), loadAbout(box.about)]);
+  const [flows, about] = await Promise.all([api.flowsThrough(env, names).then(plainSummaries).catch(() => []), loadAbout(box.about)]);
   const mk = marks.markOf(`grp:${key}`), design = isDesign(env), cmark = box.components.map((c) => marks.markOf(`svc:${c.name}`));
   const pen = !box.derived ? ctx.pen?.about(box.label, { form: 'subsystem', box }) ?? null : null;
   const invHref = href('/inventory', envQuery(env, { subsystem: box.key || '-' }));
