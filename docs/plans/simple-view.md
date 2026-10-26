@@ -1,7 +1,7 @@
 # Simple view (#90, comments 263–264) — build spec
 
-Status: draft by the lead, 2026-10-26. Target 0.44.0, after the QA TL's 0.43.4 core fold (internal callee repeats → `repeatOf`).
-Mockup: frame 24 (needs the maintainer's approval before code). The 0.43.5 lane check and "expand here" toggle are folded in.
+Status: approved by the maintainer, 2026-10-26. Target 0.44.0, after the QA TL's 0.43.4 core fold (internal callee repeats → `repeatOf`).
+Mockup: frame 24 (approved). The 0.43.5 lane check and "expand here" toggle are folded in.
 
 ## Why
 The External detail of a big flow is still unreadable. For example, production `DELETE_/api/v1/users/{p1}` returns 217 messages: 91 store

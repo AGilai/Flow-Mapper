@@ -1,7 +1,7 @@
 # Flow info banner and step panel (#91) — build spec
 
-Status: draft by the lead, 2026-10-26. Target 0.45.0, after 0.44.0 (the Simple view, which touches the same page).
-Mockup: frame 25 (needs the maintainer's approval before code). Files: web/js/views/flow-head.js, flow-relations.js, flow-stepbar.js
+Status: approved by the maintainer, 2026-10-26. Target 0.45.0, after 0.44.0 (the Simple view, which touches the same page).
+Mockup: frame 25 (approved). Files: web/js/views/flow-head.js, flow-relations.js, flow-stepbar.js
 (and CSS), core/markdown-lite.
 
 ## Header: the Info pill and banner
