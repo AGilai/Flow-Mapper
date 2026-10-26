@@ -78,7 +78,7 @@ const remote = {
   endpoint: (env, service, ingress) => get(`/api/envs/${e(env)}/endpoints/${e(service)}/${e(ingress)}`),
   trace: (env, q) => get(`/api/envs/${e(env)}/trace${qs(q)}`), // 0.38.0 (#82): a tab asks for `detail`, `open`, `choose=*:both` and `group=0` itself (flow-tab-data.js), then chooses in the browser; anything else gets the API default (external, first arm)
   descriptions: (env, service, ingress) => get(`/api/envs/${e(env)}/descriptions${qs({ service, ingress })}`),
-  putDescription: (env, body) => http('PUT', `/api/envs/${e(env)}/descriptions`, body),
+  putDescription: (env, body) => http('PUT', withDraft(`/api/envs/${e(env)}/descriptions`, draftOf(env), env), body), // #93: a draft-only flow is checked in the draft's view
   paths: (env, from, to) => get(`/api/envs/${e(env)}/paths${qs({ from, to })}`),
   search: (env, q, limit = 30) => get(`/api/envs/${e(env)}/search${qs({ q, limit })}`),
   health: (env) => get(`/api/envs/${e(env)}/health`),
