@@ -1,28 +1,40 @@
 /* Step details (0.30.0, frame 17): the step bar carries the step, the toolbar control, the arrow text and the step editor. Tokens only (light and dark). */
 
-/* the step bar: stepper | the step | Edit step */
-.stepbar { align-items: flex-start; }
+/* the step bar (0.45.0, #91, frame 25): the top row holds the walk, the title and the tools; the API line and the description use the whole width below it */
+.stepbar { flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 2px; padding: 6px var(--s4) 8px; }
+.stepbar .sb-top { display: flex; align-items: center; gap: var(--s2) var(--s3); flex-wrap: wrap; min-height: 30px; }
 .stepbar .sb-nav { display: flex; align-items: center; gap: var(--s2); height: 28px; flex: none; }
-.stepbar .sb-det { flex: 1; min-width: 0; max-width: 780px; padding-top: 2px; }
+.stepbar .grow { flex: 1; min-width: 4px; }
+.stepbar .sb-tools { display: inline-flex; align-items: center; gap: var(--s2); flex: none; }
+.stepbar .sb-edit { flex: none; height: 28px; }
+.stepbar .sb-det { min-width: 0; padding-top: 2px; }
 .stepbar .sb-det[hidden] { display: none; }
-.stepbar .sb-edit { flex: none; margin-left: auto; height: 28px; }
-.sb-t { font-weight: 700; font-size: var(--fs-sm); line-height: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sb-a { font-size: var(--fs-xs); line-height: 17px; display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; min-width: 0; }
+.sb-top > .sb-t { font-weight: 700; font-size: var(--fs-md); line-height: 1.3; min-width: 0; flex: 1 1 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-top > .sb-t[hidden] { display: none; }
+.sb-top > .grow { flex: 0 0 0; }
+.sb-a { font-size: var(--fs-xs); line-height: 17px; display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; min-width: 0; margin-bottom: 4px; }
 .sb-api { color: var(--t-http); font-weight: 500; overflow-wrap: anywhere; }
 .sb-rt { color: var(--muted); display: inline-flex; align-items: center; gap: 3px; min-width: 0; }
-.sb-x { font-size: var(--fs-xs); line-height: 17px; color: var(--ink-2); }
-.sb-x .tx { white-space: pre-line; }
-.sb-x:not(.open) .tx { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.sb-more, .sb-x.add a { color: var(--accent); font-weight: 600; white-space: nowrap; }
-.sb-more[hidden] { display: none; }
-.sb-x.add { color: var(--muted); } .sb-x.add a { font-weight: 500; }
-.sb-ai { display: inline-block; font: 700 9px/12px var(--font); padding: 0 4px; margin-right: 5px; border-radius: 3px; background: var(--surface-2); color: var(--muted); border: 1px solid var(--line-strong); vertical-align: 1px; }
-.stepbar.first-line .sb-det { padding-top: 5px; }
-@media (max-width: 760px) {
-  .stepbar { flex-wrap: wrap; row-gap: 4px; }
-  .stepbar .sb-nav { order: 1; } .stepbar .sb-edit { order: 2; } .stepbar .sb-det { order: 3; flex-basis: 100%; max-width: none; padding-top: 0; }
-}
+.sb-x { color: var(--ink-2); }
+.sb-x .md { max-height: 40vh; overflow-y: auto; } /* a very long text scrolls inside */
+.sb-x.add { color: var(--muted); font-size: var(--fs-xs); } .sb-x.add a { color: var(--accent); font-weight: 500; white-space: nowrap; }
+.sb-ai { display: inline-block; font: 700 9px/12px var(--font); padding: 0 4px; margin-right: 5px; border-radius: 3px; background: var(--surface-2); color: var(--muted); border: 1px solid var(--line-strong); vertical-align: 1px; float: left; }
+.sb-hide { display: inline-flex; align-items: center; height: 28px; padding: 0 9px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); background: var(--surface); color: var(--ink-2); font: 600 12px var(--font); cursor: pointer; white-space: nowrap; }
+.sb-hide:hover { background: var(--accent-soft); color: var(--accent); }
+.sb-hide:focus-visible, .fm-fs button:focus-visible, .fin-pill:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.stepbar.text-off { padding-top: 7px; padding-bottom: 7px; } /* one row of about 44px */
+@media (max-width: 760px) { .sb-top > .sb-t { flex-basis: 100%; order: 9; white-space: normal; } }
 
+/* A- / A+ (one text size for the flow and the step description) and the Markdown text of both */
+.fm-fs { display: inline-flex; border: 1px solid var(--line-strong); border-radius: var(--r-sm); overflow: hidden; }
+.fm-fs button { height: 28px; min-width: 30px; padding: 0 7px; border: 0; border-left: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); cursor: pointer; font: 600 12px var(--font); }
+.fm-fs button:first-child { border-left: 0; font-size: 11px; } .fm-fs button:last-child { font-size: 15px; }
+.fm-fs button:hover:not(:disabled) { background: var(--accent-soft); color: var(--accent); }
+.fm-fs button:disabled { opacity: .4; cursor: default; }
+.md { font-size: var(--fm-text, 13px); line-height: 1.55; overflow-wrap: anywhere; }
+.md p { margin: 0 0 4px; } .md ul, .md ol { margin: 0 0 4px; padding-left: 20px; } .md li { margin: 1px 0; } .md strong { font-weight: 700; } .md em { font-style: italic; }
+.md a { color: var(--accent); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+.md pre, .md code { font-family: var(--mono); font-size: .92em; } .md pre { overflow-x: auto; margin: 0 0 4px; }
 /* the pencil next to a step's tile */
 .steppen { cursor: pointer; opacity: 0; transition: opacity .12s; }
 .steppen rect { fill: var(--surface); stroke: var(--line-strong); }
@@ -72,3 +84,5 @@
 /* 0.30.4 (#70): the step bar says what the arrow's icon says */
 .sb-tbd { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); }
 .sb-tbd::before { content: ''; width: 7px; height: 7px; box-sizing: border-box; background: var(--surface-2); border: 1.5px solid var(--ink-2); transform: rotate(45deg); }
+/* QA 0.45.0: a description paragraph follows the shared text size (the older .dbox p rules set a fixed one) */
+.dbox .md p, .desc2.wide .dbox .md p, .flowhead .desc2.wide .dbox .md p, .stepdesc .desc2.wide .dbox .md p { font-size: inherit; line-height: inherit; white-space: normal; }

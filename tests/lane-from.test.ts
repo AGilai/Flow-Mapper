@@ -79,7 +79,7 @@ test('#89 the sample: tenant-gateway GET /tenants/{id}/users draws POST, GET, PO
 });
 
 /** Services a and b over http; `eXY` is an egress of X to ingress `in.Y...` (the table below). */
-function model2(fns: Record<string, any[]>) {
+function model2(fns: Record<string, any[]>, detail = 'external') {
   const ing = (service: string, id: string, path: string, handler: string) => ({ service, id, bindKey: `http:GET ${service}/${path}`, transport: 'http', handler });
   const eg = (service: string, id: string, to: string) => ({ service, id, bindKey: `http:GET ${to}`, transport: 'http', mode: 'sync' });
   const fn = (service: string, id: string) => ({ service, id, name: id, steps: fns[`${service}.${id}`] ?? [leaf(1)] });
@@ -87,7 +87,7 @@ function model2(fns: Record<string, any[]>) {
     functions: [fn('a', 'h'), fn('a', 'back'), fn('a', 'z'), fn('b', 'h'), fn('b', 'h2')],
     ingress: [ing('a', 'in.a', 'x', 'h'), ing('a', 'in.back', 'back', 'back'), ing('a', 'in.z', 'z', 'z'), ing('b', 'in.b', 'x', 'h'), ing('b', 'in.b2', 'x2', 'h2')],
     egress: [eg('a', 'eab', 'b/x'), eg('a', 'eab2', 'b/x2'), eg('b', 'eba', 'a/back'), eg('a', 'eaz', 'a/z')], resources: [], channels: [], bindings: [] };
-  const t = trace(buildIndex(model), { service: 'a', ingress: 'in.a' }, { scope: 'full', maxMessages: 500 })!, v = viewOf(t, { detail: 'external' });
+  const t = trace(buildIndex(model), { service: 'a', ingress: 'in.a' }, { scope: 'full', maxMessages: 500 })!, v = viewOf(t, { detail: detail as any });
   return { v, lane: buildLane(v.messages, { scope: v.scope, participants: v.participants }) };
 }
 const callsOf = (lane: any) => lane.events.filter((e: any) => e.type === 'call' && e.bar);
@@ -107,4 +107,15 @@ test('#89 a plain self-call (a -> a) is one call into a bar of its own, and the 
   assert.deepEqual(v.messages.map((m) => `${m.from}>${m.to}`), ['client>svc:a', 'svc:a>svc:a', 'svc:a>svc:b']);
   assert.deepEqual(callsOf(lane).map((e: any) => `${e.from.service ?? 'client'}>${e.to.service}`), ['client>a', 'a>a', 'a>b']);
   assert.equal(callsOf(lane)[2].fromBar.level, 0);
+});
+
+test('#92 "seen at step N" and its jump are the drawn number: an undrawn leaf note before the first expansion does not shift them', () => {
+  const { v, lane } = model2({ 'a.h': [leaf(1), egress(2, 'eab'), egress(3, 'eab')] }, 'full');
+  const rep = v.messages.find((m) => m.repeatOf)!, steps = stepsOf(lane, stepKeys, v.messages);
+  assert.ok(rep, 'a repeat marker exists');
+  const ev = lane.events.find((e: any) => e.msg === rep), target = v.messages.filter((m) => !m.unfoldOf)[rep.repeatOf! - 1];
+  const drawn = steps.find((s: any) => s.event.msg === target)!.n;
+  assert.equal(ev.repeat, drawn, 'the jump target is the drawn step number');
+  assert.equal(rep.repeatOf, 3); assert.equal(drawn, 2);
+  assert.notEqual(drawn, rep.repeatOf, 'the drawn number differs from the message index (the leaf note is not drawn)');
 });

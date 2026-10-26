@@ -11,6 +11,13 @@ import { stepLabel } from './flow-stores-pure.js';
 const STEP_TYPES = new Set(['call', 'hop', 'unresolved', 'store', 'icall']); // icall (0.38.0): a call inside a service, drawn only when the view holds the internal calls
 export const isStep = (e) => STEP_TYPES.has(e.type) && !!e.msg && !e.msg.unfoldOf; // 0.44.0: the copies an `unfold` draws under a repeat marker are sub-steps (7.1, 7.2), not numbered steps
 
+/** The step number the lane draws for a message index `repeatOf` (1-based, over the trace's messages without `unfoldOf` copies): the lane numbers only what it draws, so an undrawn leaf note
+ *  before it shifts the two apart (#92). Falls back to `repeatOf` when the target is not a drawn step. `events`: lane.events. */
+export function drawnStep(events, messages, repeatOf) {
+  const target = messages.filter((m) => !m.unfoldOf)[repeatOf - 1], i = events.filter(isStep).findIndex((e) => e.msg === target);
+  return target && i >= 0 ? i + 1 : repeatOf;
+}
+
 /** stepsOf(lane, stepKeys, all) -> [{ n (1-based), row, event, key, label, from, to, transport }]. from / to: display names ("pop-edge", "orders-queue"). */
 export function stepsOf(lane, stepKeys, all = null) {
   const evs = lane.events.filter(isStep);

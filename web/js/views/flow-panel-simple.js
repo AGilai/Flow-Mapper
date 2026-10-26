@@ -33,9 +33,9 @@ export const repeatText = (m) => m.kind === 'call' ? 'The same function call (sa
 /** The repeat marker's block: the text, a link to the first one and "Expand here" (or "Fold back" once it is unfolded). ctx: { jump(n), expandHere(key), foldBack(key), unfolded(key) }. */
 export function repeatCard(m, trace, ctx = {}) {
   if (!m.repeatOf) return null;
-  const first = trace.messages.filter((x) => !x.unfoldOf)[m.repeatOf - 1], on = ctx.unfolded?.(m.key);
-  return h('div.simple-pane', { 'data-qa': 'repeat-card' }, h('p.small', h('b', `↩ Same as step ${m.repeatOf}. `), repeatText(m), first ? h('span.key', ` ${String(first.label).replace(seen, '')}`) : null),
-    ctx.jump ? h('button.lnk', { type: 'button', 'data-qa': 'repeat-jump', on: { click: () => ctx.jump(m.repeatOf) } }, `Jump to step ${m.repeatOf} ↗`) : null,
+  const first = trace.messages.filter((x) => !x.unfoldOf)[m.repeatOf - 1], on = ctx.unfolded?.(m.key), at = ctx.stepOf?.(m.repeatOf) ?? m.repeatOf; // #92: the drawn step number, not the message index
+  return h('div.simple-pane', { 'data-qa': 'repeat-card' }, h('p.small', h('b', `↩ Same as step ${at}. `), repeatText(m), first ? h('span.key', ` ${String(first.label).replace(seen, '')}`) : null),
+    ctx.jump ? h('button.lnk', { type: 'button', 'data-qa': 'repeat-jump', on: { click: () => ctx.jump(at) } }, `Jump to step ${at} ↗`) : null,
     ctx.expandHere && m.key ? h('div.simple-exp', on ? h('button.simple-btn', { type: 'button', 'data-qa': 'fold-back', on: { click: () => ctx.foldBack(m.key) } }, 'Fold back') : h('button.simple-btn', { type: 'button', 'data-qa': 'expand-here', on: { click: () => ctx.expandHere(m.key) } }, 'Expand here'),
       h('p', on ? 'The first expansion is drawn under this arrow.' : (m.detail === 'simple' || trace.detail === 'simple' ? 'Opens External at this call. Its steps are drawn there; if it only runs in one arm of a decision, that arm is chosen.' : 'Draws this call\'s steps again, right under this arrow.'))) : null);
 }

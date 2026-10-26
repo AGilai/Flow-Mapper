@@ -4,21 +4,22 @@
 .flow-tab { flex: 1; min-height: 0; display: flex; flex-direction: column; min-width: 0; }
 .flow-top { flex: 0 1 auto; min-height: 96px; max-height: 48vh; display: flex; flex-direction: column; overflow: hidden; background: var(--surface); border-bottom: 1px solid var(--line); }
 /* the description and the relations scroll inside the box; the step bar and the partial line never do,, so the bar is never pushed out of sight */
-.flow-top > details.flowhead, .flow-top > .rel-sec { flex: 0 1 auto; min-height: 0; overflow-y: auto; }
-.flow-top > .stepwalk, .flow-top > :not(details.flowhead):not(.rel-sec) { flex: none; }
+.flow-top > .flowhead, .flow-top > .rel-sec { flex: 0 1 auto; min-height: 0; overflow-y: auto; }
+.flow-top > .stepwalk, .flow-top > :not(.flowhead):not(.rel-sec) { flex: none; }
 .flow-top:empty { display: none; }
 .flow-tab > .flow-body { min-height: 260px; } /* the diagram keeps room; the panes above and below scroll instead */
 
 /* both boxes are <details>: the summary is the control, the text box sits under it */
-details.flowhead, details.stepdesc { padding: var(--s2) var(--s4); }
-details.flowhead { padding-top: var(--s3); }
-.flow-top > details.flowhead { padding-top: 0; } .flow-top > details.flowhead > summary { padding-top: var(--s3); } /* the box scrolls now, so the top space lives in the sticky summary: text never shows above it */
+.flowhead, details.stepdesc { padding: var(--s2) var(--s4); }
+.flowhead { padding-top: var(--s3); }
+.flow-top > .flowhead { padding-top: 0; } .flow-top > .flowhead > .fh-sum { padding-top: var(--s3); } /* the box scrolls now, so the top space lives in the sticky summary: text never shows above it */
 details.stepdesc { border-top: 1px solid var(--line); padding-bottom: var(--s3); }
-details.flowhead > summary, details.stepdesc > summary { cursor: pointer; list-style: none; display: flex; align-items: baseline; gap: var(--s3); flex-wrap: wrap; border-radius: var(--r-sm); }
-details.flowhead > summary::-webkit-details-marker, details.stepdesc > summary::-webkit-details-marker { display: none; }
-details.flowhead > summary::before, details.stepdesc > summary::before { content: '▸'; color: var(--muted); font-size: 11px; display: inline-block; transition: transform .15s; }
-details.flowhead[open] > summary::before, details.stepdesc[open] > summary::before { transform: rotate(90deg); }
-details.flowhead > summary:focus-visible, details.stepdesc > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+details.stepdesc > summary { cursor: pointer; list-style: none; display: flex; align-items: baseline; gap: var(--s3); flex-wrap: wrap; border-radius: var(--r-sm); }
+.flowhead > .fh-sum { display: flex; align-items: center; gap: var(--s2) var(--s3); flex-wrap: wrap; }
+details.stepdesc > summary::-webkit-details-marker { display: none; }
+details.stepdesc > summary::before { content: '▸'; color: var(--muted); font-size: 11px; display: inline-block; transition: transform .15s; }
+details.stepdesc[open] > summary::before { transform: rotate(90deg); }
+details.stepdesc > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .fh-t { font-size: var(--fs-lg); font-weight: 600; }
 .fh-src { margin-left: auto; }
 details.stepdesc > summary { font-size: var(--fs-xs); color: var(--muted); font-weight: 600; }

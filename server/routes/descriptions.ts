@@ -10,7 +10,11 @@ export function registerDescriptions(r: Router, ctx: Ctx) {
   r.get('/api/envs/:env/descriptions', (req) => {
     const service = req.query.get('service'), ingress = req.query.get('ingress');
     if (!service || !ingress) throw badRequest('service and ingress are required');
-    return desc.describeFlow(ctx.db, ctx.graphOf(req), req.params.env, service, ingress);
+    const out = desc.describeFlow(ctx.db, ctx.graphOf(req), req.params.env, service, ingress);
+    // A draft's own flow description (0.45.0, #91): shown until the draft is applied, when no human note is stored for the flow.
+    const draft = req.query.get('draft');
+    const own = draft && !out.flow.human ? ctx.view(req.params.env, draft).reader.flowText(service, ingress)?.description : undefined;
+    return own ? { ...out, flow: { ...out.flow, human: { text: own, title: null, editedBy: 'draft', editedAt: new Date(0).toISOString() } } } : out;
   });
 
   r.put('/api/envs/:env/descriptions', async (req) => {

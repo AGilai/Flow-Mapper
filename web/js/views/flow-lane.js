@@ -21,6 +21,7 @@ import { chainOf, planChains, hopLabel, filterMarker, badgesAt, chType, chName, 
 import { isRpc, isSyncCall, tOf, rpcCommand, pairPlan, trunkKey, nonMatchText } from './flow-amqp.js';
 import { foldedStores, storeColumn, arrowLabel, isWrite, splitStore, orderStores } from './flow-stores-pure.js';
 import { decisionPlan } from './flow-decision-rows.js';
+import { drawnStep } from './flow-steps.js';
 
 export const svcOf = (id) => (id.startsWith('svc:') ? id.slice(4) : id.startsWith('fn:') ? id.split(':')[1] : null);
 
@@ -214,7 +215,7 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
   const entry = clientApp ? events.find((e) => e.type === 'call' && e.from === source) : null;
   const kept = events.filter((e) => (e.type !== 'pill' || (e.bar.internal.n && !ext.has(e.bar.service))) && e !== entry && !(clientApp && e.type === 'return' && e.to === source));
   const remap = new Map(events.map((e) => [e, kept.indexOf(e)]));
-  kept.forEach((e, i) => { e.row = i; });
+  kept.forEach((e, i) => { e.row = i; if (e.repeat) { const n = drawnStep(kept, msgs, e.repeat); if (typeof e.label === 'string') e.label = e.label.replace(/seen at step \d+/, `seen at step ${n}`); e.repeat = n; } }); // #92: a repeat's message index becomes the drawn step number
   for (const b of bars) { b.start = Math.max(0, remap.get(events[b.start]) ?? b.start); }
   for (const b of bars) { // end: last kept event at or before the old end
     let e = b.end; while (e > 0 && remap.get(events[e]) < 0) e--; b.end = remap.get(events[e]);

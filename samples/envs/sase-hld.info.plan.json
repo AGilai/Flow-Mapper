@@ -1,0 +1,456 @@
+{
+ "planVersion": 1,
+ "planId": "sase-hld-info-demo-2026-10-26",
+ "createdAt": "2026-10-26T09:00:00.000Z",
+ "createdBy": "agent:demo",
+ "sources": [
+  {
+   "file": "hld/03-pop.md",
+   "title": "POP architecture",
+   "revision": "v0.4 / 2026-10-12"
+  }
+ ],
+ "environment": {
+  "name": "sase-hld",
+  "source": "prod",
+  "mode": "components",
+  "groups": [
+   {
+    "key": "agent",
+    "label": "Agent",
+    "icon": "agent"
+   },
+   {
+    "key": "network",
+    "label": "Network (POP)",
+    "icon": "network",
+    "about": "## Capabilities\n- Terminates agent tunnels at the **POP** and enforces policy on the traffic.\n- Resolves names (`sxdns`) and proxies web traffic (`swg-api`).\n\n## Motivation\nPolicy has to be enforced close to the user. The POP is the only part of the product that runs in every region.\n\n## Owners\n- Team **network**.\n\n## Open questions\n- Which POP components may call the platform directly, and which go through the gateway?\n"
+   },
+   {
+    "key": "platform",
+    "label": "Platform",
+    "icon": "platform"
+   }
+  ]
+ },
+ "manifests": [
+  {
+   "schemaVersion": "1.0",
+   "kind": "full",
+   "env": "sase-hld",
+   "version": 1,
+   "harvestedAt": "2026-10-21T12:00:00Z",
+   "service": {
+    "name": "sase-agent",
+    "kind": "client-app",
+    "team": "agent",
+    "groupPath": "agent",
+    "description": "The device agent: opens a tunnel to the nearest POP",
+    "details": {
+     "doc": {
+      "file": "hld/02-agent.md",
+      "section": "2.1 Agent",
+      "confidence": "stated",
+      "quote": "The agent opens a TLS tunnel to the nearest POP when the user signs in."
+     }
+    }
+   },
+   "functions": [
+    {
+     "id": "AgentTunnel.open",
+     "name": "AgentTunnel.open",
+     "steps": [
+      {
+       "seq": 1,
+       "type": "egress",
+       "target": "out.tunnel",
+       "operation": "open tunnel",
+       "mode": "async",
+       "note": "TLS tunnel with the device certificate"
+      }
+     ]
+    }
+   ],
+   "ingress": [
+    {
+     "id": "in.tunnel.open",
+     "transport": "other",
+     "entryPoint": true,
+     "bindKey": "client:sase-agent/tunnel-open",
+     "handler": "AgentTunnel.open",
+     "details": {
+      "trigger": "user signs in",
+      "doc": {
+       "file": "hld/02-agent.md",
+       "section": "2.1 Agent",
+       "confidence": "inferred",
+       "questions": [
+        "Q1"
+       ]
+      }
+     },
+     "provenance": {
+      "producer": "hld-import",
+      "runId": "sase-hld-2026-10-21"
+     }
+    }
+   ],
+   "egress": [
+    {
+     "id": "out.tunnel",
+     "transport": "socket",
+     "mode": "async",
+     "bindKey": "socket:tls/pop-edge/tunnel-open",
+     "details": {
+      "doc": {
+       "file": "hld/03-pop.md",
+       "section": "3.2 Tunnel setup",
+       "confidence": "stated",
+       "quote": "the agent connects to pop-edge over TLS"
+      }
+     },
+     "provenance": {
+      "producer": "hld-import",
+      "runId": "sase-hld-2026-10-21"
+     }
+    }
+   ]
+  },
+  {
+   "schemaVersion": "1.0",
+   "kind": "full",
+   "env": "sase-hld",
+   "version": 1,
+   "harvestedAt": "2026-10-21T12:00:00Z",
+   "service": {
+    "name": "pop-edge",
+    "kind": "service",
+    "team": "network",
+    "groupPath": "network",
+    "description": "Terminates agent tunnels at the POP"
+   },
+   "functions": [
+    {
+     "id": "TunnelHandler.open",
+     "name": "TunnelHandler.open",
+     "steps": [
+      {
+       "seq": 1,
+       "type": "egress",
+       "target": "out.auth.token",
+       "operation": "POST /token",
+       "details": {
+        "doc": {
+         "file": "hld/03-pop.md",
+         "section": "3.2 Tunnel setup",
+         "confidence": "stated",
+         "quote": "pop-edge exchanges the device certificate for a session token at the platform auth service"
+        }
+       }
+      },
+      {
+       "seq": 2,
+       "type": "egress",
+       "target": "out.users.posture",
+       "operation": "GET /users/{id}/posture",
+       "note": "device posture of the signed-in user"
+      },
+      {
+       "seq": 3,
+       "type": "egress",
+       "target": "out.policy.get",
+       "note": "fetch the tenant policy bundle"
+      }
+     ]
+    }
+   ],
+   "ingress": [
+    {
+     "id": "in.tunnel.open",
+     "transport": "socket",
+     "entryPoint": false,
+     "bindKey": "socket:tls/pop-edge/tunnel-open",
+     "handler": "TunnelHandler.open",
+     "details": {
+      "protocol": "tls",
+      "event": "tunnel.open"
+     },
+     "provenance": {
+      "producer": "hld-import",
+      "runId": "sase-hld-2026-10-21"
+     }
+    }
+   ],
+   "egress": [
+    {
+     "id": "out.auth.token",
+     "transport": "http",
+     "mode": "sync",
+     "bindKey": "http:POST auth-svc/token",
+     "provenance": {
+      "producer": "hld-import",
+      "runId": "sase-hld-2026-10-21"
+     }
+    },
+    {
+     "id": "out.users.posture",
+     "transport": "http",
+     "mode": "sync",
+     "bindKey": "http:GET users-svc/users/{id}/posture",
+     "provenance": {
+      "producer": "hld-import",
+      "runId": "sase-hld-2026-10-21"
+     }
+    },
+    {
+     "id": "out.policy.get",
+     "transport": "other",
+     "bindKey": "tbd:pop-policy-cache/GetTenantPolicy",
+     "details": {
+      "transport": "undecided",
+      "candidates": [
+       "grpc",
+       "amqp"
+      ],
+      "doc": {
+       "file": "hld/03-pop.md",
+       "section": "3.4",
+       "confidence": "stated",
+       "quote": "transport to be decided (gRPC or AMQP RPC)",
+       "questions": [
+        "Q2"
+       ]
+      }
+     }
+    }
+   ]
+  }
+ ],
+ "extensions": [
+  {
+   "service": "auth-svc",
+   "baseVersion": 1,
+   "groupPath": "platform",
+   "upsert": {
+    "functions": [
+     {
+      "id": "TokenController.device",
+      "name": "TokenController.device",
+      "steps": [
+       {
+        "seq": 1,
+        "type": "call",
+        "kind": "leaf",
+        "note": "validates the device certificate and issues a session token"
+       }
+      ]
+     }
+    ],
+    "ingress": [
+     {
+      "id": "in.token.device",
+      "transport": "http",
+      "bindKey": "http:POST auth-svc/token",
+      "handler": "TokenController.device",
+      "details": {
+       "method": "POST",
+       "path": "/token",
+       "grant": "device_cert",
+       "doc": {
+        "file": "hld/03-pop.md",
+        "section": "3.3 Token exchange",
+        "confidence": "inferred",
+        "questions": [
+         "Q3"
+        ]
+       }
+      },
+      "provenance": {
+       "producer": "hld-import",
+       "runId": "sase-hld-2026-10-21"
+      }
+     }
+    ]
+   }
+  }
+ ],
+ "flows": [
+  {
+   "entry": {
+    "service": "sase-agent",
+    "ingress": "in.tunnel.open"
+   },
+   "name": "Agent connects to POP",
+   "links": {
+    "main": {
+     "label": "Tunnel design",
+     "url": "https://wiki.example.com/sase/tunnel"
+    },
+    "sub": [
+     {
+      "label": "Sequence diagram",
+      "url": "https://wiki.example.com/sase/tunnel/sequence"
+     }
+    ]
+   },
+   "description": "The agent opens a TLS tunnel to the **nearest POP**; the POP authenticates the device and applies the tenant policy.\n\n- The device certificate is checked by `auth-svc`, not by the POP.\n- The posture of the signed-in user is read from `users-svc`, so a *non-compliant* device gets the restricted policy.\n- The policy bundle is cached at the POP for 5 minutes.\n\nSee the [tunnel design](https://wiki.example.com/sase/tunnel). Other links, like [this one](javascript:alert(1)), stay plain text.",
+   "steps": [
+    {
+     "n": 1,
+     "from": "sase-agent",
+     "to": "pop-edge",
+     "text": "**What it does:** opens the tunnel with the *device certificate*.\n- TLS 1.3 only\n- retries with back-off, three times\n\nSee the [agent guide](https://wiki.example.com/sase/agent)."
+    },
+    {
+     "n": 2,
+     "from": "pop-edge",
+     "to": "auth-svc",
+     "text": "**What it does:** trades the certificate for a session token.\nA second line, kept as a line break."
+    },
+    {
+     "n": 3,
+     "from": "pop-edge",
+     "to": "users-svc",
+     "text": "**What it does:** asks `users-svc` for the device posture of the signed-in user (prod's endpoint, not changed by this design)."
+    },
+    {
+     "n": 4,
+     "from": "pop-edge",
+     "to": "pop-policy-cache",
+     "text": "Fetches the tenant policy bundle (transport not decided)."
+    }
+   ],
+   "doc": {
+    "file": "hld/03-pop.md",
+    "section": "3.2 Tunnel setup",
+    "confidence": "stated"
+   }
+  }
+ ],
+ "dtos": [
+  {
+   "service": "pop-edge",
+   "ingress": "in.tunnel.open",
+   "role": "request",
+   "content": {
+    "deviceCertificate": "-----BEGIN CERTIFICATE-----",
+    "tenantId": "t_1"
+   },
+   "meta": {
+    "provenance": "hld",
+    "incomplete": "optional fields are not listed in the HLD"
+   }
+  },
+  {
+   "service": "users-svc",
+   "ingress": "in.getUser",
+   "role": "response",
+   "content": {
+    "id": "c_81f2a9",
+    "name": "Dana Levi",
+    "email": "dana@example.com",
+    "tier": "gold",
+    "createdAt": 1707646860,
+    "deviceCertFingerprint": "ab:cd:ef"
+   },
+   "meta": {
+    "provenance": "hld"
+   }
+  }
+ ],
+ "schemas": [],
+ "links": [
+  {
+   "id": "usage-metering",
+   "name": "usage metering",
+   "from": "grp:network",
+   "to": "grp:platform",
+   "mode": "async",
+   "transport": null,
+   "description": "POPs report per-tenant traffic volumes so the platform can bill and enforce quotas.",
+   "doc": {
+    "file": "hld/05-billing.md",
+    "section": "5.1",
+    "confidence": "stated"
+   }
+  },
+  {
+   "id": "push-config-update",
+   "name": "push config update",
+   "from": "grp:platform",
+   "to": "grp:agent",
+   "mode": "async",
+   "description": "Platform pushes tenant config updates to agents.",
+   "doc": {
+    "file": "hld/04-agent.md",
+    "section": "4.2",
+    "confidence": "inferred"
+   }
+  },
+  {
+   "from": "flow:sase-agent/in.tunnel.open",
+   "to": "flow:users-svc/in.getPosture",
+   "type": "same-topic",
+   "note": "The POP reads the device posture right after the tunnel opens."
+  },
+  {
+   "from": "flow:sase-agent/in.tunnel.open",
+   "to": "flow:auth-svc/in.verify",
+   "type": "variant-of",
+   "note": "The older design let the POP verify the certificate itself and only call auth-svc when the certificate was close to its expiry. The 2026 review found that this skipped the revocation check for most devices, so the flow above always calls auth-svc: treat that one as the reference when the two disagree, and read the two together."
+  }
+ ],
+ "mapping": [
+  {
+   "doc": {
+    "file": "hld/03-pop.md",
+    "section": "3.2 Tunnel setup"
+   },
+   "items": [
+    {
+     "anchor": "svc:pop-edge",
+     "decision": "new",
+     "confidence": "stated"
+    },
+    {
+     "anchor": "ing:auth-svc/in.token.device",
+     "decision": "reuse",
+     "confidence": "inferred",
+     "questions": [
+      "Q3"
+     ]
+    }
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "Q1",
+   "text": "Is the sign-in the only trigger that opens the tunnel?",
+   "about": [
+    "ing:sase-agent/in.tunnel.open"
+   ],
+   "blocking": false
+  },
+  {
+   "id": "Q2",
+   "text": "gRPC or AMQP RPC for the policy fetch?",
+   "about": [
+    "egr:pop-edge/out.policy.get"
+   ],
+   "options": [
+    "grpc",
+    "amqp"
+   ],
+   "blocking": false
+  },
+  {
+   "id": "Q3",
+   "text": "Should pop-edge use prod's POST /token with a device_cert grant instead of a new endpoint?",
+   "about": [
+    "ing:auth-svc/in.token.device"
+   ],
+   "blocking": true
+  }
+ ]
+}

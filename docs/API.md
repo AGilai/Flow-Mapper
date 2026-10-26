@@ -580,7 +580,7 @@ Stored in `descriptions` (migration `003_descriptions.sql`, kept when a service 
 
 | Method + path | |
 |---|---|
-| `GET /api/envs/:env/descriptions?service=&ingress=` | `{service, ingress, hash, flow: {human, ai}, callees: {<callee>: {human, ai}}}`. `human` is `{text, title, editedBy, editedAt}` or null; `ai` is `{text, title, model, generatedAt, traceHash, outdated}` or null (`title`: 0.30.0, string or null). `hash` is the hash of the flow's current trace; `outdated` is true when an AI record was written from a different trace (the flow changed since). 404 for an unknown ingress |
+| `GET /api/envs/:env/descriptions?service=&ingress=` | `{service, ingress, hash, flow: {human, ai}, callees: {<callee>: {human, ai}}}`. `human` is `{text, title, editedBy, editedAt}` or null; `ai` is `{text, title, model, generatedAt, traceHash, outdated}` or null (`title`: 0.30.0, string or null). `hash` is the hash of the flow's current trace; `outdated` is true when an AI record was written from a different trace (the flow changed since). 404 for an unknown ingress. With `?draft=<slug>` and no stored human note, `flow.human` is the draft's own flow description with `editedBy: "draft"` (0.45.0) |
 | `PUT /api/envs/:env/descriptions` | writes the **human** record: `{service, ingress, callee?, text, title?, editedBy?}`. Empty `text` (and no title) removes it. Max 4000 characters. Returns the flow's descriptions. There is no REST write for the AI record |
 
 **Step keys (0.20.0).** `#step:<from>><to>|<label>|<transport>`, built from one message of the flow's trace
@@ -763,7 +763,7 @@ Internal calls fold the same way (#90): a `call` step to a function already expa
 
 **DB grouping.** A maximal run of consecutive `resource` messages with the same service and `from`, the same store (the bind key up to the collection), the same `of` and the same arm path, of two or more, is one row. Anything else between them breaks the run: an external call, a delivery, an async start (`n`), a visible internal call (full view), a step that carries `alternatives` / `fixes` / a mark. In the external view internal calls are hidden, so one service's ops merge across its functions.
 
-**Renumbering.** After a view drops or folds messages, `n`, `of`, `repeatOf` (and its "seen at step N" label), `group` (`m<index>`), `delivery` ordinals and `deliveries` are rewritten to the kept list (#73), so a view reads like any trace; `participants` keep only lifelines that still have a message and `internalCalls` is recounted over the view.
+**Renumbering.** After a view drops or folds messages, `n`, `of`, `repeatOf` (and its "seen at step N" label), `group` (`m<index>`), `delivery` ordinals and `deliveries` are rewritten to the kept list (#73), so a view reads like any trace; `participants` keep only lifelines that still have a message and `internalCalls` is recounted over the view. `repeatOf` is always a 1-based **message index** (position in `messages`, without the copies an `unfold` adds). A UI that does not draw every message (a leaf note with no `over` is no arrow) maps it to its own drawn step number; the web lane does (#92).
 
 **Counts.** `maxMessages` counts only the largest arm of a decision, so a flow with 3 exclusive arms of 10 messages needs a cap of 10, not 30 (a ceiling of 4 x `maxMessages` pushed messages stops duplication, `truncated`). The Flows list counts components (every arm counts once) and is unchanged.
 
