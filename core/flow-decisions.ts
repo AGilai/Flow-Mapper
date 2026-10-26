@@ -9,7 +9,7 @@ import { trace } from './trace.ts';
 import { viewCounts } from './trace-view.ts';
 
 /** `steps`: what the list counts (External, first arm of each decision); `both`: the range per path with Both chosen everywhere; `full`: every internal call too (first arms). */
-export interface FlowDecisions { decisions: number; steps: number; both: { min: number; max: number }; full: number }
+export interface FlowDecisions { decisions: number; steps: number; both: { min: number; max: number }; full: number; /** 0.44.0 (#90): the Simple view's count (the Flows list shows it while the viewer's detail is Simple). */ simple: number }
 
 const chainOf = (a: Alt): Alt[] => (a.parent ? [...chainOf(a.parent), a] : [a]);
 const memo = new WeakMap<GraphIndex, Map<string, FlowDecisions>>();
@@ -30,8 +30,8 @@ function candidates(g: GraphIndex): { service: string; ingress: string }[] {
 function decisionsOf(g: GraphIndex, e: { service: string; ingress: string }): FlowDecisions | null {
   const t = trace(g, { service: e.service, ingress: e.ingress }, { scope: 'full', maxMessages: 800, countsOnly: true });
   if (!t?.decisions?.length) return null;
-  const both = viewCounts(t, { choose: { '*': 'both' } }), first = viewCounts(t, {}), full = viewCounts(t, { detail: 'full' }); // counts only: no view is built (perf batch 4)
-  return { decisions: both.decisions, steps: first.messages.min, both: both.messages, full: full.messages.min };
+  const both = viewCounts(t, { choose: { '*': 'both' } }), first = viewCounts(t, {}), full = viewCounts(t, { detail: 'full' }), simple = viewCounts(t, { detail: 'simple' }); // counts only: no view is built (perf batch 4)
+  return { decisions: both.decisions, steps: first.messages.min, both: both.messages, full: full.messages.min, simple: simple.messages.min };
 }
 
 /** `${service}:${ingress}` -> its decisions; entry points that reach none are absent. */

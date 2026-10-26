@@ -12,6 +12,8 @@ export interface Participant {
   id: string; label: string; kind: 'client' | 'function' | 'service' | 'channel' | 'resource' | 'missing' | 'unresolved'; service?: string;
   /** Service lifelines: function calls inside that service on this trace (what expanding would show). */
   internalCalls?: number;
+  /** 0.44.0 (#90), Simple view: the internal calls and frontier steps the view left out for this service (duplicates folded into a count are not in it). */
+  hiddenSteps?: number;
   /** #87: a service lifeline of an external (third-party) service. */
   external?: true;
 }
@@ -60,8 +62,14 @@ export interface Message {
   canFail?: CanFail[];                                       // 0.38.1 (#82): the step succeeds but can fail (`details.can_fail`): when, error, source. On a DB-group row: the members' entries together
   onlyWhen?: OnlyWhen;                                       // 0.38.1: the step is in the only arm that leads to a flow (`details.only_when`): the guard. On a DB-group row: the members' guards
   dbGroup?: DbGroup;                                         // 0.37.1: a run of consecutive DB operations of one store folded into this one row (viewOf); `label` reads `*3 get, hget` (0.43.2, #88: the count, then the distinct operations)
+  occurrences?: Occurrence[];                                // 0.44.0 (#90), Simple only: every place this step happens (the drawn one first), when it happens more than once; `label` reads `*N …`
+  unfoldOf?: UnfoldOf;                                       // 0.44.0 (#90), `unfold` view option: this message is a copy of a step of the first expansion, drawn under a repeat marker
   filter?: HopFilter;                                        // on a hop that goes through a subscription, rule or binding (topic -> queue, bus -> target, exchange -> queue): what it declares
 }
+/** 0.44.0 (#90): one place a consolidated step happens: the caller's function and step number, the canonical step key. */
+export interface Occurrence { service?: string; fn?: string; seq?: number; key?: string }
+/** 0.44.0 (#90): a copy made by the `unfold` view option. `marker`: the repeat marker's step number; `sub`: this copy's number (`7.1`); `first` / `last`: the steps of the first expansion it copies (view numbering; absent when they are not drawn). */
+export interface UnfoldOf { marker: number; sub: string; first?: number; last?: number }
 /** The subscription behind a hop: its id, the key it listens on (SNS topic, bus, `exchange/routing-key`) and the event types it lets through (absent: all). */
 export interface HopFilter { id: string; service: string; from: string; events?: '*' | string[]; /** An AMQP binding: its key as written in code (`details.bindingKey`, else the part of `from` after the exchange). */ bindingKey?: string; match?: string; /** Headers exchange: the binding's headers and x-match. */ headers?: Record<string, unknown>; xMatch?: 'all' | 'any' }
 /** 0.37.1: consecutive DB operations folded into one row: how many, the collections in order of first use, the access of the run, and the keys of the members (in the canonical numbering). */
@@ -89,7 +97,7 @@ export interface Trace {
   /** 0.37.0: the either/or decisions the flow reaches, in first-seen order. Absent when there are none. */
   decisions?: Decision[];
   /** 0.37.1, on a view only (viewOf): what was applied. */
-  detail?: 'external' | 'full'; choose?: Record<string, string>; warnings?: string[]; counts?: { messages: { min: number; max: number } };
+  detail?: 'simple' | 'external' | 'full'; /** 0.44.0, Simple: the number of either/or decisions shown together (flattened); `decisions` and `choose` are omitted. */ flattened?: number; choose?: Record<string, string>; warnings?: string[]; counts?: { messages: { min: number; max: number } };
 }
 
 export interface TraceOptions { scope?: 'intra' | 'full'; maxDepth?: number; maxMessages?: number; expand?: string[];

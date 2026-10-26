@@ -5,7 +5,15 @@ export const sqStored = () => { try { return localStorage.getItem('flow-mapper.s
 // Group by subsystem (0.28.1, frame 12c): on by default, remembered per viewer; only offered when the environment has subsystems.
 export const bandStored = () => { try { return localStorage.getItem('flow-mapper.bands') !== '0'; } catch { return true; } };
 export const bandSave = (on) => { try { localStorage.setItem('flow-mapper.bands', on ? '1' : '0'); } catch { /* storage unavailable */ } };
-// External | Full (0.38.0, #82): External is the default everywhere; the viewer's choice is remembered (a tab's URL `detail=full` wins for that tab).
-export const detailStored = () => { try { return localStorage.getItem('flow-mapper.detail') === 'full' ? 'full' : 'external'; } catch { return 'external'; } };
-export const detailSave = (d) => { try { localStorage.setItem('flow-mapper.detail', d === 'full' ? 'full' : 'external'); } catch { /* storage unavailable */ } };
+// Simple | External | Full (0.44.0, #90): Simple is the default; the viewer's choice is remembered (a tab's URL `detail=` wins for that tab). An old stored 'external' stays External.
+const DETAILS = ['simple', 'external', 'full'];
+export const detailStored = () => { try { const d = localStorage.getItem('flow-mapper.detail'); return DETAILS.includes(d) ? d : 'simple'; } catch { return 'simple'; } };
+export const detailSave = (d) => { try { localStorage.setItem('flow-mapper.detail', DETAILS.includes(d) ? d : 'simple'); } catch { /* storage unavailable */ } };
 export const sqSave = (on) => { try { localStorage.setItem('flow-mapper.squeeze', on ? '1' : '0'); } catch { /* storage unavailable */ } };
+
+/** 0.44.0 (#90): Simple hides frontier steps, so the toolbar's Frontier checkbox (a label) does nothing there: disabled, with the reason as its tooltip. */
+export function frontierSimple(label, simple) {
+  label.dataset.tip ??= label.title;
+  label.querySelector('input').disabled = simple; label.classList.toggle('disabled', simple);
+  label.title = simple ? 'Frontier steps are hidden in Simple' : label.dataset.tip;
+}

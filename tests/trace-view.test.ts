@@ -208,7 +208,7 @@ test('viewParams: strings, objects, defaults and a bad detail', () => {
   assert.deepEqual(parseChoose({ g: 'x' }), { g: 'x' });
   assert.deepEqual(viewParams({}), { detail: 'external', choose: {}, open: [], dbOpen: [] });
   assert.deepEqual(viewParams({ detail: 'full', choose: '*:both', open: 'a,a:b', dbOpen: ['k'], group: '1' }), { detail: 'full', choose: { '*': 'both' }, open: ['a', 'a:b'], dbOpen: ['k'], group: true });
-  assert.throws(() => viewParams({ detail: 'big' }), /external or full/);
+  assert.throws(() => viewParams({ detail: 'big' }), /simple, external or full/);
   assert.throws(() => viewParams({ choose: 'garbage' }), /not <group>:<arm>/);
   assert.throws(() => viewParams({ choose: 'g:' }), /not <group>:<arm>/);
   assert.throws(() => viewParams({ choose: { g: 3 } }), /non-empty string/);

@@ -11,7 +11,7 @@ export function createScenarios(query, activeKey, stored) {
   const of = (key) => {
     if (!map.has(key)) {
       const mine = key === activeKey;
-      map.set(key, { detail: (mine && url.detail) || stored(), open: new Set(mine ? url.open : []), chosen: new Map(), rawCh: mine ? query.get('ch') : null, decisions: [], dbOpen: new Set(), resolved: false });
+      map.set(key, { detail: (mine && url.detail) || stored(), open: new Set(mine ? url.open : []), chosen: new Map(), rawCh: mine ? query.get('ch') : null, decisions: [], dbOpen: new Set(), unfold: new Set(), resolved: false });
     }
     return map.get(key);
   };

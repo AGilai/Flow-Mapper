@@ -69,12 +69,14 @@ test('a nested decision is offered only while its parent arm is visible, and its
 
 test('the query of a tab: ch, detail=full and open only when set', () => {
   const s = (o: object) => ({ chosen: none, detail: 'external', open: new Set(), ...o });
-  assert.deepEqual(P.scenarioQuery(decisions, s({})), { ch: null, detail: null, open: null });
+  assert.deepEqual(P.scenarioQuery(decisions, s({})), { ch: null, detail: 'external', open: null }, '0.44.0: the detail is always written, no param means the stored choice');
+  assert.deepEqual(P.scenarioQuery(decisions, s({ detail: 'simple', open: new Set(['a']) })), { ch: null, detail: 'simple', open: null }, 'Simple opens nothing');
   assert.deepEqual(P.scenarioQuery(decisions, s({ detail: 'full', open: new Set(['a', 'b:fn']) })), { ch: null, detail: 'full', open: null }, 'Full loads everything: no open=');
-  assert.deepEqual(P.scenarioQuery(decisions, s({ open: new Set(['a', 'b:fn']) })), { ch: null, detail: null, open: 'a,b:fn' });
+  assert.deepEqual(P.scenarioQuery(decisions, s({ open: new Set(['a', 'b:fn']) })), { ch: null, detail: 'external', open: 'a,b:fn' });
   const q = P.readQuery(new URLSearchParams('detail=full&open=x,y&ch=3b1f0a52:invite'));
   assert.equal(q.detail, 'full'); assert.deepEqual([...q.open], ['x', 'y']); assert.equal(q.decoded.length, 1);
   assert.equal(P.readQuery(new URLSearchParams('detail=zzz')).detail, null);
+  assert.equal(P.readQuery(new URLSearchParams('detail=simple')).detail, 'simple');
 });
 
 const canon = [

@@ -26,14 +26,14 @@ export function createTabData(env, getOpts, nameOf = () => '') {
     return traces.get(k);
   };
   /** The fetched trace of a request in the form a tab keeps (0.38.0): every arm (`choose=*:both`), no DB grouping (the page groups), `detail` and the services opened. */
-  const baseFor = (req, detail, open = []) => traceFor({ ...req, detail, open: detail === 'full' || !open.length ? null : [...open].sort().join(','), choose: '*:both', group: '0' });
+  const baseFor = (req, detail, open = []) => traceFor({ ...req, detail, open: detail !== 'external' || !open.length ? null : [...open].sort().join(','), choose: '*:both', group: '0' });
   const load = (key, init = null) => {
     if (!cache.has(key)) cache.set(key, resolve(key, init).then((d) => { done.set(key, d); return d; }));
     return cache.get(key);
   };
   const triggerOf = (p) => api.endpoint(env, p.service, p.ingress).then((e) => e?.ingress?.details?.trigger ?? null, () => null);
   async function resolve(key, init) {
-    const first = (q) => baseFor(q, init?.detail ?? 'external', init?.open ?? []);
+    const first = (q) => baseFor(q, init?.detail ?? 'simple', init?.open ?? []);
     const p = parseKey(key);
     if (!p) throw new Error('This tab is not a flow.');
     if (p.kind === 'sub') {

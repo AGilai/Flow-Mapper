@@ -6,6 +6,8 @@
 //           A lock (`decision.lock`) wins over a conflicting choice (a warning). A decision under an arm that is not in force is not offered.
 //   detail  'external' (default): ingress, calls out of a service, deliveries, DB ops, problems and an arm's only content; 'full': everything.
 //           `scope: 'intra'` ignores detail (its lifelines are the functions).
+//           'simple' (0.44.0, #90): each external call once, arms flattened, internal steps hidden (core/trace-simple.ts); `maxMessages` cuts it.
+//   unfold  [key]: the repeat markers (by step key) whose first expansion is copied under them, as sub-steps 7.1, 7.2 (core/trace-unfold.ts).
 //   open    ['svc' | 'svc:fn']: brings back the internal calls of that service / function in the external view.
 //   group   DB-op grouping (default: on in external, off in full); dbOpen: keys of runs that stay expanded.
 // Keys are never recomputed (a view copies the canonical key; a DB row takes its first member's), numbers are rewritten (trace-renumber.ts).
@@ -15,10 +17,12 @@ import { stepKeys } from './description.ts';
 import { decisionCounts, rangeOf, type Chosen, type Range } from './trace-counts.ts';
 import { groupDbOps } from './trace-db-group.ts';
 import { renumber } from './trace-renumber.ts';
+import { simplify } from './trace-simple.ts';
+import { renumberUnfolded } from './trace-unfold.ts';
 import { splitArm } from './alternatives.ts';
 import { dropFrames } from './alt-decisions.ts';
 
-export interface ViewOptions { choose?: ReadonlyMap<string, string> | Record<string, string>; detail?: 'external' | 'full'; open?: string[]; dbOpen?: string[]; group?: boolean }
+export interface ViewOptions { choose?: ReadonlyMap<string, string> | Record<string, string>; detail?: 'simple' | 'external' | 'full'; open?: string[]; dbOpen?: string[]; group?: boolean; unfold?: string[]; maxMessages?: number }
 type Item = { m: Message; i: number };
 
 const KEEP = new Set(['entry', 'egress', 'deliver', 'resource']);
@@ -67,18 +71,35 @@ function plan(t: Trace, opts: ViewOptions, stamp: boolean) {
   return { detail, decisions, grouped, kept, shown, eff, warnings };
 }
 
+/** The canonical trace's messages as items, keyed when `stamp`. */
+const itemsOf = (t: Trace, stamp: boolean): Item[] => { const keys = !stamp || t.messages.every((m) => m.key) ? [] : stepKeys(t.messages); return t.messages.map((m, i) => ({ m: m.key || !stamp ? m : { ...m, key: keys[i] }, i })); };
+const isSimple = (t: Trace, opts: ViewOptions) => t.scope !== 'intra' && opts.detail === 'simple';
+
+/** The Simple view (0.44.0, #90): the post-pass of core/trace-simple.ts, renumbered; arms, alt frames and decisions are gone (`flattened` says how many). */
+function simpleView(t: Trace, opts: ViewOptions): Trace {
+  if (t.detail === 'simple') return t; // already a Simple view (the browser keeps the server's): nothing to do
+  const { items, hidden, cut } = simplify(itemsOf(t, true), opts.maxMessages);
+  const messages = renumber(items, t.messages).map(({ arms: _a, alt: _l, alternatives: _s, ...m }) => m as Message);
+  const used = new Set(messages.flatMap((m) => [m.from, m.to]));
+  const { decisions: _d, choose: _c, ...rest } = t;
+  return { ...rest, messages, detail: 'simple', flattened: (t.decisions ?? []).length, truncated: t.truncated || cut, counts: { messages: { min: messages.length, max: messages.length } },
+    participants: t.participants.filter((p) => used.has(p.id)).map((p) => (p.kind === 'service' ? { ...p, internalCalls: 0, hiddenSteps: hidden.get(p.service!) ?? 0 } : p)) };
+}
+
 /** The message range and the number of decisions offered of the view `viewOf(t, opts)` would make, without building it (no renumbering, no participants, no per-arm counts): what the Flows list needs per flow. */
 export function viewCounts(t: Trace, opts: ViewOptions = {}): { messages: Range; decisions: number } {
+  if (isSimple(t, opts)) { const n = simplify(itemsOf(t, false), opts.maxMessages).items.length; return { messages: { min: n, max: n }, decisions: 0 }; }
   const { kept, shown, eff } = plan(t, opts, false);
   return { messages: rangeOf(kept.map((x) => x.m), shown, new Map(shown.map((d) => [d.group_id, eff.get(d.group_id)!]))), decisions: shown.length };
 }
 
 export function viewOf(t: Trace, opts: ViewOptions = {}): Trace {
+  if (isSimple(t, opts)) return simpleView(t, opts);
   const detail0 = t.scope === 'intra' ? 'full' : opts.detail ?? 'external';
-  if (!(t.decisions ?? []).length && detail0 === 'full' && !(opts.group ?? detail0 === 'external')) return t; // nothing to decide, show or fold: the canonical trace itself
+  if (!(t.decisions ?? []).length && detail0 === 'full' && !(opts.group ?? detail0 === 'external') && !opts.unfold?.length) return t; // nothing to decide, show or fold: the canonical trace itself
   const { detail, decisions, grouped, kept, shown, eff, warnings } = plan(t, opts, true);
   const altOff = new Set(decisions.filter((d) => d.from === 'alt' && eff.get(d.group_id) !== 'both').map((d) => d.group_id)); // 0.38.2: a branch on one arm draws no alt frame
-  const messages = renumber(kept, t.messages).map((m) => (m.alt && altOff.size ? (({ alt: _a, ...r }) => { const a = dropFrames(m.alt, altOff); return a ? { ...r, alt: a } : r; })(m) : m));
+  const messages = (opts.unfold?.length ? renumberUnfolded(kept, t.messages, opts.unfold) : renumber(kept, t.messages)).map((m) => (m.alt && altOff.size ? (({ alt: _a, ...r }) => { const a = dropFrames(m.alt, altOff); return a ? { ...r, alt: a } : r; })(m) : m));
   const used = new Set(messages.flatMap((m) => [m.from, m.to]));
   const chosen: Chosen = new Map(shown.map((d) => [d.group_id, eff.get(d.group_id)!]));
   const locks: Chosen = new Map(decisions.flatMap((d) => (d.lock ? [[d.group_id, d.lock.arm] as const] : [])));

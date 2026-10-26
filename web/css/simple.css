@@ -1,0 +1,40 @@
+/* The Simple view (0.44.0, #90, frame 24): the caption and note under the header, the "N hidden" badge, repeat markers, unfolded copies. Tokens only. */
+.simple-extra { display: contents; }
+.simple-cap { margin: 4px 0 0; padding: 0 var(--s4, 16px); font-size: var(--fs-xs); color: var(--ink-2); }
+.simple-note { display: flex; gap: 8px; align-items: center; padding: 7px var(--s4, 16px); background: var(--surface-2); border-bottom: 1px solid var(--line); font-size: var(--fs-xs); color: var(--ink-2); }
+.simple-note b { color: var(--ink); }
+.simple-link { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.simple-link:focus-visible, .simple-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+.hid-bdg { cursor: pointer; outline: none; }
+.hid-bdg .pill { fill: var(--surface-2); stroke: var(--line-strong); }
+.hid-bdg text { font: 600 10.5px var(--font); fill: var(--ink-2); }
+.hid-bdg .ring { fill: none; stroke: var(--focus); stroke-width: 2; opacity: 0; }
+.hid-bdg:hover .pill { fill: var(--accent-soft); stroke: var(--accent); }
+.hid-bdg:hover text { fill: var(--accent); text-decoration: underline; }
+.hid-bdg:focus-visible .ring { opacity: 1; }
+/* a repeat marker: a thin dotted arrow, the label an underlined accent link to the first one */
+.msg.rep .arrow { stroke-dasharray: 1.5 3.5; stroke-linecap: round; stroke-width: 1.2; }
+.msg.rep .rplab { font: 600 11.5px var(--mono); fill: var(--accent); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.msg.rep .rpsub { font: 400 10.5px var(--mono); fill: var(--muted); }
+.msg.rep:focus-visible .rplab, .msg.rep .rplab:hover { stroke: var(--focus); stroke-width: .3; }
+.msg.icall.rep .ilab { fill: var(--accent); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+/* unfolded copies */
+.unfold-box { fill: color-mix(in srgb, var(--accent) 5%, var(--surface)); stroke: var(--accent); stroke-width: 1.2; stroke-dasharray: 6 4; }
+.unfold-lab { font: 600 10.5px var(--font); fill: var(--accent); }
+.unfold-no { font: 700 10.5px var(--font); fill: var(--ink-2); }
+/* info pane */
+.simple-pane { display: grid; gap: var(--s3, 12px); }
+.simple-pane h5 { margin: 0 0 6px; font-size: var(--fs-xs); color: var(--muted); font-weight: 600; }
+.simple-occ { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.simple-occ li { display: flex; align-items: baseline; gap: 6px; font: 500 11.5px/1.4 var(--mono); }
+.simple-occ .s { font: 600 10.5px var(--font); color: var(--ink-2); border: 1px solid var(--line-strong); border-radius: 9px; padding: 0 6px; white-space: nowrap; }
+.simple-exp { border: 1px solid var(--line); border-radius: var(--r-md); padding: 10px 12px; display: grid; gap: 6px; background: color-mix(in srgb, var(--accent) 4%, var(--surface)); }
+.simple-exp p { margin: 0; font-size: var(--fs-xs); color: var(--ink-2); line-height: 1.45; }
+.simple-btn { justify-self: start; font: 600 12.5px var(--font); padding: 7px 14px; border-radius: 7px; border: 1px solid var(--accent); background: var(--accent); color: var(--surface); cursor: pointer; }
+.simple-cap[hidden], .simple-note[hidden] { display: none; }
+
+.check.disabled { opacity: .5; cursor: not-allowed; }
+.check.disabled input { cursor: not-allowed; }
+/* the pane's link-buttons (Jump, Open in External, "Seen in External at steps 2, 4"): links, not grey buttons (frame 24c / 24d) */
+.simple-pane .lnk, .simple-pane + .ep-pad .lnk { background: none; border: 0; padding: 0 2px; font: inherit; font-weight: 600; color: var(--accent); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; border-radius: 3px; justify-self: start; width: max-content; }
+.simple-pane .lnk:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }

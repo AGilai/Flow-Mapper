@@ -30,6 +30,7 @@ export function createFlowRender({ trace, tree, key, ancestors = [], sticky = tr
   const marks = () => host.marks ?? marksNow(); // the marks of the flow's own environment (a tab of another env has its own, 0.36.0)
   const laneBox = h('div.flow-lane'), idxBox = h('div.flow-idx');
   let lane = null, index = null;
+  if (!depth) laneBox.addEventListener('click', (ev) => { const j = ev.target.closest?.('[data-jump]'); if (j && sh.walk) { ev.stopPropagation(); sh.walk.go(Number(j.dataset.jump)); } }, true); // 0.44.0 (#90): a repeat marker's `↩ seen at step N` jumps to step N
   const maxDepth = () => (opts.depth === 'all' ? Infinity : Number(opts.depth));
   const laneOpts = () => ({ mwOpen, stores: opts.stores, scope: 'full', maxDepth: maxDepth() });
 
@@ -52,7 +53,7 @@ export function createFlowRender({ trace, tree, key, ancestors = [], sticky = tr
   function drawLane() {
     const lo = laneOpts();
     const msgs = trace.messages.filter((m) => m.depth <= lo.maxDepth);
-    const built = buildLane(msgs, { mwOpen, fanOpen, numbers: deliveryNumbers(tree), stores: lo.stores, scope: 'full', participants: trace.participants, trigger: depth ? null : sh.trigger?.() ?? null, icalls: depth ? false : sh.icalls?.() ?? false, decisions: depth ? [] : trace.decisions ?? [], dbOpen: depth ? null : sh.dbOpen?.() ?? null });
+    const built = buildLane(msgs, { mwOpen, fanOpen, numbers: deliveryNumbers(tree), stores: lo.stores, scope: 'full', participants: trace.participants, trigger: depth ? null : sh.trigger?.() ?? null, icalls: depth ? false : sh.icalls?.() ?? false, decisions: depth ? [] : trace.decisions ?? [], dbOpen: depth ? null : sh.dbOpen?.() ?? null, repeats: trace.detail === 'simple' });
     built.storeOn = !depth && !!sh.onStore;
     built.internal = depth ? null : sh.internal?.() ?? null; // 0.38.0: the lazy "⊕ internal" control under each service head (null: everything is loaded)
     groupLane(built, host.subs, opts.bands, marks(), (cols) => laneSlots(cols, undefined, host.env), host.env); // 0.28.1: the components of one subsystem together and the bands over them; a colour per flow (before Squeeze, the walk and the drawing see the columns)

@@ -17,6 +17,7 @@ import { addCallChips } from './flow-add-call.js';
 import { wireEvents } from './flow-draw-events.js';
 import { storeLegend } from './flow-draw-bands.js';
 import { detailTexts } from './flow-draw-details.js';
+import { drawUnfolds } from './flow-draw-repeat.js';
 import { sizeSvg } from './flow-zoom.js';
 import { armSpans } from './flow-decision-rows.js';
 import { gutterLines } from './flow-markers-draw.js';
@@ -43,6 +44,7 @@ export function renderLane(lane, { marks = null, refs = null, edit = null, onMes
     s('defs', {}, s('pattern', { id: 'mwh', width: 6, height: 6, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' }, s('rect', { width: 6, height: 6, fill: 'var(--mw-bg)' }), s('rect', { width: 2.4, height: 6, fill: 'var(--mw)' }))),
     foldBands(c.groups, height), // the fold columns' fills come first: the current-step band (flow-step-tiles.js) goes right after them, under the frames
     drawFrames(frames, lane.altRows, strips, (r) => top[r], (r) => top[r + 1], width, GUTTER),
+    drawUnfolds(events, top, width, GUTTER),
     events.some((e) => e.type === 'decision') ? armMarks(armSpans(events), top) : null,
     gutterLines(c.runs.lines, top),
     drawLifelines(c), rects, segs, drawn, details ? detailTexts(c, details, onEditStep) : null, edit ? addCallChips(c, edit) : null);

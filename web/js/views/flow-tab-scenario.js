@@ -18,7 +18,8 @@ export function createTabScenario({ data, host, key, visible, onView, editAll = 
   return {
     view, scen, ui,
     hooks: { onChoose: scen.choose, onInternal: scen.toggleOpen, onDb: scen.toggleDb, dbOpen: () => st.dbOpen, srcUrl, icalls: () => scen.isFull() || st.open.size > 0,
-      internal: () => (lazy() ? { state: (svc) => (scen.loading.has(svc) ? 'loading' : st.open.has(svc) ? 'open' : 'closed') } : null) },
+      internal: () => (st.detail === 'simple' && scen.view().scope !== 'intra' ? { simple: true, hidden: (svc) => scen.view().participants.find((p) => p.service === svc && p.kind === 'service')?.hiddenSteps ?? 0, state: (svc) => (scen.loading.has(svc) ? 'loading' : 'closed') } : lazy() ? { state: (svc) => (scen.loading.has(svc) ? 'loading' : st.open.has(svc) ? 'open' : 'closed') } : null) },
+      expandHere: scen.expandHere, foldBack: scen.foldBack, unfolded: (k) => st.unfold.has(k), detail: () => st.detail,
     /** The header's "6 steps" / "6–7 steps": exact, or a range only while "Both" is chosen somewhere. */
     counts: (trace, laneSteps) => { const c = trace.counts?.messages; return c && c.min !== c.max ? stepsText(trace.counts) : laneSteps != null ? `${laneSteps} ${laneSteps === 1 ? 'step' : 'steps'}` : c ? stepsText(trace.counts) : ''; },
     /** The step bar's note: "6–7 messages per path" while a range stands. */

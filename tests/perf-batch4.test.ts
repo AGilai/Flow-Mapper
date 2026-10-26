@@ -42,7 +42,7 @@ test('flowDecisions on the samples still equals the numbers of three full views 
     const d = got.get(`${e.service}:${e.id}`);
     if (!t?.decisions?.length) { assert.equal(d, undefined); continue; }
     const both = viewOf(t, { choose: { '*': 'both' } }), first = viewOf(t, {}), full = viewOf(t, { detail: 'full' });
-    assert.deepEqual(d, { decisions: both.decisions?.length ?? 0, steps: first.counts?.messages.min ?? 0, both: both.counts?.messages ?? { min: 0, max: 0 }, full: full.counts?.messages.min ?? 0 });
+    assert.deepEqual(d, { decisions: both.decisions?.length ?? 0, steps: first.counts?.messages.min ?? 0, both: both.counts?.messages ?? { min: 0, max: 0 }, full: full.counts?.messages.min ?? 0, simple: viewOf(t, { detail: 'simple' }).counts?.messages.min ?? 0 }); // 0.44.0: the Simple count
   }
 });
 

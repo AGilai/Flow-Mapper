@@ -98,12 +98,12 @@ export function applyChoose(decisions, decoded, edit = false) {
 export const chooseObject = (chosen) => Object.fromEntries(chosen);
 
 /** Everything the page puts in the URL for a tab's scenario: { ch, detail, open } (null = no param). */
-export const scenarioQuery = (decisions, s) => ({ ch: encodeChoose(decisions, s.chosen, !!s.edit), detail: s.detail === 'full' ? 'full' : null, open: s.open.size && s.detail !== 'full' ? [...s.open].join(',') : null }); // Full has everything loaded: no `open=`
+export const scenarioQuery = (decisions, s) => ({ ch: encodeChoose(decisions, s.chosen, !!s.edit), detail: s.detail === 'full' || s.detail === 'external' ? s.detail : 'simple', open: s.open.size && s.detail === 'external' ? [...s.open].join(',') : null }); // 0.44.0: the detail is always written (no param means the viewer's stored choice); Full has everything loaded and Simple opens nothing: no `open=`
 
 /** `ch`, `detail`, `open` of a URL query (URLSearchParams) -> { decoded, detail, open: Set }. */
 export function readQuery(query) {
   const d = query.get('detail');
-  return { decoded: decodeChoose(query.get('ch')), detail: d === 'full' || d === 'external' ? d : null, open: new Set((query.get('open') ?? '').split(',').map((x) => x.trim()).filter(Boolean)) };
+  return { decoded: decodeChoose(query.get('ch')), detail: d === 'full' || d === 'external' || d === 'simple' ? d : null, open: new Set((query.get('open') ?? '').split(',').map((x) => x.trim()).filter(Boolean)) };
 }
 
 /** "6 steps", "6–7 steps" from `counts.messages` ({min, max}); `per`: the range reads "per path". */
@@ -141,8 +141,9 @@ export function showChoices(decisions, chosen, hidden, edit = false) {
 export const stepOfKey = (steps, key) => steps.find((s) => s.key === key || s.keys?.includes(key)) ?? null;
 
 /** The tooltip of the Flows list chip "N decisions": the default view's steps (External, first arms), the range with Both, the Full count. */
-export function decisionsTitle(c) {
+export function decisionsTitle(c, detail = 'external') {
   const n = c.decisions, both = c.both && c.both.min !== c.both.max ? `${c.both.min}–${c.both.max}` : `${c.both?.min ?? c.steps}`;
+  if (detail === 'simple' && c.simple != null) return `${n} either / or ${n === 1 ? 'decision' : 'decisions'} in this flow, shown together in Simple: ${c.simple} steps. External (first arm of each decision): ${c.steps} steps. Full: ${c.full} steps.`;
   return `${n} either / or ${n === 1 ? 'decision' : 'decisions'} in this flow. The list counts the default view: ${c.steps} steps (External, first arm of each). With Both: ${both} messages per path. Full: ${c.full} steps.`;
 }
 

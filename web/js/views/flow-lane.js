@@ -48,10 +48,10 @@ export const storeLabel = (m) => ({ verb: m.label, name: splitStore(m).collectio
  * hop: one arrow row of a publish: { msg, from, via (the topic lifeline the arrow passes through, first row only), to, fromBar (first row), label (the event type; drawn once, on `trunk`), trunk, fork (a branch row that forks off the topic), trunkTransport (colour up to the topic), transport (colour after it), marker (filter, on the topic -> queue part), legs, end: { tiles, items, none } | null }.
  * options: numbers (Map delivery message -> { label, shows, seen, noHandler }, from deliveryNumbers(tree): the number tiles at the queues), fanOpen (Set of topics whose queues are all drawn),
  * decisions (0.38.0: the view's either/or decisions: a `decision` row before the first message of an arm, flow-decision-rows.js), dbOpen (Set of keys of DB runs the viewer expanded: their first row says so),
- * icalls (0.38.0: a call inside the service is a row of its own, `icall`, a numbered step; off: the folded pill, as before).
+ * repeats (0.44.0, #90: the Simple view): a repeated call out is a thin arrow with no bar, `repeat: N`; icalls (0.38.0: a call inside the service is a row of its own, `icall`, a numbered step; off: the folded pill, as before).
  * Every event has `row` (its index). Bars: { id, service, col, level, transport, sync, msg, depth, internal: {n, gaps}, msgs, start, end }.
  */
-export function buildLane(msgs, { stores = true, scope = 'full', participants = [], mwOpen = false, numbers = new Map(), fanOpen = false, trigger = null, decisions = [], dbOpen = null, icalls = false } = {}) {
+export function buildLane(msgs, { stores = true, scope = 'full', participants = [], mwOpen = false, numbers = new Map(), fanOpen = false, trigger = null, decisions = [], dbOpen = null, icalls = false, repeats = false } = {}) {
   const kind = new Map(participants.map((p) => [p.id, p.kind])), skind = (service) => participants.find((p) => p.id === `svc:${service}`)?.serviceKind;
   const cols = [], byService = new Map(), stack = [], bars = [], events = [];
   const keys = new Map();
@@ -179,7 +179,7 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
         if (m.kind === 'call') { seg.internal++; if (m.gap || m.broken) seg.gaps++; return; }
       }
     }
-    if (m.kind === 'call' && (icalls || m.origin === 'frontier') && !ext.has(top.service)) { push({ type: 'icall', msg: m, bar: top, from: top.col, to: top.col, fromBar: top, label: m.label }); return; }
+    if (m.kind === 'call' && (icalls || m.origin === 'frontier') && !ext.has(top.service)) { push({ type: 'icall', msg: m, bar: top, from: top.col, to: top.col, fromBar: top, label: m.label, repeat: m.repeatOf }); return; }
     if (m.kind === 'call') { top.internal.n++; // #87: an external service's pill is dropped below (no inside view)
     if (m.gap || m.broken) top.internal.gaps++; return; }
     if (m.kind === 'leaf') { // a leaf is a note on its component; one that names `over` is drawn (0.32.2, #74), over one lifeline or spanning several
@@ -197,7 +197,9 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
     const k = kind.get(m.to), service = svcOf(m.to);
     if (m.broken || m.gap || !service || k === 'missing' || k === 'unresolved') { push({ type: 'unresolved', msg: m, bar: top, col: unresolvedCol(isRpc(m)), label: callLabel(m), chip: isRpc(m) ? 'no server harvested' : null }); return; }
     if (scope === 'intra' && service !== root) { push({ type: 'call', msg: m, from: top.col, fromBar: top, to: pickCol(service, top.col), bar: null, label: callLabel(m) }); return; }
-    open(m, top.col, top, service, pickCol(service, top.col), isSyncCall(m), isRpc(m) ? plan1(top.col.ci, service, m.rpc) : null);
+    if (repeats && m.repeatOf && m.kind === 'egress' && !msgs[idx + 1]?.unfoldOf) { push({ type: 'call', msg: m, from: top.col, fromBar: top, to: pickCol(service, top.col), bar: null, label: callLabel(m), repeat: m.repeatOf }); return; } // 0.44.0 (#90): a repeat is a thin arrow with no bar, unless its first expansion was unfolded under it
+    const bar = open(m, top.col, top, service, pickCol(service, top.col), isSyncCall(m), isRpc(m) ? plan1(top.col.ci, service, m.rpc) : null);
+    if (m.repeatOf) events[bar.start].repeat = m.repeatOf;
   };
   lane.forEach((idx, n) => {
     const m = msgs[idx], at = origin.get(m.of), made = bars.length;

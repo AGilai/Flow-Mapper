@@ -75,10 +75,11 @@ export function registerQueries(r: Router, ctx: Ctx) {
     if (!service) throw badRequest('service is required (plus ingress or fn)');
     const scope = q.get('scope') === 'intra' ? 'intra' : 'full';
     let view; // 0.37.1 (#82): detail (default external), choose, open, dbOpen, group
-    try { view = viewParams({ detail: q.get('detail'), choose: q.get('choose'), open: q.get('open'), dbOpen: q.get('dbOpen'), group: q.get('group') }); } catch (e) { throw badRequest((e as Error).message); }
+    try { view = viewParams({ detail: q.get('detail'), choose: q.get('choose'), open: q.get('open'), dbOpen: q.get('dbOpen'), group: q.get('group'), unfold: q.get('unfold') }); } catch (e) { throw badRequest((e as Error).message); }
     const g = ctx.graphOf(req);
+    const want = Math.min(int(q.get('maxMessages'), 500), 5000), simple = view.detail === 'simple' && scope === 'full'; // 0.44.0 (#90): Simple is cut after it has consolidated, so the canonical trace gets 4x the budget (at most 4000)
     const t = trace(g, { service, ingress: q.get('ingress') ?? undefined, fn: q.get('fn') ?? undefined, event: q.get('event') ?? undefined },
-      { scope, maxDepth: int(q.get('maxDepth'), 25), maxMessages: Math.min(int(q.get('maxMessages'), 500), 5000), expand: q.get('expand')?.split(',').filter(Boolean), frontier: ['1', 'true'].includes(q.get('frontier') ?? '') });
+      { scope, maxDepth: int(q.get('maxDepth'), 25), maxMessages: simple ? Math.min(want * 4, 4000) : want, expand: q.get('expand')?.split(',').filter(Boolean), frontier: ['1', 'true'].includes(q.get('frontier') ?? '') });
     const ing = q.get('ingress') ? g.ingress.get(sid(service, q.get('ingress')!)) : undefined;
     if (!t && ing && !g.fns.get(sid(service, ing.handler))) { // a copied endpoint: the endpoint came along, its functions did not
       const anchor = `ing:${service}/${ing.id}`, ref = refsFor(ctx, req.params.env, q.get('draft')).endpoints[anchor];
@@ -90,7 +91,7 @@ export function registerQueries(r: Router, ctx: Ctx) {
         { source, service, ingress: ing.id, reference: !!ref, anchor });
     }
     if (!t) throw notFound('start point (service + ingress or fn)');
-    return traceOut(ctx, req.params.env, q.get('draft'), viewOf(t, view));
+    return traceOut(ctx, req.params.env, q.get('draft'), viewOf(t, simple ? { ...view, maxMessages: want } : view));
   });
 
   r.get('/api/envs/:env/paths', (req) => {

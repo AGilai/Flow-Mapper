@@ -25,11 +25,12 @@ import { markersCard } from './flow-markers-draw.js';
 import { rpcCard, rpcMissing, routingRows } from './flow-panel-amqp.js';
 import { whySection, stepIdOf } from './incomplete-why.js';
 import { callsCard, runCard } from './flow-panel-calls.js';
+import { occurrencesCard, repeatCard } from './flow-panel-simple.js';
 
 const KIND = { entry: 'Entry', call: 'Function call', egress: 'Call', deliver: 'Delivery from queue', resource: 'Data store access', leaf: 'Leaf step (classified by the harvester)', frontier: 'Frontier steps (folded)' };
 
 /** Returns [head, ...content] for panel.open(). */
-export function messagePanel(m, trace, env, scope = 'full', openEntry = null, marks, db = null) { // marks: the marks of `env` (a tab of another env passes its own; the field marks of the DTO read them); db (#88, a merged store node): { n, expand(k) }
+export function messagePanel(m, trace, env, scope = 'full', openEntry = null, marks, db = null, simple = null) { // marks: the marks of `env` (a tab of another env passes its own; the field marks of the DTO read them); db (#88, a merged store node): { n, expand(k) }
   const flow = asyncFlowOf(m);
   const p = (id) => trace.participants.find((x) => x.id === id);
   const rpc = isRpc(m), kind = rpc ? (m.kind === 'entry' ? 'Entry (RPC over AMQP)' : 'RPC call over AMQP') : m.kind === 'egress' && m.mode === 'async' ? 'Publish / async call' : KIND[m.kind];
@@ -44,6 +45,7 @@ export function messagePanel(m, trace, env, scope = 'full', openEntry = null, ma
     flow ? h('div.ep-pad', openEntry ? h('button.btn', { type: 'button', on: { click: () => openEntry({ service: flow.service, ingress: flow.ingress, scope }) } }, 'Open the async flow in a tab') : h('a.btn', { href: href('/flows', { service: flow.service, ingress: flow.ingress, scope }) }, 'Open the async flow'), h('span.xs.muted', ` ${flow.service} · ${flow.ingress}`)) : null,
     m.gap ? gapCard(m.gap) : null,
     m.dbGroup?.calls?.length ? callsCard(m, trace, db ?? {}) : db?.run ? runCard(db.run, db) : null,
+    occurrencesCard(m, trace, simple ?? {}),
     codeCard(m, trace, env),
     markersCard(m),
     rpcCard(m),
@@ -51,7 +53,7 @@ export function messagePanel(m, trace, env, scope = 'full', openEntry = null, ma
     m.broken && m.rpc ? rpcMissing(m) : m.unhandled ? section('Why it is broken', null, h('p.small', `${m.event} reaches this consumer, but none of its event handlers matches it. It will fail or go to the dead-letter queue.`))
       : m.broken ? section('Why it is broken', null, h('p.small', 'No ingress, queue or route matches this key. Either the target was renamed, or a harvester produced a different key on one side.')) : null,
     m.origin === 'frontier' ? h('p.small.muted', 'A frontier step: part of a call tree that reaches no sink.') : null,
-    m.repeatOf ? h('p.small', `↩ Already expanded at step ${m.repeatOf}: `, h('span.key', trace.messages[m.repeatOf - 1]?.label ?? ''), '. The same delivery (consumer, ingress, event) is drawn once per trace, so nothing is shown below this arrow.') : null,
+    repeatCard(m, trace, simple ?? {}), // 0.44.0 (#90): says what the repeat is for its kind, jumps to the first one, offers "Expand here"
     m.cycle ? h('p.small.muted', 'This call leads back into a function already on the path, so the trace stops here.') : null,
     h('dl.kv',
       ...routeRows(m),

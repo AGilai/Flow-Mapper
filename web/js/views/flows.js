@@ -38,7 +38,7 @@ import { createStepMenu, stored, storedHl, storedCb } from './step-details-menu.
 import { decodeZoom, encodeZoom, percentOf } from './flow-zoom-pure.js';
 import { createZoomControl } from './flow-zoom.js';
 import { decodeHints, encodeHints } from './flow-hints-pure.js';
-import { sqStored, bandStored, bandSave, sqSave, detailStored } from './flow-prefs.js';
+import { sqStored, bandStored, bandSave, sqSave, detailStored, frontierSimple } from './flow-prefs.js';
 import { createScenarios } from './flow-scenario-state.js';
 
 export async function render({ main, query }) {
@@ -116,7 +116,7 @@ export async function render({ main, query }) {
     h('p.muted', 'Pick a flow in the list. Click opens it here; "Tab" opens it next to the others.'));
   mainPane.append(toolbar, strip.el, empty);
 
-  function persist() {
+  function persist() { frontierSimple(frontierCheck, !!S.active && scen.of(S.active).detail === 'simple');
     setQuery({ ...T.encodeUrl(S, state.env), store: storeParam, ...(S.keys.length ? { service: null } : {}), stores: opts.stores ? null : '0', queues: null, depth: opts.depth === 'all' ? null : opts.depth, frontier: opts.frontier ? '1' : null, sb: encodeBar(opts.sb), sd: encodeArrows(opts.sd, arrowsDefault(isDesign())), th: encodeHints(opts.th, isDesign()), hl: encodeHl(opts.hl), cb: encodeCb(opts.cb, isDesign()), zoom: encodeZoom(zooms.get(S.active)), step: encodeStep(stepParam), ...scen.query(S.active) });
   }
   const max = createMax({ onChange: () => views.get(S.active)?.el.scrollTo?.(0, 0) });
