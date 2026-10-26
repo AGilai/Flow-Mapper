@@ -166,7 +166,7 @@ export function createTabView(data, host) {
       inside.close();
       if (ed?.arrow(m)) return;
       host.flowsEl.classList.add('mp-open');
-      host.panel.open(...messagePanel(m, tr, host.env, 'full', host.openEntry, marks(), regroup.contextOf(m, g), { jump: (n) => { host.panel.close(); walk.go(n); }, expandHere: async (k) => { host.panel.close(); await ts.scen.expandHere(k); requestAnimationFrame(() => { const st = walk.steps().find((x) => x.key === k); if (st) walk.go(st.n); }); } /* 0.44.0 QA: land on the step it opened, not the Simple step number */, foldBack: (k) => { host.panel.close(); ts.scen.foldBack(k); }, unfolded: ts.hooks.unfolded, seenIn: ts.scen.externalSteps, openExternal: () => ts.scen.setDetail('external') }));
+      host.panel.open(...messagePanel(m, tr, host.env, 'full', host.openEntry, marks(), regroup.contextOf(m, g), { stepOf: (r) => walk.steps().find((x) => x.event.msg === tr.messages.filter((y) => !y.unfoldOf)[r - 1])?.n ?? r, jump: (n) => { host.panel.close(); walk.go(n); }, expandHere: async (k) => { host.panel.close(); await ts.scen.expandHere(k); requestAnimationFrame(() => { const st = walk.steps().find((x) => x.key === k); if (st) walk.go(st.n); }); } /* 0.44.0 QA: land on the step it opened, not the Simple step number */, foldBack: (k) => { host.panel.close(); ts.scen.foldBack(k); }, unfolded: ts.hooks.unfolded, seenIn: ts.scen.externalSteps, openExternal: () => ts.scen.setDetail('external') }));
     } };
   const regroup = createRegroup({ scen: ts.scen, walk, body, host, trace: () => trace, openMessage: (m, g, tr) => shared.openMessage(m, g, tr) }); // #88
   function openPublish(pub, g, tr) { // the shared trunk of a fan-out: the publish, then its deliveries (each opens its own arrow)

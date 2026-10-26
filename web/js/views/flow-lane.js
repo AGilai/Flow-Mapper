@@ -21,6 +21,7 @@ import { chainOf, planChains, hopLabel, filterMarker, badgesAt, chType, chName, 
 import { isRpc, isSyncCall, tOf, rpcCommand, pairPlan, trunkKey, nonMatchText } from './flow-amqp.js';
 import { foldedStores, storeColumn, arrowLabel, isWrite, splitStore, orderStores } from './flow-stores-pure.js';
 import { decisionPlan } from './flow-decision-rows.js';
+import { drawnStep } from './flow-steps.js';
 
 export const svcOf = (id) => (id.startsWith('svc:') ? id.slice(4) : id.startsWith('fn:') ? id.split(':')[1] : null);
 
@@ -228,6 +229,7 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
   const storeAt = new Map(orderStores(cols.filter((c) => c.kind === 'resource')).map((c, i) => [c, i])); // a store's collections together, in the order of their first step
   const columns = cols.filter((c) => kept.some((e) => e.from === c || e.to === c || e.via === c || e.col === c || e.cols?.includes(c)) || (c === source && !clientApp) || c === rootCol)
     .sort((a, b) => rank(a) - rank(b) || (a.kind === 'channel' ? a.ord - b.ord : a.kind === 'resource' ? storeAt.get(a) - storeAt.get(b) : a.ci - b.ci));
+  for (const e of kept) if (e.repeat) { const n = drawnStep(kept, msgs, e.repeat); if (typeof e.label === 'string') e.label = e.label.replace(/seen at step \d+/, `seen at step ${n}`); e.repeat = n; } // #92: the message index becomes the drawn step number
   const altEvents = kept.filter((e) => e.msg);
   return { columns, events: kept, bars, altMsgs: altEvents.map((e) => e.msg), altRows: altEvents.map((e) => e.row) };
 }
