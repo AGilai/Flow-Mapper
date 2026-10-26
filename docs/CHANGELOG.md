@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased
+## 0.44.0 (2026-10-26)
 
 **Trace, additive (#90): the Simple view.** `GET /api/envs/:env/trace` and MCP `trace_flow` take `detail=simple` (the default stays `external`): each external call once, repeats counted (`label` `*3 get, set`, `occurrences` on the message) or marked (`repeatOf`), every either/or arm shown together (no `decisions`; `flattened: N`), service participants carry `hiddenSteps`. Calls of one caller to one store merge into one #88 row even when not adjacent. `maxMessages` cuts the consolidated view (the canonical trace is built with 4x, at most 4000). New `unfold=<step key>,...` (external and full) copies the first expansion under a repeat marker as sub-steps (`unfoldOf`). Details in [API.md](API.md). UI: the detail switch is Simple, External, Full (Simple is the default; an old stored External stays), the URL always carries `detail=`.
 
