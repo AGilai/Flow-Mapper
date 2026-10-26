@@ -3,6 +3,7 @@
 
 import { s } from '../dom.js';
 
+import { stripMarkdown } from '../../core/markdown-strip.js';
 const CH = 6.3; // 11.5px text
 const clip = (t, n) => (t.length > n ? `${t.slice(0, Math.max(1, n - 1))}…` : t);
 
@@ -28,7 +29,7 @@ export function detailTexts({ colX, ys, idx, folded }, { parts, text }, onEdit) 
       return el;
     };
     if (p.title) kids.push(line('t', t.title, p.api ? y - 24 : y - 7));
-    if (p.desc) kids.push(line('d', t.desc, p.api || p.title ? y + 15 : y - 7));
+    if (p.desc) kids.push(line('d', stripMarkdown(t.desc), p.api || p.title ? y + 15 : y - 7));
   }
   return s('g', { class: 'sdets' }, ...kids);
 }
