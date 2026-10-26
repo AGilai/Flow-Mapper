@@ -129,12 +129,12 @@ test('unfold: copies after the marker as sub-steps, later numbers do not shift, 
   const base = viewOf(t, { detail: 'full', group: false, unfold: [] });
   const keys = stepKeys(t.messages), marker = { ...t.messages.find((m) => m.repeatOf)!, key: keys[t.messages.findIndex((m) => m.repeatOf)] };
   const v = viewOf(t, { detail: 'full', group: false, unfold: [marker.key] });
-  const at = v.messages.findIndex((m) => m.repeatOf);
+  const pos = v.messages.findIndex((m) => m.repeatOf), at = v.messages.slice(0, pos).filter((m) => m.kind !== 'leaf' || m.over?.length || m.returnTo).length; // the lane numbers what it draws: a leaf note with no `over` is no step
   const copies = v.messages.filter((m) => m.unfoldOf);
   assert.deepEqual(copies.map((m) => m.unfoldOf!.sub), [`${at + 1}.1`, `${at + 1}.2`, `${at + 1}.3`]);
   assert.deepEqual(copies.map((m) => m.label), ['get', 'inner', 'get']);
   assert.equal(copies[0].unfoldOf!.marker, at + 1);
-  assert.equal(copies[0].unfoldOf!.first, marker.repeatOf);
+  assert.equal(copies[0].unfoldOf!.first, base.messages.slice(0, marker.repeatOf).filter((m) => m.kind !== 'leaf' || m.over?.length || m.returnTo).length, 'first and last are the numbers the lane draws');
   assert.deepEqual(v.messages.filter((m) => !m.unfoldOf).map((m) => m.label), base.messages.map((m) => m.label), 'everything else is as before');
   assert.deepEqual(v.messages.filter((m) => !m.unfoldOf).map((m) => m.repeatOf), base.messages.map((m) => m.repeatOf));
   assert.equal(viewOf(t, { detail: 'full', group: false, unfold: ['nope'] }).messages.length, base.messages.length);
