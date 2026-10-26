@@ -75,10 +75,10 @@ export function createTabView(data, host) {
   paintInc();
   const label = host.describe(key);
   // The flow's description sits under its title, full width and collapsible (0.20.0); a sub-flow tab keeps its one line.
-  const flowBox = root && data.kind !== 'sub' ? descDetails(host.desc, root, null, { cls: 'flowhead', remember: 'flowhead-open', title: 'What this flow is for', onGenerate: () => generate(null), pen: host.pen,
+  let flowBox = null; const related = root && data.kind !== 'sub' ? createRelations({ host, root, editing, onCount: (n) => flowBox?.setRelated(n) }) : null; // 0.28.2: typed links to other flows
+  flowBox = root && data.kind !== 'sub' ? descDetails(host.desc, root, null, { cls: 'flowhead', relations: related, canAdd: editing, seenKey: `${host.env}/${root.service}/${root.ingress}`, title: 'What this flow is for', onGenerate: () => generate(null), pen: host.pen,
     summary: [root ? nameEditor({ root, name: host.nameOf?.(root.service, root.ingress) ?? '', fallback: label.title, readOnly: host.readOnly }).el : h('span.fh-t', label.title), label.sub ? h('span.mono.xs.muted', label.sub) : null, linksRow(trace.start?.links), editFlow(), editing ? importButton() : null,
       exportButton({ ...root, env: host.env, name: host.nameOf?.(root.service, root.ingress) || label.title, view: () => ts.scen.exportView() }), inc.el, ts.ui.el, host.max?.button()] }) : null;
-  const related = root && data.kind !== 'sub' ? createRelations({ host, root, editing }) : null; // 0.28.2: typed links to other flows, under the description
   const subLine = root && data.kind === 'sub' ? descLine(host.desc, root, [`${data.service}:${data.name}`, data.service], { onGenerate: () => generate(data.service) }) : null;
   descs.push(flowBox, subLine);
   // Comments under the description (0.27.0): the flow's own discussion; a sub-flow or function tab has none.
@@ -220,7 +220,7 @@ export function createTabView(data, host) {
   const maxBar = paintEnv(h('div.max-bar', backBtn('.in-max'), envChip(host.env), host.readOnly ? maxReadOnly(host.env, host.switchEnv) : null, h('span.fh-t', (root && host.nameOf?.(root.service, root.ingress)) || label.title), label.sub ? h('span.mono.xs.muted', label.sub) : null, zctl.el), host.env); // shown only while maximized (flow-max.css)
   if (comments) { pane = createPane({ panels: { notes, comments, actions }, diagram: body }); for (const [id, d] of Object.entries(counts)) pane.setCount(id, d); }
   const xnote = host.readOnly ? foreignNote(host.env, host.design, host.switchEnv) : null; // "Viewing <env>. Switch to it to edit."
-  const el = h('div.flow-tab', maxBar, backBar, xnote, h('div.flow-top', flowBox ? null : h('div.scn-row', inc.el, ts.ui.el), flowBox?.el, ts.ui.extra, related?.el, walk.el, partial.el), body, pane?.splitter, pane?.el); // the pane sits under the diagram (0.27.5); the border between them is a drag handle (0.34.0)
+  const el = h('div.flow-tab', maxBar, backBar, xnote, h('div.flow-top', flowBox ? null : h('div.scn-row', inc.el, ts.ui.el), flowBox?.el, ts.ui.extra, walk.el, partial.el), body, pane?.splitter, pane?.el); // the pane sits under the diagram (0.27.5); the border between them is a drag handle (0.34.0)
   // maximized, the pane's tab row sticks under the title bar and the step bar, whatever height the step bar has (its description wraps): --max-stick is their height
   const stick = () => el.style.setProperty('--max-stick', `${maxBar.offsetHeight + (el.querySelector('.stepbar')?.offsetHeight ?? 0)}px`);
   const roStick = typeof ResizeObserver === 'function' ? new ResizeObserver(stick) : null;

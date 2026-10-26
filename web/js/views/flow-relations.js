@@ -11,18 +11,18 @@ import { afterEdit } from '../design/after-edit.js';
 import { me } from '../design/who.js';
 import { setQuery } from '../router.js';
 import { REL_TYPES, TYPE_LABEL } from './flow-relations-pure.js';
+import { REL_SHOW, relSlice, toggled } from './flow-info-pure.js';
 
 const FILTER_FROM = 6; // type chips only when a flow has more relations than this
-const SHOW = 6;        // rows shown before "Show N more"; expanded, the list scrolls inside (30vh)
 
 /**
  * createRelations({ host, root, editing }) -> { el, dispose } | null (a sealed environment)
  * host: { env, nameOf(service, ingress), openEntry({ service, ingress }), edit?: { relation({ here, view? }) } }; root: { service, ingress }.
  */
-export function createRelations({ host, root, editing }) {
+export function createRelations({ host, root, editing, onCount = null }) {
   if (!root || !isDesign(host.env)) return null;
   const el = h('section.rel-sec', { 'data-qa': 'related-flows', hidden: true, 'aria-label': 'Related flows' });
-  let views = [], only = REL_TYPES.includes(host.relType) ? host.relType : null, more = false, gone = false; // `only`: the type chip, kept in the URL as relType=
+  let views = [], openNotes = new Set(), only = REL_TYPES.includes(host.relType) ? host.relType : null, more = false, gone = false; // `only`: the type chip, kept in the URL as relType=
   const marks = () => host.marks ?? marksNow(); // the marks of the flow's own environment
   const nameOf = (f) => host.nameOf?.(f.service, f.ingress) || `${f.service} · ${f.ingress}`;
 
@@ -34,7 +34,7 @@ export function createRelations({ host, root, editing }) {
   }
   function row(v) {
     const info = marks()?.markOf?.(`rel:${v.id}`), key = `${v.other.service} · ${v.other.ingress}`, name = host.nameOf?.(v.other.service, v.other.ingress);
-    return h('li.rel-row', { 'data-qa': 'relation', 'data-type': v.type },
+    return h('li.rel-row', { 'data-qa': 'relation', 'data-type': v.type, class: openNotes.has(v.id) ? 'open' : '' },
       h('span.rel-ty', { title: TYPE_LABEL[v.type] }, v.phrase),
       h('a.rel-name', { href: '#', title: `Open ${key}`, on: { click: (e) => { e.preventDefault(); (host.openFlow ?? host.openEntry)({ service: v.other.service, ingress: v.other.ingress }); } } }, name || key),
       name ? h('span.mono.xs.muted.rel-key', key) : null,
@@ -42,7 +42,8 @@ export function createRelations({ host, root, editing }) {
       editing && host.edit ? h('span.rel-acts',
         h('button.linkish', { type: 'button', 'data-qa': 'relation-edit', on: { click: () => host.edit.relation({ here: root, view: v }) } }, 'Edit'),
         h('button.linkish', { type: 'button', 'data-qa': 'relation-remove', 'aria-label': `Remove the relation with ${name || key}`, on: { click: () => remove(v) } }, 'Remove')) : null,
-      v.note ? h('span.rel-note', v.note) : null);
+      v.note ? h('span.rel-note', { title: openNotes.has(v.id) ? null : v.note }, v.note) : null, // plain text, one line with an ellipsis; the chevron opens this row's note (0.45.0, #91)
+      v.note ? h('button.rel-tg', { type: 'button', 'data-qa': 'rel-note-toggle', 'aria-expanded': String(openNotes.has(v.id)), 'aria-label': `${openNotes.has(v.id) ? 'Collapse' : 'Expand'} the note of ${name || key}`, on: { click: () => { openNotes = toggled(openNotes, v.id); draw(); } } }, h('span', { 'aria-hidden': 'true' }, '▾')) : null);
   }
   function draw() {
     if (gone) return;
@@ -50,11 +51,11 @@ export function createRelations({ host, root, editing }) {
     const shown = only && views.length > FILTER_FROM ? views.filter((v) => v.type === only) : views;
     const chips = views.length > FILTER_FROM ? h('div.rel-chips', { role: 'group', 'aria-label': 'Filter by type' }, [['', 'All', views.length], ...REL_TYPES.map((t) => [t, TYPE_LABEL[t], views.filter((v) => v.type === t).length]).filter(([, , n]) => n)]
       .map(([t, label, n]) => h('button.rel-chip', { type: 'button', 'aria-pressed': String((only ?? '') === t), on: { click: () => { only = t || null; more = false; setQuery({ relType: only }); draw(); } } }, `${label} ${n}`))) : null;
-    fill(el, h('div.rel-head', h('h3', 'Related flows'), h('span.count', `(${views.length})`), h('span.grow'), chips,
+    fill(el, h('div.rel-head', h('h5', 'Related flows', h('span.count', `(${views.length})`)), h('span.grow'), chips,
       editing && host.edit ? h('button.btn.sm', { type: 'button', 'data-qa': 'add-relation', title: 'Relate this flow to another one in the draft', on: { click: () => host.edit.relation({ here: root }) } }, '+ relation') : null),
-      shown.length ? [h('ul.rel-list', { class: more ? 'is-open' : '' }, (more ? shown : shown.slice(0, SHOW)).map(row)),
-        shown.length > SHOW ? h('button.linkish.rel-more', { type: 'button', 'data-qa': 'rel-more', on: { click: () => { more = !more; draw(); } } }, more ? 'Show fewer' : `Show ${shown.length - SHOW} more`) : null] : h('p.xs.muted.rel-none', views.length ? 'No relations of this type.' : 'No related flows yet.'));
+      shown.length ? [h('ul.rel-list', { class: more ? 'is-open' : '' }, relSlice(shown, more).shown.map(row)),
+        shown.length > REL_SHOW ? h('button.linkish.rel-more', { type: 'button', 'data-qa': 'rel-more', on: { click: () => { more = !more; draw(); } } }, more ? 'Show fewer' : `Show ${relSlice(shown, false).more} more`) : null] : h('p.xs.muted.rel-none', views.length ? 'No relations of this type.' : 'No related flows yet.'));
   }
-  api.flowRelations(host.env, root).then((v) => { views = v; draw(); }).catch(() => { /* the flow still works without the section */ });
+  api.flowRelations(host.env, root).then((v) => { views = v; onCount?.(v.length); draw(); }).catch(() => { /* the flow still works without the section */ });
   return { el, dispose: () => { gone = true; } };
 }

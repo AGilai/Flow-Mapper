@@ -215,7 +215,7 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
   const entry = clientApp ? events.find((e) => e.type === 'call' && e.from === source) : null;
   const kept = events.filter((e) => (e.type !== 'pill' || (e.bar.internal.n && !ext.has(e.bar.service))) && e !== entry && !(clientApp && e.type === 'return' && e.to === source));
   const remap = new Map(events.map((e) => [e, kept.indexOf(e)]));
-  kept.forEach((e, i) => { e.row = i; });
+  kept.forEach((e, i) => { e.row = i; if (e.repeat) { const n = drawnStep(kept, msgs, e.repeat); if (typeof e.label === 'string') e.label = e.label.replace(/seen at step \d+/, `seen at step ${n}`); e.repeat = n; } }); // #92: a repeat's message index becomes the drawn step number
   for (const b of bars) { b.start = Math.max(0, remap.get(events[b.start]) ?? b.start); }
   for (const b of bars) { // end: last kept event at or before the old end
     let e = b.end; while (e > 0 && remap.get(events[e]) < 0) e--; b.end = remap.get(events[e]);
@@ -229,7 +229,6 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
   const storeAt = new Map(orderStores(cols.filter((c) => c.kind === 'resource')).map((c, i) => [c, i])); // a store's collections together, in the order of their first step
   const columns = cols.filter((c) => kept.some((e) => e.from === c || e.to === c || e.via === c || e.col === c || e.cols?.includes(c)) || (c === source && !clientApp) || c === rootCol)
     .sort((a, b) => rank(a) - rank(b) || (a.kind === 'channel' ? a.ord - b.ord : a.kind === 'resource' ? storeAt.get(a) - storeAt.get(b) : a.ci - b.ci));
-  for (const e of kept) if (e.repeat) { const n = drawnStep(kept, msgs, e.repeat); if (typeof e.label === 'string') e.label = e.label.replace(/seen at step \d+/, `seen at step ${n}`); e.repeat = n; } // #92: the message index becomes the drawn step number
   const altEvents = kept.filter((e) => e.msg);
   return { columns, events: kept, bars, altMsgs: altEvents.map((e) => e.msg), altRows: altEvents.map((e) => e.row) };
 }

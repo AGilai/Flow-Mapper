@@ -5,6 +5,7 @@
 import { h } from '../dom.js';
 import { api } from '../api.js';
 import { lineText } from '../../core/description.js';
+import { mdBlock } from './flow-md.js';
 
 const none = { human: null, ai: null };
 const pairOf = (d, callee) => (!d ? none : callee ? d.callees[callee] ?? none : d.flow);
@@ -58,7 +59,7 @@ function noteEditor({ initial, label, onSave, onCancel }) {
   return { el, focus: () => { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); } };
 }
 
-const paras = (text) => String(text).split(/\n{2,}/).map((p) => h('p', { class: /^why it exists:/i.test(p.trim()) ? 'why' : '' }, p.trim()));
+const paras = (text) => mdBlock(text); // 0.45.0 (#91): Markdown-lite, the renderer of `about`; the editor still shows the raw text
 
 /**
  * descBlock(store, root, callee, { title, wholeFlow, onGenerate }) -> { el, dispose }
@@ -80,7 +81,7 @@ export function descBlock(store, root, callee, { title, wholeFlow, onGenerate, w
     const start = (e) => { e.preventDefault(); editing = true; render(); };
     if (!p.human) return h('div.dbox.human.empty', h('span.who', 'Human'), h('i', 'No note yet'), h('span.grow'), h('a', { href: '#', on: { click: start } }, 'Add a note'));
     return h('div.dbox.human', h('div.dbox-h', h('span.who', 'Human'), h('span.meta', [p.human.editedBy && p.human.editedBy !== 'web' ? p.human.editedBy : null, fmtDate(p.human.editedAt)].filter(Boolean).join(' · ')),
-      h('span.grow'), h('a', { href: '#', on: { click: start } }, 'Edit')), wide ? h('div.dtext', { title: 'Click to edit', on: { click: (e) => { if (!getSelection()?.toString()) start(e); } } }, paras(p.human.text)) : paras(p.human.text));
+      h('span.grow'), h('a', { href: '#', on: { click: start } }, 'Edit')), wide ? h('div.dtext', { title: 'Click to edit', on: { click: (e) => { if (!getSelection()?.toString() && !e.target.closest('a')) start(e); } } }, paras(p.human.text)) : paras(p.human.text));
   }
   function ai(p) {
     if (quiet && !p.ai) return null;

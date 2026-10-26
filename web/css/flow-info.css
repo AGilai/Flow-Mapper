@@ -1,0 +1,34 @@
+/* The flow Info pill and banner (0.45.0, #91, frame 25). Prefix fin-. One column at every width: the description, then the related flows. Tokens only (light and dark). */
+.fin-pill { display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 10px 0 11px; border: 1px solid var(--line-strong); border-radius: 15px; background: var(--surface); color: var(--ink); font: 600 12.5px/1 var(--font); cursor: pointer; white-space: nowrap; }
+.fin-pill[hidden] { display: none; }
+.fin-pill:hover, .fin-pill[aria-expanded='true'] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.fin-ch { display: inline-block; font-size: 10px; color: var(--muted); transition: transform .15s; }
+.fin-pill:hover .fin-ch, .fin-pill[aria-expanded='true'] .fin-ch { color: var(--accent); }
+.fin-pill[aria-expanded='true'] .fin-ch { transform: rotate(180deg); }
+.fin-banner { display: grid; gap: var(--s3) var(--s5); grid-template-columns: minmax(0, 1fr); margin: var(--s2) calc(-1 * var(--s4)) 0; padding: 12px var(--s4) 14px; background: var(--surface-2); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line-strong); box-shadow: inset 3px 0 0 var(--accent); }
+.fin-banner[hidden] { display: none; }
+.fin-banner h5, .fin-banner .rel-head h5 { margin: 0 0 6px; font: 600 var(--fs-xs)/1.2 var(--font); text-transform: uppercase; letter-spacing: .04em; color: var(--muted); display: flex; gap: 8px; align-items: center; }
+.fin-banner h5 .grow { flex: 1; }
+.fin-banner h5 .fm-fs { text-transform: none; letter-spacing: 0; } .fin-banner h5 .fm-fs button { height: 24px; }
+.fin-banner .desc2.wide { margin: 0; max-width: 80ch; }
+.fin-desc.clamped .dbox .md { max-height: calc(1.55em * 4); overflow: hidden; -webkit-mask-image: linear-gradient(#000 70%, transparent); mask-image: linear-gradient(#000 70%, transparent); }
+.fin-all { margin-top: 4px; font-size: var(--fs-xs); }
+.fin-all[hidden] { display: none; }
+/* related rows: phrase chip, link, note (one line, ellipsis), chevron */
+.fin-banner .rel-sec { padding: 0; border: 0; }
+.fin-banner .rel-head { margin: 0 0 6px; }
+.fin-banner .rel-head h5 { margin: 0; } .fin-banner .rel-head h5 .count { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.fin-banner .rel-list { gap: 3px; margin-top: 0; }
+.fin-banner .rel-row { flex-wrap: nowrap; align-items: center; gap: 4px 8px; min-height: 30px; padding: 3px 4px 3px 8px; }
+.fin-banner .rel-name { white-space: nowrap; overflow-wrap: normal; }
+.fin-banner .rel-key { white-space: nowrap; flex: none; }
+.fin-banner .rel-note { flex: 1 1 0; min-width: 0; flex-basis: 0; padding: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fin-banner .rel-acts { margin-left: 0; flex: none; }
+.rel-tg { flex: none; width: 24px; height: 24px; border: 0; background: none; color: var(--muted); border-radius: 5px; display: grid; place-items: center; cursor: pointer; font-size: 10px; }
+.rel-tg:hover { background: var(--accent-soft); color: var(--accent); } .rel-tg:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.rel-tg span { transition: transform .15s; } .rel-tg[aria-expanded='true'] span { transform: rotate(180deg); }
+.fin-banner .rel-row.open { flex-wrap: wrap; } .fin-banner .rel-row.open .rel-note { flex: 1 0 100%; white-space: normal; order: 9; padding: 2px 4px 5px 0; line-height: 1.45; }
+.fin-banner .rel-row.open .rel-tg { margin-left: auto; }
+@media (max-width: 760px) { .fin-banner .rel-row { flex-wrap: wrap; } .fin-banner .rel-note { flex: 1 0 100%; order: 9; } .fin-banner .rel-row.open .rel-tg, .fin-banner .rel-tg { margin-left: auto; } .fin-banner .rel-key { display: none; } }
+/* an open banner gets room: the head box keeps its height (the diagram gives way) up to 56vh; the description scrolls inside it, and the walk bar is never cut */
+.flow-top:has(.fin-banner:not([hidden])) { flex-shrink: 0; max-height: 56vh; }

@@ -7,6 +7,7 @@ in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.m
 
 ## Unreleased
 
+- **UI (#91):** the flow page's description and Related flows move behind one **Info** pill (an inline banner, Markdown description, one-line relation rows); the step panel is full width with A- / A+ (one text size for both descriptions) and Hide text. Step and flow descriptions render **Markdown-lite** (bold, italic, bullets, line breaks, http(s) links), the same as `about`; the stored text is unchanged, and the editor shows it raw. No API change.
 - **UI fix (#92):** a repeat marker's "seen at step N" label, its Jump and the Info pane's "Same as step N" use the step number the lane draws, not the message index (`repeatOf` in the API stays the message index; documented in API.md).
 
 ## 0.44.0 (2026-10-26)

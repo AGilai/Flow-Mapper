@@ -104,6 +104,6 @@ select.dec-sel:not(.set) { color: var(--accent); }
 
 /* ---- a tight header row (QA 0.38.0): the chip and the switch added ~220 px, so the Maximize button wrapped alone onto a second row (long flow names at 1440, any flow at 760).
    The status text goes first, then the gaps shrink; the chip and the switch stay. ---- */
-.flowhead > summary { container-type: inline-size; }
+.flowhead > .fh-sum { container-type: inline-size; }
 @container (max-width: 1000px) { .fh-src { display: none; } }
-@media (max-width: 800px) { details.flowhead > summary { gap: 6px; } .scn-ctl { gap: 6px; } }
+@media (max-width: 800px) { .flowhead > .fh-sum { gap: 6px; } .scn-ctl { gap: 6px; } }
