@@ -84,6 +84,8 @@ test('unfold: sub-steps are numbered 7.1, 7.2 ... with no gaps (leaf notes the l
   assert.ok(copies.length > 0);
   assert.deepEqual(copies.map((m: any) => m.unfoldOf.sub.split('.')[1]), copies.map((_m: any, k: number) => String(k + 1)));
   assert.ok(v.messages.every((m: any) => m.key), 'full + unfold stamps keys even with no decisions to make');
+  const mi = v.messages.findIndex((m: any) => m.key === keys[at]), drawnTo = (n: number) => v.messages.slice(0, n + 1).filter((m: any) => !m.unfoldOf && (m.kind !== 'leaf' || m.over?.length || m.returnTo)).length;
+  assert.equal(copies[0].unfoldOf.marker, drawnTo(mi), 'the sub-step number starts from the marker as the lane numbers it');
   // a leaf with no `over` is not drawn, so it is not a copy
   const hasLeaf = (msgs: any[]) => msgs.some((m) => m.kind === 'leaf' && !m.over?.length && !m.returnTo);
   assert.ok(hasLeaf(t.messages) && !hasLeaf(copies));

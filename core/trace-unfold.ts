@@ -34,8 +34,9 @@ export function renumberUnfolded(kept: Item[], canonical: Message[], unfold: rea
     res.push(m);
     const c = copies.get(p);
     if (!c) return;
-    const at = (i: number) => kept.findIndex((x) => x.i === i) + 1, first = m.repeatOf, last = at(c[c.length - 1].i);
-    c.forEach((_x, k) => res.push({ ...tail[used + k], unfoldOf: { marker: p + 1, sub: `${p + 1}.${k + 1}`, ...(first ? { first } : {}), ...(last > 0 ? { last } : {}) } }));
+    const at = (i: number) => { const k = kept.findIndex((x) => x.i === i); return k < 0 ? 0 : kept.slice(0, k + 1).filter((x) => drawn(x.m)).length; }, first = at((m.repeatOf ?? 0) - 1) || undefined, last = at(c[c.length - 1].i); // the numbers the lane draws (a leaf it skips is no step)
+    const no = kept.slice(0, p + 1).filter((x) => drawn(x.m)).length; // the marker's number as the lane draws it
+    c.forEach((_x, k) => res.push({ ...tail[used + k], unfoldOf: { marker: no, sub: `${no}.${k + 1}`, ...(first ? { first } : {}), ...(last > 0 ? { last } : {}) } }));
     used += c.length;
   });
   return res;

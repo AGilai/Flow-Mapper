@@ -49,7 +49,7 @@ export function createScenario({ st, base: first, req, baseFor, visible = () => 
     } catch (e) { if (my === token) toast(`Could not load the trace: ${e.message}`, 5000); return false; }
   }
   const api = {
-    view: () => cur ?? make(), loading, decisions, isFull: () => have.full || st.detail === 'full',
+    view: () => cur ?? make(), loading, decisions, isFull: () => have.full || st.detail === 'full', isSimple: () => st.detail === 'simple',
     /** "Expand here" (0.44.0): the repeat marker `key` gets the first expansion's steps under it. Simple has no such marker's steps: External is loaded and the arm that holds it chosen first. */
     async expandHere(key) {
       st.unfold.add(key);
