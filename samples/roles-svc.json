@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "roles-svc",
+    "kind": "service",
+    "team": "identity",
+    "repo": "github.com/acme/roles-svc",
+    "language": "typescript",
+    "description": "Demo of folded internal callees (#90): RoleAggregator.aggregate is called from three places in one flow"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-26T09:00:00Z",
+  "commit": "90c0ffe",
+  "functions": [
+    {
+      "id": "UsersController.remove",
+      "name": "UsersController.remove",
+      "file": "src/users.ts",
+      "line": 10,
+      "steps": [
+        { "seq": 1, "type": "call", "target": "Rbac.canRead" },
+        { "seq": 2, "type": "call", "target": "Rbac.canDelete" },
+        { "seq": 3, "type": "call", "target": "RoleAggregator.aggregate" }
+      ]
+    },
+    {
+      "id": "Rbac.canRead",
+      "name": "Rbac.canRead",
+      "file": "src/rbac.ts",
+      "line": 12,
+      "steps": [{ "seq": 1, "type": "call", "target": "RoleAggregator.aggregate" }]
+    },
+    {
+      "id": "Rbac.canDelete",
+      "name": "Rbac.canDelete",
+      "file": "src/rbac.ts",
+      "line": 30,
+      "steps": [{ "seq": 1, "type": "call", "target": "RoleAggregator.aggregate" }]
+    },
+    {
+      "id": "RoleAggregator.aggregate",
+      "name": "RoleAggregator.aggregate",
+      "file": "src/aggregator.ts",
+      "line": 8,
+      "steps": [
+        { "seq": 1, "type": "call", "kind": "leaf", "operation": "storage.get" },
+        { "seq": 2, "type": "call", "target": "uniqueByPermKey" },
+        { "seq": 3, "type": "call", "kind": "leaf", "operation": "cacheRole" }
+      ]
+    },
+    {
+      "id": "uniqueByPermKey",
+      "name": "uniqueByPermKey",
+      "file": "src/aggregator.ts",
+      "line": 40,
+      "steps": [{ "seq": 1, "type": "call", "kind": "leaf", "operation": "dedupe permissions" }]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.removeUser",
+      "bindKey": "http:DELETE roles-svc/api/v1/users/{p1}",
+      "transport": "http",
+      "handler": "UsersController.remove",
+      "details": { "method": "DELETE", "path": "/api/v1/users/{p1}" }
+    }
+  ],
+  "egress": [],
+  "resources": []
+}

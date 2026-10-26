@@ -76,6 +76,7 @@
  "payments-svc/in.legacyRefund": "16523545ad48c2",
  "reports-api/in.exportReport": "0cfdef139bf811",
  "reports-api/in.getReport": "02daba099fc1de",
+ "roles-svc/in.removeUser": "128007bd339139",
  "safer-auth/in.authenticate": "15d8390b4b3620",
  "safer-lookup/in.find": "1a7a25d23f5643",
  "saga-controller/in.start": "04d521719730fc",

@@ -29,7 +29,7 @@ import { bindingKeyOf, splitAmqpKey } from './amqp.ts';
 import { routeInfo, routeKey, rpcOf, rpcServed, withServer, type AmqpRoute, type RpcInfo } from './amqp-route.ts';
 import { deferHelpers } from './trace-defer.ts';
 import { fanOutOrder } from './trace-order.ts';
-import { withAltDecisions } from './alt-decisions.ts'; import { altIndex, armChain, covers, enterStep, newBook, NO_ARMS, withDecisions, type ArmState } from './alternatives.ts';
+import { withAltDecisions } from './alt-decisions.ts'; import { callKey, firstExpansion, noteExpansion, type Expansions } from './trace-fold.ts'; import { altIndex, armChain, enterStep, newBook, NO_ARMS, withDecisions, type ArmState } from './alternatives.ts';
 
 export type { Participant, Message, HopFilter, Trace, TraceOptions } from './trace-types.ts';
 import type { Message, Participant, HopFilter, Trace, TraceOptions } from './trace-types.ts'; import { externalField } from './external.ts';
@@ -50,7 +50,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
   let truncated = false;
   const root = start.service;
 
-  const expanded = new Map<string, { n: number; path: string[] }[]>(); // deliveries expanded so far (consumer, ingress, handler, event) -> step number of the first and the arms it sat in (#43; 0.37.0: a later one reuses it only inside the same arms)
+  const expanded: Expansions = new Map(); // deliveries expanded so far (consumer, ingress, handler, event) -> step number of the first and the arms it sat in (#43; 0.37.0: a later one reuses it only inside the same arms)
   const altIx = altIndex(g), book = newBook(), armCtxs = new Map<string, AltCtx>(); // 0.37.0 (#82): the either/or index (null: none), what the decisions need, the maxMessages tally per group
   let arms: ArmState = NO_ARMS, pushed = 0;
   const part = (p: Participant) => { if (!participants.has(p.id)) participants.set(p.id, p); return p.id; };
@@ -165,12 +165,12 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
         continue;
       }
       if (st.type === 'call') {
-        const key = sid(service, st.target);
-        const cycle = stack.includes(key);
-        const target = g.fns.get(key);
-        if (!push({ ...base, from: me, to: fnPart(service, st.target), label: target?.name ?? st.target, mode: st.mode ?? 'sync', kind: 'call', internal: true, cycle, calls: st.target })) return;
+        const key = sid(service, st.target), cycle = stack.includes(key), target = g.fns.get(key);
         const down: Binds = st.bind ? new Map([...binds, ...Object.entries(st.bind).map(([k, value]): [string, { value: string; boundAt: string }] => [k, { value, boundAt: `${f.name}:${st.seq}` }])]) : binds;
-        if (!cycle && depth < maxDepth) afterCaller(st.mode, later, startedBy(st.mode === 'async', () => visitFn(service, st.target!, depth + 1, [...stack, key], down)));
+        const fk = callKey(service, st.target, down, arms.fixes), first = cycle ? undefined : firstExpansion(expanded, fk, arms.path); // #90: a callee expanded earlier is one line
+        const name = target?.name ?? st.target;
+        if (!push({ ...base, from: me, to: fnPart(service, st.target), label: first ? `${name} ↩ seen at step ${first}` : name, mode: st.mode ?? 'sync', kind: 'call', internal: true, cycle, calls: st.target, ...(first ? { repeatOf: first } : {}) })) return;
+        if (!cycle && !first && depth < maxDepth) { noteExpansion(expanded, fk, messages.length, arms.path); afterCaller(st.mode, later, startedBy(st.mode === 'async', () => visitFn(service, st.target!, depth + 1, [...stack, key], down))); }
       } else if (st.type === 'resource') {
         const r = g.resources.get(sid(service, st.target));
         const to = part({ id: `res:${r?.bindKey ?? sid(service, st.target)}`, label: r?.name ?? st.target, kind: 'resource' });
@@ -288,13 +288,13 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
     const key = sid(i.service, handler);
     // One expansion per delivery and trace, wherever it sits (siblings, other alt branches): the first in trace order wins. An ancestor on the path stays a [cycle].
     const seenKey = scope === 'intra' && i.service !== root ? undefined : `${key}|${i.id}|${base.event ?? ''}|${base.matched?.join(',') ?? ''}`;
-    const first = seenKey && !stack.includes(key) ? expanded.get(seenKey)?.find((e) => covers(e.path, arms.path))?.n : undefined;
+    const first = seenKey && !stack.includes(key) ? firstExpansion(expanded, seenKey, arms.path) : undefined;
     const text = crossing === 'deliver' ? `${label} → ${handler}` : label;
     if (!push({ ...base, from, to: target, label: first ? `${text} ↩ seen at step ${first}` : text, mode, kind: crossing, depth, target: { service: i.service, ingress: i.id, fn: handler }, ...(base.rpc ? { rpc: withServer(base.rpc, i.details) } : {}), ...(first ? { repeatOf: first } : scope === 'intra' && i.service !== root || !chainOf(i).length ? {} : { middlewareChain: chainOf(i) }) } as Message)) return;
     if (scope === 'intra' && i.service !== root) return;
     if (stack.includes(key)) { messages[messages.length - 1].cycle = true; return; }
     if (first) return;
-    if (seenKey) expanded.set(seenKey, [...(expanded.get(seenKey) ?? []), { n: messages.length, path: arms.path }]);
+    if (seenKey) noteExpansion(expanded, seenKey, messages.length, arms.path);
     if (depth < maxDepth) {
       const go = startedBy(crossing === 'deliver' || mode === 'async', () => runIngress(i, handler, depth + 1, [...stack, key]));
       if (deferred) deferred.push(withAlt(go)); else go();

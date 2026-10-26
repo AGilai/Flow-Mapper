@@ -37,7 +37,7 @@ test('resolution over the samples finds the planted problems', () => {
   const g = buildIndex(sampleModel());
   const h = health(g);
   assert.deepEqual(h.items.dangling.map((d) => `${d.service}:${d.id}`).sort(), ['cp-middleware:firmwareUpdated.publish', 'cp-middleware:geo.locate', 'orders-svc:users.getPrefs', 'payments-svc:disputes.publish']); // the first two: the 0.18.0 RabbitMQ demo (a publish no binding matches, an RPC nobody serves)
-  assert.deepEqual(h.items.orphans.map((d) => `${d.service}:${d.id}`).sort(), ['identity-svc:in.auditExport', 'identity-svc:in.login', 'orders-svc:in.touch', 'payments-svc:in.legacyRefund', 'users-svc:in.getPosture', 'users-svc:in.getUser']); // in.getPosture: the 0.25.0 demo endpoint (a prod endpoint nothing calls)
+  assert.deepEqual(h.items.orphans.map((d) => `${d.service}:${d.id}`).sort(), ['identity-svc:in.auditExport', 'identity-svc:in.login', 'orders-svc:in.touch', 'payments-svc:in.legacyRefund', 'roles-svc:in.removeUser', 'users-svc:in.getPosture', 'users-svc:in.getUser']); // in.getPosture: the 0.25.0 demo endpoint (a prod endpoint nothing calls)
   assert.deepEqual(h.items.unbound.map((u) => u.bindKey).sort(), ['sns:payment-disputes', 'sqs:orders-dlq']);
   assert.equal(h.totals.ambiguous, 0);
 });
