@@ -580,7 +580,7 @@ Stored in `descriptions` (migration `003_descriptions.sql`, kept when a service 
 
 | Method + path | |
 |---|---|
-| `GET /api/envs/:env/descriptions?service=&ingress=` | `{service, ingress, hash, flow: {human, ai}, callees: {<callee>: {human, ai}}}`. `human` is `{text, title, editedBy, editedAt}` or null; `ai` is `{text, title, model, generatedAt, traceHash, outdated}` or null (`title`: 0.30.0, string or null). `hash` is the hash of the flow's current trace; `outdated` is true when an AI record was written from a different trace (the flow changed since). 404 for an unknown ingress |
+| `GET /api/envs/:env/descriptions?service=&ingress=` | `{service, ingress, hash, flow: {human, ai}, callees: {<callee>: {human, ai}}}`. `human` is `{text, title, editedBy, editedAt}` or null; `ai` is `{text, title, model, generatedAt, traceHash, outdated}` or null (`title`: 0.30.0, string or null). `hash` is the hash of the flow's current trace; `outdated` is true when an AI record was written from a different trace (the flow changed since). 404 for an unknown ingress. With `?draft=<slug>` and no stored human note, `flow.human` is the draft's own flow description with `editedBy: "draft"` (0.45.0) |
 | `PUT /api/envs/:env/descriptions` | writes the **human** record: `{service, ingress, callee?, text, title?, editedBy?}`. Empty `text` (and no title) removes it. Max 4000 characters. Returns the flow's descriptions. There is no REST write for the AI record |
 
 **Step keys (0.20.0).** `#step:<from>><to>|<label>|<transport>`, built from one message of the flow's trace

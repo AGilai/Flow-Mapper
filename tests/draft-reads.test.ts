@@ -111,3 +111,9 @@ test('MCP read tools take `draft`: they see the draft, refuse an unknown or clos
   assert.ok((await app.mcp('list_entry_points', { env: 'hld', draft: 'reads' })).json.some((e: any) => e.service === 'pop'));
   assert.ok((await app.mcp('inventory', { env: 'hld', draft: 'reads', type: 'service' })).json.some((x: any) => x.id === 'pop'));
 });
+
+test('descriptions: a draft shows its own flow description as the human note (0.45.0, #91); none without ?draft', async () => {
+  const d = (await app.call('GET', '/api/envs/hld/descriptions?service=pop&ingress=in.open&draft=reads')).body;
+  assert.equal(d.flow.human.text, 'Agent opens a tunnel.');
+  assert.equal(d.flow.human.editedBy, 'draft');
+});

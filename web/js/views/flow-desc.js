@@ -80,7 +80,7 @@ export function descBlock(store, root, callee, { title, wholeFlow, onGenerate, w
     }
     const start = (e) => { e.preventDefault(); editing = true; render(); };
     if (!p.human) return h('div.dbox.human.empty', h('span.who', 'Human'), h('i', 'No note yet'), h('span.grow'), h('a', { href: '#', on: { click: start } }, 'Add a note'));
-    return h('div.dbox.human', h('div.dbox-h', h('span.who', 'Human'), h('span.meta', [p.human.editedBy && p.human.editedBy !== 'web' ? p.human.editedBy : null, fmtDate(p.human.editedAt)].filter(Boolean).join(' · ')),
+    return h('div.dbox.human', h('div.dbox-h', h('span.who', 'Human'), h('span.meta', p.human.editedBy === 'draft' ? 'From the draft' : [p.human.editedBy && p.human.editedBy !== 'web' ? p.human.editedBy : null, fmtDate(p.human.editedAt)].filter(Boolean).join(' · ')),
       h('span.grow'), h('a', { href: '#', on: { click: start } }, 'Edit')), wide ? h('div.dtext', { title: 'Click to edit', on: { click: (e) => { if (!getSelection()?.toString() && !e.target.closest('a')) start(e); } } }, paras(p.human.text)) : paras(p.human.text));
   }
   function ai(p) {
