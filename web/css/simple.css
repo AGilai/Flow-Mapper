@@ -35,3 +35,6 @@
 
 .check.disabled { opacity: .5; cursor: not-allowed; }
 .check.disabled input { cursor: not-allowed; }
+/* the pane's link-buttons (Jump, Open in External, "Seen in External at steps 2, 4"): links, not grey buttons (frame 24c / 24d) */
+.simple-pane .lnk, .simple-pane + .ep-pad .lnk { background: none; border: 0; padding: 0 2px; font: inherit; font-weight: 600; color: var(--accent); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; border-radius: 3px; justify-self: start; width: max-content; }
+.simple-pane .lnk:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
