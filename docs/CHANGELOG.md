@@ -5,11 +5,16 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+
+- **UI fix (#94):** the Flows list card (and the info pane's "Flows through it" rows, the activation-bar tooltip, the one-line description and the step text on the arrows) shows a flow or step description as a plain-text preview: Markdown syntax is stripped (`core/markdown-strip.ts`), the stored text is unchanged. No API change.
+
 ## 0.45.1 (2026-10-26)
 
 - **Fix (#93):** saving a flow description in a draft context no longer answers not-found for a flow that exists only in the draft: `PUT /api/envs/:env/descriptions?draft=<slug>` and MCP `set_description` (new optional `draft`) look the flow up in the draft and upsert the record. GET is unchanged.
 
 - UI: the description save sends the open draft (`?draft=`), so editing a draft-only flow's description saves instead of failing (#93).
+
 ## 0.45.0 (2026-10-26)
 
 - **UI (#91):** the flow page's description and Related flows move behind one **Info** pill (an inline banner, Markdown description, one-line relation rows); the step panel is full width with A- / A+ (one text size for both descriptions) and Hide text. Step and flow descriptions render **Markdown-lite** (bold, italic, bullets, line breaks, http(s) links), the same as `about`; the stored text is unchanged, and the editor shows it raw. No API change.

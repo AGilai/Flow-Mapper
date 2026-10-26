@@ -5,6 +5,7 @@ import { h } from '../dom.js';
 import { chip, splitKey } from '../format.js';
 import { href } from '../router.js';
 import { describeCount } from '../../core/flow-counts.js';
+import { stripMarkdown } from '../../core/markdown-strip.js';
 import { lockChip } from '../components/lock.js';
 import { markBadge, markTitle } from '../components/status-mark.js';
 import { icon } from '../icons.js';
@@ -51,7 +52,7 @@ export function entryRow(p, { marks, counts, cmts = {}, acts = {}, ments = {}, r
     h('span.row', p.bindKey.startsWith('amqp-rpc:') ? chip('rpc', 'amqp rpc') : chip(p.transport), p.entryPoint ? h('span.xs.muted', 'entry point') : null,
       p.name ? null : [lock, info ? markBadge(info, { store: marks, short: true, title: markTip(info, marks) }) : null, extLink(p.flowLinks?.main ? p.flowLinks : p.links)]),
     h('span.key', rest, p.name || !flat ? null : h('span.xs.muted', ` · ${p.service}`), p.name ? null : countBadge(counts.get(`${p.service}:${p.id}`)), p.name ? null : cm), p.name ? h('span.xs.muted', `${p.service} · ${p.id}`, countBadge(counts.get(`${p.service}:${p.id}`)), cm) : null,
-    p.summary ? h('span.fl-sum.xs.muted', p.summary) : null);
+    p.summary ? h('span.fl-sum.xs.muted', stripMarkdown(p.summary)) : null);
   // The row is a wrapper: a button inside the link would be invalid. "Tab" is always visible (never hover only) and opens the flow in a new tab.
   return h('div.entry-r', link, h('button.entry-tab', { type: 'button', 'aria-label': `Open ${name} in a new tab`, title: 'Open in a new tab', 'data-qa': 'entry-tab', on: { click: () => onPickTab(p) } }, h('span', { 'aria-hidden': 'true' }, '+'), 'Tab'));
 }

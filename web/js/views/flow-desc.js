@@ -5,6 +5,7 @@
 import { h } from '../dom.js';
 import { api } from '../api.js';
 import { lineText } from '../../core/description.js';
+import { stripMarkdown } from '../../core/markdown-strip.js';
 import { mdBlock } from './flow-md.js';
 
 const none = { human: null, ai: null };
@@ -123,7 +124,7 @@ export function descLine(store, root, keys, { onGenerate }) {
     const note = link(p.human ? 'Edit' : 'Add a note', () => { editing = true; render(); });
     const gen = link('Generate…', () => { pendingFocus = true; onGenerate(); }, 'gen');
     el.className = `descl${l ? '' : ' empty'}`;
-    el.replaceChildren(...(l ? [l.who === 'human' ? h('span.who-b', 'Human') : h('span.ai', 'AI'), h('span.dtxt', { title: l.text }, l.text),
+    el.replaceChildren(...(l ? [l.who === 'human' ? h('span.who-b', 'Human') : h('span.ai', 'AI'), h('span.dtxt', { title: stripMarkdown(l.text) }, stripMarkdown(l.text)),
       h('span.descl-a', l.outdated ? h('span.chip-warn', { title: 'The flow has changed since this was written.' }, 'outdated') : null, note, p.human ? null : gen)]
       : [h('span.ai.off', 'AI'), h('i.dtxt', data ? 'No description yet' : 'Loading…'), h('span.descl-a', note, gen)]));
     if (pendingFocus && !document.querySelector('.dlg')) { pendingFocus = false; el.querySelector('.gen')?.focus(); }
