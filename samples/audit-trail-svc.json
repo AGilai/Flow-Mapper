@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "audit-trail-svc",
+    "kind": "service",
+    "team": "identity",
+    "repo": "github.com/acme/audit-trail-svc",
+    "language": "typescript",
+    "description": "Demo of the Simple view (#90): the service reached twice"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-26T12:00:00Z",
+  "commit": "44c0ffe",
+  "functions": [
+    {
+      "id": "Audit.record",
+      "name": "Audit.record",
+      "file": "src/audit.ts",
+      "line": 4,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "kind": "leaf",
+          "operation": "append row"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.audit",
+      "bindKey": "http:POST audit-trail-svc/audit",
+      "transport": "http",
+      "handler": "Audit.record",
+      "details": {
+        "method": "POST",
+        "path": "/audit"
+      }
+    }
+  ],
+  "egress": [],
+  "resources": []
+}

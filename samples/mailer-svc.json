@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "mailer-svc",
+    "kind": "service",
+    "team": "identity",
+    "repo": "github.com/acme/mailer-svc",
+    "language": "typescript",
+    "description": "Demo of the Simple view (#90): sends the mail, then audits it"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-26T12:00:00Z",
+  "commit": "44c0ffe",
+  "functions": [
+    {
+      "id": "Mailer.send",
+      "name": "Mailer.send",
+      "file": "src/mailer.ts",
+      "line": 5,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "kind": "leaf",
+          "operation": "smtp.send"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "audit.write",
+          "source": {
+            "file": "src/mailer.ts",
+            "line": 19
+          }
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.send",
+      "bindKey": "http:POST mailer-svc/mail",
+      "transport": "http",
+      "handler": "Mailer.send",
+      "details": {
+        "method": "POST",
+        "path": "/mail"
+      }
+    }
+  ],
+  "egress": [
+    {
+      "id": "audit.write",
+      "bindKey": "http:POST audit-trail-svc/audit",
+      "transport": "http",
+      "mode": "sync",
+      "details": {
+        "method": "POST",
+        "path": "/audit"
+      }
+    }
+  ],
+  "resources": []
+}

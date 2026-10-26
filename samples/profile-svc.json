@@ -1,0 +1,331 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "profile-svc",
+    "kind": "service",
+    "team": "identity",
+    "repo": "github.com/acme/profile-svc",
+    "language": "typescript",
+    "description": "Demo of the Simple view (#90): one block (Redis get/set + Mongo findOne) is copied into three functions, one decision, and a call to audit-trail-svc reached twice"
+  },
+  "version": 1,
+  "harvestedAt": "2026-10-26T12:00:00Z",
+  "commit": "44c0ffe",
+  "functions": [
+    {
+      "id": "ProfileController.update",
+      "name": "ProfileController.update",
+      "file": "src/profiles.ts",
+      "line": 12,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "Loader.profile"
+        },
+        {
+          "seq": 2,
+          "type": "call",
+          "target": "Perms.canEdit"
+        },
+        {
+          "seq": 3,
+          "type": "call",
+          "target": "Perms.canPublish"
+        },
+        {
+          "seq": 4,
+          "type": "call",
+          "target": "Notify.email",
+          "alternatives": [
+            {
+              "group_id": "g-notify",
+              "name": "notify the user?",
+              "arms": [
+                {
+                  "arm": "email",
+                  "label": "email the user",
+                  "step_ids": [
+                    "profile-svc:ProfileController.update#4"
+                  ]
+                },
+                {
+                  "arm": "audit",
+                  "label": "audit only",
+                  "step_ids": [
+                    "profile-svc:ProfileController.update#5"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 5,
+          "type": "call",
+          "target": "Audit.write",
+          "alternatives": [
+            {
+              "group_id": "g-notify",
+              "name": "notify the user?",
+              "arms": [
+                {
+                  "arm": "email",
+                  "label": "email the user",
+                  "step_ids": [
+                    "profile-svc:ProfileController.update#4"
+                  ]
+                },
+                {
+                  "arm": "audit",
+                  "label": "audit only",
+                  "step_ids": [
+                    "profile-svc:ProfileController.update#5"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Loader.profile",
+      "name": "Loader.profile",
+      "file": "src/loader.ts",
+      "line": 10,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "cache",
+          "operation": "get",
+          "access": "read",
+          "source": {
+            "file": "src/loader.ts",
+            "line": 12
+          },
+          "details": {
+            "keyTemplate": "profile:{id}",
+            "dbIndex": 0,
+            "ttlSeconds": 600
+          }
+        },
+        {
+          "seq": 2,
+          "type": "resource",
+          "target": "profilesDb",
+          "operation": "findOne",
+          "access": "read",
+          "source": {
+            "file": "src/loader.ts",
+            "line": 14
+          }
+        },
+        {
+          "seq": 3,
+          "type": "resource",
+          "target": "cache",
+          "operation": "set",
+          "access": "write",
+          "source": {
+            "file": "src/loader.ts",
+            "line": 16
+          },
+          "details": {
+            "keyTemplate": "profile:{id}",
+            "dbIndex": 0,
+            "ttlSeconds": 600
+          }
+        }
+      ]
+    },
+    {
+      "id": "Perms.canEdit",
+      "name": "Perms.canEdit",
+      "file": "src/perms.ts",
+      "line": 22,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "cache",
+          "operation": "get",
+          "access": "read",
+          "source": {
+            "file": "src/perms.ts",
+            "line": 24
+          },
+          "details": {
+            "keyTemplate": "profile:{id}",
+            "dbIndex": 0,
+            "ttlSeconds": 600
+          }
+        },
+        {
+          "seq": 2,
+          "type": "resource",
+          "target": "profilesDb",
+          "operation": "findOne",
+          "access": "read",
+          "source": {
+            "file": "src/perms.ts",
+            "line": 26
+          }
+        },
+        {
+          "seq": 3,
+          "type": "resource",
+          "target": "cache",
+          "operation": "set",
+          "access": "write",
+          "source": {
+            "file": "src/perms.ts",
+            "line": 28
+          },
+          "details": {
+            "keyTemplate": "profile:{id}",
+            "dbIndex": 0,
+            "ttlSeconds": 600
+          }
+        }
+      ]
+    },
+    {
+      "id": "Perms.canPublish",
+      "name": "Perms.canPublish",
+      "file": "src/perms.ts",
+      "line": 58,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "cache",
+          "operation": "get",
+          "access": "read",
+          "source": {
+            "file": "src/perms.ts",
+            "line": 60
+          },
+          "details": {
+            "keyTemplate": "profile:{id}",
+            "dbIndex": 0,
+            "ttlSeconds": 600
+          }
+        },
+        {
+          "seq": 2,
+          "type": "resource",
+          "target": "profilesDb",
+          "operation": "findOne",
+          "access": "read",
+          "source": {
+            "file": "src/perms.ts",
+            "line": 62
+          }
+        },
+        {
+          "seq": 3,
+          "type": "resource",
+          "target": "cache",
+          "operation": "set",
+          "access": "write",
+          "source": {
+            "file": "src/perms.ts",
+            "line": 64
+          },
+          "details": {
+            "keyTemplate": "profile:{id}",
+            "dbIndex": 0,
+            "ttlSeconds": 600
+          }
+        }
+      ]
+    },
+    {
+      "id": "Notify.email",
+      "name": "Notify.email",
+      "file": "src/notify.ts",
+      "line": 9,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "mail.send",
+          "source": {
+            "file": "src/notify.ts",
+            "line": 14
+          }
+        }
+      ]
+    },
+    {
+      "id": "Audit.write",
+      "name": "Audit.write",
+      "file": "src/audit.ts",
+      "line": 7,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "audit.write",
+          "source": {
+            "file": "src/audit.ts",
+            "line": 11
+          }
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.updateProfile",
+      "bindKey": "http:PATCH profile-svc/api/v1/profiles/{id}",
+      "transport": "http",
+      "handler": "ProfileController.update",
+      "entryPoint": true,
+      "details": {
+        "method": "PATCH",
+        "path": "/api/v1/profiles/{id}"
+      }
+    }
+  ],
+  "egress": [
+    {
+      "id": "mail.send",
+      "bindKey": "http:POST mailer-svc/mail",
+      "transport": "http",
+      "mode": "sync",
+      "details": {
+        "method": "POST",
+        "path": "/mail"
+      }
+    },
+    {
+      "id": "audit.write",
+      "bindKey": "http:POST audit-trail-svc/audit",
+      "transport": "http",
+      "mode": "sync",
+      "details": {
+        "method": "POST",
+        "path": "/audit"
+      }
+    }
+  ],
+  "resources": [
+    {
+      "id": "cache",
+      "kind": "redis",
+      "name": "profile-cache",
+      "bindKey": "redis:profile-cache"
+    },
+    {
+      "id": "profilesDb",
+      "kind": "mongodb",
+      "name": "profile-db.profiles",
+      "bindKey": "mongodb:profile-db/profiles"
+    }
+  ]
+}
