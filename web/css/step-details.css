@@ -1,7 +1,7 @@
 /* Step details (0.30.0, frame 17): the step bar carries the step, the toolbar control, the arrow text and the step editor. Tokens only (light and dark). */
 
 /* the step bar (0.45.0, #91, frame 25): the top row holds the walk, the title and the tools; the API line and the description use the whole width below it */
-.stepbar { flex-direction: column; align-items: stretch; gap: 2px; padding: 6px var(--s4) 8px; }
+.stepbar { flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 2px; padding: 6px var(--s4) 8px; }
 .stepbar .sb-top { display: flex; align-items: center; gap: var(--s2) var(--s3); flex-wrap: wrap; min-height: 30px; }
 .stepbar .sb-nav { display: flex; align-items: center; gap: var(--s2); height: 28px; flex: none; }
 .stepbar .grow { flex: 1; min-width: 4px; }
@@ -84,3 +84,5 @@
 /* 0.30.4 (#70): the step bar says what the arrow's icon says */
 .sb-tbd { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); }
 .sb-tbd::before { content: ''; width: 7px; height: 7px; box-sizing: border-box; background: var(--surface-2); border: 1.5px solid var(--ink-2); transform: rotate(45deg); }
+/* QA 0.45.0: a description paragraph follows the shared text size (the older .dbox p rules set a fixed one) */
+.dbox .md p, .desc2.wide .dbox .md p, .flowhead .desc2.wide .dbox .md p, .stepdesc .desc2.wide .dbox .md p { font-size: inherit; line-height: inherit; white-space: normal; }
