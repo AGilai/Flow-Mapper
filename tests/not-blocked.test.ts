@@ -32,7 +32,7 @@ test('a frontier step matching notBlocked is a labelled leaf, not a gap, and not
   assert.deepEqual(leaves.map((m) => [m.kind, m.label, m.seq, m.notBlocked!.transport, m.gap, m.blocked]), [
     ['leaf', 'MongoDB driver call; the DB operations are mapped separately', 1, undefined, undefined, undefined],
     ['leaf', 'RabbitMQ — not mapped yet', 2, 'RabbitMQ', undefined, undefined]]);
-  assert.ok(leaves.every((m) => m.from === m.to));
+  assert.ok(leaves.every((m) => m.from === m.to && m.over?.join() === 'group-admin'));
   assert.equal(t.messages.filter((m) => m.gap).length, 1);
   assert.deepEqual(blockedSteps(t).sites.map((s) => s.seq), [3]);
   assert.equal(traceBlocked(t, t.coverage).n, 1);

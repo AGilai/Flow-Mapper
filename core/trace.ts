@@ -153,7 +153,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
       const nb = service === start.service && nbIx.size ? notBlockedLeaf(nbIx, f.id, st) : null, base = { depth, condition: st.condition, ...(nb ? {} : blockedField(g, service, f.id, st)), ...(alt ? { alt } : {}), loop: st.loop, note: st.note, fn: f.id, service, seq: st.seq, ...stepExtras(st, `${service}:${f.id}#${st.seq}`), ...(st.origin === 'frontier' ? { origin: 'frontier' as const } : {}) };
       const out = st.type === 'egress' && st.target ? g.egress.get(sid(service, st.target)) : undefined;
       const gap = (!st.target ? st.unresolved?.find((u) => u.what === 'target') : undefined) ?? (out ? unresolvedTarget(out) : undefined); // a gap the harvester reported: the step's own target, or its egress, is unresolved
-      if (nb) { push({ ...base, from: me, to: me, label: nb.label, mode: st.mode ?? 'sync', kind: 'leaf', notBlocked: nb.notBlocked }); continue; }
+      if (nb) { push({ ...base, from: me, to: me, label: nb.label, mode: st.mode ?? 'sync', kind: 'leaf', over: [service], notBlocked: nb.notBlocked }); continue; }
       if (gap) {
         const to = part({ id: `gap:${gap.reason}`, label: `unresolved: ${gap.reason}`, kind: 'unresolved' });
         push({ ...base, from: me, to, label: gap.detail ?? st.operation ?? gap.reason, mode: st.mode ?? 'sync', kind: st.type === 'resource' ? 'resource' : st.type === 'call' ? 'call' : 'egress', gap, egress: out?.id, transport: out?.transport });

@@ -27,6 +27,7 @@ export function createInside(host, { env, onClose, onOpen, onStep, isActive, des
       : st.type === 'publish' ? [chip(m.transport ?? 'sns'), h('span.key', `publish ${m.event ?? ''}`.trim()), h('span.muted.xs', m.to.slice(3))]
       : st.type === 'unresolved' ? [chip(m.transport ?? 'http'), h('span.key', m.label.replace(/^\w+:/, '')), h('span.chip-bad', 'no match')]
       : st.type === 'frontier' ? [h('span.muted.xs', m.label)]
+      : st.type === 'leaf' ? [h('span.muted.xs', m.notBlocked?.transport ?? 'note'), h('span.key', m.label)] // #96: a labelled leaf (known package), not an http call
       : [chip(m.transport ?? 'http'), h('span.key', m.label.replace(/^\w+:/, ''))];
     return h('button.fi-step', { class: st.type, title: 'Mark this arrow in the diagram', on: { click: () => onStep?.(m) } }, h('span.fi-meta', meta), st.code ? codeLink(st.code) : null);
   };
