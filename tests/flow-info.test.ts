@@ -1,4 +1,4 @@
-// 0.45.0 (#91): the flow Info pill and banner, the shared text size, Hide text and the Markdown of the descriptions, as far as they are pure (no DOM harness exists):
+// 0.45.0 (#91) and 0.46.0 (#95): the flow About region (was the Info pill and banner), the shared text size, Hide text and the Markdown of the descriptions, as far as they are pure (no DOM harness exists):
 // web/js/views/flow-info-pure.js. The Markdown is core/markdown-lite (the renderer of `about`).
 
 import { test } from 'node:test';
@@ -12,13 +12,43 @@ import * as P from '../web/js/views/flow-info-pure.js';
 const mem = (init: Record<string, string> = {}) => { const m = new Map(Object.entries(init)); return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => { m.set(k, String(v)); }, m }; };
 const broken = { getItem: () => { throw new Error('denied'); }, setItem: () => { throw new Error('denied'); } };
 
-test('the pill text: "Info · N related", "Info" alone, "N related" alone, none; a viewer who can add still gets "Info"', () => {
-  assert.equal(P.pillText(true, 2), 'Info · 2 related');
-  assert.equal(P.pillText(true, 0), 'Info');
-  assert.equal(P.pillText(false, 3), '3 related');
-  assert.equal(P.pillText(false, 0), null);
-  assert.equal(P.pillText(false, 0, true), 'Info');
-  assert.equal(P.pillText(true, undefined as any), 'Info');
+test('the About region header: an "N related" chip (none at 0); the controls only when open; Show all only when the text is cut', () => {
+  assert.equal(P.chipText(2), '2 related'); assert.equal(P.chipText(1), '1 related'); assert.equal(P.chipText(0), null); assert.equal(P.chipText(undefined as any), null);
+  const off = { showAll: false, size: false, edit: false, menu: false };
+  assert.deepEqual(P.aboutControls({ open: false, hasText: true, clipped: true }), off, 'collapsed: no controls at all');
+  assert.deepEqual(P.aboutControls({ open: true, hasText: true, clipped: true }), { showAll: true, size: true, edit: true, menu: true });
+  assert.equal(P.aboutControls({ open: true, hasText: true, clipped: false }).showAll, false, 'not clamped: Show all is hidden');
+  assert.equal(P.aboutControls({ open: true, hasText: true, clipped: false, expanded: true }).showAll, true, 'expanded: Show less stays');
+  assert.deepEqual(P.aboutControls({ open: true, hasText: false, clipped: false }), { showAll: false, size: false, edit: true, menu: true }, 'empty state: Edit and the menu only');
+});
+
+const src = (f: string) => readFileSync(new URL(`../web/js/views/${f}`, import.meta.url), 'utf8');
+
+test('the About region (flow-head.js): the header is the toggle with aria, no Info pill, the controls sit outside the toggle button, no Generate row', () => {
+  const head = src('flow-head.js');
+  assert.match(head, /'aria-expanded'/); assert.match(head, /'aria-controls': id/); assert.match(head, /About this flow/);
+  assert.doesNotMatch(head, /fin-pill|info-pill|pillText|info-banner/, 'the 0.45.0 pill and banner are gone');
+  assert.match(head, /h\('div\.fab-hd', tg, ctl\)/, 'the controls are siblings of the toggle button, not inside it');
+  assert.match(head, /Generate AI description…/); assert.match(head, /billed to you/, 'the menu item names the cost');
+  assert.match(head, /stripMarkdown\(about\.preview\(\)\)/, 'the collapsed preview is plain text');
+  assert.match(head, /infoInitial\(seenKey/, 'the first-visit rule is kept'); assert.match(head, /infoSave\(on\)/, 'the open state is saved');
+  assert.match(head, /No description yet/);
+});
+
+test('no standing Generate row: the per-service block and the sub-flow line keep Generate behind "⋯"; the dialog states the cost', () => {
+  assert.doesNotMatch(src('flow-about-text.js'), /Generate…|onGenerate/, 'the region text has no Generate of its own');
+  const desc = src('flow-desc.js');
+  assert.doesNotMatch(desc, /No AI description yet/); assert.doesNotMatch(desc, /✦ Generate/);
+  assert.match(desc, /genMenu\(/); assert.match(src('flow-more-menu.js'), /Escape/); assert.match(src('flow-more-menu.js'), /mousedown/, 'click outside closes');
+  assert.match(src('flow-desc-dialog.js'), /billed to you/);
+  assert.doesNotMatch(src('flow-about-text.js'), /Click to edit/, 'no click-to-edit tooltip over the text');
+});
+
+test('the region text: Human wins over AI, an explicit Write one, the clamp is CSS (no fade), the open header is sticky', () => {
+  const t = src('flow-about-text.js'), css = readFileSync(new URL('../web/css/flow-info.css', import.meta.url), 'utf8');
+  assert.match(t, /p\.human\?\.text \?\? p\.ai\?\.text/); assert.match(t, /Write one/); assert.match(t, /No description yet/);
+  assert.match(css, /\.fab-md\.clamped \{[^}]*-webkit-line-clamp: 4/); assert.doesNotMatch(css, /mask-image/);
+  assert.match(css, /\.fab\.open \.fab-hd \{[^}]*position: sticky/);
 });
 
 test('open or closed: the saved choice rules; with none, a flow with a description opens once (and is remembered as seen); no description stays closed', () => {

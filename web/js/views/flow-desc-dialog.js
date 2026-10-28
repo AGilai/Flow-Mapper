@@ -39,6 +39,7 @@ export function openGenerate({ env, root, services, callee, onClose }) {
   const dlg = h('div.dlg', { role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Generate a description' },
     h('header', h('h3', 'Generate a description with your AI tool'), x),
     h('div.dlg-b',
+      h('p.dlg-cost', { role: 'note' }, h('b', 'Cost. '), 'This only copies a prompt. The AI tool you paste it into runs it, and its usage is billed to you, not by Flow-Mapper.'),
       h('p.muted', 'Flow-Mapper does not call an AI itself. Copy a prompt and paste it into an AI tool that has the ', h('b', 'Flow-Mapper MCP server'), ' connected (Claude Code, Cursor, and so on). The tool reads the flow through MCP and saves the text back.'),
       h('div.dlg-row', h('b', 'Env'), h('span.mono', env), h('b', 'Flow'), h('span.mono', `${root.service} · ${root.ingress}`)),
       h('div.dlg-h', seg, pick, h('span.grow'), copy), pre),

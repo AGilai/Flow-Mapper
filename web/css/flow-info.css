@@ -1,37 +1,68 @@
-/* The flow Info pill and banner (0.45.0, #91, frame 25). Prefix fin-. One column at every width: the description, then the related flows. Tokens only (light and dark). */
-.fin-pill { display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 10px 0 11px; border: 1px solid var(--line-strong); border-radius: 15px; background: var(--surface); color: var(--ink); font: 600 12.5px/1 var(--font); cursor: pointer; white-space: nowrap; }
-.fin-pill[hidden] { display: none; }
-.fin-pill:hover, .fin-pill[aria-expanded='true'] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
-.fin-ch { display: inline-block; font-size: 10px; color: var(--muted); transition: transform .15s; }
-.fin-pill:hover .fin-ch, .fin-pill[aria-expanded='true'] .fin-ch { color: var(--accent); }
-.fin-pill[aria-expanded='true'] .fin-ch { transform: rotate(180deg); }
-.fin-banner { display: grid; gap: var(--s3) var(--s5); grid-template-columns: minmax(0, 1fr); margin: var(--s2) calc(-1 * var(--s4)) 0; padding: 12px var(--s4) 14px; background: var(--surface-2); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line-strong); box-shadow: inset 3px 0 0 var(--accent); }
-.fin-banner[hidden] { display: none; }
-.fin-banner h5, .fin-banner .rel-head h5 { margin: 0 0 6px; font: 600 var(--fs-xs)/1.2 var(--font); text-transform: uppercase; letter-spacing: .04em; color: var(--muted); display: flex; gap: 8px; align-items: center; }
-.fin-banner h5 .grow { flex: 1; }
-.fin-banner h5 .fm-fs { text-transform: none; letter-spacing: 0; } .fin-banner h5 .fm-fs button { height: 24px; }
-.fin-banner .desc2.wide { margin: 0; max-width: 80ch; }
-.fin-desc.clamped .dbox .md { max-height: calc(1.55em * 4); overflow: hidden; -webkit-mask-image: linear-gradient(#000 70%, transparent); mask-image: linear-gradient(#000 70%, transparent); }
-.fin-all { margin-top: 4px; font-size: var(--fs-xs); }
-.fin-all[hidden] { display: none; }
+/* The flow "About this flow" region (0.46.0, #95, frame 26). Prefix fab- / mm-. Full width, header row = toggle; tokens only (light and dark). */
+.fab { margin: var(--s2) calc(-1 * var(--s4)) 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--surface); }
+.fab-hd { display: flex; align-items: center; gap: 6px 10px; padding: 0 var(--s4); min-height: 38px; background: var(--surface-2); flex-wrap: wrap; }
+.fab.open .fab-hd { position: sticky; top: var(--fh-sum-h, 0px); z-index: 2; border-bottom: 1px solid var(--line); box-shadow: 0 6px 10px -8px rgba(27, 34, 51, .3); }
+.fab-tg { display: flex; align-items: center; gap: 8px; flex: 1 1 260px; min-width: 0; min-height: 38px; padding: 0; border: 0; background: none; text-align: left; cursor: pointer; color: var(--ink); font: 600 12.5px/1 var(--font); }
+.fab-tg .ch { flex: none; display: inline-block; width: 11px; font-size: 14px; line-height: 1; color: var(--muted); transition: transform .15s; }
+.fab.open .fab-tg .ch { transform: rotate(90deg); color: var(--accent); }
+.fab-tg:hover .ttl { color: var(--accent); }
+.fab-tg:focus-visible, .fab-tb:focus-visible, .mm-btn:focus-visible, .mm-item:focus-visible, .fab a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 5px; }
+.fab-tg .ttl { white-space: nowrap; }
+.fab-tg .pv { font-weight: 400; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 0 1 auto; }
+.fab-tg .pv[hidden], .fab-cnt[hidden], .fab-ctl[hidden], .fab-ctl [hidden], .fab-bd[hidden] { display: none; }
+.fab-tg .pv.none { color: var(--muted); }
+.fab-cnt { flex: none; font: 600 11px/18px var(--font); padding: 0 8px; border-radius: 9px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
+.fab-ctl { display: flex; align-items: center; gap: 6px; margin-left: auto; padding: 5px 0; }
+.fab-tb, .mm-btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; height: 28px; min-width: 28px; padding: 0 9px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--surface); color: var(--ink); font: 500 11.5px/1 var(--font); cursor: pointer; }
+.fab-tb:hover, .mm-btn:hover { border-color: var(--accent); color: var(--accent); }
+.fab-tb.pri { color: var(--accent); font-weight: 600; }
+.mm-btn[aria-expanded='true'] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.fab .fm-fs button { height: 26px; }
+.fab-bd { padding: 12px var(--s4) 4px; }
+.fab-md { font-size: var(--fm-text, 13px); line-height: 1.55; color: var(--ink); max-width: none; }
+.fab-md p { margin: 0 0 .55em; white-space: normal; } .fab-md ul { margin: 0 0 .55em; padding-left: 1.3em; } .fab-md li { margin: 1px 0; }
+.fab-md.clamped { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; line-clamp: 4; overflow: hidden; } /* a clean cut: no fade, no tooltip */
+.fab-md.clamped > :last-child { margin-bottom: 0; }
+.fab-meta { display: flex; align-items: center; gap: 8px; margin-top: 4px; font-size: var(--fs-xs); color: var(--muted); }
+.fab-meta .linkish { font-size: var(--fs-xs); }
+.fab-ai { margin-top: 6px; padding-left: 10px; border-left: 3px solid var(--accent); }
+.fab-empty { margin: 0; padding: 0 0 8px; color: var(--muted); font-size: 12.5px; }
+.fab-empty a { color: var(--accent); font-weight: 600; text-decoration: none; }
+/* the "..." menu */
+.mm { position: relative; display: inline-flex; }
+.mm[hidden] { display: none; }
+.mm-pop { position: fixed; z-index: 30; width: 300px; max-width: calc(100vw - 16px); padding: 4px; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px; box-shadow: var(--shadow-panel); }
+.mm-pop[hidden] { display: none; }
+.mm-item { display: block; width: 100%; text-align: left; padding: 7px 10px; border: 0; background: none; border-radius: 5px; color: var(--ink); font: 500 12.5px/1.3 var(--font); cursor: pointer; }
+.mm-item:hover, .mm-item:focus-visible { background: var(--accent-soft); color: var(--accent); }
+.mm-item small { display: block; margin-top: 2px; font-weight: 400; font-size: 11.5px; color: var(--muted); }
+.descl-a .mm-btn, .desc2 .mm-btn { height: 22px; min-width: 22px; padding: 0 6px; }
+.dlg-cost { margin: 0 0 8px; padding: 8px 10px; border-left: 3px solid var(--warn); background: var(--surface-2); border-radius: 0 6px 6px 0; font-size: var(--fs-sm); color: var(--ink-2); }
 /* related rows: phrase chip, link, note (one line, ellipsis), chevron */
-.fin-banner .rel-sec { padding: 0; border: 0; }
-.fin-banner .rel-head { margin: 0 0 6px; }
-.fin-banner .rel-head h5 { margin: 0; } .fin-banner .rel-head h5 .count { text-transform: none; letter-spacing: 0; font-weight: 400; }
-.fin-banner .rel-list { gap: 3px; margin-top: 0; }
-.fin-banner .rel-row { flex-wrap: nowrap; align-items: center; gap: 4px 8px; min-height: 30px; padding: 3px 4px 3px 8px; }
-.fin-banner .rel-name { white-space: nowrap; overflow-wrap: normal; }
-.fin-banner .rel-key { white-space: nowrap; flex: none; }
-.fin-banner .rel-note { flex: 1 1 0; min-width: 0; flex-basis: 0; padding: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.fin-banner .rel-acts { margin-left: 0; flex: none; }
+.fab .rel-sec { padding: 0; border: 0; }
+.fab .rel-head { margin: 0 0 6px; }
+.fab .rel-head h5 { margin: 0; font: 600 11px/1 var(--font); text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.fab-bd .rel-sec { padding-bottom: 8px; }
+.fab-bd { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; padding-bottom: 6px; }
+.fab-txt { min-width: 0; } .fab .rel-head h5 .count { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.fab .rel-list { gap: 3px; margin-top: 0; grid-template-columns: minmax(0, 1fr); }
+.fab .rel-sec { min-width: 0; }
+.fab .rel-row { flex-wrap: nowrap; align-items: center; gap: 4px 8px; min-height: 30px; padding: 3px 4px 3px 8px; }
+.fab .rel-name { white-space: nowrap; overflow-wrap: normal; }
+.fab .rel-key { white-space: nowrap; flex: none; }
+.fab .rel-note { flex: 1 1 0; min-width: 0; flex-basis: 0; padding: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fab .rel-acts { margin-left: 0; flex: none; }
 .rel-tg { flex: none; width: 24px; height: 24px; border: 0; background: none; color: var(--muted); border-radius: 5px; display: grid; place-items: center; cursor: pointer; font-size: 10px; }
 .rel-tg:hover { background: var(--accent-soft); color: var(--accent); } .rel-tg:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
 .rel-tg span { transition: transform .15s; } .rel-tg[aria-expanded='true'] span { transform: rotate(180deg); }
-.fin-banner .rel-row.open { flex-wrap: wrap; } .fin-banner .rel-row.open .rel-note { flex: 1 0 100%; white-space: normal; order: 9; padding: 2px 4px 5px 0; line-height: 1.45; }
-.fin-banner .rel-row.open .rel-tg { margin-left: auto; }
-@media (max-width: 760px) { .fin-banner .rel-row { flex-wrap: wrap; } .fin-banner .rel-note { flex: 1 0 100%; order: 9; } .fin-banner .rel-row.open .rel-tg, .fin-banner .rel-tg { margin-left: auto; } .fin-banner .rel-key { display: none; } }
-/* an open banner gets room: the head box keeps its height (the diagram gives way) up to 56vh; the description scrolls inside it, and the walk bar is never cut */
-.flow-top:has(.fin-banner:not([hidden])) { flex-shrink: 0; max-height: 56vh; }
-/* QA 0.45.0: the step text is always open now, so it is capped (it scrolls inside) and the title row of the head never shrinks below its own height: a long step text used to squash the head to a 28px sliver */
+.fab .rel-row.open { flex-wrap: wrap; } .fab .rel-row.open .rel-note { flex: 1 0 100%; white-space: normal; order: 9; padding: 2px 4px 5px 0; line-height: 1.45; }
+.fab .rel-row.open .rel-tg { margin-left: auto; }
+@media (max-width: 760px) { .fab .rel-row { flex-wrap: wrap; } .fab .rel-note { flex: 1 0 100%; order: 9; } .fab .rel-row.open .rel-tg, .fab .rel-tg { margin-left: auto; } .fab .rel-key { display: none; } }
+/* an open region gets room: the head box keeps its height (the diagram gives way) up to 56vh and scrolls inside it, under a sticky header; the walk bar is never cut */
+.flow-top:has(.fab) { max-height: 56vh; } /* the region header adds a row (0.46.0), so the cap rises for collapsed too */
+.flow-top:has(.fab.open) { flex-shrink: 0; }
+body.is-max .fab-hd { position: static; }
+/* QA 0.45.0: the step text is always open now, so it is capped (it scrolls inside) and the title row of the head never shrinks below its own height */
 .flow-top > .flowhead { min-height: 56px; }
+.flow-top > .flowhead:has(.fab:not(.open)) { min-height: calc(var(--fh-sum-h, 56px) + 46px); } /* 0.46.0: the collapsed region header (38px) is never squeezed out of the head */
 .flow-top .sb-x .md { max-height: max(6em, 14vh); }
