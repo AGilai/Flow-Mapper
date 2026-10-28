@@ -60,7 +60,7 @@
 @media (max-width: 760px) { .fab .rel-row { flex-wrap: wrap; } .fab .rel-note { flex: 1 0 100%; order: 9; } .fab .rel-row.open .rel-tg, .fab .rel-tg { margin-left: auto; } .fab .rel-key { display: none; } }
 /* an open region gets room: the head box keeps its height (the diagram gives way) up to 56vh and scrolls inside it, under a sticky header; the walk bar is never cut */
 .flow-top:has(.fab) { max-height: 56vh; } /* the region header adds a row (0.46.0), so the cap rises for collapsed too */
-.flow-top:has(.fab.open) { flex-shrink: 0; }
+.flow-top:has(.fab) { flex-shrink: 0; } /* open or collapsed: the head box is never crushed to the 96px floor (QA 0.46.0: the collapsed header was covered by the diagram) */
 body.is-max .fab-hd { position: static; }
 /* QA 0.45.0: the step text is always open now, so it is capped (it scrolls inside) and the title row of the head never shrinks below its own height */
 .flow-top > .flowhead { min-height: 56px; }

@@ -49,6 +49,7 @@ test('the region text: Human wins over AI, an explicit Write one, the clamp is C
   const t = src('flow-about-text.js'), css = readFileSync(new URL('../web/css/flow-info.css', import.meta.url), 'utf8');
   assert.match(t, /p\.human\?\.text \?\? p\.ai\?\.text/); assert.match(t, /Write one/); assert.match(t, /No description yet/);
   assert.match(css, /\.fab-md\.clamped \{[^}]*-webkit-line-clamp: 4/); assert.doesNotMatch(css, /mask-image/);
+  assert.match(css, /\.flow-top:has\(\.fab\) \{ flex-shrink: 0/, 'collapsed too: the head box is not crushed under the diagram');
   assert.match(css, /\.fab\.open \.fab-hd \{[^}]*position: sticky/);
 });
 
