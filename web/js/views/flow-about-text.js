@@ -41,6 +41,7 @@ export function aboutText(store, root, { title, onChange }) {
   const unwatch = store.watch(root, (d) => { data = d; if (!editing) render(); onChange(); });
   return {
     el, edit: start, dispose: unwatch,
+    loaded: () => !!data,
     hasText: () => !!(data && (pair().human || pair().ai)),
     editing: () => editing,
     preview: () => textOf(pair()),

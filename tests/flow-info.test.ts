@@ -33,6 +33,7 @@ test('the About region (flow-head.js): the header is the toggle with aria, no In
   assert.match(head, /stripMarkdown\(about\.preview\(\)\)/, 'the collapsed preview is plain text');
   assert.match(head, /infoInitial\(seenKey/, 'the first-visit rule is kept'); assert.match(head, /infoSave\(on\)/, 'the open state is saved');
   assert.match(head, /No description yet/);
+  assert.match(head, /about\.loaded\(\) \? 'No description yet' : ''/, 'no "No description yet" flash before the descriptions load');
 });
 
 test('no standing Generate row: the per-service block and the sub-flow line keep Generate behind "⋯"; the dialog states the cost', () => {

@@ -48,7 +48,7 @@ export function descDetails(store, root, callee, { cls, summary, title, onGenera
     const chip = chipText(related);
     tg.setAttribute('aria-expanded', String(isOpen)); sec.classList.toggle('open', isOpen); bd.hidden = !isOpen;
     const prev = stripMarkdown(about.preview());
-    pv.hidden = isOpen; pv.textContent = prev || 'No description yet'; pv.classList.toggle('none', !prev);
+    pv.hidden = isOpen; pv.textContent = prev || (about.loaded() ? 'No description yet' : ''); pv.classList.toggle('none', !prev); // nothing until loaded: no flash
     cnt.hidden = !chip; cnt.textContent = chip ?? '';
     ctl.hidden = !isOpen; showAll.hidden = !c.showAll; size.el.hidden = !c.size; editBtn.hidden = !c.edit || about.editing(); menu.el.hidden = !c.menu;
     showAll.textContent = all ? 'Show less' : 'Show all'; showAll.setAttribute('aria-expanded', String(all));
