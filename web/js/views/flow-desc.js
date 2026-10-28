@@ -7,9 +7,12 @@ import { api } from '../api.js';
 import { lineText } from '../../core/description.js';
 import { stripMarkdown } from '../../core/markdown-strip.js';
 import { mdBlock } from './flow-md.js';
+import { moreMenu } from './flow-more-menu.js';
 
+const GEN_NOTE = 'Copies a prompt for your AI tool; its usage is billed to you';
+const genMenu = (onGenerate) => moreMenu({ label: 'More actions', items: [{ label: 'Generate AI description…', note: GEN_NOTE, onSelect: onGenerate }] }).el; // no standing Generate row (0.46.0, #95)
 const none = { human: null, ai: null };
-const pairOf = (d, callee) => (!d ? none : callee ? d.callees[callee] ?? none : d.flow);
+export const pairOf = (d, callee) => (!d ? none : callee ? d.callees[callee] ?? none : d.flow);
 export const fmtDate = (iso) => { try { return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); } catch { return ''; } };
 const OPEN_KEY = 'flow-mapper.desc-ai-open';
 const aiOpen = () => { try { const v = localStorage.getItem(OPEN_KEY); return v === null ? null : v === '1'; } catch { return null; } }; // null: the user never chose
@@ -44,7 +47,7 @@ export function createDescStore(env) {
 }
 
 /** The editor for a Human note: a textarea with Save and Cancel. Ctrl/Cmd+Enter saves, Esc cancels (and stays inside, so it never closes a panel). */
-function noteEditor({ initial, label, onSave, onCancel }) {
+export function noteEditor({ initial, label, onSave, onCancel }) {
   const ta = h('textarea.textarea', { rows: 4, maxLength: 4000, 'aria-label': label, placeholder: 'What this is for, who owns it, what not to break.' }, initial ?? '');
   const err = h('span.small', { style: { color: 'var(--t-broken)' } });
   const save = h('button.btn.sm.primary', { on: { click: submit } }, 'Save');
@@ -80,14 +83,15 @@ export function descBlock(store, root, callee, { title, wholeFlow, onGenerate, w
       return ed.el;
     }
     const start = (e) => { e.preventDefault(); editing = true; render(); };
-    if (!p.human) return h('div.dbox.human.empty', h('span.who', 'Human'), h('i', 'No note yet'), h('span.grow'), h('a', { href: '#', on: { click: start } }, 'Add a note'));
+    const more = !quiet && !p.ai ? genMenu(() => { pendingFocus = true; onGenerate(); }) : null; // Generate lives behind "⋯" until there is an AI text
+    if (!p.human) return h('div.dbox.human.empty', h('span.who', 'Human'), h('i', 'No note yet'), h('span.grow'), h('a', { href: '#', on: { click: start } }, 'Add a note'), more);
     return h('div.dbox.human', h('div.dbox-h', h('span.who', 'Human'), h('span.meta', p.human.editedBy === 'draft' ? 'From the draft' : [p.human.editedBy && p.human.editedBy !== 'web' ? p.human.editedBy : null, fmtDate(p.human.editedAt)].filter(Boolean).join(' · ')),
-      h('span.grow'), h('a', { href: '#', on: { click: start } }, 'Edit')), wide ? h('div.dtext', { title: 'Click to edit', on: { click: (e) => { if (!getSelection()?.toString() && !e.target.closest('a')) start(e); } } }, paras(p.human.text)) : paras(p.human.text));
+      h('span.grow'), h('a', { href: '#', on: { click: start } }, 'Edit'), more), wide ? h('div.dtext', { title: 'Click to edit', on: { click: (e) => { if (!getSelection()?.toString() && !e.target.closest('a')) start(e); } } }, paras(p.human.text)) : paras(p.human.text));
   }
   function ai(p) {
     if (quiet && !p.ai) return null;
     const gen = (label) => quiet ? null : h('button.btn.sm.gen', { title: 'Copy a prompt for your AI tool', on: { click: () => { pendingFocus = true; onGenerate(); } } }, label);
-    if (!p.ai) return h('div.dbox.aibox.empty', h('span.ai.off', 'AI'), h('i', 'No AI description yet'), h('span.grow'), gen('✦ Generate…'));
+    if (!p.ai) return null;
     const a = p.ai, open = choice ?? !p.human; // collapsed by default when a Human note is there
     const chev = h('button.chev', { 'aria-expanded': String(open), 'aria-label': open ? 'Collapse the AI description' : 'Expand the AI description', on: { click: () => { choice = !open; setAiOpen(choice); render(); } } },
       h('span.chev-i', { class: open ? 'open' : '' }, '›'));
@@ -100,7 +104,7 @@ export function descBlock(store, root, callee, { title, wholeFlow, onGenerate, w
     if (error && !data) { el.replaceChildren(h('div.desc-t', title), h('div.dbox.empty', h('i', `Descriptions are not available: ${error}`))); return; }
     const p = pairOf(data, callee);
     el.replaceChildren(...[quiet ? null : h('div.desc-t', title), human(p), ai(p)].filter(Boolean));
-    if (pendingFocus && !document.querySelector('.dlg')) { pendingFocus = false; el.querySelector('.gen')?.focus(); } // the refresh replaced the button the dialog came from
+    if (pendingFocus && !document.querySelector('.dlg')) { pendingFocus = false; el.querySelector('.mm-btn')?.focus(); } // the refresh replaced the button the dialog came from
   }
   render();
   const unwatch = store.watch(root, (d, e) => { data = d; error = e; render(); });
@@ -122,12 +126,12 @@ export function descLine(store, root, keys, { onGenerate }) {
     const p = keys.map((k) => pairOf(data, k)).find((x) => x.human || x.ai) ?? none, l = lineText(p);
     const link = (label, fn, cls = '') => h('a', { href: '#', class: cls, on: { click: (e) => { e.preventDefault(); fn(); } } }, label);
     const note = link(p.human ? 'Edit' : 'Add a note', () => { editing = true; render(); });
-    const gen = link('Generate…', () => { pendingFocus = true; onGenerate(); }, 'gen');
+    const gen = genMenu(() => { pendingFocus = true; onGenerate(); });
     el.className = `descl${l ? '' : ' empty'}`;
     el.replaceChildren(...(l ? [l.who === 'human' ? h('span.who-b', 'Human') : h('span.ai', 'AI'), h('span.dtxt', { title: stripMarkdown(l.text) }, stripMarkdown(l.text)),
       h('span.descl-a', l.outdated ? h('span.chip-warn', { title: 'The flow has changed since this was written.' }, 'outdated') : null, note, p.human ? null : gen)]
       : [h('span.ai.off', 'AI'), h('i.dtxt', data ? 'No description yet' : 'Loading…'), h('span.descl-a', note, gen)]));
-    if (pendingFocus && !document.querySelector('.dlg')) { pendingFocus = false; el.querySelector('.gen')?.focus(); }
+    if (pendingFocus && !document.querySelector('.dlg')) { pendingFocus = false; el.querySelector('.mm-btn')?.focus(); }
   }
   render();
   const unwatch = store.watch(root, (d) => { data = d; if (!editing) render(); });

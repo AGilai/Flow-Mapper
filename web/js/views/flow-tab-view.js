@@ -76,7 +76,7 @@ export function createTabView(data, host) {
   const label = host.describe(key);
   // The flow's description sits under its title, full width and collapsible (0.20.0); a sub-flow tab keeps its one line.
   let flowBox = null; const related = root && data.kind !== 'sub' ? createRelations({ host, root, editing, onCount: (n) => flowBox?.setRelated(n) }) : null; // 0.28.2: typed links to other flows
-  flowBox = root && data.kind !== 'sub' ? descDetails(host.desc, root, null, { cls: 'flowhead', relations: related, canAdd: editing, seenKey: `${host.env}/${root.service}/${root.ingress}`, title: 'What this flow is for', onGenerate: () => generate(null), pen: host.pen,
+  flowBox = root && data.kind !== 'sub' ? descDetails(host.desc, root, null, { cls: 'flowhead', relations: related, seenKey: `${host.env}/${root.service}/${root.ingress}`, title: 'What this flow is for', onGenerate: () => generate(null), pen: host.pen,
     summary: [root ? nameEditor({ root, name: host.nameOf?.(root.service, root.ingress) ?? '', fallback: label.title, readOnly: host.readOnly }).el : h('span.fh-t', label.title), label.sub ? h('span.mono.xs.muted', label.sub) : null, linksRow(trace.start?.links), editFlow(), editing ? importButton() : null,
       exportButton({ ...root, env: host.env, name: host.nameOf?.(root.service, root.ingress) || label.title, view: () => ts.scen.exportView() }), inc.el, ts.ui.el, host.max?.button()] }) : null;
   const subLine = root && data.kind === 'sub' ? descLine(host.desc, root, [`${data.service}:${data.name}`, data.service], { onGenerate: () => generate(data.service) }) : null;

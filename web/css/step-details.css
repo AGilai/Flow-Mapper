@@ -21,7 +21,7 @@
 .sb-ai { display: inline-block; font: 700 9px/12px var(--font); padding: 0 4px; margin-right: 5px; border-radius: 3px; background: var(--surface-2); color: var(--muted); border: 1px solid var(--line-strong); vertical-align: 1px; float: left; }
 .sb-hide { display: inline-flex; align-items: center; height: 28px; padding: 0 9px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); background: var(--surface); color: var(--ink-2); font: 600 12px var(--font); cursor: pointer; white-space: nowrap; }
 .sb-hide:hover { background: var(--accent-soft); color: var(--accent); }
-.sb-hide:focus-visible, .fm-fs button:focus-visible, .fin-pill:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.sb-hide:focus-visible, .fm-fs button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .stepbar.text-off { padding-top: 7px; padding-bottom: 7px; } /* one row of about 44px */
 @media (max-width: 760px) { .sb-top > .sb-t { flex-basis: 100%; order: 9; white-space: normal; } }
 

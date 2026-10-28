@@ -1,4 +1,4 @@
-// The pure parts of the flow Info banner and the step panel (0.45.0, #91): the pill text, the open / closed rule with its first-visit exception, the shared
+// The pure parts of the flow About region (0.46.0, #95; the Info banner of 0.45.0, #91) and the step panel: the related chip, the header controls, the open / closed rule with its first-visit exception, the shared
 // text size, "Hide text" and the related-flow rows. Every storage access is wrapped in try/catch; without storage the defaults apply. `st` is a Storage-like
 // ({getItem, setItem}); it defaults to localStorage and is injectable for tests.
 
@@ -11,16 +11,19 @@ const store = () => { try { return globalThis.localStorage ?? null; } catch { re
 export const readKey = (k, st = store()) => { try { return st ? st.getItem(PREFIX + k) : null; } catch { return null; } };
 export const writeKey = (k, v, st = store()) => { try { st?.setItem(PREFIX + k, v); } catch { /* storage unavailable */ } };
 
-/** The text of the Info pill; null = no pill. `canAdd`: a viewer who can add a description or a relation still gets the pill ("Info"). */
-export function pillText(hasDesc, related, canAdd = false) {
-  const n = Number(related) || 0;
-  if (hasDesc && n) return `Info · ${n} related`;
-  if (hasDesc) return 'Info';
-  if (n) return `${n} related`;
-  return canAdd ? 'Info' : null;
+/** The "N related" chip of the About region header; null at 0 (no chip). */
+export const chipText = (related) => { const n = Number(related) || 0; return n > 0 ? `${n} related` : null; };
+
+/**
+ * Which controls the About region header carries (0.46.0, #95). Collapsed: none. Open: Edit and the "..." menu always; Show all (only when the text is cut, or
+ * already expanded) and A- / A+ only when there is a description.
+ */
+export function aboutControls({ open, hasText, clipped = false, expanded = false }) {
+  if (!open) return { showAll: false, size: false, edit: false, menu: false };
+  return { showAll: hasText && (clipped || expanded), size: hasText, edit: true, menu: true };
 }
 
-// ---- the banner: open or closed ----
+// ---- the About region: open or closed ----
 export const infoChoice = (st) => { const v = readKey('flowinfo', st); return v === '1' ? true : v === '0' ? false : null; }; // null: the viewer never chose
 export const infoSave = (open, st) => writeKey('flowinfo', open ? '1' : '0', st);
 export function seenSet(st) {
