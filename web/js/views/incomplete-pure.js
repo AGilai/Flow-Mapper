@@ -29,6 +29,9 @@ export const siteTitle = (s) => cap(s.plain || s.reason || 'target not resolved'
 export const siteCode = (s) => (s.plain && s.reason ? s.reason : '');
 export const sitePlace = (s) => (s.file ? `${s.file}${s.line ? `:${s.line}` : ''}` : '');
 
+/** #96: a notBlocked entry's heading: its label, else the package. */
+export const nbTitle = (e) => e.label || e.plain || e.package || 'Not a gap';
+
 /** Sites grouped by service when they span more than one: [{ service, sites }] (service '' = one flat group). */
 export function siteGroups(sites) {
   const services = [...new Set(sites.map((s) => s.service))];

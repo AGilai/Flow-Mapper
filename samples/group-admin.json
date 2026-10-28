@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "group-admin",
+    "kind": "service",
+    "team": "identity",
+    "repo": "github.com/acme/group-admin",
+    "language": "typescript",
+    "description": "Group administration (#96 demo: one blocked call, plus known-package calls (mongodb, RabbitMQ) that are not a gap)"
+  },
+  "version": 1,
+  "commit": "96a96a9",
+  "harvestedAt": "2026-10-28T08:00:00Z",
+  "functions": [
+    {
+      "id": "GroupsController.patch", "name": "GroupsController.patch", "file": "src/groups.controller.ts", "line": 20,
+      "steps": [
+        { "seq": 1, "type": "call", "target": "GroupsService.update", "origin": "frontier" }
+      ]
+    },
+    {
+      "id": "GroupsService.update", "name": "GroupsService.update", "file": "src/groups.service.ts", "line": 14,
+      "steps": [
+        { "seq": 1, "type": "call", "note": "this.db.collection", "origin": "frontier", "source": { "file": "src/adapters/mongoWrapper.ts", "line": 66 }, "unresolved": [{ "what": "target", "reason": "class_not_in_repo", "detail": "this.db.collection('groups')", "gap": true }] },
+        { "seq": 2, "type": "call", "note": "this.channel.publish", "origin": "frontier", "source": { "file": "src/adapters/rabbitmq.ts", "line": 126 }, "unresolved": [{ "what": "target", "reason": "class_not_in_repo", "detail": "this.channel.publish(ex, key, msg)", "gap": true }] },
+        { "seq": 3, "type": "call", "note": "ctx.activityLogClient.dispatch", "origin": "frontier", "source": { "file": "src/groups.service.ts", "line": 41 }, "unresolved": [{ "what": "target", "reason": "class_not_in_repo", "detail": "ctx.activityLogClient.dispatch(entry)", "gap": true, "plain": "class not in this repository" }] }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.patchGroup", "bindKey": "http:PATCH group-admin/api/groups/{p1}", "transport": "http",
+      "handler": "GroupsController.patch", "entryPoint": true,
+      "details": {
+        "method": "PATCH", "path": "/api/groups/{p1}",
+        "coverage": {
+          "status": "incomplete", "blocked": 1, "more": 0,
+          "sites": [
+            { "fn": "GroupsService.update", "seq": 3, "file": "src/groups.service.ts", "line": 41, "call": "ctx.activityLogClient.dispatch(entry)", "reason": "class_not_in_repo", "plain": "class not in this repository" }
+          ],
+          "notBlocked": [
+            { "fn": "GroupsService.update", "seq": 1, "file": "src/adapters/mongoWrapper.ts", "line": 66, "call": "this.db.collection('groups')", "reason": "class_not_in_repo", "package": "mongodb", "label": "MongoDB driver call; the DB operations are mapped separately", "source": ["const col = this.db.collection(name);"] },
+            { "fn": "GroupsService.update", "seq": 2, "file": "src/adapters/rabbitmq.ts", "line": 126, "call": "this.channel.publish(ex, key, msg)", "reason": "class_not_in_repo", "package": "amqplib", "label": "RabbitMQ — not mapped yet", "transport": "RabbitMQ", "source": ["this.channel.publish(exchange, routingKey, buf);"] }
+          ]
+        }
+      }
+    }
+  ],
+  "egress": [],
+  "resources": []
+}

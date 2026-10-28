@@ -127,7 +127,7 @@ test('entry points carry coverage ({ status, blocked }) only where the ingress r
   const eps = entryPoints(g) as any[], by = (s: string) => eps.find((e) => e.service === s);
   assert.deepEqual(by('safer-auth').coverage, { status: 'incomplete', blocked: 2 });
   assert.deepEqual(by('safer-lookup').coverage, { status: 'complete', blocked: 0 });
-  assert.ok(eps.filter((e) => !["safer-auth", "safer-lookup"].includes(e.service)).every((e) => e.coverage === undefined));
+  assert.ok(eps.filter((e) => !["safer-auth", "safer-lookup", "group-admin"].includes(e.service)).every((e) => e.coverage === undefined));
 });
 
 // ---- the lane and its geometry ----

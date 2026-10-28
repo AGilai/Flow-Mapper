@@ -77,3 +77,7 @@ button.inc-badge:hover { background: color-mix(in srgb, var(--inc) 24%, var(--su
 .msg.inferred .idot { stroke-dasharray: 2 2; }
 
 @media (prefers-reduced-motion: reduce) { .msg.frontier .fchev { transition: none; } }
+/* #96: the 'Not a gap' list under the blocked sites: calls into known packages, calm (no amber), with a transport chip. */
+.inc-ng { margin-top: 4px; border-top: 1px solid color-mix(in srgb, var(--inc) 25%, var(--line)); }
+.inc-nb { background: var(--surface); }
+.inc-chip { font: 600 10.5px var(--font); padding: 1px 7px; border-radius: 9px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink-2); }

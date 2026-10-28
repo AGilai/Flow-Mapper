@@ -66,6 +66,7 @@
  "cp-middleware/in.deviceSync": "0edf18856c02ae",
  "dpc-worker/in.rpcDeviceGet": "1889abd1ea0d5a",
  "dpc-worker/in.rpcZoneLookup": "120e916ceb4d6c",
+ "group-admin/in.patchGroup": "010db11aa82918",
  "identity-svc/in.auditExport": "02ee1b55207d3e",
  "identity-svc/in.login": "09c77de813c254",
  "member-api/in.register": "151be24e638387",

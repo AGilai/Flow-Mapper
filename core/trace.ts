@@ -22,7 +22,7 @@ import { codeLink, sourceLink, type SourceLink } from './endpoint-info.ts';
 import { refKey, unresolvedTarget } from './resolve.ts';
 import { assumedOn, storeOn, unknownOn } from './step-notes.ts';
 import type { Step, StepAlternative, StepFix, StepField, Unresolved } from './types.ts';
-import { stepExtras } from './step-marks.ts'; import { keyFieldsOn } from './key-template.ts'; import { blockedField, coverageFor, frontierBlocked } from './incomplete.ts';
+import { stepExtras } from './step-marks.ts'; import { keyFieldsOn } from './key-template.ts'; import { blockedField, coverageFor, frontierBlocked, notBlockedIndex, notBlockedLeaf } from './incomplete.ts';
 import { altCtxOf, altGroups, type Alt, type AltCtx } from './alt.ts';
 import { egressVia, ingressVia, type LinkedHop } from './via.ts';
 import { bindingKeyOf, splitAmqpKey } from './amqp.ts';
@@ -39,7 +39,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
   const maxDepth = opts.maxDepth ?? 25;
   const maxMessages = opts.maxMessages ?? 500;
   const expand = new Set(opts.expand ?? []);
-  const showFrontier = !!opts.frontier;
+  const showFrontier = !!opts.frontier, nbIx = notBlockedIndex(g.ingress.get(sid(start.service, start.ingress ?? ''))); // #96: known-package calls of the entry's own service
   const ing = start.ingress ? g.ingress.get(sid(start.service, start.ingress)) : undefined;
   const fnId = start.fn ?? (ing && start.event ? handlerFor(ing, start.event) : ing?.handler);
   if (ing && !start.fn && !fnId) return emptyFlow(start.service, ing, scope, start.event); // no handler named (for this event): an empty flow, not a 404
@@ -146,14 +146,14 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
       if (st.origin === 'frontier' && !showFrontier) {
         if (!folded) { // one marker per function, where its first frontier step would be
           folded = true;
-          push({ from: me, to: me, label: `frontier: ${frontierCount(service, fn)} steps`, mode: 'sync', kind: 'frontier', depth, service, fn: f.id, seq: st.seq, frontierSteps: frontierCount(service, fn), ...frontierBlocked(g, service, fn) }); // #85: `frontierBlocked` / `frontierSites`: the folded steps that are blocked (`gap: true`)
+          push({ from: me, to: me, label: `frontier: ${frontierCount(service, fn)} steps`, mode: 'sync', kind: 'frontier', depth, service, fn: f.id, seq: st.seq, frontierSteps: frontierCount(service, fn), ...frontierBlocked(g, service, fn, service === start.service ? nbIx : undefined) }); // #85: `frontierBlocked` / `frontierSites`: the folded steps that are blocked (`gap: true`)
         }
         continue;
       }
-      const base = { depth, condition: st.condition, ...blockedField(g, service, f.id, st), ...(alt ? { alt } : {}), loop: st.loop, note: st.note, fn: f.id, service, seq: st.seq, ...stepExtras(st, `${service}:${f.id}#${st.seq}`), ...(st.origin === 'frontier' ? { origin: 'frontier' as const } : {}) };
-      // A gap the harvester reported: the step's own target, or the egress it goes through, is unresolved.
+      const nb = service === start.service && nbIx.size ? notBlockedLeaf(nbIx, f.id, st) : null, base = { depth, condition: st.condition, ...(nb ? {} : blockedField(g, service, f.id, st)), ...(alt ? { alt } : {}), loop: st.loop, note: st.note, fn: f.id, service, seq: st.seq, ...stepExtras(st, `${service}:${f.id}#${st.seq}`), ...(st.origin === 'frontier' ? { origin: 'frontier' as const } : {}) };
       const out = st.type === 'egress' && st.target ? g.egress.get(sid(service, st.target)) : undefined;
-      const gap = (!st.target ? st.unresolved?.find((u) => u.what === 'target') : undefined) ?? (out ? unresolvedTarget(out) : undefined);
+      const gap = (!st.target ? st.unresolved?.find((u) => u.what === 'target') : undefined) ?? (out ? unresolvedTarget(out) : undefined); // a gap the harvester reported: the step's own target, or its egress, is unresolved
+      if (nb) { push({ ...base, from: me, to: me, label: nb.label, mode: st.mode ?? 'sync', kind: 'leaf', notBlocked: nb.notBlocked }); continue; }
       if (gap) {
         const to = part({ id: `gap:${gap.reason}`, label: `unresolved: ${gap.reason}`, kind: 'unresolved' });
         push({ ...base, from: me, to, label: gap.detail ?? st.operation ?? gap.reason, mode: st.mode ?? 'sync', kind: st.type === 'resource' ? 'resource' : st.type === 'call' ? 'call' : 'egress', gap, egress: out?.id, transport: out?.transport });

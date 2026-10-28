@@ -43,6 +43,7 @@ export interface Message {
   gap?: Unresolved;                                          // the harvester could not resolve this call; why
   provenance?: { kind?: 'llm' };                              // #85 (reserved): a step or edge a model inferred (drawn dash-dot with a tag); nothing sends it yet
   blocked?: BlockedSite;                                     // #85: the step has an unresolved entry with `gap: true` (a call the flow could not follow)
+  notBlocked?: { package?: string; label: string; transport?: string };   // #96: a frontier step of a known package (mongodb, amqplib…), drawn as a labelled leaf, never blocked
   frontierBlocked?: number; frontierSites?: BlockedSite[];   // #85, on a kind 'frontier' marker: how many of its folded steps are blocked, and the first 20
   group?: string;                                            // SNS fan-out: id of the publish (`m<index of the publish message>`), on the publish and on each of its deliveries
   deliveries?: number;                                       // on the publish message of a fan-out: how many deliveries follow it

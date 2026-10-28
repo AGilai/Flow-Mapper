@@ -5,6 +5,10 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## 0.45.3 (2026-10-28)
+
+- **Additive (#96): `details.coverage.notBlocked`.** Calls into known packages (mongodb, amqplib/RabbitMQ) that the loader does not count as blocked: entries like a `sites` entry (`fn, seq, file, line, call, reason, plain`) plus optional `package`, `label` ("RabbitMQ — not mapped yet"), `source` (string[], the lines the decision was based on) and `transport`. The trace's `coverage.notBlocked` carries them (with `url`); an expanded frontier step of the entry's own service with the same `fn` + `seq` is a `kind: "leaf"` message labelled with `label` and a `notBlocked: {package?, label, transport?}` field, not an `unresolved: ...` gap, and never counted blocked. UI: "Why incomplete" has a "Not a gap" list. No schema change (`details` is free-form); `/entry-points` is unchanged.
+
 ## 0.45.2 (2026-10-26)
 
 - **UI fix (#94):** the Flows list card (and the info pane's "Flows through it" rows, the activation-bar tooltip, the one-line description and the step text on the arrows) shows a flow or step description as a plain-text preview: Markdown syntax is stripped (`core/markdown-strip.ts`), the stored text is unchanged. No API change.

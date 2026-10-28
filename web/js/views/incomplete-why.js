@@ -3,7 +3,7 @@
 import { h } from '../dom.js';
 import { icon } from '../icons.js';
 import { blockedSites, traceBlocked } from '../../core/incomplete.js';
-import { siteTitle, siteCode, sitePlace, siteGroups } from './incomplete-pure.js';
+import { siteTitle, siteCode, sitePlace, siteGroups, nbTitle } from './incomplete-pure.js';
 
 function item(s, me) {
   const place = sitePlace(s), link = place && (s.url
@@ -14,16 +14,29 @@ function item(s, me) {
     h('code.inc-code', s.call || s.fn), link);
 }
 
+// #96: a call into a known package the loader does not count as blocked: its label, a transport chip, the source link.
+function nbItem(e) {
+  const place = sitePlace(e), link = place && (e.url
+    ? h('a.inc-src', { href: e.url, target: '_blank', rel: 'noopener', title: e.url }, place, icon('external'))
+    : h('span.inc-src.plain', place));
+  return h('li.inc-site.inc-nb', { 'data-site': `${e.fn}#${e.seq}` },
+    h('div.inc-t', h('b', nbTitle(e)), e.transport ? h('span.inc-chip', e.transport) : null),
+    h('code.inc-code', e.call || e.fn), link);
+}
+
 /** whySection(trace, { me }) -> section | null. `me`: the step id (`service:fn#seq`) the pane is on; its row is marked and scrolled into view. */
 export function whySection(trace, { me = null } = {}) {
   const { n, source } = traceBlocked(trace, trace.coverage);
   if (!(n > 0)) return null;
   const { sites, more } = blockedSites(trace, trace.coverage);
+  const notBlocked = trace.coverage?.notBlocked ?? [];
   const intro = source === 'coverage' ? `From the entry point's coverage report (${trace.start?.service} only). Other services on this trace may add more.` : 'These calls could not be followed, so what they reach is not drawn.';
   const el = h('section.inc-why', { id: 'why-incomplete', 'aria-labelledby': 'why-incomplete-h', 'data-qa': 'why-incomplete' },
     h('div.inc-h', icon('warn'), h('h4', { id: 'why-incomplete-h', tabindex: '-1' }, 'Why incomplete'), h('span.inc-n', `${n} blocked`)),
     h('p.xs.inc-intro', intro),
     siteGroups(sites).map((g) => [g.service ? h('div.inc-g', `${g.service} · ${g.sites.length}`) : null, h('ol.inc-list', g.sites.map((s) => item(s, s.id === me)))]),
+    notBlocked.length ? h('div.inc-g.inc-ng', `Not a gap · ${notBlocked.length}`) : null,
+    notBlocked.length ? h('ol.inc-list', notBlocked.map(nbItem)) : null,
     more > 0 ? h('p.xs.inc-more', h('b', `+ ${more} more`), ' not listed here.') : null);
   if (me) requestAnimationFrame(() => el.querySelector('.inc-site.me')?.scrollIntoView({ block: 'nearest' }));
   return el;

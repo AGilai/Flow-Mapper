@@ -10,7 +10,9 @@ import type { Message, Trace } from './trace-types.ts';
 /** A blocked call: where it is (`id` = `<service>:<fn>#<seq>`), what the code says, why it stopped, and the source line (`url` is the repository link when one is known). */
 export interface BlockedSite { id: string; service: string; fn: string; seq: number; call?: string; reason?: string; plain?: string; file?: string; line?: number; url?: string | null }
 /** `details.coverage` of an ingress: what the harvester knows about the flow's own service. */
-export interface Coverage { status?: 'complete' | 'incomplete'; blocked?: number; sites?: Omit<BlockedSite, 'id' | 'service'>[]; more?: number }
+export interface Coverage { status?: 'complete' | 'incomplete'; blocked?: number; sites?: Omit<BlockedSite, 'id' | 'service'>[]; more?: number; notBlocked?: NotBlocked[] }
+/** #96: a call into a known package (mongodb, amqplib…) the loader does not count as blocked: a site plus the `package`, a `label` ("RabbitMQ — not mapped yet"), the `source` lines it judged by and the `transport`. */
+export interface NotBlocked { fn: string; seq: number; package?: string; label?: string; transport?: string; call?: string; reason?: string; plain?: string; file?: string; line?: number; source?: string[]; url?: string | null }
 export const SITE_CAP = 20;
 /** A repository link is shown only when it is http(s); a harvester-supplied `source.url` such as `javascript:` is dropped. */
 const httpUrl = (u: string | null | undefined) => (u && /^https?:\/\//i.test(u) ? u : null);
@@ -25,14 +27,32 @@ export function coverageOf(details: Details | undefined | null): Coverage | null
   const sites = Array.isArray(c.sites)
     ? c.sites.filter((s) => s && typeof s === 'object' && typeof (s as any).fn === 'string').map((s: any) => ({ fn: s.fn as string, seq: num(s.seq) ?? 0, ...(str(s.call) ? { call: s.call } : {}), ...(str(s.reason) ? { reason: s.reason } : {}), ...(str(s.plain) ? { plain: s.plain } : {}), ...(str(s.file) ? { file: s.file } : {}), ...(num(s.line) != null ? { line: num(s.line) } : {}) }))
     : undefined;
-  return status || blocked != null || sites || more != null ? { ...(status ? { status } : {}), ...(blocked != null ? { blocked } : {}), ...(sites ? { sites } : {}), ...(more != null ? { more } : {}) } : null;
+  const notBlocked = Array.isArray(c.notBlocked)
+    ? c.notBlocked.filter((s) => s && typeof s === 'object' && typeof (s as any).fn === 'string').slice(0, SITE_CAP).map((s: any): NotBlocked => {
+      const src = typeof s.source === 'string' ? [s.source] : Array.isArray(s.source) ? s.source.filter((x: unknown) => typeof x === 'string') : [];
+      return { fn: s.fn as string, seq: num(s.seq) ?? 0, ...(['package', 'label', 'transport', 'call', 'reason', 'plain', 'file'] as const).reduce((o, k) => (str(s[k]) ? { ...o, [k]: s[k] } : o), {}), ...(num(s.line) != null ? { line: num(s.line) } : {}), ...(src.length ? { source: src } : {}) };
+    })
+    : undefined;
+  return status || blocked != null || sites || more != null || notBlocked?.length ? { ...(status ? { status } : {}), ...(blocked != null ? { blocked } : {}), ...(sites ? { sites } : {}), ...(more != null ? { more } : {}), ...(notBlocked?.length ? { notBlocked } : {}) } : null;
 }
 
 /** `{ coverage }` for a trace of this ingress (its `details.coverage`, each site with its repository link, built like every other source link), or nothing. */
 export function coverageFor(g: GraphIndex, ing: Ingress): { coverage?: Coverage } {
   const c = coverageOf(ing.details), svc = g.services.get(ing.service);
   if (!c) return {};
-  return { coverage: c.sites ? { ...c, sites: c.sites.map((s) => { const u = httpUrl(svc && s.file ? codeLink(svc, { file: s.file, line: s.line })?.url : null); return u ? { ...s, url: u } : s; }) } : c };
+  const link = <T extends { file?: string; line?: number }>(s: T): T => { const u = httpUrl(svc && s.file ? codeLink(svc, { file: s.file, line: s.line })?.url : null); return u ? { ...s, url: u } : s; };
+  return { coverage: { ...c, ...(c.sites ? { sites: c.sites.map(link) } : {}), ...(c.notBlocked ? { notBlocked: c.notBlocked.map(link) } : {}) } };
+}
+
+/** #96: the notBlocked entries of an ingress by `<fn>#<seq>`. */
+export type NotBlockedIx = ReadonlyMap<string, NotBlocked>;
+export const notBlockedIndex = (ing: Ingress | undefined): NotBlockedIx => new Map((coverageOf(ing?.details)?.notBlocked ?? []).map((e) => [`${e.fn}#${e.seq}`, e]));
+/** #96: a frontier step that matches a notBlocked entry of the flow's own ingress is a classified leaf, never blocked: `{ label, notBlocked }` for its message, else null. */
+export function notBlockedLeaf(ix: NotBlockedIx, fnId: string, st: Step): { label: string; notBlocked: { package?: string; label: string; transport?: string } } | null {
+  const e = st.origin === 'frontier' ? ix.get(`${fnId}#${st.seq}`) : undefined;
+  if (!e) return null;
+  const label = e.label ?? e.plain ?? e.package ?? 'not a gap';
+  return { label, notBlocked: { ...(e.package ? { package: e.package } : {}), label, ...(e.transport ? { transport: e.transport } : {}) } };
 }
 
 /** The blocked entry of a step (its own, else its egress's), or undefined. */
@@ -48,7 +68,7 @@ export function stepBlocked(g: GraphIndex, service: string, fnId: string, st: St
 }
 
 /** The blocked steps in a function's frontier (its own frontier steps and those of the functions its frontier calls reach, each once): how many, and the first `SITE_CAP`. */
-export function frontierBlocked(g: GraphIndex, service: string, fn: string): { frontierBlocked?: number; frontierSites?: BlockedSite[] } {
+export function frontierBlocked(g: GraphIndex, service: string, fn: string, skip?: NotBlockedIx): { frontierBlocked?: number; frontierSites?: BlockedSite[] } {
   const seen = new Set<string>(), sites: BlockedSite[] = [];
   let n = 0;
   const walk = (id: string) => {
@@ -56,7 +76,7 @@ export function frontierBlocked(g: GraphIndex, service: string, fn: string): { f
     seen.add(id);
     for (const st of g.fns.get(sid(service, id))?.steps ?? []) {
       if (st.origin !== 'frontier') continue;
-      const s = stepBlocked(g, service, id, st);
+      const s = skip?.size && notBlockedLeaf(skip, id, st) ? null : stepBlocked(g, service, id, st);
       if (s) { n++; if (sites.length < SITE_CAP) sites.push(s); }
       if (st.type === 'call' && st.target) walk(st.target);
     }
