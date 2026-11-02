@@ -4,7 +4,7 @@
 //
 //   choose  group -> arm | 'both' (a Map or an object; '*' sets the default for every other group). Default: the FIRST arm of each decision.
 //           A lock (`decision.lock`) wins over a conflicting choice (a warning). A decision under an arm that is not in force is not offered.
-//   detail  'external' (default): ingress, calls out of a service, deliveries, DB ops, problems and an arm's only content; 'full': everything.
+//   detail  'external' (default): ingress, calls out of a service, deliveries, DB ops and an arm's only content (0.47.0, #97: no internal calls, frontier steps, markers or problems; `frontier` is ignored); 'full': everything.
 //           `scope: 'intra'` ignores detail (its lifelines are the functions).
 //           'simple' (0.44.0, #90): each external call once, arms flattened, internal steps hidden (core/trace-simple.ts); `maxMessages` cuts it.
 //   unfold  [key]: the repeat markers (by step key) whose first expansion is copied under them, as sub-steps 7.1, 7.2 (core/trace-unfold.ts).
@@ -21,13 +21,16 @@ import { simplify } from './trace-simple.ts';
 import { renumberUnfolded } from './trace-unfold.ts';
 import { splitArm } from './alternatives.ts';
 import { dropFrames } from './alt-decisions.ts';
+import { blockedSteps, gapSeen } from './incomplete.ts';
 
 export interface ViewOptions { choose?: ReadonlyMap<string, string> | Record<string, string>; detail?: 'simple' | 'external' | 'full'; open?: string[]; dbOpen?: string[]; group?: boolean; unfold?: string[]; maxMessages?: number }
 type Item = { m: Message; i: number };
 
 const KEEP = new Set(['entry', 'egress', 'deliver', 'resource']);
-// #84: a frontier step (a trace made with frontier=1) and the folded frontier marker are what the viewer asked for: the external detail keeps them
-const external = (m: Message) => KEEP.has(m.kind) || !!m.gap || !!m.broken || !!m.unhandled || m.origin === 'frontier' || m.kind === 'frontier';
+// #97: External is compact and about external things: entry, egress, deliver, resource. Frontier steps, folded frontier markers, internal calls and problem-only messages (gap, broken, unhandled) are Full's (problems stay in "Why incomplete").
+const frontierish = (m: Message) => m.origin === 'frontier' || m.kind === 'frontier';
+const problem = (m: Message) => !!m.gap || !!m.broken || !!m.unhandled || !!m.blocked;
+const external = (m: Message) => KEEP.has(m.kind) && !frontierish(m);
 const opens = (o: string[], m: Message) => o.some((t) => { const [s, f] = [t.split(':')[0], t.includes(':') ? t.slice(t.indexOf(':') + 1) : '']; return m.service === s && (!f || m.fn === f || m.calls === f); });
 
 /** The messages the detail leaves visible: `open` brings back internal ones; an arm that would show nothing keeps its outcome (a leaf, else its first message). */
@@ -39,7 +42,9 @@ function visible(all: Item[], detail: string, open: string[]): Item[] {
   for (const e of new Set(all.flatMap((x) => x.m.arms ?? []))) {
     if (seen.has(e)) continue;
     const hidden = all.map((x, k) => k).filter((k) => !show[k] && all[k].m.arms?.includes(e));
-    for (const k of (hidden.filter((k) => all[k].m.kind === 'leaf').length ? hidden.filter((k) => all[k].m.kind === 'leaf') : hidden.slice(0, 1))) show[k] = true;
+    const clean = hidden.filter((k) => !frontierish(all[k].m) && !problem(all[k].m)), pool = clean.length ? clean : hidden; // #97: not a frontier / problem message if a cleaner one exists
+    const leaves = pool.filter((k) => all[k].m.kind === 'leaf');
+    for (const k of (leaves.length ? leaves : pool.slice(0, 1))) show[k] = true;
   }
   return all.filter((_, k) => show[k]);
 }
@@ -113,5 +118,6 @@ export function viewOf(t: Trace, opts: ViewOptions = {}): Trace {
     view.choose = Object.fromEntries(chosen);
   }
   if (warnings.length) view.warnings = warnings;
+  if (detail === 'external' && !t.blockedAll && t.messages.some(gapSeen)) view.blockedAll = blockedSteps(t); // #97: the problems left the graph, not the side panel
   return view;
 }

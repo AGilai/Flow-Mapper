@@ -5,6 +5,10 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+
+- **Behaviour change (#97)**: `detail=external` (REST `trace`, MCP `trace_flow`, the UI's External) is now compact: only entry, egress, deliver and resource messages and the arms / decisions / alt frames between them. Internal calls, frontier steps (`origin: 'frontier'`), folded `kind: 'frontier'` markers and problem-only messages (`gap`, `broken`, `unhandled`, `blocked`) are no longer in `messages`, and `frontier=1` no longer changes the result (it did since 0.41.3, #84). Full and Simple are unchanged; `open` still brings a service's internal calls back. The problems stay reported: an External view carries `blockedAll: { sites, n }` (the blocked steps of the full trace) and `coverage` is as before. The UI's Frontier steps checkbox is disabled outside Full.
+
 ## 0.46.0 (2026-10-28)
 
 - UI only (#95): the flow's Info pill and banner are replaced by one full-width "About this flow" region under the title row. Its header is the toggle (preview and "N related" chip when collapsed); open, it carries Show all, A-/A+, Edit and a "..." menu with "Generate AI description..." (no standing Generate row anywhere). No API, plan or MCP change.

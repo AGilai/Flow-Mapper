@@ -99,10 +99,11 @@ export function blockedSteps(t: Pick<Trace, 'messages'>): { sites: BlockedSite[]
   return { sites: [...byId.values()], n: byId.size + unlisted };
 }
 
-const gapSeen = (m: Message) => !!m.blocked || m.gap?.gap !== undefined || !!m.frontierBlocked;
+export const gapSeen = (m: Message) => !!m.blocked || m.gap?.gap !== undefined || !!m.frontierBlocked;
 
 /** N of the trace (header badge, "Why incomplete" title): blocked steps in every service, folded frontier steps included. With no `gap` field anywhere on the trace: the ingress's `coverage.blocked` (its own service only). */
-export function traceBlocked(t: Pick<Trace, 'messages'>, coverage?: Coverage | null): { n: number; source: 'trace' | 'coverage' | null } {
+export function traceBlocked(t: Pick<Trace, 'messages' | 'blockedAll'>, coverage?: Coverage | null): { n: number; source: 'trace' | 'coverage' | null } {
+  if (t.blockedAll) return { n: t.blockedAll.n, source: 'trace' }; // 0.47.0 (#97): the External view does not draw the blocked steps; its trace carries the full one's
   if (t.messages.some(gapSeen)) return { n: blockedSteps(t).n, source: 'trace' };
   return coverage?.blocked != null ? { n: coverage.blocked, source: 'coverage' } : { n: 0, source: null };
 }
@@ -113,14 +114,14 @@ export const listBlocked = (coverage?: Coverage | null): number => coverage?.blo
 export const listIncomplete = (coverage?: Coverage | null): boolean => coverage?.status === 'incomplete' || listBlocked(coverage) > 0;
 
 /** What "Why incomplete" lists: at most `cap` sites in trace order, how many more there are, and where they came from (the trace, or the ingress's coverage report). */
-export function blockedSites(t: Pick<Trace, 'messages'> & { start?: { service: string } }, coverage?: Coverage | null, cap = SITE_CAP): { sites: BlockedSite[]; more: number; total: number; source: 'trace' | 'coverage' | null } {
+export function blockedSites(t: Pick<Trace, 'messages' | 'blockedAll'> & { start?: { service: string } }, coverage?: Coverage | null, cap = SITE_CAP): { sites: BlockedSite[]; more: number; total: number; source: 'trace' | 'coverage' | null } {
   const { n, source } = traceBlocked(t, coverage);
   if (source === 'coverage') {
     const svc = t.start?.service ?? '', all = (coverage?.sites ?? []).map((s) => ({ ...s, id: `${svc}:${s.fn}#${s.seq}`, service: svc }));
     return { sites: all.slice(0, cap), more: Math.max(0, n - Math.min(all.length, cap)), total: n, source };
   }
   if (source !== 'trace') return { sites: [], more: 0, total: 0, source: null };
-  const { sites } = blockedSteps(t);
+  const { sites } = t.blockedAll ?? blockedSteps(t);
   return { sites: sites.slice(0, cap), more: n - Math.min(sites.length, cap), total: n, source };
 }
 

@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildIndex } from '../core/graph-index.ts';
 import { trace } from '../core/trace.ts';
-import { viewOf } from '../core/trace-view.ts';
+import { viewOf, viewCounts } from '../core/trace-view.ts';
 import { sampleModel } from './helpers.ts';
 // @ts-ignore plain JS modules shared with the browser
 import { buildLane } from '../web/js/views/flow-lane.js';
@@ -31,10 +31,12 @@ test('the demo: frontier=1 makes 7 messages, two unresolved; without it one fold
   assert.deepEqual(kinds(folded).map((k: string) => k.split(':')[0]), ['entry', 'frontier']);
 });
 
-test('viewOf: the External detail keeps every frontier step and the folded marker (was: only the two unresolved ones)', () => {
-  assert.equal(viewOf(unfolded, { detail: 'external' }).messages.length, 7);
+test('viewOf (#97): the External detail drops frontier steps, the folded marker and the problems, with or without frontier=1; Full keeps them', () => {
+  assert.deepEqual(kinds(viewOf(unfolded, { detail: 'external' })), [kinds(unfolded)[0]]);
+  assert.deepEqual(kinds(viewOf(folded, { detail: 'external' })), [kinds(folded)[0]]);
   assert.equal(viewOf(unfolded, { detail: 'full' }).messages.length, 7);
-  assert.deepEqual(kinds(viewOf(folded, { detail: 'external' })), kinds(folded));
+  assert.deepEqual(kinds(viewOf(folded, { detail: 'full' })), kinds(folded));
+  for (const t of [unfolded, folded]) assert.equal(viewCounts(t, { detail: 'external' }).messages.max, 1, 'viewCounts agrees');
 });
 
 test('viewOf: an ordinary internal call is still hidden in External, and open brings it back', () => {
@@ -43,9 +45,9 @@ test('viewOf: an ordinary internal call is still hidden in External, and open br
   assert.equal(viewOf(plain, { detail: 'external', open: ['safer-auth'] }).messages.length, 7);
 });
 
-test('lane: with frontier steps on, External draws a row for each of the 6 steps and no folded marker', () => {
+test('lane: with frontier steps on, Full draws a row for each of the 6 steps and no folded marker', () => {
   for (const icalls of [false, true]) {
-    const v = viewOf(unfolded, { detail: 'external' });
+    const v = viewOf(unfolded, { detail: 'full' });
     const lane = buildLane(v.messages, { scope: v.scope, participants: v.participants, icalls });
     assert.equal(lane.events.filter((e: any) => e.type === 'icall').length, 6, `icalls=${icalls}`);
     assert.equal(lane.events.filter((e: any) => e.type === 'pill').length, 0);
