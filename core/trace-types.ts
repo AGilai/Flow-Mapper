@@ -98,7 +98,7 @@ export interface Trace {
   /** 0.37.0: the either/or decisions the flow reaches, in first-seen order. Absent when there are none. */
   decisions?: Decision[];
   /** 0.37.1, on a view only (viewOf): what was applied. */
-  detail?: 'simple' | 'external' | 'full'; /** 0.44.0, Simple: the number of either/or decisions shown together (flattened); `decisions` and `choose` are omitted. */ flattened?: number; choose?: Record<string, string>; warnings?: string[]; counts?: { messages: { min: number; max: number } };
+  detail?: 'simple' | 'external' | 'full'; /** 0.44.0, Simple: the number of either/or decisions shown together (flattened); `decisions` and `choose` are omitted. */ flattened?: number; choose?: Record<string, string>; warnings?: string[]; /** 0.47.0 (#97), External view: the blocked steps of the full trace, which the compact view no longer draws; "Why incomplete" and the header badge read it. */ blockedAll?: { sites: BlockedSite[]; n: number }; counts?: { messages: { min: number; max: number } };
 }
 
 export interface TraceOptions { scope?: 'intra' | 'full'; maxDepth?: number; maxMessages?: number; expand?: string[];
