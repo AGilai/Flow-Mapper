@@ -359,6 +359,20 @@
         "links": { "$ref": "#/$defs/links" },
         "entryPoint": { "type": "boolean", "description": "true: always an entry point (public API, cron, a client's own trigger); excluded from orphan stats. false: never one (a hop such as a tunnel, BGP or BFD session that keeps its real transport). Absent: the default rule (a socket ingress, an RPC command, or an ingress nothing reaches is one)." },
         "details": { "$ref": "#/$defs/details", "description": "Free-form. RabbitMQ RPC (0.18.0): on an ingress with bind key `amqp-rpc:{command}`, `rpc` {command, commandQueue, replyTo, exchange, correlation, timeoutMs, library, prefetch} (the server's side; what the caller declares is completed with it)." },
+        "pathParams": {
+          "type": "array",
+          "description": "Optional (0.47.0). The path parameters of a REST route, in path order. Without it the UI derives names from the placeholders in the path ({p1}, {id}).",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "additionalProperties": false,
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "type": { "type": "string", "description": "Declared type, e.g. string, uuid, number." },
+              "source": { "$ref": "#/$defs/source", "description": "Where the parameter is read in code (file, line)." }
+            }
+          }
+        },
         "source": { "$ref": "#/$defs/source" },
         "provenance": { "$ref": "#/$defs/provenance" },
         "unresolved": { "$ref": "#/$defs/unresolved" },

@@ -3,11 +3,12 @@
 // Pure; used by the server and the static preview.
 
 import type { GraphIndex } from './graph-index.ts';
-import type { Fn, Ingress, Service, Source } from './types.ts';
+import type { Fn, Ingress, PathParam, Service, Source } from './types.ts';
 import { ingressEvents, type EventRow } from './events.ts';
 import { egressVia, ingressVia, type LinkedHop } from './via.ts';
 import { rpcPanel, type RpcPanel } from './rpc-endpoint.ts';
 import { rpcServed } from './amqp-route.ts';
+import { pathParamsOf } from './path-params.ts';
 
 export type DtoRole = 'request' | 'response';
 export const DTO_ROLES: DtoRole[] = ['request', 'response'];
@@ -32,6 +33,8 @@ export interface EndpointInfo {
   handlerVia: LinkedHop[];
   /** An RPC command over AMQP (0.19.0): its callers with timeouts, and the command queue. Null for any other endpoint. */
   rpc: RpcPanel | null;
+  /** #98: a REST route's path parameters (harvested, else derived from the path), each with its code link. Empty for other transports. */
+  pathParams: (PathParam & { link: SourceLink | null })[];
 }
 
 const BODY_METHODS = ['POST', 'PUT', 'PATCH'];
@@ -112,8 +115,11 @@ export function endpointInfo(g: GraphIndex, service: string, ingressId: string, 
   if (!svc || !ingress) return null;
   const handler = g.model.functions.find((f) => f.service === service && f.id === ingress.handler) ?? null;
   const { slots, note } = dtoSlots(ingress);
+  const pathParams = pathParamsOf(ingress).map((p) => ({ ...p, link: p.source ? codeLink(svc, p.source) : null }));
+  // #98: a route whose only input is its path parameters has no request or response shape to show.
+  const pathOnly = pathParams.length > 0 && !dtos.length && !ingress.events?.length;
   return {
-    service, ingress, method: httpMethod(ingress), handler, source: sourceLink(svc, handler), harvestedAt: svc.harvestedAt, note,
+    service, ingress, method: httpMethod(ingress), handler, source: sourceLink(svc, handler), harvestedAt: svc.harvestedAt, note: pathOnly ? null : note, pathParams,
     definedAt: codeLink(svc, ingress.source),
     handlerVia: ingressVia(svc, ingress),
     rpc: rpcPanel(g, ingress),
@@ -124,7 +130,7 @@ export function endpointInfo(g: GraphIndex, service: string, ingressId: string, 
       dto: eventDtos.find((d) => d.event === r.type) ?? null,
     })),
     // A DTO loaded before the service was last harvested may describe older code.
-    slots: withErrorResponses(slots, dtos).map((x) => {
+    slots: pathOnly ? [] : withErrorResponses(slots, dtos).map((x) => {
       const dto = dtos.find((d) => d.role === x.role && (d.status ?? '') === x.status) ?? null;
       return { ...x, dto: dto && { ...dto, link: dtoLink(dto.meta, svc) }, stale: !!dto && dto.updatedAt < svc.harvestedAt };
     }),

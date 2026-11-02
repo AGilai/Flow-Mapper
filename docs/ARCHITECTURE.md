@@ -70,7 +70,7 @@ RabbitMQ pages (0.19.0): the exchange page data (publishers, bindings, callouts,
 | `channel-flow.ts`, `channel-summary.ts` | the flow of one channel: merged subscription rows, event type x destination grid, summary and callouts |
 | `events.ts` | event types over the links: deliveries, derived producers, per-event handlers, event checks |
 | `event-flow.ts`, `event-flow-summary.ts` | the flow of one event type: producer service, topic, queue, consumer service with the outcome (handled, no handler, possible, filtered), summary and callouts |
-| `endpoint-info.ts` | an ingress with its handler, repo link to the handler's code, and DTOs |
+| `endpoint-info.ts`, `path-params.ts` | an ingress with its handler, repo link to the handler's code, and DTOs; `pathParams` (#98: harvested, else derived from the path placeholders; with no stored DTO the empty slots are left out); web: `components/path-params.js` |
 | `impact.ts` | bug impact (flows through linked entities) and suggested priority |
 | `integrity.ts` | references inside one service |
 | `description.ts` | flow descriptions, pure: the trace hash, outdated flag, grouping of stored records, the two "Generate…" prompts, step keys (`stepKey`, `stepKeys`: one arrow of a flow, from message content) |

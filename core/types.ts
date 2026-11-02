@@ -108,11 +108,15 @@ export interface StepField { role: 'filter' | 'projection' | 'update' | 'sort'; 
 export interface Fn { service: string; id: string; name: string; links?: Links; file?: string; line?: number; commit?: string; details?: Details; steps: Step[]; unresolved?: Unresolved[]; assumed?: Assumed[] }
 /** An event type a consumer handles. `type` may be a glob (`Order*`, `*`); `producers` are declared, not derived. */
 export interface IngressEvent { type: string; handler: string; producers?: string[] }
+/** A REST route path parameter as the harvester reports it (0.47.0, #98). */
+export interface PathParam { name: string; type?: string; source?: Source }
 export interface Ingress {
   service: string; id: string; bindKey: string; match?: Match; transport: Transport;
   handler: string; entryPoint?: boolean; details?: Details; links?: Links;
   /** Middleware functions that run before the handler, in order (ids of functions of the same service). Traced as ordinary function visits. */
   middleware?: string[];
+  /** REST path parameters in path order (0.47.0). Absent: names are derived from the path (core/path-params.ts). */
+  pathParams?: PathParam[];
   events?: IngressEvent[];
   /** How the handler was resolved (registration, bind): hops from the registration to the handler. `details.handlerVia` is read too (core/via.ts). */
   via?: ViaHop[];

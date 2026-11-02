@@ -3,6 +3,7 @@
 // endpoint's request/response body or queue message, or the data store's schema. The DTO part loads
 // on demand.
 
+import { pathParamsCard } from '../components/path-params.js';
 import { callerFor } from './flow-sub.js';
 import { h, fill } from '../dom.js';
 import { api } from '../api.js';
@@ -150,7 +151,7 @@ async function loadDto(m, env, marks) {
       return [h('p.small.muted', 'This consumer takes typed events; this call carries no event type. ',
         h('a', { href: href(`/services/${encodeURIComponent(m.target.service)}`, envQuery(env, { ep: m.target.ingress })) }, 'See its event types'))];
     }
-    return [...info.slots.map((s) => card(s.label, s.dto ? `updated ${ago(s.dto.updatedAt)}` : null,
+    return [pathParamsCard(info.pathParams), ...info.slots.map((s) => card(s.label, s.dto ? `updated ${ago(s.dto.updatedAt)}` : null,
       s.dto ? [dtoSource(s.dto), jsonView(s.dto.content, dtoAnchor(m.target.service, s.role, s.status, m.target.ingress), marks)] : emptyDto(`No ${s.label.toLowerCase()} loaded yet.`, `PUT /api/envs/${env}/dtos/${m.target.service}/${s.role}/${m.target.ingress}`))),
       info.note ? h('p.ep-note', info.note) : null];
   }
