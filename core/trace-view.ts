@@ -36,7 +36,7 @@ const opens = (o: string[], m: Message) => o.some((t) => { const [s, f] = [t.spl
 /** The messages the detail leaves visible: `open` brings back internal ones; an arm that would show nothing keeps its outcome (a leaf, else its first message). */
 function visible(all: Item[], detail: string, open: string[]): Item[] {
   if (detail === 'full') return all;
-  const show = all.map((x) => external(x.m) || opens(open, x.m));
+  const show = all.map((x) => external(x.m) || (detail !== 'full' && !frontierish(x.m) && opens(open, x.m))); // #97: `open` brings back internal calls, never frontier steps or markers
   const seen = new Set<string>();
   all.forEach((x, k) => { if (show[k]) for (const e of x.m.arms ?? []) seen.add(e); });
   for (const e of new Set(all.flatMap((x) => x.m.arms ?? []))) {

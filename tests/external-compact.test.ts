@@ -51,6 +51,13 @@ test('open= still brings a service back in External', () => {
   assert.ok(viewOf(t, { detail: 'external', open: ['s'] }).messages.some((m: any) => m.kind === 'call'));
 });
 
+test('open= never brings back frontier steps or folded markers', () => {
+  for (const frontier of [false, true]) {
+    const v = viewOf(run(FNS, { frontier }), { detail: 'external', open: ['s'] });
+    assert.ok(!v.messages.some((m: any) => m.origin === 'frontier' || m.kind === 'frontier'), `frontier=${frontier}`);
+  }
+});
+
 test('"Why incomplete" is unchanged: the External view carries the blocked steps of the full trace', () => {
   const t = run({ main: [out(1), unres(2), call(3, 'a')], a: [unres(1, { origin: 'frontier' })] }, { frontier: true });
   const full = traceBlocked(t, null), v = viewOf(t, { detail: 'external' });
