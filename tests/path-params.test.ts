@@ -97,22 +97,22 @@ test('the Path parameters card lists name, type and a file:line link; none for a
   assert.match(derived.text, /p1/);
 });
 
-// Last: it runs a second app, and the graph cache is keyed by environment name, shared inside one process.
+// Own env name: the graph cache is keyed by environment name and shared inside one process (not across DB files in production).
 test('ingest round trip: full stores pathParams, a delta replaces and clears them', async () => {
   const a = await startApp();
   try {
-    const m = readSample('group-paths.json');
+    const m = readSample('group-paths.json'); m.env = 'roundtrip';
     assert.equal((await a.call('POST', '/api/ingest', m)).status, 201);
-    const get = async () => (await a.call('GET', '/api/envs/prod/endpoints/group-paths/in.removeMember')).body.ingress.pathParams;
+    const get = async () => (await a.call('GET', '/api/envs/roundtrip/endpoints/group-paths/in.removeMember')).body.ingress.pathParams;
     assert.equal((await get()).length, 2);
-    const delta = (version: number, ingress: any) => ({ schemaVersion: '1.0', kind: 'delta', env: 'prod', service: { name: 'group-paths' }, baseVersion: version - 1, version, harvestedAt: '2026-11-03T00:00:00Z', upsert: { ingress: [ingress] } });
+    const delta = (version: number, ingress: any) => ({ schemaVersion: '1.0', kind: 'delta', env: 'roundtrip', service: { name: 'group-paths' }, baseVersion: version - 1, version, harvestedAt: '2026-11-03T00:00:00Z', upsert: { ingress: [ingress] } });
     const base = m.ingress[0];
     const r = await a.call('POST', '/api/ingest', delta(2, { ...base, pathParams: [{ name: 'gid', type: 'string' }, { name: 'mid' }] }));
     assert.equal(r.status, 201, JSON.stringify(r.body));
     assert.deepEqual((await get()).map((p: any) => p.name), ['gid', 'mid']);
     const { pathParams: _x, ...plain } = base;
     assert.equal((await a.call('POST', '/api/ingest', delta(3, plain))).status, 201);
-    const g = (await a.call('GET', '/api/envs/prod/endpoints/group-paths/in.removeMember')).body;
+    const g = (await a.call('GET', '/api/envs/roundtrip/endpoints/group-paths/in.removeMember')).body;
     assert.equal(g.ingress.pathParams, undefined);
     assert.deepEqual(g.pathParams.map((p: any) => p.name), ['groupId', 'memberId'], 'then derived from details.path');
   } finally { await a.close(); }
