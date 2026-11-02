@@ -392,7 +392,7 @@ last path segment and may contain `/`.
 
 | Method and path | What |
 |---|---|
-| `GET /api/envs/:env/endpoints/:service/:ingress` | `{ingress, method, handler, source: {repo, url, ref, file, line}, slots: [{role, label, dto, stale}], note}`; `source.url` opens the handler's file and line at the harvested commit; `stale` means the DTO was loaded before the service was last harvested |
+| `GET /api/envs/:env/endpoints/:service/:ingress` | `{ingress, method, handler, source: {repo, url, ref, file, line}, slots: [{role, label, dto, stale}], note}`; `source.url` opens the handler's file and line at the harvested commit; `stale` means the DTO was loaded before the service was last harvested; 0.47.0 (#98): also `pathParams: [{name, type?, source?, link}]` (REST ingress; the harvested list, else names from the path placeholders `{p1}`, `:id`), and `slots` is empty for a route whose only input is its path parameters (it has any with a stored DTO) |
 | `GET /api/envs/:env/dtos?service=&ingress=` | stored DTOs `{service, ingress, role, status, content, meta, updatedAt}` |
 | `POST /api/envs/:env/dtos` | bulk load `{dtos: [{service, ingress, role, status?, content, meta?}]}`, all or nothing (201) |
 | `PUT /api/envs/:env/dtos/:service/:role/:ingress` | body is the DTO JSON; replaces an existing one. Query `status=404` for an error response, `meta=<url-encoded JSON>` for provenance (use the bulk load for large meta) |

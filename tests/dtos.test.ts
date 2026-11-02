@@ -56,13 +56,16 @@ test('DTO slots follow the endpoint: queues take a message, GETs only a response
   assert.deepEqual(queue.body.slots.map((x: any) => [x.role, x.label]), [['request', 'Message']]);
   const get = await app.call('GET', '/api/envs/prod/endpoints/orders-svc/in.get');
   assert.equal(get.body.method, 'GET');
-  assert.deepEqual(get.body.slots.map((x: any) => [x.role, x.label]), [['request', 'Query / path params'], ['response', 'Response body']]);
+  assert.deepEqual(get.body.slots, [], '#98: a route with path params and no stored shape shows no empty boxes');
+  assert.deepEqual(get.body.pathParams.map((p: any) => p.name), ['id']);
+  const search = await app.call('GET', '/api/envs/prod/endpoints/catalog-svc/in.get.products');
+  assert.deepEqual(search.body.slots.map((x: any) => [x.role, x.label]), [['request', 'Query / path params'], ['response', 'Response body']]);
   const noReply = await app.call('PUT', '/api/envs/prod/dtos/notifications-svc/response/in.shipping', {});
   assert.equal(noReply.status, 400);
   assert.match(noReply.body.error.message, /request = message/);
   const params = { params: { id: 'string' }, query: { page: 'integer' } };
   assert.equal((await app.call('PUT', '/api/envs/prod/dtos/orders-svc/request/in.get', params)).status, 200);
-  assert.deepEqual((await app.call('GET', '/api/envs/prod/endpoints/orders-svc/in.get')).body.slots[0].dto.content, params);
+  assert.deepEqual((await app.call('GET', '/api/envs/prod/endpoints/orders-svc/in.get')).body.slots[0].dto.content, params, 'a stored shape brings the boxes back');
   assert.equal((await app.call('DELETE', '/api/envs/prod/dtos/orders-svc/request/in.get')).status, 200);
 });
 

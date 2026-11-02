@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "group-paths",
+    "kind": "service",
+    "team": "identity",
+    "repo": "github.com/acme/group-paths",
+    "language": "typescript",
+    "description": "#98 demo: REST routes whose only input is path parameters (no request or response shape)"
+  },
+  "version": 1,
+  "commit": "98a1b2c",
+  "harvestedAt": "2026-11-02T08:00:00Z",
+  "functions": [
+    { "id": "GroupsController.removeMember", "name": "GroupsController.removeMember", "file": "src/groups.controller.ts", "line": 52, "steps": [] },
+    { "id": "GroupsController.removeGroup", "name": "GroupsController.removeGroup", "file": "src/groups.controller.ts", "line": 71, "steps": [] }
+  ],
+  "ingress": [
+    {
+      "id": "in.removeMember", "bindKey": "http:DELETE group-paths/api/groups/{}/{}", "transport": "http",
+      "handler": "GroupsController.removeMember", "entryPoint": true,
+      "details": { "method": "DELETE", "path": "/api/groups/{groupId}/{memberId}" },
+      "pathParams": [
+        { "name": "groupId", "type": "string", "source": { "file": "src/groups.controller.ts", "line": 53 } },
+        { "name": "memberId", "type": "uuid", "source": { "file": "src/groups.controller.ts", "line": 54 } }
+      ]
+    },
+    {
+      "id": "in.removeGroup", "bindKey": "http:DELETE group-paths/api/groups/{p1}", "transport": "http",
+      "handler": "GroupsController.removeGroup", "entryPoint": true,
+      "details": { "method": "DELETE", "path": "/api/groups/{p1}" }
+    }
+  ],
+  "egress": [],
+  "resources": []
+}

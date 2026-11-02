@@ -15,6 +15,7 @@ import { rpcCards } from './endpoint-rpc.js';
 import { dtoAnchor, eventAnchor } from '../components/field-diff.js';
 import { marksNow } from '../design/marks-store.js';
 import { markBadge } from '../components/status-mark.js';
+import { pathParamsCard } from '../components/path-params.js';
 
 /** Returns [head, ...content] for panel.open(). */
 export function endpointPanel(info, env) {
@@ -25,7 +26,7 @@ export function endpointPanel(info, env) {
     h('div.ep-title', method ? h('span.ep-method', { 'data-m': method }, method) : rpc ? chip('rpc', 'amqp rpc') : chip(i.transport), h('span.ep-target', target), markBadge(marksNow().markOf(`ing:${service}/${i.id}`), { store: marksNow() })),
     h('div.ep-sub', h('span', service), method ? chip(i.transport) : null, i.entryPoint ? h('span.pill', 'entry point') : null));
 
-  return [head, rpc ? rpcCards(rpc, service) : null, codeCard(fn, i, source, info.definedAt, info.handlerVia), ...info.slots.map((s) => dtoCard(s, env, service, i.id)),
+  return [head, rpc ? rpcCards(rpc, service) : null, codeCard(fn, i, source, info.definedAt, info.handlerVia), pathParamsCard(info.pathParams), ...info.slots.map((s) => dtoCard(s, env, service, i.id)),
     info.events.length ? eventsSection(info, env) : null,
     info.note ? h('p.ep-note', info.note) : null,
     h('a.btn.primary.ep-trace', { href: href('/flows', { service, ingress: i.id }) }, icon('flow'), 'Trace from here')];

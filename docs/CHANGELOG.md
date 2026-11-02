@@ -5,6 +5,10 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+
+- **Additive (#98, 0.47.0): REST path parameters.** On a manifest `ingress`, optional `pathParams: [{name, type?, source?: {file, line}}]`, in path order (full and delta ingest; older manifests stay valid). Without it the server derives names from the path placeholders (`{p1}`, `{id}`, `:id`). `GET .../endpoints/:service/:ingress` returns `pathParams` (with a code `link`), and `get_service` carries the field on the ingress. UI: a REST ingress with path parameters and no stored request or response shape shows a "Path parameters" list in Info instead of empty Request/Response boxes. Send `pathParams` only once the server is on 0.47.0 (older ones refuse the unknown field). Demo: `samples/group-paths.json`.
+
 ## 0.46.0 (2026-10-28)
 
 - UI only (#95): the flow's Info pill and banner are replaced by one full-width "About this flow" region under the title row. Its header is the toggle (preview and "N related" chip when collapsed); open, it carries Show all, A-/A+, Edit and a "..." menu with "Generate AI description..." (no standing Generate row anywhere). No API, plan or MCP change.
