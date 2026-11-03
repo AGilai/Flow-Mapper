@@ -8,6 +8,7 @@
 //   channel → ingress   (queue consumed by an ingress with a matching key)
 // A binding target is a declared channel if one has that key, otherwise matching ingress.
 
+import { isClientPush } from './client-push.ts';
 import type { Binding, Channel, Delivery, Egress, Mode, Ingress, Link, Model, Ref, Resolution, Transport, Unresolved } from './types.ts';
 import { compareSpecificity, specificity } from './glob.ts';
 import { routeKey, rpcServed } from './amqp-route.ts';
@@ -22,12 +23,13 @@ export const unresolvedTarget = (x: { unresolved?: Unresolved[] }) => x.unresolv
 
 /** A socket ingress has no producer inside the system, so it is an entry point unless the harvester says `entryPoint: false`. */
 const socketEntry = (i: Ingress): Ingress => (i.transport === 'socket' && i.entryPoint === undefined ? { ...i, entryPoint: true } : i);
+const plainEvents = (i: Ingress): Ingress => (i.events?.some((e) => typeof e === 'string') ? { ...i, events: i.events.map((e) => (typeof e === 'string' ? { type: e } : e)) } : i); // #99: a push ingress may list plain names (a model built straight from a manifest)
 
 /** Unresolved items may come without a bind key; give them a readable placeholder that matches nothing. */
 export function withPlaceholderKeys(model: Model): Model {
   const fill = <T extends { bindKey?: string; unresolved?: Unresolved[] }>(x: T): T =>
     (x.bindKey ? x : { ...x, bindKey: `unresolved:${unresolvedTarget(x)?.reason ?? 'unknown'}` });
-  return { ...model, ingress: model.ingress.map(fill).map(socketEntry), egress: model.egress.map(fill) };
+  return { ...model, ingress: model.ingress.map(fill).map(socketEntry).map(plainEvents), egress: model.egress.map(fill) };
 }
 
 /** Request/reply transports: calls are synchronous unless the egress says otherwise (an undecided transport reads as a plain call). */
@@ -146,7 +148,7 @@ export function resolve(model: Model): Resolution {
   for (const [key] of channels) reachesIngress({ type: 'channel', key });
   for (const b of model.bindings) for (const r of targetsOfBinding.get(b)!) if (r.type === 'ingress') reached.add(refKey(r));
 
-  const orphans = consumers.filter((i) => !i.entryPoint && !rpcServed(i) && !reached.has(refKey(ingressRef(i))));
+  const orphans = consumers.filter((i) => !i.entryPoint && !rpcServed(i) && !isClientPush(model, i) && !reached.has(refKey(ingressRef(i))));
 
   const unbound: Resolution['unbound'] = [];
   const fromPrefixes = prefixSet(model.bindings.map((b) => b.from));

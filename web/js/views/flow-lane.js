@@ -36,7 +36,7 @@ export function callLabel(m) {
     const k = t.match(/^(\S+) [^/\s]*(\/.*)$/);
     return k ? `${k[1]} ${k[2]}` : t;
   }
-  return m.event ?? m.label.replace(/^.*→\s*/, '').replace(/^\w+:/, '');
+  return m.gap && m.kind !== 'deliver' ? m.label : m.event ?? m.label.replace(/^.*→\s*/, '').replace(/^\w+:/, ''); // #99: a gap's text already leads with its event names
 }
 const CH_KIND = (key) => (isQueueKey(key) ? 'queue' : 'topic');
 /** The operation and the collection of a data-store step: "UpdateItem" and "inventory-stock" (the whole store when the key names no collection). */
@@ -74,7 +74,7 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
   const pickCol = (service, caller) => {
     const ex = byService.get(service);
     if (ex && !stack.some((b) => b.col !== caller && b.col !== ex && between(b.col, caller, ex))) return ex;
-    const c = mk({ id: `svc:${service}:${cols.length}`, label: service, sub: scope === 'intra' && service !== root ? 'not followed' : ex ? 'called again' : 'service', kind: scope === 'intra' && service !== root ? 'plain' : 'service', service, serviceKind: skind(service) });
+    const c = mk({ id: `svc:${service}:${cols.length}`, label: service, sub: scope === 'intra' && service !== root ? 'not followed' : ex ? 'called again' : skind(service) === 'client-app' ? 'client app' : 'service', kind: scope === 'intra' && service !== root ? 'plain' : 'service', service, serviceKind: skind(service) });
     byService.set(service, c);
     return c;
   };
@@ -197,7 +197,7 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
     if (isPublish(m)) { emitChain(top, chainAt.get(idx)); return; }
     const k = kind.get(m.to), service = svcOf(m.to);
     if (m.broken || m.gap || !service || k === 'missing' || k === 'unresolved') { push({ type: 'unresolved', msg: m, bar: top, col: unresolvedCol(isRpc(m)), label: callLabel(m), chip: isRpc(m) ? 'no server harvested' : null }); return; }
-    if (scope === 'intra' && service !== root) { push({ type: 'call', msg: m, from: top.col, fromBar: top, to: pickCol(service, top.col), bar: null, label: callLabel(m) }); return; }
+    if (m.push || scope === 'intra' && service !== root) { push({ type: 'call', msg: m, from: top.col, fromBar: top, to: pickCol(service, top.col), bar: null, label: callLabel(m) }); return; }
     if (repeats && m.repeatOf && m.kind === 'egress' && !msgs[idx + 1]?.unfoldOf) { push({ type: 'call', msg: m, from: top.col, fromBar: top, to: pickCol(service, top.col), bar: null, label: callLabel(m), repeat: m.repeatOf }); return; } // 0.44.0 (#90): a repeat is a thin arrow with no bar, unless its first expansion was unfolded under it
     const bar = open(m, top.col, top, service, pickCol(service, top.col), isSyncCall(m), isRpc(m) ? plan1(top.col.ci, service, m.rpc) : null);
     if (m.repeatOf) events[bar.start].repeat = m.repeatOf;

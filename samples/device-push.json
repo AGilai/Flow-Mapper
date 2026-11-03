@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "device-push",
+    "kind": "service",
+    "team": "network-edge",
+    "repo": "github.com/acme/device-push",
+    "language": "typescript",
+    "description": "Demo (#99): pushes events to a device agent over its open TLS socket. Two pushes link to the agent's push ingress; one is a gap (the agent is not harvested for it), shown with its event name"
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-03T08:00:00Z",
+  "commit": "99a1c0d",
+  "functions": [
+    {
+      "id": "pushUpdates",
+      "name": "pushUpdates",
+      "file": "src/push.ts",
+      "line": 12,
+      "steps": [
+        { "seq": 1, "type": "egress", "target": "out.networkUpdate", "event": "NETWORK_ONUPDATE" },
+        { "seq": 2, "type": "egress", "target": "out.channelError", "event": "CHANNEL_ONERROR" },
+        { "seq": 3, "type": "egress", "target": "out.sessionTimeout", "event": "CHANNEL_ONSESSIONTIMEOUT" }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.pushUpdates",
+      "bindKey": "http:POST /device-push/updates",
+      "transport": "http",
+      "handler": "pushUpdates",
+      "entryPoint": true,
+      "source": { "file": "src/routes.ts", "line": 7 }
+    }
+  ],
+  "egress": [
+    {
+      "id": "out.networkUpdate",
+      "bindKey": "socket:tls/demo-device-agent/NETWORK_ONUPDATE",
+      "transport": "socket",
+      "events": ["NETWORK_ONUPDATE"],
+      "details": { "protocol": "tls", "event": "NETWORK_ONUPDATE", "direction": "push" },
+      "source": { "file": "src/push.ts", "line": 15 }
+    },
+    {
+      "id": "out.channelError",
+      "bindKey": "socket:tls/demo-device-agent/CHANNEL_ONERROR",
+      "transport": "socket",
+      "events": ["CHANNEL_ONERROR"],
+      "details": { "protocol": "tls", "event": "CHANNEL_ONERROR", "direction": "push" },
+      "source": { "file": "src/push.ts", "line": 19 }
+    },
+    {
+      "id": "out.sessionTimeout",
+      "transport": "socket",
+      "events": ["CHANNEL_ONSESSIONTIMEOUT"],
+      "details": { "protocol": "tls", "event": "CHANNEL_ONSESSIONTIMEOUT", "direction": "push" },
+      "unresolved": [{ "what": "target", "reason": "client_app_not_harvested", "detail": "demo-device-agent (device on channelId)" }],
+      "source": { "file": "src/push.ts", "line": 23 }
+    }
+  ],
+  "resources": []
+}

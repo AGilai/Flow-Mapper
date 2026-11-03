@@ -11,7 +11,7 @@
 // that type. A publish that names no event uses the egress's events and candidates: only matching subscriptions
 // are followed (candidate-only ones are `possible`); with none known it stops at the topic (#40). A step with `eventFrom` takes its event from the nearest enclosing call step's `bind` on the path (#42); unbound it is such an untyped publish. A trace can also start from one event type at an ingress.
 
-import type { GraphIndex } from './graph-index.ts';
+import { gapNames, gapLabel, isClientPush } from './client-push.ts'; import type { GraphIndex } from './graph-index.ts';
 import { linksFrom, sid } from './graph-index.ts';
 import { isLeaf } from './types.ts';
 import type { Ingress, Link, Mode, Ref } from './types.ts';
@@ -156,7 +156,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
       if (nb) { push({ ...base, from: me, to: me, label: nb.label, mode: st.mode ?? 'sync', kind: 'leaf', over: [service], notBlocked: nb.notBlocked }); continue; }
       if (gap) {
         const to = part({ id: `gap:${gap.reason}`, label: `unresolved: ${gap.reason}`, kind: 'unresolved' });
-        push({ ...base, from: me, to, label: gap.detail ?? st.operation ?? gap.reason, mode: st.mode ?? 'sync', kind: st.type === 'resource' ? 'resource' : st.type === 'call' ? 'call' : 'egress', gap, egress: out?.id, transport: out?.transport });
+        push({ ...base, from: me, to, label: gapLabel(gap.detail ?? st.operation ?? gap.reason, gapNames(out, st.event)), mode: st.mode ?? 'sync', kind: st.type === 'resource' ? 'resource' : st.type === 'call' ? 'call' : 'egress', gap, egress: out?.id, transport: out?.transport });
         continue;
       }
       if (!st.target) {
@@ -274,7 +274,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
     if (to.type !== 'ingress') return;
     const i = g.ingress.get(sid(to.service, to.id));
     if (!i) return;
-    const crossing = from.startsWith('ch:') ? 'deliver' : 'egress';
+    const crossing = from.startsWith('ch:') ? 'deliver' : 'egress'; if (isClientPush(g.model, i)) { push({ ...base, from, to: part({ id: `svc:${i.service}`, label: i.service, kind: 'service', service: i.service, serviceKind: 'client-app' } as Participant), label, mode: 'async', kind: crossing, depth, push: true, target: { service: i.service, ingress: i.id } } as Message); return; } // #99: a push into a client app; its code is not harvested, so the trace ends there
     const handler = base.event ? handlerFor(i, base.event) : i.handler;
     if (!handler) {
       // The event reaches a consumer that lists event types but has no handler for this one.
