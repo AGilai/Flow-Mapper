@@ -210,7 +210,7 @@
       "additionalProperties": false,
       "properties": {
         "name": { "type": "string", "pattern": "^[a-z0-9\\-]+$" },
-        "kind": { "enum": ["service", "gateway", "lambda", "infra", "client-app"], "default": "service", "description": "client-app: a device or browser application (an agent, a mobile app) that calls services; it has no ingress of its own to harvest." },
+        "kind": { "enum": ["service", "gateway", "lambda", "infra", "client-app"], "default": "service", "description": "client-app: a device or browser application (an agent, a mobile app) that calls services; it has no ingress of its own to harvest, except socket pushes into it (0.48.0, #99)." },
         "team": { "type": "string" },
         "repo": { "type": "string" },
         "language": { "type": "string" },
@@ -347,14 +347,14 @@
 
     "ingress": {
       "type": "object",
-      "required": ["id", "transport", "handler"],
+      "required": ["id", "transport"],
       "additionalProperties": false,
       "properties": {
         "id": { "$ref": "#/$defs/id" },
         "bindKey": { "$ref": "#/$defs/bindKey" },
         "match": { "$ref": "#/$defs/match" },
         "transport": { "$ref": "#/$defs/transport" },
-        "handler": { "$ref": "#/$defs/id", "description": "Function id that handles this ingress." },
+        "handler": { "$ref": "#/$defs/id", "description": "Function id that handles this ingress. Required, except on a socket push into a client app (0.48.0, #99: `transport: socket`, `entryPoint: false`, `details.direction: push`), whose code is not harvested." },
         "middleware": { "type": "array", "items": { "$ref": "#/$defs/id" }, "description": "Optional. Function ids (same manifest, same rule as `handler`) that run before the handler, in order. Traced before the handler: their calls are real messages and edges. `details.middleware` is still accepted (not traced)." },
         "links": { "$ref": "#/$defs/links" },
         "entryPoint": { "type": "boolean", "description": "true: always an entry point (public API, cron, a client's own trigger); excluded from orphan stats. false: never one (a hop such as a tunnel, BGP or BFD session that keeps its real transport). Absent: the default rule (a socket ingress, an RPC command, or an ingress nothing reaches is one)." },
@@ -380,16 +380,21 @@
         "via": { "$ref": "#/$defs/via", "description": "How the handler was resolved, for registrations that are not a direct reference: hops from the registration to the handler, each kind 'registration' or 'bind'. `details.handlerVia` is still accepted." },
         "events": {
           "type": "array",
-          "description": "Event types this consumer handles, each with its own handler. The most specific match wins.",
+          "description": "Event types this consumer handles, each with its own handler. The most specific match wins. A socket push ingress of a client app (0.48.0, #99) may list plain event names (`[\"NETWORK_ONUPDATE\"]`; stored as `{type}`); it has no handler.",
           "items": {
-            "type": "object",
-            "required": ["type", "handler"],
-            "additionalProperties": false,
-            "properties": {
-              "type": { "$ref": "#/$defs/eventPattern" },
-              "handler": { "$ref": "#/$defs/id", "description": "Function id that handles this event type." },
-              "producers": { "type": "array", "items": { "type": "string" }, "description": "Declared producer services, for producers Flow-Mapper does not harvest. Harvested producers are found automatically." }
-            }
+            "oneOf": [
+              { "$ref": "#/$defs/eventPattern" },
+              {
+                "type": "object",
+                "required": ["type", "handler"],
+                "additionalProperties": false,
+                "properties": {
+                  "type": { "$ref": "#/$defs/eventPattern" },
+                  "handler": { "$ref": "#/$defs/id", "description": "Function id that handles this event type." },
+                  "producers": { "type": "array", "items": { "type": "string" }, "description": "Declared producer services, for producers Flow-Mapper does not harvest. Harvested producers are found automatically." }
+                }
+              }
+            ]
           }
         }
       }

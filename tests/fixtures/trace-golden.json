@@ -64,6 +64,7 @@
  "cp-middleware/in.deviceAudit": "0c73679dfc1070",
  "cp-middleware/in.deviceLogout": "00e5091a7bae9f",
  "cp-middleware/in.deviceSync": "0edf18856c02ae",
+ "device-push/in.pushUpdates": "011e1f985189ec",
  "dpc-worker/in.rpcDeviceGet": "1889abd1ea0d5a",
  "dpc-worker/in.rpcZoneLookup": "120e916ceb4d6c",
  "group-admin/in.patchGroup": "010db11aa82918",

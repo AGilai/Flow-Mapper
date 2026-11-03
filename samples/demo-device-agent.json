@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "demo-device-agent",
+    "kind": "client-app",
+    "team": "network-edge",
+    "description": "Demo (#99): a device agent. Its code is not harvested, so it lists only the events services push to it (socket ingress with entryPoint false, direction push)"
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-03T08:00:00Z",
+  "commit": "99a1c0d",
+  "functions": [],
+  "ingress": [
+    {
+      "id": "in.push.NETWORK_ONUPDATE",
+      "bindKey": "socket:tls/demo-device-agent/NETWORK_ONUPDATE",
+      "transport": "socket",
+      "entryPoint": false,
+      "events": ["NETWORK_ONUPDATE"],
+      "details": { "protocol": "tls", "event": "NETWORK_ONUPDATE", "direction": "push" }
+    },
+    {
+      "id": "in.push.CHANNEL_ONERROR",
+      "bindKey": "socket:tls/demo-device-agent/CHANNEL_ONERROR",
+      "transport": "socket",
+      "entryPoint": false,
+      "events": ["CHANNEL_ONERROR"],
+      "details": { "protocol": "tls", "event": "CHANNEL_ONERROR", "direction": "push" }
+    }
+  ],
+  "egress": [],
+  "resources": []
+}

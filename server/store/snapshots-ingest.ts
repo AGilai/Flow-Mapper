@@ -3,6 +3,7 @@
 
 import { resolveOwners, resolveAbout } from './owners.ts';
 import type { DB } from '../db/connection.ts';
+import { pushEventsAsObjects } from '../../core/client-push.ts';
 import { LISTS, keyOf, validateManifest } from '../schema.ts';
 import { buildIndex, type GraphIndex } from '../../core/graph-index.ts';
 import { contractReport } from '../../core/contract.ts';
@@ -73,6 +74,7 @@ function applyIn(db: DB, manifest: any, source: Source, index: number | null, op
 function apply(db: DB, manifest: any, source: Source, opts: ApplyOpts): { result: WriteResult; after: Entities } {
   const errs = validateManifest(manifest);
   if (errs.length) throw invalid('manifest does not match schema', errs.slice(0, 50));
+  manifest = pushEventsAsObjects(manifest); // #99: a push ingress's plain event names -> {type}
   if (manifest.service.owners !== undefined) manifest = { ...manifest, service: { ...manifest.service, owners: resolveOwners(db, manifest.service.owners, 'service.owners') } }; // names and external ids -> user ids (0.33.0)
   if (typeof manifest.service.about === 'string' && manifest.service.about.includes('@{')) manifest = { ...manifest, service: { ...manifest.service, about: resolveAbout(db, manifest.service.about) } }; // @{Name} -> @[id]
   const env = manifest.env ?? 'default';

@@ -8,9 +8,9 @@
 // is one of several (`unresolved` what: 'event', candidates), each candidate is a *possible* delivery:
 // shown, never counted as unhandled, and enough to keep a consumer off "never arrives".
 
-import type { GraphIndex } from './graph-index.ts';
-import { itemsOf, linksFrom, sid } from './graph-index.ts';
+import { itemsOf, linksFrom, sid, type GraphIndex } from './graph-index.ts';
 import { refKey } from './resolve.ts';
+import { pushShape } from './client-push.ts';
 import { compareSpecificity, eventMatches, filterAllows, specificity } from './glob.ts';
 import type { Ingress, Link, Ref } from './types.ts';
 import { subscriptionConflicts } from './event-pairs.ts';
@@ -113,11 +113,11 @@ export function passesUntyped(g: GraphIndex, l: Link, set: EventSet): false | 's
 
 /** The handler for an event type at a consumer: the most specific matching entry; the ingress handler when it lists none. */
 export function handlerFor(i: Ingress, event: string): string | null {
-  if (!i.events?.length) return i.handler;
+  if (!i.events?.length) return i.handler ?? (pushShape(i) ? i.id : null);
   const best = i.events
     .filter((e) => eventMatches(e.type, event))
     .sort((a, b) => compareSpecificity(specificity(b.type, b.type.includes('*') ? 'glob' : 'exact'), specificity(a.type, a.type.includes('*') ? 'glob' : 'exact')))[0];
-  return best?.handler ?? null;
+  return best?.handler ?? (best && pushShape(i) ? i.id : null); // #99: a push into a client app is handled by the app (its code is not harvested): the ingress stands for it, so it is never "unhandled"
 }
 
 const cache = new WeakMap<GraphIndex, EventReport>();

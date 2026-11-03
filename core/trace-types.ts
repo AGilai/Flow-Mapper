@@ -40,6 +40,7 @@ export interface Message {
   assumed?: { field: string; value: unknown; basis: string; reason: string }[]; // #47: details of a resource step the harvester filled by a rule
   keyTemplate?: string; dbIndex?: number; ttlSeconds?: number; keyUnresolved?: string[]; // #86, on a resource step: the key (details.keyTemplate, else keyPattern), db, TTL; the reasons when the key is `{unresolved:...}`
   unknown?: { field: string; reason: string }[];           // on a resource step: details the harvester could not read (`unresolved` what=detail: keyTemplate, dbIndex, ttlSeconds) and why
+  push?: true;                                               // #99: a socket push into a client app (the trace ends there; no handler runs)
   gap?: Unresolved;                                          // the harvester could not resolve this call; why
   provenance?: { kind?: 'llm' };                              // #85 (reserved): a step or edge a model inferred (drawn dash-dot with a tag); nothing sends it yet
   blocked?: BlockedSite;                                     // #85: the step has an unresolved entry with `gap: true` (a call the flow could not follow)

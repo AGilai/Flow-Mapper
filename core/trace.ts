@@ -11,17 +11,15 @@
 // that type. A publish that names no event uses the egress's events and candidates: only matching subscriptions
 // are followed (candidate-only ones are `possible`); with none known it stops at the topic (#40). A step with `eventFrom` takes its event from the nearest enclosing call step's `bind` on the path (#42); unbound it is such an untyped publish. A trace can also start from one event type at an ingress.
 
-import type { GraphIndex } from './graph-index.ts';
-import { linksFrom, sid } from './graph-index.ts';
-import { isLeaf } from './types.ts';
-import type { Ingress, Link, Mode, Ref } from './types.ts';
+import { gapNames, gapLabel, isClientPush, pushMessage } from './client-push.ts';
+import { linksFrom, sid, type GraphIndex } from './graph-index.ts';
+import { isLeaf, type Ingress, type Link, type Mode, type Ref, type Step, type StepAlternative, type StepFix, type StepField, type Unresolved } from './types.ts';
 import { handlerFor, passes, passesUntyped, untypedEventSet, type EventSet } from './events.ts';
 import { emptyFlow } from './entry-points.ts';
 export { entryPoints } from './entry-points.ts';
 import { codeLink, sourceLink, type SourceLink } from './endpoint-info.ts';
 import { refKey, unresolvedTarget } from './resolve.ts';
 import { assumedOn, storeOn, unknownOn } from './step-notes.ts';
-import type { Step, StepAlternative, StepFix, StepField, Unresolved } from './types.ts';
 import { stepExtras } from './step-marks.ts'; import { keyFieldsOn } from './key-template.ts'; import { blockedField, coverageFor, frontierBlocked, notBlockedIndex, notBlockedLeaf } from './incomplete.ts';
 import { altCtxOf, altGroups, type Alt, type AltCtx } from './alt.ts';
 import { egressVia, ingressVia, type LinkedHop } from './via.ts';
@@ -156,7 +154,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
       if (nb) { push({ ...base, from: me, to: me, label: nb.label, mode: st.mode ?? 'sync', kind: 'leaf', over: [service], notBlocked: nb.notBlocked }); continue; }
       if (gap) {
         const to = part({ id: `gap:${gap.reason}`, label: `unresolved: ${gap.reason}`, kind: 'unresolved' });
-        push({ ...base, from: me, to, label: gap.detail ?? st.operation ?? gap.reason, mode: st.mode ?? 'sync', kind: st.type === 'resource' ? 'resource' : st.type === 'call' ? 'call' : 'egress', gap, egress: out?.id, transport: out?.transport });
+        push({ ...base, from: me, to, label: gapLabel(gap.detail ?? st.operation ?? gap.reason, gapNames(out, st.event)), mode: st.mode ?? 'sync', kind: st.type === 'resource' ? 'resource' : st.type === 'call' ? 'call' : 'egress', gap, egress: out?.id, transport: out?.transport });
         continue;
       }
       if (!st.target) {
@@ -275,6 +273,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
     const i = g.ingress.get(sid(to.service, to.id));
     if (!i) return;
     const crossing = from.startsWith('ch:') ? 'deliver' : 'egress';
+    if (isClientPush(g.model, i)) return void push(pushMessage(base, from, label, i, crossing, depth, part)); // #99: a push into a client app; its code is not harvested, so the trace ends there
     const handler = base.event ? handlerFor(i, base.event) : i.handler;
     if (!handler) {
       // The event reaches a consumer that lists event types but has no handler for this one.

@@ -17,7 +17,7 @@ Contract files: [`schema/manifest.schema.json`](../schema/manifest.schema.json) 
 | Harvester | Reports | `service.kind` |
 |---|---|---|
 | Service (one per repo) | functions and their steps, ingress, egress, data stores, event types, DTOs, store schemas | `service`, `gateway` or `lambda` |
-| Client application (agent, mobile app) | egress only: the calls it makes | `client-app` |
+| Client application (agent, mobile app) | egress: the calls it makes; ingress only for socket pushes into it (0.48.0) | `client-app` |
 | Infrastructure (IaC, AWS APIs) | topics, queues, exchanges, event buses, and the subscriptions/rules between them | `infra` |
 
 ## The loop
@@ -100,7 +100,7 @@ the version you last sent was accepted.
 
 `service.owners` (0.33.0, optional): who owns the component, as a list of people: a name (`"Dana Levi"`) or `{"name": "Dana Levi", "externalSource": "confluence", "externalId": "77"}` (the external id wins when it is known). The server matches each to a user (external id, then exact name or alias, else a new user is created) and stores the user ids; `[]` clears, leaving it out keeps what is there. Up to 20. The free-text `## Owners` section of `about` stays allowed; send `owners` only when the source really names a person. An `@{Display Name}` in `about` is written as a mention of that user when one exists.
 
-Two optional service fields (0.21.0): `groupPath` is the subsystem the service belongs to (`platform`, later `platform/identity`; lowercase path segments). Most harvesters leave it out; design environments set it. `kind: "client-app"` is for a device or browser application that calls services (an agent, a mobile app): send its egress and no ingress.
+Two optional service fields (0.21.0): `groupPath` is the subsystem the service belongs to (`platform`, later `platform/identity`; lowercase path segments). Most harvesters leave it out; design environments set it. `kind: "client-app"` is for a device or browser application that calls services (an agent, a mobile app): send its egress. It has no ingress of its own to harvest, except the events services push to it over a socket (0.48.0, #99): see "Socket push into a client app" below.
 
 Design environments: harvesters only write to sealed environments. Posting a manifest, DTOs, schemas or Redis keys to a design environment is refused with `409 ENV_DESIGN`; a name that does not exist yet is created sealed, as before.
 
@@ -234,6 +234,8 @@ the system produces to it, so it is never matched) and `details: {"protocol": "t
 (all optional; `protocol` defaults to tcp). Alternatively one ingress with `events` per event type. A socket ingress is an entry point by
 default (no `entryPoint: true` needed; `entryPoint: false` turns it off) and `middleware` works as for HTTP.
 In a trace the caller is outside the system: "client · tls socket". The system map and Flows show it in its own colour.
+
+**Socket push into a client app (0.48.0).** A server that pushes events to a device or browser application over the client's open socket (the agent's code is not harvested) is described on both sides with one bind key, `socket:<protocol>/<client-app service name>/<EVENT>` (`socket:tls/harmony-sase-agent/NETWORK_ONUPDATE`). The pushing service's egress: `transport: "socket"`, that `bindKey`, `events: ["<EVENT>"]`, `details: {"protocol": "tls", "event": "<EVENT>", "direction": "push"}`. The client-app manifest (`service.kind: "client-app"`) lists one ingress per pushed event: the same `bindKey`, `transport: "socket"`, `entryPoint: false`, `events: ["<EVENT>"]` (plain names), the same `details`, and **no `handler`** (and no functions). The keys match like any other transport, so the trace goes service -> agent and ends there, drawn as a push arrow into the client app. These ingress are not entry points (not listed in Flows), never orphans, and a matched push is not an undelivered event. A push you cannot name the agent for stays an egress with `unresolved: [{what: "target", reason: ..., detail}]`; a trace shows its event name(s) next to the gap text (`NETWORK_ONUPDATE → <detail>`).
 
 **Middleware (0.12.0).** A route runs middleware before its handler (Express/Fastify `use`, auth, rate
 limit), and middleware can make calls of its own (an auth RPC). List them on the ingress, in the order

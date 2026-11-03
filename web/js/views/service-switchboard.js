@@ -51,7 +51,8 @@ export function switchboard(v, name, q, onInfo, marks = null, imp = null) {
         h('span.xs.sb-actions', badge(ingMark(i)), imp?.pen?.button('endpoint', `endpoint ${i.bindKey}`, { form: 'endpoint', service: name, ingress: i.id }), i.entryPoint ? imp?.pen?.button('flow', `flow ${i.bindKey}`, { form: 'flow', service: name, ingress: i.id }, { glyph: 'flow' }) : null, behaviour(marks, name, i, imp).chip, behaviour(marks, name, i, imp).btn, gapOf(i) ? gapPill(gapOf(i)) : i.entryPoint ? h('span.pill', 'entry') : i.orphan ? h('span.pill.warn', 'never called') : null,
           i.events?.length ? h('span.pill', { title: i.events.map((e) => e.type).join(', ') }, `${i.events.length} event ${i.events.length === 1 ? 'type' : 'types'}`) : null,
           onInfo ? h('button.btn.ghost.icon-btn', { type: 'button', title: 'Endpoint info', 'aria-label': `Info for ${i.bindKey}`, on: { click: () => onInfo(i.id) } }, icon('info')) : null),
-        h('div.peers', h('span', 'handler ', h('span.key', i.handler)), behaviour(marks, name, i, imp).text ? h('span.muted', behaviour(marks, name, i, imp).text) : null, subChips(i.links),
+        h('div.peers', i.handler ? h('span', 'handler ', h('span.key', i.handler)) : h('span.muted', 'push into the app'), // #99: a push has no handler
+           behaviour(marks, name, i, imp).text ? h('span.muted', behaviour(marks, name, i, imp).text) : null, subChips(i.links),
           i.callers.length ? h('span', 'from ', join(uniq(i.callers.map((c) => c.service)).map(svcLink))) : null,
           i.noCaller ? h('span.muted', 'no harvested caller') : null,
           i.maybeCallers?.length ? h('span', { title: 'Event types not resolved by the harvester; may pass the subscription filter' }, 'maybe from ', join(uniq(i.maybeCallers.map((c) => c.service)).map(svcLink))) : null,
