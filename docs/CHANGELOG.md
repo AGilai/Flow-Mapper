@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased
+## 0.48.0 (2026-11-03)
 
 - **Additive (#99, target 0.48.0): socket push into a client app.** A `kind: "client-app"` service may carry socket ingress for the events services push to it (its own code is not harvested): `{id, transport: "socket", bindKey: "socket:<protocol>/<client-app name>/<EVENT>", entryPoint: false, events: ["<EVENT>"], details: {protocol, event, direction: "push"}}`, with no `handler` (the schema no longer requires one for this form; any other ingress still needs it) and `events` as plain names (stored as `{type}`). A service's socket egress with the same `bindKey` links to it by key match (no `unresolved` needed). In a trace the egress is a push arrow into the client app and the flow ends there; such an ingress is not an entry point, not an orphan, and a matched push is not an undelivered event. Older client-app manifests (egress only) stay valid. Send it only once the server is on 0.48.0 (older ones refuse an ingress without `handler`). Demo: `samples/device-push.json`, `samples/demo-device-agent.json`.
 - **Additive (#99): events on a gap.** A trace message for an unresolved egress now leads with the event names (egress `events`, else `details.event`; every transport): `NETWORK_ONUPDATE → <detail>`, not repeated when the detail already starts with the event.
