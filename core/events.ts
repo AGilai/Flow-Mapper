@@ -8,9 +8,9 @@
 // is one of several (`unresolved` what: 'event', candidates), each candidate is a *possible* delivery:
 // shown, never counted as unhandled, and enough to keep a consumer off "never arrives".
 
-import type { GraphIndex } from './graph-index.ts';
-import { itemsOf, linksFrom, sid } from './graph-index.ts';
-import { refKey } from './resolve.ts'; import { pushShape } from './client-push.ts';
+import { itemsOf, linksFrom, sid, type GraphIndex } from './graph-index.ts';
+import { refKey } from './resolve.ts';
+import { pushShape } from './client-push.ts';
 import { compareSpecificity, eventMatches, filterAllows, specificity } from './glob.ts';
 import type { Ingress, Link, Ref } from './types.ts';
 import { subscriptionConflicts } from './event-pairs.ts';

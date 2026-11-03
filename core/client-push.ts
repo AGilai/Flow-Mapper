@@ -1,6 +1,7 @@
 // #99: a socket push into a client app (an agent). The agent's code is not harvested, so the ingress has no handler and the trace ends at it.
 
 import type { Egress, Ingress, Model } from './types.ts';
+import type { Message, Participant } from './trace-types.ts';
 
 /** The shape alone (no model): a socket ingress with `entryPoint: false`, `details.direction: push` and no handler. */
 export const pushShape = (i: Pick<Ingress, 'transport' | 'entryPoint' | 'details' | 'handler'>): boolean => i.transport === 'socket' && i.entryPoint === false && i.details?.direction === 'push' && !i.handler;
@@ -32,3 +33,9 @@ export function pushEventsAsObjects<T extends { ingress?: any[]; upsert?: { ingr
   if (a === m.ingress && b === m.upsert?.ingress) return m;
   return { ...m, ...(a ? { ingress: a } : {}), ...(b ? { upsert: { ...m.upsert, ingress: b } } : {}) };
 }
+
+/** The trace message for a push into a client app: a thin async arrow to the app's lifeline, flagged `push`. `part` registers the participant. */
+export const pushMessage = (base: object, from: string, label: string, i: Ingress, kind: 'egress' | 'deliver', depth: number, part: (p: Participant) => string): Message => ({
+  ...base, from, label, kind, depth, mode: 'async', push: true, target: { service: i.service, ingress: i.id },
+  to: part({ id: `svc:${i.service}`, label: i.service, kind: 'service', service: i.service, serviceKind: 'client-app' } as Participant),
+} as Message);

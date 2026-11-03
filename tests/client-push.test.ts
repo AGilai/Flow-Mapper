@@ -35,8 +35,16 @@ test('schema: older client-app manifests (egress only) stay valid; a normal ingr
   const bad = { ...agent(), service: { name: 'plain-svc', kind: 'service' }, ingress: [{ id: 'in.a', bindKey: 'http:GET plain/a', transport: 'http' }] };
   const r = await app.call('POST', '/api/ingest', bad);
   assert.equal(r.status, 422);
-  assert.match(JSON.stringify(r.body), /handler/);
-  const noHandler = { ...bad, ingress: [{ id: 'in.b', bindKey: 'socket:tls/plain-svc/X', transport: 'socket', entryPoint: true, events: ['X'] }] };
+  assert.match(JSON.stringify(r.body), /ingress 'in.a': a handler is required/);
+  assert.doesNotMatch(JSON.stringify(r.body), /undefined/);
+  const ok = { ...bad, ingress: [{ ...bad.ingress[0], handler: 'fn.h' }], functions: [{ id: 'fn.h', name: 'h', steps: [] }] };
+  assert.equal((await app.call('POST', '/api/ingest', ok)).status, 201);
+  const delta = { ...ok, kind: 'delta', version: 2, baseVersion: 1, upsert: { ingress: [{ id: 'in.c', bindKey: 'http:GET plain/c', transport: 'http' }] } };
+  for (const k of ['functions', 'ingress', 'egress', 'resources']) delete (delta as any)[k];
+  const d = await app.call('POST', '/api/ingest', delta);
+  assert.equal(d.status, 422, JSON.stringify(d.body));
+  assert.match(JSON.stringify(d.body), /ingress 'in.c': a handler is required/);
+  const noHandler = { ...bad, version: 3, ingress: [{ id: 'in.b', bindKey: 'socket:tls/plain-svc/X', transport: 'socket', entryPoint: true, events: ['X'] }] };
   assert.equal((await app.call('POST', '/api/ingest', noHandler)).status, 422, 'plain event names and no handler are for a push only');
   await app.close();
 });
