@@ -209,7 +209,7 @@
 
 /* 0.15.0: an expanded card holds a whole flow: its lane, then its own async list (a nested .cards fits the card instead of the page) */
 .card-nest .cards { position: static; width: auto; max-width: none; padding: 0; }
-.card-nest:empty, .card-nest:has(.flow-idx:empty) { display: none; }
+.card-nest:empty, .card-nest:has(> .flow-idx:empty) { display: none; }
 .card-loading { padding: var(--s3) var(--s4); color: var(--muted); font-size: var(--fs-sm); }
 .flow-idx:empty { display: none; }
 
