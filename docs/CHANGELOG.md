@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased
+## 0.49.2 (2026-11-11)
 
 - Demo sample: `order-intake`, `shipping-worker`, `notify-worker` (SQS-to-SQS async chain, direct sqs egress) for the #102 icon and chip. See DEMOS.md.
 
