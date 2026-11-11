@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased
+## 0.48.1 (2026-11-11)
 
 - UI (#100, target 0.48.1): a nested async card for a leaf flow (no async of its own, e.g. 1.1) is no longer hidden when opened from the Async index.
 
