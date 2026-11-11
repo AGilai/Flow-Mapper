@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased
+## 0.49.1 (2026-11-11)
 
 - UI (#102): a flow started by a queue or topic consumer (sqs, amqp, sns, eventbridge) shows the product icon and the transport chip on its trigger column, like the channel column in the parent lane. No API change.
 
