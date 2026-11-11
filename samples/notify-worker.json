@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "notify-worker",
+    "kind": "service",
+    "team": "fulfilment",
+    "repo": "github.com/acme/notify-worker",
+    "language": "typescript",
+    "description": "Demo: consumes SQS shipping-events (the second SQS hop of order-intake POST /orders/submit)"
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-11T09:00:00Z",
+  "commit": "102c0de3",
+  "functions": [
+    {
+      "id": "onShipmentCreated",
+      "name": "onShipmentCreated",
+      "file": "src/handlers.ts",
+      "line": 10,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "notifLog",
+          "operation": "insertOne",
+          "access": "write",
+          "source": {
+            "file": "src/handlers.ts",
+            "line": 13
+          }
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.shipmentCreated",
+      "bindKey": "sqs:shipping-events",
+      "transport": "sqs",
+      "handler": "onShipmentCreated",
+      "entryPoint": false,
+      "events": [
+        {
+          "type": "shipment.created",
+          "handler": "onShipmentCreated"
+        }
+      ]
+    }
+  ],
+  "egress": [],
+  "resources": [
+    {
+      "id": "notifLog",
+      "kind": "mongodb",
+      "name": "notify-db.log",
+      "bindKey": "mongodb:notify-db/log"
+    }
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "shipping-worker",
+    "kind": "service",
+    "team": "fulfilment",
+    "repo": "github.com/acme/shipping-worker",
+    "language": "typescript",
+    "description": "Demo: consumes SQS orders-to-ship, calls a carrier HTTP API, sends DIRECTLY to SQS shipping-events"
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-11T09:00:00Z",
+  "commit": "102c0de2",
+  "functions": [
+    {
+      "id": "onOrderReady",
+      "name": "onOrderReady",
+      "file": "src/handlers.ts",
+      "line": 10,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "out.carrier",
+          "mode": "sync",
+          "operation": "POST /v1/labels"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "out.events",
+          "mode": "async",
+          "operation": "SendMessage shipment.created"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.orderReady",
+      "bindKey": "sqs:orders-to-ship",
+      "transport": "sqs",
+      "handler": "onOrderReady",
+      "entryPoint": false,
+      "events": [
+        {
+          "type": "order.ready",
+          "handler": "onOrderReady"
+        }
+      ]
+    }
+  ],
+  "egress": [
+    {
+      "id": "out.carrier",
+      "bindKey": "http:POST carrier-gateway/v1/labels",
+      "transport": "http",
+      "mode": "sync",
+      "source": {
+        "file": "src/handlers.ts",
+        "line": 14
+      }
+    },
+    {
+      "id": "out.events",
+      "bindKey": "sqs:shipping-events",
+      "transport": "sqs",
+      "mode": "async",
+      "source": {
+        "file": "src/handlers.ts",
+        "line": 20
+      },
+      "events": [
+        "shipment.created"
+      ]
+    }
+  ],
+  "resources": [],
+  "channels": [
+    {
+      "bindKey": "sqs:shipping-events",
+      "kind": "sqs-queue",
+      "name": "shipping-events"
+    }
+  ]
+}

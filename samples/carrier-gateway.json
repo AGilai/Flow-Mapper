@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "carrier-gateway",
+    "kind": "service",
+    "team": "fulfilment",
+    "description": "Internal gateway in front of the shipping carrier API: shipping-worker buys labels from it (demo for #102)",
+    "repo": "github.com/acme/carrier-gateway"
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-11T09:00:00Z",
+  "functions": [
+    {
+      "id": "createLabel",
+      "name": "createLabel",
+      "steps": []
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.createLabel",
+      "bindKey": "http:POST carrier-gateway/v1/labels",
+      "transport": "http",
+      "handler": "createLabel",
+      "details": {
+        "method": "POST",
+        "path": "/v1/labels"
+      }
+    }
+  ],
+  "egress": [],
+  "resources": []
+}
