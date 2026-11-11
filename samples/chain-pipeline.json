@@ -1,0 +1,227 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "chain-pipeline",
+    "kind": "service",
+    "team": "platform",
+    "repo": "github.com/acme/chain-pipeline",
+    "language": "typescript",
+    "description": "Demo (#101): a three-level async chain in one service. intake publishes, enrich consumes and publishes, score consumes and publishes, notify consumes. The Async flows list shows 1, 1.1 and 1.1.1 at the top level"
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-11T08:00:00Z",
+  "commit": "101c0de",
+  "functions": [
+    {
+      "id": "intake",
+      "name": "intake",
+      "file": "src/pipeline.ts",
+      "line": 10,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "out.received",
+          "mode": "async",
+          "operation": "publish chain.received"
+        }
+      ]
+    },
+    {
+      "id": "onReceived",
+      "name": "onReceived",
+      "file": "src/pipeline.ts",
+      "line": 30,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "cache",
+          "operation": "SET enrich:{id}"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "out.enriched",
+          "mode": "async",
+          "operation": "publish chain.enriched"
+        }
+      ]
+    },
+    {
+      "id": "onEnriched",
+      "name": "onEnriched",
+      "file": "src/pipeline.ts",
+      "line": 50,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "cache",
+          "operation": "GET enrich:{id}"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "out.scored",
+          "mode": "async",
+          "operation": "publish chain.scored"
+        }
+      ]
+    },
+    {
+      "id": "onScored",
+      "name": "onScored",
+      "file": "src/pipeline.ts",
+      "line": 70,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "cache",
+          "operation": "DEL enrich:{id}"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.intake",
+      "bindKey": "http:POST /chain-pipeline/intake",
+      "transport": "http",
+      "handler": "intake",
+      "entryPoint": true,
+      "source": {
+        "file": "src/routes.ts",
+        "line": 5
+      }
+    },
+    {
+      "id": "in.received",
+      "bindKey": "sqs:chain-received",
+      "transport": "sqs",
+      "handler": "onReceived",
+      "events": [
+        {
+          "type": "chain.received",
+          "handler": "onReceived"
+        }
+      ],
+      "entryPoint": false
+    },
+    {
+      "id": "in.enriched",
+      "bindKey": "sqs:chain-enriched",
+      "transport": "sqs",
+      "handler": "onEnriched",
+      "events": [
+        {
+          "type": "chain.enriched",
+          "handler": "onEnriched"
+        }
+      ],
+      "entryPoint": false
+    },
+    {
+      "id": "in.scored",
+      "bindKey": "sqs:chain-scored",
+      "transport": "sqs",
+      "handler": "onScored",
+      "events": [
+        {
+          "type": "chain.scored",
+          "handler": "onScored"
+        }
+      ],
+      "entryPoint": false
+    }
+  ],
+  "egress": [
+    {
+      "id": "out.received",
+      "bindKey": "sns:chain-received-topic",
+      "transport": "sns",
+      "mode": "async",
+      "delivery": "multicast",
+      "events": [
+        "chain.received"
+      ],
+      "source": {
+        "file": "src/pipeline.ts",
+        "line": 10
+      }
+    },
+    {
+      "id": "out.enriched",
+      "bindKey": "sns:chain-enriched-topic",
+      "transport": "sns",
+      "mode": "async",
+      "delivery": "multicast",
+      "events": [
+        "chain.enriched"
+      ],
+      "source": {
+        "file": "src/pipeline.ts",
+        "line": 10
+      }
+    },
+    {
+      "id": "out.scored",
+      "bindKey": "sns:chain-scored-topic",
+      "transport": "sns",
+      "mode": "async",
+      "delivery": "multicast",
+      "events": [
+        "chain.scored"
+      ],
+      "source": {
+        "file": "src/pipeline.ts",
+        "line": 10
+      }
+    }
+  ],
+  "resources": [
+    {
+      "id": "cache",
+      "kind": "redis",
+      "name": "chain cache",
+      "bindKey": "redis:chain-cache/enrich:{id}"
+    }
+  ],
+  "channels": [
+    {
+      "bindKey": "sqs:chain-received",
+      "kind": "sqs-queue",
+      "name": "chain-received"
+    },
+    {
+      "bindKey": "sqs:chain-enriched",
+      "kind": "sqs-queue",
+      "name": "chain-enriched"
+    },
+    {
+      "bindKey": "sqs:chain-scored",
+      "kind": "sqs-queue",
+      "name": "chain-scored"
+    }
+  ],
+  "bindings": [
+    {
+      "id": "sub.received",
+      "from": "sns:chain-received-topic",
+      "to": "sqs:chain-received"
+    },
+    {
+      "id": "sub.enriched",
+      "from": "sns:chain-enriched-topic",
+      "to": "sqs:chain-enriched"
+    },
+    {
+      "id": "sub.scored",
+      "from": "sns:chain-scored-topic",
+      "to": "sqs:chain-scored"
+    }
+  ]
+}

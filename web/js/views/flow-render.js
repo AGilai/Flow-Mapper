@@ -25,11 +25,12 @@ import { laneSlots } from '../design/lane-slots.js';
  * ancestors: flow ids (service|ingress|event) of the flows this one sits inside: a row that loops back to one is not expanded.
  * sh: { host, opts, tip, walk (the step walk, top lane only), squeeze() (Squeeze on for this tab), squeezeOpen() (a fold was clicked), zoom() (the scale), afterLane() (the top lane was drawn), details(built) (step details on the arrows, top lane only; 0.30.0), editStep(key, n), select(bar), lookInside(bar, trace), openMessage(m, g, trace), flash(el), traceFor(request) }
  */
-export function createFlowRender({ trace, tree, key, ancestors = [], sticky = true, depth = 0 }, sh) {
+export function createFlowRender({ trace, tree, key, ancestors = [], sticky = true, depth = 0, root = null }, sh) {
   const { host, opts } = sh, mwOpen = new Set(), fanOpen = new Set(); // fanOpen: topics whose queues are all drawn
   const marks = () => host.marks ?? marksNow(); // the marks of the flow's own environment (a tab of another env has its own, 0.36.0)
   const laneBox = h('div.flow-lane'), idxBox = h('div.flow-idx');
   let lane = null, index = null;
+  const top = () => (root ? root() : index); // 0.49.0 (#101): the list lives under the top lane only; a card's number tiles reveal rows there
   if (!depth) laneBox.addEventListener('click', (ev) => { const j = ev.target.closest?.('[data-jump]'); if (j && sh.walk) { ev.stopPropagation(); sh.walk.go(Number(j.dataset.jump)); } }, true); // 0.44.0 (#90): a repeat marker's `↩ seen at step N` jumps to step N
   const maxDepth = () => (opts.depth === 'all' ? Infinity : Number(opts.depth));
   const laneOpts = () => ({ mwOpen, stores: opts.stores, scope: 'full', maxDepth: maxDepth() });
@@ -44,8 +45,8 @@ export function createFlowRender({ trace, tree, key, ancestors = [], sticky = tr
     onParticipant: (p, x, y, type) => (type === 'click' && sh.editHead?.(p.service)) || (type === 'click' && p.kind === 'service' && host.openPane?.({ kind: 'component', name: p.service })) || participantMenu(p, x, y, { trace, openEntry: host.openEntry, openPane: host.openPane }), // Edit with a draft: a click on a head opens its form; otherwise the info pane (0.33.0), the menu stays on right-click
     onStore: sh.onStore && !depth ? (c, ev) => sh.onStore(c, ev) : undefined, // #86: a Redis or Mongo head opens the store panel (the top lane's only)
     onBand: host.openPane ? (key) => host.openPane({ kind: 'subsystem', key }) : undefined,
-    onNum: (label) => { if (index) index.reveal(label); }, // a number tile at a queue: open that row of the list below (a card opens in place)
-    onNumHover: (labels, on) => labels.forEach((l) => index?.rowNode(l)?.classList.toggle('hl', on)),
+    onNum: (label) => { top()?.reveal(label); }, // a number tile at a queue: open that row of the list below (a card opens in place)
+    onNumHover: (labels, on) => labels.forEach((l) => top()?.rowNode(l)?.classList.toggle('hl', on)),
     onFan: (topic) => { if (!fanOpen.delete(topic)) fanOpen.add(topic); drawLane(); },
     onMessage: (m, g, e, trunk) => { if (!depth && e) sh.walk?.hit(e); if (m.kind === 'frontier') host.setFrontier(); else if (trunk && e?.publish) sh.openPublish(e.publish, g, trace); else sh.openMessage(m, g, trace); },
   };
@@ -72,7 +73,7 @@ export function createFlowRender({ trace, tree, key, ancestors = [], sticky = tr
   }
   const makeFlow = async (row, childAncestors) => {
     const t = await sh.traceFor(subRequest(row, opts));
-    return createFlowRender({ trace: t, tree: asyncTree(t.messages, row.label, knownOutside(tree.known, row.label)), key, ancestors: childAncestors, sticky: false, depth: depth + 1 }, sh);
+    return createFlowRender({ trace: t, tree: asyncTree(t.messages, row.label, knownOutside(tree.known, row.label)), key, ancestors: childAncestors, sticky: false, depth: depth + 1, root: top }, sh);
   };
   function drawIndex() {
     index = tree.groups.length ? renderIndex(tree, { trace, handlers, depth, key, ancestors, makeFlow,
@@ -81,7 +82,7 @@ export function createFlowRender({ trace, tree, key, ancestors = [], sticky = tr
       hover: (labels, on) => lane?.mark(labels, on) }) : null;
     idxBox.replaceChildren(...(index ? [index.el] : []));
   }
-  drawLane(); drawIndex();
+  drawLane(); if (!depth) drawIndex();
   return {
     laneBox, idxBox, drawLane, restep, ancestors,
     /** Depth, stores and other lane options changed: redraw this lane and the lanes of the cards already open below it (their expansion stays). */
