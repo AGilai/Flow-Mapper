@@ -13,6 +13,7 @@ test('.card-nest hides only when its OWN index is empty (direct child), not when
   assert.match(css, /^\.flow-idx:empty \{ display: none; \}/m);
 });
 
-test('the nest still holds the flow index as a direct child of .card-nest', () => {
-  assert.match(idx, /h\('div\.card-nest', f\.idxBox\)/);
+test('0.49.0 (#101): a card holds only its flow; the list is flat at the top level', () => {
+  assert.match(idx, /h\('div\.card-lane', f\.laneBox\)\);/);
+  assert.doesNotMatch(idx, /f\.idxBox/);
 });
