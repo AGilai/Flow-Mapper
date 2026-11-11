@@ -6,6 +6,7 @@ import { eventReport } from './events.ts';
 import { stores } from './stores.ts';
 import { assumedItems, drift, mixedCommits, unresolvedItems, type AssumedItem, type UnresolvedItem } from './harvest-quality.ts';
 import { byBasis } from './assumed.ts';
+import { channelsWithoutOwner, type OwnerlessChannel } from './channel-owner.ts';
 
 export interface ServiceHealth {
   service: string;
@@ -47,6 +48,8 @@ export interface HealthReport {
     assumed: AssumedItem[];
     mixedCommits: { service: string; commit?: string; others: { commit: string; items: number }[] }[];
     drift: { service: string; kind: string; id: string; provenance: unknown }[];
+    /** 0.50.0 (#104): channels published to or consumed from that no component declares; the designer assigns an owner. */
+    channelsWithoutOwner: OwnerlessChannel[];
   };
 }
 
@@ -95,6 +98,7 @@ function build(g: GraphIndex): HealthReport {
     assumed: assumedItems(g),
     mixedCommits: mixedCommits(g),
     drift: drift(g),
+    channelsWithoutOwner: channelsWithoutOwner(g),
     dangling: r.dangling.map((e) => ({ service: e.service, id: e.id, bindKey: e.bindKey, transport: e.transport })),
     orphans: r.orphans.filter((i) => !ext.has(i.service)).map((i) => ({ service: i.service, id: i.id, bindKey: i.bindKey, transport: i.transport })),
     unbound: r.unbound.map((u) => ({ service: u.channel.service, bindKey: u.channel.bindKey, kind: u.channel.kind, reason: u.reason })),
@@ -144,7 +148,7 @@ function build(g: GraphIndex): HealthReport {
       ...Object.fromEntries(EVENT_KINDS.map((k) => [k, items[k].length])) as Record<EventKind, number>,
       multipleWriters: new Set(items.multipleWriters.map((x) => x.key)).size,
       unusedStores: new Set(items.unusedStores.map((x) => x.key)).size,
-      unresolved: items.unresolved.length, assumed: items.assumed.length, mixedCommits: items.mixedCommits.length, drift: items.drift.length,
+      unresolved: items.unresolved.length, assumed: items.assumed.length, mixedCommits: items.mixedCommits.length, drift: items.drift.length, channelsWithoutOwner: items.channelsWithoutOwner.length,
       coverage: egressTotal ? (egressTotal - items.dangling.length) / egressTotal : null,
     },
     assumedByBasis: byBasis(items.assumed),

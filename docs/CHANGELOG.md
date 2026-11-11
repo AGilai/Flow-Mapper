@@ -8,7 +8,7 @@ in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.m
 ## Unreleased
 
 - Flow diagram (UI, #103): a component with a second `groupPath` segment (`platform/gcp`) gets a sub-subsystem band row under the subsystem row (label: the registered `grp:platform/gcp` name, else the segment). `GET /subsystems` also returns, additively, `components[].sub` and `subsystems[].subs`.
-- Flow diagram (UI, #104): a topic, queue or exchange column sits in the subsystem (and sub-subsystem) band of the component that declares it. Additive on `GET /trace` and MCP `trace_flow`: a channel participant carries `owner` (the declaring component, never an infra one; absent when none).
+- Flow diagram (UI, #104): a topic, queue or exchange column sits in the subsystem (and sub-subsystem) band of the component that declares it. Additive on `GET /trace` and MCP `trace_flow`: a channel participant carries `owner` (the declaring component; a non-infra declarer is preferred, an infra component owns what only infra declares; absent when nobody declares it). Additive on `GET /health` and MCP `link_health`: `items.channelsWithoutOwner` and `totals.channelsWithoutOwner` list channels that components use and none declares (a gap: declare it in the owning component's `channels`).
 
 ## 0.49.2 (2026-11-11)
 

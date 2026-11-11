@@ -47,7 +47,8 @@ export function drawHead({ storeOn, columns, heads, boxH, HEAD, bandH, bands, wi
   function headChip(c, y) { // the transport of a topic or queue, as a chip; a big fan-out adds its fold control
     const label = queueSrc(c) ? c.transport : c.sub, w = label.length * 6.4 + 12; // #102: a queue-started flow's trigger head shows the transport chip like the channel column
     return [s('rect', { class: 'tchip', x: 12, y: y + 4, width: w, height: 16, rx: 4 }), s('text', { class: 'tchipt', x: 18, y: y + 16 }, label),
-      c.fan ? s('text', { class: 'fanbtn', x: 12 + w + 6, y: y + 16 }, c.folded ? 'show ▸' : 'fold ▴') : null];
+      c.fan ? s('text', { class: 'fanbtn', x: 12 + w + 6, y: y + 16 }, c.folded ? 'show ▸' : 'fold ▴') : null,
+      isCh(c) && !c.owner && !c.fan ? s('text', { class: 'noown', x: 12 + w + 8, y: y + 16, 'data-qa': 'no-owner' }, isDesign(c.env) ? 'no owner yet' : 'no owner', s('title', {}, `${c.label} is declared by no component. Declare it in the owning component's channels (link health lists it).`)) : null]; // #104: a gap, not a design choice
   }
 }
 

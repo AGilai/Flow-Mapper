@@ -24,6 +24,7 @@ const KINDS = [
   { id: 'subscriptionConflicts', label: 'Subscription conflicts', help: 'The same subscription is reported by more than one manifest with different event filters.' },
   { id: 'multipleWriters', label: 'Stores with several writers', help: 'More than one service writes to the same collection, table or key. Those services are coupled through the data.', store: true },
   { id: 'unusedStores', label: 'Unused stores', help: 'A data store a service declares but no function uses.', store: true },
+  { id: 'channelsWithoutOwner', label: 'Channels without an owner', help: 'A topic, queue or exchange that components publish to or consume from and no component declares. Declare it in the owning component\'s channels, so it sits in that component\'s subsystem.' },
   { id: 'unresolved', label: 'Unresolved by harvesters', help: 'Calls, consumers and event types a harvester found but could not resolve, with its reason. Not counted as broken links.', harvest: true },
   { id: 'assumed', label: 'Assumed values', help: 'Values a harvester filled by a rule (a client default, a convention) instead of reading them from code. Informational: defaults, not facts, and not problems. Not in the coverage figure.', harvest: true },
   { id: 'mixedCommits', label: 'Mixed commits', help: 'Services whose items were scanned at different commits. Code links follow each item\'s own commit.', harvest: true },
@@ -41,6 +42,7 @@ export async function render({ main, query }) {
     ...KINDS.slice(0, 5).map((k) => fig(t[k.id], k.label, t[k.id] > 0 && k.id !== 'orphans')),
     fig(KINDS.slice(5, 10).reduce((n, k) => n + t[k.id], 0), 'Event problems', KINDS.slice(5, 10).some((k) => t[k.id] > 0)),
     fig(t.multipleWriters + t.unusedStores, 'Store problems', t.multipleWriters > 0),
+    fig(t.channelsWithoutOwner ?? 0, 'Channels without an owner', (t.channelsWithoutOwner ?? 0) > 0),
     fig(t.unresolved, 'Unresolved by harvesters'),
     fig(t.assumed, 'Assumed values'));
 
@@ -102,6 +104,7 @@ function itemsTable(kind, rows) {
     neverArrives: [{ key: 'service', label: 'Consumer', render: (x) => svc(x.service) }, ev, { key: 'bindKey', label: 'Queue', render: (x) => keyCell(x.bindKey) }],
     declaredNotSeen: [{ key: 'service', label: 'Consumer', render: (x) => svc(x.service) }, ev, { key: 'producer', label: 'Declared producer', render: (x) => svc(x.producer) }],
     multipleWriters: [{ key: 'key', label: 'Data store', render: (x) => storeLink(x.key) }, { key: 'kind', label: 'Kind' }, { key: 'service', label: 'Writer', render: (x) => svc(x.service) }, { key: 'writers', label: 'All writers', nosort: true, render: (x) => h('span.small', x.writers.join(', ')) }],
+    channelsWithoutOwner: [{ key: 'channel', label: 'Channel', render: (x) => keyCell(x.channel) }, { key: 'publishers', label: 'Published by', nosort: true, render: (x) => x.publishers.map((p) => h('div', svc(p))) }, { key: 'consumers', label: 'Consumed by', nosort: true, render: (x) => x.consumers.map((p) => h('div', svc(p))) }, { key: 'hint', label: 'Fix', nosort: true, render: () => h('span.small.muted', 'Declare it in the owning component\'s channels') }],
     unusedStores: [{ key: 'key', label: 'Data store', render: (x) => storeLink(x.key) }, { key: 'kind', label: 'Kind' }, { key: 'service', label: 'Declared by', render: (x) => svc(x.service) }],
     unresolved: [{ key: 'reason', label: 'Reason', render: (x) => h('span.pill.gap', x.reason) }, { key: 'service', label: 'Service', render: (x) => svc(x.service) },
       { key: 'id', label: 'Where', render: (x) => h('div.stack', { style: { gap: 0 } }, h('span.key', x.id), h('span.xs.muted', `${x.kind}, ${x.what === 'event' ? 'event type' : x.what === 'caller' ? 'caller' : x.what === 'detail' ? 'field' : 'target'}`)) },

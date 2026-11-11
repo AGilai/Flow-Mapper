@@ -18,7 +18,8 @@
     { "name": "inventory-svc", "groupPath": "shop/stock" },
     { "name": "order-intake", "groupPath": "shop/orders" },
     { "name": "shipping-worker", "groupPath": "shop/shipping" },
-    { "name": "notify-worker" }
+    { "name": "notify-worker" },
+    { "name": "audit-publisher" }
   ],
   "createdBy": "seed"
 }
