@@ -35,3 +35,15 @@ test('a sub-flow request starts at the consumer ingress with the delivered event
   assert.equal(lane.columns[0].kind, 'source', 'the lane opens on the queue');
   assert.ok(!lane.columns.some((c: any) => /^sns:/.test(c.label)), 'never the topic');
 });
+
+test('#102: a queue-started flow keeps its transport on the trigger head, so it gets the product icon and chip', async () => {
+  // @ts-ignore
+  const { headIconOf } = await import('../web/js/views/flow-draw-icons.js');
+  for (const t of ['sqs', 'amqp', 'sns', 'eventbridge']) {
+    const c = callerFor({ kind: 'entry', transport: t, label: `${t}:jobs` });
+    assert.equal(c.transport, t);
+    assert.ok(headIconOf(c), `${t} trigger has an icon`);
+  }
+  assert.equal(callerFor({ kind: 'entry', transport: 'cron', label: 'cron:n' }).transport, undefined);
+  assert.equal(headIconOf(callerFor({ kind: 'entry', transport: 'http', label: 'GET /x' })), null);
+});

@@ -1,6 +1,7 @@
 // Pure helpers for "a sub-flow is a full flow that starts at the consumer": who the caller lifeline is, the trace request
 // built from a delivery row, and the cache key that lets tabs and cards share one trace. No DOM.
 
+export const QUEUE = new Set(['sqs', 'amqp', 'sns', 'eventbridge']); // transports whose trigger head shows the channel's product icon and chip (#102)
 const SYNC = new Set(['http', 'rpc', 'grpc', 'undecided']); // a call whose transport a design has not decided reads as a sync call
 const stripType = (k) => String(k).replace(/^[a-z-]+:/, '');
 
@@ -21,7 +22,7 @@ export function callerFor(first) {
   if (t === 'cron') return { id: 'src', label: 'schedule', sub: ['cron', stripType(key)].filter(Boolean).join(' · '), kind: 'source' };
   if (t === 'socket') return { id: 'client', label: 'client', sub: `${socketProtocol(first)} socket`, kind: 'client' };
   const q = stripType(key);
-  return { id: 'src', label: q || t, sub: `${t === 'amqp-queue' ? 'amqp' : t} queue`, kind: 'source', ...(t === 'amqp' ? { transport: 'amqp' } : {}) };
+  return { id: 'src', label: q || t, sub: `${t === 'amqp-queue' ? 'amqp' : t} queue`, kind: 'source', ...(QUEUE.has(t) ? { transport: t } : {}) }; // #102: a known queue/topic transport lets the head show its product icon and chip
 }
 
 /** The trace request of the flow a delivery row starts: its consumer's ingress with the delivered event (only that handler runs). */

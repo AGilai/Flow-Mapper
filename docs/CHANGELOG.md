@@ -5,6 +5,10 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+
+- UI (#102): a flow started by a queue or topic consumer (sqs, amqp, sns, eventbridge) shows the product icon and the transport chip on its trigger column, like the channel column in the parent lane. No API change.
+
 ## 0.48.1 (2026-11-11)
 
 - UI (#101, target 0.49.0): the Async flows list under a diagram holds every async flow derived from the flow, recursively and depth first (1, 1.1, 1.1.2, 2), indented by depth with a "from 1" hint. Each row expands its own card without its parent; a card no longer holds its own list, "+N nested ↓" jumps to those rows, and the ↓N tiles (also inside a card) open and scroll to the row. No API change: the rows come from the trace the tab already has. Sample `chain-pipeline` (prod) has a three-level chain.

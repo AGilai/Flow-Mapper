@@ -15,14 +15,14 @@ import { headIcon, headIconOf, TEXT_X } from './flow-draw-icons.js';
 import { isStoreHead, headLabel, HEAD_TIP } from './store-panel-pure.js';
 
 export function drawHead({ storeOn, columns, heads, boxH, HEAD, bandH, bands, width, colX, isCh, headBox, folded, groups, marks, refs, edit, internal }) {
-  const top = 8 + bandH, tx = (c) => (c.kind === 'resource' || headIconOf(c) ? TEXT_X : 12); // a store head, or one with a product icon, has it before the name
+  const queueSrc = (c) => c.kind === 'source' && c.transport, top = 8 + bandH, tx = (c) => (c.kind === 'resource' || headIconOf(c) ? TEXT_X : 12); // a store head, or one with a product icon, has it before the name
   return s('svg', { width, height: HEAD, class: 'seq-head', role: 'presentation' }, drawBands(bands, { colX, headBox, columns, groups, onAdd: edit?.onAddInBand }), foldHeads(groups, boxH, top), columns.map((c, i) => folded.has(i) ? null :
     s('g', { class: `seq-part k-${c.kind}${c.fan ? ' fan' : ''}${look(c).cls}${storeOn && isStoreHead(c) ? ' store-hd' : ''}`, 'data-p': i, style: look(c).style, transform: `translate(${colX.get(c) - headBox(c) / 2},${top})`, ...(storeOn && isStoreHead(c) ? { tabindex: 0, role: 'button', 'aria-pressed': 'false', 'aria-label': headLabel(c), 'data-store': c.group, 'data-coll': c.collection ?? '', 'data-stack': c.stack ? '1' : '0', 'data-kind': c.storeKind } : { tabindex: c.fan ? 0 : null, role: c.fan ? 'button' : null }) },
       storeOn && isStoreHead(c) ? s('rect', { class: 'sp-ring', x: -4, y: -4, width: headBox(c) + 8, height: boxH + 8, rx: 11 }) : null,
       c.stack ? [s('rect', { class: 'stack', x: 8, y: 5, width: headBox(c), height: boxH, rx: 8, opacity: 0.55 }), s('rect', { class: 'stack', x: 4, y: 2.5, width: headBox(c), height: boxH, rx: 8, opacity: 0.8 })] : null,
       s('rect', { width: headBox(c), height: boxH, rx: 8 }), s('rect', { class: 'stripe', width: 4, height: boxH, rx: 2 }), headIcon(c) ?? (c.kind === 'resource' ? storeIcon(12, 10, c.stack) : null), headMarkSvg(marks, c, headBox(c)), headRefSvg(refs, c, headBox(c)), c.kind === 'service' ? runtimeSvg(runtimeFor(c.service, c.env), headBox(c) - (refs?.locked(c) ? 40 : 22), 5) : null,
       heads[i].name.map((t, k) => s('text', { x: tx(c), y: 18 + k * LINE_H, class: 'name' }, t)),
-      isCh(c) ? headChip(c, heads[i].name.length * LINE_H + 5) : (c.kind === 'unresolved' && isDesign(c.env) ? ['not designed yet'] : headRefSub(refs, c, heads[i].sub)).map((t, k) => s('text', { x: tx(c), y: 18 + heads[i].name.length * LINE_H + 1 + k * 13, class: 'sub' }, t)),
+      isCh(c) || queueSrc(c) ? headChip(c, heads[i].name.length * LINE_H + 5) : (c.kind === 'unresolved' && isDesign(c.env) ? ['not designed yet'] : headRefSub(refs, c, heads[i].sub)).map((t, k) => s('text', { x: tx(c), y: 18 + heads[i].name.length * LINE_H + 1 + k * 13, class: 'sub' }, t)),
       externalTag(c, headBox(c), boxH), internal && c.kind === 'service' && !c.external ? (internal.simple ? hiddenBadge(c, internal) : internalCtl(c, internal.state(c.service))) : null,
       storeOn && isStoreHead(c) ? s('path', { class: 'sp-aff', d: `M${headBox(c) - 19} 15h10M${headBox(c) - 19} 20h10M${headBox(c) - 19} 25h6` }) : null,
       s('title', {}, c.trigger ? `${c.label}: a client app. Starts when: ${c.trigger}` : c.kind === 'resource' ? (c.stack ? `${c.label}: ${c.sub}` : `${c.label}\n${c.sub}`) + (storeOn && isStoreHead(c) ? `\n${HEAD_TIP}` : '') : c.folded ? `${c.folded.length} more queues: ${c.folded.map(chName).join(', ')}. Click to show them all.` : c.fan?.open ? `${c.label}. Click to fold the healthy queues again.` : c.label))));
@@ -45,8 +45,8 @@ export function drawHead({ storeOn, columns, heads, boxH, HEAD, bandH, bands, wi
     return { style: [mc, cc ? `--cc:${cc}` : null].filter(Boolean).join(';') || null, cls: `${cc ? ' cmp' : ''}${c.serviceKind === 'client-app' ? ' ca' : ''}${refs?.locked(c) ? ' locked' : ''}${externalCls(c)}` };
   }
   function headChip(c, y) { // the transport of a topic or queue, as a chip; a big fan-out adds its fold control
-    const w = c.sub.length * 6.4 + 12;
-    return [s('rect', { class: 'tchip', x: 12, y: y + 4, width: w, height: 16, rx: 4 }), s('text', { class: 'tchipt', x: 18, y: y + 16 }, c.sub),
+    const label = queueSrc(c) ? c.transport : c.sub, w = label.length * 6.4 + 12; // #102: a queue-started flow's trigger head shows the transport chip like the channel column
+    return [s('rect', { class: 'tchip', x: 12, y: y + 4, width: w, height: 16, rx: 4 }), s('text', { class: 'tchipt', x: 18, y: y + 16 }, label),
       c.fan ? s('text', { class: 'fanbtn', x: 12 + w + 6, y: y + 16 }, c.folded ? 'show ▸' : 'fold ▴') : null];
   }
 }
