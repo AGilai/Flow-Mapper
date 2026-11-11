@@ -3,11 +3,12 @@
 
 const isSvc = (c) => c.kind === 'service' && c.service;
 const isRes = (c) => c.kind === 'resource';
+const isCh = (c) => c.kind === 'channel';
 
 /** The key of the "Shared" band (0.30.1, #67): data stores that no component of a subsystem owns. */
 export const SHARED = '~shared';
 /** The band a lifeline belongs to: a component's subsystem; a data store has its owner's subsystem, else Shared (no owner, or an owner in no subsystem). '' = none. */
-export const memberOf = (c, subOf) => (isSvc(c) ? subOf(c.service) : isRes(c) ? (c.owner && subOf(c.owner)) || SHARED : '');
+export const memberOf = (c, subOf) => (isSvc(c) ? subOf(c.service) : isRes(c) ? (c.owner && subOf(c.owner)) || SHARED : isCh(c) ? (c.owner && subOf(c.owner)) || '' : ''); // a channel (0.50.0, #104) has its declaring component's band, or none
 
 /**
  * groupColumns(columns, subOf) -> the columns with the components of one subsystem together.
@@ -26,7 +27,21 @@ export function groupColumns(columns, subOf, subOf2 = () => '') {
   const moved = slots.map((i) => columns[i]).sort((a, b) => rank(a) - rank(b)); // Array.sort is stable
   const out = [...columns];
   slots.forEach((i, k) => { out[i] = moved[k]; });
-  return placeStores(out, subOf);
+  return placeChannels(placeStores(out, subOf), subOf);
+}
+
+/** A channel (topic, queue, exchange) whose owner has a subsystem goes right after its owner's column, after the earlier channels of that owner (0.50.0, #104); an owner not in the flow: after the last lifeline of its subsystem. An unowned channel keeps its place. */
+function placeChannels(cols, subOf) {
+  const mine = cols.filter((c, i) => i > 0 && isCh(c) && c.owner && subOf(c.owner));
+  if (!mine.length) return cols;
+  const out = cols.filter((c) => !mine.includes(c)), placed = new Set();
+  for (const c of mine) {
+    let i = out.findLastIndex((x) => (isSvc(x) && x.service === c.owner) || (placed.has(x) && x.owner === c.owner));
+    if (i < 0) i = out.findLastIndex((x) => (isSvc(x) && subOf(x.service) === subOf(c.owner)) || (placed.has(x) && memberOf(x, subOf) === subOf(c.owner)));
+    if (i < 0) { out.push(c); placed.add(c); continue; }
+    out.splice(i + 1, 0, c); placed.add(c);
+  }
+  return out;
 }
 
 function placeStores(cols, subOf) {
@@ -68,5 +83,5 @@ export function subBands(columns, folded, subOf, keyOf = (c) => memberOf(c, subO
   return out;
 }
 
-/** The sub-subsystem band row (0.50.0): runs of neighbouring component heads of one second groupPath level, keyed `platform/gcp`. A component with no second level, a store, a topic and a queue have none and end the run. */
-export const subSubBands = (columns, folded, sub2Of) => subBands(columns, folded, null, (c) => (isSvc(c) ? sub2Of(c.service) : ''));
+/** The sub-subsystem band row (0.50.0): runs of neighbouring component heads of one second groupPath level, keyed `platform/gcp`. A component with no second level, a store and an unowned channel have none and end the run; an owned channel has its owner's. */
+export const subSubBands = (columns, folded, sub2Of) => subBands(columns, folded, null, (c) => (isSvc(c) ? sub2Of(c.service) : isCh(c) && c.owner ? sub2Of(c.owner) : ''));

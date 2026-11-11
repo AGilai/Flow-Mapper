@@ -11,7 +11,7 @@
 // that type. A publish that names no event uses the egress's events and candidates: only matching subscriptions
 // are followed (candidate-only ones are `possible`); with none known it stops at the topic (#40). A step with `eventFrom` takes its event from the nearest enclosing call step's `bind` on the path (#42); unbound it is such an untyped publish. A trace can also start from one event type at an ingress.
 
-import { gapNames, gapLabel, isClientPush, pushMessage } from './client-push.ts';
+import { channelOwner } from './channel-owner.ts'; import { gapNames, gapLabel, isClientPush, pushMessage } from './client-push.ts';
 import { linksFrom, sid, type GraphIndex } from './graph-index.ts';
 import { isLeaf, type Ingress, type Link, type Mode, type Ref, type Step, type StepAlternative, type StepFix, type StepField, type Unresolved } from './types.ts';
 import { handlerFor, passes, passesUntyped, untypedEventSet, type EventSet } from './events.ts';
@@ -69,7 +69,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
     const b = l.binding ? g.bindings.get(sid(l.binding.service, l.binding.id)) : undefined;
     return b ? { filter: { id: b.id, service: b.service, from: b.from, ...(b.events ? { events: b.events } : {}), ...(b.from.startsWith('amqp:') ? { bindingKey: bindingKeyOf(b), ...(b.match ? { match: b.match } : {}), ...(b.details?.headers ? { headers: b.details.headers as Record<string, unknown>, xMatch: b.details.xMatch === 'any' ? 'any' : 'all' } : {}) } : {}) } } : {};
   };
-  const chPart = (key: string) => part({ id: `ch:${key}`, label: g.channels.get(key)?.name ?? key, kind: 'channel' });
+  const chPart = (key: string) => part({ id: `ch:${key}`, label: g.channels.get(key)?.name ?? key, kind: 'channel', ...(channelOwner(g, key) ? { owner: channelOwner(g, key) } : {}) });
   // The same subscription declared twice (by the topic's owner and by the consumer) is one link, one arrow.
   const distinct = <T extends { to: Ref }>(ls: T[]) => ls.filter((l, i) => ls.findIndex((o) => refKey(o.to) === refKey(l.to)) === i);
   let counted = 0; // messages that count toward maxMessages: everything but the folded frontier markers

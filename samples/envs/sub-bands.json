@@ -8,12 +8,17 @@
     { "key": "edge", "label": "Edge" },
     { "key": "shop", "label": "Shop" },
     { "key": "shop/catalog", "label": "Catalog" },
-    { "key": "shop/stock", "label": "Stock" }
+    { "key": "shop/stock", "label": "Stock" },
+    { "key": "shop/orders", "label": "Orders" },
+    { "key": "shop/shipping", "label": "Shipping" }
   ],
   "services": [
     { "name": "api-gateway", "groupPath": "edge" },
     { "name": "catalog-svc", "groupPath": "shop/catalog" },
-    { "name": "inventory-svc", "groupPath": "shop/stock" }
+    { "name": "inventory-svc", "groupPath": "shop/stock" },
+    { "name": "order-intake", "groupPath": "shop/orders" },
+    { "name": "shipping-worker", "groupPath": "shop/shipping" },
+    { "name": "notify-worker" }
   ],
   "createdBy": "seed"
 }
