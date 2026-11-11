@@ -14,6 +14,8 @@ export interface Participant {
   internalCalls?: number;
   /** 0.44.0 (#90), Simple view: the internal calls and frontier steps the view left out for this service (duplicates folded into a count are not in it). */
   hiddenSteps?: number;
+  /** 0.50.0 (#104), channels: the component whose manifest declares the channel (a non-infra declarer before an infra one); absent: nobody declares it. The flow view puts the column in its subsystem band. */
+  owner?: string;
   /** #87: a service lifeline of an external (third-party) service. */
   external?: true;
 }

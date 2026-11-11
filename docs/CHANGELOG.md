@@ -5,6 +5,11 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+
+- Flow diagram (UI, #103): a component with a second `groupPath` segment (`platform/gcp`) gets a sub-subsystem band row under the subsystem row (label: the registered `grp:platform/gcp` name, else the segment). `GET /subsystems` also returns, additively, `components[].sub` and `subsystems[].subs`.
+- Flow diagram (UI, #104): a topic, queue or exchange column sits in the subsystem (and sub-subsystem) band of the component that declares it. Additive on `GET /trace` and MCP `trace_flow`: a channel participant carries `owner` (the declaring component; a non-infra declarer is preferred, an infra component owns what only infra declares; absent when nobody declares it). Additive on `GET /health` and MCP `link_health`: `items.channelsWithoutOwner` and `totals.channelsWithoutOwner` list channels that components use and none declares (a gap: declare it in the owning component's `channels`).
+
 ## 0.49.2 (2026-11-11)
 
 - Demo sample: `order-intake`, `shipping-worker`, `notify-worker` (SQS-to-SQS async chain, direct sqs egress) for the #102 icon and chip. See DEMOS.md.

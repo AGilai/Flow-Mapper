@@ -121,11 +121,11 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
   const storeCol = (m) => { const sc = storeColumn(m, folds); return cols.find((c) => c.id === sc.id) ?? mk(sc); };
   const chains = publishes.map((p) => chainOf(msgs, p)), chainAt = new Map(publishes.map((p, k) => [p.i, chains[k]]));
   const plan = planChains(chains, { fanOpen });
-  const chanCol = (key) => {
+  const ownerOf = (key) => participants.find((p) => p.id === `ch:${key}`)?.owner ?? null; const chanCol = (key) => { // ownerOf: the declaring component (0.50.0, #104), for its subsystem band
     const ord = plan.order.findIndex((o) => o.key === key), o = plan.order[ord];
     return cols.find((c) => c.id === `ch:${key}`) ?? mk(o?.role === 'fold'
-      ? { id: `ch:${key}`, label: `+${o.queues.length} queues`, sub: chType(o.queues[0]), kind: 'channel', transport: chType(o.queues[0]), ord, fan: plan.folds.get(o.topic), folded: o.queues }
-      : { id: `ch:${key}`, label: chName(key), sub: chType(key), kind: 'channel', transport: chType(key), ord, fan: plan.folds.get(key)?.open ? plan.folds.get(key) : null });
+      ? { id: `ch:${key}`, label: `+${o.queues.length} queues`, sub: chType(o.queues[0]), kind: 'channel', transport: chType(o.queues[0]), owner: ownerOf(key), ord, fan: plan.folds.get(o.topic), folded: o.queues }
+      : { id: `ch:${key}`, label: chName(key), sub: chType(key), kind: 'channel', transport: chType(key), owner: ownerOf(key), ord, fan: plan.folds.get(key)?.open ? plan.folds.get(key) : null });
   };
   // One publish is ONE arrow (0.17.1): service -> topic -> queue, in the topic's colour up to the topic lifeline and in the queue's colour after it. The first branch
   // continues the trunk on the same row; every further queue is a branch row that forks off the topic lifeline. Queues that fold into "+N queues" share one branch.

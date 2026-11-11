@@ -10,13 +10,19 @@ const EMPTY = { levels: ['Subsystem', 'Component'], subsystems: [], notSet: [] }
 
 /** createSubsystems(payload) -> { levels, list(), info(key), subOf(service), has, assigned, notSet }. `has`: the environment has subsystems; `assigned`: some component is in one. A component has ONE subsystem (0.28.0): the key of the box that lists it, '' for none. */
 export function createSubsystems(p = EMPTY) {
-  const list = p.subsystems ?? [], of = new Map();
-  for (const s of list) for (const c of s.components ?? []) of.set(c.name, s.key);
+  const list = p.subsystems ?? [], of = new Map(), of2 = new Map(), names2 = new Map();
+  for (const s of list) {
+    for (const c of s.components ?? []) { of.set(c.name, s.key); if (c.sub) of2.set(c.name, `${s.key}/${c.sub}`); }
+    for (const x of s.subs ?? []) names2.set(x.key, x.label);
+  }
   return {
     payload: p, levels: p.levels?.length ? p.levels : EMPTY.levels, notSet: p.notSet ?? [], has: list.length > 0, assigned: list.some((s) => s.components?.length > 0),
     list: () => list,
     info: (key) => list.find((s) => s.key === key) ?? null,
     subOf: (service) => of.get(service) ?? '',
+    /** 0.50.0: the second level of a component's groupPath as a full key (`platform/gcp`), '' for none; `subLabel`: its registered name, else the segment. */
+    subOf2: (service) => of2.get(service) ?? '',
+    subLabel: (key) => names2.get(key) ?? key.split('/')[1] ?? key,
     labelOf: (key) => list.find((s) => s.key === key)?.label ?? key,
   };
 }

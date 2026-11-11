@@ -34,13 +34,14 @@ export const drawBands = (bands, { colX, headBox, columns, groups = [], onAdd = 
 
 /** A subsystem band: icon (none: the name only), label, the New spark, and in Edit a "+" at its end. */
 function subBand(b, x, y, w, onAdd) {
-  const ic = b.icon ? subIcon(b.icon, 16) : null, left = ic ? 28 : 10, isNew = b.mark === 'new';
-  const add = onAdd && b.key !== '~shared' && w >= 90 ? s('g', { class: 'band-add', 'data-qa': 'band-add', 'data-key': b.key, transform: `translate(${w - 20} 2)`, tabindex: 0, role: 'button', 'aria-label': `Add a component to ${b.label}` },
+  const sub2 = !!b.sub2, ic = b.icon ? subIcon(b.icon, 16) : null, left = ic ? 28 : 10, isNew = b.mark === 'new';
+  const add = onAdd && !sub2 && b.key !== '~shared' && w >= 90 ? s('g', { class: 'band-add', 'data-qa': 'band-add', 'data-key': b.key, transform: `translate(${w - 20} 2)`, tabindex: 0, role: 'button', 'aria-label': `Add a component to ${b.label}` },
     s('rect', { width: 18, height: 18, rx: 4 }), s('path', { d: 'M9 5v8M5 9h8' }), s('title', {}, `Add a component to ${b.label}`)) : null;
   const room = Math.floor((w - left - (isNew ? 22 : 8) - (add ? 22 : 0)) / 6.8), shown = clip(b.label, Math.max(room, 1));
   if (ic) { ic.setAttribute('x', 8); ic.setAttribute('y', 3); }
   add?.addEventListener('click', (e) => { e.stopPropagation(); onAdd(b.key); });
   add?.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onAdd(b.key); } });
+  if (sub2) return s('g', { class: 'band sub sub2', 'data-sub2': b.key, transform: `translate(${x} ${y})` }, s('rect', { width: w, height: 22, rx: 4 }), room >= 3 ? s('text', { x: 10, y: 15 }, shown) : null, s('title', {}, b.label)); // the second level (0.50.0): its name only, lighter than the subsystem row, no icon, no details
   return s('g', { class: `band sub${isNew ? ' isnew' : ''}`, 'data-sub': b.key, ...(b.key !== '~shared' ? { tabindex: 0, role: 'button', 'aria-label': `Details of ${b.label}` } : {}), transform: `translate(${x} ${y})` }, s('rect', { width: w, height: 22, rx: 4 }), ic,
     room >= 3 ? s('text', { x: left, y: 15 }, shown) : null,
     isNew && room >= 3 ? s('path', { class: 'band-spark', d: GLYPH.new.d, transform: `translate(${left + shown.length * 6.8 + 4} 5)` }) : null,

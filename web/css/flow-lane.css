@@ -23,6 +23,7 @@
 .seq-part.k-channel .name { font-size: 12px; }
 .seq-part .tchip { fill: color-mix(in srgb, var(--mc) 16%, var(--surface)); stroke: var(--mc); stroke-width: 1; }
 .seq-part .tchipt { font: 600 10.5px var(--mono); fill: var(--ink); }
+.seq-part .noown { font: italic 500 10px var(--font); fill: var(--ink-3, var(--ink-2)); opacity: .85; } /* #104: a channel nobody declares */
 .seq-part .fanbtn { font: 600 10.5px var(--font); fill: var(--accent); }
 .seq-part.fan { cursor: pointer; outline: none; }
 .seq-part.fan:hover rect:first-child, .seq-part.fan:focus-visible rect:first-child { stroke: var(--accent); stroke-width: 1.6; }

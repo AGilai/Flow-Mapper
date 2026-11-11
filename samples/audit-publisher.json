@@ -1,0 +1,91 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "audit-publisher",
+    "kind": "service",
+    "team": "fulfilment",
+    "repo": "github.com/acme/audit-publisher",
+    "language": "typescript",
+    "description": "Demo (#104): publishes to SNS audit-events, which a binding routes to the SQS queue audit-inbox that this service consumes. NO component declares the topic or the queue (channels is empty): their columns have no owner, the flow heads say 'no owner' and link health lists both under 'Channels without an owner'"
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-11T09:00:00Z",
+  "commit": "104a0de1",
+  "functions": [
+    {
+      "id": "recordAudit",
+      "name": "recordAudit",
+      "file": "src/handlers.ts",
+      "line": 8,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "out.audit",
+          "mode": "async",
+          "operation": "SendMessage audit.recorded"
+        }
+      ]
+    },
+    {
+      "id": "consumeAudit",
+      "name": "consumeAudit",
+      "file": "src/consumer.ts",
+      "line": 5,
+      "steps": []
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.record",
+      "bindKey": "http:POST audit-publisher/audit/events",
+      "transport": "http",
+      "handler": "recordAudit",
+      "entryPoint": true,
+      "details": {
+        "method": "POST",
+        "path": "/audit/events"
+      }
+    },
+    {
+      "id": "in.consume",
+      "bindKey": "sqs:audit-inbox",
+      "transport": "sqs",
+      "handler": "consumeAudit",
+      "entryPoint": false,
+      "events": [
+        {
+          "type": "audit.recorded",
+          "handler": "consumeAudit"
+        }
+      ]
+    }
+  ],
+  "egress": [
+    {
+      "id": "out.audit",
+      "bindKey": "sns:audit-events",
+      "transport": "sns",
+      "mode": "async",
+      "source": {
+        "file": "src/handlers.ts",
+        "line": 14
+      },
+      "events": [
+        "audit.recorded"
+      ]
+    }
+  ],
+  "bindings": [
+    {
+      "id": "sub.audit",
+      "from": "sns:audit-events",
+      "to": "sqs:audit-inbox",
+      "events": [
+        "audit.recorded"
+      ]
+    }
+  ]
+}

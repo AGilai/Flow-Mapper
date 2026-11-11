@@ -8,8 +8,8 @@ import { groupColumns } from './flow-bands.js';
  *  `slotsOf(columns)` -> Map service -> slot (component-colors.js laneSlots, the de-clash). `env`: the environment of the flow; each column carries it (`c.env`), so colours and icons are read from it, not from the page's. */
 export function groupLane(built, subs, on, marks, slotsOf = null, env = null) {
   if (on && subs?.assigned) {
-    built.columns = groupColumns(built.columns, subs.subOf);
-    built.group = { subOf: subs.subOf, info: subs.info, markOf: (key) => marks?.markOf(`grp:${key}`)?.mark ?? null };
+    built.columns = groupColumns(built.columns, subs.subOf, subs.subOf2);
+    built.group = { subOf: subs.subOf, info: subs.info, subOf2: subs.subOf2, subLabel: subs.subLabel, markOf: (key) => marks?.markOf(`grp:${key}`)?.mark ?? null };
   }
   if (env != null) for (const c of built.columns) c.env = env;
   const slots = slotsOf?.(built.columns);
