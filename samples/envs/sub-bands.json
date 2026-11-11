@@ -1,0 +1,19 @@
+{
+  "name": "sub-bands",
+  "source": "prod",
+  "mode": "components",
+  "behaviour": true,
+  "entryPoints": "keep",
+  "groups": [
+    { "key": "edge", "label": "Edge" },
+    { "key": "shop", "label": "Shop" },
+    { "key": "shop/catalog", "label": "Catalog" },
+    { "key": "shop/stock", "label": "Stock" }
+  ],
+  "services": [
+    { "name": "api-gateway", "groupPath": "edge" },
+    { "name": "catalog-svc", "groupPath": "shop/catalog" },
+    { "name": "inventory-svc", "groupPath": "shop/stock" }
+  ],
+  "createdBy": "seed"
+}

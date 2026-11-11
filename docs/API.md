@@ -287,7 +287,7 @@ Abstract links are design content: written through drafts in design environments
 
 | Method | Path | Body / query -> result |
 |---|---|---|
-| GET | `/api/envs/:env/subsystems` | `{levels, subsystems: [{key, label, icon, about?, order, derived, components: [{name, kind}]}], notSet: [component]}` (settings in order, then derived ones alphabetically) |
+| GET | `/api/envs/:env/subsystems` | `{levels, subsystems: [{key, label, icon, about?, order, derived, components: [{name, kind, sub?}], subs?: [{key, label}]}], notSet: [component]}` (settings in order, then derived ones alphabetically; `sub` is the second `groupPath` segment, `subs` the registered `grp:<top>/<second>` names, both only where there are any, 0.50.0) |
 | GET | `/api/envs/:env/views/subsystems` | `SubsystemMap`: `{boxes, lines, abstract, notSet}` (below) |
 | GET | `/api/envs/:env/abstract-links?subsystem=` | `AbstractView[]`; `subsystem` keeps links with an end in it |
 | GET | `/api/envs/:env/abstract-links/:id` | `AbstractView & {suggestions}`; `404` for an unknown id |

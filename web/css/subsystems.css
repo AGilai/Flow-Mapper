@@ -64,6 +64,8 @@
 .seq-head .band.sub rect { fill: var(--surface-2); stroke: var(--line-strong); }
 .seq-head .band.sub text { font: 600 11.5px var(--font); fill: var(--ink-2); }
 .seq-head .band.sub .ss-icon { stroke: var(--ink-2); }
+.seq-head .band.sub2 rect { fill: var(--surface); stroke: var(--line); stroke-dasharray: none; } /* 0.50.0: the second level reads under the subsystem row: paler, smaller type, no icon */
+.seq-head .band.sub2 text { font: 500 10.5px var(--font); fill: var(--ink-3, var(--ink-2)); }
 .seq-head .band-spark { fill: var(--new); stroke: var(--new-ink); stroke-width: .9; stroke-linejoin: round; }
 .seq-head .band-add { cursor: pointer; }
 .seq-head .band-add rect { fill: transparent; stroke: var(--line-strong); }

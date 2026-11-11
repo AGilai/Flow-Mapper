@@ -16,12 +16,14 @@ export const memberOf = (c, subOf) => (isSvc(c) ? subOf(c.service) : isRes(c) ? 
  * an unresolved target keep their place. A data store (0.30.1) goes right after the last lifeline of its owner's subsystem (an owner subsystem with
  * no component in the flow: after the last component); stores with no owner subsystem go together after that, the "Shared" band. Never changes the array it is given.
  */
-export function groupColumns(columns, subOf) {
+export function groupColumns(columns, subOf, subOf2 = () => '') {
   const slots = [];
   columns.forEach((c, i) => { if (i > 0 && isSvc(c) && subOf(c.service)) slots.push(i); });
-  const order = [];
-  for (const i of slots) { const k = subOf(columns[i].service); if (!order.includes(k)) order.push(k); }
-  const moved = slots.map((i) => columns[i]).sort((a, b) => order.indexOf(subOf(a.service)) - order.indexOf(subOf(b.service))); // Array.sort is stable
+  // the group key of a component is its subsystem, then (0.50.0) its sub-subsystem: the second level keeps each one's columns together inside the subsystem
+  const keyOf = (c) => `${subOf(c.service)}\n${subOf2(c.service) ?? ''}`, order = [];
+  for (const i of slots) { const k = subOf(columns[i].service), l = keyOf(columns[i]); if (!order.includes(k)) order.push(k); if (!order.includes(l)) order.push(l); }
+  const rank = (c) => order.indexOf(subOf(c.service)) * 1e4 + order.indexOf(keyOf(c)) / 1e3;
+  const moved = slots.map((i) => columns[i]).sort((a, b) => rank(a) - rank(b)); // Array.sort is stable
   const out = [...columns];
   slots.forEach((i, k) => { out[i] = moved[k]; });
   return placeStores(out, subOf);
@@ -49,19 +51,22 @@ function placeStores(cols, subOf) {
  * `folded`: Set of Squeezed column indexes. A fold whose columns are all components of one subsystem is part of that subsystem's run;
  * a mixed fold has no band (and ends the run). A topic, a queue or a store between two components ends the run too.
  */
-export function subBands(columns, folded, subOf) {
+export function subBands(columns, folded, subOf, keyOf = (c) => memberOf(c, subOf)) {
   const out = [];
   let i = 0;
   while (i < columns.length) {
     let j = i, key = null;
     if (folded.has(i)) {
       while (j + 1 < columns.length && folded.has(j + 1)) j++;
-      const ks = new Set(columns.slice(i, j + 1).map((c) => memberOf(c, subOf)));
+      const ks = new Set(columns.slice(i, j + 1).map(keyOf));
       key = ks.size === 1 ? [...ks][0] : null;
-    } else key = memberOf(columns[i], subOf) || null;
+    } else key = keyOf(columns[i]) || null;
     const last = out[out.length - 1];
     if (key) { if (last && last.to === i - 1 && last.key === key) last.to = j; else out.push({ key, from: i, to: j }); }
     i = j + 1;
   }
   return out;
 }
+
+/** The sub-subsystem band row (0.50.0): runs of neighbouring component heads of one second groupPath level, keyed `platform/gcp`. A component with no second level, a store, a topic and a queue have none and end the run. */
+export const subSubBands = (columns, folded, sub2Of) => subBands(columns, folded, null, (c) => (isSvc(c) ? sub2Of(c.service) : ''));
