@@ -2,6 +2,7 @@
 
 import { h } from '../dom.js';
 import { icon } from '../icons.js';
+import { openBalloon } from './incomplete-balloon.js';
 import { blockedSites, traceBlocked } from '../../core/incomplete.js';
 import { siteTitle, siteCode, sitePlace, siteGroups, nbTitle } from './incomplete-pure.js';
 
@@ -46,19 +47,20 @@ export function whySection(trace, { me = null } = {}) {
 export const stepIdOf = (m) => m?.blocked?.id ?? (m?.service && m.fn && m.seq ? `${m.service}:${m.fn}#${m.seq}` : null);
 
 /**
- * #113: the pane's way to "Why incomplete" without it pushing the call's data down. whyHazard(trace, { me }) -> { btn, section } | null.
- * `btn`: a small amber button (warning icon and the blocked count; aria-expanded, tooltip "Why incomplete: N blocked") for the pane's header;
- * `section`: the same box as whySection, collapsed (hidden) until the button opens it; the pane puts it after the main data.
+ * #113: the pane's way to "Why incomplete" without it pushing the call's data down. whyHazard(trace, { me }) -> { btn } | null.
+ * `btn`: a small amber button (warning icon and the blocked count; aria-expanded, aria-controls, tooltip "Why incomplete: N blocked") for the pane's header.
+ * Round 2: it opens a balloon under the button (incomplete-balloon.js) holding the same box as whySection; X, Esc, a click outside or the button again closes it.
  */
 export function whyHazard(trace, { me = null } = {}) {
-  const section = whySection(trace, { me });
-  if (!section) return null;
+  if (!whySection(trace)) return null;
   const { n } = traceBlocked(trace, trace.coverage), tip = `Why incomplete: ${n} blocked`;
-  section.hidden = true;
-  const btn = h('button.inc-hz', { type: 'button', 'data-qa': 'why-hazard', 'aria-expanded': 'false', 'aria-controls': 'why-incomplete', 'aria-label': tip, title: tip,
+  let open = null;
+  const btn = h('button.inc-hz', { type: 'button', 'data-qa': 'why-hazard', 'aria-expanded': 'false', 'aria-controls': 'why-balloon', 'aria-haspopup': 'dialog', 'aria-label': tip, title: tip,
     on: { click: () => {
-      const open = section.hidden; section.hidden = !open; btn.setAttribute('aria-expanded', String(open));
-      if (open) requestAnimationFrame(() => (section.querySelector('.inc-site.me') ?? section).scrollIntoView({ block: 'nearest' }));
+      if (open) { open.close(); return; }
+      open = openBalloon({ content: whySection(trace, { me }), anchor: btn, onClose: () => { open = null; btn.setAttribute('aria-expanded', 'false'); } });
+      btn.setAttribute('aria-expanded', 'true');
+      requestAnimationFrame(() => open?.el.querySelector('.inc-site.me')?.scrollIntoView({ block: 'nearest' }));
     } } }, icon('warn'), h('span', String(n)));
-  return { btn, section };
+  return { btn };
 }

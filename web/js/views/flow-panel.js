@@ -67,8 +67,7 @@ export function messagePanel(m, trace, env, scope = 'full', openEntry = null, ma
       h('dt', 'Depth'), h('dd', String(m.depth)),
       ...(m.delivery ? [h('dt', 'Delivery'), h('dd', `${m.depth}.${m.delivery}`)] : []),
       ...(m.matched?.length ? [h('dt', 'Delivered as'), h('dd', m.matched.map((t) => eventLink(t, env)), h('span.xs.muted', ' the publish names no event; these types of it pass the subscription filter'))] : []),
-      ...(m.deliveries ? [h('dt', 'Deliveries'), h('dd', `fans out to ${m.deliveries}`)] : [])),
-    why?.section ?? null];
+      ...(m.deliveries ? [h('dt', 'Deliveries'), h('dd', `fans out to ${m.deliveries}`)] : []))];
 }
 
 /** A publish or a topic -> queue hop (a routing arrow of the diagram): its event type, the topic or bus, the queue and the filter that applies. */

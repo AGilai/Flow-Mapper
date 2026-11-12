@@ -1,4 +1,4 @@
-// #85: the amber "incomplete · N blocked" badge. A span in a list row (the row is the link), a button in the trace header (it jumps to "Why incomplete").
+// #85: the amber "incomplete · N blocked" badge. A span in a list row (the row is the link), a button in the trace header (it opens the "Why incomplete" balloon).
 
 import { h } from '../dom.js';
 import { icon } from '../icons.js';
@@ -20,7 +20,7 @@ export function headBadge({ onOpen }) {
       el.replaceChildren(); el.hidden = !(n > 0 || status === 'incomplete');
       if (el.hidden) return;
       el.append(n > 0
-        ? h('button.inc-badge', { type: 'button', title: headTip(n, source, service), 'aria-label': badgeLabel(n, { button: true }), 'aria-controls': 'why-incomplete', 'data-qa': 'incomplete-badge', on: { click: (e) => { e.preventDefault(); e.stopPropagation(); onOpen(); } } }, icon('warn'), badgeText(n))
+        ? h('button.inc-badge', { type: 'button', title: headTip(n, source, service), 'aria-label': badgeLabel(n, { button: true }), 'aria-haspopup': 'dialog', 'aria-expanded': 'false', 'aria-controls': 'why-balloon', 'data-qa': 'incomplete-badge', on: { click: (e) => { e.preventDefault(); e.stopPropagation(); onOpen(e.currentTarget); } } }, icon('warn'), badgeText(n))
         : h('span.inc-badge', { title: 'Incomplete flow. The harvester reports it as incomplete but not where.', 'aria-label': badgeLabel(0), 'data-qa': 'incomplete-badge' }, icon('warn'), badgeText(0)));
     },
   };

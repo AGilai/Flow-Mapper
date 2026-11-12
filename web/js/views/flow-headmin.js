@@ -52,7 +52,7 @@ export function createHeadMin({ host, title, sub = null, onWhy }) {
     setInc(n, source, service, status = null) { // the compact badge: the warning mark and the count; the same press and tip as the full one
       incSlot.replaceChildren(); incSlot.hidden = !(n > 0 || status === 'incomplete');
       if (incSlot.hidden) return;
-      incSlot.append(n > 0 ? h('button.inc-badge.sm', { type: 'button', title: headTip(n, source, service), 'aria-label': badgeLabel(n, { button: true }), on: { click: (e) => { e.preventDefault(); onWhy?.(); } } }, icon('warn'), String(n))
+      incSlot.append(n > 0 ? h('button.inc-badge.sm', { type: 'button', title: headTip(n, source, service), 'aria-label': badgeLabel(n, { button: true }), on: { click: (e) => { e.preventDefault(); onWhy?.(e.currentTarget); } } }, icon('warn'), String(n))
         : h('span.inc-badge.sm', { title: 'Incomplete flow. The harvester reports it as incomplete but not where.', 'aria-label': badgeLabel(0) }, icon('warn'), '!'));
     },
     dispose() { unwatch?.(); tabs.delete(self); if (!tabs.size) removeEventListener('keydown', onKey); },

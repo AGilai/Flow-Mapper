@@ -33,15 +33,39 @@ test('#111: a call between two lifelines of one fold column is wholly inside it,
   assert.match(f, /sq-arr/);
 });
 
-test('#113: "Why incomplete" is a collapsed section after the call data, opened by a hazard button with aria-expanded and the tooltip "Why incomplete: N blocked"; the store panel has the same button', () => {
-  const why = src('js/views/incomplete-why.js'), panel = src('js/views/flow-panel.js'), store = src('js/views/store-panel.js');
+test('#113: the hazard button opens a balloon (dialog, aria-labelledby) that the X, Esc, an outside click or the button closes; no section is left in the pane', () => {
+  const why = src('js/views/incomplete-why.js'), panel = src('js/views/flow-panel.js'), store = src('js/views/store-panel.js'), bal = src('js/views/incomplete-balloon.js'), css = src('css/incomplete.css');
   assert.match(why, /export function whyHazard/);
-  assert.match(why, /section\.hidden = true/, 'collapsed by default');
   assert.match(why, /'aria-expanded': 'false'/);
+  assert.match(why, /'aria-controls': 'why-balloon'/);
   assert.match(why, /`Why incomplete: \$\{n\} blocked`/);
-  assert.doesNotMatch(panel, /whySection\(trace/, 'no longer first in the body');
-  assert.match(panel, /why\?\.btn/);
-  assert.ok(panel.indexOf('why?.section') > panel.indexOf('dto,'), 'after the call data');
-  assert.match(store, /whyHazard\(ctx\.trace\)/);
-  assert.match(src('js/views/flow-tab-view.js'), /whySection\(trace\)\)/, 'the flow header badge still opens the box expanded');
+  assert.match(why, /if \(open\) \{ open\.close\(\); return; \}/, 'a second click closes');
+  assert.doesNotMatch(panel, /why\?\.section/);
+  assert.doesNotMatch(store, /why\?\.section/);
+  assert.match(panel, /why\?\.btn/); assert.match(store, /whyHazard\(ctx\.trace\)/);
+  assert.match(bal, /role: 'dialog', 'aria-labelledby': 'why-balloon-h'/);
+  assert.match(bal, /'aria-label': 'Close'/);
+  assert.match(bal, /e\.key === 'Escape'/);
+  assert.match(bal, /pointerdown/);
+  assert.match(bal, /anchor\.focus\(/, 'focus goes back to the hazard button');
+  assert.match(bal, /x\.focus\(/, 'focus goes into the balloon');
+  assert.match(css, /\.inc-balloon \{[^}]*z-index: 60/, 'above the Maximize pill (44)');
+  assert.match(src('js/views/flow-tab-view.js'), /openBalloon\(\{ content: sec, anchor/, 'the flow header badge opens the balloon, not a pane');
+});
+
+test('#113: placeBalloon keeps the balloon in the window: shifted, flipped above, clear of the Maximize pill', async () => {
+  const { placeBalloon } = await import('../web/js/views/incomplete-balloon.js');
+  const a = { left: 700, top: 90, right: 760, bottom: 112 };
+  const p = placeBalloon({ anchor: a, vw: 1440, vh: 900 });
+  assert.equal(p.side, 'below'); assert.equal(p.width, 360); assert.equal(p.top, 122); assert.ok(p.maxH <= 540);
+  const edge = placeBalloon({ anchor: { left: 1390, top: 90, right: 1430, bottom: 112 }, vw: 1440, vh: 900 });
+  assert.equal(edge.left + edge.width, 1432, 'shifted left to stay inside'); assert.ok(edge.arrowX > 300 && edge.arrowX <= 342, 'the arrow still points at the button');
+  const narrow = placeBalloon({ anchor: { left: 600, top: 90, right: 640, bottom: 112 }, vw: 760, vh: 900 });
+  assert.ok(narrow.left >= 8 && narrow.left + narrow.width <= 752);
+  const phone = placeBalloon({ anchor: { left: 10, top: 90, right: 50, bottom: 112 }, vw: 320, vh: 700 });
+  assert.equal(phone.width, 304); assert.equal(phone.left, 8);
+  const flip = placeBalloon({ anchor: { left: 700, top: 560, right: 760, bottom: 580 }, vw: 1150, vh: 700 });
+  assert.equal(flip.side, 'above'); assert.equal(flip.bottom, 700 - 560 + 10); assert.ok(flip.top === undefined);
+  const pill = placeBalloon({ anchor: { left: 1300, top: 10, right: 1340, bottom: 30 }, vw: 1440, vh: 900, pill: { left: 1250, top: 14, right: 1422, bottom: 48 } });
+  assert.ok(pill.top >= 56, 'below the pill');
 });

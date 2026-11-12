@@ -62,6 +62,6 @@ export function storePanelView(p, ctx) { // ctx: { env, flowLabel, registry (pro
     h('p.sp-sum', summary(p).map((x) => (typeof x === 'string' ? x : h('b', x.b)))),
     p.cards.map((c) => card(c, p, ctx)),
     h('div.sp-ft', h('a.go', { href: href(redis ? instancePath(p.store) : storePath(storeKey), envQuery(ctx.env)) }, redis ? `Open ${p.store} · all keys ` : `Open ${p.store} `, h('span', { 'aria-hidden': 'true' }, '→')), small));
-  return { nodes: [head, body, why?.section ?? null].filter(Boolean), title, body,
+  return { nodes: [head, body], title, body,
     setCurrent: (n) => body.querySelectorAll('.sp-sc').forEach((b) => b.classList.toggle('cur', n != null && Number(b.dataset.n) === n)) };
 }

@@ -91,5 +91,15 @@ button.inc-badge:hover { background: color-mix(in srgb, var(--inc) 24%, var(--su
 .inc-hz svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
 .inc-hz:hover, .inc-hz[aria-expanded="true"] { background: color-mix(in srgb, var(--inc) 24%, var(--surface)); }
 .inc-hz:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-.inc-why[hidden] { display: none; }
-.inc-why { margin-bottom: var(--s3); }
+
+/* #113 round 2: the balloon under the hazard button. Above the Maximize pill (.max-exit, z 44). */
+.inc-balloon { position: fixed; z-index: 60; display: flex; flex-direction: column; min-height: 0; background: var(--surface); border: 1px solid var(--inc); border-radius: var(--r-md, 10px); box-shadow: 0 10px 30px rgba(0, 0, 0, .22); }
+.inc-balloon .inc-why { margin: 0; border: 0; display: flex; flex-direction: column; min-height: 0; flex: 1; border-radius: inherit; }
+.inc-bal-body { overflow-y: auto; min-height: 0; flex: 1; }
+.inc-x { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border: 0; border-radius: 6px; background: transparent; color: var(--inc-ink); cursor: pointer; }
+.inc-x svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.inc-x:hover { background: color-mix(in srgb, var(--inc) 24%, var(--surface)); }
+.inc-x:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.inc-arrow { position: absolute; width: 12px; height: 12px; margin-left: -6px; background: var(--inc-bg); border: 1px solid var(--inc); transform: rotate(45deg); }
+.inc-balloon[data-side="below"] .inc-arrow { top: -7px; border-right: 0; border-bottom: 0; }
+.inc-balloon[data-side="above"] .inc-arrow { bottom: -7px; border-left: 0; border-top: 0; }
