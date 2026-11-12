@@ -49,3 +49,6 @@ export const blockedNeed = (e) => 74 + Math.min(70, Math.max(blockedCall(e.msg.b
 
 /** How far right of its lifeline the folded frontier button reaches (button and its hint). */
 export const frontierNeed = (e) => 10 + Math.ceil((frontierParts(e.msg.frontierSteps ?? 0, e.msg.frontierBlocked ?? 0).base.length + (e.msg.frontierBlocked ? 12 : 0)) * 6.2) + 34 + 110;
+
+/** #109: the small "! N" on a merged arrow: N of the calls it stands for are incomplete (blocked, unknown or an unresolved key). The Info pane lists them. */
+export const flagBadge = (x, y0, n) => s('g', { class: 'mflag' }, s('rect', { x, y: y0 - 19, width: 30, height: 14, rx: 7 }), s('text', { x: x + 15, y: y0 - 9, 'text-anchor': 'middle' }, `! ${n}`));

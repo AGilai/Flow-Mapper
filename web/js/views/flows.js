@@ -38,7 +38,7 @@ import { createStepMenu, stored, storedHl, storedCb } from './step-details-menu.
 import { decodeZoom, encodeZoom, percentOf } from './flow-zoom-pure.js';
 import { createZoomControl } from './flow-zoom.js';
 import { decodeHints, encodeHints } from './flow-hints-pure.js';
-import { sqStored, bandStored, bandSave, sqSave, detailStored, frontierSimple } from './flow-prefs.js';
+import { sqStored, bandStored, bandSave, sqSave, detailStored, frontierSimple, mergeStored, mergeSave } from './flow-prefs.js';
 import { createScenarios } from './flow-scenario-state.js';
 
 export async function render({ main, query }) {
@@ -46,7 +46,7 @@ export async function render({ main, query }) {
   const service = query.get('service');
   const subs = await loadSubsystems(); // the subsystem of each component: bands and grouping over a flow's heads
   const opts = { stores: query.get('stores') !== '0', depth: query.get('depth') ?? 'all',
-    frontier: query.get('frontier') === '1', squeeze: sqStored(), bands: bandStored(),
+    frontier: query.get('frontier') === '1', squeeze: sqStored(), bands: bandStored(), merge: mergeStored(),
     sb: decodeBar(query) ?? stored('bar', BAR_DEFAULT), sd: decodeArrows(query, arrowsDefault(isDesign())) ?? stored('arrows', arrowsDefault(isDesign())), th: decodeHints(query, isDesign()), hl: decodeHl(query) ?? storedHl(), cb: decodeCb(query) ?? storedCb() ?? isDesign() }; // step details (0.30.0): what the step bar and the arrows show; // steps the harvester marked as frontier (call trees that reach no sink)
   let S = T.decodeUrl(query, state.env); // the tabs of the link, each with its environment (a key without one is the page's)
   const urlCount = T.urlKeys(query, state.env).length; // a link with more tabs than the cap is trimmed (toast below)
@@ -89,6 +89,8 @@ export async function render({ main, query }) {
   const check = (key, label, title) => h('label.check', { title }, h('input', { type: 'checkbox', checked: opts[key], on: { change: (e) => { opts[key] = e.target.checked; persist(); views.forEach((v, k) => (k === S.active ? v.draw() : stale.add(k))); } } }), label);
   const frontierCheck = h('label.check', { title: 'Call trees the harvester marked as reaching no sink. Folded into one marker per function by default.' },
     h('input', { type: 'checkbox', checked: opts.frontier, on: { change: (e) => { opts.frontier = e.target.checked; persist(); reloadAll(); } } }), 'Frontier steps');
+  const mergeCheck = h('label.check', { 'data-qa': 'merge-check', title: 'Simple: all calls of one service to one target inside one activation are one arrow, whatever lies between them. Off: only calls to one store that follow each other.' },
+    h('input', { type: 'checkbox', checked: opts.merge, on: { change: (e) => { opts.merge = e.target.checked; mergeSave(opts.merge); reloadAll(); } } }), 'One arrow per target');
   const depth = h('select.select', { 'aria-label': 'Depth', on: { change: (e) => { opts.depth = e.target.value; persist(); views.forEach((v, k) => (k === S.active ? v.draw() : stale.add(k))); } } },
     ['all', '1', '2', '3', '4', '6', '8'].map((d) => h('option', { value: d, selected: d === opts.depth }, d === 'all' ? 'All depths' : `Depth ${d}`)));
   const sqCheck = h('label.check', { title: 'When the diagram is wider than the window, fold the lifelines the current step does not need. Click a fold to open it.' },
@@ -102,7 +104,7 @@ export async function render({ main, query }) {
     const arrowsMoved = arrows !== opts.sd; opts.sb = bar; opts.sd = arrows; opts.hl = hl; opts.cb = cb; persist();
     views.forEach((v, k) => { v.refreshBar(); v.refreshHl(); v.refreshBrackets(); if (arrowsMoved) { if (k === S.active) v.draw(); else stale.add(k); } });
   } });
-  const toolbar = h('div.seq-toolbar', seg, bandsCheck, check('stores', 'Data stores'), frontierCheck, sqCheck, thCheck, depth, stepMenu.el, zctl.el, h('span.spacer'),
+  const toolbar = h('div.seq-toolbar', seg, bandsCheck, check('stores', 'Data stores'), frontierCheck, mergeCheck, sqCheck, thCheck, depth, stepMenu.el, zctl.el, h('span.spacer'),
     h('span.xs.muted', 'Double-click a bar, or right-click it, to look inside'), info,
     editing() ? h('button.btn.sm', { type: 'button', 'data-qa': 'add-component', title: 'Add a component to the draft', on: { click: () => host.edit.addComponent() } }, '+ component') : null);
 
@@ -116,7 +118,7 @@ export async function render({ main, query }) {
     h('p.muted', 'Pick a flow in the list. Click opens it here; "Tab" opens it next to the others.'));
   mainPane.append(toolbar, strip.el, empty);
 
-  function persist() { frontierSimple(frontierCheck, !!S.active && scen.of(S.active).detail !== 'full');
+  function persist() { frontierSimple(frontierCheck, !!S.active && scen.of(S.active).detail !== 'full'); mergeCheck.querySelector('input').disabled = !!S.active && scen.of(S.active).detail !== 'simple'; mergeCheck.classList.toggle('disabled', mergeCheck.querySelector('input').disabled);
     setQuery({ ...T.encodeUrl(S, state.env), store: storeParam, ...(S.keys.length ? { service: null } : {}), stores: opts.stores ? null : '0', queues: null, depth: opts.depth === 'all' ? null : opts.depth, frontier: opts.frontier ? '1' : null, sb: encodeBar(opts.sb), sd: encodeArrows(opts.sd, arrowsDefault(isDesign())), th: encodeHints(opts.th, isDesign()), hl: encodeHl(opts.hl), cb: encodeCb(opts.cb, isDesign()), zoom: encodeZoom(zooms.get(S.active)), step: encodeStep(stepParam), ...scen.query(S.active) });
   }
   const max = createMax({ onChange: () => views.get(S.active)?.el.scrollTo?.(0, 0) });

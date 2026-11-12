@@ -14,7 +14,7 @@ const same = (a: Message, b: Message) => a.service === b.service && a.from === b
 const groupable = (m: Message) => m.kind === 'resource' && !m.gap && !m.broken && m.n === undefined && !m.fixes && !m.mark;
 
 const memberOf = (m: Message): Partial<Message> => ({ key: m.key, label: m.label, store: m.store ?? m.to, access: m.access, stepId: m.stepId ?? (m.service && m.fn && m.seq ? `${m.service}:${m.fn}#${m.seq}` : undefined), service: m.service, fn: m.fn, seq: m.seq,
-  keyTemplate: m.keyTemplate, dbIndex: m.dbIndex, ttlSeconds: m.ttlSeconds, keyUnresolved: m.keyUnresolved, keyVariants: m.keyVariants, keys: m.keys, unknown: m.unknown, fields: m.fields, onlyWhen: m.onlyWhen, canFail: m.canFail });
+  keyTemplate: m.keyTemplate, dbIndex: m.dbIndex, ttlSeconds: m.ttlSeconds, keyUnresolved: m.keyUnresolved, keyVariants: m.keyVariants, keys: m.keys, unknown: m.unknown, fields: m.fields, onlyWhen: m.onlyWhen, canFail: m.canFail, blocked: m.blocked });
 const compact = <T extends object>(o: T): T => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as T;
 const access = (ms: Message[]): DbGroup['access'] => {
   const set = new Set(ms.map((m) => m.access ?? 'unknown'));
@@ -38,10 +38,11 @@ export function groupDbOps<T extends { m: Message; i: number }>(items: T[], dbOp
 }
 
 /** One row for `ms` (the members, in order; the first stands for the row). `count` (Simple, #90): the number in the `*N` prefix when it is not the number of members. */
-export function foldRun<T extends { m: Message; i: number }>(first: T, ms: Message[], count = ms.length): T {
+export function foldRun<T extends { m: Message; i: number }>(first: T, ms: Message[], count = ms.length, flag = false): T {
   const collections = [...new Set(ms.map(collectionOf))];
-  const { fields: _f, operation: _o, unknown: _u, assumed: _a, returns: _r, ...rest } = first.m;
-  const dbGroup: DbGroup = { count: ms.length, collections, access: access(ms), members: ms.map((m) => m.key ?? ''), calls: ms.map((m) => compact(memberOf(m)) as DbCall) };
+  const { fields: _f, operation: _o, unknown: _u, assumed: _a, returns: _r, ...rest0 } = first.m, { blocked: _b, ...rest1 } = rest0, rest = flag ? rest1 : rest0; // flag (#109): the marker moves from the first member onto the "! N" badge
+  const flagged = flag ? ms.filter((m) => m.blocked || m.gap || m.unknown?.length || m.keyUnresolved?.length).length : 0; // #109: the members that carry a marker; a merged arrow shows them as "! N", the Info pane lists each
+  const dbGroup: DbGroup = { count: ms.length, ...(flagged ? { flagged } : {}), collections, access: access(ms), members: ms.map((m) => m.key ?? ''), calls: ms.map((m) => compact(memberOf(m)) as DbCall) };
   const fails = ms.flatMap((m) => m.canFail ?? []), guards = [...new Set(ms.flatMap((m) => (m.onlyWhen ? [m.onlyWhen.guard] : [])))], gm = ms.find((m) => m.onlyWhen)?.onlyWhen; // 0.38.1: the members' markers, together
   return { ...first, m: { ...rest, ...(fails.length ? { canFail: fails } : {}), ...(gm ? { onlyWhen: { ...gm, guard: guards.join('; ') } } : {}), label: `*${count} ${[...new Set(ms.map((m) => m.label))].join(', ')}`, access: dbGroup.access, dbGroup } };
 }

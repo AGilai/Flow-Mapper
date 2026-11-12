@@ -1,0 +1,250 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "billing-gateway",
+    "kind": "service",
+    "team": "billing",
+    "repo": "github.com/acme/billing-gateway",
+    "language": "typescript",
+    "description": "Adds a PayPal payment source (#109 demo: Simple merges safer-auth's alternating Redis and Mongo calls into one arrow per store)"
+  },
+  "version": 1,
+  "commit": "b109c0d",
+  "harvestedAt": "2026-11-12T08:00:00Z",
+  "functions": [
+    {
+      "id": "PaymentSources.paypal",
+      "name": "PaymentSources.paypal",
+      "file": "src/paypal.ts",
+      "line": 367,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "Billing.checkPlan",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 352
+          }
+        },
+        {
+          "seq": 2,
+          "type": "call",
+          "target": "Billing.loadAccount",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 355
+          }
+        },
+        {
+          "seq": 3,
+          "type": "egress",
+          "target": "ex.authenticate",
+          "operation": "POST",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 358
+          }
+        },
+        {
+          "seq": 4,
+          "type": "call",
+          "target": "Billing.store",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 361
+          }
+        },
+        {
+          "seq": 5,
+          "type": "call",
+          "target": "Billing.audit",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 364
+          }
+        }
+      ]
+    },
+    {
+      "id": "PaymentSources.verified",
+      "name": "PaymentSources.verified",
+      "file": "src/paypal.ts",
+      "line": 373,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "Billing.store",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 370
+          }
+        }
+      ]
+    },
+    {
+      "id": "Billing.checkPlan",
+      "name": "Billing.checkPlan",
+      "file": "src/paypal.ts",
+      "line": 382,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "Util.trim",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 376
+          }
+        },
+        {
+          "seq": 2,
+          "type": "call",
+          "target": "Util.assert",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 379
+          }
+        }
+      ]
+    },
+    {
+      "id": "Billing.loadAccount",
+      "name": "Billing.loadAccount",
+      "file": "src/paypal.ts",
+      "line": 394,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "Util.trim",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 385
+          }
+        },
+        {
+          "seq": 2,
+          "type": "call",
+          "target": "Util.format",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 388
+          }
+        },
+        {
+          "seq": 3,
+          "type": "call",
+          "target": "Util.assert",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 391
+          }
+        }
+      ]
+    },
+    {
+      "id": "Billing.store",
+      "name": "Billing.store",
+      "file": "src/paypal.ts",
+      "line": 403,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "Util.format",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 397
+          }
+        },
+        {
+          "seq": 2,
+          "type": "call",
+          "target": "Util.trim",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 400
+          }
+        }
+      ]
+    },
+    {
+      "id": "Billing.audit",
+      "name": "Billing.audit",
+      "file": "src/paypal.ts",
+      "line": 409,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "Util.format",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 406
+          }
+        }
+      ]
+    },
+    {
+      "id": "Util.trim",
+      "name": "Util.trim",
+      "file": "src/paypal.ts",
+      "line": 412,
+      "steps": []
+    },
+    {
+      "id": "Util.assert",
+      "name": "Util.assert",
+      "file": "src/paypal.ts",
+      "line": 415,
+      "steps": []
+    },
+    {
+      "id": "Util.format",
+      "name": "Util.format",
+      "file": "src/paypal.ts",
+      "line": 418,
+      "steps": []
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.paypal",
+      "bindKey": "http:POST billing-gateway/api/paymentSources/paypal",
+      "transport": "http",
+      "handler": "PaymentSources.paypal",
+      "entryPoint": true,
+      "details": {
+        "method": "POST",
+        "path": "/api/paymentSources/paypal"
+      }
+    },
+    {
+      "id": "in.verified",
+      "bindKey": "http:POST billing-gateway/internal/paypal/verified",
+      "transport": "http",
+      "handler": "PaymentSources.verified",
+      "details": {
+        "method": "POST",
+        "path": "/internal/paypal/verified"
+      }
+    }
+  ],
+  "egress": [
+    {
+      "id": "ex.authenticate",
+      "bindKey": "http:POST safer-auth/api/v1/paypal/authenticate",
+      "transport": "http",
+      "mode": "sync",
+      "details": {
+        "method": "POST",
+        "path": "/api/v1/paypal/authenticate"
+      }
+    }
+  ],
+  "resources": []
+}

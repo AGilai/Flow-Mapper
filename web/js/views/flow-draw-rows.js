@@ -12,7 +12,7 @@ import { refNoteSvg } from './flow-refs-draw.js';
 import { noteSvg } from './flow-draw-notes.js';
 import { decisionSvg } from './flow-decision-draw.js';
 import { inlineMarks } from './flow-markers-draw.js';
-import { frontierSvg, blockedBand, blockedLines, blockedIcall, isBlockedEvent, inferredTag, BLOCKED_LINE } from './flow-draw-incomplete.js';
+import { frontierSvg, blockedBand, blockedLines, blockedIcall, isBlockedEvent, inferredTag, flagBadge, BLOCKED_LINE } from './flow-draw-incomplete.js';
 import { isInferred } from './incomplete-pure.js';
 
 /** "⌄ group": folds an expanded run of DB operations again (0.38.0); a folded run opens with a click on its row. */
@@ -73,7 +73,8 @@ export function drawRows({ events, colX, ys, barX, edge, marks, refs, stacked, f
       return g(`store${e.write ? ' write' : ''}`, arrow(x1, x2, y0, { label: lab(e.msg.dbGroup ? `› ${e.label}` : e.label), color: mc }), e.dbOpen ? dbToggle(e.msg.key, Math.max(x1, x2) - 80, y0) : null,
         s('rect', { class: 'sbar', x: bx, y: y0 - 5, width: BAR, height: e.write ? 16 : 28, rx: 2 }),
         e.write ? null : s('g', { class: 'sret' }, arrow(bx, x1, y0 + 17, { dashed: true, open: true, color: mc, bare: false })),
-        hit(x1, x2), ...arrowMarkSvg(marks, e.msg, x1, x2, y0, stacked?.has(e), th, mk()), s('title', {}, `${e.msg.label}\n${e.msg.store ?? ''}${e.write ? '\nwrite' : ''}`));
+        e.msg.dbGroup?.flagged ? flagBadge(Math.min(x1, x2) + (x2 > x1 ? 6 : -6 - 30), y0, e.msg.dbGroup.flagged) : null,
+        hit(x1, x2), ...arrowMarkSvg(marks, e.msg, x1, x2, y0, stacked?.has(e), th, mk()), s('title', {}, `${e.msg.label}\n${e.msg.store ?? ''}${e.write ? '\nwrite' : ''}${e.msg.dbGroup?.flagged ? `\n${e.msg.dbGroup.flagged} of the calls are incomplete (see the step panel)` : ''}`));
     }
     if (e.type === 'frontier') {
       const x0 = barX(e.bar, 1);

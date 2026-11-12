@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "ext-paypal",
+    "kind": "service",
+    "team": "payments",
+    "description": "PayPal's public API (third party)",
+    "details": {
+      "external": true
+    }
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-12T08:00:00Z",
+  "functions": [
+    {
+      "id": "token",
+      "name": "token",
+      "steps": []
+    },
+    {
+      "id": "profile",
+      "name": "profile",
+      "steps": []
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.token",
+      "bindKey": "http:POST ext-paypal/ap/v1/oauth2/token",
+      "transport": "http",
+      "handler": "token",
+      "details": {
+        "method": "POST",
+        "path": "/ap/v1/oauth2/token"
+      }
+    },
+    {
+      "id": "in.profile",
+      "bindKey": "http:GET ext-paypal/ap/v1/identity/profile",
+      "transport": "http",
+      "handler": "profile",
+      "details": {
+        "method": "GET",
+        "path": "/ap/v1/identity/profile"
+      }
+    }
+  ],
+  "egress": [],
+  "resources": []
+}

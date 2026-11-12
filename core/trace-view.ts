@@ -23,7 +23,7 @@ import { splitArm } from './alternatives.ts';
 import { dropFrames } from './alt-decisions.ts';
 import { blockedSteps, gapSeen } from './incomplete.ts';
 
-export interface ViewOptions { choose?: ReadonlyMap<string, string> | Record<string, string>; detail?: 'simple' | 'external' | 'full'; open?: string[]; dbOpen?: string[]; group?: boolean; unfold?: string[]; maxMessages?: number }
+export interface ViewOptions { choose?: ReadonlyMap<string, string> | Record<string, string>; detail?: 'simple' | 'external' | 'full'; open?: string[]; dbOpen?: string[]; group?: boolean; unfold?: string[]; maxMessages?: number; /** #109, Simple: one arrow per (caller, target) within one activation of the caller (core/trace-simple.ts `merge`). Off = the 0.44 behaviour (the API default). */ merge?: boolean }
 type Item = { m: Message; i: number };
 
 const KEEP = new Set(['entry', 'egress', 'deliver', 'resource']);
@@ -83,7 +83,7 @@ const isSimple = (t: Trace, opts: ViewOptions) => t.scope !== 'intra' && opts.de
 /** The Simple view (0.44.0, #90): the post-pass of core/trace-simple.ts, renumbered; arms, alt frames and decisions are gone (`flattened` says how many). */
 function simpleView(t: Trace, opts: ViewOptions): Trace {
   if (t.detail === 'simple') return t; // already a Simple view (the browser keeps the server's): nothing to do
-  const { items, hidden, cut } = simplify(itemsOf(t, true), opts.maxMessages);
+  const { items, hidden, cut } = simplify(itemsOf(t, true), opts.maxMessages, opts.merge);
   const messages = renumber(items, t.messages).map(({ arms: _a, alt: _l, alternatives: _s, ...m }) => m as Message);
   const used = new Set(messages.flatMap((m) => [m.from, m.to]));
   const { decisions: _d, choose: _c, ...rest } = t;
@@ -93,7 +93,7 @@ function simpleView(t: Trace, opts: ViewOptions): Trace {
 
 /** The message range and the number of decisions offered of the view `viewOf(t, opts)` would make, without building it (no renumbering, no participants, no per-arm counts): what the Flows list needs per flow. */
 export function viewCounts(t: Trace, opts: ViewOptions = {}): { messages: Range; decisions: number } {
-  if (isSimple(t, opts)) { const n = simplify(itemsOf(t, false), opts.maxMessages).items.length; return { messages: { min: n, max: n }, decisions: 0 }; }
+  if (isSimple(t, opts)) { const n = simplify(itemsOf(t, false), opts.maxMessages, opts.merge).items.length; return { messages: { min: n, max: n }, decisions: 0 }; }
   const { kept, shown, eff } = plan(t, opts, false);
   return { messages: rangeOf(kept.map((x) => x.m), shown, new Map(shown.map((d) => [d.group_id, eff.get(d.group_id)!]))), decisions: shown.length };
 }

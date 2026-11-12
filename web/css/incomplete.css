@@ -81,3 +81,7 @@ button.inc-badge:hover { background: color-mix(in srgb, var(--inc) 24%, var(--su
 .inc-ng { margin-top: 4px; border-top: 1px solid color-mix(in srgb, var(--inc) 25%, var(--line)); }
 .inc-nb { background: var(--surface); }
 .inc-chip { font: 600 10.5px var(--font); padding: 1px 7px; border-radius: 9px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink-2); }
+
+/* #109: the "! N" on a merged arrow */
+.mflag rect { fill: var(--inc-bg); stroke: var(--inc); stroke-width: 1; }
+.mflag text { font: 700 10px var(--font); fill: var(--inc-ink); }
