@@ -5,7 +5,8 @@
 import { h, fill, debounce } from '../dom.js';
 import { icon } from '../icons.js';
 import { href, setQuery } from '../router.js';
-import { KEYS, SLIDE_MS, isNarrow, readCollapsed, writeCollapsed, toggleLabel, stripLabel } from '../collapse.js';
+import { KEYS, SLIDE_MS, isNarrow, readCollapsed, writeCollapsed, toggleLabel } from '../collapse.js';
+import { envChip } from '../components/env-chip.js';
 import { createGroup } from './flow-list-groups.js';
 import { TAB_CAP, qual } from './flow-tabs-state.js';
 import { entryRow, removedRow } from './flow-list-rows.js';
@@ -24,8 +25,7 @@ export function createList({ env = '', points: allPoints, counts, cmts = {}, act
   const fs = { all: query.get('endpoints') === 'all', subs: parseSel(query.get('subsystems')), comps: parseSel(query.get('components')), changed: design && ['1', 'all'].includes(query.get('changed')) ? query.get('changed') : null, rel: relBy.size ? parseRel(query.get('rel')) : null, group: startGroup(query, env, design), inc: false };
   const covered = hasCoverage(allPoints); // #85: "Incomplete flows only" is offered only where some flow reports coverage; `incomplete=1` is ignored elsewhere
   fs.inc = incompleteOn(query, covered);
-  const word = h('span.fl-word'), strip = h('div.fl-strip', { 'aria-hidden': 'true' }, word);
-  const btn = h('button.collapse-btn.fl-toggle', { type: 'button', on: { click: () => set(!collapsed) } }, icon('chev'));
+  const btn = h('button.collapse-btn.fl-toggle', { type: 'button', on: { click: () => { set(!collapsed); if (collapsed) document.querySelector('.ft-show')?.focus({ preventScroll: true }); } } }, icon('chev')); // collapsed: focus goes to the tab row's Flows button, which brings the list back
   let points = scopePoints(allPoints, { design, service, all: fs.all }), subRows = subsystemRows(points, groupOf, groups);
   const flowsOnly = design && !service;   // the "All endpoints" switch exists only where the list is scoped
   const allBox = h('input', { type: 'checkbox', checked: fs.all, 'data-qa': 'all-endpoints', on: { change: (e) => {
@@ -53,8 +53,7 @@ export function createList({ env = '', points: allPoints, counts, cmts = {}, act
   const summary = () => filterSummary({ subs: fs.subs, comps: fs.comps, subRows, compRows: vis(), changed: fs.changed, rel: fs.rel, incomplete: fs.inc, q: filter.value.trim() });
   const paint = () => {
     btn.setAttribute('aria-expanded', String(!collapsed)); btn.setAttribute('aria-label', toggleLabel('the entry point list', collapsed)); btn.title = toggleLabel('the entry point list', collapsed);
-    word.textContent = stripLabel({ service, active: marked.active, count: points.length, summary: summary() });
-    el.classList.toggle('is-c', collapsed); strip.setAttribute('aria-hidden', String(!collapsed));
+    el.classList.toggle('is-c', collapsed); el.inert = collapsed; // collapsed: no band at all (width 0); the tab row's "Flows" button brings it back
     el.querySelectorAll('.fl-body input, .fl-body a, .fl-body button').forEach((x) => { x.tabIndex = collapsed ? -1 : 0; });
   };
   const set = (c) => { collapsed = writeCollapsed(KEYS.list, c); paint(); onCollapse?.(collapsed); setTimeout(() => document.dispatchEvent(new CustomEvent('fm:layout')), SLIDE_MS + 40); };
@@ -84,7 +83,6 @@ export function createList({ env = '', points: allPoints, counts, cmts = {}, act
   // The tab on screen is the current entry (aria-current); entries that have a tab get a dot.
   function mark(m) {
     marked = m;
-    if (collapsed) word.textContent = stripLabel({ service, active: m.active, count: points.length, summary: summary() });
     const base = (k) => (k ?? '').replace(/(~[^!]*)?(!(intra|full))?$/, '');
     const open = new Set(m.keys.map(base)), cur = base(m.active), mine = (k) => (env ? qual(env, k) : k); // tabs hold qualified keys: a row is open only in ITS env (a prod tab never marks the same-named design row)
     const full = m.keys.length >= TAB_CAP;
@@ -99,9 +97,10 @@ export function createList({ env = '', points: allPoints, counts, cmts = {}, act
   subG.update({ rows: subRows, sel: fs.subs }); cmpG.update({ rows: vis(), sel: fs.comps });
   draw();
   if (!service && !query.get('group') && encodeGroup(fs.group, design)) setQuery({ group: encodeGroup(fs.group, design) }); // a mode that came only from the per-env memory goes into the URL once, so a copied link keeps it
-  const el = h('aside.flows-list', h('div.fl-head', h('span.fl-title', service ? 'Ingress' : 'Entry points'), btn),
-    h('div.fl-body', groupRow, filters, h('div.search', icon('search'), filter), changedRow, incRow, incStatus, relRow, body), strip);
-  strip.addEventListener('click', () => set(false));
+  const sentence = service ? `Starting points in ${service}` : `${allPoints.length} entry points in ${env}`; // #114: the Flows header lives here
+  const el = h('aside.flows-list', h('div.fl-head', h('span.fl-title', { title: sentence }, h('b', 'Flows'), h('span.fl-sub', service ? `Starting points in ${service}` : h('span', `${allPoints.length} entry points in `, envChip(env || undefined)))), btn),
+    h('div.fl-body', groupRow, filters, h('div.search', icon('search'), filter), changedRow, incRow, incStatus, relRow, body));
   paint();
-  return { el, mark, collapsed: () => collapsed };
+  return { el, mark, collapsed: () => collapsed, expand: () => { set(false); btn.focus({ preventScroll: true }); }, // the Flows button was pressed: focus moves into the list
+    sentence };
 }

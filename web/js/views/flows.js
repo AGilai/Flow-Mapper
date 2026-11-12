@@ -5,12 +5,12 @@
 import { loadMarks } from '../design/marks-store.js';
 import { boundaryNote } from './flow-boundary.js';
 import { h, fill, toast } from '../dom.js';
+import { icon } from '../icons.js';
 import { api } from '../api.js';
 import { state, isDesign, setEnv } from '../state.js';
 import { metaOf, envVars } from '../env-info.js';
 import { envChip } from '../components/env-chip.js';
 import { setQuery, go } from '../router.js';
-import { pageHead } from '../components/page.js';
 import { createPanel } from '../components/panel.js';
 import { resizer } from '../components/resizer.js';
 import { createList } from './flow-list.js';
@@ -81,15 +81,15 @@ export async function render({ main, query }) {
     width: () => list.el.offsetWidth, apply: (px) => flowsEl.style.setProperty('--list-w', `${px}px`) });
   resizer(panel.el, { edge: 'left', key: 'flow-panel', defaultWidth: 380, label: 'Resize flow details',
     width: () => panel.el.offsetWidth, apply: (px) => { panel.el.style.width = `${px}px`; } });
-  main.append(pageHead('Flows', service ? `Starting points in ${service}` : h('span', `${points.length} entry points in `, envChip())), h('div.content.flush', flowsEl));
+  main.append(h('div.content.flush', flowsEl)); // #114: no page head: the entry-point list's header says "Flows", the tab row starts the main column
 
   // ---- toolbar ----
   const info = h('span.small.muted');
-  const seg = h('div.seg', { role: 'group', 'aria-label': 'Scope' }, [['intra', 'Inside the service'], ['full', 'Full flow']].map(([id, label]) =>
-    h('button', { 'data-scope': id, on: { click: () => setScope(id) } }, label)));
+  const seg = h('div.seg', { role: 'group', 'aria-label': 'Scope' }, [['intra', { short: 'Inside', long: 'Inside the service' }], ['full', { short: 'Full', long: 'Full flow' }]].map(([id, label]) =>
+    h('button', { 'data-scope': id, 'aria-label': label.long, title: label.long, on: { click: () => setScope(id) } }, label.short)));
   const check = (key, label, title) => h('label.check', { title }, h('input', { type: 'checkbox', checked: opts[key], on: { change: (e) => { opts[key] = e.target.checked; persist(); views.forEach((v, k) => (k === S.active ? v.draw() : stale.add(k))); } } }), label);
-  const frontierCheck = h('label.check', { title: 'Call trees the harvester marked as reaching no sink. Folded into one marker per function by default.' },
-    h('input', { type: 'checkbox', checked: opts.frontier, on: { change: (e) => { opts.frontier = e.target.checked; persist(); reloadAll(); } } }), 'Frontier steps');
+  const frontierCheck = h('label.check', { title: 'Frontier steps: call trees the harvester marked as reaching no sink. Folded into one marker per function by default.' },
+    h('input', { type: 'checkbox', checked: opts.frontier, on: { change: (e) => { opts.frontier = e.target.checked; persist(); reloadAll(); } } }), 'Frontier');
   const mergeCheck = createMergeCheck(opts, () => reloadAll()), depth = h('select.select', { 'aria-label': 'Depth', on: { change: (e) => { opts.depth = e.target.value; persist(); views.forEach((v, k) => (k === S.active ? v.draw() : stale.add(k))); } } },
     ['all', '1', '2', '3', '4', '6', '8'].map((d) => h('option', { value: d, selected: d === opts.depth }, d === 'all' ? 'All depths' : `Depth ${d}`)));
   const sqCheck = h('label.check', { title: 'When the diagram is wider than the window, fold the lifelines the current step does not need. Click a fold to open it.' },
@@ -103,18 +103,18 @@ export async function render({ main, query }) {
     const arrowsMoved = arrows !== opts.sd; opts.sb = bar; opts.sd = arrows; opts.hl = hl; opts.cb = cb; persist();
     views.forEach((v, k) => { v.refreshBar(); v.refreshHl(); v.refreshBrackets(); if (arrowsMoved) { if (k === S.active) v.draw(); else stale.add(k); } });
   } });
-  const toolbar = h('div.seq-toolbar', seg, bandsCheck, check('stores', 'Data stores'), frontierCheck, mergeCheck.el, sqCheck, thCheck, depth, stepMenu.el, zctl.el, h('span.spacer'),
-    h('span.xs.muted', 'Double-click a bar, or right-click it, to look inside'), info,
+  const meta = h('span.tb-meta', h('span.tb-hint', { tabindex: 0, role: 'img', 'aria-label': 'Double-click a bar, or right-click it, to look inside', title: 'Double-click a bar, or right-click it, to look inside', 'data-qa': 'bar-hint' }, icon('info')), info); // the (i) hint, the step counts and the Harvested chip: one group at the right end
+  const toolbar = h('div.seq-toolbar', seg, bandsCheck, check('stores', 'Data stores'), frontierCheck, mergeCheck.el, sqCheck, thCheck, depth, stepMenu.el, zctl.el,
+    meta,
     editing() ? h('button.btn.sm', { type: 'button', 'data-qa': 'add-component', title: 'Add a component to the draft', on: { click: () => host.edit.addComponent() } }, '+ component') : null);
   // ---- tabs ----
   let chips = new Map(); // key -> env chip text; empty while the open tabs are of one env
-  const strip = createTabStrip({ describe: (k) => ctxOf(k)?.data.describe(k) ?? goneDescribe(k), chip: (k) => chips.get(k) ?? null, onActivate: (k) => commit(T.activate(S, k)), onClose: (k) => commit(T.closeTab(S, k)),
+  const lead = h('button.ft-show', { type: 'button', 'aria-expanded': 'false', 'aria-label': 'Show entry points', title: `Show entry points: ${list.sentence}`, 'data-qa': 'show-entry-points', on: { click: () => list.expand() } }, icon('chev'), h('b', 'Flows'), h('span.ft-dot', '·'), envChip()); // visible only while the list is collapsed (flow-tabs.css)
+  const strip = createTabStrip({ lead, describe: (k) => ctxOf(k)?.data.describe(k) ?? goneDescribe(k), chip: (k) => chips.get(k) ?? null, onActivate: (k) => commit(T.activate(S, k)), onClose: (k) => commit(T.closeTab(S, k)),
     onCloseOthers: (k) => commit(T.closeOthers(S, k)), onCloseAll: () => commit(T.closeAll(S)), envVars: (k) => (gone(envOfTab(k)) ? { '--ec': 'var(--muted)', '--ei': 'var(--ink-2)' } : envVars(state.envMeta, envOfTab(k))) });
-  const renderStrip = () => { chips = tabChips(S.keys); strip.render(S); };
-  if (urlCount > T.TAB_CAP) toast(`The link had ${urlCount} tabs. Opened ${T.TAB_CAP}: the limit.`, 5000);
-  const empty = h('div.emptyst', h('div.emptyst-i', enterIcon()), h('h3', 'Pick an entry point'),
-    h('p.muted', 'Pick a flow in the list. Click opens it here; "Tab" opens it next to the others.'));
-  mainPane.append(toolbar, strip.el, empty);
+  const renderStrip = () => { chips = tabChips(S.keys); strip.render(S); }; if (urlCount > T.TAB_CAP) toast(`The link had ${urlCount} tabs. Opened ${T.TAB_CAP}: the limit.`, 5000);
+  const empty = h('div.emptyst', h('div.emptyst-i', enterIcon()), h('h3', 'Pick an entry point'), h('p.muted', 'Pick a flow in the list. Click opens it here; "Tab" opens it next to the others.'));
+  mainPane.append(strip.el, toolbar, empty); // #114: the tab row first, the toolbar under it
 
   function persist() { frontierSimple(frontierCheck, !!S.active && scen.of(S.active).detail !== 'full'); mergeCheck.setSimple(!!S.active && scen.of(S.active).detail === 'simple');
     setQuery({ ...T.encodeUrl(S, state.env), store: storeParam, ...(S.keys.length ? { service: null } : {}), stores: opts.stores ? null : '0', queues: null, depth: opts.depth === 'all' ? null : opts.depth, frontier: opts.frontier ? '1' : null, sb: encodeBar(opts.sb), sd: encodeArrows(opts.sd, arrowsDefault(isDesign())), th: encodeHints(opts.th, isDesign()), hl: encodeHl(opts.hl), cb: encodeCb(opts.cb, isDesign()), zoom: encodeZoom(zooms.get(S.active)), step: encodeStep(stepParam), ...scen.query(S.active) });
@@ -153,7 +153,7 @@ export async function render({ main, query }) {
   host.pen = pencils(host); // 0.31.1: the pencils of the flow head; the hint of a harvested page sits under the toolbar
   const pane = createPane(panel, { pen: host.pen, ctx: (t) => { const root = T.flowRoot(S.active), other = t.env && t.env !== state.env; return { ...(other ? { pen: penRO } : {}), fromFlow: root && { ...root, name: ctxOf(S.active)?.nameOf(root.service, root.ingress) ?? '', steps: views.get(S.active)?.steps?.() ?? [] } }; }, onSelect: (sel, t) => { flowsEl.classList.add('mp-open'); setQuery({ sel: t?.env && t.env !== state.env ? null : sel }); } }); // a component of another env is not in the URL: `sel=` names it in the page's env
   host.openPane = (target) => { views.get(S.active)?.clearStore?.(); pane.show(target); }; host.pane = pane;
-  toolbar.after(...[host.pen.hint()].filter(Boolean));
+  meta.append(...[host.pen.hint()].filter(Boolean)); // the Harvested chip, at the right end of the toolbar
   const { hostFor, penRO } = createHostFor(host, { drillIn: (e, env) => back.drill(entryOf(e, env)), openIn: (e, env) => openEntry(e, env), paneIn: (t, env) => pane.show({ ...t, env }) }); // tabs of other envs (flow-tab-host.js)
   const entryOf = ({ service: s, ingress, fn, event, scope }, env = state.env) => (ingress ? T.entryKey(s, ingress, event, scope, env) : T.fnKey(s, fn, event, scope, env));
   const capToast = () => toast(`You have ${T.TAB_CAP} tabs open. Close some tabs to open another.`, 4500);
@@ -194,9 +194,9 @@ export async function render({ main, query }) {
     seg.querySelectorAll('button').forEach((b) => {
       b.setAttribute('aria-pressed', String(!!p && (p.kind === 'full' || p.kind === 'sub' ? 'full' : p.scope) === b.dataset.scope));
       b.disabled = !scoped;
-      b.title = scoped ? '' : p ? 'Fixed for sub-flows' : '';
+      b.title = scoped ? b.getAttribute('aria-label') : p ? 'Fixed for sub-flows' : '';
     });
-    info.textContent = views.get(act)?.info() ?? '';
+    info.textContent = views.get(act)?.info() ?? ''; info.title = info.textContent; // the text may be ellipsized in a narrow toolbar
     sqCheck.querySelector('input').checked = opts.squeeze && !views.get(act)?.squeezeOff();
     list.mark(S);
     paintZoom();
