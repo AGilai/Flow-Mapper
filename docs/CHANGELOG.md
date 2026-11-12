@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased
+## 0.50.4 (2026-11-12)
 
 - Flow tab (UI, #107 round 2, #110): the diagram box always fits the window, in the normal view and in Maximize: it is what is left under the header box (45% of the tab at most, it scrolls inside) and above the pane (28% of the window at most), and it owns both scrollbars, so the horizontal one is always in view and the component heads stay pinned while the steps scroll under them. Maximize is the same layout (the tab no longer scrolls). The Notes pane in Maximize still fills the window.
 
