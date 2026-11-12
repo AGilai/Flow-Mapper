@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased
+## 0.50.3 (2026-11-12)
 
 - Flow tab (UI, #106 round 2): with the header minimized the page head, the view toolbar and the "Harvested" line are hidden too, so the diagram starts right under the tab row and the strip; the toolbar opens from a "View" button on the strip (a popover). The page-head environment chip stays on one line.
 
