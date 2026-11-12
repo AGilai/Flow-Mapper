@@ -3,11 +3,14 @@
 
 import { assumedField } from './assumed.ts';
 import { accessOf } from './access.ts';
+import { keyRefsOf } from './key-template.ts';
 import type { Resource, Step } from './types.ts';
 
 /** A resource step's `unresolved` what=detail entries (details.keyTemplate, details.dbIndex, details.ttlSeconds) as `unknown` on its message. */
+/** #108: when `details.keys[]` names the keys, the interim `multi_key` entry on details.keyTemplate is answered by it and is not repeated. */
 export const unknownOn = (st: Step) => {
-  const u = (st.unresolved ?? []).filter((x) => x.what === 'detail' && x.detail?.trim()).map((x) => ({ field: x.detail!.trim().replace(/^details\./, ''), reason: x.reason }));
+  const keyed = keyRefsOf(st).some((k) => k.keyTemplate);
+  const u = (st.unresolved ?? []).filter((x) => x.what === 'detail' && x.detail?.trim() && !(keyed && x.reason === 'multi_key' && /^(details\.)?keyTemplate$/.test(x.detail.trim()))).map((x) => ({ field: x.detail!.trim().replace(/^details\./, ''), reason: x.reason }));
   return u.length ? { unknown: u } : {};
 };
 

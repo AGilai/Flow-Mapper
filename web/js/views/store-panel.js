@@ -42,7 +42,8 @@ function card(c, p, ctx) {
   const meta = redis ? [c.dbs.length ? h('span', 'db ', h('b', c.dbs.join(', '))) : null, c.kind === 'unreported' && !c.ttl.values.length ? null : h('span', 'TTL ', h('b', ttl.text), ttl.note ? ` (${ttl.note})` : '')]
     : [h('span', 'collection of ', h('b', p.store))];
   const note = c.kind === 'unreported' ? h('div.sp-nk', 'The harvester ', c.reason ? ['could not read the key for these steps ', h('i', `(${c.reason})`), '. The operation, steps and code are still shown.'] : 'did not send the key for these steps. The operation, steps and code are still shown.') : null;
-  return h('section.sp-k', h('div.h', h('div.t', { class: c.kind === 'unreported' ? 'none' : '' }, c.kind === 'unreported' ? 'Key not reported' : c.title), h('div.m', meta)),
+  const vars = redis && c.variants?.length ? h('div.sp-kv', { 'data-qa': 'key-variants' }, h('span.lb', c.variants.length === 1 ? 'Also spelled' : 'Also spelled as'), c.variants.map((v) => h('span.mono.v', v))) : null; // #108: the callers' spellings of this key
+  return h('section.sp-k', h('div.h', h('div.t', { class: c.kind === 'unreported' ? 'none' : '' }, c.kind === 'unreported' ? 'Key not reported' : c.title), h('div.m', meta), vars),
     c.ops.map((o) => opRow(o, ctx)), note, redis && c.template ? registryBlock(ctx.registry, c.template, c.dbs) : null);
 }
 

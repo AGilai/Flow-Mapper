@@ -14,7 +14,7 @@ const same = (a: Message, b: Message) => a.service === b.service && a.from === b
 const groupable = (m: Message) => m.kind === 'resource' && !m.gap && !m.broken && m.n === undefined && !m.fixes && !m.mark;
 
 const memberOf = (m: Message): Partial<Message> => ({ key: m.key, label: m.label, store: m.store ?? m.to, access: m.access, stepId: m.stepId ?? (m.service && m.fn && m.seq ? `${m.service}:${m.fn}#${m.seq}` : undefined), service: m.service, fn: m.fn, seq: m.seq,
-  keyTemplate: m.keyTemplate, dbIndex: m.dbIndex, ttlSeconds: m.ttlSeconds, keyUnresolved: m.keyUnresolved, unknown: m.unknown, fields: m.fields, onlyWhen: m.onlyWhen, canFail: m.canFail });
+  keyTemplate: m.keyTemplate, dbIndex: m.dbIndex, ttlSeconds: m.ttlSeconds, keyUnresolved: m.keyUnresolved, keyVariants: m.keyVariants, keys: m.keys, unknown: m.unknown, fields: m.fields, onlyWhen: m.onlyWhen, canFail: m.canFail });
 const compact = <T extends object>(o: T): T => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as T;
 const access = (ms: Message[]): DbGroup['access'] => {
   const set = new Set(ms.map((m) => m.access ?? 'unknown'));

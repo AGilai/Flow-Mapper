@@ -5,6 +5,10 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+
+- Redis steps on several keys (#108, additive): `details.keys: [{keyIdx, keyTemplate?, dbIndex?, ttlSeconds?, keyVariants?, keyUnresolved?}]` in key order, and `details.keyVariants: string[]` (the callers' spellings of one canonical key; also per entry). `GET /trace` and MCP `trace_flow` messages carry `keys` and `keyVariants`; `keyTemplate`, `dbIndex`, `ttlSeconds`, `keyUnresolved` are filled from `keys[0]` when only `keys[]` is sent. The instance page matches flows through any `keys[]` entry. The interim `multi_key` unresolved is dropped from the message once `keys[]` names the keys; it was never a Link health gap (`what: detail` is not counted). The step Info panel shows each key (own card, registry row) and its variants. Details in API.md "Key fields on resource steps".
+
 ## 0.50.0 (2026-11-11)
 
 - Flow diagram (UI, #103): a component with a second `groupPath` segment (`platform/gcp`) gets a sub-subsystem band row under the subsystem row (label: the registered `grp:platform/gcp` name, else the segment). `GET /subsystems` also returns, additively, `components[].sub` and `subsystems[].subs`.
