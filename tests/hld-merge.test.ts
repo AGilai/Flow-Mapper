@@ -40,7 +40,8 @@ test('merge: alternating stores are one arrow per store at the first one place, 
   const first = t.messages.filter((m: any) => m.kind === 'resource' && m.to.startsWith('res:redis') && m.dbGroup);
   assert.equal(first.length, 1, labels(t).join(' | '));
   assert.deepEqual(first[0].dbGroup.calls.map((c: any) => c.label), ['setex', 'set', 'get', 'del']);
-  assert.equal(first[0].onlyWhen?.guard, 'raw');
+  assert.equal(first[0].onlyWhen, undefined); // only one of the four members is guarded: the arrow is not conditional, the member keeps its guard in `calls`
+  assert.equal(first[0].dbGroup.calls[2].onlyWhen?.guard, 'raw');
   const db = t.messages.filter((m: any) => m.kind === 'resource' && m.to.startsWith('res:mongodb') && m.dbGroup);
   assert.equal(db.length, 1);
   assert.deepEqual(db[0].dbGroup.calls.map((c: any) => c.label), ['findById', 'findOne', 'find']);

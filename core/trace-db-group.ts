@@ -40,9 +40,9 @@ export function groupDbOps<T extends { m: Message; i: number }>(items: T[], dbOp
 /** One row for `ms` (the members, in order; the first stands for the row). `count` (Simple, #90): the number in the `*N` prefix when it is not the number of members. */
 export function foldRun<T extends { m: Message; i: number }>(first: T, ms: Message[], count = ms.length, flag = false): T {
   const collections = [...new Set(ms.map(collectionOf))];
-  const { fields: _f, operation: _o, unknown: _u, assumed: _a, returns: _r, ...rest0 } = first.m, { blocked: _b, ...rest1 } = rest0, rest = flag ? rest1 : rest0; // flag (#109): the marker moves from the first member onto the "! N" badge
+  const { fields: _f, operation: _o, unknown: _u, assumed: _a, returns: _r, ...rest0 } = first.m, { blocked: _b, onlyWhen: _w, ...rest1 } = rest0, rest = flag ? rest1 : rest0; // flag (#109): the marker moves from the first member onto the "! N" badge
   const flagged = flag ? ms.filter((m) => m.blocked || m.gap || m.unknown?.length || m.keyUnresolved?.length).length : 0; // #109: the members that carry a marker; a merged arrow shows them as "! N", the Info pane lists each
   const dbGroup: DbGroup = { count: ms.length, ...(flagged ? { flagged } : {}), collections, access: access(ms), members: ms.map((m) => m.key ?? ''), calls: ms.map((m) => compact(memberOf(m)) as DbCall) };
-  const fails = ms.flatMap((m) => m.canFail ?? []), guards = [...new Set(ms.flatMap((m) => (m.onlyWhen ? [m.onlyWhen.guard] : [])))], gm = ms.find((m) => m.onlyWhen)?.onlyWhen; // 0.38.1: the members' markers, together
+  const fails = ms.flatMap((m) => m.canFail ?? []), guards = [...new Set(ms.flatMap((m) => (m.onlyWhen ? [m.onlyWhen.guard] : [])))], gm = flag && !ms.every((m) => m.onlyWhen) ? undefined : ms.find((m) => m.onlyWhen)?.onlyWhen; // 0.38.1: the members' markers, together; merged by target (#109) the arrow is conditional only when every member is (each member's guard stays in `calls`)
   return { ...first, m: { ...rest, ...(fails.length ? { canFail: fails } : {}), ...(gm ? { onlyWhen: { ...gm, guard: guards.join('; ') } } : {}), label: `*${count} ${[...new Set(ms.map((m) => m.label))].join(', ')}`, access: dbGroup.access, dbGroup } };
 }
