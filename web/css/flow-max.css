@@ -27,3 +27,5 @@ body.is-max .flow-bottom { background: transparent; border-top: 1px solid var(--
   .max-exit .lbl { display: none; } .max-exit { padding: 0 10px; }
   body.is-max .max-bar { padding: 10px 110px 10px var(--s3); }
 }
+/* #114: the right panel's header (the close X, the hazard button) sits under the fixed "Exit full screen" pill (top 14px, 34px high): it starts below it */
+body.is-max .flows-right > .panel > .panel-head, body.is-max .flows-right .pane-hd { padding-top: 56px; }
