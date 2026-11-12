@@ -38,7 +38,8 @@ import { createStepMenu, stored, storedHl, storedCb } from './step-details-menu.
 import { decodeZoom, encodeZoom, percentOf } from './flow-zoom-pure.js';
 import { createZoomControl } from './flow-zoom.js';
 import { decodeHints, encodeHints } from './flow-hints-pure.js';
-import { sqStored, bandStored, bandSave, sqSave, detailStored, frontierSimple, mergeStored, mergeSave } from './flow-prefs.js';
+import { createMergeCheck } from './flow-merge-check.js';
+import { sqStored, bandStored, bandSave, sqSave, detailStored, frontierSimple, mergeStored } from './flow-prefs.js';
 import { createScenarios } from './flow-scenario-state.js';
 
 export async function render({ main, query }) {
@@ -73,13 +74,9 @@ export async function render({ main, query }) {
   const groupOf = new Map(svcs.map((s) => [s.name, s.groupPath ?? '']));
   const list = createList({ env: state.env, points, counts, cmts, acts, ments, relBy, service, groupOf, groups: metaOf(state.envMeta, state.env).groups ?? [], marks, design: isDesign(), query, onPick: (p) => pick(entryOf({ service: p.service, ingress: p.id })), onPickTab: (p) => addTab(entryOf({ service: p.service, ingress: p.id })),
     onAll: () => { const u = T.encodeUrl(S, state.env); go('/flows', { tabs: u.tabs, tab: u.tab }); },
-    onCollapse: (c) => flowsEl.classList.toggle('list-c', c), onForced: () => { flowsEl.classList.add('list-open'); sync(); } });
+    onCollapse: (c) => flowsEl.classList.toggle('list-c', c) });
   const flowsEl = h('div.flows', list.el, rightEl);
   flowsEl.classList.toggle('list-c', list.collapsed());
-  // #112: while a side panel is open the list is its 36px band (CSS, flow-lane.css), not gone; the chevron then lets the list back beside the panel (`list-open`, until the panels close)
-  const bandOn = () => /\b(fi-open|mp-open)\b/.test(flowsEl.className) && !flowsEl.classList.contains('list-open');
-  function sync() { if (flowsEl.classList.contains('list-open') && !/\b(fi-open|mp-open)\b/.test(flowsEl.className)) flowsEl.classList.remove('list-open'); list.repaint(bandOn); }
-  new MutationObserver(sync).observe(flowsEl, { attributes: true, attributeFilter: ['class'] }); sync();
   resizer(list.el, { edge: 'right', key: 'flows-list', defaultWidth: 300, label: 'Resize entry point list',
     width: () => list.el.offsetWidth, apply: (px) => flowsEl.style.setProperty('--list-w', `${px}px`) });
   resizer(panel.el, { edge: 'left', key: 'flow-panel', defaultWidth: 380, label: 'Resize flow details',
@@ -93,9 +90,7 @@ export async function render({ main, query }) {
   const check = (key, label, title) => h('label.check', { title }, h('input', { type: 'checkbox', checked: opts[key], on: { change: (e) => { opts[key] = e.target.checked; persist(); views.forEach((v, k) => (k === S.active ? v.draw() : stale.add(k))); } } }), label);
   const frontierCheck = h('label.check', { title: 'Call trees the harvester marked as reaching no sink. Folded into one marker per function by default.' },
     h('input', { type: 'checkbox', checked: opts.frontier, on: { change: (e) => { opts.frontier = e.target.checked; persist(); reloadAll(); } } }), 'Frontier steps');
-  const mergeCheck = h('label.check', { 'data-qa': 'merge-check', title: 'Simple: all calls of one service to one target inside one activation are one arrow, whatever lies between them. Off: only calls to one store that follow each other.' },
-    h('input', { type: 'checkbox', checked: opts.merge, on: { change: (e) => { opts.merge = e.target.checked; mergeSave(opts.merge); reloadAll(); } } }), 'One arrow per target');
-  const depth = h('select.select', { 'aria-label': 'Depth', on: { change: (e) => { opts.depth = e.target.value; persist(); views.forEach((v, k) => (k === S.active ? v.draw() : stale.add(k))); } } },
+  const mergeCheck = createMergeCheck(opts, () => reloadAll()), depth = h('select.select', { 'aria-label': 'Depth', on: { change: (e) => { opts.depth = e.target.value; persist(); views.forEach((v, k) => (k === S.active ? v.draw() : stale.add(k))); } } },
     ['all', '1', '2', '3', '4', '6', '8'].map((d) => h('option', { value: d, selected: d === opts.depth }, d === 'all' ? 'All depths' : `Depth ${d}`)));
   const sqCheck = h('label.check', { title: 'When the diagram is wider than the window, fold the lifelines the current step does not need. Click a fold to open it.' },
     h('input', { type: 'checkbox', checked: opts.squeeze, on: { change: (e) => { opts.squeeze = e.target.checked; sqSave(opts.squeeze); views.forEach((v, k) => { v.resetSqueeze(); if (k === S.active) v.draw(); else stale.add(k); }); } } }), 'Squeeze');
@@ -108,10 +103,9 @@ export async function render({ main, query }) {
     const arrowsMoved = arrows !== opts.sd; opts.sb = bar; opts.sd = arrows; opts.hl = hl; opts.cb = cb; persist();
     views.forEach((v, k) => { v.refreshBar(); v.refreshHl(); v.refreshBrackets(); if (arrowsMoved) { if (k === S.active) v.draw(); else stale.add(k); } });
   } });
-  const toolbar = h('div.seq-toolbar', seg, bandsCheck, check('stores', 'Data stores'), frontierCheck, mergeCheck, sqCheck, thCheck, depth, stepMenu.el, zctl.el, h('span.spacer'),
+  const toolbar = h('div.seq-toolbar', seg, bandsCheck, check('stores', 'Data stores'), frontierCheck, mergeCheck.el, sqCheck, thCheck, depth, stepMenu.el, zctl.el, h('span.spacer'),
     h('span.xs.muted', 'Double-click a bar, or right-click it, to look inside'), info,
     editing() ? h('button.btn.sm', { type: 'button', 'data-qa': 'add-component', title: 'Add a component to the draft', on: { click: () => host.edit.addComponent() } }, '+ component') : null);
-
   // ---- tabs ----
   let chips = new Map(); // key -> env chip text; empty while the open tabs are of one env
   const strip = createTabStrip({ describe: (k) => ctxOf(k)?.data.describe(k) ?? goneDescribe(k), chip: (k) => chips.get(k) ?? null, onActivate: (k) => commit(T.activate(S, k)), onClose: (k) => commit(T.closeTab(S, k)),
@@ -122,7 +116,7 @@ export async function render({ main, query }) {
     h('p.muted', 'Pick a flow in the list. Click opens it here; "Tab" opens it next to the others.'));
   mainPane.append(toolbar, strip.el, empty);
 
-  function persist() { frontierSimple(frontierCheck, !!S.active && scen.of(S.active).detail !== 'full'); mergeCheck.querySelector('input').disabled = !!S.active && scen.of(S.active).detail !== 'simple'; mergeCheck.classList.toggle('disabled', mergeCheck.querySelector('input').disabled);
+  function persist() { frontierSimple(frontierCheck, !!S.active && scen.of(S.active).detail !== 'full'); mergeCheck.setSimple(!!S.active && scen.of(S.active).detail === 'simple');
     setQuery({ ...T.encodeUrl(S, state.env), store: storeParam, ...(S.keys.length ? { service: null } : {}), stores: opts.stores ? null : '0', queues: null, depth: opts.depth === 'all' ? null : opts.depth, frontier: opts.frontier ? '1' : null, sb: encodeBar(opts.sb), sd: encodeArrows(opts.sd, arrowsDefault(isDesign())), th: encodeHints(opts.th, isDesign()), hl: encodeHl(opts.hl), cb: encodeCb(opts.cb, isDesign()), zoom: encodeZoom(zooms.get(S.active)), step: encodeStep(stepParam), ...scen.query(S.active) });
   }
   const max = createMax({ onChange: () => views.get(S.active)?.el.scrollTo?.(0, 0) });

@@ -1,4 +1,4 @@
-// #109 (the checkbox pref), #111 (an arrow for a call wholly inside a fold column), #112 (the entry-point list is a 36px band, never gone): the pure parts and source checks.
+// #109 (the checkbox pref), #111 (an arrow for a call wholly inside a fold column), #113 (the Why incomplete hazard button): the pure parts and source checks.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -17,7 +17,7 @@ test('#109: "One arrow per target" is on unless the viewer turned it off; its re
   delete (globalThis as any).localStorage;
   const { requestKey } = await import('../web/js/views/flow-sub.js');
   assert.notEqual(requestKey({ service: 's', ingress: 'i', detail: 'simple' }), requestKey({ service: 's', ingress: 'i', detail: 'simple', merge: '1' }));
-  assert.match(src('js/views/flows.js'), /One arrow per target/);
+  assert.match(src('js/views/flow-merge-check.js'), /One arrow per target/);
   assert.match(src('js/views/flow-tab-data.js'), /merge: detail === 'simple' && getOpts\(\)\.merge/);
 });
 
@@ -31,16 +31,6 @@ test('#111: a call between two lifelines of one fold column is wholly inside it,
   const f = src('js/views/flow-draw-fold.js');
   assert.match(f, /function inFold\(e, r, y0, g, idx\)/);
   assert.match(f, /sq-arr/);
-});
-
-test('#112: the collapsed entry-point list is a 36px band with the chevron (aria-expanded=false, "Show entry points") and the count; a side panel leaves the band, not nothing', () => {
-  const css = src('css/sequence.css'), lane = src('css/flow-lane.css'), list = src('js/views/flow-list.js');
-  assert.match(css, /\.flows\.list-c \{ grid-template-columns: 36px/);
-  assert.match(css, /\.fl-count/);
-  assert.match(list, /'Show entry points'/);
-  assert.match(list, /aria-expanded', String\(!c\)/);
-  assert.doesNotMatch(lane, /\.flows\.fi-open > \.flows-list, \.flows\.mp-open > \.flows-list \{ display: none; \}/);
-  assert.match(lane, /fi-open:not\(\.list-open\)[^{]*\{ grid-template-columns: 36px/);
 });
 
 test('#113: "Why incomplete" is a collapsed section after the call data, opened by a hazard button with aria-expanded and the tooltip "Why incomplete: N blocked"; the store panel has the same button', () => {

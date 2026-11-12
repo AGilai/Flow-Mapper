@@ -70,7 +70,7 @@ export function simplify(all: Item[], maxMessages?: number, merge = false): Simp
         if (x.m.n !== undefined) dead.add(x.i + 1);
         cutDepth = m.depth;
       } else if (!first && !m.repeatOf && !m.cycle) calleeSeen.set(tk, x);
-      const n: Entry = { x: { ...x, m }, occ: [occOf(m)], res: false, ...(canLeaf && !m.repeatOf ? { leaf: [m] } : {}) }; seen.set(k, n); entries.push(n);
+      const n: Entry = { x: { ...x, m }, occ: [occOf(m)], res: false, ...(canLeaf ? { leaf: [m] } : {}) }; seen.set(k, n); entries.push(n);
       if (n.leaf) leafSeen.set(lk, n);
       continue;
     }
@@ -86,7 +86,8 @@ export function simplify(all: Item[], maxMessages?: number, merge = false): Simp
     if (group[0] !== e) continue;
     if (e.leaf && e.leaf.length > 1) { // #109: calls of one caller to one leaf target: `*3 POST /a, GET /b`
       const ops = [...new Set(e.leaf.map((l) => shortOp(l.label)))].join(', ');
-      items.push({ ...e.x, m: { ...e.x.m, label: `*${e.leaf.length} ${ops}`, mergedCalls: e.leaf.length, occurrences: e.occ } });
+      const { repeatOf: _r, cycle: _c, ...base } = e.x.m; // a repeat marker that merged with its caller's other calls is one arrow like the rest
+      items.push({ ...e.x, m: { ...base, label: `*${e.leaf.length} ${ops}`, mergedCalls: e.leaf.length, occurrences: e.occ } });
       continue;
     }
     const most = group.reduce((a, b) => (b.occ.length > a.occ.length ? b : a)), n = Math.max(most.occ.length, group.length);

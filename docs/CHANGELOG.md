@@ -5,6 +5,11 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+
+- Simple view, one arrow per target (#109, additive): view option `merge=1` on `GET /api/envs/:env/trace` (with `detail=simple`; off by default, so existing output is unchanged; the web UI sends it unless the viewer unticks "One arrow per target"). Within one activation of a caller, all its calls to one store instance are one arrow (`*N op1, op2`, `dbGroup.calls` lists every member, `dbGroup.flagged` counts members that are blocked or have unknown fields; a blocked member no longer stands alone), and calls into a target that opens nothing of its own are one arrow too (`*3 GET /a, POST /b`, `mergedCalls`, `occurrences`). The merged view carries `blockedAll` so the incomplete badge keeps its count.
+- UI: calls between two lifelines of one Squeeze fold column draw an arrow (#111); "Why incomplete" in the step and store panes is a collapsed section behind a hazard button in the pane header (#113).
+
 ## 0.50.2 (2026-11-12)
 
 - Redis steps on several keys (#108, additive): `details.keys: [{keyIdx, keyTemplate?, dbIndex?, ttlSeconds?, keyVariants?, keyUnresolved?}]` in key order, and `details.keyVariants: string[]` (the callers' spellings of one canonical key; also per entry). `GET /trace` and MCP `trace_flow` messages carry `keys` and `keyVariants`; `keyTemplate`, `dbIndex`, `ttlSeconds`, `keyUnresolved` are filled from `keys[0]` when only `keys[]` is sent. The instance page matches flows through any `keys[]` entry. The interim `multi_key` unresolved is dropped from the message once `keys[]` names the keys; it was never a Link health gap (`what: detail` is not counted). The step Info panel shows each key (own card, registry row) and its variants. Details in API.md "Key fields on resource steps".
