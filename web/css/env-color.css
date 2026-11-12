@@ -2,7 +2,7 @@
    from paintEnv(); the palette is --env-1..10 in tokens.css. Chrome only: never inside a diagram. */
 
 .env-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--ec, var(--muted)); flex: none; }
-.env-chip { display: inline-flex; align-items: center; gap: 6px; padding: 1px 8px 1px 7px; border-radius: 999px; font: 600 12px var(--mono); vertical-align: baseline;
+.env-chip { display: inline-flex; align-items: center; gap: 6px; padding: 1px 8px 1px 7px; border-radius: 999px; font: 600 12px var(--mono); vertical-align: baseline; white-space: nowrap; flex: none;
   color: var(--ei, var(--ink-2)); background: color-mix(in srgb, var(--ec, var(--muted)) 16%, var(--surface)); border: 1px solid color-mix(in srgb, var(--ec, var(--muted)) 35%, transparent); }
 .env-add, .env-del { display: block; }
 

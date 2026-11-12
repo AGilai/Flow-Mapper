@@ -32,6 +32,7 @@ const P = {
   question: '<circle cx="12" cy="12" r="9"/><path d="M9.6 9.6a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1.1.9-1.1 1.6M12 17.2h.01"/>',
   pin: '<path d="M9 4h6l-1 6 3 3H7l3-3z"/><path d="M12 13v7"/>',
   maximize: '<path d="M3 9V3h6M15 3h6v6M21 15v6h-6M9 21H3v-6"/>',
+  sliders: '<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
   chevup: '<path d="M6 15l6-6 6 6"/>',
   chevdown: '<path d="M6 9l6 6 6-6"/>',
   unmax:'<path d="M9 3v6H3M21 9h-6V3M15 21v-6h6M3 15h6v6"/>',

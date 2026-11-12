@@ -30,3 +30,15 @@ body.is-max .flow-tab.head-min > .flow-top { display: none; }
 /* the freed height goes to the diagram, not to the bottom pane: while minimized an unsized pane stops at a fifth of the window (it is 40vh otherwise; dragging its border still sets any height) */
 .flow-tab.head-min > .flow-bottom:not(.sized):not(.collapsed) { max-height: 20vh; }
 body.is-max .flow-tab.head-min > .flow-bottom:not(.sized):not(.collapsed) { max-height: none; }
+
+/* Round 2: minimized, the page head, the view toolbar and the Harvested line leave too; only the tab row and the strip stay over the diagram. The toolbar lives in the View popover (flow-headmin-pop.js). */
+body.head-min .main:has(.flows) > .page-head, body.head-min .flows-main > .seq-toolbar, body.head-min .flows-main > .pen-hint { display: none; }
+.hs-view { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; flex: none; }
+.hs-view svg { width: 15px; height: 15px; }
+.hs-view[aria-expanded='true'] { background: var(--surface-2); border-color: var(--ink-2); }
+.hs-view:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.hs-pop { position: fixed; z-index: 60; box-sizing: border-box; overflow: auto; background: var(--surface); color: var(--ink); border: 1px solid var(--line-strong); border-radius: var(--r-md); box-shadow: var(--shadow-panel); padding: var(--s2); }
+.hs-pop .seq-toolbar { border-bottom: 0; background: transparent; padding: var(--s2); flex-wrap: wrap; }
+.hs-pop .seq-toolbar .spacer { display: none; }
+.hs-pop .pen-hint { margin: 0; padding: var(--s1) var(--s2) var(--s2); font-size: var(--fs-xs); color: var(--muted); background: transparent; }
+@media (max-width: 760px) { .hs-view-l { display: none; } .hs-view { padding: 0 7px; } }

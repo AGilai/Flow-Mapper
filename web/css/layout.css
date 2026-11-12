@@ -12,7 +12,7 @@
 .collapse-btn { flex: none; width: 28px; height: 28px; display: grid; place-items: center; border: 0; border-radius: var(--r-sm); background: transparent; color: var(--muted); cursor: pointer; }
 .collapse-btn:hover { background: var(--surface-2); color: var(--ink); }
 .collapse-btn svg { transition: transform .18s ease; }
-.env-chip { display: none; }
+button.env-chip { display: none; } /* the sidebar's chip (collapsed rail only); a page chip is a span */
 /* Collapsed: a narrow icon rail. The icons keep their tooltips; the environment becomes a chip that expands the rail. */
 .rail-c .rail { padding: var(--s4) var(--s2); overflow-x: hidden; }
 .rail-c .brand-row { flex-direction: column; padding-bottom: var(--s3); gap: var(--s2); }
@@ -22,8 +22,8 @@
 .rail-c .nav-link { justify-content: center; padding: 8px 0; position: relative; }
 .rail-c .nav-badge { position: absolute; top: 2px; right: 4px; margin: 0; font-size: 10px; font-weight: 600; color: var(--accent); }
 .rail-c .rail-foot { padding: var(--s3) 0 0; justify-items: center; }
-.rail-c .env-chip { display: block; font: 600 11px var(--font); color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 4px 6px; cursor: pointer; max-width: 44px; overflow: hidden; text-overflow: ellipsis; }
-.rail-c .env-chip:hover { color: var(--ink); border-color: var(--line-strong); }
+.rail-c button.env-chip { display: block; font: 600 11px var(--font); color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 4px 6px; cursor: pointer; max-width: 44px; overflow: hidden; text-overflow: ellipsis; }
+.rail-c button.env-chip:hover { color: var(--ink); border-color: var(--line-strong); }
 .brand-mark { width: 28px; height: 28px; flex: none; }
 .brand-name { font-weight: 700; font-size: 16px; letter-spacing: -0.02em; }
 .nav-link {
@@ -43,7 +43,7 @@
   padding: var(--s4) var(--s5); border-bottom: 1px solid var(--line); background: var(--surface);
 }
 .page-head h1 { font-size: var(--fs-lg); }
-.page-head .sub { color: var(--muted); font-size: var(--fs-sm); }
+.page-head .sub { color: var(--muted); font-size: var(--fs-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; } /* the env chip stays one line, dot and word inline; the count text ellipsizes first */
 .toolbar { display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; margin-left: auto; }
 .content { flex: 1; overflow: auto; padding: var(--s5); }
 .content.flush { padding: 0; overflow: hidden; position: relative; }
@@ -64,7 +64,7 @@
   .app, .app.rail-c { grid-template-columns: 1fr; }
   .rail-c .rail { padding: var(--s2); flex-direction: row; }
   .rail-c .brand-row { flex-direction: row; padding: 0; }
-  .rail-c .nav-link, .rail-c .rail-foot, .rail-c .env-chip { display: none; }
+  .rail-c .nav-link, .rail-c .rail-foot, .rail-c button.env-chip { display: none; }
   /* the rail is a strip with its links to the right of the brand: the chevron keeps the desktop rule (points back when open, forward when collapsed) */
   .brand-name, .nav-badge { display: none; }
   .nav-link span { display: none; }
