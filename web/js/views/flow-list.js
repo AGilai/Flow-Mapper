@@ -16,16 +16,17 @@ import { filterStatus } from './incomplete-pure.js';
 
 const LIST_CAP = 300;
 
-/** createList({ points, counts, cmts = {} (comments per `flow:<service>/<ingress>`), service, groupOf, groups, marks, design, query, onPick(point), onAll(), onCollapse(collapsed) }) -> { el, mark({ keys, active }), collapsed() } */
-export function createList({ env = '', points: allPoints, counts, cmts = {}, acts = {}, ments = {}, relBy = new Map(), service, groupOf = new Map(), groups = [], marks = null, design = false, query = new URLSearchParams(), onPick, onPickTab, onAll, onCollapse }) {
+/** createList({ points, counts, cmts = {} (comments per `flow:<service>/<ingress>`), service, groupOf, groups, marks, design, query, onPick(point), onAll(), onCollapse(collapsed), onForced() }) -> { el, mark({ keys, active }), collapsed() } */
+export function createList({ env = '', points: allPoints, counts, cmts = {}, acts = {}, ments = {}, relBy = new Map(), service, groupOf = new Map(), groups = [], marks = null, design = false, query = new URLSearchParams(), onPick, onPickTab, onAll, onCollapse, onForced }) {
   const body = h('div.flows-scroll');
   const filter = h('input.input', { type: 'search', placeholder: service ? 'Filter ingress' : 'Filter entry points', 'aria-label': 'Filter starting points' });
   let marked = { keys: [], active: null }, collapsed = readCollapsed(KEYS.list, undefined, isNarrow()); // narrow viewport: starts collapsed unless a choice was saved
   const fs = { all: query.get('endpoints') === 'all', subs: parseSel(query.get('subsystems')), comps: parseSel(query.get('components')), changed: design && ['1', 'all'].includes(query.get('changed')) ? query.get('changed') : null, rel: relBy.size ? parseRel(query.get('rel')) : null, group: startGroup(query, env, design), inc: false };
   const covered = hasCoverage(allPoints); // #85: "Incomplete flows only" is offered only where some flow reports coverage; `incomplete=1` is ignored elsewhere
   fs.inc = incompleteOn(query, covered);
-  const word = h('span.fl-word'), strip = h('div.fl-strip', { 'aria-hidden': 'true' }, word);
-  const btn = h('button.collapse-btn.fl-toggle', { type: 'button', on: { click: () => set(!collapsed) } }, icon('chev'));
+  const word = h('span.fl-word'), count = h('span.fl-count', { title: 'Entry points' }), strip = h('div.fl-strip', { 'aria-hidden': 'true' }, count, word);
+  let forced = () => false; // #112: a side panel is open and the page shows the list as its band (flows.js)
+  const btn = h('button.collapse-btn.fl-toggle', { type: 'button', on: { click: () => (forced() ? (onForced?.(), collapsed && set(false)) : set(!collapsed)) } }, icon('chev'));
   let points = scopePoints(allPoints, { design, service, all: fs.all }), subRows = subsystemRows(points, groupOf, groups);
   const flowsOnly = design && !service;   // the "All endpoints" switch exists only where the list is scoped
   const allBox = h('input', { type: 'checkbox', checked: fs.all, 'data-qa': 'all-endpoints', on: { change: (e) => {
@@ -52,10 +53,12 @@ export function createList({ env = '', points: allPoints, counts, cmts = {}, act
   const vis = () => componentRows(points, groupOf, fs.subs).map((r) => ({ key: r.name, label: r.name, count: r.count, external: r.external }));
   const summary = () => filterSummary({ subs: fs.subs, comps: fs.comps, subRows, compRows: vis(), changed: fs.changed, rel: fs.rel, incomplete: fs.inc, q: filter.value.trim() });
   const paint = () => {
-    btn.setAttribute('aria-expanded', String(!collapsed)); btn.setAttribute('aria-label', toggleLabel('the entry point list', collapsed)); btn.title = toggleLabel('the entry point list', collapsed);
+    const c = collapsed || forced();
+    btn.setAttribute('aria-expanded', String(!c)); btn.setAttribute('aria-label', c ? 'Show entry points' : 'Collapse the entry point list'); btn.title = c ? `Show entry points (${points.length})` : toggleLabel('the entry point list', false);
+    count.textContent = String(points.length);
     word.textContent = stripLabel({ service, active: marked.active, count: points.length, summary: summary() });
-    el.classList.toggle('is-c', collapsed); strip.setAttribute('aria-hidden', String(!collapsed));
-    el.querySelectorAll('.fl-body input, .fl-body a, .fl-body button').forEach((x) => { x.tabIndex = collapsed ? -1 : 0; });
+    el.classList.toggle('is-c', c); strip.setAttribute('aria-hidden', String(!c));
+    el.querySelectorAll('.fl-body input, .fl-body a, .fl-body button').forEach((x) => { x.tabIndex = c ? -1 : 0; });
   };
   const set = (c) => { collapsed = writeCollapsed(KEYS.list, c); paint(); onCollapse?.(collapsed); setTimeout(() => document.dispatchEvent(new CustomEvent('fm:layout')), SLIDE_MS + 40); };
   function commit() { // a filter changed: the URL (a parameter that selects everything is left out), the groups and the list
@@ -101,7 +104,7 @@ export function createList({ env = '', points: allPoints, counts, cmts = {}, act
   if (!service && !query.get('group') && encodeGroup(fs.group, design)) setQuery({ group: encodeGroup(fs.group, design) }); // a mode that came only from the per-env memory goes into the URL once, so a copied link keeps it
   const el = h('aside.flows-list', h('div.fl-head', h('span.fl-title', service ? 'Ingress' : 'Entry points'), btn),
     h('div.fl-body', groupRow, filters, h('div.search', icon('search'), filter), changedRow, incRow, incStatus, relRow, body), strip);
-  strip.addEventListener('click', () => set(false));
+  strip.addEventListener('click', () => (forced() ? (onForced?.(), collapsed && set(false)) : set(false)));
   paint();
-  return { el, mark, collapsed: () => collapsed };
+  return { el, mark, collapsed: () => collapsed, repaint: (f) => { forced = f; paint(); } };
 }

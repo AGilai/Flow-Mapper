@@ -73,9 +73,13 @@ export async function render({ main, query }) {
   const groupOf = new Map(svcs.map((s) => [s.name, s.groupPath ?? '']));
   const list = createList({ env: state.env, points, counts, cmts, acts, ments, relBy, service, groupOf, groups: metaOf(state.envMeta, state.env).groups ?? [], marks, design: isDesign(), query, onPick: (p) => pick(entryOf({ service: p.service, ingress: p.id })), onPickTab: (p) => addTab(entryOf({ service: p.service, ingress: p.id })),
     onAll: () => { const u = T.encodeUrl(S, state.env); go('/flows', { tabs: u.tabs, tab: u.tab }); },
-    onCollapse: (c) => flowsEl.classList.toggle('list-c', c) });
+    onCollapse: (c) => flowsEl.classList.toggle('list-c', c), onForced: () => { flowsEl.classList.add('list-open'); sync(); } });
   const flowsEl = h('div.flows', list.el, rightEl);
   flowsEl.classList.toggle('list-c', list.collapsed());
+  // #112: while a side panel is open the list is its 36px band (CSS, flow-lane.css), not gone; the chevron then lets the list back beside the panel (`list-open`, until the panels close)
+  const bandOn = () => /\b(fi-open|mp-open)\b/.test(flowsEl.className) && !flowsEl.classList.contains('list-open');
+  function sync() { if (flowsEl.classList.contains('list-open') && !/\b(fi-open|mp-open)\b/.test(flowsEl.className)) flowsEl.classList.remove('list-open'); list.repaint(bandOn); }
+  new MutationObserver(sync).observe(flowsEl, { attributes: true, attributeFilter: ['class'] }); sync();
   resizer(list.el, { edge: 'right', key: 'flows-list', defaultWidth: 300, label: 'Resize entry point list',
     width: () => list.el.offsetWidth, apply: (px) => flowsEl.style.setProperty('--list-w', `${px}px`) });
   resizer(panel.el, { edge: 'left', key: 'flow-panel', defaultWidth: 380, label: 'Resize flow details',

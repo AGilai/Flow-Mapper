@@ -1,6 +1,6 @@
 /* Flows page and sequence diagram. */
 .flows { display: grid; grid-template-columns: var(--list-w, 300px) minmax(0, 1fr); height: 100%; transition: grid-template-columns .18s ease; }
-.flows.list-c { grid-template-columns: 38px minmax(0, 1fr); }
+.flows.list-c { grid-template-columns: 36px minmax(0, 1fr); } /* the collapsed band (#112): chevron, the count, the label along it */
 .flows-list { position: relative; border-right: 1px solid var(--line); background: var(--surface); display: flex; flex-direction: column; min-height: 0; }
 .flows-list .search { padding: var(--s3); border-bottom: 1px solid var(--line); }
 .flows-list .search .input { width: 100%; }
@@ -81,6 +81,8 @@
 .flows-list.is-c .fl-title, .flows-list.is-c .fl-body, .flows-list.is-c .resizer { display: none; }
 .flows-list.is-c .fl-toggle svg { transform: rotate(180deg); }
 .flows-list.is-c .fl-strip { display: flex; flex: 1; justify-content: center; padding-top: var(--s3); cursor: pointer; }
+.fl-count { font: 700 10.5px var(--font); color: var(--ink-2); background: var(--accent-soft); border-radius: 8px; padding: 1px 6px; margin-bottom: var(--s2); }
+.flows-list.is-c .fl-strip { flex-direction: column; align-items: center; }
 .fl-word { writing-mode: vertical-rl; font-size: var(--fs-sm); font-weight: 600; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-height: 100%; }
 .flows-list.is-c .fl-strip:hover .fl-word { color: var(--accent); }
 @media (max-width: 860px) {

@@ -206,7 +206,11 @@
 @media (max-width: 860px) { .flows-right > .panel.open { position: absolute; inset: 0; width: 100% !important; max-width: none; z-index: 6; } }
 
 /* With the drill-down open the entry list steps aside, so the diagram keeps the room it needs next to the column. */
-@media (min-width: 861px) { .flows.fi-open, .flows.mp-open { grid-template-columns: minmax(0, 1fr); } .flows.fi-open > .flows-list, .flows.mp-open > .flows-list { display: none; } }
+/* #112: with a side panel open the entry-point list is its 36px band (the collapsed look), not gone; its chevron brings the list back (`list-open`). */
+@media (min-width: 861px) {
+  .flows.fi-open:not(.list-open), .flows.mp-open:not(.list-open) { grid-template-columns: 36px minmax(0, 1fr); }
+  .flows.fi-open:not(.list-open) .fl-title, .flows.mp-open:not(.list-open) .fl-title, .flows.fi-open:not(.list-open) .fl-body, .flows.mp-open:not(.list-open) .fl-body, .flows.fi-open:not(.list-open) .resizer, .flows.mp-open:not(.list-open) .resizer { display: none; }
+}
 
 /* 0.15.0: an expanded card holds a whole flow: its lane, then its own async list (a nested .cards fits the card instead of the page) */
 .card-nest .cards { position: static; width: auto; max-width: none; padding: 0; }
