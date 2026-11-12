@@ -50,10 +50,10 @@ test('wiring: loose() uses the pure rule, the strip sits before the header box, 
   assert.match(tab, /looseHead\(\{ headH: sk\.offsetHeight, viewH: scroller\.clientHeight, zoom: factor \}\)/);
   assert.doesNotMatch(tab, /\* 0\.35/, 'the 35% line is gone');
   assert.match(tab, /h\('div\.flow-tab', maxBar, backBar, xnote, hm\.strip, h\('div\.flow-top'/);
-  assert.match(tab, /hm\.button\(\), host\.max\?\.button\(\)/);
+  assert.match(tab, /summary: \[hm\.button\(\), root/); assert.match(tab, /ts\.ui\.el, host\.max\?\.button\(\)/);
   const hm = src('js/views/flow-headmin.js');
-  assert.match(hm, /'Show flow header'/); assert.match(hm, /'aria-expanded': 'false'/);
-  assert.match(hm, /'Minimize flow header'/); assert.match(hm, /icon\('chevup'\)/); assert.match(hm, /icon\('chevdown'\)/);
+  assert.match(hm, /'Expand flow header'/); assert.match(hm, /'aria-expanded': 'false'/);
+  assert.match(hm, /'Collapse flow header'/); assert.match(hm, /icon\('chevup'\)/); assert.match(hm, /icon\('chevdown'\)/);
   assert.match(hm, /addEventListener\('keydown', onKey\)/); assert.match(hm, /headKeyAction/);
   assert.match(hm, /stepShort/); assert.match(hm, /walk\?\.move\('prev'\)/); assert.match(hm, /walk\?\.move\('next'\)/);
   assert.match(hm, /host\.max\?\.button\(\)/, 'Maximize stays reachable from the strip');

@@ -5,6 +5,10 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+
+- Flows page (UI, #114, #112): the page head is gone. The entry-point list's own header is the Flows header ("Flows", "N entry points in prod", and its collapse button) and the tab row starts the main column level with it. Collapsed, the list leaves no band at all (width 0): a "Flows · prod" button at the left end of the tab row (aria-expanded false, "Show entry points") reopens it; the choice is stored per browser. The view toolbar sits directly under the tab row, with the "Harvested" line as a small chip and the bar hint behind an (i) icon at its right end ("Inside" / "Full" are the short names of the scope buttons). The minimize-header control is a bold, labelled "Collapse" / "Expand" button at the start of the flow title row; minimized folds only the flow's own header, the toolbar stays, and the 0.50.3 "View" popover is removed.
+
 ## 0.51.0 (2026-11-12)
 
 - Simple view, one arrow per target (#109, additive): view option `merge=1` on `GET /api/envs/:env/trace` (with `detail=simple`; off by default, so existing output is unchanged; the web UI sends it unless the viewer unticks "One arrow per target"). Within one activation of a caller, all its calls to one store instance are one arrow (`*N op1, op2`, `dbGroup.calls` lists every member, `dbGroup.flagged` counts members that are blocked or have unknown fields; a blocked member no longer stands alone), and calls into a target that opens nothing of its own are one arrow too (`*3 GET /a, POST /b`, `mergedCalls`, `occurrences`). The merged view carries `blockedAll` so the incomplete badge keeps its count.

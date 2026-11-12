@@ -79,7 +79,8 @@ export function pencils(host) {
     /** The muted "Harvested — edit at the source" line of a harvested page (null in a design environment). */
     hint() {
       const t = harvestedHint(design);
-      return t ? h('p.pen-hint', { 'data-qa': 'pen-hint' }, t) : null;
+      const [a, ...rest] = (t ?? '').split(' — '); // #114: a chip in the view toolbar; its second half shows only when the toolbar is wide
+      return t ? h('p.pen-hint', { 'data-qa': 'pen-hint', title: t }, a, rest.length ? h('span.ph-more', ` — ${rest.join(' — ')}`) : null) : null;
     },
     /** Open the form a pencil asked for, once the page is drawn in Edit. */
     resume() {

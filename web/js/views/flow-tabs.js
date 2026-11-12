@@ -9,7 +9,7 @@ export const enterIcon = () => svg(ENTER);
 const svg = (d) => h('svg', { viewBox: '0 0 16 16', html: `<path d="${d}"/>`, 'aria-hidden': 'true' });
 
 /**
- * createTabStrip({ describe(key), chip(key) -> short env text | null (shown only while the open tabs span 2+ envs), envVars(key) -> {--ec, --ei} (the env colour of that tab: bar and border), onActivate(key), onClose(key), onCloseOthers(key), onCloseAll() })
+ * createTabStrip({ lead (a node at the left end), describe(key), chip(key) -> short env text | null (shown only while the open tabs span 2+ envs), envVars(key) -> {--ec, --ei} (the env colour of that tab: bar and border), onActivate(key), onClose(key), onCloseOthers(key), onCloseAll() })
  *   -> { el, render(state), tabEl(key), focusActive() }
  */
 export function createTabStrip(cb) {
@@ -18,7 +18,7 @@ export function createTabStrip(cb) {
   const prev = h('button.tabnav', { type: 'button', 'aria-label': 'Scroll tabs left', on: { click: () => scroll.scrollBy({ left: -240, behavior: 'smooth' }) } }, '‹');
   const next = h('button.tabnav', { type: 'button', 'aria-label': 'Scroll tabs right', on: { click: () => scroll.scrollBy({ left: 240, behavior: 'smooth' }) } }, '›');
   const menuBtn = h('button.tabmenu', { type: 'button', 'aria-haspopup': 'true', 'aria-expanded': 'false', title: 'All open flows', on: { click: () => toggleMenu() } });
-  const el = h('div.ftabs', prev, scroll, next, menuBtn);
+  const el = h('div.ftabs', cb.lead ?? null, prev, scroll, next, menuBtn); // cb.lead: the page label ("Flows · 102 · prod"), shown only while a tab is open (flow-tabs.css)
   let pop = null, drawPop = null;
 
   // --tc is the transport hue (glyph, .tn); --ec is the env colour (top bar, border) of the tab's own env (0.36.0).

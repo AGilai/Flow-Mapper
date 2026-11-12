@@ -21,4 +21,4 @@
 .sb-actions .pen { margin-left: 2px; }
 .tgrp .pen { margin-left: var(--s2); }
 .cell-pen { width: 28px; padding-left: 0; padding-right: 0; text-align: right; }
-.seq-toolbar + .pen-hint { padding: var(--s1) var(--s3); background: var(--paper); }
+.seq-toolbar .pen-hint { padding: 1px 9px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); white-space: nowrap; flex: none; } /* #114: the Harvested line is a small chip at the right end of the view toolbar */
