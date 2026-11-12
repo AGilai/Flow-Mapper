@@ -49,7 +49,7 @@ test('minimized keeps the view toolbar and the page chrome; no View popover', ()
   assert.match(css, /\.flow-tab\.head-min > \.flow-top \{ display: none; \}/, "the flow's own header still folds");
 });
 
-test('Collapse / Expand buttons: labelled, accent-tinted, aria-expanded, first in the title row, icon only below 900px', () => {
+test('Collapse / Expand buttons: labelled, filled accent, aria-expanded, first in the title row, icon only below 900px', () => {
   const hm = src('js/views/flow-headmin.js'), css = src('css/flow-headmin.css'), tv = src('js/views/flow-tab-view.js'), mx = src('css/flow-max.css');
   assert.match(hm, /'aria-expanded': 'true', 'aria-label': 'Collapse flow header'/);
   assert.match(hm, /icon\('chevup'\), h\('span\.hs-tl', 'Collapse'\)/);
@@ -59,7 +59,7 @@ test('Collapse / Expand buttons: labelled, accent-tinted, aria-expanded, first i
   assert.match(hm, /\n    show, h\('span\.hs-id'/, 'Expand leads the strip');
   assert.match(tv, /summary: \[hm\.button\(\), root \? nameEditor/, 'Collapse is left of the flow name');
   assert.doesNotMatch(tv, /ts\.ui\.el, hm\.button\(\)/, 'no longer at the right end');
-  assert.match(css, /\.hs-toggle \{[^}]*var\(--accent\)[^}]*var\(--accent-soft\)/);
+  assert.match(css, /\.hs-toggle \{[^}]*font-weight: 600[^}]*background: var\(--accent\)/); assert.match(css, /data-theme='dark'\] \.hs-toggle \{ color: var\(--paper\)/);
   assert.match(css, /@media \(max-width: 900px\) \{ \.hs-tl \{ display: none; \}/);
   assert.match(mx, /\.fh-sum > \.hs-min \+ \* \{ display: none; \}/, 'Maximize still hides the title');
   assert.match(mx, /body\.is-max \.page-head, .*body\.is-max \.seq-toolbar, body\.is-max \.ftabs/, 'Maximize hides the tab row and the toolbar as before');

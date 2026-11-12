@@ -12,7 +12,7 @@
 .hs-nav .stepnav { width: 26px; height: 24px; }
 .hs-cnt { min-width: 44px; text-align: center; font: 600 var(--fs-sm) var(--font); font-variant-numeric: tabular-nums; }
 .head-strip .max-btn { order: 0; }
-.hs-toggle { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px 0 9px; flex: none; font-weight: 600; color: #fff; background: var(--accent); border: 1px solid var(--accent); box-shadow: 0 1px 2px color-mix(in srgb, var(--accent) 45%, transparent); } /* filled accent: it has to jump into the eye (#114) */
+.hs-toggle { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px 0 9px; flex: none; font-weight: 600; color: var(--surface); background: var(--accent); border: 1px solid var(--accent); box-shadow: 0 1px 2px color-mix(in srgb, var(--accent) 45%, transparent); } /* filled accent: it has to jump into the eye (#114) */
 .hs-toggle:hover { background: var(--accent); border-color: var(--accent); filter: brightness(1.1); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme='light']) .hs-toggle { color: var(--paper); } }
 :root[data-theme='dark'] .hs-toggle { color: var(--paper); }
