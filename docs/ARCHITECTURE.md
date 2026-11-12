@@ -209,6 +209,7 @@ broken) mean the same thing in every view.
 - Every behaviour change gets a test in `tests/`.
 
 Flow zoom (0.30.3, #69): `flow-zoom-pure.js` (range 25..400, `zoom=` parse and encode, Fit = width, or the whole of a short diagram, step sizes, `anchorDelta` = the scroll that keeps the point under the pointer fixed, the wheel factor), `flow-zoom.js` (`sizeSvg` gives each lane SVG a viewBox of its own size so zoom only changes its width and height and text stays crisp; `applyScale`; the `- [100%] + Fit Reset` control; the Ctrl/Cmd + wheel handler). The tab view (`flow-tab-view.js`) owns a tab's zoom (a percent or 'fit', recomputed on resize), `flows.js` keeps one per tab and writes `zoom=` for the active one; the walk's reveal multiplies lane pixels by the scale.
+Minimized flow header (Unreleased, #106) and pinned heads (#107): `flow-headmin.js` (the 36px `.head-strip` before `.flow-top`, the toggle in the title row, key `H`, one global value in `localStorage` `flow-mapper.headMin`), `flow-headmin-pure.js` (key guard, stored state, `looseHead`: a head scrolls away only when zoomed in and over 60% of the view), `css/flow-headmin.css`. In Maximize the diagram box scrolls inside itself (`flow-max.css`), so the heads stay pinned.
 
 Transport hints (0.30.4, #70): `flow-hints-pure.js` (`th=` parse and encode, the default per environment kind); `flow-marks-draw.js` `markChips(marks, msg, th)` gives the text chip (`tbd`) or the icon (`tbd-i`, drawn by `tbdIcon`); `renderLane` takes `hints`, `layoutLane` stacks chips by their real widths.
 

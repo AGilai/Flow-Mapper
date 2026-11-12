@@ -19,6 +19,8 @@ function reveal(tiles, n, behavior, barEl = null, z = 1) {
   const top = box.scrollTop + (r.top + r.height / 2) - (b.top + cover + Math.max(0, b.height - cover) / 2);
   const off = svg ? svg.left - b.left + box.scrollLeft : 0, left = sp && svg ? scrollLeftFor({ from: sp.x1 * z + off, to: sp.x2 * z + off, left: box.scrollLeft, view: box.clientWidth }) : box.scrollLeft;
   box.scrollTo({ top: Math.max(0, top), left, behavior });
+  const tab = document.body.classList.contains('is-max') ? box.closest('.flow-tab') : null; // Maximize: the diagram is a box inside the scrolling tab; bring the box under the bars when it is not whole on screen (#107)
+  if (tab) { const stick = parseFloat(tab.style.getPropertyValue('--max-stick')) || 96; if (b.bottom > innerHeight + 2 || b.top < stick - 2) tab.scrollTop += b.top - stick; }
 }
 
 const calm = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } };
