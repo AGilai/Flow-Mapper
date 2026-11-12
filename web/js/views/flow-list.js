@@ -25,7 +25,7 @@ export function createList({ env = '', points: allPoints, counts, cmts = {}, act
   const fs = { all: query.get('endpoints') === 'all', subs: parseSel(query.get('subsystems')), comps: parseSel(query.get('components')), changed: design && ['1', 'all'].includes(query.get('changed')) ? query.get('changed') : null, rel: relBy.size ? parseRel(query.get('rel')) : null, group: startGroup(query, env, design), inc: false };
   const covered = hasCoverage(allPoints); // #85: "Incomplete flows only" is offered only where some flow reports coverage; `incomplete=1` is ignored elsewhere
   fs.inc = incompleteOn(query, covered);
-  const btn = h('button.collapse-btn.fl-toggle', { type: 'button', on: { click: () => set(!collapsed) } }, icon('chev'));
+  const btn = h('button.collapse-btn.fl-toggle', { type: 'button', on: { click: () => { set(!collapsed); if (collapsed) document.querySelector('.ft-show')?.focus({ preventScroll: true }); } } }, icon('chev')); // collapsed: focus goes to the tab row's Flows button, which brings the list back
   let points = scopePoints(allPoints, { design, service, all: fs.all }), subRows = subsystemRows(points, groupOf, groups);
   const flowsOnly = design && !service;   // the "All endpoints" switch exists only where the list is scoped
   const allBox = h('input', { type: 'checkbox', checked: fs.all, 'data-qa': 'all-endpoints', on: { change: (e) => {
@@ -101,5 +101,6 @@ export function createList({ env = '', points: allPoints, counts, cmts = {}, act
   const el = h('aside.flows-list', h('div.fl-head', h('span.fl-title', { title: sentence }, h('b', 'Flows'), h('span.fl-sub', service ? `Starting points in ${service}` : h('span', `${allPoints.length} entry points in `, envChip(env || undefined)))), btn),
     h('div.fl-body', groupRow, filters, h('div.search', icon('search'), filter), changedRow, incRow, incStatus, relRow, body));
   paint();
-  return { el, mark, collapsed: () => collapsed, expand: () => set(false), sentence };
+  return { el, mark, collapsed: () => collapsed, expand: () => { set(false); btn.focus({ preventScroll: true }); }, // the Flows button was pressed: focus moves into the list
+    sentence };
 }
