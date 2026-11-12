@@ -73,8 +73,6 @@
 .nt-blk.add { background: color-mix(in srgb, var(--ok) 12%, var(--surface)); border-left-color: var(--ok); }
 .nt-blk h2, .nt-blk h3 { margin: 4px 0; }
 
-body.is-max .nt-doc h2, body.is-max .nt-doc h3 { scroll-margin-top: calc(var(--max-stick, 96px) + 56px); }
-body.is-max .nt-ol { top: calc(var(--max-stick, 96px) + 56px); }
 @media (max-width: 760px) {
   .nt { padding: var(--s3); }
   .nt-hcols { grid-template-columns: minmax(0, 1fr); }

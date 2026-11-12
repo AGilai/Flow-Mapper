@@ -1,7 +1,7 @@
 /* A flow's bottom pane (0.34.0, frame 20): the tab row, "+ Add ▾", the select under 600 px, the drag border. Tokens only; light and dark come from them.
    The tab row sits outside the scrolling body, so it never scrolls away (in the maximized view it is sticky under the bars). */
 
-.flow-bottom { flex: 0 1 auto; min-height: 112px; max-height: 40vh; display: flex; flex-direction: column; background: var(--surface); border-top: 1px solid var(--line); position: relative; }
+.flow-bottom { flex: 0 8 auto; min-height: 80px; max-height: 28vh; display: flex; flex-direction: column; background: var(--surface); border-top: 1px solid var(--line); position: relative; }
 .flow-bottom.sized { flex: none; max-height: none; min-height: 0; }
 .flow-bottom.collapsed { flex: none; max-height: none; min-height: 0; height: auto !important; }
 .flow-bottom.collapsed .fp-body { display: none; }
@@ -63,14 +63,12 @@ body.fp-dragging iframe { pointer-events: none; }
 }
 @media (max-width: 760px) { .fp-body { padding-right: var(--s3); } .fp-tabs { padding-right: 56px; } }
 
-/* maximized: the whole tab scrolls; the tab row sticks under the bars, the border handle is not needed */
+/* maximized: the tab is the same flex column as the normal view (flow-max.css); the pane keeps its cap and scrolls inside; the border handle is not needed */
 body.is-max .fp-split { display: none; }
-body.is-max .flow-bottom { display: block; height: auto !important; }
-body.is-max .flow-bottom.collapsed .fp-body { display: block; }
-body.is-max .fp-body { overflow: visible; padding-right: 0; }
-body.is-max .fp-tabs { position: sticky; top: var(--max-stick, 96px); z-index: 3; padding-right: var(--s4); } /* --max-stick: the height of the bars above, set by flow-tab-view.js */
+body.is-max .flow-bottom:not(.collapsed) { height: auto !important; }
+body.is-max .fp-tabs { padding-right: var(--s4); }
 /* the Notes tab maximized is the document alone, with its tab row and outline (frame 20a); a step chip leaves Maximize and goes to the step */
 body.is-max .flow-tab:has(.flow-bottom[data-tab='notes']) > :is(.flow-top, .flow-body) { display: none; }
+body.is-max .flow-tab:has(.flow-bottom[data-tab='notes']) > .flow-bottom { flex: 1 1 0; max-height: none; min-height: 0; } /* the document alone fills the window and scrolls inside */
 body.is-max .fp-fold { display: none; }
-body.is-max .flow-top .flowhead > .fh-sum { position: static; }
-@media (max-width: 760px) { body.is-max .fp-tabs { top: var(--max-stick, 90px); padding-right: var(--s3); } }
+@media (max-width: 760px) { body.is-max .fp-tabs { padding-right: var(--s3); } }
