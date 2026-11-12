@@ -24,3 +24,10 @@ export const stepWords = (n, total) => (n >= 1 ? `Step ${n} of ${total}` : `${to
  *  At normal zoom they always stay pinned, however short the scroller is (a tall header above it used to push every head past the old 35% line). */
 export const LOOSE_SHARE = 0.6;
 export const looseHead = ({ headH, viewH, zoom = 1 }) => zoom > 1 && headH > viewH * LOOSE_SHARE;
+
+/** Where the View popover goes (round 2): under its button, right edges level, at most 560px wide, always inside the window (8px margin). */
+export function popPlace({ rect, vw, vh, max = 560, gap = 4, margin = 8 }) {
+  const width = Math.min(max, vw - 2 * margin), top = Math.round(rect.bottom + gap);
+  const right = Math.max(margin, Math.min(vw - width - margin, Math.round(vw - rect.right)));
+  return { top, right, width, maxHeight: Math.max(120, vh - top - margin) };
+}
