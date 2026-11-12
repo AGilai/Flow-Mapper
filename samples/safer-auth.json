@@ -1514,12 +1514,12 @@
     },
     {
       "id": "ex.token",
-      "bindKey": "http:POST ext-paypal/ap/v1/oauth2/token",
+      "bindKey": "http:POST paypal-adapter/oauth/exchange",
       "transport": "http",
       "mode": "sync",
       "details": {
         "method": "POST",
-        "path": "/ap/v1/oauth2/token"
+        "path": "/oauth/exchange"
       }
     },
     {

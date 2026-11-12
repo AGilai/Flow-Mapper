@@ -1,0 +1,143 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "paypal-adapter",
+    "kind": "service",
+    "team": "payments",
+    "repo": "github.com/acme/paypal-adapter",
+    "language": "typescript",
+    "description": "Talks to PayPal for safer-auth (#111 demo: its calls land in a Squeeze fold together with PayPal)"
+  },
+  "version": 1,
+  "commit": "a111c0d",
+  "harvestedAt": "2026-11-12T08:00:00Z",
+  "functions": [
+    {
+      "id": "Adapter.exchange",
+      "name": "Adapter.exchange",
+      "file": "src/paypal.ts",
+      "line": 436,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "Adapter.sign",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 421
+          }
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "ex.token",
+          "operation": "POST",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 424
+          }
+        },
+        {
+          "seq": 3,
+          "type": "egress",
+          "target": "ex.profile",
+          "operation": "GET",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 427
+          }
+        },
+        {
+          "seq": 4,
+          "type": "call",
+          "target": "Adapter.sign",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 430
+          }
+        },
+        {
+          "seq": 5,
+          "type": "egress",
+          "target": "ex.token2",
+          "operation": "POST",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 433
+          }
+        }
+      ]
+    },
+    {
+      "id": "Adapter.sign",
+      "name": "Adapter.sign",
+      "file": "src/paypal.ts",
+      "line": 442,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "Util.trim",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 439
+          }
+        }
+      ]
+    },
+    {
+      "id": "Util.trim",
+      "name": "Util.trim",
+      "file": "src/paypal.ts",
+      "line": 445,
+      "steps": []
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.exchange",
+      "bindKey": "http:POST paypal-adapter/oauth/exchange",
+      "transport": "http",
+      "handler": "Adapter.exchange",
+      "details": {
+        "method": "POST",
+        "path": "/oauth/exchange"
+      }
+    }
+  ],
+  "egress": [
+    {
+      "id": "ex.token",
+      "bindKey": "http:POST ext-paypal/ap/v1/oauth2/token",
+      "transport": "http",
+      "mode": "sync",
+      "details": {
+        "method": "POST",
+        "path": "/ap/v1/oauth2/token"
+      }
+    },
+    {
+      "id": "ex.token2",
+      "bindKey": "http:POST ext-paypal/ap/v1/oauth2/token",
+      "transport": "http",
+      "mode": "sync",
+      "details": {
+        "method": "POST",
+        "path": "/ap/v1/oauth2/token"
+      }
+    },
+    {
+      "id": "ex.profile",
+      "bindKey": "http:GET ext-paypal/ap/v1/identity/profile",
+      "transport": "http",
+      "mode": "sync",
+      "details": {
+        "method": "GET",
+        "path": "/ap/v1/identity/profile"
+      }
+    }
+  ],
+  "resources": []
+}
