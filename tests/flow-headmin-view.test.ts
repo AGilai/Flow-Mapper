@@ -16,14 +16,20 @@ test('the View popover sits under its button, at most 560px wide, always inside 
 
 test('wiring: minimized hides the page head, toolbar and Harvested line; the popover moves the real nodes and gives them back; the env chip is nowrap', () => {
   const css = src('css/flow-headmin.css');
-  assert.match(css, /body\.head-min \.main:has\(\.flows\) > \.page-head, body\.head-min \.flows-main > \.seq-toolbar, body\.head-min \.flows-main > \.pen-hint \{ display: none; \}/);
+  assert.match(css, /body\.head-min \.main:has\(\.flows \.tab-slot\) > \.page-head, body\.head-min \.flows-main:has\(\.tab-slot\) > \.seq-toolbar, body\.head-min \.flows-main:has\(\.tab-slot\) > \.pen-hint \{ display: none; \}/);
   const hm = src('js/views/flow-headmin.js');
   assert.match(hm, /classList\.toggle\('head-min', on\)/); assert.match(hm, /if \(!on\) closeViewPop\(\)/); assert.match(hm, /viewButton\(\)/);
   const pop = src('js/views/flow-headmin-pop.js');
   assert.match(pop, /'aria-haspopup'/); assert.match(pop, /'aria-expanded': 'false'/); assert.match(pop, /icon\('sliders'\)/);
   assert.match(pop, /node\.replaceWith\(mark\)/); assert.match(pop, /p\.mark\.replaceWith\(p\.node\)/, 'put back on close');
-  assert.match(pop, /key === 'Escape'/); assert.match(pop, /pointerdown/); assert.match(pop, /open\?\.btn === btn\) closeViewPop\(\)/, 'a second press closes');
+  assert.match(pop, /key === 'Escape'/); assert.match(pop, /pointerdown/); assert.match(pop, /if \(open\) closeViewPop\(\); else openViewPop/, 'a second press closes');
   assert.doesNotMatch(pop, /cloneNode/, 'moved, never copied');
   assert.match(src('css/env-color.css'), /\.env-chip \{[^}]*white-space: nowrap/);
   assert.doesNotMatch(src('css/layout.css'), /\.rail-c \.env-chip/, 'the rail rules reach the sidebar button only, not the page chip');
+});
+
+test('QA fixes: the popover survives a re-keyed tab, Maximize hides the View button, a cached About text does not break a re-made tab', () => {
+  assert.match(src('js/views/flow-headmin.js'), /queueMicrotask\(\(\) => \{ if \(!document\.querySelector\('\.flows \.tab-slot'\)\) closeViewPop\(\)/);
+  assert.match(src('css/flow-headmin.css'), /body\.is-max \.hs-view \{ display: none; \}/);
+  assert.match(src('js/views/flow-head.js'), /built = true; paint\(\);/);
 });

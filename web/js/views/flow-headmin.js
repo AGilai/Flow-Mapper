@@ -56,6 +56,6 @@ export function createHeadMin({ host, title, sub = null, onWhy }) {
       incSlot.append(n > 0 ? h('button.inc-badge.sm', { type: 'button', title: headTip(n, source, service), 'aria-label': badgeLabel(n, { button: true }), on: { click: (e) => { e.preventDefault(); onWhy?.(); } } }, icon('warn'), String(n))
         : h('span.inc-badge.sm', { title: 'Incomplete flow. The harvester reports it as incomplete but not where.', 'aria-label': badgeLabel(0) }, icon('warn'), '!'));
     },
-    dispose() { unwatch?.(); tabs.delete(self); if (!tabs.size) { removeEventListener('keydown', onKey); closeViewPop(); } },
+    dispose() { unwatch?.(); tabs.delete(self); if (!tabs.size) { removeEventListener('keydown', onKey); queueMicrotask(() => { if (!document.querySelector('.flows .tab-slot')) closeViewPop(); }); } }, // a re-keyed tab (Full/Inside) makes its new slot at once: the popover stays
   };
 }
