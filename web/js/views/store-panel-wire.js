@@ -42,7 +42,7 @@ export function createStorePanel({ body, host, trace, walk, label, inside, isAct
     const m = model(t);
     if (!m) return false;
     const services = trace().messages.filter((x) => x.kind === 'resource' && storeParts(x).group === t.group).map((x) => x.service).filter(Boolean);
-    const v = storePanelView(m, { env: host.env, flowLabel: label(), current: () => cur, onStep: jump, registry: m.kind === 'redis' ? loadRegistry(host.env, m.store, services) : Promise.resolve(null) });
+    const v = storePanelView(m, { env: host.env, flowLabel: label(), trace: trace(), current: () => cur, onStep: jump, registry: m.kind === 'redis' ? loadRegistry(host.env, m.store, services) : Promise.resolve(null) });
     v.steps = m.cards.flatMap((c) => c.steps);
     active = t; view = v;
     if (!quiet) {

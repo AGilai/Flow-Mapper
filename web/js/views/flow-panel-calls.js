@@ -36,6 +36,7 @@ export function callsCard(m, trace, { n = null, expand = null } = {}) {
         h('div.dc-h', h('b.mono', c.label), c.keys?.length > 1 ? h('span.muted.small', `${c.keys.length} keys`) : key ? h('span.mono.dc-key', key) : h('span.muted.small', why ? `key not reported (${why})` : 'key not reported')),
         multi ? keyList(c.keys, false, step) : c.keyVariants?.length ? keyList([{ keyTemplate: key, keyVariants: c.keyVariants }], true) : null,
         meta.length ? h('div.dc-m.small.muted', ...meta.flatMap((x, k) => (k ? [' · ', x] : [x]))) : null,
+        c.blocked || c.unknown?.length ? h('div.dc-g.small', { 'data-qa': 'call-flag' }, h('span.muted', 'incomplete: '), c.blocked?.plain ?? c.blocked?.reason ?? reasonText(c) ?? 'a detail is missing') : null,
         c.onlyWhen?.guard ? h('div.dc-g.small', h('span.muted', 'only when '), c.onlyWhen.guard) : null,
         loc ? h('div.dc-l.small', url ? h('a.ep-link-inline', { href: url, target: '_blank', rel: 'noopener noreferrer', title: url }, h('span.key', loc), ' ', icon('external')) : h('span.key', loc)) : null));
   });

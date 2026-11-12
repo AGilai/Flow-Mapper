@@ -15,43 +15,1568 @@
   "harvestedAt": "2026-10-25T08:00:00Z",
   "functions": [
     {
-      "id": "AuthHandler.authenticate", "name": "AuthHandler.authenticate", "file": "src/auth.handler.ts", "line": 12,
+      "id": "AuthHandler.authenticate",
+      "name": "AuthHandler.authenticate",
+      "file": "src/auth.handler.ts",
+      "line": 12,
       "steps": [
-        { "seq": 1, "type": "call", "target": "AuthService.isAuthenticated", "origin": "frontier" },
-        { "seq": 2, "type": "call", "target": "AuthHandler.sendResponse", "origin": "frontier" }
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "AuthService.isAuthenticated",
+          "origin": "frontier"
+        },
+        {
+          "seq": 2,
+          "type": "call",
+          "target": "AuthHandler.sendResponse",
+          "origin": "frontier"
+        }
       ]
     },
     {
-      "id": "AuthService.isAuthenticated", "name": "AuthService.isAuthenticated", "file": "src/auth.service.ts", "line": 8,
+      "id": "AuthService.isAuthenticated",
+      "name": "AuthService.isAuthenticated",
+      "file": "src/auth.service.ts",
+      "line": 8,
       "steps": [
-        { "seq": 1, "type": "call", "note": "this.checkSecretIsValid", "origin": "frontier", "source": { "file": "src/auth.service.ts", "line": 21 }, "unresolved": [{ "what": "target", "reason": "no-receiver-type", "detail": "this.checkSecretIsValid(secret)", "gap": true, "plain": "receiver type unknown" }] },
-        { "seq": 2, "type": "call", "target": "UnauthorizedException.constructor", "origin": "frontier" },
-        { "seq": 3, "type": "call", "note": "mw.extractOrgAuthData", "origin": "frontier", "source": { "file": "src/auth.service.ts", "line": 34 }, "unresolved": [{ "what": "target", "reason": "class-not-in-repo", "detail": "mw.extractOrgAuthData(req)", "gap": true, "plain": "class not in this repository" }] }
+        {
+          "seq": 1,
+          "type": "call",
+          "note": "this.checkSecretIsValid",
+          "origin": "frontier",
+          "source": {
+            "file": "src/auth.service.ts",
+            "line": 21
+          },
+          "unresolved": [
+            {
+              "what": "target",
+              "reason": "no-receiver-type",
+              "detail": "this.checkSecretIsValid(secret)",
+              "gap": true,
+              "plain": "receiver type unknown"
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "type": "call",
+          "target": "UnauthorizedException.constructor",
+          "origin": "frontier"
+        },
+        {
+          "seq": 3,
+          "type": "call",
+          "note": "mw.extractOrgAuthData",
+          "origin": "frontier",
+          "source": {
+            "file": "src/auth.service.ts",
+            "line": 34
+          },
+          "unresolved": [
+            {
+              "what": "target",
+              "reason": "class-not-in-repo",
+              "detail": "mw.extractOrgAuthData(req)",
+              "gap": true,
+              "plain": "class not in this repository"
+            }
+          ]
+        }
       ]
     },
-    { "id": "UnauthorizedException.constructor", "name": "UnauthorizedException.constructor", "file": "src/errors.ts", "line": 3, "steps": [] },
     {
-      "id": "AuthHandler.sendResponse", "name": "AuthHandler.sendResponse", "file": "src/auth.handler.ts", "line": 40,
-      "steps": [{ "seq": 1, "type": "call", "target": "AuthHandler.extractErrorDetails", "origin": "frontier" }]
+      "id": "UnauthorizedException.constructor",
+      "name": "UnauthorizedException.constructor",
+      "file": "src/errors.ts",
+      "line": 3,
+      "steps": []
     },
-    { "id": "AuthHandler.extractErrorDetails", "name": "AuthHandler.extractErrorDetails", "file": "src/auth.handler.ts", "line": 60, "steps": [] }
+    {
+      "id": "AuthHandler.sendResponse",
+      "name": "AuthHandler.sendResponse",
+      "file": "src/auth.handler.ts",
+      "line": 40,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "AuthHandler.extractErrorDetails",
+          "origin": "frontier"
+        }
+      ]
+    },
+    {
+      "id": "AuthHandler.extractErrorDetails",
+      "name": "AuthHandler.extractErrorDetails",
+      "file": "src/auth.handler.ts",
+      "line": 60,
+      "steps": []
+    },
+    {
+      "id": "PaypalAuth.handle",
+      "name": "PaypalAuth.handle",
+      "file": "src/paypal.ts",
+      "line": 52,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "PaypalAuth.checkInput",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 13
+          }
+        },
+        {
+          "seq": 2,
+          "type": "call",
+          "target": "UserLoader.load",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 16
+          }
+        },
+        {
+          "seq": 3,
+          "type": "call",
+          "target": "GroupLoader.load",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 19
+          }
+        },
+        {
+          "seq": 4,
+          "type": "call",
+          "target": "SessionCache.fill",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 22
+          }
+        },
+        {
+          "seq": 5,
+          "type": "egress",
+          "target": "ex.lookup",
+          "operation": "GET",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 25
+          }
+        },
+        {
+          "seq": 6,
+          "type": "call",
+          "target": "UserLoader.refresh",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 28
+          }
+        },
+        {
+          "seq": 7,
+          "type": "call",
+          "target": "GroupLoader.refreshAll",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 31
+          }
+        },
+        {
+          "seq": 8,
+          "type": "egress",
+          "target": "ex.token",
+          "operation": "POST",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 34
+          }
+        },
+        {
+          "seq": 9,
+          "type": "egress",
+          "target": "ex.profile",
+          "operation": "GET",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 37
+          }
+        },
+        {
+          "seq": 10,
+          "type": "call",
+          "target": "SessionCache.touch",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 40
+          }
+        },
+        {
+          "seq": 11,
+          "type": "egress",
+          "target": "ex.token2",
+          "operation": "POST",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 43
+          }
+        },
+        {
+          "seq": 12,
+          "type": "call",
+          "target": "PaypalAuth.finish",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 46
+          }
+        },
+        {
+          "seq": 13,
+          "type": "egress",
+          "target": "ex.callback",
+          "operation": "POST",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 49
+          }
+        }
+      ]
+    },
+    {
+      "id": "PaypalAuth.checkInput",
+      "name": "PaypalAuth.checkInput",
+      "file": "src/paypal.ts",
+      "line": 67,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "Validator.schema",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 55
+          }
+        },
+        {
+          "seq": 2,
+          "type": "call",
+          "target": "Validator.paypalId",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 58
+          }
+        },
+        {
+          "seq": 3,
+          "type": "call",
+          "target": "Validator.token",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 61
+          }
+        },
+        {
+          "seq": 4,
+          "type": "call",
+          "target": "Log.debug",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 64
+          }
+        }
+      ]
+    },
+    {
+      "id": "UserLoader.load",
+      "name": "UserLoader.load",
+      "file": "src/paypal.ts",
+      "line": 97,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "cache",
+          "operation": "setex",
+          "access": "write",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 70
+          },
+          "details": {
+            "keyTemplate": "paypal:session:{token}",
+            "dbIndex": 1
+          },
+          "unresolved": [
+            {
+              "what": "detail",
+              "detail": "details.keyTemplate",
+              "reason": "computed key",
+              "gap": true,
+              "plain": "the key is built at runtime"
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "type": "call",
+          "target": "UserLoader.normalize",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 73
+          }
+        },
+        {
+          "seq": 3,
+          "type": "resource",
+          "target": "users",
+          "operation": "findOne",
+          "access": "read",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 76
+          }
+        },
+        {
+          "seq": 4,
+          "type": "resource",
+          "target": "users",
+          "operation": "findById",
+          "access": "read",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 79
+          },
+          "alternatives": [
+            {
+              "group_id": "c0ef4285-5021-52e2-afd9-ed859164df0c",
+              "name": "when raw -> keep the raw user, else -> cache it",
+              "name_source": "template",
+              "llm_name": null,
+              "llm_provenance": null,
+              "depends_on": "data",
+              "guard": {
+                "text": "raw",
+                "file": "src/paypal.ts",
+                "line": 343
+              },
+              "arms": [
+                {
+                  "arm": "then",
+                  "label": "keep raw",
+                  "guard_text": "raw",
+                  "step_ids": [
+                    "safer-auth:UserLoader.load#4"
+                  ]
+                },
+                {
+                  "arm": "else",
+                  "label": "cache it",
+                  "step_ids": [
+                    "safer-auth:UserLoader.load#6"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 5,
+          "type": "call",
+          "target": "Log.debug",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 82
+          }
+        },
+        {
+          "seq": 6,
+          "type": "resource",
+          "target": "cache",
+          "operation": "set",
+          "access": "write",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 88
+          },
+          "details": {
+            "keyTemplate": "paypal:user:{userId}",
+            "dbIndex": 1,
+            "only_when": {
+              "guard": "!raw",
+              "source": {
+                "file": "src/paypal.ts",
+                "line": 85
+              }
+            }
+          },
+          "unresolved": [
+            {
+              "what": "detail",
+              "detail": "details.keyTemplate",
+              "reason": "computed key",
+              "gap": true,
+              "plain": "the key is built at runtime"
+            }
+          ],
+          "alternatives": [
+            {
+              "group_id": "c0ef4285-5021-52e2-afd9-ed859164df0c",
+              "name": "when raw -> keep the raw user, else -> cache it",
+              "name_source": "template",
+              "llm_name": null,
+              "llm_provenance": null,
+              "depends_on": "data",
+              "guard": {
+                "text": "raw",
+                "file": "src/paypal.ts",
+                "line": 343
+              },
+              "arms": [
+                {
+                  "arm": "then",
+                  "label": "keep raw",
+                  "guard_text": "raw",
+                  "step_ids": [
+                    "safer-auth:UserLoader.load#4"
+                  ]
+                },
+                {
+                  "arm": "else",
+                  "label": "cache it",
+                  "step_ids": [
+                    "safer-auth:UserLoader.load#6"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 7,
+          "type": "call",
+          "target": "UserLoader.normalize",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 91
+          }
+        },
+        {
+          "seq": 8,
+          "type": "resource",
+          "target": "cache",
+          "operation": "setex",
+          "access": "write",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 94
+          },
+          "details": {
+            "keyTemplate": "{unresolved:computed}",
+            "dbIndex": 1
+          },
+          "unresolved": [
+            {
+              "what": "detail",
+              "detail": "details.keyTemplate",
+              "reason": "computed key",
+              "gap": true,
+              "plain": "the key is built at runtime"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "GroupLoader.load",
+      "name": "GroupLoader.load",
+      "file": "src/paypal.ts",
+      "line": 121,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "GroupLoader.scope",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 100
+          },
+          "alternatives": [
+            {
+              "group_id": "582c21e4-f73a-5a39-b765-d2cf0340fe84",
+              "name": "when the user is raw -> skip groups, else -> load them",
+              "name_source": "template",
+              "llm_name": null,
+              "llm_provenance": null,
+              "depends_on": "data",
+              "guard": {
+                "text": "userRaw",
+                "file": "src/paypal.ts",
+                "line": 346
+              },
+              "arms": [
+                {
+                  "arm": "then",
+                  "label": "skip groups",
+                  "guard_text": "userRaw",
+                  "step_ids": [
+                    "safer-auth:GroupLoader.load#1"
+                  ]
+                },
+                {
+                  "arm": "else",
+                  "label": "load groups",
+                  "step_ids": [
+                    "safer-auth:GroupLoader.load#2",
+                    "safer-auth:GroupLoader.load#3"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "type": "resource",
+          "target": "groups",
+          "operation": "find",
+          "access": "read",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 106
+          },
+          "details": {
+            "only_when": {
+              "guard": "not (userRaw)",
+              "source": {
+                "file": "src/paypal.ts",
+                "line": 103
+              }
+            }
+          },
+          "alternatives": [
+            {
+              "group_id": "582c21e4-f73a-5a39-b765-d2cf0340fe84",
+              "name": "when the user is raw -> skip groups, else -> load them",
+              "name_source": "template",
+              "llm_name": null,
+              "llm_provenance": null,
+              "depends_on": "data",
+              "guard": {
+                "text": "userRaw",
+                "file": "src/paypal.ts",
+                "line": 346
+              },
+              "arms": [
+                {
+                  "arm": "then",
+                  "label": "skip groups",
+                  "guard_text": "userRaw",
+                  "step_ids": [
+                    "safer-auth:GroupLoader.load#1"
+                  ]
+                },
+                {
+                  "arm": "else",
+                  "label": "load groups",
+                  "step_ids": [
+                    "safer-auth:GroupLoader.load#2",
+                    "safer-auth:GroupLoader.load#3"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 3,
+          "type": "resource",
+          "target": "cache",
+          "operation": "get",
+          "access": "read",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 109
+          },
+          "details": {
+            "keyTemplate": "paypal:group:{groupId}",
+            "dbIndex": 1
+          },
+          "alternatives": [
+            {
+              "group_id": "582c21e4-f73a-5a39-b765-d2cf0340fe84",
+              "name": "when the user is raw -> skip groups, else -> load them",
+              "name_source": "template",
+              "llm_name": null,
+              "llm_provenance": null,
+              "depends_on": "data",
+              "guard": {
+                "text": "userRaw",
+                "file": "src/paypal.ts",
+                "line": 346
+              },
+              "arms": [
+                {
+                  "arm": "then",
+                  "label": "skip groups",
+                  "guard_text": "userRaw",
+                  "step_ids": [
+                    "safer-auth:GroupLoader.load#1"
+                  ]
+                },
+                {
+                  "arm": "else",
+                  "label": "load groups",
+                  "step_ids": [
+                    "safer-auth:GroupLoader.load#2",
+                    "safer-auth:GroupLoader.load#3"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 4,
+          "type": "call",
+          "target": "Log.debug",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 112
+          }
+        },
+        {
+          "seq": 5,
+          "type": "resource",
+          "target": "groups",
+          "operation": "findOne",
+          "access": "read",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 115
+          }
+        },
+        {
+          "seq": 6,
+          "type": "resource",
+          "target": "cache",
+          "operation": "setex",
+          "access": "write",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 118
+          },
+          "details": {
+            "keyTemplate": "paypal:group:{groupId}",
+            "dbIndex": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "SessionCache.fill",
+      "name": "SessionCache.fill",
+      "file": "src/paypal.ts",
+      "line": 142,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "SessionCache.key",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 124
+          }
+        },
+        {
+          "seq": 2,
+          "type": "resource",
+          "target": "cache",
+          "operation": "get",
+          "access": "read",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 127
+          },
+          "details": {
+            "keyTemplate": "paypal:session:{token}",
+            "dbIndex": 1
+          }
+        },
+        {
+          "seq": 3,
+          "type": "call",
+          "target": "SessionCache.ttl",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 130
+          }
+        },
+        {
+          "seq": 4,
+          "type": "resource",
+          "target": "cache",
+          "operation": "setex",
+          "access": "write",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 133
+          },
+          "details": {
+            "keyTemplate": "paypal:session:{token}",
+            "dbIndex": 1
+          }
+        },
+        {
+          "seq": 5,
+          "type": "resource",
+          "target": "users",
+          "operation": "updateOne",
+          "access": "write",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 136
+          }
+        },
+        {
+          "seq": 6,
+          "type": "call",
+          "target": "Log.debug",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 139
+          }
+        }
+      ]
+    },
+    {
+      "id": "UserLoader.refresh",
+      "name": "UserLoader.refresh",
+      "file": "src/paypal.ts",
+      "line": 163,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "UserLoader.normalize",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 145
+          }
+        },
+        {
+          "seq": 2,
+          "type": "resource",
+          "target": "users",
+          "operation": "findOne",
+          "access": "read",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 148
+          },
+          "alternatives": [
+            {
+              "group_id": "96382fec-0083-5870-be76-d671ad2f2095",
+              "name": "when cached -> reuse it, else -> reload",
+              "name_source": "template",
+              "llm_name": null,
+              "llm_provenance": null,
+              "depends_on": "data",
+              "guard": {
+                "text": "cached",
+                "file": "src/paypal.ts",
+                "line": 349
+              },
+              "arms": [
+                {
+                  "arm": "then",
+                  "label": "reuse",
+                  "guard_text": "cached",
+                  "step_ids": [
+                    "safer-auth:UserLoader.refresh#3"
+                  ]
+                },
+                {
+                  "arm": "else",
+                  "label": "reload",
+                  "step_ids": [
+                    "safer-auth:UserLoader.refresh#2"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 3,
+          "type": "resource",
+          "target": "cache",
+          "operation": "get",
+          "access": "read",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 151
+          },
+          "details": {
+            "keyTemplate": "paypal:user:{userId}",
+            "dbIndex": 1
+          },
+          "alternatives": [
+            {
+              "group_id": "96382fec-0083-5870-be76-d671ad2f2095",
+              "name": "when cached -> reuse it, else -> reload",
+              "name_source": "template",
+              "llm_name": null,
+              "llm_provenance": null,
+              "depends_on": "data",
+              "guard": {
+                "text": "cached",
+                "file": "src/paypal.ts",
+                "line": 349
+              },
+              "arms": [
+                {
+                  "arm": "then",
+                  "label": "reuse",
+                  "guard_text": "cached",
+                  "step_ids": [
+                    "safer-auth:UserLoader.refresh#3"
+                  ]
+                },
+                {
+                  "arm": "else",
+                  "label": "reload",
+                  "step_ids": [
+                    "safer-auth:UserLoader.refresh#2"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 4,
+          "type": "call",
+          "target": "Log.debug",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 154
+          }
+        },
+        {
+          "seq": 5,
+          "type": "resource",
+          "target": "cache",
+          "operation": "set",
+          "access": "write",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 157
+          },
+          "details": {
+            "keyTemplate": "paypal:user:{userId}",
+            "dbIndex": 1
+          }
+        },
+        {
+          "seq": 6,
+          "type": "resource",
+          "target": "users",
+          "operation": "findById",
+          "access": "read",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 160
+          }
+        }
+      ]
+    },
+    {
+      "id": "GroupLoader.refreshAll",
+      "name": "GroupLoader.refreshAll",
+      "file": "src/paypal.ts",
+      "line": 187,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "GroupLoader.scope",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 166
+          }
+        },
+        {
+          "seq": 2,
+          "type": "resource",
+          "target": "groups",
+          "operation": "find",
+          "access": "read",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 169
+          }
+        },
+        {
+          "seq": 3,
+          "type": "resource",
+          "target": "cache",
+          "operation": "setex",
+          "access": "write",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 172
+          },
+          "details": {
+            "keyTemplate": "paypal:groups:{userId}",
+            "dbIndex": 1
+          }
+        },
+        {
+          "seq": 4,
+          "type": "call",
+          "target": "Log.debug",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 175
+          }
+        },
+        {
+          "seq": 5,
+          "type": "resource",
+          "target": "groups",
+          "operation": "findOne",
+          "access": "read",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 178
+          }
+        },
+        {
+          "seq": 6,
+          "type": "resource",
+          "target": "cache",
+          "operation": "get",
+          "access": "read",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 181
+          },
+          "details": {
+            "keyTemplate": "paypal:groups:{userId}",
+            "dbIndex": 1
+          }
+        },
+        {
+          "seq": 7,
+          "type": "resource",
+          "target": "orgs",
+          "operation": "findOne",
+          "access": "read",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 184
+          }
+        }
+      ]
+    },
+    {
+      "id": "SessionCache.touch",
+      "name": "SessionCache.touch",
+      "file": "src/paypal.ts",
+      "line": 208,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "SessionCache.key",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 190
+          }
+        },
+        {
+          "seq": 2,
+          "type": "resource",
+          "target": "cache",
+          "operation": "setex",
+          "access": "write",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 193
+          },
+          "details": {
+            "keyTemplate": "paypal:session:{token}",
+            "dbIndex": 1
+          }
+        },
+        {
+          "seq": 3,
+          "type": "call",
+          "target": "Log.debug",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 196
+          }
+        },
+        {
+          "seq": 4,
+          "type": "resource",
+          "target": "cache",
+          "operation": "get",
+          "access": "read",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 199
+          },
+          "details": {
+            "keyTemplate": "paypal:session:{token}",
+            "dbIndex": 1
+          }
+        },
+        {
+          "seq": 5,
+          "type": "resource",
+          "target": "orgs",
+          "operation": "find",
+          "access": "read",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 202
+          }
+        },
+        {
+          "seq": 6,
+          "type": "resource",
+          "target": "cache",
+          "operation": "setex",
+          "access": "write",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 205
+          },
+          "details": {
+            "keyTemplate": "paypal:session:{token}",
+            "dbIndex": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "PaypalAuth.finish",
+      "name": "PaypalAuth.finish",
+      "file": "src/paypal.ts",
+      "line": 226,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "SessionCache.key",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 211
+          }
+        },
+        {
+          "seq": 2,
+          "type": "resource",
+          "target": "cache",
+          "operation": "set",
+          "access": "write",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 214
+          },
+          "details": {
+            "keyTemplate": "paypal:done:{userId}",
+            "dbIndex": 1
+          }
+        },
+        {
+          "seq": 3,
+          "type": "call",
+          "target": "Log.debug",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 217
+          }
+        },
+        {
+          "seq": 4,
+          "type": "resource",
+          "target": "users",
+          "operation": "updateOne",
+          "access": "write",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 220
+          }
+        },
+        {
+          "seq": 5,
+          "type": "call",
+          "target": "Metrics.count",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 223
+          }
+        }
+      ]
+    },
+    {
+      "id": "Validator.schema",
+      "name": "Validator.schema",
+      "file": "src/paypal.ts",
+      "line": 238,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "Util.trim",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 229
+          }
+        },
+        {
+          "seq": 2,
+          "type": "call",
+          "target": "Util.assert",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 232
+          }
+        },
+        {
+          "seq": 3,
+          "type": "call",
+          "target": "Util.format",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 235
+          }
+        }
+      ]
+    },
+    {
+      "id": "Validator.paypalId",
+      "name": "Validator.paypalId",
+      "file": "src/paypal.ts",
+      "line": 250,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "Util.trim",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 241
+          }
+        },
+        {
+          "seq": 2,
+          "type": "call",
+          "target": "Util.assert",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 244
+          }
+        },
+        {
+          "seq": 3,
+          "type": "call",
+          "target": "Util.format",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 247
+          }
+        }
+      ]
+    },
+    {
+      "id": "Validator.token",
+      "name": "Validator.token",
+      "file": "src/paypal.ts",
+      "line": 262,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "Util.trim",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 253
+          }
+        },
+        {
+          "seq": 2,
+          "type": "call",
+          "target": "Util.assert",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 256
+          }
+        },
+        {
+          "seq": 3,
+          "type": "call",
+          "target": "Util.format",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 259
+          }
+        }
+      ]
+    },
+    {
+      "id": "Log.debug",
+      "name": "Log.debug",
+      "file": "src/paypal.ts",
+      "line": 271,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "Util.format",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 265
+          }
+        },
+        {
+          "seq": 2,
+          "type": "call",
+          "target": "Util.trim",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 268
+          }
+        }
+      ]
+    },
+    {
+      "id": "UserLoader.normalize",
+      "name": "UserLoader.normalize",
+      "file": "src/paypal.ts",
+      "line": 283,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "Util.trim",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 274
+          }
+        },
+        {
+          "seq": 2,
+          "type": "call",
+          "target": "Util.assert",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 277
+          }
+        },
+        {
+          "seq": 3,
+          "type": "call",
+          "target": "Util.format",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 280
+          }
+        }
+      ]
+    },
+    {
+      "id": "GroupLoader.scope",
+      "name": "GroupLoader.scope",
+      "file": "src/paypal.ts",
+      "line": 295,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "Util.trim",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 286
+          }
+        },
+        {
+          "seq": 2,
+          "type": "call",
+          "target": "Util.assert",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 289
+          }
+        },
+        {
+          "seq": 3,
+          "type": "call",
+          "target": "Util.format",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 292
+          }
+        }
+      ]
+    },
+    {
+      "id": "SessionCache.key",
+      "name": "SessionCache.key",
+      "file": "src/paypal.ts",
+      "line": 307,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "Util.trim",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 298
+          }
+        },
+        {
+          "seq": 2,
+          "type": "call",
+          "target": "Util.assert",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 301
+          }
+        },
+        {
+          "seq": 3,
+          "type": "call",
+          "target": "Util.format",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 304
+          }
+        }
+      ]
+    },
+    {
+      "id": "SessionCache.ttl",
+      "name": "SessionCache.ttl",
+      "file": "src/paypal.ts",
+      "line": 319,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "Util.trim",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 310
+          }
+        },
+        {
+          "seq": 2,
+          "type": "call",
+          "target": "Util.assert",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 313
+          }
+        },
+        {
+          "seq": 3,
+          "type": "call",
+          "target": "Util.format",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 316
+          }
+        }
+      ]
+    },
+    {
+      "id": "Metrics.count",
+      "name": "Metrics.count",
+      "file": "src/paypal.ts",
+      "line": 331,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "Util.trim",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 322
+          }
+        },
+        {
+          "seq": 2,
+          "type": "call",
+          "target": "Util.assert",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 325
+          }
+        },
+        {
+          "seq": 3,
+          "type": "call",
+          "target": "Util.format",
+          "source": {
+            "file": "src/paypal.ts",
+            "line": 328
+          }
+        }
+      ]
+    },
+    {
+      "id": "Util.trim",
+      "name": "Util.trim",
+      "file": "src/paypal.ts",
+      "line": 334,
+      "steps": []
+    },
+    {
+      "id": "Util.assert",
+      "name": "Util.assert",
+      "file": "src/paypal.ts",
+      "line": 337,
+      "steps": []
+    },
+    {
+      "id": "Util.format",
+      "name": "Util.format",
+      "file": "src/paypal.ts",
+      "line": 340,
+      "steps": []
+    }
   ],
   "ingress": [
     {
-      "id": "in.authenticate", "bindKey": "http:POST safer-auth/api/v1/api-internal/authenticate", "transport": "http",
-      "handler": "AuthHandler.authenticate", "entryPoint": true,
+      "id": "in.authenticate",
+      "bindKey": "http:POST safer-auth/api/v1/api-internal/authenticate",
+      "transport": "http",
+      "handler": "AuthHandler.authenticate",
+      "entryPoint": true,
       "details": {
-        "method": "POST", "path": "/api/v1/api-internal/authenticate",
+        "method": "POST",
+        "path": "/api/v1/api-internal/authenticate",
         "coverage": {
-          "status": "incomplete", "blocked": 2, "more": 0,
+          "status": "incomplete",
+          "blocked": 2,
+          "more": 0,
           "sites": [
-            { "fn": "AuthService.isAuthenticated", "seq": 1, "file": "src/auth.service.ts", "line": 21, "call": "this.checkSecretIsValid(secret)", "reason": "no-receiver-type", "plain": "receiver type unknown" },
-            { "fn": "AuthService.isAuthenticated", "seq": 3, "file": "src/auth.service.ts", "line": 34, "call": "mw.extractOrgAuthData(req)", "reason": "class-not-in-repo", "plain": "class not in this repository" }
+            {
+              "fn": "AuthService.isAuthenticated",
+              "seq": 1,
+              "file": "src/auth.service.ts",
+              "line": 21,
+              "call": "this.checkSecretIsValid(secret)",
+              "reason": "no-receiver-type",
+              "plain": "receiver type unknown"
+            },
+            {
+              "fn": "AuthService.isAuthenticated",
+              "seq": 3,
+              "file": "src/auth.service.ts",
+              "line": 34,
+              "call": "mw.extractOrgAuthData(req)",
+              "reason": "class-not-in-repo",
+              "plain": "class not in this repository"
+            }
           ]
         }
       }
+    },
+    {
+      "id": "in.paypalAuth",
+      "bindKey": "http:POST safer-auth/api/v1/paypal/authenticate",
+      "transport": "http",
+      "handler": "PaypalAuth.handle",
+      "entryPoint": false,
+      "details": {
+        "method": "POST",
+        "path": "/api/v1/paypal/authenticate"
+      }
     }
   ],
-  "egress": [],
-  "resources": []
+  "egress": [
+    {
+      "id": "ex.lookup",
+      "bindKey": "http:GET safer-lookup/api/v1/lookup",
+      "transport": "http",
+      "mode": "sync",
+      "details": {
+        "method": "GET",
+        "path": "/api/v1/lookup"
+      }
+    },
+    {
+      "id": "ex.token",
+      "bindKey": "http:POST paypal-adapter/oauth/exchange",
+      "transport": "http",
+      "mode": "sync",
+      "details": {
+        "method": "POST",
+        "path": "/oauth/exchange"
+      }
+    },
+    {
+      "id": "ex.token2",
+      "bindKey": "http:POST ext-paypal/ap/v1/oauth2/token",
+      "transport": "http",
+      "mode": "sync",
+      "details": {
+        "method": "POST",
+        "path": "/ap/v1/oauth2/token"
+      }
+    },
+    {
+      "id": "ex.profile",
+      "bindKey": "http:GET ext-paypal/ap/v1/identity/profile",
+      "transport": "http",
+      "mode": "sync",
+      "details": {
+        "method": "GET",
+        "path": "/ap/v1/identity/profile"
+      }
+    },
+    {
+      "id": "ex.callback",
+      "bindKey": "http:POST billing-gateway/internal/paypal/verified",
+      "transport": "http",
+      "mode": "sync",
+      "details": {
+        "method": "POST",
+        "path": "/internal/paypal/verified"
+      }
+    }
+  ],
+  "resources": [
+    {
+      "id": "cache",
+      "kind": "redis",
+      "name": "p81-production",
+      "bindKey": "redis:p81-production"
+    },
+    {
+      "id": "users",
+      "kind": "mongodb",
+      "name": "p81-cluster._User",
+      "bindKey": "mongodb:p81-cluster/_User"
+    },
+    {
+      "id": "groups",
+      "kind": "mongodb",
+      "name": "p81-cluster.Group",
+      "bindKey": "mongodb:p81-cluster/Group"
+    },
+    {
+      "id": "orgs",
+      "kind": "mongodb",
+      "name": "p81-cluster.Org",
+      "bindKey": "mongodb:p81-cluster/Org"
+    }
+  ]
 }

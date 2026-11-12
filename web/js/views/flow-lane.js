@@ -27,7 +27,7 @@ export const svcOf = (id) => (id.startsWith('svc:') ? id.slice(4) : id.startsWit
 
 /** "http:POST orders-svc/orders" -> "POST /orders"; other transports show their event or label. */
 export function callLabel(m) {
-  if (isRpc(m)) return rpcCommand(m);
+  if (m.mergedCalls) return m.label; if (isRpc(m)) return rpcCommand(m); // #109: a merged call (Simple) is drawn as its "*3 POST /a, GET /b" text
   if (m.transport === 'undecided' && m.kind !== 'deliver' && !m.event) return m.operation ?? m.label.replace(/^.*?tbd:(?:[^/\s]*\/)?/, ''); // #76: a `tbd:<component>/<operation>` key is never drawn: the operation name, else the key's last part; the key stays in the tooltip and the panel
   if (m.kind === 'deliver') { const hd = m.target?.fn ?? m.label.match(/→\s*(.+)$/)?.[1] ?? ''; return m.event ? `${m.event} → ${hd}` : hd; }
   if (m.operation && m.kind === 'egress' && !m.event) return m.operation; // the call's own words; the key is in the panel and the title

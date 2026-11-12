@@ -5,6 +5,7 @@
 import { s } from '../dom.js';
 import { eventCols, foldedInside, groupOf } from './flow-squeeze.js';
 import { isStep } from './flow-steps.js';
+import { arrow } from './flow-draw-prims.js';
 
 const clip = (t, n) => (t.length > n ? `${t.slice(0, n - 1)}…` : t);
 const nameOf = (c) => c?.service ?? c?.label ?? '?';
@@ -28,7 +29,7 @@ export function foldRows(nodes, { events, idx, columns, groups, colX, ys }) {
     const e = events[r], y0 = ys[r];
     if (e.type === 'note' || e.type === 'decision') return node; // a note over folded lifelines spans the fold column (flow-draw-notes.js), it does not vanish
     const inside = foldedInside(eventCols(e, idx), groups);
-    if (inside >= 0) return inFold(e, r, y0, groups[inside]);
+    if (inside >= 0) return inFold(e, r, y0, groups[inside], idx);
     const to = e.type === 'unresolved' ? e.col : e.type === 'call' || e.type === 'hop' || e.type === 'store' ? e.to : null, gi = to ? groupOf(groups, idx.get(to)) : -1;
     if (gi < 0) return node;
     const g = groups[gi], left = colX.get(e.type === 'unresolved' ? (e.fromBar ?? e.bar).col : e.from) < g.x, x = left ? g.x : g.x + g.w, name = nameOf(to), room = Math.floor((g.w - 26) / 6.6);
@@ -42,9 +43,11 @@ export function foldRows(nodes, { events, idx, columns, groups, colX, ys }) {
   });
 }
 
-/** A row wholly inside a fold: nothing but a clickable label for a step (returns, bars, pills and stubs vanish with their lifeline). */
-function inFold(e, r, y0, g) {
-  const step = isStep(e), label = textOf(e);
+/** A row wholly inside a fold: a clickable label for a step, and for a call (both ends are in this fold, #111) a short arrow in the direction of the call; returns, bars, pills and stubs vanish with their lifeline. */
+function inFold(e, r, y0, g, idx) {
+  const step = isStep(e), label = textOf(e), call = e.type === 'call' || e.type === 'hop' || e.type === 'store', room = Math.floor((g.w - 44) / 6.6);
+  const dir = call && idx.get(e.to) < idx.get(e.from) ? -1 : 1, a = g.x + 38, z = g.x + g.w - 6;
   return s('g', { class: 'msg sq-in', 'data-e': r, tabindex: step ? 0 : null, role: step ? 'button' : null },
-    step ? [s('rect', { class: 'hit', x: g.x, y: y0 - 12, width: g.w, height: 24 }), Math.floor((g.w - 44) / 6.6) >= 3 ? s('text', { class: 'sq-to', x: g.x + 40, y: y0 + 4 }, clip(label, Math.floor((g.w - 44) / 6.6))) : null, s('title', {}, label)] : null);
+    step ? [s('rect', { class: 'hit', x: g.x, y: y0 - 12, width: g.w, height: 24 }), room >= 3 ? s('text', { class: 'sq-to', x: g.x + 40, y: y0 + (call ? -2 : 4) }, clip(label, room)) : null,
+      call && z - a > 12 ? s('g', { class: 'sq-arr' }, arrow(dir > 0 ? a : z, dir > 0 ? z : a, y0 + 8, { color: 'var(--muted)', bare: false })) : null, s('title', {}, label)] : null);
 }

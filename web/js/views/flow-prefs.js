@@ -9,6 +9,9 @@ export const bandSave = (on) => { try { localStorage.setItem('flow-mapper.bands'
 const DETAILS = ['simple', 'external', 'full'];
 export const detailStored = () => { try { const d = localStorage.getItem('flow-mapper.detail'); return DETAILS.includes(d) ? d : 'simple'; } catch { return 'simple'; } };
 export const detailSave = (d) => { try { localStorage.setItem('flow-mapper.detail', DETAILS.includes(d) ? d : 'simple'); } catch { /* storage unavailable */ } };
+// One arrow per target (#109, Simple): on by default, remembered per viewer. Off keeps the 0.44 rule (only calls to one store from one service merge).
+export const mergeStored = () => { try { return localStorage.getItem('flow-mapper.merge') !== '0'; } catch { return true; } };
+export const mergeSave = (on) => { try { localStorage.setItem('flow-mapper.merge', on ? '1' : '0'); } catch { /* storage unavailable */ } };
 export const sqSave = (on) => { try { localStorage.setItem('flow-mapper.squeeze', on ? '1' : '0'); } catch { /* storage unavailable */ } };
 
 /** 0.44.0 (#90), 0.47.0 (#97): Simple and External never draw frontier steps (Full does), so the toolbar's Frontier checkbox (a label) does nothing there: disabled, with the reason as its tooltip. */

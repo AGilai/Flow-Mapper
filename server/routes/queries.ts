@@ -75,7 +75,7 @@ export function registerQueries(r: Router, ctx: Ctx) {
     if (!service) throw badRequest('service is required (plus ingress or fn)');
     const scope = q.get('scope') === 'intra' ? 'intra' : 'full';
     let view; // 0.37.1 (#82): detail (default external), choose, open, dbOpen, group
-    try { view = viewParams({ detail: q.get('detail'), choose: q.get('choose'), open: q.get('open'), dbOpen: q.get('dbOpen'), group: q.get('group'), unfold: q.get('unfold') }); } catch (e) { throw badRequest((e as Error).message); }
+    try { view = viewParams({ detail: q.get('detail'), choose: q.get('choose'), open: q.get('open'), dbOpen: q.get('dbOpen'), group: q.get('group'), unfold: q.get('unfold'), merge: q.get('merge') }); } catch (e) { throw badRequest((e as Error).message); }
     const g = ctx.graphOf(req);
     const want = Math.min(int(q.get('maxMessages'), 500), 5000), simple = view.detail === 'simple' && scope === 'full'; // 0.44.0 (#90): Simple is cut after it has consolidated, so the canonical trace gets 4x the budget (at most 4000)
     const t = trace(g, { service, ingress: q.get('ingress') ?? undefined, fn: q.get('fn') ?? undefined, event: q.get('event') ?? undefined },

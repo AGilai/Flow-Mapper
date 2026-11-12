@@ -5,6 +5,11 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## 0.51.0 (2026-11-12)
+
+- Simple view, one arrow per target (#109, additive): view option `merge=1` on `GET /api/envs/:env/trace` (with `detail=simple`; off by default, so existing output is unchanged; the web UI sends it unless the viewer unticks "One arrow per target"). Within one activation of a caller, all its calls to one store instance are one arrow (`*N op1, op2`, `dbGroup.calls` lists every member, `dbGroup.flagged` counts members that are blocked or have unknown fields; a blocked member no longer stands alone), and calls into a target that opens nothing of its own are one arrow too (`*3 GET /a, POST /b`, `mergedCalls`, `occurrences`). The merged view carries `blockedAll` so the incomplete badge keeps its count.
+- UI: calls between two lifelines of one Squeeze fold column draw an arrow (#111); "Why incomplete" in the step and store panes is a collapsed section behind a hazard button in the pane header (#113).
+
 ## 0.50.4 (2026-11-12)
 
 - Flow tab (UI, #107 round 2, #110): the diagram box always fits the window, in the normal view and in Maximize: it is what is left under the header box (45% of the tab at most, it scrolls inside) and above the pane (28% of the window at most), and it owns both scrollbars, so the horizontal one is always in view and the component heads stay pinned while the steps scroll under them. Maximize is the same layout (the tab no longer scrolls). The Notes pane in Maximize still fills the window.
