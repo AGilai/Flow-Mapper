@@ -7,7 +7,7 @@
 .flow-top > .flowhead, .flow-top > .rel-sec { flex: 0 1 auto; min-height: 0; overflow-y: auto; }
 .flow-top > .stepwalk, .flow-top > :not(.flowhead):not(.rel-sec) { flex: none; }
 .flow-top:empty { display: none; }
-.flow-tab > .flow-body { min-height: 140px; } /* #107 round 2: a floor only. The diagram box takes what the header box (45vh at most) and the pane leave, never more, so its scrollbars are always inside the window */
+.flow-tab > .flow-body { min-height: clamp(140px, 40%, 260px); } /* #107 round 2: the diagram box takes what the header box (45% at most) and the pane leave, never more, so its scrollbars are always inside the window. Its floor is 40% of the tab (140px to 260px): below that the pane and the header box shrink first (they scroll inside), so the heads never leave the lanes with no room */
 
 /* both boxes are <details>: the summary is the control, the text box sits under it */
 .flowhead, details.stepdesc { padding: var(--s2) var(--s4); }

@@ -11,7 +11,7 @@ const js = (f: string) => readFileSync(new URL(`../web/js/views/${f}`, import.me
 
 test('the diagram box is a flex child with a small floor and no hard-coded height: the header box and the pane are capped, the box takes the rest', () => {
   const walk = css('flow-walk.css');
-  assert.match(walk, /\.flow-tab > \.flow-body \{ min-height: 140px; \}/);
+  assert.match(walk, /\.flow-tab > \.flow-body \{ min-height: clamp\(140px, 40%, 260px\); \}/);
   assert.doesNotMatch(walk, /\.flow-body \{ min-height: 260px/);
   assert.match(walk, /\.flow-top \{[^}]*max-height: max\(45%, 200px\)/);
   assert.match(css('flow-info.css'), /\.flow-top:has\(\.fab\) \{ max-height: max\(45%, 200px\); \}/);

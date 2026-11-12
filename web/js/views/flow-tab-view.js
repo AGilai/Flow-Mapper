@@ -219,10 +219,7 @@ export function createTabView(data, host) {
   if (comments) { pane = createPane({ panels: { notes, comments, actions }, diagram: body }); for (const [id, d] of Object.entries(counts)) pane.setCount(id, d); }
   const xnote = host.readOnly ? foreignNote(host.env, host.design, host.switchEnv) : null; // "Viewing <env>. Switch to it to edit."
   const el = h('div.flow-tab', maxBar, backBar, xnote, hm.strip, h('div.flow-top', flowBox ? null : h('div.scn-row', inc.el, ts.ui.el), flowBox?.el, ts.ui.extra, walk.el, partial.el), body, pane?.splitter, pane?.el); // the pane sits under the diagram (0.27.5); the border between them is a drag handle (0.34.0)
-  // maximized, the pane's tab row sticks under the title bar and the step bar, whatever height the step bar has (its description wraps): --max-stick is their height
-  const stick = () => el.style.setProperty('--max-stick', `${maxBar.offsetHeight + (el.querySelector('.stepbar')?.offsetHeight ?? 0) + hm.strip.offsetHeight}px`);
-  const roStick = typeof ResizeObserver === 'function' ? new ResizeObserver(stick) : null;
-  roStick?.observe(maxBar); const sbar = el.querySelector('.stepbar'); if (sbar) roStick?.observe(sbar); roStick?.observe(hm.strip); hm.attach(el, walk); paintInc();
+  hm.attach(el, walk); paintInc();
   el.addEventListener('keydown', (ev) => {
     const text = /^(INPUT|TEXTAREA|SELECT)$/.test(ev.target?.tagName) || ev.target?.isContentEditable || ev.target?.closest?.('.flow-bottom, .fi');
     if (ev.shiftKey && !ev.ctrlKey && !ev.metaKey && !ev.altKey && (ev.key === 'ArrowRight' || ev.key === 'ArrowLeft') && opts.cb && brackets && !text) { ev.preventDefault(); brackets.extend(ev.key === 'ArrowRight' ? 1 : -1); return; } // Shift+← → : a range of steps to comment on (0.34.0)
@@ -232,7 +229,7 @@ export function createTabView(data, host) {
   const sp = comments && data.kind !== 'sub' ? stepsParam(parseHash().query) : null; // `steps=4-9`: a link opens the composer with that range attached, in the active tab only
   if (sp) requestAnimationFrame(() => requestAnimationFrame(() => { if (host.isActive(key) && walk.steps().length >= sp.to) comments.startRange(sp.from, sp.to); }));
   return {
-    el, key, data, draw, insideOpen: () => inside.isOpen(), dispose: () => { hm.dispose(); ts.ui.dispose(); unWheel(); clearTimeout(resizeTimer); document.removeEventListener('fm:layout', onLayout); inside.dispose(); ro?.disconnect(); roStick?.disconnect(); tip?.dispose(); descs.forEach((d) => d?.dispose()); comments?.dispose(); actions?.dispose(); notes?.dispose(); brackets?.dispose(); unBr?.(); pane?.dispose(); items?.dispose(); related?.dispose(); walk.dispose(); unDesc?.(); },
+    el, key, data, draw, insideOpen: () => inside.isOpen(), dispose: () => { hm.dispose(); ts.ui.dispose(); unWheel(); clearTimeout(resizeTimer); document.removeEventListener('fm:layout', onLayout); inside.dispose(); ro?.disconnect(); tip?.dispose(); descs.forEach((d) => d?.dispose()); comments?.dispose(); actions?.dispose(); notes?.dispose(); brackets?.dispose(); unBr?.(); pane?.dispose(); items?.dispose(); related?.dispose(); walk.dispose(); unDesc?.(); },
     refreshBar: () => walk.refreshBar(), refreshHl: () => walk.refreshHl(), refreshBrackets: () => brackets?.refresh(), refreshDots: () => render?.index()?.refresh(),
     step: () => (walk.picked() ? walk.current() || null : null), goStep: (n) => walk.go(n), // the step the viewer is on (when they chose one) / put the walk on a step
     steps: () => walk.steps(), // the steps of the lane (n, from, to, label, transport): the info pane's "In this flow"
