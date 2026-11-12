@@ -38,15 +38,16 @@ export function openBalloon({ content, anchor, onClose }) {
   };
   const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); } };
   const onDown = (e) => { if (!el.contains(e.target) && !anchor.contains(e.target)) close(false); }; // the hazard button itself toggles (its own click closes)
-  const watch = setInterval(() => { if (!anchor.isConnected) close(false); }, 300);
+  const watch = setInterval(() => { if (!anchor.isConnected || !anchor.getClientRects().length) close(false); }, 300);
+  const gone = () => close(false);
   let done = false;
   function close(refocus = true) {
     if (done) return; done = true;
-    clearInterval(watch); document.removeEventListener('keydown', onKey, true); document.removeEventListener('pointerdown', onDown, true); window.removeEventListener('resize', place); window.removeEventListener('scroll', place, true);
+    clearInterval(watch); document.removeEventListener('keydown', onKey, true); document.removeEventListener('pointerdown', onDown, true); window.removeEventListener('hashchange', gone); window.removeEventListener('resize', place); window.removeEventListener('scroll', place, true);
     el.remove(); onClose?.(); if (refocus && anchor.isConnected) anchor.focus({ preventScroll: true });
   }
   document.body.append(el); place();
-  document.addEventListener('keydown', onKey, true); document.addEventListener('pointerdown', onDown, true); window.addEventListener('resize', place); window.addEventListener('scroll', place, true);
+  document.addEventListener('keydown', onKey, true); document.addEventListener('pointerdown', onDown, true); window.addEventListener('hashchange', gone); window.addEventListener('resize', place); window.addEventListener('scroll', place, true);
   x.focus({ preventScroll: true });
   return { el, close };
 }

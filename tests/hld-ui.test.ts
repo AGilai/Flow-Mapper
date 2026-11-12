@@ -50,7 +50,7 @@ test('#113: the hazard button opens a balloon (dialog, aria-labelledby) that the
   assert.match(bal, /anchor\.focus\(/, 'focus goes back to the hazard button');
   assert.match(bal, /x\.focus\(/, 'focus goes into the balloon');
   assert.match(css, /\.inc-balloon \{[^}]*z-index: 60/, 'above the Maximize pill (44)');
-  assert.match(src('js/views/flow-tab-view.js'), /whySection\(trace\)\)/, 'the flow header badge still opens the pane with the box');
+  assert.match(src('js/views/flow-tab-view.js'), /openBalloon\(\{ content: sec, anchor/, 'the flow header badge opens the balloon, not a pane');
 });
 
 test('#113: placeBalloon keeps the balloon in the window: shifted, flipped above, clear of the Maximize pill', async () => {

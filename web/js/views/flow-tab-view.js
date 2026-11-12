@@ -17,6 +17,7 @@ import { createWalkView } from './flow-walk-view.js';
 import { headBadge } from './incomplete-badge.js';
 import { createStorePanel } from './store-panel-wire.js';
 import { whySection } from './incomplete-why.js';
+import { openBalloon } from './incomplete-balloon.js';
 import { traceBlocked } from '../../core/incomplete.js';
 import { createStepDetails } from './flow-step-details.js';
 import { createTip } from './flow-desc-tip.js';
@@ -73,8 +74,8 @@ export function createTabView(data, host) {
   const ts = createTabScenario({ data, host, key, editAll: editing, visible: (k) => !!stepByKey(walk.steps(), k), onView: (v) => { const g = body.contains(document.activeElement) ? document.activeElement.dataset?.g : null; trace = v; tree = asyncTree(v.messages); render = null; paintInc(); draw(); stp?.refresh(); host.paintChrome?.(); if (g) body.querySelector(`select[data-g="${CSS.escape(g)}"]`)?.focus({ preventScroll: true }); } });
   trace = ts.view; tree = asyncTree(trace.messages);
   const label = host.describe(key);
-  const hm = createHeadMin({ host, title: () => (root && host.nameOf?.(root.service, root.ingress)) || label.title, sub: label.sub, onWhy: () => openWhy() }); // #106: the minimized header strip; its toggle sits in the title row
-  const inc = headBadge({ onOpen: () => openWhy() }); // #85: the amber badge before the Scenario chip; N is counted over the trace on screen
+  const hm = createHeadMin({ host, title: () => (root && host.nameOf?.(root.service, root.ingress)) || label.title, sub: label.sub, onWhy: (a) => openWhy(a) }); // #106: the minimized header strip; its toggle sits in the title row
+  const inc = headBadge({ onOpen: (a) => openWhy(a) }); // #85: the amber badge before the Scenario chip; N is counted over the trace on screen
   const paintInc = () => { const { n, source } = traceBlocked(trace, trace.coverage); inc.update(n, source, trace.start?.service, trace.coverage?.status); hm.setInc(n, source, trace.start?.service, trace.coverage?.status); };
   paintInc();
   // The flow's description sits under its title, full width and collapsible (0.20.0); a sub-flow tab keeps its one line.
@@ -180,13 +181,12 @@ export function createTabView(data, host) {
     host.panel.open(...publishPanel(pub, (d) => { const k = events.indexOf(d.hop), el = k >= 0 ? g.closest('svg').querySelector(`[data-e="${k}"]`) : g; shared.openMessage(d.msg, el ?? g, tr); }, host.env));
   }
   shared.openPublish = openPublish;
-  function openWhy() { // #85: the header badge opens the info pane on the flow and puts focus on "Why incomplete"
-    stp?.clear();
-    body.querySelectorAll('.msg.active').forEach((e) => e.classList.remove('active'));
-    inside.close();
-    host.flowsEl.classList.add('mp-open');
-    host.panel.open(h('div.ep-head', h('div.ep-title', h('span.ep-target', 'Flow')), h('div.ep-sub', h('span.key', label.title))), whySection(trace));
-    requestAnimationFrame(() => { const t = document.getElementById('why-incomplete-h'); t?.scrollIntoView({ block: 'nearest' }); t?.focus({ preventScroll: true }); });
+  let whyBal = null;
+  function openWhy(anchor) { // #85/#113: the header badge opens the "Why incomplete" balloon under itself (a second press closes it); no pane, no box
+    if (whyBal) { whyBal.close(); return; }
+    const sec = whySection(trace); if (!sec || !anchor) return;
+    whyBal = openBalloon({ content: sec, anchor, onClose: () => { whyBal = null; anchor.setAttribute('aria-expanded', 'false'); } });
+    anchor.setAttribute('aria-expanded', 'true');
   }
   function head() { // breadcrumb and lane summary: sub-flow and full-flow tabs only
     if (!data.originKey) return null;
@@ -229,7 +229,7 @@ export function createTabView(data, host) {
   const sp = comments && data.kind !== 'sub' ? stepsParam(parseHash().query) : null; // `steps=4-9`: a link opens the composer with that range attached, in the active tab only
   if (sp) requestAnimationFrame(() => requestAnimationFrame(() => { if (host.isActive(key) && walk.steps().length >= sp.to) comments.startRange(sp.from, sp.to); }));
   return {
-    el, key, data, draw, insideOpen: () => inside.isOpen(), dispose: () => { hm.dispose(); ts.ui.dispose(); unWheel(); clearTimeout(resizeTimer); document.removeEventListener('fm:layout', onLayout); inside.dispose(); ro?.disconnect(); tip?.dispose(); descs.forEach((d) => d?.dispose()); comments?.dispose(); actions?.dispose(); notes?.dispose(); brackets?.dispose(); unBr?.(); pane?.dispose(); items?.dispose(); related?.dispose(); walk.dispose(); unDesc?.(); },
+    el, key, data, draw, insideOpen: () => inside.isOpen(), dispose: () => { whyBal?.close(false); hm.dispose(); ts.ui.dispose(); unWheel(); clearTimeout(resizeTimer); document.removeEventListener('fm:layout', onLayout); inside.dispose(); ro?.disconnect(); tip?.dispose(); descs.forEach((d) => d?.dispose()); comments?.dispose(); actions?.dispose(); notes?.dispose(); brackets?.dispose(); unBr?.(); pane?.dispose(); items?.dispose(); related?.dispose(); walk.dispose(); unDesc?.(); },
     refreshBar: () => walk.refreshBar(), refreshHl: () => walk.refreshHl(), refreshBrackets: () => brackets?.refresh(), refreshDots: () => render?.index()?.refresh(),
     step: () => (walk.picked() ? walk.current() || null : null), goStep: (n) => walk.go(n), // the step the viewer is on (when they chose one) / put the walk on a step
     steps: () => walk.steps(), // the steps of the lane (n, from, to, label, transport): the info pane's "In this flow"
