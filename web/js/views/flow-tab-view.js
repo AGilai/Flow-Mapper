@@ -46,6 +46,8 @@ import { state } from '../state.js';
 import { envChip, paintEnv } from '../components/env-chip.js';
 import { clampRange, fitScale, scaleOf, percentOf, anchorDelta } from './flow-zoom-pure.js';
 import { createZoomControl, applyScale, naturalSize, wireWheel } from './flow-zoom.js';
+import { createHeadMin } from './flow-headmin.js';
+import { looseHead } from './flow-headmin-pure.js';
 
 const tc = (t, label) => h('span.tc', { class: t, title: label }, label);
 const kindOf = (key) => String(key).split(':')[0].replace('amqp-queue', 'amqp');
@@ -70,15 +72,16 @@ export function createTabView(data, host) {
   const descs = [];
   const ts = createTabScenario({ data, host, key, editAll: editing, visible: (k) => !!stepByKey(walk.steps(), k), onView: (v) => { const g = body.contains(document.activeElement) ? document.activeElement.dataset?.g : null; trace = v; tree = asyncTree(v.messages); render = null; paintInc(); draw(); stp?.refresh(); host.paintChrome?.(); if (g) body.querySelector(`select[data-g="${CSS.escape(g)}"]`)?.focus({ preventScroll: true }); } });
   trace = ts.view; tree = asyncTree(trace.messages);
-  const inc = headBadge({ onOpen: () => openWhy() }); // #85: the amber badge before the Scenario chip; N is counted over the trace on screen
-  const paintInc = () => { const { n, source } = traceBlocked(trace, trace.coverage); inc.update(n, source, trace.start?.service, trace.coverage?.status); };
-  paintInc();
   const label = host.describe(key);
+  const hm = createHeadMin({ host, title: () => (root && host.nameOf?.(root.service, root.ingress)) || label.title, sub: label.sub, onWhy: () => openWhy() }); // #106: the minimized header strip; its toggle sits in the title row
+  const inc = headBadge({ onOpen: () => openWhy() }); // #85: the amber badge before the Scenario chip; N is counted over the trace on screen
+  const paintInc = () => { const { n, source } = traceBlocked(trace, trace.coverage); inc.update(n, source, trace.start?.service, trace.coverage?.status); hm.setInc(n, source, trace.start?.service, trace.coverage?.status); };
+  paintInc();
   // The flow's description sits under its title, full width and collapsible (0.20.0); a sub-flow tab keeps its one line.
   let flowBox = null; const related = root && data.kind !== 'sub' ? createRelations({ host, root, editing, onCount: (n) => flowBox?.setRelated(n) }) : null; // 0.28.2: typed links to other flows
   flowBox = root && data.kind !== 'sub' ? descDetails(host.desc, root, null, { cls: 'flowhead', relations: related, seenKey: `${host.env}/${root.service}/${root.ingress}`, title: 'What this flow is for', onGenerate: () => generate(null), pen: host.pen,
     summary: [root ? nameEditor({ root, name: host.nameOf?.(root.service, root.ingress) ?? '', fallback: label.title, readOnly: host.readOnly }).el : h('span.fh-t', label.title), label.sub ? h('span.mono.xs.muted', label.sub) : null, linksRow(trace.start?.links), editFlow(), editing ? importButton() : null,
-      exportButton({ ...root, env: host.env, name: host.nameOf?.(root.service, root.ingress) || label.title, view: () => ts.scen.exportView() }), inc.el, ts.ui.el, host.max?.button()] }) : null;
+      exportButton({ ...root, env: host.env, name: host.nameOf?.(root.service, root.ingress) || label.title, view: () => ts.scen.exportView() }), inc.el, ts.ui.el, hm.button(), host.max?.button()] }) : null;
   const subLine = root && data.kind === 'sub' ? descLine(host.desc, root, [`${data.service}:${data.name}`, data.service], { onGenerate: () => generate(data.service) }) : null;
   descs.push(flowBox, subLine);
   // Comments under the description (0.27.0): the flow's own discussion; a sub-flow or function tab has none.
@@ -118,7 +121,7 @@ export function createTabView(data, host) {
   // ---- zoom (0.30.3, #69): the lane SVGs change size, nothing is laid out again; a point under the pointer stays under it ----
   const maxed = () => document.body.classList.contains('is-max');
   const zctl = createZoomControl({ onZoom: (v) => setZoom(v) });
-  const loose = () => { const sk = scroller.querySelector('.seq-sticky'); scroller.classList.toggle('zoom-loose', !!sk && sk.offsetHeight > scroller.clientHeight * 0.35); }; // a zoomed head that would cover the view scrolls away with the diagram
+  const loose = () => { const sk = scroller.querySelector('.seq-sticky'); scroller.classList.toggle('zoom-loose', !!sk && looseHead({ headH: sk.offsetHeight, viewH: scroller.clientHeight, zoom: factor })); }; // only a huge zoomed head (> 60% of the view, zoom > 1) scrolls away with the diagram; #107: at normal zoom the heads stay pinned
   function recompute() {
     const nat = naturalSize(render?.laneBox), fitS = nat ? fitScale({ ...nat, vw: scroller.clientWidth - (brackets?.width() ?? 0), vh: maxed() ? innerHeight - 130 : scroller.clientHeight }) : null;
     factor = scaleOf(zoomV, fitS);
@@ -134,9 +137,9 @@ export function createTabView(data, host) {
     zoomV = v === 'fit' ? 'fit' : clampRange(v);
     recompute();
     host.setZoom?.(key, zoomV);
-    if (zoomV === 'fit') { scroller.scrollLeft = 0; if (!maxed()) scroller.scrollTop = 0; return; }
+    if (zoomV === 'fit') { scroller.scrollLeft = 0; scroller.scrollTop = 0; return; }
     if (!r0) return;
-    const r1 = svg.getBoundingClientRect(), up = maxed() ? el : scroller;
+    const r1 = svg.getBoundingClientRect(), up = scroller; // the diagram scrolls inside its box in Maximize too (#107), so the heads can stay pinned
     scroller.scrollLeft += anchorDelta({ origin0: r0.left, origin1: r1.left, at: p.x, from: before, to: factor });
     up.scrollTop += anchorDelta({ origin0: r0.top, origin1: r1.top, at: p.y, from: before, to: factor });
   }
@@ -157,7 +160,6 @@ export function createTabView(data, host) {
   const flash = (g) => { g?.scrollIntoView({ block: 'center', behavior: 'smooth' }); g?.classList.add('flash'); setTimeout(() => g?.classList.remove('flash'), 1600); };
   const ed = editing && host.edit ? host.edit : null; // Edit with a draft: heads, arrows and "+ call" open forms (design/edit-open.js)
   const shared = { ...ts.hooks, host, opts, tip, walk, details: (built) => sdet.forLane(built, trace.messages), editStep: (k) => walk.editKey(k), editHead: ed ? (service) => { ed.head(service); return true; } : null, addCall: ed ? (bar) => ed.addCall(bar.service, bar.msg.target.fn) : null, addInBand: ed ? (key) => ed.addComponent(key) : null, trigger: () => data.trigger, importRef: (anchor, m) => host.importRef?.(anchor, m?.reference?.source), zoom: () => factor, afterLane: (box) => { if (box) brackets?.attach(box); stp?.paint(); if (render && zoomV === 'fit') recompute(); }, squeeze: () => opts.squeeze && !sqOff, squeezeOpen: () => { sqOff = true; host.paintChrome?.(); render?.relane(); edge(); walk.reveal(true); }, fit: () => scroller.clientWidth - (brackets?.width() ?? 0), select, lookInside, flash, traceFor: (q) => host.traceFor(ts.scen.isFull() && !q.detail ? { ...q, detail: 'full' } : q), // a sub-flow card follows the tab's External | Full (0.38.0)
-   
     onStore: (c, ev) => stp?.press(c, ev),
     openMessage: (m, g, tr) => { // clicking an arrow opens the message panel (in Edit: its form); one side panel at a time
       stp?.clear();
@@ -179,7 +181,6 @@ export function createTabView(data, host) {
     host.panel.open(...publishPanel(pub, (d) => { const k = events.indexOf(d.hop), el = k >= 0 ? g.closest('svg').querySelector(`[data-e="${k}"]`) : g; shared.openMessage(d.msg, el ?? g, tr); }, host.env));
   }
   shared.openPublish = openPublish;
-
   function openWhy() { // #85: the header badge opens the info pane on the flow and puts focus on "Why incomplete"
     stp?.clear();
     body.querySelectorAll('.msg.active').forEach((e) => e.classList.remove('active'));
@@ -188,7 +189,6 @@ export function createTabView(data, host) {
     host.panel.open(h('div.ep-head', h('div.ep-title', h('span.ep-target', 'Flow')), h('div.ep-sub', h('span.key', label.title))), whySection(trace));
     requestAnimationFrame(() => { const t = document.getElementById('why-incomplete-h'); t?.scrollIntoView({ block: 'nearest' }); t?.focus({ preventScroll: true }); });
   }
-
   function head() { // breadcrumb and lane summary: sub-flow and full-flow tabs only
     if (!data.originKey) return null;
     const o = host.describe(data.originKey), sub = data.kind === 'sub';
@@ -203,7 +203,6 @@ export function createTabView(data, host) {
       h('button.btn.sm', { title: `Every call ${data.service} makes from here`, on: { click: () => host.openFull(data.row, key) } }, 'Start a full flow from here')) : null;
     return h('div.tpad', crumbs, subLine?.el, laneRow);
   }
-
   function draw() { // options changed (stores, depth): redraw the lane and the lanes of the open cards; their expansion stays
     if (render) { render.relane(); fill(scroller, head(), noHint, render.laneBox, removedList(marks(), servicesOf(trace), { draft: host.readOnly ? null : state.draft, env: host.env }), render.idxBox); } else {
       render = createFlowRender({ trace, tree, key, ancestors: data.start ? [flowId(data.start)] : [] }, shared);
@@ -220,11 +219,11 @@ export function createTabView(data, host) {
   const maxBar = paintEnv(h('div.max-bar', backBtn('.in-max'), envChip(host.env), host.readOnly ? maxReadOnly(host.env, host.switchEnv) : null, h('span.fh-t', (root && host.nameOf?.(root.service, root.ingress)) || label.title), label.sub ? h('span.mono.xs.muted', label.sub) : null, zctl.el), host.env); // shown only while maximized (flow-max.css)
   if (comments) { pane = createPane({ panels: { notes, comments, actions }, diagram: body }); for (const [id, d] of Object.entries(counts)) pane.setCount(id, d); }
   const xnote = host.readOnly ? foreignNote(host.env, host.design, host.switchEnv) : null; // "Viewing <env>. Switch to it to edit."
-  const el = h('div.flow-tab', maxBar, backBar, xnote, h('div.flow-top', flowBox ? null : h('div.scn-row', inc.el, ts.ui.el), flowBox?.el, ts.ui.extra, walk.el, partial.el), body, pane?.splitter, pane?.el); // the pane sits under the diagram (0.27.5); the border between them is a drag handle (0.34.0)
+  const el = h('div.flow-tab', maxBar, backBar, xnote, hm.strip, h('div.flow-top', flowBox ? null : h('div.scn-row', inc.el, ts.ui.el), flowBox?.el, ts.ui.extra, walk.el, partial.el), body, pane?.splitter, pane?.el); // the pane sits under the diagram (0.27.5); the border between them is a drag handle (0.34.0)
   // maximized, the pane's tab row sticks under the title bar and the step bar, whatever height the step bar has (its description wraps): --max-stick is their height
-  const stick = () => el.style.setProperty('--max-stick', `${maxBar.offsetHeight + (el.querySelector('.stepbar')?.offsetHeight ?? 0)}px`);
+  const stick = () => el.style.setProperty('--max-stick', `${maxBar.offsetHeight + (el.querySelector('.stepbar')?.offsetHeight ?? 0) + hm.strip.offsetHeight}px`);
   const roStick = typeof ResizeObserver === 'function' ? new ResizeObserver(stick) : null;
-  roStick?.observe(maxBar); const sbar = el.querySelector('.stepbar'); if (sbar) roStick?.observe(sbar);
+  roStick?.observe(maxBar); const sbar = el.querySelector('.stepbar'); if (sbar) roStick?.observe(sbar); roStick?.observe(hm.strip); hm.attach(el, walk); paintInc();
   el.addEventListener('keydown', (ev) => {
     const text = /^(INPUT|TEXTAREA|SELECT)$/.test(ev.target?.tagName) || ev.target?.isContentEditable || ev.target?.closest?.('.flow-bottom, .fi');
     if (ev.shiftKey && !ev.ctrlKey && !ev.metaKey && !ev.altKey && (ev.key === 'ArrowRight' || ev.key === 'ArrowLeft') && opts.cb && brackets && !text) { ev.preventDefault(); brackets.extend(ev.key === 'ArrowRight' ? 1 : -1); return; } // Shift+← → : a range of steps to comment on (0.34.0)
@@ -234,7 +233,7 @@ export function createTabView(data, host) {
   const sp = comments && data.kind !== 'sub' ? stepsParam(parseHash().query) : null; // `steps=4-9`: a link opens the composer with that range attached, in the active tab only
   if (sp) requestAnimationFrame(() => requestAnimationFrame(() => { if (host.isActive(key) && walk.steps().length >= sp.to) comments.startRange(sp.from, sp.to); }));
   return {
-    el, key, data, draw, insideOpen: () => inside.isOpen(), dispose: () => { ts.ui.dispose(); unWheel(); clearTimeout(resizeTimer); document.removeEventListener('fm:layout', onLayout); inside.dispose(); ro?.disconnect(); roStick?.disconnect(); tip?.dispose(); descs.forEach((d) => d?.dispose()); comments?.dispose(); actions?.dispose(); notes?.dispose(); brackets?.dispose(); unBr?.(); pane?.dispose(); items?.dispose(); related?.dispose(); walk.dispose(); unDesc?.(); },
+    el, key, data, draw, insideOpen: () => inside.isOpen(), dispose: () => { hm.dispose(); ts.ui.dispose(); unWheel(); clearTimeout(resizeTimer); document.removeEventListener('fm:layout', onLayout); inside.dispose(); ro?.disconnect(); roStick?.disconnect(); tip?.dispose(); descs.forEach((d) => d?.dispose()); comments?.dispose(); actions?.dispose(); notes?.dispose(); brackets?.dispose(); unBr?.(); pane?.dispose(); items?.dispose(); related?.dispose(); walk.dispose(); unDesc?.(); },
     refreshBar: () => walk.refreshBar(), refreshHl: () => walk.refreshHl(), refreshBrackets: () => brackets?.refresh(), refreshDots: () => render?.index()?.refresh(),
     step: () => (walk.picked() ? walk.current() || null : null), goStep: (n) => walk.go(n), // the step the viewer is on (when they chose one) / put the walk on a step
     steps: () => walk.steps(), // the steps of the lane (n, from, to, label, transport): the info pane's "In this flow"

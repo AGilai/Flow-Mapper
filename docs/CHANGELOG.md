@@ -5,6 +5,11 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+
+- Flow tab (UI, #107): the component heads (and the subsystem and sub-subsystem band rows) stay pinned at the top of the diagram while it scrolls, at normal zoom whatever the height of the header above, and in Maximize. Only a zoomed-in head taller than 60% of the view still scrolls away.
+- Flow tab (UI, #106): "Minimize header" (chevron in the title row, key `H`) folds the title row, About, mode lines and step bar into one 36px strip with the flow name, step nav `‹ 2/44 ›`, the incomplete badge, Maximize and "Show header". One global choice (`localStorage` `flow-mapper.headMin`).
+
 ## 0.50.0 (2026-11-11)
 
 - Flow diagram (UI, #103): a component with a second `groupPath` segment (`platform/gcp`) gets a sub-subsystem band row under the subsystem row (label: the registered `grp:platform/gcp` name, else the segment). `GET /subsystems` also returns, additively, `components[].sub` and `subsystems[].subs`.

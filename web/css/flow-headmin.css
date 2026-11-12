@@ -1,0 +1,32 @@
+/* Minimized flow header (Unreleased, #106). One 36px strip replaces everything above the diagram: title row, About, mode lines, step bar. Tokens only (light and dark). */
+.head-strip { display: none; }
+.flow-tab.head-min > .head-strip { display: flex; align-items: center; gap: var(--s3); flex: none; box-sizing: border-box; height: 36px; padding: 0 var(--s4); min-width: 0; white-space: nowrap;
+  background: var(--surface); border-bottom: 1px solid var(--line); box-shadow: inset 0 3px 0 var(--ec, transparent); } /* the env colour, as the tab strip and the maximized bar show it */
+.flow-tab.head-min > .flow-top { display: none; } /* the walk, the keys and the About text keep running; only the box is gone */
+.head-strip .grow { flex: 1 1 0; min-width: 0; }
+.hs-id { display: flex; align-items: baseline; gap: var(--s2); min-width: 0; flex: 0 1 auto; }
+.hs-name { font-weight: 650; font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 0 10 auto; } /* the name gives way first */
+.hs-sub { font-size: var(--fs-xs); color: var(--muted); overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 0 1 auto; }
+.hs-inc { flex: none; } .hs-inc .inc-badge.sm { margin-left: 0; }
+.hs-nav { display: inline-flex; align-items: center; gap: 4px; flex: none; }
+.hs-nav .stepnav { width: 26px; height: 24px; }
+.hs-cnt { min-width: 44px; text-align: center; font: 600 var(--fs-sm) var(--font); font-variant-numeric: tabular-nums; }
+.head-strip .btn.sm.icon-only { display: inline-grid; place-items: center; width: 28px; height: 28px; padding: 0; flex: none; }
+.head-strip .btn.sm.icon-only svg { width: 15px; height: 15px; }
+.head-strip .max-btn { order: 0; }
+.hs-min { display: inline-grid; place-items: center; width: 28px; height: 28px; padding: 0; flex: none; order: 97; } /* in the title row, just before Maximize (order 99) */
+.hs-min svg { width: 15px; height: 15px; }
+.hs-show:focus-visible, .hs-min:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.head-strip.no-steps .hs-nav { display: none; }
+/* Maximized: the bar above already has the env colour and the name, so the strip keeps the step nav, the badge and the way back. It sticks under the bar where the step bar does. */
+body.is-max .flow-tab.head-min > .head-strip { order: -2; position: sticky; top: 49px; z-index: 4; box-shadow: none; }
+body.is-max .head-strip .hs-id { display: none; }
+body.is-max .flow-tab.head-min > .flow-top { display: none; }
+@media (max-width: 760px) {
+  .flow-tab.head-min > .head-strip { padding: 0 var(--s3); gap: var(--s2); }
+  .hs-sub { display: none; }
+  body.is-max .flow-tab.head-min > .head-strip { top: 45px; }
+}
+/* the freed height goes to the diagram, not to the bottom pane: while minimized an unsized pane stops at a fifth of the window (it is 40vh otherwise; dragging its border still sets any height) */
+.flow-tab.head-min > .flow-bottom:not(.sized):not(.collapsed) { max-height: 20vh; }
+body.is-max .flow-tab.head-min > .flow-bottom:not(.sized):not(.collapsed) { max-height: none; }
