@@ -87,7 +87,7 @@ export function simplify(all: Item[], maxMessages?: number, merge = false): Simp
     if (e.leaf && e.leaf.length > 1) { // #109: calls of one caller to one leaf target: `*3 POST /a, GET /b`
       const ops = [...new Set(e.leaf.map((l) => shortOp(l.label)))].join(', ');
       const { repeatOf: _r, cycle: _c, onlyWhen: _w, ...base } = e.x.m, gs = [...new Set(e.leaf.flatMap((l) => (l.onlyWhen ? [l.onlyWhen.guard] : [])))]; // the arrow is conditional only when every call it stands for is // a repeat marker that merged with its caller's other calls is one arrow like the rest
-      items.push({ ...e.x, m: { ...base, ...(e.leaf.every((l) => l.onlyWhen) && e.x.m.onlyWhen ? { onlyWhen: { ...e.x.m.onlyWhen, guard: gs.join('; ') } } : {}), label: `*${e.leaf.length} ${ops}`, mergedCalls: e.leaf.length, occurrences: e.occ } });
+      items.push({ ...e.x, m: { ...base, ...(e.leaf.every((l) => l.onlyWhen) && e.x.m.onlyWhen ? { onlyWhen: { ...e.x.m.onlyWhen, guard: gs.join('; ') } } : {}), label: `*${e.leaf.length} ${ops}`, mergedCalls: e.leaf.length, occurrences: e.occ.map((o, k) => ({ ...o, op: shortOp(e.leaf![k].label) })) } });
       continue;
     }
     const most = group.reduce((a, b) => (b.occ.length > a.occ.length ? b : a)), n = Math.max(most.occ.length, group.length);

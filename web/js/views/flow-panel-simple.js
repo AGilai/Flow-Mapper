@@ -13,10 +13,10 @@ export function occurrencesCard(m, trace, ctx = {}) {
   const seenBox = h('span.small.muted', { 'data-qa': 'seen-in-external' });
   const rows = occ.map((o, i) => {
     const at = o.service && o.fn && o.seq ? trace.code?.[`step:${o.service}:${o.fn}#${o.seq}`] : null, loc = at?.file ? `${at.file}${at.line ? `:${at.line}` : ''}` : o.seq ? `step ${o.seq}` : null, url = web(at?.url);
-    const text = [o.fn, loc].filter(Boolean).join(' · ');
+    const text = [o.op, o.fn, loc].filter(Boolean).join(' · ');
     return h('li', url ? h('a.ep-link-inline', { href: url, target: '_blank', rel: 'noopener noreferrer', title: url }, text) : h('span', text), i === 0 ? h('span.s', 'drawn here') : null);
   });
-  const sum = m.dbGroup ? `${occ.length} calls to the same store from the same service are merged.` : `${occ.length} identical steps of the same service are merged.`;
+  const sum = m.dbGroup ? `${occ.length} calls to the same store from the same service are merged.` : m.mergedCalls ? `${occ.length} calls to the same target from the same service are merged.` : `${occ.length} identical steps of the same service are merged.`;
   ctx.seenIn?.(occ.map((o) => o.key).filter(Boolean)).then((steps) => {
     if (!steps?.length) return;
     seenBox.replaceChildren('Seen in External at steps ', ...steps.flatMap((n, k) => [...(k ? [', '] : []), h('button.lnk', { type: 'button', on: { click: () => { ctx.openExternal?.().then?.(() => ctx.jump?.(n)); } } }, String(n))]));

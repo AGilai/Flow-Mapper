@@ -88,3 +88,11 @@ test('merge is an explicit view option: viewParams reads merge=1, absent leaves 
   assert.equal(viewParams({ detail: 'simple' }).merge, undefined);
   assert.equal(shortOp('http:POST ext/ap/v1/token'), 'POST /ap/v1/token');
 });
+
+test('merge: a merged call to a target carries each call\'s own operation, so the pane lists them (QA #109)', () => {
+  const t = view({ merge: true });
+  const m = t.messages.find((x: any) => x.mergedCalls);
+  assert.ok(m, labels(t).join(' | '));
+  assert.equal(m.occurrences.length, m.mergedCalls);
+  assert.ok(m.occurrences.every((o: any) => typeof o.op === 'string' && o.op.length > 0));
+});

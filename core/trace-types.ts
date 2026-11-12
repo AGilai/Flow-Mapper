@@ -73,7 +73,7 @@ export interface Message {
   filter?: HopFilter;                                        // on a hop that goes through a subscription, rule or binding (topic -> queue, bus -> target, exchange -> queue): what it declares
 }
 /** 0.44.0 (#90): one place a consolidated step happens: the caller's function and step number, the canonical step key. */
-export interface Occurrence { service?: string; fn?: string; seq?: number; key?: string }
+export interface Occurrence { service?: string; fn?: string; seq?: number; key?: string; /** #109: on an arrow that merged several calls to one target, the call's own operation (`POST /ap/token`) */ op?: string }
 /** 0.44.0 (#90): a copy made by the `unfold` view option. `marker`: the repeat marker's step number; `sub`: this copy's number (`7.1`); `first` / `last`: the steps of the first expansion it copies (view numbering; absent when they are not drawn). */
 export interface UnfoldOf { marker: number; sub: string; first?: number; last?: number }
 /** The subscription behind a hop: its id, the key it listens on (SNS topic, bus, `exchange/routing-key`) and the event types it lets through (absent: all). */
