@@ -87,7 +87,8 @@ function simpleView(t: Trace, opts: ViewOptions): Trace {
   const messages = renumber(items, t.messages).map(({ arms: _a, alt: _l, alternatives: _s, ...m }) => m as Message);
   const used = new Set(messages.flatMap((m) => [m.from, m.to]));
   const { decisions: _d, choose: _c, ...rest } = t;
-  return { ...rest, messages, detail: 'simple', flattened: (t.decisions ?? []).length, truncated: t.truncated || cut, counts: { messages: { min: messages.length, max: messages.length } },
+  const lost = opts.merge && !t.blockedAll && t.messages.some(gapSeen) ? blockedSteps(t) : null; // #109: a merged arrow carries its blocked members as a count, so the full trace's sites feed the header badge and "Why incomplete"
+  return { ...rest, ...(lost ? { blockedAll: lost } : {}), messages, detail: 'simple', flattened: (t.decisions ?? []).length, truncated: t.truncated || cut, counts: { messages: { min: messages.length, max: messages.length } },
     participants: t.participants.filter((p) => used.has(p.id)).map((p) => (p.kind === 'service' ? { ...p, internalCalls: 0, hiddenSteps: hidden.get(p.service!) ?? 0 } : p)) };
 }
 

@@ -51,6 +51,7 @@ test('merge: blocked members become a count; the arrow itself is not a blocked s
   assert.equal(row.dbGroup!.flagged, 2);
   assert.equal(row.blocked, undefined);
   assert.equal(row.dbGroup!.calls!.filter((c: any) => c.blocked).length, 2);
+  assert.equal(view({ merge: true }).blockedAll?.n, 2, 'the header badge and "Why incomplete" still know the blocked steps');
 });
 
 test('merge: calls into a leaf target are one arrow (distinct operations in first-use order); a service that opens its own activation keeps its place', () => {

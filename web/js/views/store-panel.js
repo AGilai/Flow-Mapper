@@ -8,6 +8,7 @@ import { capSteps, summary, ttlLine } from '../../core/store-panel.js';
 import { instancePath, storePath, envQuery } from './inventory-links.js';
 import { fieldText } from '../components/step-fields.js';
 import { registryBlock } from './store-panel-reg.js';
+import { whyHazard } from './incomplete-why.js';
 
 const ICON = { read: 'M5 1.5v7M2 5.8 5 8.8l3-3', write: 'M5 8.5v-7M2 4.2 5 1.2l3 3', delete: 'M2 2l6 6M8 2 2 8', rw: 'M5 1.5v7M2 5.8 5 8.8l3-3', unknown: 'M2 5h6' };
 const WORD = { read: 'read', write: 'write', delete: 'delete', rw: 'read/write', unknown: 'access not reported' };
@@ -55,11 +56,12 @@ export function storePanelView(p, ctx) { // ctx: { env, flowLabel, registry (pro
   setCount(null);
   if (redis) ctx.registry.then((r) => setCount(r?.templates ?? null)).catch(() => {});
   const title = h('h4.sp-title', { tabindex: '-1', id: 'store-panel-h' }, p.title);
-  const head = h('div.ep-head', h('div.ep-title', chip(p.kind), title), h('div.ep-sub', h('span', p.sub)));
+  const why = ctx.trace ? whyHazard(ctx.trace) : null; // #113: the same hazard button as the step pane; the box follows the data, collapsed
+  const head = h('div.ep-head', h('div.ep-title', chip(p.kind), title, why?.btn ?? null), h('div.ep-sub', h('span', p.sub)));
   const body = h('section.sp', { 'aria-label': `What this flow touches in ${p.title}`, 'data-qa': 'store-panel' },
     h('p.sp-sum', summary(p).map((x) => (typeof x === 'string' ? x : h('b', x.b)))),
     p.cards.map((c) => card(c, p, ctx)),
     h('div.sp-ft', h('a.go', { href: href(redis ? instancePath(p.store) : storePath(storeKey), envQuery(ctx.env)) }, redis ? `Open ${p.store} · all keys ` : `Open ${p.store} `, h('span', { 'aria-hidden': 'true' }, '→')), small));
-  return { nodes: [head, body], title, body,
+  return { nodes: [head, body, why?.section ?? null].filter(Boolean), title, body,
     setCurrent: (n) => body.querySelectorAll('.sp-sc').forEach((b) => b.classList.toggle('cur', n != null && Number(b.dataset.n) === n)) };
 }

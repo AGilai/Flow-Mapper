@@ -85,3 +85,11 @@ button.inc-badge:hover { background: color-mix(in srgb, var(--inc) 24%, var(--su
 /* #109: the "! N" on a merged arrow */
 .mflag rect { fill: var(--inc-bg); stroke: var(--inc); stroke-width: 1; }
 .mflag text { font: 700 10px var(--font); fill: var(--inc-ink); }
+
+/* #113: the hazard button in a pane's header (the box it opens is collapsed after the call's data) */
+.inc-hz { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px 0 6px; border-radius: 11px; border: 1px solid var(--inc); background: var(--inc-bg); color: var(--inc-ink); font: 700 11.5px/1 var(--font); cursor: pointer; }
+.inc-hz svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
+.inc-hz:hover, .inc-hz[aria-expanded="true"] { background: color-mix(in srgb, var(--inc) 24%, var(--surface)); }
+.inc-hz:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.inc-why[hidden] { display: none; }
+.inc-why { margin-bottom: var(--s3); }

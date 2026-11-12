@@ -42,3 +42,16 @@ test('#112: the collapsed entry-point list is a 36px band with the chevron (aria
   assert.doesNotMatch(lane, /\.flows\.fi-open > \.flows-list, \.flows\.mp-open > \.flows-list \{ display: none; \}/);
   assert.match(lane, /fi-open:not\(\.list-open\)[^{]*\{ grid-template-columns: 36px/);
 });
+
+test('#113: "Why incomplete" is a collapsed section after the call data, opened by a hazard button with aria-expanded and the tooltip "Why incomplete: N blocked"; the store panel has the same button', () => {
+  const why = src('js/views/incomplete-why.js'), panel = src('js/views/flow-panel.js'), store = src('js/views/store-panel.js');
+  assert.match(why, /export function whyHazard/);
+  assert.match(why, /section\.hidden = true/, 'collapsed by default');
+  assert.match(why, /'aria-expanded': 'false'/);
+  assert.match(why, /`Why incomplete: \$\{n\} blocked`/);
+  assert.doesNotMatch(panel, /whySection\(trace/, 'no longer first in the body');
+  assert.match(panel, /why\?\.btn/);
+  assert.ok(panel.indexOf('why?.section') > panel.indexOf('dto,'), 'after the call data');
+  assert.match(store, /whyHazard\(ctx\.trace\)/);
+  assert.match(src('js/views/flow-tab-view.js'), /whySection\(trace\)\)/, 'the flow header badge still opens the box expanded');
+});

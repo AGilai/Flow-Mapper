@@ -24,7 +24,7 @@ import { splitStore, opLabel } from './flow-stores-pure.js';
 import { isRpc, rpcCommand } from './flow-amqp.js';
 import { markersCard } from './flow-markers-draw.js';
 import { rpcCard, rpcMissing, routingRows } from './flow-panel-amqp.js';
-import { whySection, stepIdOf } from './incomplete-why.js';
+import { whyHazard, stepIdOf } from './incomplete-why.js';
 import { callsCard, runCard } from './flow-panel-calls.js';
 import { occurrencesCard, repeatCard } from './flow-panel-simple.js';
 
@@ -35,14 +35,15 @@ export function messagePanel(m, trace, env, scope = 'full', openEntry = null, ma
   const flow = asyncFlowOf(m);
   const p = (id) => trace.participants.find((x) => x.id === id);
   const rpc = isRpc(m), kind = rpc ? (m.kind === 'entry' ? 'Entry (RPC over AMQP)' : 'RPC call over AMQP') : m.kind === 'egress' && m.mode === 'async' ? 'Publish / async call' : KIND[m.kind];
+  const why = whyHazard(trace, { me: stepIdOf(m) }); // #113: a small hazard button in the header; the box sits after the call's data, collapsed
   const head = h('div.ep-head',
-    h('div.ep-title', m.transport && m.transport !== 'res' ? (rpc ? chip('rpc', 'amqp rpc') : chip(m.transport)) : null, h('span.ep-target', kind)),
+    h('div.ep-title', m.transport && m.transport !== 'res' ? (rpc ? chip('rpc', 'amqp rpc') : chip(m.transport)) : null, h('span.ep-target', kind), why?.btn ?? null),
     h('div.ep-sub', h('span.key', rpc ? rpcCommand(m) : m.label), m.event ? eventLink(m.event, env) : null));
 
   const dto = h('div.stack', { style: { gap: 'var(--s3)' } }, h('p.small.muted', 'Loading…'));
   loadDto(m, env, marks).then((cards) => fill(dto, cards)).catch((err) => fill(dto, h('p.small.muted', err.message)));
 
-  return [head, whySection(trace, { me: stepIdOf(m) }), // #85: Why incomplete leads the pane body (nothing for a complete flow)
+  return [head,
     flow ? h('div.ep-pad', openEntry ? h('button.btn', { type: 'button', on: { click: () => openEntry({ service: flow.service, ingress: flow.ingress, scope }) } }, 'Open the async flow in a tab') : h('a.btn', { href: href('/flows', { service: flow.service, ingress: flow.ingress, scope }) }, 'Open the async flow'), h('span.xs.muted', ` ${flow.service} · ${flow.ingress}`)) : null,
     m.gap ? gapCard(m.gap) : null,
     m.dbGroup?.calls?.length ? callsCard(m, trace, db ?? {}) : db?.run ? runCard(db.run, db) : null,
@@ -66,7 +67,8 @@ export function messagePanel(m, trace, env, scope = 'full', openEntry = null, ma
       h('dt', 'Depth'), h('dd', String(m.depth)),
       ...(m.delivery ? [h('dt', 'Delivery'), h('dd', `${m.depth}.${m.delivery}`)] : []),
       ...(m.matched?.length ? [h('dt', 'Delivered as'), h('dd', m.matched.map((t) => eventLink(t, env)), h('span.xs.muted', ' the publish names no event; these types of it pass the subscription filter'))] : []),
-      ...(m.deliveries ? [h('dt', 'Deliveries'), h('dd', `fans out to ${m.deliveries}`)] : []))];
+      ...(m.deliveries ? [h('dt', 'Deliveries'), h('dd', `fans out to ${m.deliveries}`)] : [])),
+    why?.section ?? null];
 }
 
 /** A publish or a topic -> queue hop (a routing arrow of the diagram): its event type, the topic or bus, the queue and the filter that applies. */
