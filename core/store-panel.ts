@@ -5,7 +5,8 @@
 import type { Message as BaseMessage, Trace } from './trace-types.ts';
 
 /** A resource message as 0.42.1 sends it: top-level `keyTemplate` (details.keyTemplate, else its alias keyPattern), `dbIndex`, `ttlSeconds` and `keyUnresolved` (why no key was read). */
-type Message = BaseMessage & { keyTemplate?: string; dbIndex?: number; ttlSeconds?: number; keyUnresolved?: unknown };
+type Message = BaseMessage & { keyTemplate?: string; dbIndex?: number; ttlSeconds?: number; keyUnresolved?: unknown; keyVariants?: string[]; keys?: KeyRef[] };
+import type { KeyRef } from './key-template.ts';
 import type { StepField } from './types.ts';
 
 export type Access = 'read' | 'write' | 'delete' | 'rw' | 'unknown';
@@ -22,7 +23,7 @@ export interface FieldGroup { role: string; label: string; items: { path: string
 export interface Chip { n: number; sub?: number }
 export interface OpRow { access: Access; op: string; steps: number[]; chips: Chip[]; links: CodeLink[]; fields: FieldGroup[] }
 export interface Ttl { values: number[] }
-export interface Card { id: string; kind: 'key' | 'collection' | 'unreported'; title: string | null; template: string | null; dbs: number[]; ttl: Ttl; ops: OpRow[]; steps: number[]; reason: string | null }
+export interface Card { variants: string[]; id: string; kind: 'key' | 'collection' | 'unreported'; title: string | null; template: string | null; dbs: number[]; ttl: Ttl; ops: OpRow[]; steps: number[]; reason: string | null }
 export interface Panel { kind: 'redis' | 'mongodb'; group: string; store: string; title: string; sub: string; db: number | null; cards: Card[]; stepCount: number; total: number; keyCount: number; unreported: boolean; folded: boolean }
 
 /** A resource step's store key `mongodb:users-db/users` -> group `mongodb:users-db`, store name `users-db`, collection `users` (same rule as the flow view's `splitStore`). */
@@ -63,6 +64,10 @@ export const reasonText = (m: Message): string | null => {
   const all = list.length ? list : old;
   return all.length ? [...new Set(all.map(why))].join(', ') : null;
 };
+/** #108: a step on several keys (`keys[]`) is one row per key, each with that key's db, TTL, variants and reason (a step with one key or none is itself). */
+const perKey = (m: Message): Message[] => (m.keys && m.keys.length > 1
+  ? m.keys.map((k) => ({ ...m, keys: undefined, keyTemplate: k.keyTemplate, dbIndex: k.dbIndex ?? m.dbIndex, ttlSeconds: k.ttlSeconds ?? m.ttlSeconds, keyVariants: k.keyVariants, keyUnresolved: k.keyUnresolved as any }) as Message)
+  : [m]);
 function fieldsOf(msgs: Message[]): FieldGroup[] {
   const seen = new Set<string>(), by = new Map<string, FieldGroup>();
   for (const m of msgs) for (const f of (m.fields ?? []) as StepField[]) {
@@ -100,8 +105,8 @@ export function storePanel(trace: Trace, target: Target, { stepNo = (_m: Message
     const got = stepNo(m, i), n = got != null && typeof got === 'object' ? got.n : got, sub = got != null && typeof got === 'object' ? got.sub : undefined;
     if (n == null) return;
     // 0.43.2 (#88): a folded run (`*3 get, hget`) stands for its calls: each is a row of its own, shown as <run's step>.<k>
-    if (m.dbGroup?.calls?.length) m.dbGroup.calls.forEach((c, k) => { const mm = { ...m, ...c, dbGroup: undefined } as Message; if (storeOk(mm)) rows.push({ m: mm, n, sub: k + 1 }); });
-    else rows.push({ m, n, ...(sub ? { sub } : {}) });
+    if (m.dbGroup?.calls?.length) m.dbGroup.calls.forEach((c, k) => { for (const mm of perKey({ ...m, ...c, dbGroup: undefined } as Message)) if (storeOk(mm)) rows.push({ m: mm, n, sub: k + 1 }); });
+    else for (const mm of perKey(m)) rows.push({ m: mm, n, ...(sub ? { sub } : {}) });
   });
   if (!rows.length) return null;
   const { store } = storeParts(rows[0].m), kind = panelKind(rows[0].m)!, redis = kind === 'redis';
@@ -122,7 +127,7 @@ export function storePanel(trace: Trace, target: Target, { stepNo = (_m: Message
       ops.get(k)!.rows.push(r);
     }
     const reasons = [...new Set(c.rows.map((r) => reasonText(r.m)).filter((x): x is string => !!x))];
-    return { id, ...c.head, dbs: asc(c.rows.flatMap((r) => (r.m.dbIndex != null ? [r.m.dbIndex] : []))), ttl: { values: asc(c.rows.flatMap((r) => (r.m.ttlSeconds != null ? [r.m.ttlSeconds] : []))) },
+    return { id, ...c.head, variants: [...new Set(c.rows.flatMap((r) => r.m.keyVariants ?? []))], dbs: asc(c.rows.flatMap((r) => (r.m.dbIndex != null ? [r.m.dbIndex] : []))), ttl: { values: asc(c.rows.flatMap((r) => (r.m.ttlSeconds != null ? [r.m.ttlSeconds] : []))) },
       steps: asc(c.rows.map((r) => r.n)), reason: c.head.kind === 'unreported' ? reasons.join(', ') || null : null,
       ops: [...ops.values()].map((o) => ({ access: o.access, op: o.op, steps: asc(o.rows.map((r) => r.n)), chips: chipsOf(o.rows), fields: redis ? [] : fieldsOf(o.rows.map((r) => r.m)), links: linksOf(trace, o.rows) }))
         .sort((a, b) => a.steps[0] - b.steps[0]) };

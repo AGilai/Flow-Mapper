@@ -61,3 +61,5 @@
 .sp-ft { border-top: 1px solid var(--line); padding-top: var(--s3); display: grid; gap: 4px; }
 .sp-ft a.go { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; width: max-content; max-width: 100%; } .sp-ft a.go:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
 .sp-ft small { color: var(--muted); font-size: var(--fs-xs); }
+/* #108: the callers' other spellings of one key, under its header */
+.sp-k > .h .sp-kv { display: flex; flex-wrap: wrap; gap: 3px 6px; align-items: baseline; font-size: var(--fs-xs); color: var(--muted); } .sp-kv .v { font: 500 11px var(--mono); color: var(--ink-2); overflow-wrap: anywhere; }

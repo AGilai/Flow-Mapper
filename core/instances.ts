@@ -5,7 +5,7 @@
 // the entries pushed per instance (core/keys.ts), or the interim inline `details.keys`. Pure.
 
 import type { GraphIndex } from './graph-index.ts';
-import { sid } from './graph-index.ts'; import { keyTemplateOf } from './key-template.ts';
+import { sid } from './graph-index.ts'; import { keyUsesOf } from './key-template.ts';
 import { clientRows, type ClientRow } from './clients.ts';
 import { codeLink, type SourceLink } from './endpoint-info.ts';
 import { entryPointsReaching } from './reach.ts';
@@ -185,13 +185,13 @@ export function instanceView(g: GraphIndex, id: string, pushed: KeyEntry[] = [],
   };
 }
 
-/** Steps (function + seq) of the instance's resources that name a key template in `details.keyTemplate`. */
+/** Steps (function + seq) of the instance's resources that name a key template in `details.keyTemplate` or any `details.keys[]` entry. */
 function stepsByTemplate(g: GraphIndex, x: Group) {
   const ids = new Set(x.members.map((r) => sid(r.service, r.id)));
-  const by = new Map<string, { fn: Fn; step: Fn['steps'][number] }[]>();
+  const by = new Map<string, { fn: Fn; step: Fn['steps'][number]; dbIndex?: number; ttlSeconds?: number }[]>();
   for (const fn of g.model.functions) for (const step of fn.steps) {
-    const t = step.type === 'resource' && step.target && ids.has(sid(fn.service, step.target)) ? keyTemplateOf(step).key : undefined;
-    if (typeof t === 'string') (by.get(t) ?? by.set(t, []).get(t)!).push({ fn, step });
+    if (step.type !== 'resource' || !step.target || !ids.has(sid(fn.service, step.target))) continue;
+    for (const { keyTemplate: t, ...use } of keyUsesOf(step)) (by.get(t) ?? by.set(t, []).get(t)!).push({ fn, step, ...use }); // #108: through any of the step's keys
   }
   return by;
 }
@@ -227,10 +227,8 @@ export function keyFlows(g: GraphIndex, key: string, templates: { keyTemplate: s
   const steps = stepsByTemplate(g, x);
   for (const { keyTemplate, dbIndex } of templates) {
     const flows: KeyFlow[] = [];
-    for (const { fn, step } of steps.get(keyTemplate) ?? []) {
-      const sdb = (step.details as any)?.dbIndex;
+    for (const { fn, step, dbIndex: sdb, ttlSeconds: ttl } of steps.get(keyTemplate) ?? []) {
       if (dbIndex != null && Number.isInteger(sdb) && sdb !== dbIndex) continue;
-      const ttl = (step.details as any)?.ttlSeconds;
       for (const hit of entryPointsReaching(g, [{ service: fn.service, fn: fn.id }])) {
         const chain = hit.service === fn.service ? chainTo(g, hit.service, hit.ingress, fn.id) : [];
         flows.push({

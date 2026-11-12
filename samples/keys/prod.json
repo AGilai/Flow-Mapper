@@ -41,6 +41,16 @@
         { "keyTemplate": "session:{token}", "dbIndex": 0, "service": "auth-svc", "access": "read", "commands": ["GET"], "opsPerHour": 52000 },
         { "keyTemplate": "rl:{key}", "dbIndex": 0, "service": "reports-api", "access": "read_write", "commands": ["INCR", "EXPIRE"], "opsPerHour": 14000, "ttlSeconds": 60 }
       ]
+    },
+    {
+      "instance": "redis:p81-sessions",
+      "producer": "redis-key-harvester",
+      "keys": [
+        { "keyTemplate": "session:{sessionId}", "dbIndex": 1, "service": "session-gateway", "access": "read_write", "commands": ["GET", "DEL"], "opsPerHour": 9000, "ttlSeconds": 1800 },
+        { "keyTemplate": "auth:access:{userId}", "dbIndex": 1, "service": "session-gateway", "access": "write", "commands": ["DEL"], "opsPerHour": 800 },
+        { "keyTemplate": "auth:refresh:{userId}", "dbIndex": 1, "service": "session-gateway", "access": "write", "commands": ["DEL"], "opsPerHour": 800 },
+        { "keyTemplate": "auth:tcp:{userId}", "dbIndex": 2, "service": "session-gateway", "access": "write", "commands": ["DEL"], "opsPerHour": 800 }
+      ]
     }
   ]
 }

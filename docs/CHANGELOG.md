@@ -5,6 +5,10 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## 0.50.2 (2026-11-12)
+
+- Redis steps on several keys (#108, additive): `details.keys: [{keyIdx, keyTemplate?, dbIndex?, ttlSeconds?, keyVariants?, keyUnresolved?}]` in key order, and `details.keyVariants: string[]` (the callers' spellings of one canonical key; also per entry). `GET /trace` and MCP `trace_flow` messages carry `keys` and `keyVariants`; `keyTemplate`, `dbIndex`, `ttlSeconds`, `keyUnresolved` are filled from `keys[0]` when only `keys[]` is sent. The instance page matches flows through any `keys[]` entry. The interim `multi_key` unresolved is dropped from the message once `keys[]` names the keys; it was never a Link health gap (`what: detail` is not counted). The step Info panel shows each key (own card, registry row) and its variants. Details in API.md "Key fields on resource steps".
+
 ## 0.50.1 (2026-11-12)
 
 - Flow tab (UI, #107): the component heads (and the subsystem and sub-subsystem band rows) stay pinned at the top of the diagram while it scrolls, at normal zoom whatever the height of the header above, and in Maximize. Only a zoomed-in head taller than 60% of the view still scrolls away.

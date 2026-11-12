@@ -9,6 +9,14 @@ import { runCardModel } from '../../core/db-run.js';
 const web = (u) => (/^https?:\/\//i.test(u ?? '') ? u : null);
 const ACC = { read: 'read', write: 'write', read_write: 'read and write' };
 
+/** #108: the keys of one call (`keys[]` in key order), each with its db, TTL, why it is unknown and the callers' spellings (`keyVariants`). `step`: the db and TTL the step itself names (a key without its own has them). `bare`: one key, already shown in the head, so only its variants. */
+function keyList(keys, bare = false, step = {}) {
+  return h('ul.dc-keys', { 'data-qa': 'call-keys' }, keys.map((k) => h('li', { 'data-key-idx': k.keyIdx },
+    bare ? null : h('span.mono.dc-key', k.keyTemplate ?? h('i.muted', `key not reported${k.keyUnresolved?.length ? ` (${k.keyUnresolved.join(', ')})` : ''}`)),
+    bare ? null : [(k.dbIndex ?? step.dbIndex) != null ? h('span.muted.small', ` db ${k.dbIndex ?? step.dbIndex}`) : null, (k.ttlSeconds ?? step.ttlSeconds) != null ? h('span.muted.small', ` TTL ${humanTtl(k.ttlSeconds ?? step.ttlSeconds)}`) : null],
+    k.keyVariants?.length ? h('div.dc-kv.small', h('span.muted', 'also spelled '), k.keyVariants.map((v) => h('span.mono.v', v))) : null)));
+}
+
 /**
  * callsCard(m, trace, { n, expand(k) }) -> the section. n: the step the node is drawn as (null: not numbered); expand(k): open the run and go to its k-th call (1-based).
  * Each call is the fields of its own message (`m.dbGroup.calls`), so a harvester that sent no key template shows "key not reported" with the reason when there is one.
@@ -19,11 +27,14 @@ export function callsCard(m, trace, { n = null, expand = null } = {}) {
     const at = c.stepId ? trace.code?.[`step:${c.stepId}`] : null, loc = at?.file ? `${at.file}${at.line ? `:${at.line}` : ''}` : null, url = web(at?.url);
     const why = reasonText(c), key = c.keyTemplate ?? null;
     const no = n != null ? `${n}.${i + 1}` : String(i + 1);
-    const meta = [c.dbIndex != null ? h('span', 'db ', h('b', String(c.dbIndex))) : null, c.ttlSeconds != null ? h('span', 'TTL ', h('b', humanTtl(c.ttlSeconds))) : null, ACC[c.access] ? h('span', ACC[c.access]) : null].filter(Boolean);
+    const multi = c.keys?.length > 1, own = c.keys?.[0] ?? {}; // multi: each key shows its own db and TTL, so the head does not
+    const step = multi ? { dbIndex: own.dbIndex == null ? c.dbIndex : undefined, ttlSeconds: own.ttlSeconds == null ? c.ttlSeconds : undefined } : {};
+    const meta = [!multi && c.dbIndex != null ? h('span', 'db ', h('b', String(c.dbIndex))) : null, !multi && c.ttlSeconds != null ? h('span', 'TTL ', h('b', humanTtl(c.ttlSeconds))) : null, ACC[c.access] ? h('span', ACC[c.access]) : null].filter(Boolean);
     return h('li.dc-row', { 'data-call': i + 1 },
       expand ? h('button.dc-no', { type: 'button', title: `Open the run and go to call ${no}`, 'aria-label': `Go to call ${no}, ${c.label}`, on: { click: () => expand(i + 1) } }, no) : h('span.dc-no', no),
       h('div.dc-b',
-        h('div.dc-h', h('b.mono', c.label), key ? h('span.mono.dc-key', key) : h('span.muted.small', why ? `key not reported (${why})` : 'key not reported')),
+        h('div.dc-h', h('b.mono', c.label), c.keys?.length > 1 ? h('span.muted.small', `${c.keys.length} keys`) : key ? h('span.mono.dc-key', key) : h('span.muted.small', why ? `key not reported (${why})` : 'key not reported')),
+        multi ? keyList(c.keys, false, step) : c.keyVariants?.length ? keyList([{ keyTemplate: key, keyVariants: c.keyVariants }], true) : null,
         meta.length ? h('div.dc-m.small.muted', ...meta.flatMap((x, k) => (k ? [' · ', x] : [x]))) : null,
         c.onlyWhen?.guard ? h('div.dc-g.small', h('span.muted', 'only when '), c.onlyWhen.guard) : null,
         loc ? h('div.dc-l.small', url ? h('a.ep-link-inline', { href: url, target: '_blank', rel: 'noopener noreferrer', title: url }, h('span.key', loc), ' ', icon('external')) : h('span.key', loc)) : null));

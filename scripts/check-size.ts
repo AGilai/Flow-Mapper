@@ -14,7 +14,7 @@ export const ALLOWLIST: Record<string, number> = {
   'core/trace.ts': 374,
   'core/channel-flow.ts': 286,
   'core/events.ts': 269,
-  'core/instances.ts': 266,
+  'core/instances.ts': 264,
 };
 
 function* walk(dir: string): Generator<string> {

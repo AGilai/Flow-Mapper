@@ -8,7 +8,7 @@
     "team": "identity",
     "repo": "github.com/acme/session-gateway",
     "language": "typescript",
-    "description": "Validates a session against Redis (demo of merged store calls, #88)"
+    "description": "Validates a session against Redis (demo of merged store calls, #88) and revokes it (demo of multi-key Redis steps, #108)"
   },
   "version": 1,
   "harvestedAt": "2026-10-25T16:00:00Z",
@@ -680,6 +680,83 @@
           ]
         }
       ]
+    },
+    {
+      "id": "SessionController.revoke",
+      "name": "SessionController.revoke",
+      "file": "src/SessionController.ts",
+      "line": 60,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "cache",
+          "operation": "get",
+          "access": "read",
+          "source": {
+            "file": "src/SessionController.ts",
+            "line": 64
+          },
+          "details": {
+            "keyTemplate": "session:{sessionId}",
+            "dbIndex": 1,
+            "keyVariants": [
+              "session:${id}",
+              "sess:{sessionId}"
+            ]
+          }
+        },
+        {
+          "seq": 2,
+          "type": "resource",
+          "target": "cache",
+          "operation": "del",
+          "access": "write",
+          "source": {
+            "file": "src/SessionController.ts",
+            "line": 71
+          },
+          "details": {
+            "dbIndex": 1,
+            "keys": [
+              {
+                "keyIdx": 0,
+                "keyTemplate": "session:{sessionId}",
+                "keyVariants": [
+                  "session:${id}",
+                  "sess:{sessionId}"
+                ]
+              },
+              {
+                "keyIdx": 1,
+                "keyTemplate": "auth:access:{userId}"
+              },
+              {
+                "keyIdx": 2,
+                "keyTemplate": "auth:refresh:{userId}"
+              },
+              {
+                "keyIdx": 3,
+                "keyTemplate": "auth:tcp:{userId}",
+                "dbIndex": 2
+              }
+            ]
+          },
+          "unresolved": [
+            {
+              "what": "detail",
+              "detail": "details.keyTemplate",
+              "reason": "multi_key",
+              "candidates": [
+                "session:{sessionId}",
+                "auth:access:{userId}",
+                "auth:refresh:{userId}",
+                "auth:tcp:{userId}"
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "ingress": [
@@ -692,6 +769,17 @@
       "details": {
         "method": "POST",
         "path": "/api/v1/session/validate"
+      }
+    },
+    {
+      "id": "in.revoke",
+      "bindKey": "http:DELETE session-gateway/api/v1/session",
+      "transport": "http",
+      "handler": "SessionController.revoke",
+      "entryPoint": true,
+      "details": {
+        "method": "DELETE",
+        "path": "/api/v1/session"
       }
     }
   ],

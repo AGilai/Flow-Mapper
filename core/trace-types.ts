@@ -1,5 +1,6 @@
 // The shapes of a trace (moved out of trace.ts in 0.37.0, #82; trace.ts re-exports them).
 
+import type { KeyRef } from './key-template.ts';
 import type { CanFail, OnlyWhen } from './step-marks.ts';
 import type { Alt } from './alt.ts';
 import type { SourceLink } from './endpoint-info.ts';
@@ -40,7 +41,7 @@ export interface Message {
   origin?: 'frontier';                                       // a step the harvester marked as frontier (shown because the trace was asked to expand them)
   frontierSteps?: number;                                    // on a kind 'frontier' marker: frontier steps folded into it (this function's and those of the frontier calls below it)
   assumed?: { field: string; value: unknown; basis: string; reason: string }[]; // #47: details of a resource step the harvester filled by a rule
-  keyTemplate?: string; dbIndex?: number; ttlSeconds?: number; keyUnresolved?: string[]; // #86, on a resource step: the key (details.keyTemplate, else keyPattern), db, TTL; the reasons when the key is `{unresolved:...}`
+  keyTemplate?: string; dbIndex?: number; ttlSeconds?: number; keyUnresolved?: string[]; keyVariants?: string[]; keys?: KeyRef[]; // #108: keyVariants (the callers' spellings of the key), keys[] on a step touching several keys (singular fields come from keys[0] when only keys[] was sent). #86, on a resource step: the key (details.keyTemplate, else keyPattern), db, TTL; the reasons when the key is `{unresolved:...}`
   unknown?: { field: string; reason: string }[];           // on a resource step: details the harvester could not read (`unresolved` what=detail: keyTemplate, dbIndex, ttlSeconds) and why
   push?: true;                                               // #99: a socket push into a client app (the trace ends there; no handler runs)
   gap?: Unresolved;                                          // the harvester could not resolve this call; why
@@ -80,7 +81,7 @@ export interface HopFilter { id: string; service: string; from: string; events?:
 export interface DbGroup { count: number; collections: string[]; access: 'read' | 'write' | 'read_write' | 'unknown'; members: string[];
   /** 0.43.2 (#88): the member calls, in order, each as the fields of its own message that the Info pane and the store panel read (`label` is the operation). */
   calls?: DbCall[] }
-export type DbCall = Pick<Message, 'label' | 'store'> & Partial<Pick<Message, 'key' | 'access' | 'stepId' | 'service' | 'fn' | 'seq' | 'keyTemplate' | 'dbIndex' | 'ttlSeconds' | 'keyUnresolved' | 'unknown' | 'fields' | 'onlyWhen' | 'canFail'>>
+export type DbCall = Pick<Message, 'label' | 'store'> & Partial<Pick<Message, 'key' | 'access' | 'stepId' | 'service' | 'fn' | 'seq' | 'keyTemplate' | 'dbIndex' | 'ttlSeconds' | 'keyUnresolved' | 'keyVariants' | 'keys' | 'unknown' | 'fields' | 'onlyWhen' | 'canFail'>>
 /** 0.37.0: one either/or decision of a flow. `name` is `llm_name` when there is one, else the template name (`template_name`). `parent`: the arm of another decision it sits in. `lock`: every place that reaches it fixes the same arm (`at` = the first fixing step, `<service>:<fn>#<seq>`); `lock_places` when only some places fix it. */
 export interface Decision {
   group_id: string; /** 0.38.2: 'alt' on a decision made from an alt frame (altGroup, file:line or design frame); its arms are `b1..bN`. */ from?: 'alt'; name?: string; template_name?: string; llm_name?: string | null; depends_on?: 'data' | 'message'; guard?: { text?: string; file?: string; line?: number };
