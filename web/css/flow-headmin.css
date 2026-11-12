@@ -19,17 +19,15 @@
 .hs-show:focus-visible, .hs-min:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
 .head-strip.no-steps .hs-nav { display: none; }
 /* Maximized: the bar above already has the env colour and the name, so the strip keeps the step nav, the badge and the way back. It sticks under the bar where the step bar does. */
-body.is-max .flow-tab.head-min > .head-strip { order: -2; position: sticky; top: 49px; z-index: 4; box-shadow: none; }
+body.is-max .flow-tab.head-min > .head-strip { order: -2; box-shadow: none; }
 body.is-max .head-strip .hs-id { display: none; }
 body.is-max .flow-tab.head-min > .flow-top { display: none; }
 @media (max-width: 760px) {
   .flow-tab.head-min > .head-strip { padding: 0 var(--s3); gap: var(--s2); }
   .hs-sub { display: none; }
-  body.is-max .flow-tab.head-min > .head-strip { top: 45px; }
 }
 /* the freed height goes to the diagram, not to the bottom pane: while minimized an unsized pane stops at a fifth of the window (it is 40vh otherwise; dragging its border still sets any height) */
 .flow-tab.head-min > .flow-bottom:not(.sized):not(.collapsed) { max-height: 20vh; }
-body.is-max .flow-tab.head-min > .flow-bottom:not(.sized):not(.collapsed) { max-height: none; }
 
 /* Round 2: minimized, the page head, the view toolbar and the Harvested line leave too; only the tab row and the strip stay over the diagram. The toolbar lives in the View popover (flow-headmin-pop.js). */
 body.head-min .main:has(.flows .tab-slot) > .page-head, body.head-min .flows-main:has(.tab-slot) > .seq-toolbar, body.head-min .flows-main:has(.tab-slot) > .pen-hint { display: none; } /* only with a tab open: the empty state has no strip to open the toolbar from */

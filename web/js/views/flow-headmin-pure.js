@@ -20,10 +20,10 @@ export function headKeyAction(e, { dialogOpen = false } = {}) {
 export const stepShort = (n, total) => `${n >= 1 ? n : '–'}/${total}`;
 export const stepWords = (n, total) => (n >= 1 ? `Step ${n} of ${total}` : `${total} steps, none chosen`);
 
-/** The pinned component heads scroll away with the diagram only for a genuinely huge zoomed head: zoomed in (factor > 1) and taller than 60% of the scroller.
+/** The pinned component heads scroll away with the diagram only for a genuinely huge zoomed head: zoomed in (factor > 1) and so tall that less than 80px of diagram would be left under it.
  *  At normal zoom they always stay pinned, however short the scroller is (a tall header above it used to push every head past the old 35% line). */
-export const LOOSE_SHARE = 0.6;
-export const looseHead = ({ headH, viewH, zoom = 1 }) => zoom > 1 && headH > viewH * LOOSE_SHARE;
+export const LOOSE_ROOM = 80;
+export const looseHead = ({ headH, viewH, zoom = 1 }) => zoom > 1 && viewH - headH < LOOSE_ROOM;
 
 /** Where the View popover goes (round 2): under its button, right edges level, at most 560px wide, always inside the window (8px margin). */
 export function popPlace({ rect, vw, vh, max = 560, gap = 4, margin = 8 }) {

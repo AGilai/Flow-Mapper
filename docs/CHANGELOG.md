@@ -8,6 +8,7 @@ in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.m
 ## 0.50.3 (2026-11-12)
 
 - Flow tab (UI, #106 round 2): with the header minimized the page head, the view toolbar and the "Harvested" line are hidden too, so the diagram starts right under the tab row and the strip; the toolbar opens from a "View" button on the strip (a popover). The page-head environment chip stays on one line.
+- Flow tab (UI, #107 round 2, #110): the diagram box always fits the window, in the normal view and in Maximize: it is what is left under the header box (45% of the tab at most, it scrolls inside) and above the pane (28% of the window at most), and it owns both scrollbars, so the horizontal one is always in view and the component heads stay pinned while the steps scroll under them. Maximize is the same layout (the tab no longer scrolls). The Notes pane in Maximize still fills the window.
 
 ## 0.50.2 (2026-11-12)
 

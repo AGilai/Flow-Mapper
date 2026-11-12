@@ -36,11 +36,11 @@ test('the strip step nav reads "2/44" and says "Step 2 of 44" to a screen reader
   assert.equal(P.stepWords(2, 44), 'Step 2 of 44'); assert.equal(P.stepWords(0, 44), '44 steps, none chosen');
 });
 
-test('#107 a head goes loose only when zoomed in and taller than 60% of the view: a normal head on a short scroller stays pinned', () => {
-  assert.equal(P.looseHead({ headH: 182, viewH: 260, zoom: 1 }), false, 'the bug: 182 of 260 is 70%, the old 35% line made it scroll away');
+test('#107 a head goes loose only when zoomed in and taller than 80% of the view: a normal head on a short scroller stays pinned', () => {
+  assert.equal(P.looseHead({ headH: 182, viewH: 260, zoom: 1 }), false, 'the bug: 182 of 260 made the old 35% line scroll the head away');
   assert.equal(P.looseHead({ headH: 250, viewH: 260, zoom: 1 }), false, 'normal zoom is never loose');
-  assert.equal(P.looseHead({ headH: 180, viewH: 300, zoom: 1.5 }), false, 'zoomed, but 60% exactly is not over the line');
-  assert.equal(P.looseHead({ headH: 181, viewH: 300, zoom: 1.5 }), true);
+  assert.equal(P.looseHead({ headH: 220, viewH: 300, zoom: 1.5 }), false, '80px of diagram left is enough');
+  assert.equal(P.looseHead({ headH: 221, viewH: 300, zoom: 1.5 }), true);
   assert.equal(P.looseHead({ headH: 400, viewH: 300, zoom: 0.5 }), false, 'zoomed out: pinned');
   assert.equal(P.looseHead({ headH: 400, viewH: 300 }), false, 'no zoom given: pinned');
 });
@@ -63,5 +63,4 @@ test('wiring: loose() uses the pure rule, the strip sits before the header box, 
   assert.match(css, /--ec/, 'the env colour cue');
   assert.doesNotMatch(css, /:\s*[^;{]*#[0-9a-fA-F]{3,8}\b[^;{]*;/, 'tokens only');
   assert.match(src('index.html'), /css\/flow-headmin\.css/);
-  assert.match(src('css/flow-max.css'), /body\.is-max \.seq-scroll \{ height: calc\(100vh - var\(--max-stick/, 'the diagram scrolls inside its box, so the heads stay pinned');
 });

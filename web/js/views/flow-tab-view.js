@@ -119,11 +119,10 @@ export function createTabView(data, host) {
   const onLayout = () => { pane?.refit(); if (!render) return; if (scroller.clientWidth > 0) { render.relane(); edge(); } else sized = false; };
   document.addEventListener('fm:layout', onLayout);
   // ---- zoom (0.30.3, #69): the lane SVGs change size, nothing is laid out again; a point under the pointer stays under it ----
-  const maxed = () => document.body.classList.contains('is-max');
   const zctl = createZoomControl({ onZoom: (v) => setZoom(v) });
   const loose = () => { const sk = scroller.querySelector('.seq-sticky'); scroller.classList.toggle('zoom-loose', !!sk && looseHead({ headH: sk.offsetHeight, viewH: scroller.clientHeight, zoom: factor })); }; // only a huge zoomed head (> 60% of the view, zoom > 1) scrolls away with the diagram; #107: at normal zoom the heads stay pinned
   function recompute() {
-    const nat = naturalSize(render?.laneBox), fitS = nat ? fitScale({ ...nat, vw: scroller.clientWidth - (brackets?.width() ?? 0), vh: maxed() ? innerHeight - 130 : scroller.clientHeight }) : null;
+    const nat = naturalSize(render?.laneBox), fitS = nat ? fitScale({ ...nat, vw: scroller.clientWidth - (brackets?.width() ?? 0), vh: scroller.clientHeight }) : null;
     factor = scaleOf(zoomV, fitS);
     applyScale(scroller, factor);
     loose();
@@ -133,7 +132,7 @@ export function createTabView(data, host) {
   }
   function setZoom(v, at = null) {
     const before = factor, svg = scroller.querySelector('svg.seq-body'), r0 = svg?.getBoundingClientRect(), vs = scroller.getBoundingClientRect();
-    const p = at ?? { x: vs.left + vs.width / 2, y: maxed() ? innerHeight / 2 : vs.top + vs.height / 2 }; // buttons and the box zoom around the middle of the view
+    const p = at ?? { x: vs.left + vs.width / 2, y: vs.top + vs.height / 2 }; // buttons and the box zoom around the middle of the view
     zoomV = v === 'fit' ? 'fit' : clampRange(v);
     recompute();
     host.setZoom?.(key, zoomV);
