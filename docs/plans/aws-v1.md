@@ -57,7 +57,9 @@ Target 0.52.0 for the server parts. Infrastructure lives in `infra/` and ships w
   - CloudFront distribution:
     - caching disabled for `/api/*`, `/mcp` and `/auth/*`;
     - static `web/` cached;
-    - SSE (`/api/events`) passes through.
+    - SSE (`/api/events`) passes through;
+    - the origin is the public DNS name of an Elastic IP, so a nightly instance stop/start keeps working;
+    - a secret custom origin header `X-Flows-Origin` (stack parameter `OriginSecret`). Part C: the app rejects requests without it.
   - Cognito user pool, app client (code + PKCE, callback `https://<cf-domain>/auth/callback`) and hosted UI domain prefix.
   - Optional Route 53 record and ACM certificate when `DomainName` is given.
 - Parameters:

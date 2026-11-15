@@ -35,6 +35,7 @@ Static preview of the UI with bundled data (no server): `npm run preview`, then 
 | `docs/DESIGN.md` | Model, bind keys and wildcards, versions/deltas, environments, link health, bugs, views |
 | `docs/API.md` | REST, ingest error codes, bug workflow, MCP tools |
 | `docs/ARCHITECTURE.md` | Code map, request path, conventions |
+| `docs/OPERATIONS.md` | Running it on AWS: settings, install, upgrade, backups and restore, logs, cost (`deploy/`, `infra/`) |
 | `schema/manifest.schema.json` | Harvester manifest (full and delta) |
 | `samples/` | Example manifests with planted problems, plus a delta |
 | `core/` `server/` `web/` | Shared graph logic, server, UI |
