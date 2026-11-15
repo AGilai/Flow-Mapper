@@ -44,6 +44,17 @@ Tools in order. `*` = required argument; **every tool that takes `env` requires 
 7. Share: `share_env {env*, members: [{user, role: "viewer"|"editor"}], published}` (owner or admin; designs start
    private). `list_users` finds people; `whoami` says who you act as.
 
+Write the **design doc** first, then the flows. The design doc is the environment's HLD document (purpose, subsystems, key
+decisions, open questions): `set_notes {env*, doc: "env", body*, base_version?, author?}` (no `service`/`ingress`), read back
+with `get_notes {env*, doc: "env"}`. Each flow's own document is `set_notes {env*, service*, ingress*, body*}`. Both take
+Markdown-lite (in the design doc `#` is a title) or HTML; read `get_notes` first and send the whole document back (a stale
+`base_version` is refused as `STALE_NOTES`). Document HTML: `<h1>`-`<h3>`, lists, tables, `<pre data-mermaid>source</pre>`,
+link chips `<span data-ref="svc:orders-svc">orders-svc</span>` (also `flow:<service>/<ingress>`, `step:<service>/<ingress>#<n>`),
+and, in a **flow doc**, callouts tied to one step that show as a badge on that step of the diagram:
+`<div data-callout="key|watch|risk" data-step="2"><p>Why it matters</p></div>` (`key` = Key step, `watch` = something to look
+at, `risk` = something that can go wrong). Same access as other annotations: a design needs editor rights, a sealed env takes it
+from any reader, a hidden env is 404.
+
 Design in passes: subsystems and components first, then channels and flows, then the LLD. Record what you do not know
 with `set_notes` / `add_comment` / `add_action_item` instead of guessing. Check yourself with `link_health` (dangling
 calls, orphan endpoints) and `list_open_questions`.

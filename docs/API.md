@@ -696,7 +696,7 @@ Every Save is a new version; the latest is current; a restore writes a new versi
 - **Mentions.** A `@[userId]` in the **current** version counts on the Mentions page "in Notes": `GET /api/mentions` and `list_mentions` also return `notes: [{env, anchor, service, ingress, label, text}]` (never unread, like `about`).
 - **Copy.** A Full copy carries the notes with their whole history; Blank and Components copies do not. Deleting a design environment deletes its notes.
 - **Events:** `notes.updated` (`env`, `data {anchor, version, author, text, restoredFrom?}`).
-- **MCP.** `get_notes {env, service, ingress, version?, history?}` returns `{anchor, version, author, authorId, createdAt, restoredFrom, text, html, history?}`; `set_notes {env, service, ingress, body, base_version?, author?, draft?}` writes a new version (`body`: Markdown-lite with `#`/`##`/`###` headings, or HTML) and returns `{anchor, version, author, createdAt, unchanged?}`.
+- **MCP.** `get_notes {env, service, ingress | doc: "env", version?, history?}` returns `{anchor, version, author, authorId, createdAt, restoredFrom, text, html, history?}`; `set_notes {env, service, ingress | doc: "env", body, base_version?, author?, draft?}` writes a new version (`body`: Markdown-lite with `#`/`##`/`###` headings, or HTML) and returns `{anchor, version, author, createdAt, unchanged?}`.
 - **Preview.** The static preview bundles the seeded notes (every version) and keeps what the viewer saves in memory.
 
 ### Step ranges on comments (0.34.0)

@@ -17,7 +17,7 @@ import { renderChips } from '../users/chips.js';
 export function createHistory({ env, anchor, current, onBack, onRestored, canRestore = true }) {
   let list = null, pick = current, mode = 'changes', alive = true, token = 0;
   const side = h('div.nt-hl', { role: 'listbox', 'aria-label': 'Versions' }), main = h('div.nt-hd');
-  const back = h('button.nt-back', { type: 'button', 'data-qa': 'nt-back', on: { click: () => onBack?.() } }, '← Back to notes');
+  const back = h('button.nt-back', { type: 'button', 'data-qa': 'nt-back', on: { click: () => onBack?.() } }, anchor === 'env' ? '← Back to the design doc' : '← Back to notes');
   const el = h('div.nt-hist', { 'data-qa': 'notes-history' }, back, h('div.nt-hcols', side, main));
 
   const block = (op) => renderChips(h('div.nt-blk.cm-body', { class: op.op, html: sanitize(op.html, { notes: true }) }));

@@ -56,6 +56,23 @@ Stop at what you would put in a design review; leave algorithms to code. State a
 call; an error lists every bad op by index). 4. `draft_changes`, `link_health {draft}`, `export_mermaid {draft}`: fix,
 repeat. 5. `apply_draft {dryRun: true}`, then `apply_draft`. 6. `share_env`.
 
+**Write the design doc first, then the flows.** Before the draft, `set_notes {env, doc: "env", body}` records the HLD in
+words: the purpose, the subsystems and why they are cut that way, the decisions, the open questions (`get_notes {env, doc:
+"env"}` reads it back; `base_version` guards a concurrent save). `body` is Markdown-lite (`#` title, `##`, `###`, `- ` lists) or
+HTML including `<pre data-mermaid>` and link chips `<span data-ref="svc:orders-svc">orders-svc</span>` that open a service or
+flow. After the flows are in, give each important flow its own document (`set_notes {env, service, ingress, body}`) and tie
+the points that matter to steps with callouts, which the diagram shows as ★ (key) and ! (watch, risk) badges:
+
+```html
+<h2>Purpose</h2><p>Places an order and reserves stock.</p>
+<div data-callout="key" data-step="1"><p>The only place an order is created.</p></div>
+<div data-callout="watch" data-step="2"><p>Stock reservation is synchronous: inventory-svc latency is our latency.</p></div>
+<div data-callout="risk" data-step="3"><p>If the queue publish fails after the commit, the email is lost.</p></div>
+```
+
+A callout names one step (`data-step="N"`, a whole number) and is a top-level block, one point per callout; a step with several
+shows one badge.
+
 Open questions have two homes. Flow-level: `set_notes {env, service, ingress, body}` (`body` is the whole Notes document; it
 replaces the last version, read `get_notes` first), `add_comment {env, service, ingress, body}`, `add_action_item {env, service,
 ingress, owner, description}`. Component-level: a `## Open questions` list inside the component's `about` (`edit_design`
