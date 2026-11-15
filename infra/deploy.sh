@@ -93,7 +93,7 @@ INST=$(aws cloudformation describe-stacks --region "$REGION" --stack-name "$STAC
 echo
 echo "ACCESS BEFORE PART C: the app has no login of its own yet."
 if [ "$OPEN" = 1 ]; then
-  echo "  The site is OPEN: anyone with the Url can read and change everything. Redeploy without --open to add the gate."
+  echo "  No CloudFront gate. With FLOW_AUTH=cognito the app asks for a login (API: 401 without a session or token); with FLOW_AUTH=off the site is OPEN to anyone with the Url. Redeploy without --open to add the gate."
 elif [ -n "$GATEPW" ]; then
   echo "  The site asks for HTTP basic auth: user  flows  password  $GATEPW  (keep it; it is not shown again)."
 else
