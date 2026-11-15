@@ -42,8 +42,8 @@ import { createToolbar } from './flow-toolbar.js';
 import { createViewMenu } from './flow-view-menu.js';
 import { levelOf } from './flow-levels.js';
 import { decodeHints, encodeHints, hintsDefault } from './flow-hints-pure.js';
-import { sqStored, bandStored, bandSave, sqSave, detailStored, mergeStored, mergeSave } from './flow-prefs.js';
-import { createScenarios } from './flow-scenario-state.js';
+import { sqStored, bandStored, bandSave, sqSave, detailStored, mergeStored, mergeSave } from './flow-prefs.js'; import { createScenarios } from './flow-scenario-state.js';
+import { createDock } from '../notes/dock.js';
 
 export async function render({ main, query }) {
   const marks = await loadMarks(); // the marks of a design environment (sparks on heads and arrows, the removed list; a mark on each entry point)
@@ -78,7 +78,7 @@ export async function render({ main, query }) {
   const list = createList({ env: state.env, points, counts, cmts, acts, ments, relBy, service, groupOf, groups: metaOf(state.envMeta, state.env).groups ?? [], marks, design: isDesign(), query, onPick: (p) => pick(entryOf({ service: p.service, ingress: p.id })), onPickTab: (p) => addTab(entryOf({ service: p.service, ingress: p.id })),
     onAll: () => { const u = T.encodeUrl(S, state.env); go('/flows', { tabs: u.tabs, tab: u.tab }); },
     onCollapse: (c) => flowsEl.classList.toggle('list-c', c) });
-  const flowsEl = h('div.flows', list.el, rightEl);
+  const flowsEl = h('div.flows', list.el, rightEl); const dock = createDock({ host: rightEl, env: state.env, panel }); // Unreleased (frame 28e): the design doc beside the work
   flowsEl.classList.toggle('list-c', list.collapsed()); watchPane(flowsEl, list.setPane); // the list steps back to its vertical strip while a pane is open (0.53.1, and the frame 28 shots); it returns to its own state when the pane closes
   resizer(list.el, { edge: 'right', key: 'flows-list', defaultWidth: 300, label: 'Resize entry point list',
     width: () => list.el.offsetWidth, apply: (px) => flowsEl.style.setProperty('--list-w', `${px}px`) });
@@ -114,12 +114,12 @@ export async function render({ main, query }) {
   const strip = createTabStrip({ end: pillSlot,
     renameOf: (k) => { const r = T.flowRoot(k); return r && envOfTab(k) === state.env && !gone(state.env) ? (ctxOf(k)?.nameOf(r.service, r.ingress) || '') : null; }, // a tab of another env is read only
     onRename: (k, name) => { const r = T.flowRoot(k); if (r) saveName(r, ctxOf(k)?.nameOf(r.service, r.ingress) || '', name); },
-    aboutOf: (k) => !!views.get(k)?.about, onAbout: about.open,
+    aboutOf: (k) => !!views.get(k)?.about, onAbout: about.open, docOf: (k) => !!views.get(k)?.about,
     describe: (k) => ctxOf(k)?.data.describe(k) ?? goneDescribe(k), chip: (k) => chips.get(k) ?? null, onActivate: (k) => commit(T.activate(S, k)), onClose: (k) => commit(T.closeTab(S, k)),
     onCloseOthers: (k) => commit(T.closeOthers(S, k)), onCloseAll: () => commit(T.closeAll(S)), envVars: (k) => (gone(envOfTab(k)) ? { '--ec': 'var(--muted)', '--ei': 'var(--ink-2)' } : envVars(state.envMeta, envOfTab(k))) });
   const flowLabel = () => { const r = S.active && T.flowRoot(S.active); return r ? ctxOf(S.active)?.nameOf(r.service, r.ingress) || `${r.service} · ${r.ingress}` : ''; }; const renderStrip = () => { chips = tabChips(S.keys); strip.render(S); list.setLabel(flowLabel()); }; if (urlCount > T.TAB_CAP) toast(`The link had ${urlCount} tabs. Opened ${T.TAB_CAP}: the limit.`, 5000);
   const empty = h('div.emptyst', h('div.emptyst-i', enterIcon()), h('h3', 'Pick an entry point'), h('p.muted', 'Pick a flow in the list. Click opens it here; "Tab" opens it next to the others.'));
-  mainPane.append(strip.el, toolbar.el, toolbar.below, empty); // frame 28: row 1 the tabs, row 2 the toolbar, then the draft bar (Edit) and the flow
+  mainPane.append(strip.el, toolbar.el, toolbar.below, empty); strip.el.append(dock.button); // frame 28: row 1 the tabs, row 2 the toolbar, then the draft bar (Edit) and the flow
   let level = -1; // the width level of the main column (flow-levels.js): classes lv0..lv3 on the column, the tab row follows
   const setLevel = () => { const n = levelOf(mainPane.clientWidth); if (n === level) return; level = n; mainPane.classList.remove('lv0', 'lv1', 'lv2', 'lv3'); mainPane.classList.add(`lv${n}`); strip.setLevel(n); };
   const unLevel = typeof ResizeObserver === 'function' ? new ResizeObserver(setLevel) : null; unLevel?.observe(mainPane); setLevel();
@@ -246,5 +246,5 @@ export async function render({ main, query }) {
   host.pen.resume();
   pane.restore(query);
   if (maxFromQuery(query) && S.keys.length) max.set(true, { fullscreen: false, url: false }); // a link or reload opens maximized (window-filling only)
-  return { designHost: { pill: pillSlot, mode: toolbar.modeSlot, below: toolbar.below }, dispose: () => { disposed = true; removeEventListener('keydown', onKey); unLevel?.disconnect(); about.close(); viewMenu.close(); max.dispose(); strip.closeMenu(); panel.dispose(); views.forEach((v) => v.dispose()); } };
+  return { designHost: { pill: pillSlot, mode: toolbar.modeSlot, below: toolbar.below }, dispose: () => { disposed = true; dock.dispose(); removeEventListener('keydown', onKey); unLevel?.disconnect(); about.close(); viewMenu.close(); max.dispose(); strip.closeMenu(); panel.dispose(); views.forEach((v) => v.dispose()); } };
 }

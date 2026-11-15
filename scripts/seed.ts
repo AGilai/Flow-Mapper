@@ -59,7 +59,7 @@ if (mockIdx < 0) {
   for (const f of readDir(join(import.meta.dirname, '../samples/comments'))) {
     console.log(`loaded ${loadComments(ctx.db, ctx.graph(f.env), f.env, f.comments, (m) => console.warn(m))} comments into ${f.env}`);
   }
-  for (const f of readDir(join(import.meta.dirname, '../samples/notes'))) {
+  for (const f of readDir(join(import.meta.dirname, '../samples/notes')).filter((x) => envs.has(x.env))) { // a design env exists only after the recipes below: its notes load there
     console.log(`loaded ${loadNotes(ctx.db, ctx.graph(f.env), f.env, f.notes, (m) => console.warn(m))} note versions into ${f.env}`);
   }
   for (const f of readDir(join(import.meta.dirname, '../samples/action-items'))) {
@@ -78,6 +78,10 @@ if (mockIdx < 0) {
   // Design environments exist only now: their descriptions (titles) load on this run, not on a second seed.
   for (const f of readDir(join(import.meta.dirname, '../samples/descriptions')).filter((x) => !envs.has(x.env))) {
     console.log(`loaded ${loadDescriptions(ctx.db, ctx.graph(f.env), f.env, f.descriptions, () => {})} descriptions into ${f.env}`);
+  }
+  // Unreleased: the design doc and flow docs of a design environment (samples/notes/<env>.json)
+  for (const f of readDir(join(import.meta.dirname, '../samples/notes')).filter((x) => !envs.has(x.env))) {
+    console.log(`loaded ${loadNotes(ctx.db, ctx.graph(f.env), f.env, f.notes, (m) => console.warn(m))} note versions into ${f.env}`);
   }
   // 0.32.5: flow names of a design (a name someone already gave is kept); they show the natural order of the Flows list.
   for (const f of readDir(join(import.meta.dirname, '../samples/flow-names'))) {

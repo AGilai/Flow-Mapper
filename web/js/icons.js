@@ -38,6 +38,7 @@ const P = {
   pin: '<path d="M9 4h6l-1 6 3 3H7l3-3z"/><path d="M12 13v7"/>',
   maximize: '<path d="M3 9V3h6M15 3h6v6M21 15v6h-6M9 21H3v-6"/>',
   sliders: '<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
+  book: '<path d="M3.5 5.2c2.800-1.300 5.600-1.300 8.500 0v13.800c-2.900-1.300-5.700-1.300-8.500 0zM20.500 5.200c-2.800-1.300-5.600-1.300-8.500 0v13.800c2.900-1.300 5.700-1.300 8.500 0z"/>',
   chevup: '<path d="M6 15l6-6 6 6"/>',
   chevdown: '<path d="M6 9l6 6 6-6"/>',
   unmax:'<path d="M9 3v6H3M21 9h-6V3M15 21v-6h6M3 15h6v6"/>',

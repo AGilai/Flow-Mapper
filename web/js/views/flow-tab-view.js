@@ -31,7 +31,7 @@ import { foreignNote, maxReadOnly } from './flow-xenv-ui.js';
 import { createPartial } from './flow-partial.js';
 import { createComments } from '../comments/thread.js';
 import { createPane } from '../flow-pane/pane.js';
-import { createNotes } from '../notes/view.js';
+import { createNotes } from '../notes/view.js'; import { createFlowDocLink } from '../notes/flow-doc-link.js';
 import { createBrackets } from '../brackets/view.js';
 import { stepsParam } from '../comments/range.js';
 import { plainText } from '../../core/rich-text.js';
@@ -100,8 +100,8 @@ export function createTabView(data, host) {
   comments = items ? createComments({ env: host.env, root, walk, store: items, pane: hub('comments'), onThread: (list) => brackets?.setComments(list.filter((c) => c.steps && !c.resolved && !c.deleted).map((c) => ({ id: c.id, steps: c.steps, text: plainText(c.body).split('\n')[0].slice(0, 90) }))) }) : null;
   brackets = items ? createBrackets({ walk, factor: () => factor, on: () => !!opts.cb, hl: () => !!opts.hl, open: (ids) => { pane?.show('comments'); items.focusComment(ids[0]); }, create: (a, b) => comments.startRange(a, b) }) : null;
   const gotoStep = (ref) => { const go = () => walk.go(ref.from); if (host.max?.isOn()) { host.max.set(false); requestAnimationFrame(go); } else go(); }; // a step chip in Notes: leave Maximize, scroll to the step and select it
-  const notes = items ? createNotes({ env: host.env, root, walk, pane: hub('notes'), onStep: gotoStep }) : null;
-  items?.refresh();
+  const dl = createFlowDocLink({ walk, open: (n) => { pane?.show('notes'); requestAnimationFrame(() => notes?.focusCallout(n)); } }); // Unreleased (frame 28f): callout badges on the diagram, the hover outline, a badge opens its callout
+  const notes = items ? createNotes({ env: host.env, root, walk, pane: hub('notes'), onStep: gotoStep, onBody: dl.onBody, onHover: dl.onHover }) : null; items?.refresh();
   const scroller = h('div.seq-scroll');
   const hint = h('span.seq-hint', 'More to the right. Scroll sideways ›');
   const zctl = createZoomControl({ onZoom: (v) => setZoom(v) }); // frame 28: floats on the diagram, bottom left

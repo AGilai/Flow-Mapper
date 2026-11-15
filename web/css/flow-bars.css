@@ -18,6 +18,7 @@
 .tab .tb-act { width: 20px; height: 20px; border: 0; border-radius: 5px; background: none; color: var(--muted); display: grid; place-items: center; padding: 0; cursor: pointer; }
 .tab .tb-act svg { width: 12px; height: 12px; }
 .tab .tb-act:hover, .tab .tb-act:focus-visible { background: var(--accent-soft); color: var(--accent); }
+.tab .tb-fdi.on { background: var(--accent-soft); color: var(--accent); } /* the flow doc is shown (frame 28a) */
 .tab.renaming .tl { overflow: visible; flex: none; } .tab.renaming .tb-act { display: none; } .tab.renaming { max-width: 420px; }
 .tab .tab-name { height: 20px; width: 150px; padding: 0 6px; font-size: var(--fs-sm); font-weight: 600; border-color: var(--accent); }
 .tabmenu { height: 24px; margin: 0 0 3px 2px; padding: 0 8px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--surface); color: var(--ink-2); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font: 500 12px var(--font); white-space: nowrap; flex: none; }

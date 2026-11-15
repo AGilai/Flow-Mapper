@@ -6,6 +6,7 @@ import { h } from '../dom.js';
 import { setQuery, parseHash } from '../router.js';
 import { TABS, TAB_NAMES, paneParam, initialTab, stepTab, countText, primaryLabel } from './pure.js';
 import { createSplitter } from './splitter.js';
+import { docVisible, onFlowDoc, setFlowDoc, revealFlowDoc } from '../notes/flow-doc-state.js';
 
 const KEY = 'flow-mapper.pane-tab';
 const read = () => { try { return localStorage.getItem(KEY); } catch { return null; } };
@@ -37,11 +38,15 @@ export function createPane({ panels, diagram, hasNotes = false }) {
   const addGroup = h('div.fp-add', primary, more, menu);
   const fold = h('button.fp-fold', { type: 'button', 'data-qa': 'pane-fold', on: { click: () => { split.toggle(); paint(); } } }, '▾');
   const tools = h('span.fp-tools', addGroup);
-  const tabs = h('div.fp-tabs', list, sel, h('span.fp-sp'), tools, fold);
+  const flowTag = h('span.fp-flow', { title: 'The flow doc: the notes, comments and action items of this flow', html: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2v12M3 4h6M3 8h8M3 12h5"/></svg>Flow' });
+  const hideBtn = h('button.fp-x', { type: 'button', 'data-qa': 'pane-hide', title: 'Hide the flow doc (the note icon on the tab brings it back)', 'aria-label': 'Hide the flow doc', on: { click: () => setFlowDoc('shown', false) } }, '×');
+  const tabs = h('div.fp-tabs', flowTag, list, sel, h('span.fp-sp'), tools, fold, hideBtn);
   const body = h('div.fp-body');
   for (const id of ids) { panelEl[id] = h('div.fp-panel', { role: 'tabpanel', 'aria-labelledby': `fp-tab-${id}`, hidden: true }, panels[id].el); body.append(panelEl[id]); }
   const el = h('div.flow-bottom', { 'data-qa': 'pane' }, tabs, body);
   const split = createSplitter({ pane: el, tabs, diagram });
+  const paintDoc = () => { const on = docVisible(); el.classList.toggle('fd-hide', !on); split.el.classList.toggle('fd-hide', !on); }; // Unreleased (frame 28a): hidden is no pane and no border
+  const unDoc = onFlowDoc(() => { paintDoc(); document.dispatchEvent(new CustomEvent('fm:layout')); }); paintDoc();
 
   function onKey(e, id) {
     const to = e.key === 'ArrowRight' ? stepTab(ids, id, 1) : e.key === 'ArrowLeft' ? stepTab(ids, id, -1) : e.key === 'Home' ? ids[0] : e.key === 'End' ? ids[ids.length - 1] : null;
@@ -83,7 +88,7 @@ export function createPane({ panels, diagram, hasNotes = false }) {
   function show(id, { user = false, quiet = false } = {}) { // quiet: the default tab following the flow's notes; it never opens a pane the viewer folded
     if (!panels[id]) return;
     const changed = id !== cur;
-    cur = id; if (!quiet) split.expand(); paint();
+    cur = id; if (!quiet) { revealFlowDoc(); split.expand(); } paint();
     if (user) { chosen = true; write(id); if (changed || paneParam(parseHash().query) !== id) setQuery({ pane: id }); }
     panels[id].onShow?.();
     return changed;
@@ -97,6 +102,6 @@ export function createPane({ panels, diagram, hasNotes = false }) {
     hub: (id) => ({ shown: () => id === cur && !split.collapsed(), reveal: () => show(id), set: (d) => { counts[id] = d; paint(); }, tools: (n) => setTools(n), loaded: (has) => { if (!chosen && has && panels.notes && cur !== 'notes') show('notes', { quiet: true }); } }),
     setCount: (id, d) => { counts[id] = d; paint(); },
     setTools,
-    dispose: () => { compactQ.removeEventListener?.('change', paint); document.removeEventListener('click', closeMenu); },
+    dispose: () => { unDoc(); compactQ.removeEventListener?.('change', paint); document.removeEventListener('click', closeMenu); },
   };
 }

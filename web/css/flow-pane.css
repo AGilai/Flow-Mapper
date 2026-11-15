@@ -67,7 +67,7 @@ body.is-max .fp-split { display: none; }
 body.is-max .flow-bottom:not(.collapsed) { height: auto !important; }
 body.is-max .fp-tabs { padding-right: var(--s4); }
 /* the Notes tab maximized is the document alone, with its tab row and outline (frame 20a); a step chip leaves Maximize and goes to the step */
-body.is-max .flow-tab:has(.flow-bottom[data-tab='notes']) > :is(.flow-top, .flow-body) { display: none; }
-body.is-max .flow-tab:has(.flow-bottom[data-tab='notes']) > .flow-bottom { flex: 1 1 0; max-height: none; min-height: 0; } /* the document alone fills the window and scrolls inside */
+body.is-max .flow-tab:has(.flow-bottom[data-tab='notes']:not(.fd-hide)) > :is(.flow-top, .flow-body) { display: none; }
+body.is-max .flow-tab:has(.flow-bottom[data-tab='notes']:not(.fd-hide)) > .flow-bottom { flex: 1 1 0; max-height: none; min-height: 0; } /* the document alone fills the window and scrolls inside */
 body.is-max .fp-fold { display: none; }
 @media (max-width: 760px) { body.is-max .fp-tabs { padding-right: var(--s3); } }

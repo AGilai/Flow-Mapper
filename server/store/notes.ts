@@ -10,6 +10,7 @@ import type { GraphIndex } from '../../core/graph-index.ts';
 import { requireFlow } from './flow-check.ts';
 import { parseFlowAnchor } from '../../core/comments.ts';
 import type { NotesDoc, NotesVersion } from '../../core/notes.ts';
+import { isEnvDoc } from '../../core/notes.ts';
 import { sanitize, notesTooLong } from '../../core/rich-text.ts';
 import { plainText } from '../../core/rich-text-text.ts';
 import { badRequest, conflict, invalid, notFound } from '../errors.ts';
@@ -23,7 +24,7 @@ import { sinceWrite } from './write-memo.ts';
 interface R { env: string; anchor: string; version: number; body: string; author: string; author_id: string | null; restored_from: number | null; created_at: string }
 const HISTORY = 30;
 
-function anchorOf(a: unknown): string { if (!parseFlowAnchor(a)) throw badRequest("anchor must be 'flow:<service>/<ingress>'"); return a as string; }
+function anchorOf(a: unknown): string { if (!isEnvDoc(a) && !parseFlowAnchor(a)) throw badRequest("anchor must be 'flow:<service>/<ingress>' (or 'env' for the design doc)"); return a as string; }
 const doc = (db: DB, r: R, names = nameIndex(db)): NotesDoc => ({ anchor: r.anchor, version: r.version, body: sanitize(r.body, { notes: true }), author: (r.author_id && names.get(r.author_id)?.name) || r.author, authorId: r.author_id, createdAt: r.created_at, restoredFrom: r.restored_from });
 const none = (anchor: string): NotesDoc => ({ anchor, version: 0, body: '', author: null, authorId: null, createdAt: null, restoredFrom: null });
 const latest = (db: DB, env: string, anchor: string) => db.prepare('SELECT * FROM flow_notes WHERE env = ? AND anchor = ? ORDER BY version DESC LIMIT 1').get(env, anchor) as unknown as R | undefined;
@@ -57,8 +58,8 @@ export function putNotes(db: DB, g: GraphIndex, env: string, i: NotesWrite, rest
   if (typeof i.body !== 'string') throw badRequest('body is required (HTML or text; empty clears the notes)');
   const body = sanitize(resolveMentions(db, i.body), { notes: true }), long = notesTooLong(body);
   if (long) throw invalid(long);
-  const f = parseFlowAnchor(anchor)!;
-  requireFlow(g, env, f.service, f.ingress);
+  const f = parseFlowAnchor(anchor); // the design doc (anchor `env`) belongs to the environment: there is no flow to check
+  if (f) requireFlow(g, env, f.service, f.ingress);
   const who = identify(db, { userId: i.authorId, name: i.author });
   const base = i.baseVersion == null ? null : Number(i.baseVersion);
   if (base !== null && (!Number.isInteger(base) || base < 0)) throw badRequest('baseVersion must be a whole number (0 for no notes yet)');
@@ -97,13 +98,13 @@ export function notesIndex(db: DB, env: string): Record<string, number> {
   });
 }
 
-export interface SampleNotes { service: string; ingress: string; author: string; body: string; ago?: number; versions?: { author: string; body: string; ago?: number }[] }
-/** Seed data (samples/notes/*.json: `{env, notes: [...]}`): earlier `versions` first, then the body as the latest. Seeding twice adds nothing (a flow that already has a version with the final text is skipped). */
+export interface SampleNotes { service?: string; ingress?: string; doc?: 'env'; author: string; body: string; ago?: number; versions?: { author: string; body: string; ago?: number }[] }
+/** Seed data (samples/notes/*.json: `{env, notes: [...]}`; an item with `doc: "env"` is the design doc, else it names a flow): earlier `versions` first, then the body as the latest. Seeding twice adds nothing (a flow that already has a version with the final text is skipped). */
 export function loadNotes(db: DB, g: GraphIndex, env: string, list: SampleNotes[], warn: (m: string) => void = () => {}): number {
   let n = 0;
   for (const s of list) {
     try {
-      const anchor = `flow:${s.service}/${s.ingress}`, steps = [...(s.versions ?? []), { author: s.author, body: s.body, ago: s.ago }];
+      const anchor = s.doc === 'env' ? 'env' : `flow:${s.service}/${s.ingress}`, steps = [...(s.versions ?? []), { author: s.author, body: s.body, ago: s.ago }];
       const final = sanitize(resolveMentions(db, s.body), { notes: true });
       if (db.prepare('SELECT 1 FROM flow_notes WHERE env = ? AND anchor = ? AND body = ?').get(env, anchor, final)) continue; // seeded before (or typed in by hand)
       for (const v of steps) {
@@ -112,7 +113,7 @@ export function loadNotes(db: DB, g: GraphIndex, env: string, list: SampleNotes[
         if (v.ago != null) db.prepare('UPDATE flow_notes SET created_at = ? WHERE env = ? AND anchor = ? AND version = ?').run(new Date(Date.now() - v.ago * 60000).toISOString(), env, anchor, r.version);
         n++;
       }
-    } catch (e) { warn(`skipped notes on ${s.service} / ${s.ingress}: ${(e as Error).message}`); }
+    } catch (e) { warn(`skipped notes on ${s.doc === 'env' ? 'the design doc' : `${s.service} / ${s.ingress}`}: ${(e as Error).message}`); }
   }
   return n;
 }

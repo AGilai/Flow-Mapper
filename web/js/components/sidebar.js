@@ -14,6 +14,7 @@ export const announceLayout = () => setTimeout(() => document.dispatchEvent(new 
 
 const LINKS = [
   { path: '/system', label: 'System map', icon: 'system' },
+  { path: '/design-doc', label: 'Design doc', icon: 'book' }, // Unreleased (frame 28d): the environment's document, a page like Confluence
   { path: '/inventory', label: 'Inventory', icon: 'services', also: ['/services', '/stores', '/channels', '/events'] },
   { path: '/flows', label: 'Flows', icon: 'flow' },
   { path: '/mentions', label: 'Mentions', icon: 'at' },

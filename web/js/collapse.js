@@ -44,8 +44,8 @@ export function listState(key, { storage = store(), fallback = false } = {}) {
   };
 }
 
-/** Calls `onChange(open)` whenever a side pane (`fi-open` / `mp-open`) opens or closes on `flowsEl`; only in the side-by-side layout (861px and up). */
+/** Calls `onChange(open)` whenever a side pane (`fi-open` / `mp-open` / `dk-open`) opens or closes on `flowsEl`; only in the side-by-side layout (861px and up). */
 export function watchPane(flowsEl, onChange) {
-  const open = () => globalThis.matchMedia?.('(min-width: 861px)').matches && (flowsEl.classList.contains('fi-open') || flowsEl.classList.contains('mp-open'));
+  const open = () => globalThis.matchMedia?.('(min-width: 861px)').matches && (flowsEl.classList.contains('fi-open') || flowsEl.classList.contains('mp-open') || flowsEl.classList.contains('dk-open')); // dk-open: the design doc is docked (notes/dock.js)
   new MutationObserver(() => onChange(!!open())).observe(flowsEl, { attributes: true, attributeFilter: ['class'] });
 }

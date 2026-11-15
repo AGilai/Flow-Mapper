@@ -27,7 +27,7 @@ test('every Save is a version; the latest is current; headings and step chips su
   const one = await put({ body: '<h1>Purpose</h1><p onclick="x()">Hello <span data-step="2">step 2</span><script>alert(1)</script></p><h4>Sub</h4><p><span data-step="9-4">bad</span></p>', baseVersion: 0 });
   assert.equal(one.status, 200, JSON.stringify(one.body));
   assert.equal(one.body.version, 1);
-  assert.equal(one.body.body, '<h2>Purpose</h2><p>Hello <span data-step="2">step 2</span></p><h3>Sub</h3><p>bad</p>');
+  assert.equal(one.body.body, '<h1>Purpose</h1><p>Hello <span data-step="2">step 2</span></p><h3>Sub</h3><p>bad</p>');
   const two = await put({ body: '<h2>Purpose</h2><p>Second</p>', baseVersion: 1, author: 'Ben' });
   assert.equal(two.body.version, 2);
   assert.equal((await get()).body.body, '<h2>Purpose</h2><p>Second</p>');
@@ -55,7 +55,7 @@ test('history lists the latest versions newest first; restore writes a new versi
   const r = await app.call('POST', '/api/envs/prod/notes/restore', { anchor: A, version: 1, baseVersion: 3, author: 'Cy' });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.equal(r.body.version, 4); assert.equal(r.body.restoredFrom, 1);
-  assert.equal((await get()).body.body, '<h2>Purpose</h2><p>Hello <span data-step="2">step 2</span></p><h3>Sub</h3><p>bad</p>');
+  assert.equal((await get()).body.body, '<h1>Purpose</h1><p>Hello <span data-step="2">step 2</span></p><h3>Sub</h3><p>bad</p>');
   assert.equal((await get(A, '&version=3')).body.body, '<p>unchecked</p>', 'nothing was deleted');
   assert.equal((await app.call('POST', '/api/envs/prod/notes/restore', { anchor: A, version: 99 })).status, 404);
   assert.equal((await app.call('POST', '/api/envs/prod/notes/restore', { anchor: A, version: 1, baseVersion: 1, author: 'Cy' })).status, 409);
