@@ -49,7 +49,7 @@ test('the region text: Human wins over AI, an explicit Write one, the clamp is C
   const t = src('flow-about-text.js'), css = readFileSync(new URL('../web/css/flow-info.css', import.meta.url), 'utf8');
   assert.match(t, /p\.human\?\.text \?\? p\.ai\?\.text/); assert.match(t, /Write one/); assert.match(t, /No description yet/);
   assert.match(css, /\.fab-md\.clamped \{[^}]*-webkit-line-clamp: 4/); assert.doesNotMatch(css, /mask-image/);
-  assert.match(css, /\.flow-top:has\(\.fab\) \{ max-height: max\(45%, 200px\); \}/, 'the head box is capped (#107 round 2) and scrolls inside; the diagram box keeps the rest');
+  assert.doesNotMatch(css, /\.flow-top:has\(\.fab\)/, 'frame 28: the About region is a popover under the tab, not a box above the diagram; the old head-box cap is gone');
   assert.match(css, /\.fab\.open \.fab-hd \{[^}]*position: sticky/);
 });
 
@@ -107,8 +107,8 @@ test('text size: five sizes, default 13px, bounds, persisted in flow-mapper.text
   P.sizeSave(3, st); assert.equal(st.m.get('flow-mapper.textSize'), '3'); assert.equal(P.sizeStored(st), 3);
   P.sizeSave(40, st); assert.equal(P.sizeStored(st), 4, 'out of range is clamped');
   assert.equal(P.sizeStored(mem({ 'flow-mapper.textSize': 'big' })), 1, 'a garbage value is the default');
-  // ONE size for both: the flow description (flow-head.js) and the step description (flow-stepbar.js) build their A− / A+ from the same shared control
-  for (const f of ['flow-head.js', 'flow-stepbar.js']) assert.match(readFileSync(new URL(`../web/js/views/${f}`, import.meta.url), 'utf8'), /import \{ sizeControl \} from '\.\/flow-textsize\.js'/, f);
+  // ONE size for both: the flow description (flow-head.js) and the step description (its A− / A+ are in the View menu since frame 28) build them from the same shared control
+  for (const f of ['flow-head.js', 'flow-view-menu.js']) assert.match(readFileSync(new URL(`../web/js/views/${f}`, import.meta.url), 'utf8'), /import \{ sizeControl[^}]*\} from '\.\/flow-textsize\.js'/, f);
 });
 
 test('Hide text: stored as flow-mapper.stepText, shown by default', () => {

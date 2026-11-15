@@ -3,12 +3,12 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { buildIndex } from '../core/graph-index.ts';
 import { trace } from '../core/trace.ts';
 import { viewOf, viewCounts } from '../core/trace-view.ts';
 import { traceBlocked, blockedSites } from '../core/incomplete.ts';
 // @ts-ignore plain JS module shared with the browser
-import { frontierSimple } from '../web/js/views/flow-prefs.js';
 import { startApp, readSample } from './helpers.ts';
 
 const svc = (name: string) => ({ name, kind: 'service', version: 1, harvestedAt: '2026-01-01' });
@@ -78,13 +78,9 @@ test('arm fallback: an arm with nothing external keeps one message, not a fronti
   assert.deepEqual(viewOf(only, { detail: 'external', choose: { g: 'x' } }).messages.filter((m: any) => m.kind !== 'entry').map((m: any) => m.seq), [1], 'only frontier content: today\'s first-message fallback');
 });
 
-test('the Frontier steps checkbox is disabled outside Full, with its tooltip', () => {
-  const input: any = { disabled: false }, cls = new Set<string>();
-  const label: any = { dataset: { tip: 'Draw frontier steps' }, title: 'Draw frontier steps', querySelector: () => input, classList: { toggle: (c: string, on: boolean) => (on ? cls.add(c) : cls.delete(c)) } };
-  frontierSimple(label, true);
-  assert.deepEqual([input.disabled, label.title, cls.has('disabled')], [true, 'Frontier steps show in Full', true]);
-  frontierSimple(label, false);
-  assert.deepEqual([input.disabled, label.title, cls.has('disabled')], [false, 'Draw frontier steps', false]);
+test('the Frontier switch of the View menu is disabled outside Full, with its reason', () => {
+  const menu = readFileSync(new URL('../web/js/views/flow-view-menu.js', import.meta.url), 'utf8');
+  assert.match(menu, /sw\('Frontier', \{ on: opts\.frontier, off: detail !== 'full', qa: 'frontier', note: detail !== 'full' \? 'Frontier steps show in Full' : null/);
 });
 
 test('API: detail=external ignores frontier=1; detail=full keeps the frontier steps', async () => {

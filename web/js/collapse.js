@@ -1,7 +1,7 @@
 // Collapsible side panels (the main navigation and the Flows entry-point list). Pure state helpers: no DOM, so tests can import them.
 // Each panel remembers its own state per browser in localStorage; storage that throws or is missing means "expanded".
 
-export const KEYS = { rail: 'collapse:rail', list: 'collapse:flows-list' };
+export const KEYS = { rail: 'collapse:rail', list: 'collapse:flows-list', pane: 'collapse:flows-pane' };
 export const SLIDE_MS = 180;
 
 const store = () => { try { return globalThis.localStorage ?? null; } catch { return null; } };

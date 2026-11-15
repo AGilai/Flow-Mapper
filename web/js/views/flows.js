@@ -2,17 +2,19 @@
 // here") and it opens a tab; tabs are equal and closable. Each tab keeps its own diagram, list and drill-down.
 // The state (open tabs, active one, closed stack) is pure (flow-tabs-state.js) and mirrored in the URL: tabs= and tab=.
 
-import { loadMarks } from '../design/marks-store.js';
+import { loadMarks } from '../design/marks-store.js'; import { watchPane } from '../collapse.js';
 import { boundaryNote } from './flow-boundary.js';
 import { h, fill, toast } from '../dom.js';
 import { icon } from '../icons.js';
 import { api } from '../api.js';
 import { state, isDesign, setEnv } from '../state.js';
 import { metaOf, envVars } from '../env-info.js';
-import { envChip } from '../components/env-chip.js';
+import { plainPill } from '../design/design-pill.js';
+import { saveName } from './flow-name.js';
+import { createAboutPop } from './flow-about-pop.js';
 import { setQuery, go } from '../router.js';
 import { createPanel } from '../components/panel.js';
-import { resizer } from '../components/resizer.js'; import { watchPane } from '../collapse.js';
+import { resizer } from '../components/resizer.js';
 import { createList } from './flow-list.js';
 import { createTabStrip, enterIcon } from './flow-tabs.js';
 import { createHostFor } from './flow-tab-host.js';
@@ -35,11 +37,12 @@ import { createMax } from './flow-max.js';
 import { maxFromQuery } from './flow-max-pure.js';
 import { decodeBar, decodeArrows, encodeBar, encodeArrows, decodeHl, encodeHl, decodeCb, encodeCb, arrowsDefault, BAR_DEFAULT } from './step-details-pure.js';
 import { createStepMenu, stored, storedHl, storedCb } from './step-details-menu.js';
-import { decodeZoom, encodeZoom, percentOf } from './flow-zoom-pure.js';
-import { createZoomControl } from './flow-zoom.js';
-import { decodeHints, encodeHints } from './flow-hints-pure.js';
-import { createMergeCheck } from './flow-merge-check.js';
-import { sqStored, bandStored, bandSave, sqSave, detailStored, frontierSimple, mergeStored } from './flow-prefs.js';
+import { decodeZoom, encodeZoom } from './flow-zoom-pure.js';
+import { createToolbar } from './flow-toolbar.js';
+import { createViewMenu } from './flow-view-menu.js';
+import { levelOf } from './flow-levels.js';
+import { decodeHints, encodeHints, hintsDefault } from './flow-hints-pure.js';
+import { sqStored, bandStored, bandSave, sqSave, detailStored, mergeStored, mergeSave } from './flow-prefs.js';
 import { createScenarios } from './flow-scenario-state.js';
 
 export async function render({ main, query }) {
@@ -76,50 +79,54 @@ export async function render({ main, query }) {
     onAll: () => { const u = T.encodeUrl(S, state.env); go('/flows', { tabs: u.tabs, tab: u.tab }); },
     onCollapse: (c) => flowsEl.classList.toggle('list-c', c) });
   const flowsEl = h('div.flows', list.el, rightEl);
-  flowsEl.classList.toggle('list-c', list.collapsed()); watchPane(flowsEl, list.setPane); // the list steps back to its collapsed band while a pane is open
+  flowsEl.classList.toggle('list-c', list.collapsed()); watchPane(flowsEl, list.setPane); // the list steps back to its vertical strip while a pane is open (0.53.1, and the frame 28 shots); it returns to its own state when the pane closes
   resizer(list.el, { edge: 'right', key: 'flows-list', defaultWidth: 300, label: 'Resize entry point list',
     width: () => list.el.offsetWidth, apply: (px) => flowsEl.style.setProperty('--list-w', `${px}px`) });
   resizer(panel.el, { edge: 'left', key: 'flow-panel', defaultWidth: 380, label: 'Resize flow details',
     width: () => panel.el.offsetWidth, apply: (px) => { panel.el.style.width = `${px}px`; } });
   main.append(h('div.content.flush', flowsEl)); // #114: no page head: the entry-point list's header says "Flows", the tab row starts the main column
 
-  // ---- toolbar ----
-  const info = h('span.small.muted');
-  const seg = h('div.seg', { role: 'group', 'aria-label': 'Scope' }, [['intra', { short: 'Inside', long: 'Inside the service' }], ['full', { short: 'Full', long: 'Full flow' }]].map(([id, label]) =>
-    h('button', { 'data-scope': id, 'aria-label': label.long, title: label.long, on: { click: () => setScope(id) } }, label.short)));
-  const check = (key, label, title) => h('label.check', { title }, h('input', { type: 'checkbox', checked: opts[key], on: { change: (e) => { opts[key] = e.target.checked; persist(); views.forEach((v, k) => (k === S.active ? v.draw() : stale.add(k))); } } }), label);
-  const frontierCheck = h('label.check', { title: 'Frontier steps: call trees the harvester marked as reaching no sink. Folded into one marker per function by default.' },
-    h('input', { type: 'checkbox', checked: opts.frontier, on: { change: (e) => { opts.frontier = e.target.checked; persist(); reloadAll(); } } }), 'Frontier');
-  const mergeCheck = createMergeCheck(opts, () => reloadAll()), depth = h('select.select', { 'aria-label': 'Depth', on: { change: (e) => { opts.depth = e.target.value; persist(); views.forEach((v, k) => (k === S.active ? v.draw() : stale.add(k))); } } },
-    ['all', '1', '2', '3', '4', '6', '8'].map((d) => h('option', { value: d, selected: d === opts.depth }, d === 'all' ? 'All depths' : `Depth ${d}`)));
-  const sqCheck = h('label.check', { title: 'When the diagram is wider than the window, fold the lifelines the current step does not need. Click a fold to open it.' },
-    h('input', { type: 'checkbox', checked: opts.squeeze, on: { change: (e) => { opts.squeeze = e.target.checked; sqSave(opts.squeeze); views.forEach((v, k) => { v.resetSqueeze(); if (k === S.active) v.draw(); else stale.add(k); }); } } }), 'Squeeze');
-  const bandsCheck = subs.assigned ? h('label.check', { title: 'Put the components of one subsystem next to each other and show a band with its name over them' },
-    h('input', { type: 'checkbox', 'data-qa': 'group-by-subsystem', checked: opts.bands, on: { change: (e) => { opts.bands = e.target.checked; bandSave(opts.bands); views.forEach((v, k) => (k === S.active ? v.draw() : stale.add(k))); } } }), 'Group by subsystem') : null;
-  const thCheck = h('label.check', { title: 'Show the words "transport not decided" on arrows. Off: a small icon (the words are in its tooltip and in the step bar).' },
-    h('input', { type: 'checkbox', 'data-qa': 'transport-hints', checked: opts.th, on: { change: (e) => { opts.th = e.target.checked; persist(); views.forEach((v, k) => (k === S.active ? v.draw() : stale.add(k))); } } }), 'Transport hints');
-  const zctl = createZoomControl({ onZoom: (v) => views.get(S.active)?.setZoom(v) });
-  const stepMenu = createStepMenu({ bar: opts.sb, arrows: opts.sd, hl: opts.hl, cb: opts.cb, dflt: arrowsDefault(isDesign()), onChange: ({ bar, arrows, hl, cb }) => {
+  // ---- toolbar (row 2) and the View menu ----
+  const redraw = () => views.forEach((v, k) => (k === S.active ? v.draw() : stale.add(k)));
+  const detailOf = () => (S.active ? scen.of(S.active).detail : 'simple');
+  const act = { // what each View option does: the same as the checkbox it replaced
+    stores: (v) => { opts.stores = v; persist(); redraw(); },
+    bands: (v) => { opts.bands = v; bandSave(v); redraw(); },
+    frontier: (v) => { opts.frontier = v; persist(); reloadAll(); },
+    merge: (v) => { opts.merge = v; mergeSave(v); reloadAll(); },
+    squeeze: (v) => { opts.squeeze = v; sqSave(v); views.forEach((vw, k) => { vw.resetSqueeze(); if (k === S.active) vw.draw(); else stale.add(k); }); },
+    hints: (v) => { opts.th = v; persist(); redraw(); },
+    depth: (d) => { opts.depth = d; persist(); redraw(); },
+    reset: () => { const th = hintsDefault(isDesign()); if (!opts.stores) act.stores(true); if (subs.assigned && !opts.bands) act.bands(true); if (opts.frontier) act.frontier(false); if (!opts.merge) act.merge(true); if (!opts.squeeze) act.squeeze(true); if (opts.th !== th) act.hints(th); if (opts.depth !== 'all') act.depth('all'); },
+  };
+  const stepMenu = createStepMenu({ bar: opts.sb, arrows: opts.sd, hl: opts.hl, cb: opts.cb, dflt: arrowsDefault(isDesign()), inline: true, onChange: ({ bar, arrows, hl, cb }) => {
     const arrowsMoved = arrows !== opts.sd; opts.sb = bar; opts.sd = arrows; opts.hl = hl; opts.cb = cb; persist();
     views.forEach((v, k) => { v.refreshBar(); v.refreshHl(); v.refreshBrackets(); if (arrowsMoved) { if (k === S.active) v.draw(); else stale.add(k); } });
   } });
-  const meta = h('span.tb-meta', h('span.tb-hint', { tabindex: 0, role: 'img', 'aria-label': 'Double-click a bar, or right-click it, to look inside', title: 'Double-click a bar, or right-click it, to look inside', 'data-qa': 'bar-hint' }, icon('info')), info); // the (i) hint, the step counts and the Harvested chip: one group at the right end
-  const toolbar = h('div.seq-toolbar', seg, bandsCheck, check('stores', 'Data stores'), frontierCheck, mergeCheck.el, sqCheck, thCheck, depth, stepMenu.el, zctl.el,
-    meta,
-    editing() ? h('button.btn.sm', { type: 'button', 'data-qa': 'add-component', title: 'Add a component to the draft', on: { click: () => host.edit.addComponent() } }, '+ component') : null);
-  // ---- tabs ----
+  const viewMenu = createViewMenu({ ctx: () => ({ opts, assigned: !!subs.assigned, detail: detailOf(), squeezeOn: opts.squeeze && !views.get(S.active)?.squeezeOff(), design: isDesign() }), act, stepMenu });
+  const harvest = h('span.tb-harvest'); // the Harvested chip (filled once the pencils exist)
+  const max = createMax({ onChange: () => views.get(S.active)?.el.scrollTo?.(0, 0) });
+  const toolbar = createToolbar({ onScope: (id) => setScope(id), onDetail: (id) => views.get(S.active)?.setDetail(id), more: () => views.get(S.active)?.more(), max, view: viewMenu.el,
+    extra: [harvest, editing() ? h('button.btn.sm', { type: 'button', 'data-qa': 'add-component', title: 'Add a component to the draft', on: { click: () => host.edit.addComponent() } }, '+ component') : null] });
   let chips = new Map(); // key -> env chip text; empty while the open tabs are of one env
-  const lead = null; // the collapsed list is a vertical strip at the left (flow-list.js), no button in the tab row
-  const strip = createTabStrip({ lead, describe: (k) => ctxOf(k)?.data.describe(k) ?? goneDescribe(k), chip: (k) => chips.get(k) ?? null, onActivate: (k) => commit(T.activate(S, k)), onClose: (k) => commit(T.closeTab(S, k)),
+  const pillSlot = h('div.tb-pill', plainPill()); // the env / design pill at the right end of the tab row (design-strip.js fills it with the design menu)
+  const about = createAboutPop({ aboutOf: (k) => views.get(k)?.about ?? null });
+  const strip = createTabStrip({ end: pillSlot,
+    renameOf: (k) => { const r = T.flowRoot(k); return r && envOfTab(k) === state.env && !gone(state.env) ? (ctxOf(k)?.nameOf(r.service, r.ingress) || '') : null; }, // a tab of another env is read only
+    onRename: (k, name) => { const r = T.flowRoot(k); if (r) saveName(r, ctxOf(k)?.nameOf(r.service, r.ingress) || '', name); },
+    aboutOf: (k) => !!views.get(k)?.about, onAbout: about.open,
+    describe: (k) => ctxOf(k)?.data.describe(k) ?? goneDescribe(k), chip: (k) => chips.get(k) ?? null, onActivate: (k) => commit(T.activate(S, k)), onClose: (k) => commit(T.closeTab(S, k)),
     onCloseOthers: (k) => commit(T.closeOthers(S, k)), onCloseAll: () => commit(T.closeAll(S)), envVars: (k) => (gone(envOfTab(k)) ? { '--ec': 'var(--muted)', '--ei': 'var(--ink-2)' } : envVars(state.envMeta, envOfTab(k))) });
   const flowLabel = () => { const r = S.active && T.flowRoot(S.active); return r ? ctxOf(S.active)?.nameOf(r.service, r.ingress) || `${r.service} · ${r.ingress}` : ''; }; const renderStrip = () => { chips = tabChips(S.keys); strip.render(S); list.setLabel(flowLabel()); }; if (urlCount > T.TAB_CAP) toast(`The link had ${urlCount} tabs. Opened ${T.TAB_CAP}: the limit.`, 5000);
   const empty = h('div.emptyst', h('div.emptyst-i', enterIcon()), h('h3', 'Pick an entry point'), h('p.muted', 'Pick a flow in the list. Click opens it here; "Tab" opens it next to the others.'));
-  mainPane.append(strip.el, toolbar, empty); // #114: the tab row first, the toolbar under it
+  mainPane.append(strip.el, toolbar.el, toolbar.below, empty); // frame 28: row 1 the tabs, row 2 the toolbar, then the draft bar (Edit) and the flow
+  let level = -1; // the width level of the main column (flow-levels.js): classes lv0..lv3 on the column, the tab row follows
+  const setLevel = () => { const n = levelOf(mainPane.clientWidth); if (n === level) return; level = n; mainPane.classList.remove('lv0', 'lv1', 'lv2', 'lv3'); mainPane.classList.add(`lv${n}`); strip.setLevel(n); };
+  const unLevel = typeof ResizeObserver === 'function' ? new ResizeObserver(setLevel) : null; unLevel?.observe(mainPane); setLevel();
 
-  function persist() { frontierSimple(frontierCheck, !!S.active && scen.of(S.active).detail !== 'full'); mergeCheck.setSimple(!!S.active && scen.of(S.active).detail === 'simple');
+  function persist() { viewMenu.paint();
     setQuery({ ...T.encodeUrl(S, state.env), store: storeParam, ...(S.keys.length ? { service: null } : {}), stores: opts.stores ? null : '0', queues: null, depth: opts.depth === 'all' ? null : opts.depth, frontier: opts.frontier ? '1' : null, sb: encodeBar(opts.sb), sd: encodeArrows(opts.sd, arrowsDefault(isDesign())), th: encodeHints(opts.th, isDesign()), hl: encodeHl(opts.hl), cb: encodeCb(opts.cb, isDesign()), zoom: encodeZoom(zooms.get(S.active)), step: encodeStep(stepParam), ...scen.query(S.active) });
   }
-  const max = createMax({ onChange: () => views.get(S.active)?.el.scrollTo?.(0, 0) });
   const host = {
     env: state.env, marks, design: isDesign(), readOnly: false, opts, subs, panel, flowsEl, traceFor: data.traceFor, baseFor: data.baseFor, scen, onScenario: (k) => { if (k === S.active) persist(); }, describe: data.describe, desc, rootOf: (k) => T.flowRoot(k), isActive: (k) => S.active === k,
     openTab: (key, o) => { if (room(key)) commit(T.openTab(S, key, o)); },
@@ -139,21 +146,20 @@ export async function render({ main, query }) {
     paintChrome: () => paintChrome(),
     importRef: (anchor, source) => openImport({ panel, flowsEl, anchor, source }),
     zoomOf: (k) => zooms.get(k) ?? 100,
-    onZoomPaint: (k) => { if (k === S.active) paintZoom(); },
-    setZoom: (k, v) => { zooms.set(k, v); if (k === S.active) { persist(); paintZoom(); } },
+    setZoom: (k, v) => { zooms.set(k, v); if (k === S.active) persist(); },
     nameOf, relType: query.get('relType'), max,
     edit: null, // set below: the form opener (Edit with a draft)
     initialStep: (k) => (back.stepFor(k) ?? (k === stepTab ? stepParam : null)),
     initialStore: (k) => (k === stepTab ? storeParam : null), setStore: (k, v) => { if (k === S.active) { storeParam = v; persist(); } },
     setStep: (k, n) => { if (k === S.active) { stepParam = n; persist(); } },
-    setFrontier: () => { opts.frontier = true; frontierCheck.querySelector('input').checked = true; persist(); reloadAll(); },
+    setFrontier: () => { opts.frontier = true; persist(); reloadAll(); },
   };
   if (editing()) host.edit = editOpener(host);
   // The info pane (0.33.0): a lifeline head or a subsystem band opens it (View mode; Edit with a draft: the head opens the form, the head's menu has Show details).
   host.pen = pencils(host); // 0.31.1: the pencils of the flow head; the hint of a harvested page sits under the toolbar
   const pane = createPane(panel, { pen: host.pen, ctx: (t) => { const root = T.flowRoot(S.active), other = t.env && t.env !== state.env; return { ...(other ? { pen: penRO } : {}), fromFlow: root && { ...root, name: ctxOf(S.active)?.nameOf(root.service, root.ingress) ?? '', steps: views.get(S.active)?.steps?.() ?? [] } }; }, onSelect: (sel, t) => { flowsEl.classList.add('mp-open'); setQuery({ sel: t?.env && t.env !== state.env ? null : sel }); } }); // a component of another env is not in the URL: `sel=` names it in the page's env
   host.openPane = (target) => { views.get(S.active)?.clearStore?.(); pane.show(target); }; host.pane = pane;
-  meta.append(...[host.pen.hint()].filter(Boolean)); // the Harvested chip, at the right end of the toolbar
+  harvest.append(...[host.pen.hint()].filter(Boolean)); // the Harvested chip, at the right end of the toolbar
   const { hostFor, penRO } = createHostFor(host, { drillIn: (e, env) => back.drill(entryOf(e, env)), openIn: (e, env) => openEntry(e, env), paneIn: (t, env) => pane.show({ ...t, env }) }); // tabs of other envs (flow-tab-host.js)
   const entryOf = ({ service: s, ingress, fn, event, scope }, env = state.env) => (ingress ? T.entryKey(s, ingress, event, scope, env) : T.fnKey(s, fn, event, scope, env));
   const capToast = () => toast(`You have ${T.TAB_CAP} tabs open. Close some tabs to open another.`, 4500);
@@ -188,20 +194,14 @@ export async function render({ main, query }) {
   }
   function drop(key) { views.get(key)?.dispose(); views.delete(key); slots.get(key)?.remove(); slots.delete(key); stale.delete(key); }
 
-  function paintZoom() { const v = views.get(S.active); zctl.show(v ? percentOf(v.zoomScale()) : 100, v?.zoomValue() === 'fit', !!v); }
   function paintChrome() {
-    const act = S.active, p = act ? T.parseKey(act) : null, scoped = p && (p.kind === 'entry' || p.kind === 'fn');
-    seg.querySelectorAll('button').forEach((b) => {
-      b.setAttribute('aria-pressed', String(!!p && (p.kind === 'full' || p.kind === 'sub' ? 'full' : p.scope) === b.dataset.scope));
-      b.disabled = !scoped;
-      b.title = scoped ? b.getAttribute('aria-label') : p ? 'Fixed for sub-flows' : '';
-    });
-    info.textContent = views.get(act)?.info() ?? ''; info.title = info.textContent; // the text may be ellipsized in a narrow toolbar
-    sqCheck.querySelector('input').checked = opts.squeeze && !views.get(act)?.squeezeOff();
+    const act = S.active, p = act ? T.parseKey(act) : null, scoped = !!p && (p.kind === 'entry' || p.kind === 'fn'), v = views.get(act);
+    toolbar.setTools(v?.tools ?? null, v?.flowEdit ?? null);
+    toolbar.paint({ hasTab: !!v, scoped, fixed: p && !scoped ? 'Fixed for sub-flows' : '', scope: p ? (p.kind === 'full' || p.kind === 'sub' ? 'full' : p.scope) : 'full', detail: detailOf() });
+    viewMenu.paint();
     list.mark(S);
-    paintZoom();
     empty.hidden = !!S.keys.length;
-    views.get(act)?.refreshDots();
+    v?.refreshDots();
   }
 
   /** Move to a new state: build and drop views, update URL and chrome, animate the swap. */
@@ -213,7 +213,7 @@ export async function render({ main, query }) {
     S.keys.forEach(ensure);
     if (!S.keys.length && max.isOn()) max.set(false); // the last tab closed while maximized: nothing left to fill the window
     if (prev !== S.active) { stepParam = null; storeParam = null; } // the step belongs to the tab it was set in: not in the URL of another
-    persist(); renderStrip();
+    about.close(); persist(); renderStrip();
     const my = ++token, act = S.active, v = views.get(act);
     if (v && stale.delete(act)) v.draw();
     if (prev !== act) { views.get(prev)?.clearStore?.(); panel.close(); flowsEl.classList.toggle('fi-open', !!v?.insideOpen()); }
@@ -246,5 +246,5 @@ export async function render({ main, query }) {
   host.pen.resume();
   pane.restore(query);
   if (maxFromQuery(query) && S.keys.length) max.set(true, { fullscreen: false, url: false }); // a link or reload opens maximized (window-filling only)
-  return { dispose: () => { disposed = true; removeEventListener('keydown', onKey); max.dispose(); strip.closeMenu(); panel.dispose(); views.forEach((v) => v.dispose()); } };
+  return { designHost: { pill: pillSlot, mode: toolbar.modeSlot, below: toolbar.below }, dispose: () => { disposed = true; removeEventListener('keydown', onKey); unLevel?.disconnect(); about.close(); viewMenu.close(); max.dispose(); strip.closeMenu(); panel.dispose(); views.forEach((v) => v.dispose()); } };
 }

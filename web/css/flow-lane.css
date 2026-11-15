@@ -203,7 +203,7 @@
 .flows-right > .panel { width: var(--panel); max-width: 70vw; position: relative; inset: auto; transform: none; display: none; box-shadow: none; z-index: 1; min-height: 0; overflow: hidden; }
 .flows-right > .panel.open { display: flex; }
 .flows-right > .panel .panel-body { min-height: 0; flex: 1; }
-@media (max-width: 860px) { .flows-right > .panel.open { position: absolute; inset: 0; width: 100% !important; max-width: none; z-index: 6; } }
+@media (max-width: 860px) { .flows-right > .panel.open:not(.is-c) { width: min(var(--panel), 62%) !important; max-width: none; } } /* frame 28: a pane pushes the diagram at every width, it never overlays it */
 
 /* With a pane open the entry list shows as its collapsed band (flow-list.js setPane), so the diagram keeps the room. */
 

@@ -51,4 +51,4 @@ function subBand(b, x, y, w, onAdd) {
 const sample = (write) => s('svg', { width: 40, height: 10, 'aria-hidden': 'true' }, s('line', { class: `lg-line${write ? ' w' : ''}`, x1: 0, x2: 33, y1: 5, y2: 5 }), s('path', { class: 'lg-head', d: 'M40 5 33 1.5V8.5z' }));
 /** The legend of the data-store arrows: a read is a thin line with a dashed return, a write a heavier line with none. */
 export const storeLegend = () => h('div.store-legend', { 'data-qa': 'store-legend' },
-  h('span', sample(false), h('b', 'Read'), ' thin line, dashed return'), h('span', sample(true), h('b', 'Write'), ' heavier line, no return'));
+  h('span', { title: 'Read: a thin line, dashed return' }, sample(false), h('b', 'Read'), h('span.lg-x', ' thin line, dashed return')), h('span', { title: 'Write: a heavier line, no return' }, sample(true), h('b', 'Write'), h('span.lg-x', ' heavier line, no return')));

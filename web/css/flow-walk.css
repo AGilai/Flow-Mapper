@@ -2,17 +2,13 @@
    Mockup: design/mockups/design-env.html, frame 9. Names are prefixed (flow-, step-) so they never meet the older .st / .who / .dbox / .numtile. */
 
 .flow-tab { flex: 1; min-height: 0; display: flex; flex-direction: column; min-width: 0; }
-.flow-top { flex: 0 1 auto; min-height: 96px; max-height: max(45%, 200px); display: flex; flex-direction: column; overflow: hidden; background: var(--surface); border-bottom: 1px solid var(--line); }
-/* the description and the relations scroll inside the box; the step bar and the partial line never do,, so the bar is never pushed out of sight */
-.flow-top > .flowhead, .flow-top > .rel-sec { flex: 0 1 auto; min-height: 0; overflow-y: auto; }
-.flow-top > .stepwalk, .flow-top > :not(.flowhead):not(.rel-sec) { flex: none; }
+.flow-top { flex: none; display: flex; flex-direction: column; background: var(--surface); } /* frame 28: only the partial-flow line is left in it; empty it takes no height */
 .flow-top:empty { display: none; }
 .flow-tab > .flow-body { min-height: clamp(140px, 40%, 260px); } /* #107 round 2: the diagram box takes what the header box (45% at most) and the pane leave, never more, so its scrollbars are always inside the window. Its floor is 40% of the tab (140px to 260px): below that the pane and the header box shrink first (they scroll inside), so the heads never leave the lanes with no room */
 
 /* both boxes are <details>: the summary is the control, the text box sits under it */
 .flowhead, details.stepdesc { padding: var(--s2) var(--s4); }
 .flowhead { padding-top: var(--s3); }
-.flow-top > .flowhead { padding-top: 0; } .flow-top > .flowhead > .fh-sum { padding-top: var(--s3); } /* the box scrolls now, so the top space lives in the sticky summary: text never shows above it */
 details.stepdesc { border-top: 1px solid var(--line); padding-bottom: var(--s3); }
 details.stepdesc > summary { cursor: pointer; list-style: none; display: flex; align-items: baseline; gap: var(--s3); flex-wrap: wrap; border-radius: var(--r-sm); }
 .flowhead > .fh-sum { display: flex; align-items: center; gap: var(--s2) var(--s3); flex-wrap: wrap; }
@@ -33,16 +29,11 @@ details.stepdesc > summary { font-size: var(--fs-xs); color: var(--muted); font-
 .stepdesc .desc2.wide .dbox p { font-size: var(--fs-sm); max-width: none; }
 .stepdesc .desc-f { display: none; }
 
-/* the walk bar */
-.stepbar { display: flex; align-items: center; gap: var(--s2); padding: 8px var(--s4); flex-wrap: wrap; border-top: 1px solid var(--line); }
+/* the step player (the toolbar, flow-bars.css) */
 .stepnav { width: 30px; height: 28px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); font: 600 16px/1 var(--font); cursor: pointer; }
 .stepnav:hover:not(:disabled) { background: var(--accent-soft); color: var(--accent); }
 .stepnav:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
 .stepnav:disabled { opacity: .45; cursor: default; }
-.stepcnt { font-weight: 600; font-size: var(--fs-sm); min-width: 86px; text-align: center; font-variant-numeric: tabular-nums; }
-.steplabel { margin-left: var(--s2); font-size: var(--fs-sm); min-width: 0; overflow-wrap: anywhere; }
-.stepwalk[hidden] { display: none; }
-@media (max-width: 860px) { .steplabel { flex-basis: 100%; margin-left: 0; } } /* the label wraps under the buttons */
 
 /* tiles on the lane: neutral until current; the current one is solid ink with a halo in the arrow's transport colour */
 .steptile { cursor: pointer; }

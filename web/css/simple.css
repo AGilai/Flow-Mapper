@@ -1,10 +1,5 @@
 /* The Simple view (0.44.0, #90, frame 24): the caption and note under the header, the "N hidden" badge, repeat markers, unfolded copies. Tokens only. */
-.simple-extra { display: contents; }
-.simple-cap { margin: 4px 0 0; padding: 0 var(--s4, 16px); font-size: var(--fs-xs); color: var(--ink-2); }
-.simple-note { display: flex; gap: 8px; align-items: center; padding: 7px var(--s4, 16px); background: var(--surface-2); border-bottom: 1px solid var(--line); font-size: var(--fs-xs); color: var(--ink-2); }
-.simple-note b { color: var(--ink); }
-.simple-link { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
-.simple-link:focus-visible, .simple-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+.simple-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
 .hid-bdg { cursor: pointer; outline: none; }
 .hid-bdg .pill { fill: var(--surface-2); stroke: var(--line-strong); }
 .hid-bdg text { font: 600 10.5px var(--font); fill: var(--ink-2); }
@@ -31,7 +26,7 @@
 .simple-exp { border: 1px solid var(--line); border-radius: var(--r-md); padding: 10px 12px; display: grid; gap: 6px; background: color-mix(in srgb, var(--accent) 4%, var(--surface)); }
 .simple-exp p { margin: 0; font-size: var(--fs-xs); color: var(--ink-2); line-height: 1.45; }
 .simple-btn { justify-self: start; font: 600 12.5px var(--font); padding: 7px 14px; border-radius: 7px; border: 1px solid var(--accent); background: var(--accent); color: var(--surface); cursor: pointer; }
-.simple-cap[hidden], .simple-note[hidden] { display: none; }
+
 
 .check.disabled { opacity: .5; cursor: not-allowed; }
 .check.disabled input { cursor: not-allowed; }

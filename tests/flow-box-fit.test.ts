@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 // @ts-ignore plain JS module shared with the browser
-import * as P from '../web/js/views/flow-headmin-pure.js';
+import * as P from '../web/js/views/flow-bars-pure.js';
 
 const css = (f: string) => readFileSync(new URL(`../web/css/${f}`, import.meta.url), 'utf8');
 const js = (f: string) => readFileSync(new URL(`../web/js/views/${f}`, import.meta.url), 'utf8');
@@ -13,8 +13,8 @@ test('the diagram box is a flex child with a small floor and no hard-coded heigh
   const walk = css('flow-walk.css');
   assert.match(walk, /\.flow-tab > \.flow-body \{ min-height: clamp\(140px, 40%, 260px\); \}/);
   assert.doesNotMatch(walk, /\.flow-body \{ min-height: 260px/);
-  assert.match(walk, /\.flow-top \{[^}]*max-height: max\(45%, 200px\)/);
-  assert.match(css('flow-info.css'), /\.flow-top:has\(\.fab\) \{ max-height: max\(45%, 200px\); \}/);
+  assert.match(walk, /\.flow-top \{ flex: none;/, 'frame 28: nothing tall sits above the diagram (the About text is a popover); the header box is only the partial-flow line');
+  assert.doesNotMatch(css('flow-info.css'), /\.flow-top:has\(\.fab\)/);
   assert.match(css('flow-pane.css'), /\.flow-bottom \{ flex: 0 8 auto; min-height: 80px; max-height: 28vh;/);
   assert.match(css('sequence.css'), /\.seq-scroll \{ flex: 1; overflow: auto; overscroll-behavior: contain;/);
 });
@@ -26,7 +26,7 @@ test('Maximize is the same flex column: the tab does not scroll, no display: con
   assert.doesNotMatch(max, /100vh/);
   assert.doesNotMatch(max, /position: sticky/);
   assert.doesNotMatch(css('flow-pane.css'), /body\.is-max \.flow-bottom \{ display: block/);
-  assert.doesNotMatch(css('flow-headmin.css'), /position: sticky/);
+  assert.doesNotMatch(css('flow-bars.css'), /position: sticky; top/);
   assert.match(css('flow-pane.css'), /data-tab='notes'\]\) > \.flow-bottom \{ flex: 1 1 0; max-height: none; min-height: 0; \}/, 'the Notes document fills the window and scrolls inside');
 });
 

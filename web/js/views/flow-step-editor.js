@@ -51,7 +51,7 @@ export function openStepEditor({ store, root, key, n, label, anchor, onClose }) 
     el.style.width = `${w}px`;
     el.style.left = `${narrow ? 12 : Math.max(12, Math.min(r.left + 16, innerWidth - w - 12))}px`;
     const below = r.bottom + 6, room = innerHeight - below - 12;
-    el.style.top = `${room >= 240 ? below : Math.max(12, Math.min(below, innerHeight - el.offsetHeight - 12))}px`;
+    el.style.top = `${room >= 240 ? below : Math.max(12, Math.min(r.top - el.offsetHeight - 6, innerHeight - el.offsetHeight - 12))}px`; // not enough room under it (the caption bar is at the bottom): above it
   }
   const onDown = (e) => { if (!el.contains(e.target) && !dirty() && !e.target.closest?.('.sd-menu')) close(); };
   function close(quiet = false) {
