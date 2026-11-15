@@ -1,0 +1,32 @@
+[Unit]
+Description=Flow-Mapper (API, MCP and web UI)
+After=network-online.target
+Wants=network-online.target
+# install.sh restores the database from S3 before the first start.
+
+[Service]
+Type=simple
+User=flowmapper
+Group=flowmapper
+WorkingDirectory=/opt/flow-mapper
+EnvironmentFile=/etc/flow-mapper.env
+Environment=NODE_ENV=production
+Environment=FLOW_DATA_DIR=/var/lib/flow-mapper
+# Port 80 directly (the CloudFront origin port); the capability lets the unprivileged user bind it.
+Environment=HOST=0.0.0.0
+Environment=PORT=80
+ExecStart=/usr/local/bin/node --disable-warning=ExperimentalWarning server/main.ts
+Restart=always
+RestartSec=3
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/flow-mapper
+# The graph cache is bounded; stop a runaway before it takes the 2 GB box down.
+MemoryMax=1700M
+
+[Install]
+WantedBy=multi-user.target

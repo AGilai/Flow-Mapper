@@ -1,0 +1,489 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  Flow-Mapper (flows): one EC2 instance (SQLite on EBS, Litestream to S3) behind CloudFront, with a Cognito user pool.
+  Every resource carries the tag Project=flows and a flows- name. See docs/OPERATIONS.md and docs/plans/aws-v1.md.
+
+# Design notes (the long form is in docs/OPERATIONS.md)
+# - Origin: CloudFront -> instance public DNS, HTTP on port 80. The app listens on 80 itself (systemd AmbientCapabilities).
+#   The security group admits only the CloudFront origin-facing managed prefix list. No SSH: use SSM Session Manager.
+# - Circular dependency (instance -> Cognito client -> CloudFront -> instance): the instance does not get the Cognito
+#   values in user data. The stack writes them to an SSM parameter (AppEnvParameter) that deploy/install.sh reads at boot.
+# - Custom domain: CloudFront needs its certificate in us-east-1, so the stack must be deployed in us-east-1 when DomainName is set.
+
+Parameters:
+  RepoTag:
+    Type: String
+    Description: Git tag (or branch) of the Flow-Mapper repo to install, for example v0.52.0.
+  RepoUrl:
+    Type: String
+    Default: ''
+    Description: Repo to clone. Empty means https://github.com/AGilai/Flow-Mapper.git, or the SSH form when GitHubDeployKeySecretArn is set.
+  GitHubDeployKeySecretArn:
+    Type: String
+    Default: ''
+    Description: Secrets Manager secret (plain text, an OpenSSH private key) that is a read-only deploy key, for a private repo. Empty clones over HTTPS.
+  InstanceType:
+    Type: String
+    Default: t4g.small
+    AllowedValues: [t4g.micro, t4g.small, t4g.medium]
+    Description: t4g.small (2 GB) by default. t4g.micro (1 GB) is too small for the graph cache.
+  DataVolumeSizeGiB:
+    Type: Number
+    Default: 20
+    MinValue: 8
+    Description: Size of the gp3 data volume mounted at /var/lib/flow-mapper.
+  VpcId:
+    Type: String
+    Default: ''
+    Description: VPC for the security group. Empty means the default VPC (then leave SubnetId empty too).
+  SubnetId:
+    Type: String
+    Default: ''
+    Description: A public subnet (auto-assigns public IPv4) in VpcId. Empty means a default-VPC subnet.
+  CloudFrontPrefixListId:
+    Type: String
+    AllowedPattern: '^pl-[0-9a-f]+$'
+    Description: >-
+      ID of the managed prefix list com.amazonaws.global.cloudfront.origin-facing in this region. infra/deploy.sh looks it up:
+      aws ec2 describe-managed-prefix-lists --filters Name=prefix-list-name,Values=com.amazonaws.global.cloudfront.origin-facing
+  AdminEmail:
+    Type: String
+    AllowedPattern: '^[^@\s]+@[^@\s]+\.[^@\s]+$'
+    Description: The first user. Cognito emails an invitation with a temporary password.
+  AllowedEmailDomains:
+    Type: CommaDelimitedList
+    Default: ''
+    Description: Comma-separated email domains that may sign themselves up. Empty means admin-created users only.
+  HostedUiDomainPrefix:
+    Type: String
+    Default: ''
+    Description: Prefix of the Cognito hosted UI domain. Empty means flows-<account id>. Must be unique in the region; no "aws", "amazon" or "cognito".
+  DomainName:
+    Type: String
+    Default: ''
+    Description: Optional custom domain, for example flows.example.com. Needs HostedZoneId, and the stack in us-east-1.
+  HostedZoneId:
+    Type: String
+    Default: ''
+    Description: Route 53 hosted zone of DomainName (DNS validation of the certificate and the alias record).
+
+Rules:
+  DomainNeedsUsEast1:
+    RuleCondition: !Not [!Equals [!Ref DomainName, '']]
+    Assertions:
+      - Assert: !Equals [!Ref 'AWS::Region', us-east-1]
+        AssertDescription: CloudFront certificates must be in us-east-1, so deploy the stack in us-east-1 when DomainName is set.
+      - Assert: !Not [!Equals [!Ref HostedZoneId, '']]
+        AssertDescription: DomainName needs HostedZoneId.
+
+Conditions:
+  HasVpc: !Not [!Equals [!Ref VpcId, '']]
+  HasSubnet: !Not [!Equals [!Ref SubnetId, '']]
+  HasKey: !Not [!Equals [!Ref GitHubDeployKeySecretArn, '']]
+  HasPrefix: !Not [!Equals [!Ref HostedUiDomainPrefix, '']]
+  SelfSignUp: !Not [!Equals [!Join ['', !Ref AllowedEmailDomains], '']]
+  UseDomain: !Not [!Equals [!Ref DomainName, '']]
+
+Mappings:
+  Managed:
+    Ids:
+      # AWS managed CloudFront policies (fixed, documented IDs).
+      CachingDisabled: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+      AllViewerExceptHostHeader: b689b0a8-53d0-40ab-baf2-68738e2966ac
+
+Resources:
+  # ------------------------------------------------------------------ storage
+  Bucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub flows-${AWS::AccountId}-${AWS::Region}-data
+      VersioningConfiguration: {Status: Enabled}
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: {SSEAlgorithm: AES256}
+      PublicAccessBlockConfiguration: {BlockPublicAcls: true, BlockPublicPolicy: true, IgnorePublicAcls: true, RestrictPublicBuckets: true}
+      LifecycleConfiguration:
+        Rules:
+          - Id: expire-old-litestream-generations
+            Status: Enabled
+            NoncurrentVersionExpiration: {NoncurrentDays: 14}
+            AbortIncompleteMultipartUpload: {DaysAfterInitiation: 7}
+          - Id: clean-delete-markers
+            Status: Enabled
+            ExpiredObjectDeleteMarker: true
+      Tags:
+        - {Key: Project, Value: flows}
+        - {Key: Name, Value: !Sub 'flows-${AWS::AccountId}-${AWS::Region}-data'}
+
+  DataVolume:
+    Type: AWS::EC2::Volume
+    DeletionPolicy: Snapshot
+    Properties:
+      AvailabilityZone: !GetAtt Instance.AvailabilityZone
+      Size: !Ref DataVolumeSizeGiB
+      VolumeType: gp3
+      Encrypted: true
+      Tags:
+        - {Key: Project, Value: flows}
+        - {Key: Name, Value: flows-data}
+        - {Key: Backup, Value: flows-nightly}
+
+  DataVolumeAttachment:
+    Type: AWS::EC2::VolumeAttachment
+    Properties:
+      Device: /dev/sdf
+      InstanceId: !Ref Instance
+      VolumeId: !Ref DataVolume
+
+  SnapshotRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement: [{Effect: Allow, Principal: {Service: dlm.amazonaws.com}, Action: 'sts:AssumeRole'}]
+      ManagedPolicyArns: [!Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSDataLifecycleManagerServiceRole']
+      Tags: [{Key: Project, Value: flows}, {Key: Name, Value: flows-snapshot-role}]
+
+  SnapshotPolicy:
+    Type: AWS::DLM::LifecyclePolicy
+    Properties:
+      Description: flows nightly snapshot of the data volume, keep 7
+      State: ENABLED
+      ExecutionRoleArn: !GetAtt SnapshotRole.Arn
+      PolicyDetails:
+        PolicyType: EBS_SNAPSHOT_MANAGEMENT
+        ResourceTypes: [VOLUME]
+        TargetTags: [{Key: Backup, Value: flows-nightly}]
+        Schedules:
+          - Name: flows-nightly
+            CopyTags: true
+            TagsToAdd: [{Key: Project, Value: flows}, {Key: Name, Value: flows-data-snapshot}]
+            CreateRule: {CronExpression: 'cron(0 1 * * ? *)'}
+            RetainRule: {Count: 7}
+      Tags: [{Key: Project, Value: flows}, {Key: Name, Value: flows-snapshots}]
+
+  # ------------------------------------------------------------------ compute
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: flows app, port 80 from the CloudFront origin-facing prefix list only (no SSH)
+      VpcId: !If [HasVpc, !Ref VpcId, !Ref 'AWS::NoValue']
+      SecurityGroupIngress:
+        - {IpProtocol: tcp, FromPort: 80, ToPort: 80, SourcePrefixListId: !Ref CloudFrontPrefixListId, Description: CloudFront origin-facing}
+      Tags: [{Key: Project, Value: flows}, {Key: Name, Value: flows-app-sg}]
+
+  InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement: [{Effect: Allow, Principal: {Service: ec2.amazonaws.com}, Action: 'sts:AssumeRole'}]
+      ManagedPolicyArns: [!Sub 'arn:${AWS::Partition}:iam::aws:policy/AmazonSSMManagedInstanceCore']
+      Policies:
+        - PolicyName: flows-app
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: ['s3:ListBucket', 's3:GetBucketLocation']
+                Resource: !GetAtt Bucket.Arn
+              - Effect: Allow
+                Action: ['s3:GetObject', 's3:PutObject', 's3:DeleteObject', 's3:AbortMultipartUpload', 's3:ListMultipartUploadParts']
+                Resource: !Sub '${Bucket.Arn}/*'
+              - Effect: Allow
+                Action: ssm:GetParameter
+                Resource: !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/flows/${AWS::StackName}/app-env'
+              - !If
+                - HasKey
+                - {Effect: Allow, Action: 'secretsmanager:GetSecretValue', Resource: !Ref GitHubDeployKeySecretArn}
+                - !Ref 'AWS::NoValue'
+      Tags: [{Key: Project, Value: flows}, {Key: Name, Value: flows-app-role}]
+
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles: [!Ref InstanceRole]
+
+  Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: '{{resolve:ssm:/aws/service/canonical/ubuntu/server/24.04/stable/current/arm64/hvm/ebs-gp3/ami-id}}'
+      InstanceType: !Ref InstanceType
+      IamInstanceProfile: !Ref InstanceProfile
+      SubnetId: !If [HasSubnet, !Ref SubnetId, !Ref 'AWS::NoValue']
+      SecurityGroupIds: [!Ref InstanceSecurityGroup]
+      MetadataOptions: {HttpTokens: required, HttpEndpoint: enabled, HttpPutResponseHopLimit: 1}
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs: {VolumeType: gp3, VolumeSize: 12, Encrypted: true, DeleteOnTermination: true}
+      PropagateTagsToVolumeOnCreation: true
+      Tags: [{Key: Project, Value: flows}, {Key: Name, Value: flows-app}]
+      UserData:
+        Fn::Base64: !Sub
+          - |
+            #!/bin/bash
+            set -euxo pipefail
+            # Settings first; deploy/install.sh adds the Cognito values from SSM and keeps FLOW_AUTH=off until the app supports it.
+            cat > /etc/flow-mapper.env <<'ENVEOF'
+            FLOW_BACKUP_BUCKET=${Bucket}
+            AWS_REGION=${AWS::Region}
+            FLOW_REPO_TAG=${RepoTag}
+            FLOW_REPO_URL=${RepoUrl}
+            FLOW_DEPLOY_KEY_SECRET_ARN=${GitHubDeployKeySecretArn}
+            FLOW_PARAM_NAME=/flows/${AWS::StackName}/app-env
+            ENVEOF
+            chmod 644 /etc/flow-mapper.env
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update -qq
+            apt-get install -y -qq git ca-certificates
+            if [ -n '${GitHubDeployKeySecretArn}' ]; then
+              snap wait system seed.loaded
+              snap install aws-cli --classic
+              /snap/bin/aws secretsmanager get-secret-value --region ${AWS::Region} --secret-id '${GitHubDeployKeySecretArn}' --query SecretString --output text > /etc/flow-mapper-deploy-key
+              echo >> /etc/flow-mapper-deploy-key
+              chmod 600 /etc/flow-mapper-deploy-key
+              export GIT_SSH_COMMAND='ssh -i /etc/flow-mapper-deploy-key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new'
+            fi
+            URL='${Url}'
+            [ -d /opt/flow-mapper/.git ] || git clone "$URL" /opt/flow-mapper
+            git -C /opt/flow-mapper fetch --tags --force origin
+            git -C /opt/flow-mapper -c advice.detachedHead=false checkout '${RepoTag}'
+            /opt/flow-mapper/deploy/install.sh
+          - Url: !If
+              - HasKey
+              - !If [!Equals [!Ref RepoUrl, ''], 'git@github.com:AGilai/Flow-Mapper.git', !Ref RepoUrl]
+              - !If [!Equals [!Ref RepoUrl, ''], 'https://github.com/AGilai/Flow-Mapper.git', !Ref RepoUrl]
+
+  # The Cognito values reach the instance through this parameter (see the design notes at the top).
+  AppEnvParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub '/flows/${AWS::StackName}/app-env'
+      Type: String
+      Description: Environment lines for /etc/flow-mapper.env, read by deploy/install.sh
+      Value: !Join
+        - "\n"
+        - - !Sub 'FLOW_COGNITO_ISSUER=https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}'
+          - !Sub 'FLOW_COGNITO_CLIENT_ID=${UserPoolClient}'
+          - !Sub 'FLOW_COGNITO_DOMAIN=https://${UserPoolDomain}.auth.${AWS::Region}.amazoncognito.com'
+          - !If [UseDomain, !Sub 'FLOW_PUBLIC_URL=https://${DomainName}', !Sub 'FLOW_PUBLIC_URL=https://${Distribution.DomainName}']
+      Tags: {Project: flows, Name: flows-app-env}
+
+  # ------------------------------------------------------------------ edge
+  StaticCachePolicy:
+    Type: AWS::CloudFront::CachePolicy
+    Properties:
+      CachePolicyConfig:
+        Name: !Sub 'flows-static-${AWS::StackName}'
+        MinTTL: 0
+        DefaultTTL: 60
+        MaxTTL: 3600
+        ParametersInCacheKeyAndForwardedToOrigin:
+          EnableAcceptEncodingGzip: true
+          EnableAcceptEncodingBrotli: true
+          CookiesConfig: {CookieBehavior: none}
+          HeadersConfig: {HeaderBehavior: none}
+          QueryStringsConfig: {QueryStringBehavior: all}
+
+  Certificate:
+    Type: AWS::CertificateManager::Certificate
+    Condition: UseDomain
+    Properties:
+      DomainName: !Ref DomainName
+      ValidationMethod: DNS
+      DomainValidationOptions: [{DomainName: !Ref DomainName, HostedZoneId: !Ref HostedZoneId}]
+      Tags: [{Key: Project, Value: flows}, {Key: Name, Value: flows-cert}]
+
+  Distribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      Tags: [{Key: Project, Value: flows}, {Key: Name, Value: flows-cdn}]
+      DistributionConfig:
+        Comment: flows
+        Enabled: true
+        HttpVersion: http2and3
+        PriceClass: PriceClass_100
+        Aliases: !If [UseDomain, [!Ref DomainName], !Ref 'AWS::NoValue']
+        ViewerCertificate: !If
+          - UseDomain
+          - {AcmCertificateArn: !Ref Certificate, SslSupportMethod: sni-only, MinimumProtocolVersion: TLSv1.2_2021}
+          - {CloudFrontDefaultCertificate: true}
+        Origins:
+          - Id: app
+            DomainName: !GetAtt Instance.PublicDnsName
+            CustomOriginConfig:
+              OriginProtocolPolicy: http-only
+              HTTPPort: 80
+              # 60 s is the default maximum (a quota raise allows more). The server sends an SSE heartbeat every 25 s, so streams stay open.
+              OriginReadTimeout: 60
+              OriginKeepaliveTimeout: 60
+        DefaultCacheBehavior:
+          TargetOriginId: app
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD]
+          Compress: true
+          CachePolicyId: !Ref StaticCachePolicy
+          OriginRequestPolicyId: !FindInMap [Managed, Ids, AllViewerExceptHostHeader]
+        CacheBehaviors:
+          - PathPattern: /api/*
+            TargetOriginId: app
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
+            Compress: false
+            CachePolicyId: !FindInMap [Managed, Ids, CachingDisabled]
+            OriginRequestPolicyId: !FindInMap [Managed, Ids, AllViewerExceptHostHeader]
+          - PathPattern: /mcp*
+            TargetOriginId: app
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
+            Compress: false
+            CachePolicyId: !FindInMap [Managed, Ids, CachingDisabled]
+            OriginRequestPolicyId: !FindInMap [Managed, Ids, AllViewerExceptHostHeader]
+          - PathPattern: /auth/*
+            TargetOriginId: app
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
+            Compress: false
+            CachePolicyId: !FindInMap [Managed, Ids, CachingDisabled]
+            OriginRequestPolicyId: !FindInMap [Managed, Ids, AllViewerExceptHostHeader]
+          - PathPattern: /healthz
+            TargetOriginId: app
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD]
+            Compress: false
+            CachePolicyId: !FindInMap [Managed, Ids, CachingDisabled]
+            OriginRequestPolicyId: !FindInMap [Managed, Ids, AllViewerExceptHostHeader]
+
+  DnsRecord:
+    Type: AWS::Route53::RecordSet
+    Condition: UseDomain
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref DomainName
+      Type: A
+      AliasTarget: {HostedZoneId: Z2FDTNDATAQYW2, DNSName: !GetAtt Distribution.DomainName}
+
+  # ------------------------------------------------------------------ Cognito
+  PreSignUpRole:
+    Type: AWS::IAM::Role
+    Condition: SelfSignUp
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement: [{Effect: Allow, Principal: {Service: lambda.amazonaws.com}, Action: 'sts:AssumeRole'}]
+      ManagedPolicyArns: [!Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole']
+      Tags: [{Key: Project, Value: flows}, {Key: Name, Value: flows-presignup-role}]
+
+  PreSignUpLogGroup:
+    Type: AWS::Logs::LogGroup
+    Condition: SelfSignUp
+    Properties:
+      LogGroupName: /aws/lambda/flows-presignup
+      RetentionInDays: 30
+      Tags: [{Key: Project, Value: flows}, {Key: Name, Value: flows-presignup-logs}]
+
+  # Pre-sign-up trigger: part of the infrastructure, not the app. Lets admin-created users through and
+  # rejects self sign-up unless the email domain is in AllowedEmailDomains.
+  PreSignUpFunction:
+    Type: AWS::Lambda::Function
+    Condition: SelfSignUp
+    DependsOn: PreSignUpLogGroup
+    Properties:
+      FunctionName: flows-presignup
+      Runtime: nodejs22.x
+      Handler: index.handler
+      Timeout: 5
+      Role: !GetAtt PreSignUpRole.Arn
+      Environment:
+        Variables:
+          ALLOWED_DOMAINS: !Join [',', !Ref AllowedEmailDomains]
+      Code:
+        ZipFile: |
+          exports.handler = async (event) => {
+            if (event.triggerSource === 'PreSignUp_AdminCreateUser') return event;
+            const allowed = (process.env.ALLOWED_DOMAINS || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+            const email = String((event.request.userAttributes || {}).email || '').toLowerCase();
+            const at = email.lastIndexOf('@');
+            const domain = at > 0 && email.indexOf('@') === at ? email.slice(at + 1) : '';
+            if (!allowed.includes(domain)) throw new Error('Sign-up is limited to these email domains: ' + allowed.join(', '));
+            return event;
+          };
+      Tags: [{Key: Project, Value: flows}, {Key: Name, Value: flows-presignup}]
+
+  PreSignUpPermission:
+    Type: AWS::Lambda::Permission
+    Condition: SelfSignUp
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref PreSignUpFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt UserPool.Arn
+
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: flows-users
+      UsernameAttributes: [email]
+      AutoVerifiedAttributes: [email]
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: !If [SelfSignUp, false, true]
+      Policies:
+        PasswordPolicy: {MinimumLength: 12, RequireLowercase: true, RequireUppercase: true, RequireNumbers: true, RequireSymbols: false}
+      AccountRecoverySetting:
+        RecoveryMechanisms: [{Name: verified_email, Priority: 1}]
+      LambdaConfig: !If [SelfSignUp, {PreSignUp: !GetAtt PreSignUpFunction.Arn}, !Ref 'AWS::NoValue']
+      UserPoolTags: {Project: flows, Name: flows-users}
+
+  FirstAdminUser:
+    Type: AWS::Cognito::UserPoolUser
+    Properties:
+      UserPoolId: !Ref UserPool
+      Username: !Ref AdminEmail
+      DesiredDeliveryMediums: [EMAIL]
+      UserAttributes:
+        - {Name: email, Value: !Ref AdminEmail}
+        - {Name: email_verified, Value: 'true'}
+
+  UserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      UserPoolId: !Ref UserPool
+      Domain: !If [HasPrefix, !Ref HostedUiDomainPrefix, !Sub 'flows-${AWS::AccountId}']
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: flows-web
+      UserPoolId: !Ref UserPool
+      GenerateSecret: false
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows: [code]
+      AllowedOAuthScopes: [openid, email, profile]
+      SupportedIdentityProviders: [COGNITO]
+      ExplicitAuthFlows: [ALLOW_REFRESH_TOKEN_AUTH]
+      PreventUserExistenceErrors: ENABLED
+      # The CloudFront domain is a plain GetAtt: the client depends on the distribution, never the other way round.
+      CallbackURLs:
+        - !If [UseDomain, !Sub 'https://${DomainName}/auth/callback', !Sub 'https://${Distribution.DomainName}/auth/callback']
+      LogoutURLs:
+        - !If [UseDomain, !Sub 'https://${DomainName}/', !Sub 'https://${Distribution.DomainName}/']
+
+Outputs:
+  Url:
+    Value: !If [UseDomain, !Sub 'https://${DomainName}', !Sub 'https://${Distribution.DomainName}']
+  CognitoIssuer:
+    Value: !Sub 'https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}'
+  CognitoClientId:
+    Value: !Ref UserPoolClient
+  CognitoUserPoolId:
+    Value: !Ref UserPool
+  HostedUiDomain:
+    Value: !Sub 'https://${UserPoolDomain}.auth.${AWS::Region}.amazoncognito.com'
+  Bucket:
+    Value: !Ref Bucket
+  InstanceId:
+    Value: !Ref Instance
+  AdminEmail:
+    Value: !Ref AdminEmail

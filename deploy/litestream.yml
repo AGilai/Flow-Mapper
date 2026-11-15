@@ -1,0 +1,12 @@
+# Installed as /etc/litestream.yml. Litestream expands ${VAR} from the environment, which systemd fills from
+# /etc/flow-mapper.env (FLOW_BACKUP_BUCKET, AWS_REGION). Credentials come from the instance role.
+dbs:
+  - path: /var/lib/flow-mapper/flow-mapper.db
+    replicas:
+      - type: s3
+        bucket: ${FLOW_BACKUP_BUCKET}
+        path: litestream/flow-mapper
+        region: ${AWS_REGION}
+        sync-interval: 1s
+        snapshot-interval: 6h
+        retention: 168h

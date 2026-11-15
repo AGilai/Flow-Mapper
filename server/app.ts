@@ -56,6 +56,7 @@ export function createApp(opts: AppOptions): { server: Server; ctx: Ctx; router:
   announceVersion(ctx.db, ctx.appVersion);
   const router = new Router();
   router.get('/api/version', () => ({ version: APP_VERSION }));
+  router.get('/healthz', () => ({ ok: true, version: APP_VERSION })); // liveness for CloudFront and systemd: no database access
   // Any GET under /api/envs/:env/ may carry ?draft=<slug>: an unknown draft is 404 and a closed one 409, whichever route it is.
   router.guard((req) => { const slug = req.query.get('draft'); if (req.method === 'GET' && slug && req.params.env) getDraft(ctx.db, req.params.env, slug); });
   registerEnvs(router, ctx);
