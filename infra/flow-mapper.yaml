@@ -57,6 +57,8 @@ Parameters:
   HostedUiDomainPrefix:
     Type: String
     Default: ''
+    AllowedPattern: '^$|^(?!.*(aws|amazon|cognito))[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$'
+    ConstraintDescription: Lowercase letters, digits and hyphens; no "aws", "amazon" or "cognito".
     Description: Prefix of the Cognito hosted UI domain. Empty means flows-<account id>. Must be unique in the region; no "aws", "amazon" or "cognito".
   DomainName:
     Type: String
@@ -66,6 +68,16 @@ Parameters:
     Type: String
     Default: ''
     Description: Route 53 hosted zone of DomainName (DNS validation of the certificate and the alias record).
+
+  PreAuthPassword:
+    Type: String
+    NoEcho: true
+    Default: ''
+    AllowedPattern: '^(.{12,})?$'
+    ConstraintDescription: At least 12 characters, or empty.
+    Description: >-
+      Until the app enforces Cognito login (part C of the plan) the app has NO authentication. A non-empty value puts HTTP basic auth
+      (user flows) in front of every page at CloudFront. Empty means the site is open to anyone with the URL. infra/deploy.sh generates one unless --open is given.
 
 Rules:
   DomainNeedsUsEast1:
@@ -80,7 +92,10 @@ Conditions:
   HasVpc: !Not [!Equals [!Ref VpcId, '']]
   HasSubnet: !Not [!Equals [!Ref SubnetId, '']]
   HasKey: !Not [!Equals [!Ref GitHubDeployKeySecretArn, '']]
+  HasRepoUrl: !Not [!Equals [!Ref RepoUrl, '']]
+  HasGate: !Not [!Equals [!Ref PreAuthPassword, '']]
   HasPrefix: !Not [!Equals [!Ref HostedUiDomainPrefix, '']]
+  AdminOnly: !Equals [!Join ['', !Ref AllowedEmailDomains], '']
   SelfSignUp: !Not [!Equals [!Join ['', !Ref AllowedEmailDomains], '']]
   UseDomain: !Not [!Equals [!Ref DomainName, '']]
 
@@ -120,6 +135,7 @@ Resources:
   DataVolume:
     Type: AWS::EC2::Volume
     DeletionPolicy: Snapshot
+    UpdateReplacePolicy: Snapshot
     Properties:
       AvailabilityZone: !GetAtt Instance.AvailabilityZone
       Size: !Ref DataVolumeSizeGiB
@@ -149,7 +165,7 @@ Resources:
   SnapshotPolicy:
     Type: AWS::DLM::LifecyclePolicy
     Properties:
-      Description: flows nightly snapshot of the data volume, keep 7
+      Description: flows nightly snapshot of the data volume keep 7
       State: ENABLED
       ExecutionRoleArn: !GetAtt SnapshotRole.Arn
       PolicyDetails:
@@ -253,8 +269,8 @@ Resources:
             /opt/flow-mapper/deploy/install.sh
           - Url: !If
               - HasKey
-              - !If [!Equals [!Ref RepoUrl, ''], 'git@github.com:AGilai/Flow-Mapper.git', !Ref RepoUrl]
-              - !If [!Equals [!Ref RepoUrl, ''], 'https://github.com/AGilai/Flow-Mapper.git', !Ref RepoUrl]
+              - !If [HasRepoUrl, !Ref RepoUrl, 'git@github.com:AGilai/Flow-Mapper.git']
+              - !If [HasRepoUrl, !Ref RepoUrl, 'https://github.com/AGilai/Flow-Mapper.git']
 
   # The Cognito values reach the instance through this parameter (see the design notes at the top).
   AppEnvParameter:
@@ -286,6 +302,24 @@ Resources:
           CookiesConfig: {CookieBehavior: none}
           HeadersConfig: {HeaderBehavior: none}
           QueryStringsConfig: {QueryStringBehavior: all}
+
+  # Stop-gap until part C: basic auth at the edge, so a no-auth app holding real data is not public. Runs before the cache lookup.
+  GateFunction:
+    Type: AWS::CloudFront::Function
+    Condition: HasGate
+    Properties:
+      Name: !Sub 'flows-gate-${AWS::StackName}'
+      AutoPublish: true
+      FunctionConfig: {Comment: flows basic-auth gate until Cognito login ships, Runtime: cloudfront-js-2.0}
+      FunctionCode: !Sub
+        - |
+          function handler(event) {
+            var h = event.request.headers;
+            if (h.authorization && h.authorization.value === 'Basic ${Token}') return event.request;
+            return {statusCode: 401, statusDescription: 'Unauthorized', headers: {'www-authenticate': {value: 'Basic realm="flows"'}}};
+          }
+        - Token:
+            Fn::Base64: !Sub 'flows:${PreAuthPassword}'
 
   Certificate:
     Type: AWS::CertificateManager::Certificate
@@ -326,6 +360,7 @@ Resources:
           Compress: true
           CachePolicyId: !Ref StaticCachePolicy
           OriginRequestPolicyId: !FindInMap [Managed, Ids, AllViewerExceptHostHeader]
+          FunctionAssociations: !If [HasGate, [{EventType: viewer-request, FunctionARN: !GetAtt GateFunction.FunctionMetadata.FunctionARN}], !Ref 'AWS::NoValue']
         CacheBehaviors:
           - PathPattern: /api/*
             TargetOriginId: app
@@ -334,6 +369,7 @@ Resources:
             Compress: false
             CachePolicyId: !FindInMap [Managed, Ids, CachingDisabled]
             OriginRequestPolicyId: !FindInMap [Managed, Ids, AllViewerExceptHostHeader]
+            FunctionAssociations: !If [HasGate, [{EventType: viewer-request, FunctionARN: !GetAtt GateFunction.FunctionMetadata.FunctionARN}], !Ref 'AWS::NoValue']
           - PathPattern: /mcp*
             TargetOriginId: app
             ViewerProtocolPolicy: redirect-to-https
@@ -341,6 +377,7 @@ Resources:
             Compress: false
             CachePolicyId: !FindInMap [Managed, Ids, CachingDisabled]
             OriginRequestPolicyId: !FindInMap [Managed, Ids, AllViewerExceptHostHeader]
+            FunctionAssociations: !If [HasGate, [{EventType: viewer-request, FunctionARN: !GetAtt GateFunction.FunctionMetadata.FunctionARN}], !Ref 'AWS::NoValue']
           - PathPattern: /auth/*
             TargetOriginId: app
             ViewerProtocolPolicy: redirect-to-https
@@ -348,6 +385,7 @@ Resources:
             Compress: false
             CachePolicyId: !FindInMap [Managed, Ids, CachingDisabled]
             OriginRequestPolicyId: !FindInMap [Managed, Ids, AllViewerExceptHostHeader]
+            FunctionAssociations: !If [HasGate, [{EventType: viewer-request, FunctionARN: !GetAtt GateFunction.FunctionMetadata.FunctionARN}], !Ref 'AWS::NoValue']
           - PathPattern: /healthz
             TargetOriginId: app
             ViewerProtocolPolicy: redirect-to-https
@@ -355,6 +393,7 @@ Resources:
             Compress: false
             CachePolicyId: !FindInMap [Managed, Ids, CachingDisabled]
             OriginRequestPolicyId: !FindInMap [Managed, Ids, AllViewerExceptHostHeader]
+            FunctionAssociations: !If [HasGate, [{EventType: viewer-request, FunctionARN: !GetAtt GateFunction.FunctionMetadata.FunctionARN}], !Ref 'AWS::NoValue']
 
   DnsRecord:
     Type: AWS::Route53::RecordSet
@@ -438,6 +477,19 @@ Resources:
 
   FirstAdminUser:
     Type: AWS::Cognito::UserPoolUser
+    Condition: SelfSignUp
+    DependsOn: PreSignUpPermission # the pre-sign-up trigger also fires for AdminCreateUser: the permission must exist first
+    Properties:
+      UserPoolId: !Ref UserPool
+      Username: !Ref AdminEmail
+      DesiredDeliveryMediums: [EMAIL]
+      UserAttributes:
+        - {Name: email, Value: !Ref AdminEmail}
+        - {Name: email_verified, Value: 'true'}
+
+  FirstAdminUserNoTrigger:
+    Type: AWS::Cognito::UserPoolUser
+    Condition: AdminOnly
     Properties:
       UserPoolId: !Ref UserPool
       Username: !Ref AdminEmail
