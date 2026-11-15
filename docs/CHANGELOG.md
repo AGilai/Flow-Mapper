@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased: Flows page, stage 1 of the redesign (frame 28)
+## 0.54.0 (2026-11-15): Flows page in two thin rows (frame 28 stage 1)
 
 - UI only: two thin rows replace the header above the diagram (about 56px from the top of the page to the diagram, was about 215). Row 1: the flow tabs with the environment / design pill at the right end (its menu holds Published and Share, Baseline / prod now, "from prod", Drafts). Row 2: Inside | Full, Simple | External | Full, the step player, View ▾, a ⋯ menu (Export, Import, Edit flow, links, Full screen), full screen, and View | Edit at the right end. Gone: the Collapse button (and the H key), the big title, "Name this flow" (rename on the tab: pencil or double-click), the repeated entry id (the active tab shows it while there is room), "About this flow" (the (i) on the tab), the line "Simple: each external call once..." (the tooltip of Simple), and the old step bar.
 - View ▾ holds every display option (group by subsystem, data stores, frontier, one arrow per target, squeeze, transport hints, depth, step details, text size, hide text) and a new Descriptions section (Call notes, Legend). A count shows how many differ from their defaults. Same storage and URL params as before.
