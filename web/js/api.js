@@ -3,6 +3,7 @@
 
 import { state } from './state.js';
 import { currentId } from './users/me.js';
+import { csrfToken } from './account.js';
 
 const PREVIEW = !!globalThis.FLOW_PREVIEW;
 let local = null;
@@ -11,7 +12,7 @@ const backend = async () => (local ??= await import('./api-local.js'));
 async function http(method, path, body, raw) {
   const res = await fetch(path, {
     method,
-    headers: { ...(currentId() ? { 'x-flow-user': currentId() } : {}), ...(body === undefined ? {} : { 'content-type': raw ? raw.type || 'application/octet-stream' : 'application/json' }) },
+    headers: { ...(currentId() ? { 'x-flow-user': currentId() } : {}), ...(method !== 'GET' && csrfToken() ? { 'x-flows-csrf': csrfToken() } : {}), ...(body === undefined ? {} : { 'content-type': raw ? raw.type || 'application/octet-stream' : 'application/json' }) },
     body: body === undefined ? undefined : raw ? body : JSON.stringify(body),
   });
   const text = await res.text();
@@ -21,6 +22,7 @@ async function http(method, path, body, raw) {
     err.status = res.status;
     err.details = data?.error?.details;
     err.code = data?.error?.code;
+    if (res.status === 401 && path !== '/api/me') dispatchEvent(new CustomEvent('fm:signed-out')); // the session ended (accounts): main.js shows the sign-in card
     throw err;
   }
   return data;
@@ -143,6 +145,13 @@ const remote = {
   comment: (id, author, body) => http('POST', `/api/bugs/${id}/comments`, { author, body }),
   attach: (id, file) => http('POST', `/api/bugs/${id}/attachments?filename=${e(file.name)}`, file, file),
   attachmentUrl: (id, aid) => `/api/bugs/${id}/attachments/${aid}`,
+  // accounts (cognito servers only)
+  envAccess: (env) => http('GET', `/api/envs/${e(env)}/access`),
+  putEnvAccess: (env, body) => http('PUT', `/api/envs/${e(env)}/access`, body),
+  shareDraft: (env, slug, shared) => http('PUT', `/api/envs/${e(env)}/drafts/${e(slug)}/share`, { shared }),
+  tokens: () => http('GET', '/api/tokens'),
+  createToken: (body) => http('POST', '/api/tokens', body),
+  revokeToken: (id) => http('DELETE', `/api/tokens/${e(id)}`),
 };
 
 export const api = new Proxy({}, {

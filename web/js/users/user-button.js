@@ -7,6 +7,7 @@ import { icon } from '../icons.js';
 import { loadUsers, me, signOut, watchUsers } from './directory.js';
 import { userAvatar } from './avatar.js';
 import { signIn } from './signin.js';
+import { account, isCognito } from '../account.js';
 
 export function userButton() {
   let pop = null;
@@ -16,7 +17,7 @@ export function userButton() {
   const btn = () => wrap.querySelector('.u-btn');
 
   function draw() {
-    const u = me();
+    const u = isCognito() ? account.user : me();
     const b = h('button.u-btn', { type: 'button', 'data-qa': 'user-btn', 'aria-haspopup': u ? 'menu' : 'dialog', 'aria-expanded': 'false',
       title: u ? `Signed in as ${u.name}` : 'Sign in', 'aria-label': u ? `Signed in as ${u.name}. Open the user menu` : 'Sign in',
       on: { click: () => (u ? (pop ? close(true) : menu(u)) : signIn()) } },
@@ -37,10 +38,9 @@ export function userButton() {
       const rows = [...pop.querySelectorAll('.u-mi')], i = rows.indexOf(document.activeElement), to = { ArrowDown: i + 1, ArrowUp: i - 1 }[e.key];
       if (to !== undefined) { e.preventDefault(); rows[(to + rows.length) % rows.length].focus(); }
     } } },
-      h('div.u-menu-who', userAvatar(u, 'l'), h('div', h('b', u.name), h('small', 'signed in on this browser'))),
-      item('Switch user', () => signIn(), 'um-switch'),
-      item('Users', () => { location.hash = '#/users'; }, 'um-users'),
-      item('Sign out', () => signOut(), 'um-out', 'd'));
+      h('div.u-menu-who', userAvatar(u, 'l'), h('div', h('b', u.name), h('small', isCognito() ? (u.email ?? '') : 'signed in on this browser'), isCognito() && account.admin ? h('em.ac-vb', 'Admin') : null)),
+      ...(isCognito() ? [item('Tokens', () => { location.hash = '#/tokens'; }, 'um-tokens'), item('Users', () => { location.hash = '#/users'; }, 'um-users'), item('Sign out', () => { location.href = '/auth/logout'; }, 'um-out', 'd')]
+        : [item('Switch user', () => signIn(), 'um-switch'), item('Users', () => { location.hash = '#/users'; }, 'um-users'), item('Sign out', () => signOut(), 'um-out', 'd')]));
     wrap.append(pop);
     place();
     addEventListener('resize', place);

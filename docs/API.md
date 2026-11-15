@@ -725,6 +725,31 @@ for the signed-in user and a dashed "@unknown user" for an id that has no user. 
 - **MCP.** `list_mentions {user, unread?, env?, limit?}` (`user`: an id or an exact name) returns `{user, unread, mentions, about}` as above. `add_comment` accepts `@[id]` and `@{Display Name}` in `body`.
 - **Events.** Unchanged (`comment.created` ...): the text carries the token.
 
+## Accounts, tokens and access (0.52.0, AWS v1 part C)
+
+`FLOW_AUTH=off` (the default) changes nothing: no login, `X-Flow-User` and `author` names as before, every caller is an admin. With `FLOW_AUTH=cognito`:
+
+**Who is calling.** A browser holds the httpOnly cookie `fm_session` (SameSite=Lax, Secure on https, 30 days from the last use). Writes with a cookie must send `X-Flows-CSRF: <value of the fm_csrf cookie>` (else `403 CSRF`). Agents and harvesters send `Authorization: Bearer fm_...` (a personal access token; no CSRF header). When `FLOW_ORIGIN_SECRET` is set every request except `/healthz` needs `X-Flows-Origin: <secret>` (CloudFront adds it), else `403 FORBIDDEN_ORIGIN`.
+
+**Open without a credential:** the web UI files, `GET /healthz`, `GET /api/version`, `GET /api/me`, `/auth/*`. Everything else under `/api/*` and `/mcp` is `401 UNAUTHENTICATED` (`error.details.loginUrl`); a bad token is `401 TOKEN_INVALID`, an expired one `401 TOKEN_EXPIRED` (the message names the token).
+
+| Endpoint | |
+|---|---|
+| `GET /auth/login[?returnTo=/path]` | 302 to the Cognito hosted UI (authorization code + PKCE) |
+| `GET /auth/callback` | exchanges the code, verifies the ID token (RS256, JWKS, iss, aud, exp, token_use), creates the user on first sign-in, sets the cookies, 302 to `returnTo` |
+| `GET\|POST /auth/logout` | ends the session, 302 to the Cognito logout |
+| `GET /api/me` | `{auth: 'off'}` (+ `admin: true`) or `{auth: 'cognito', signedIn, user: {id, name, color, email}, admin, scope, via}`; signed out: `{signedIn: false, loginUrl}` |
+| `POST /api/tokens` | `{name, expiresInDays?: 30 \| 90 \| 365 (default none), scope?: 'user' \| 'harvester' (admins)}` -> `201 {id, name, scope, createdAt, expiresAt, token}`; `token` is shown once, only its SHA-256 is stored |
+| `GET /api/tokens` | your tokens `{tokens: [{id, name, scope, createdAt, lastUsedAt, revokedAt, expiresAt}]}` |
+| `DELETE /api/tokens/:id` | revoke (kept in the list) |
+| `GET /api/envs/:env/access` | `{env, kind, owner, visibility: private\|shared\|published, published, members: [{user, role}], memberCount, role}`; `members` only for owner and editors |
+| `PUT /api/envs/:env/access` | owner or admin: `{published?: bool, members?: [{userId, role: viewer\|editor}] (replaces the list), owner? (admin only)}`; the badge follows: no people and not published = private |
+| `PUT /api/envs/:env/drafts/:slug/share` | the draft's author: `{shared: bool}` |
+
+**Rules.** Roles per env: owner, editor, viewer, none. Sealed env: everyone signed in reads and annotates, admins manage, only a token with the harvester scope writes (`403 SEALED`; `?dryRun=1` is open). Design env: the owner (or an admin) shares, publishes and deletes; editors annotate and open and apply drafts; viewers read; published = everyone reads. A design with no owner (made before 0.52.0) is readable by everyone and edited only by admins. New designs are private to their creator. **Hidden is 404** (envs, drafts, bugs by id; absent from every list and from `GET /api/events`); readable but not enough rights is `403 FORBIDDEN`. Drafts are private to their author until shared; apply needs editor rights; discard is for the author, the env's owner or an admin. Changelog rows carry the acting user id (`changelog.user_id`).
+
+**MCP** acts as the token's user with the same rules: `whoami`, `share_env {env, published?, members?: [{user: id or name, role}]}`; `create_env` makes a private design owned by the caller; writes to a sealed env without the harvester scope return `SEALED`.
+
 ## MCP
 
 - HTTP: `POST /mcp` with one JSON-RPC 2.0 message (MCP streamable HTTP, JSON responses).

@@ -12,6 +12,14 @@ Contract files: [`schema/manifest.schema.json`](../schema/manifest.schema.json) 
 `orders-svc.json` (a typical service), `catalog-svc.json` (50 endpoints, events), `infra.json`
 (topics, queues, buses, subscriptions), `samples/dtos/` and `samples/schemas/`.
 
+## Connecting to a hosted instance (accounts)
+
+A local or `FLOW_AUTH=off` instance takes calls as they are. A hosted instance (`FLOW_AUTH=cognito`, see [OPERATIONS.md](OPERATIONS.md)) answers **401** to a call without a credential. A harvester sends `Authorization: Bearer fm_...` on every call (`POST /api/ingest`, DTOs, schemas, Redis keys, descriptions):
+
+- An admin creates the token under **Tokens** in the UI with **Harvester** ticked. A token without that scope gets **403 `SEALED`** when it writes to a sealed (harvested) environment such as `prod`; dry runs (`?dryRun=1`) need no scope.
+- Expiry is the creator's choice (never, 30, 90 or 365 days). An expired token is **401 `TOKEN_EXPIRED`** and its message names the token: create a new one and replace it. Treat a 401 as "stop and tell a human", not as "retry".
+- A revoked or unknown token is 401 `TOKEN_INVALID`. A bearer call needs no CSRF header and no cookie.
+
 ## Kinds of harvester
 
 | Harvester | Reports | `service.kind` |

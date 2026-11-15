@@ -10,6 +10,9 @@ import { renderRail } from './components/sidebar.js';
 import { mountBugButton } from './components/bug-dialog.js';
 import { requestedEnv, unknownEnv } from './env-missing.js';
 import { startUnread, unreadCount, onUnread } from './users/unread.js';
+import { account, isCognito, loadAccount } from './account.js';
+import { showSignIn } from './views/sign-in-card.js';
+import { setMyId } from './users/me.js';
 import { questionCount, onQuestions, refreshQuestions } from './questions-store.js';
 
 const rail = document.getElementById('rail');
@@ -29,12 +32,17 @@ route('/flows', () => import('./views/flows.js'));
 route('/mentions', () => import('./views/mentions.js'));
 route('/questions', () => import('./views/questions.js'));
 route('/users', () => import('./views/users.js'));
+route('/tokens', () => import('./views/tokens.js'));
 route('/health', () => import('./views/health.js'));
 route('/bugs', () => import('./views/bugs-list.js'));
 route('/bugs/new', () => import('./views/bug-report.js'));
 route('/bugs/:id', () => import('./views/bug-detail.js'));
 
 async function boot() {
+  await loadAccount();
+  addEventListener('fm:signed-out', () => { if (isCognito()) showSignIn(main, rail); });
+  if (isCognito() && !account.signedIn) return showSignIn(main, rail);
+  if (isCognito() && account.user) setMyId(account.user.id); // the existing "me" (comments, owners, mentions) is the signed-in account
   try {
     const [v, envs, meta] = await Promise.all([api.version(), api.envs(), api.envMeta().catch(() => [])]);
     state.version = v.version;

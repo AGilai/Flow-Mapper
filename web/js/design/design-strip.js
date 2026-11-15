@@ -13,6 +13,10 @@ import { loadMarks } from './marks-store.js';
 import { reviewPanel } from './draft-review.js';
 import { discardDraft } from './draft-discard.js';
 import { importedLine, lastImport, setLastImport } from './mermaid-undo.js';
+import { isCognito, roleIn } from '../account.js';
+import { visBadge } from '../components/env-badge.js';
+import { accessBanner } from './access-banner.js';
+import { openShare } from './share-dialog.js';
 import { batchText, latestBatch } from './mermaid-pure.js';
 
 /** Mount the strip at the top of `main`; null for a sealed environment. */
@@ -24,13 +28,18 @@ export function mountDesignStrip(main) {
   const bar = h('div.dz-draft');
   const picker = h('button.btn.dz-pick', { type: 'button', 'data-qa': 'draft-picker', 'aria-haspopup': 'menu', on: { click: (e) => openDraftPicker(e.currentTarget, { drafts }) } },
     state.draft ? 'Draft' : 'Drafts', h('span.dz-caret', '▾'));
+  const role = roleIn(), viewer = isCognito() && role === 'viewer'; // accounts: a viewer reads only (no drafts, no Edit)
+  const banner = accessBanner((a) => openDraftPicker(a, { edit: true, drafts }));
   const el = h('div.dz', { 'data-qa': 'design-strip' },
     h('div.dz-row1',
       h('span.dz-chip', { title: `${state.env} is a design environment: a copy you can change in drafts` }, 'design'),
+      isCognito() ? visBadge(meta) : null,
+      isCognito() && role === 'owner' ? h('button.btn.sm', { type: 'button', 'data-qa': 'share-btn', on: { click: () => openShare(state.env, () => { dispatchEvent(new HashChangeEvent('hashchange')); }) } }, 'Share') : null,
       h('span.mk-meta', `${meta.source ? `from ${meta.source}` : 'blank'}${when ? ', ' + when : ''}`),
       compareSwitch(meta, sourceGone),
-      h('span.spacer'), picker,
-      modeToggle({ onNeedDraft: (a) => openDraftPicker(a, { edit: true, drafts }) })),
+      h('span.spacer'), viewer ? null : picker,
+      viewer ? null : modeToggle({ onNeedDraft: (a) => openDraftPicker(a, { edit: true, drafts }) })),
+    banner,
     bar);
 
   async function load() {

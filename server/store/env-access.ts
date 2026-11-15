@@ -9,6 +9,7 @@ import { findUser } from './users.ts';
 import { userEmail } from '../auth/accounts.ts';
 import { getEnvRow } from './envs.ts';
 import { roleFor } from '../access.ts';
+import { currentWho } from '../auth/context.ts';
 
 export interface Person { id: string; name: string; email: string | null; color: number }
 export interface EnvAccess { env: string; kind: 'sealed' | 'design'; owner: Person | null; visibility: Visibility; published: boolean; members: { user: Person; role: MemberRole }[]; memberCount: number; role: Role }
@@ -58,15 +59,17 @@ export function setAccess(db: DB, env: string, input: any, actorIsAdmin: boolean
   });
 }
 
-export interface AccessSummary { ownerId: string | null; ownerName: string | null; visibility: Visibility; published: boolean; memberCount: number; role: Role }
+export interface AccessSummary { ownerId: string | null; ownerName: string | null; visibility: Visibility; published: boolean; memberCount: number; role: Role; /** The caller's role as a listed member (null: not listed). */ member: MemberRole | null }
 /** What the pickers need per env: who owns it, the badge, how many people it is shared with, and the caller's own role (auth off: owner). */
 export function summaries(db: DB, names: string[]): Record<string, AccessSummary> {
   const rows = new Map((db.prepare('SELECT name, owner_user_id, visibility FROM envs').all() as { name: string; owner_user_id: string | null; visibility: Visibility }[]).map((r) => [r.name, r]));
   const counts = new Map((db.prepare('SELECT env, count(*) AS n FROM env_members GROUP BY env').all() as { env: string; n: number }[]).map((r) => [r.env, r.n]));
+  const me = currentWho()?.id, mine = new Map<string, MemberRole>();
+  if (me) for (const m of db.prepare('SELECT env, role FROM env_members WHERE user_id = ?').all(me) as { env: string; role: MemberRole }[]) mine.set(m.env, m.role);
   const out: Record<string, AccessSummary> = {};
   for (const n of names) {
     const r = rows.get(n);
-    out[n] = { ownerId: r?.owner_user_id ?? null, ownerName: r?.owner_user_id ? findUser(db, r.owner_user_id)?.name ?? null : null, visibility: r?.visibility ?? 'published', published: (r?.visibility ?? 'published') === 'published', memberCount: counts.get(n) ?? 0, role: roleFor(db, n) };
+    out[n] = { ownerId: r?.owner_user_id ?? null, ownerName: r?.owner_user_id ? findUser(db, r.owner_user_id)?.name ?? null : null, visibility: r?.visibility ?? 'published', published: (r?.visibility ?? 'published') === 'published', memberCount: counts.get(n) ?? 0, role: roleFor(db, n), member: mine.get(n) ?? null };
   }
   return out;
 }
