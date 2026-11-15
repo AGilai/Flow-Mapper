@@ -444,9 +444,9 @@ Resources:
             Condition: {StringEquals: {'aws:ResourceTag/Project': flows}}
           - Sid: CloudFrontFunctionsByName
             Effect: Allow
-            # CreateFunction is scoped to function/flows-* (the service authorization reference lists the function resource type for it;
-            # Kehilot CTO review 2026-11-15). If the first deploy fails with AccessDenied on CreateFunction, move it back to the statement below.
-            Action: ['cloudfront:CreateFunction', 'cloudfront:UpdateFunction', 'cloudfront:DeleteFunction', 'cloudfront:DescribeFunction', 'cloudfront:GetFunction', 'cloudfront:PublishFunction', 'cloudfront:TestFunction']
+            # CreateFunction is scoped to function/flows-* (Kehilot CTO review 2026-11-15); confirmed working on the first deploy.
+            Action: ['cloudfront:CreateFunction', 'cloudfront:UpdateFunction', 'cloudfront:DeleteFunction', 'cloudfront:DescribeFunction', 'cloudfront:GetFunction', 'cloudfront:PublishFunction', 'cloudfront:TestFunction',
+                     'cloudfront:TagResource', 'cloudfront:UntagResource', 'cloudfront:ListTagsForResource']  # stack tags reach the function (AccessDenied on the first deploy)
             Resource: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:function/flows-*'
           # EXCEPTION (CloudFront): CreateCachePolicy takes no resource name and no tag, so it cannot be scoped.
           # Cache policies are addressed by generated id (cache-policy/<id>), never by name, so their change/delete actions cannot be scoped to flows either.
