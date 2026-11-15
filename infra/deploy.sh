@@ -13,17 +13,21 @@
 #   --hosted-ui-prefix P     Cognito hosted UI domain prefix (default flows-<account id>)
 #   --domain D --zone ZONE   custom domain and its Route 53 zone id (the stack must then be in us-east-1)
 #   --vpc ID --subnet ID     instead of the default VPC (the subnet must auto-assign public IPv4)
+#   --gate-password PW      basic-auth password (user "flows", 12+ characters) in front of the whole site at CloudFront. A NEW stack gets a
+#                            generated one unless you pass this or --open. An existing stack keeps its current one.
+#   --open                   no gate: until part C (Cognito login in the app) the app has NO authentication, so this makes
+#                            the site, its data and its write API open to anyone who has the URL
 #   --dry-run                print the command and stop
 set -euo pipefail
 
-STACK=flows; REGION=${AWS_REGION:-}; ADMIN=; TAG=; TYPE=t4g.small; DOMAINS=; REPO_URL=; KEY=; PREFIX=; DOMAIN=; ZONE=; VPC=; SUBNET=; DRY=0
+STACK=flows; REGION=${AWS_REGION:-}; ADMIN=; TAG=; TYPE=t4g.small; DOMAINS=; REPO_URL=; KEY=; PREFIX=; DOMAIN=; ZONE=; VPC=; SUBNET=; DRY=0; GATEPW=; OPEN=0
 while [ $# -gt 0 ]; do
   case $1 in
     --stack) STACK=$2; shift 2 ;; --region) REGION=$2; shift 2 ;; --admin-email) ADMIN=$2; shift 2 ;; --repo-tag) TAG=$2; shift 2 ;;
     --instance-type) TYPE=$2; shift 2 ;; --allowed-domains) DOMAINS=$2; shift 2 ;; --repo-url) REPO_URL=$2; shift 2 ;;
     --key-secret-arn) KEY=$2; shift 2 ;; --hosted-ui-prefix) PREFIX=$2; shift 2 ;; --domain) DOMAIN=$2; shift 2 ;; --zone) ZONE=$2; shift 2 ;;
-    --vpc) VPC=$2; shift 2 ;; --subnet) SUBNET=$2; shift 2 ;; --dry-run) DRY=1; shift ;;
-    -h|--help) sed -n 2,17p "$0"; exit 0 ;;
+    --vpc) VPC=$2; shift 2 ;; --subnet) SUBNET=$2; shift 2 ;; --gate-password) GATEPW=$2; shift 2 ;; --open) OPEN=1; shift ;; --dry-run) DRY=1; shift ;;
+    -h|--help) sed -n 2,20p "$0"; exit 0 ;;
     *) echo "deploy: unknown argument $1" >&2; exit 2 ;;
   esac
 done
@@ -38,12 +42,24 @@ PL=$(aws ec2 describe-managed-prefix-lists --region "$REGION" \
   --query 'PrefixLists[0].PrefixListId' --output text)
 [ -n "$PL" ] && [ "$PL" != None ] || { echo "deploy: CloudFront prefix list not found in $REGION" >&2; exit 1; }
 
+# The app has no login until part C: gate the site by default (see PreAuthPassword in the template).
+GATE=()
+if [ "$OPEN" = 1 ] && [ -n "$GATEPW" ]; then echo "deploy: --open and --gate-password exclude each other" >&2; exit 2; fi
+if [ "$OPEN" = 1 ]; then GATE=("PreAuthPassword=")
+elif [ -n "$GATEPW" ]; then GATE=("PreAuthPassword=$GATEPW")
+elif ! aws cloudformation describe-stacks --region "$REGION" --stack-name "$STACK" >/dev/null 2>&1; then
+  GATEPW=$(openssl rand -hex 16); GATE=("PreAuthPassword=$GATEPW"); echo "deploy: generated a basic-auth password (shown again at the end)"
+fi
+if [ "$OPEN" = 1 ]; then
+  echo "deploy: WARNING: --open. Until part C the app has no authentication: anyone with the URL can read and change all data." >&2
+fi
+
 cmd=(aws cloudformation deploy --region "$REGION" --stack-name "$STACK" --template-file "$HERE/flow-mapper.yaml"
   --capabilities CAPABILITY_IAM --tags Project=flows --no-fail-on-empty-changeset
   --parameter-overrides "RepoTag=$TAG" "AdminEmail=$ADMIN" "InstanceType=$TYPE" "CloudFrontPrefixListId=$PL"
   "AllowedEmailDomains=$DOMAINS" "RepoUrl=$REPO_URL" "GitHubDeployKeySecretArn=$KEY" "HostedUiDomainPrefix=$PREFIX"
-  "DomainName=$DOMAIN" "HostedZoneId=$ZONE" "VpcId=$VPC" "SubnetId=$SUBNET")
-echo "deploy: ${cmd[*]}"
+  "DomainName=$DOMAIN" "HostedZoneId=$ZONE" "VpcId=$VPC" "SubnetId=$SUBNET" ${GATE[@]+"${GATE[@]}"})
+echo "deploy: ${cmd[*]}" | sed -E 's/(PreAuthPassword=)[^ ]+/\1****/'
 [ "$DRY" = 1 ] && exit 0
 "${cmd[@]}"
 
@@ -51,10 +67,20 @@ echo; echo "Outputs:"
 aws cloudformation describe-stacks --region "$REGION" --stack-name "$STACK" --query 'Stacks[0].Outputs[].[OutputKey,OutputValue]' --output text
 POOL=$(aws cloudformation describe-stacks --region "$REGION" --stack-name "$STACK" --query "Stacks[0].Outputs[?OutputKey=='CognitoUserPoolId'].OutputValue" --output text)
 INST=$(aws cloudformation describe-stacks --region "$REGION" --stack-name "$STACK" --query "Stacks[0].Outputs[?OutputKey=='InstanceId'].OutputValue" --output text)
+echo
+echo "ACCESS BEFORE PART C: the app has no login of its own yet."
+if [ "$OPEN" = 1 ]; then
+  echo "  The site is OPEN: anyone with the Url can read and change everything. Redeploy without --open to add the gate."
+elif [ -n "$GATEPW" ]; then
+  echo "  The site asks for HTTP basic auth: user  flows  password  $GATEPW  (keep it; it is not shown again)."
+else
+  echo "  The site asks for HTTP basic auth (user flows, the password set when the stack was created or last changed)."
+fi
+echo "  Remove the gate only after part C is deployed and FLOW_AUTH=cognito is switched on (infra/deploy.sh --open, or an empty PreAuthPassword)."
 cat <<EOF
 
-First admin ($ADMIN):
-  1. Cognito emailed a temporary password to $ADMIN. Open the Url above and sign in; you are asked to set a new password.
+First admin ($ADMIN), for the Cognito login that part C turns on (no effect on the app yet):
+  1. Cognito emailed a temporary password to $ADMIN; you are asked to set a new one at the first Cognito sign-in.
   2. Not received? Set one yourself:
        aws cognito-idp admin-set-user-password --region $REGION --user-pool-id $POOL --username $ADMIN --password '<new password>' --permanent
   3. More users: aws cognito-idp admin-create-user --region $REGION --user-pool-id $POOL --username <email> --user-attributes Name=email,Value=<email> Name=email_verified,Value=true

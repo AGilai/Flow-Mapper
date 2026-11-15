@@ -2,6 +2,8 @@
 Description=Flow-Mapper (API, MCP and web UI)
 After=network-online.target
 Wants=network-online.target
+# Never start (and so never create an empty database) on the root disk when the data volume is not mounted.
+RequiresMountsFor=/var/lib/flow-mapper
 # install.sh restores the database from S3 before the first start.
 
 [Service]

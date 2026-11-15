@@ -2,6 +2,8 @@
 Description=Litestream: continuous SQLite replication to S3
 After=network-online.target
 Wants=network-online.target
+# Never start (and so never create an empty database) on the root disk when the data volume is not mounted.
+RequiresMountsFor=/var/lib/flow-mapper
 
 [Service]
 Type=simple

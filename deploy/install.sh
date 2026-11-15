@@ -10,9 +10,14 @@
 #   FLOW_PARAM_NAME (SSM parameter with the Cognito values the stack writes).
 # --dry-run prints what would happen and changes nothing (use it on a machine you care about).
 set -euo pipefail
+export PATH="$PATH:/snap/bin" # cloud-init's PATH lacks it; the aws CLI is a snap
 
 NODE_VERSION=22.21.1      # pinned; official tarball from nodejs.org, checked against SHASUMS256.txt
-LITESTREAM_VERSION=0.3.13 # pinned; GitHub release .deb
+LITESTREAM_VERSION=0.3.13 # pinned; GitHub release .deb, sha256 below (taken from the release assets on 2026-11-15)
+# shellcheck disable=SC2034 # read through an indirect name in install_litestream
+LITESTREAM_SHA256_arm64=073aceebd2bbd58213aad2e05fdf4667ff4ca1140d0be6df308859798c74e8e8
+# shellcheck disable=SC2034
+LITESTREAM_SHA256_amd64=9b05043523c1fb1c4f9800623adf0015683da7fdd55e19b9fe5d28f63fae96b4
 ENV_FILE=/etc/flow-mapper.env
 APP_DIR=/opt/flow-mapper
 DATA_DIR=/var/lib/flow-mapper
@@ -25,6 +30,7 @@ run() { if [ "$DRY" = 1 ]; then echo "  + $*"; else "$@"; fi; }
 put() { if [ "$DRY" = 1 ]; then echo "  + write $1"; cat >/dev/null; else install -m "$2" /dev/stdin "$1"; fi; }
 
 # --- settings ---------------------------------------------------------------------------------------------------
+# shellcheck source=/dev/null
 if [ -f "$ENV_FILE" ]; then set -a; . "$ENV_FILE"; set +a; fi
 TAG=${FLOW_REPO_TAG:-}; BUCKET=${FLOW_BACKUP_BUCKET:-}; REGION=${AWS_REGION:-}; REPO_URL=${FLOW_REPO_URL:-}
 while [ $# -gt 0 ]; do
@@ -64,7 +70,7 @@ install_packages() {
   log "packages"
   run apt-get update -qq
   run env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq git curl xz-utils ca-certificates sqlite3 unzip
-  if [ -n "$SECRET_ARN$FLOW_PARAM_NAME" ] && ! command -v aws >/dev/null 2>&1; then run snap install aws-cli --classic; fi
+  if [ -n "$SECRET_ARN$FLOW_PARAM_NAME" ] && ! command -v aws >/dev/null 2>&1; then run snap wait system seed.loaded; run snap install aws-cli --classic; fi
 }
 install_node() {
   if [ "$(/usr/local/bin/node --version 2>/dev/null || true)" = "v$NODE_VERSION" ]; then log "node v$NODE_VERSION present"; return; fi
@@ -82,7 +88,10 @@ install_litestream() {
   log "litestream $LITESTREAM_VERSION"
   local tmp; tmp=$(mktemp -d)
   run curl -fsSL -o "$tmp/ls.deb" "https://github.com/benbjohnson/litestream/releases/download/v$LITESTREAM_VERSION/litestream-v$LITESTREAM_VERSION-linux-$DEB_ARCH.deb"
-  run dpkg -i "$tmp/ls.deb"
+  local want_var=LITESTREAM_SHA256_$DEB_ARCH
+  if [ "$DRY" = 0 ]; then echo "${!want_var}  $tmp/ls.deb" | sha256sum -c -; fi
+  # --force-confold: the .deb ships /etc/litestream.yml, which we replace; never stop at a conffile prompt.
+  run env DEBIAN_FRONTEND=noninteractive dpkg --force-confold -i "$tmp/ls.deb"
   run rm -rf "$tmp"
   run systemctl disable --now litestream.service 2>/dev/null || true # the .deb ships its own unit; ours replaces it below
 }
@@ -99,9 +108,9 @@ mount_data_volume() {
   log "data volume"
   run mkdir -p "$DATA_DIR"
   if [ "$DRY" = 1 ]; then echo "  + wait for the data disk, mkfs.ext4 -L flowdata when it has no filesystem, fstab, mount $DATA_DIR"; return; fi
-  local dev="" i root
+  local dev="" root
   root=$(lsblk -no PKNAME "$(findmnt -no SOURCE /)" 2>/dev/null | head -1)
-  for i in $(seq 1 60); do
+  for _ in $(seq 1 60); do
     dev=$(blkid -L flowdata 2>/dev/null || true)
     if [ -z "$dev" ]; then # first boot: the one whole disk that is neither the root disk nor formatted
       dev=$(lsblk -dpno NAME,TYPE | awk '$2=="disk"{print $1}' | while read -r d; do
@@ -141,19 +150,25 @@ write_env() {
   log "$ENV_FILE"
   set_env FLOW_BACKUP_BUCKET "$BUCKET"; set_env AWS_REGION "$REGION"; set_env FLOW_REPO_TAG "$TAG"; set_env FLOW_REPO_URL "$REPO_URL"
   [ -z "$SECRET_ARN" ] || set_env FLOW_DEPLOY_KEY_SECRET_ARN "$SECRET_ARN"
-  if [ -n "${FLOW_PARAM_NAME:-}" ]; then
-    # The stack publishes the Cognito values here (the instance is created before the user pool client, so user data cannot carry them).
-    local frag="" i
-    for i in $(seq 1 60); do
-      if [ "$DRY" = 1 ]; then echo "  + aws ssm get-parameter $FLOW_PARAM_NAME (retries until the stack has written it)"; break; fi
-      frag=$(aws ssm get-parameter --region "$REGION" --name "$FLOW_PARAM_NAME" --query Parameter.Value --output text 2>/dev/null) && break || { frag=""; sleep 10; }
-    done
-    if [ -n "$frag" ]; then
-      while IFS='=' read -r k v; do [ -n "$k" ] && set_env "$k" "$v"; done <<<"$frag"
-    elif [ "$DRY" = 0 ]; then log "warning: SSM parameter $FLOW_PARAM_NAME not readable yet; run install.sh again later"; fi
-  fi
   # Part C (auth) reads these. Until it ships the server ignores them, so auth stays off. Switch to cognito only after part C is deployed.
   set_env FLOW_AUTH off keep
+}
+# The stack publishes the Cognito values in an SSM parameter (the instance is created before the user pool client, so user data cannot
+# carry them). CloudFront takes up to ~15 minutes to deploy and the parameter appears after it, so this runs AFTER the app is up
+# (auth is off until part C, nothing needs the values yet) and waits up to 30 minutes. A changed env file restarts the app.
+fetch_app_env() {
+  [ -n "${FLOW_PARAM_NAME:-}" ] || return 0
+  if [ "$DRY" = 1 ]; then echo "  + aws ssm get-parameter $FLOW_PARAM_NAME (retries up to 30 minutes until the stack has written it)"; return; fi
+  log "Cognito values from SSM $FLOW_PARAM_NAME"
+  local frag="" _ before
+  for _ in $(seq 1 180); do
+    if frag=$(aws ssm get-parameter --region "$REGION" --name "$FLOW_PARAM_NAME" --query Parameter.Value --output text 2>/dev/null); then break; fi
+    frag=""; sleep 10
+  done
+  if [ -z "$frag" ]; then log "warning: SSM parameter $FLOW_PARAM_NAME not readable; run install.sh again later"; return; fi
+  before=$(cksum < "$ENV_FILE")
+  while IFS='=' read -r k v; do if [ -n "$k" ]; then set_env "$k" "$v"; fi; done <<<"$frag"
+  if [ "$(cksum < "$ENV_FILE")" != "$before" ]; then log "settings changed, restarting"; systemctl restart flow-mapper.service; fi
 }
 install_units() {
   local UNIT_SRC=$APP_DIR/deploy; [ "$DRY" = 1 ] && UNIT_SRC=$(cd "$(dirname "$0")" && pwd)
@@ -180,7 +195,11 @@ start_services() {
   run systemctl enable --now flow-mapper.service
   run systemctl enable --now litestream.service
   if [ "$DRY" = 1 ]; then echo "  + curl http://127.0.0.1/healthz"; return; fi
-  for i in $(seq 1 30); do curl -fsS http://127.0.0.1/healthz >/dev/null 2>&1 && { log "healthy: $(curl -fsS http://127.0.0.1/healthz)"; return; }; sleep 1; done
+  local _
+  for _ in $(seq 1 30); do
+    if out=$(curl -fsS http://127.0.0.1/healthz 2>/dev/null); then log "healthy: $out"; return; fi
+    sleep 1
+  done
   echo "install: /healthz did not answer; see journalctl -u flow-mapper" >&2; exit 1
 }
 
@@ -196,4 +215,5 @@ write_env
 install_units
 prepare_database
 start_services
+fetch_app_env
 log "done"
