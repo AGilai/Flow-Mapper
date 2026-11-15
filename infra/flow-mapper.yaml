@@ -79,6 +79,16 @@ Parameters:
       Until the app enforces Cognito login (part C of the plan) the app has NO authentication. A non-empty value puts HTTP basic auth
       (user flows) in front of every page at CloudFront. Empty means the site is open to anyone with the URL. infra/deploy.sh generates one unless --open is given.
 
+  OriginSecret:
+    Type: String
+    NoEcho: true
+    Default: ''
+    AllowedPattern: '^([A-Za-z0-9]{16,})?$'
+    ConstraintDescription: At least 16 letters and digits, or empty.
+    Description: >-
+      Secret value of the custom origin header X-Flows-Origin that CloudFront adds to every request to the instance. Part C of the plan makes the app
+      reject requests without it (defence in depth: the origin port is open to every CloudFront distribution). Until then it is only sent. infra/deploy.sh generates one.
+
 Rules:
   DomainNeedsUsEast1:
     RuleCondition: !Not [!Equals [!Ref DomainName, '']]
@@ -93,6 +103,8 @@ Conditions:
   HasSubnet: !Not [!Equals [!Ref SubnetId, '']]
   HasKey: !Not [!Equals [!Ref GitHubDeployKeySecretArn, '']]
   HasRepoUrl: !Not [!Equals [!Ref RepoUrl, '']]
+  HasOriginSecret: !Not [!Equals [!Ref OriginSecret, '']]
+  IsUsEast1: !Equals [!Ref 'AWS::Region', us-east-1]
   HasGate: !Not [!Equals [!Ref PreAuthPassword, '']]
   HasPrefix: !Not [!Equals [!Ref HostedUiDomainPrefix, '']]
   AdminOnly: !Equals [!Join ['', !Ref AllowedEmailDomains], '']
@@ -216,6 +228,20 @@ Resources:
                 - {Effect: Allow, Action: 'secretsmanager:GetSecretValue', Resource: !Ref GitHubDeployKeySecretArn}
                 - !Ref 'AWS::NoValue'
       Tags: [{Key: Project, Value: flows}, {Key: Name, Value: flows-app-role}]
+
+  # A stopped and started instance gets a new public DNS name; an Elastic IP keeps its address (and so its DNS name) while associated,
+  # including while the instance is stopped. The CloudFront origin is built from it, so the nightly stop/start is safe.
+  FlowsEip:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags: [{Key: Project, Value: flows}, {Key: Name, Value: flows-eip}]
+
+  FlowsEipAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      AllocationId: !GetAtt FlowsEip.AllocationId
+      InstanceId: !Ref Instance
 
   InstanceProfile:
     Type: AWS::IAM::InstanceProfile
@@ -346,7 +372,15 @@ Resources:
           - {CloudFrontDefaultCertificate: true}
         Origins:
           - Id: app
-            DomainName: !GetAtt Instance.PublicDnsName
+            # The EIP's public DNS name: ec2-a-b-c-d.compute-1.amazonaws.com in us-east-1, ec2-a-b-c-d.<region>.compute.amazonaws.com elsewhere.
+            DomainName: !Sub
+              - 'ec2-${Dashed}.${Suffix}'
+              - Dashed: !Join ['-', !Split ['.', !Ref FlowsEip]]
+                Suffix: !If [IsUsEast1, compute-1.amazonaws.com, !Sub '${AWS::Region}.compute.amazonaws.com']
+            OriginCustomHeaders: !If
+              - HasOriginSecret
+              - [{HeaderName: X-Flows-Origin, HeaderValue: !Ref OriginSecret}]
+              - !Ref 'AWS::NoValue'
             CustomOriginConfig:
               OriginProtocolPolicy: http-only
               HTTPPort: 80

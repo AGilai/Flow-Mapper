@@ -17,16 +17,17 @@
 #                            generated one unless you pass this or --open. An existing stack keeps its current one.
 #   --open                   no gate: until part C (Cognito login in the app) the app has NO authentication, so this makes
 #                            the site, its data and its write API open to anyone who has the URL
+#   --origin-secret S        value of the X-Flows-Origin header (default: generated; part C makes the app require it)
 #   --dry-run                print the command and stop
 set -euo pipefail
 
-STACK=flows; REGION=${AWS_REGION:-}; ADMIN=; TAG=; TYPE=t4g.small; DOMAINS=; REPO_URL=; KEY=; PREFIX=; DOMAIN=; ZONE=; VPC=; SUBNET=; DRY=0; GATEPW=; OPEN=0
+STACK=flows; REGION=${AWS_REGION:-}; ADMIN=; TAG=; TYPE=t4g.small; DOMAINS=; REPO_URL=; KEY=; PREFIX=; DOMAIN=; ZONE=; VPC=; SUBNET=; DRY=0; GATEPW=; OPEN=0; OSECRET=
 while [ $# -gt 0 ]; do
   case $1 in
     --stack) STACK=$2; shift 2 ;; --region) REGION=$2; shift 2 ;; --admin-email) ADMIN=$2; shift 2 ;; --repo-tag) TAG=$2; shift 2 ;;
     --instance-type) TYPE=$2; shift 2 ;; --allowed-domains) DOMAINS=$2; shift 2 ;; --repo-url) REPO_URL=$2; shift 2 ;;
     --key-secret-arn) KEY=$2; shift 2 ;; --hosted-ui-prefix) PREFIX=$2; shift 2 ;; --domain) DOMAIN=$2; shift 2 ;; --zone) ZONE=$2; shift 2 ;;
-    --vpc) VPC=$2; shift 2 ;; --subnet) SUBNET=$2; shift 2 ;; --gate-password) GATEPW=$2; shift 2 ;; --open) OPEN=1; shift ;; --dry-run) DRY=1; shift ;;
+    --vpc) VPC=$2; shift 2 ;; --subnet) SUBNET=$2; shift 2 ;; --gate-password) GATEPW=$2; shift 2 ;; --open) OPEN=1; shift ;; --origin-secret) OSECRET=$2; shift 2 ;; --dry-run) DRY=1; shift ;;
     -h|--help) sed -n 2,20p "$0"; exit 0 ;;
     *) echo "deploy: unknown argument $1" >&2; exit 2 ;;
   esac
@@ -43,12 +44,14 @@ PL=$(aws ec2 describe-managed-prefix-lists --region "$REGION" \
 [ -n "$PL" ] && [ "$PL" != None ] || { echo "deploy: CloudFront prefix list not found in $REGION" >&2; exit 1; }
 
 # The app has no login until part C: gate the site by default (see PreAuthPassword in the template).
-GATE=()
+# Secret for the X-Flows-Origin header CloudFront sends (part C makes the app require it). A new one is generated on every run unless --origin-secret is given.
+[ -n "$OSECRET" ] || OSECRET=$(openssl rand -hex 16)
+GATE=("OriginSecret=$OSECRET")
 if [ "$OPEN" = 1 ] && [ -n "$GATEPW" ]; then echo "deploy: --open and --gate-password exclude each other" >&2; exit 2; fi
-if [ "$OPEN" = 1 ]; then GATE=("PreAuthPassword=")
-elif [ -n "$GATEPW" ]; then GATE=("PreAuthPassword=$GATEPW")
+if [ "$OPEN" = 1 ]; then GATE+=("PreAuthPassword=")
+elif [ -n "$GATEPW" ]; then GATE+=("PreAuthPassword=$GATEPW")
 elif ! aws cloudformation describe-stacks --region "$REGION" --stack-name "$STACK" >/dev/null 2>&1; then
-  GATEPW=$(openssl rand -hex 16); GATE=("PreAuthPassword=$GATEPW"); echo "deploy: generated a basic-auth password (shown again at the end)"
+  GATEPW=$(openssl rand -hex 16); GATE+=("PreAuthPassword=$GATEPW"); echo "deploy: generated a basic-auth password (shown again at the end)"
 fi
 if [ "$OPEN" = 1 ]; then
   echo "deploy: WARNING: --open. Until part C the app has no authentication: anyone with the URL can read and change all data." >&2
@@ -59,7 +62,7 @@ cmd=(aws cloudformation deploy --region "$REGION" --stack-name "$STACK" --templa
   --parameter-overrides "RepoTag=$TAG" "AdminEmail=$ADMIN" "InstanceType=$TYPE" "CloudFrontPrefixListId=$PL"
   "AllowedEmailDomains=$DOMAINS" "RepoUrl=$REPO_URL" "GitHubDeployKeySecretArn=$KEY" "HostedUiDomainPrefix=$PREFIX"
   "DomainName=$DOMAIN" "HostedZoneId=$ZONE" "VpcId=$VPC" "SubnetId=$SUBNET" ${GATE[@]+"${GATE[@]}"})
-echo "deploy: ${cmd[*]}" | sed -E 's/(PreAuthPassword=)[^ ]+/\1****/'
+echo "deploy: ${cmd[*]}" | sed -E 's/(PreAuthPassword=|OriginSecret=)[^ ]+/\1****/'
 [ "$DRY" = 1 ] && exit 0
 "${cmd[@]}"
 
