@@ -28,8 +28,8 @@ curl -s $FLOW/api/envs/meta  # environments with kind sealed | design
 - `FLOW_DB`, `FLOW_DATA_DIR`, `PORT` are read in `server/config.ts`. Without them the server uses `data/`.
 - "prod" below means the `prod` environment **of your instance**: whatever its harvesters (or `npm run seed`) put
   there. If your instance has no real prod data, reuse decisions are guesses: say so in the plan.
-- REST base: `$FLOW/api`. No auth.
-- MCP over HTTP: `POST $FLOW/mcp`, one JSON-RPC 2.0 message per request (no SSE; `GET /mcp` is 405).
+- REST base: `$FLOW/api`. A local or `FLOW_AUTH=off` instance has no auth. On a hosted instance (`FLOW_AUTH=cognito`) every call needs `Authorization: Bearer fm_...`: a person creates the token under **Tokens** in the UI (the expiry is optional: never, 30, 90 or 365 days). Without it, or with a wrong, revoked or expired one, you get **401** (`UNAUTHENTICATED`, `TOKEN_INVALID`, `TOKEN_EXPIRED`); an env you may not read is **404**, one you may read but not change is **403 `FORBIDDEN`**. `create_env` there makes a design that is **private to the token's user**; share it with `share_env` (or the Share dialog). Drafts are private to their author until shared.
+- MCP over HTTP: `POST $FLOW/mcp`, one JSON-RPC 2.0 message per request (no SSE; `GET /mcp` is 405). On a hosted instance add the header `Authorization: Bearer fm_...` to the MCP client config; the tools then act as the token's user (`whoami` says who).
 - MCP over stdio: `FLOW_DB=/tmp/fm/flow.db node --disable-warning=ExperimentalWarning server/mcp/stdio.ts`
   (same as `npm run mcp`). It opens the database file directly: point `FLOW_DB` at the same file as the server.
 - Every MCP tool takes `env`; it **defaults to `default`**, not `prod`. Always pass `env: "prod"`.

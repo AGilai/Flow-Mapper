@@ -6,6 +6,7 @@
 import type { IncomingHttpHeaders } from 'node:http';
 import type { DB } from './db/connection.ts';
 import { badRequest } from './errors.ts';
+import { currentWho } from './auth/context.ts';
 import { cleanName } from '../core/comments.ts';
 import { ensureUser, findUser, touch, userName } from './store/users.ts';
 
@@ -15,8 +16,10 @@ export const ASSISTANT = 'Assistant';
 export interface Caller { id: string | null; name: string }
 export interface Claim { userId?: string | null; name?: unknown; source?: unknown; externalId?: unknown; what?: string }
 
-/** The user id a request claims with the header, or undefined. */
+/** The user id of a request: with accounts (cognito) the signed-in user and never the header (it cannot be spoofed); with auth off the X-Flow-User header, or undefined. */
 export function headerUser(h: IncomingHttpHeaders | undefined): string | undefined {
+  const p = currentWho();
+  if (p && p.via !== 'off') return p.id ?? undefined;
   const v = h?.[USER_HEADER];
   const s = Array.isArray(v) ? v[0] : v;
   return typeof s === 'string' && s.trim() ? s.trim() : undefined;

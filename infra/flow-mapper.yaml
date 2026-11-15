@@ -297,7 +297,7 @@ Resources:
             FLOW_DEPLOY_KEY_SECRET_ARN=${GitHubDeployKeySecretArn}
             FLOW_PARAM_NAME=/flows/${AWS::StackName}/app-env
             ENVEOF
-            chmod 644 /etc/flow-mapper.env
+            chmod 600 /etc/flow-mapper.env
             export DEBIAN_FRONTEND=noninteractive
             apt-get update -qq
             apt-get install -y -qq git ca-certificates
@@ -331,6 +331,7 @@ Resources:
         - - !Sub 'FLOW_COGNITO_ISSUER=https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}'
           - !Sub 'FLOW_COGNITO_CLIENT_ID=${UserPoolClient}'
           - !Sub 'FLOW_COGNITO_DOMAIN=https://${UserPoolDomain}.auth.${AWS::Region}.amazoncognito.com'
+          - !Sub 'FLOW_ADMIN_EMAIL=${AdminEmail}'
           - !If [UseDomain, !Sub 'FLOW_PUBLIC_URL=https://${DomainName}', !Sub 'FLOW_PUBLIC_URL=https://${Distribution.DomainName}']
       Tags: {Project: flows, Name: flows-app-env}
 

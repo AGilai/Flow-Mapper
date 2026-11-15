@@ -21,6 +21,7 @@ import { copyActionItems } from './action-items-io.ts';
 import { copySharedChannels } from './env-copy-channels.ts';
 import { ensureColors } from './colors.ts';
 import { newEnvSlot } from './env-color.ts';
+import { actorId, authOff } from '../auth/context.ts';
 import { writeChangelog } from './snapshots-write.ts';
 
 export type CopyMode = 'blank' | 'components' | 'full';
@@ -88,8 +89,8 @@ export function copyEnv(db: DB, input: CopyInput): EnvMeta {
     // The baseline of the subsystems (grp: marks): what the design started with. A full copy of a design keeps that design's.
     const baseGroups = fullOfDesign ? ((v.src as any)?.baseline_groups ?? null) : JSON.stringify(groups);
     const levels = input.levels || !fullOfDesign ? v.levels : JSON.parse(v.src!.levels);
-    db.prepare('INSERT INTO envs (name, kind, source, copied_at, levels, groups, baseline_groups, created_at, created_by, color) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-      .run(name, 'design', source, at, JSON.stringify(levels), JSON.stringify(groups), baseGroups, at, String(input.createdBy ?? 'anonymous').slice(0, 80), newEnvSlot(db));
+    db.prepare('INSERT INTO envs (name, kind, source, copied_at, levels, groups, baseline_groups, created_at, created_by, color, owner_user_id, visibility) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(name, 'design', source, at, JSON.stringify(levels), JSON.stringify(groups), baseGroups, at, String(input.createdBy ?? 'anonymous').slice(0, 80), newEnvSlot(db), authOff() ? null : actorId(), authOff() ? 'published' : 'private'); // accounts: private to its creator; auth off: like every design before 0.52.0
     if (mode === 'blank') return getEnv(db, name);
 
     const all = (db.prepare('SELECT service FROM snapshots WHERE env = ? ORDER BY service').all(source) as { service: string }[]).map((r) => r.service);

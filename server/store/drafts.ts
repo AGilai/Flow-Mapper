@@ -13,10 +13,15 @@ import { envRowsOf, changesNow, rebase } from './env-rows-cache.ts';
 import { prepareOps } from './draft-validate.ts';
 import { assignColorsIn } from './colors.ts';
 import { sinceWrite } from './write-memo.ts';
+import { actorId, authOff, currentWho } from '../auth/context.ts';
+import { canReadDraft } from '../../core/env-access.ts';
+import { roleFor, whoOf } from '../access.ts';
 
-export interface DraftRow { id: number; env: string; slug: string; name: string; status: 'open' | 'applied' | 'discarded'; plan: string | null; report: string | null; created_by: string; created_at: string; updated_at: string; closed_at: string | null; closed_by: string | null }
+export interface DraftRow { id: number; env: string; slug: string; name: string; status: 'open' | 'applied' | 'discarded'; plan: string | null; report: string | null; created_by: string; created_at: string; updated_at: string; closed_at: string | null; closed_by: string | null; owner_user_id: string | null; visibility: 'private' | 'shared' }
 export interface DraftInfo {
   id: number; slug: string; name: string; status: DraftRow['status']; createdBy: string; createdAt: string; updatedAt: string; closedAt: string | null;
+  /** The user who opened it (null: before accounts, or auth off) and whether the env's editors can see it. */
+  ownerId: string | null; shared: boolean;
   ops: number; authors: string[]; counts: { added: number; removed: number; changed: number };
 }
 const now = () => new Date().toISOString();
@@ -53,6 +58,7 @@ function info(db: DB, env: string, d: DraftRow): DraftInfo {
   const closed = d.status !== 'open' && d.report ? JSON.parse(d.report).counts : null;
   return {
     id: d.id, slug: d.slug, name: d.name, status: d.status, createdBy: d.created_by, createdAt: d.created_at, updatedAt: d.updated_at, closedAt: d.closed_at,
+    ownerId: d.owner_user_id ?? null, shared: d.visibility !== 'private',
     ops: ops.length, authors: [...new Set(ops.map((o) => o.author))], counts: closed ?? (d.status === 'open' ? (ops.length ? changesFor(db, env, d).counts : changesOf([], ops).counts) : { added: 0, removed: 0, changed: 0 }),
   };
 }
@@ -60,7 +66,10 @@ export const draftInfo = (db: DB, env: string, d: DraftRow): DraftInfo => info(d
 
 export function listDrafts(db: DB, env: string, status: 'open' | 'all' = 'open'): DraftInfo[] {
   const rows = db.prepare(`SELECT * FROM drafts WHERE env = ? ${status === 'open' ? "AND status = 'open'" : ''} ORDER BY id`).all(env) as unknown as DraftRow[];
-  return rows.map((r) => info(db, env, r));
+  const p = currentWho();
+  if (authOff()) return rows.map((r) => info(db, env, r));
+  const role = roleFor(db, env, p);
+  return rows.filter((r) => canReadDraft(role, { ownerId: r.owner_user_id, visibility: r.visibility }, whoOf(p!))).map((r) => info(db, env, r));
 }
 
 function slugFor(db: DB, env: string, name: string, wanted?: string): string {
@@ -83,8 +92,8 @@ export function createDraft(db: DB, env: string, i: { name: string; slug?: strin
     const slug = slugFor(db, env, i.name, i.slug), at = now();
     // A discarded draft gives its slug up (#59-style reuse, #56): its row stays for the record under `<slug>~<id>`.
     db.prepare("UPDATE drafts SET slug = slug || '~' || id WHERE env = ? AND slug = ? AND status = 'discarded'").run(env, slug);
-    db.prepare('INSERT INTO drafts (env, slug, name, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)')
-      .run(env, slug, i.name.trim().slice(0, 120), String(i.createdBy ?? 'anonymous').slice(0, 80), at, at);
+    db.prepare('INSERT INTO drafts (env, slug, name, created_by, created_at, updated_at, owner_user_id, visibility) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(env, slug, i.name.trim().slice(0, 120), String(i.createdBy ?? 'anonymous').slice(0, 80), at, at, actorId(), authOff() ? 'shared' : 'private'); // private to its author until shared (accounts); auth off: as before
     return draftInfo(db, env, getDraft(db, env, slug));
   });
 }

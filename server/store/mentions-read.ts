@@ -8,6 +8,7 @@ import { sanitize } from '../../core/rich-text.ts';
 import { parseFlowAnchor } from '../../core/comments.ts';
 import { badRequest } from '../errors.ts';
 import { getUser, nameIndex } from './users.ts';
+import { filterByEnv } from '../access.ts';
 import { markSeen } from './mentions.ts';
 
 export interface Mention {
@@ -34,7 +35,7 @@ export function listMentions(db: DB, q: MentionQuery): Mention[] {
   const rows = db.prepare(`SELECT c.id, c.env, c.anchor, c.step, c.parent_id, c.author, c.author_id, c.body, c.created_at, s.seen_at
     FROM comment_mentions m JOIN comments c ON c.id = m.comment_id LEFT JOIN mention_seen s ON s.user_id = m.user_id AND s.comment_id = m.comment_id
     WHERE ${where.join(' AND ')} ORDER BY c.created_at DESC, c.id DESC LIMIT ?`).all(...args, Math.max(1, Math.min(Number(q.limit) || 200, 1000))) as unknown as Row[];
-  return rows.map((r) => {
+  return filterByEnv(db, rows, (r) => r.env).map((r) => {
     const f = parseFlowAnchor(r.anchor) ?? { service: '', ingress: '' }, body = sanitize(r.body);
     return { commentId: r.id, env: r.env, anchor: r.anchor, service: f.service, ingress: f.ingress, step: r.step, parentId: r.parent_id,
       author: (r.author_id && names.get(r.author_id)?.name) || r.author, authorId: r.author_id, text: plainText(body), html: body, createdAt: r.created_at, unread: r.seen_at === null };

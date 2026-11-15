@@ -60,9 +60,9 @@ set_env() {
   local k=$1 v=$2
   if [ "${3:-}" = keep ] && grep -q "^$k=" "$ENV_FILE" 2>/dev/null; then return; fi
   if [ "$DRY" = 1 ]; then echo "  + $ENV_FILE: $k=$v"; return; fi
-  touch "$ENV_FILE"; chmod 644 "$ENV_FILE"
+  touch "$ENV_FILE"; chmod 600 "$ENV_FILE" # root-only: systemd reads it as root; it holds the origin secret
   grep -v "^$k=" "$ENV_FILE" > "$ENV_FILE.new" || true
-  echo "$k=$v" >> "$ENV_FILE.new"; mv "$ENV_FILE.new" "$ENV_FILE"
+  echo "$k=$v" >> "$ENV_FILE.new"; chmod 600 "$ENV_FILE.new"; mv "$ENV_FILE.new" "$ENV_FILE"
 }
 
 # --- packages, Node, Litestream ---------------------------------------------------------------------------------
@@ -150,15 +150,16 @@ write_env() {
   log "$ENV_FILE"
   set_env FLOW_BACKUP_BUCKET "$BUCKET"; set_env AWS_REGION "$REGION"; set_env FLOW_REPO_TAG "$TAG"; set_env FLOW_REPO_URL "$REPO_URL"
   [ -z "$SECRET_ARN" ] || set_env FLOW_DEPLOY_KEY_SECRET_ARN "$SECRET_ARN"
-  # Part C (auth) reads these. Until it ships the server ignores them, so auth stays off. Switch to cognito only after part C is deployed.
+  # Part C (0.52.0) reads FLOW_AUTH and the Cognito values. It stays off until you switch it (docs/OPERATIONS.md "Switching to Cognito login").
   set_env FLOW_AUTH off keep
+  [ "$DRY" = 1 ] || chmod 600 "$ENV_FILE"
 }
 # The stack publishes the Cognito values in an SSM parameter (the instance is created before the user pool client, so user data cannot
 # carry them). CloudFront takes up to ~15 minutes to deploy and the parameter appears after it, so this runs AFTER the app is up
 # (auth is off until part C, nothing needs the values yet) and waits up to 30 minutes. A changed env file restarts the app.
 fetch_app_env() {
   [ -n "${FLOW_PARAM_NAME:-}" ] || return 0
-  if [ "$DRY" = 1 ]; then echo "  + aws ssm get-parameter $FLOW_PARAM_NAME (retries up to 30 minutes until the stack has written it)"; return; fi
+  if [ "$DRY" = 1 ]; then echo "  + aws ssm get-parameter $FLOW_PARAM_NAME (retries up to 30 minutes until the stack has written it), then ${FLOW_PARAM_NAME%/app-env}/origin-secret (SecureString) into FLOW_ORIGIN_SECRET"; return; fi
   log "Cognito values from SSM $FLOW_PARAM_NAME"
   local frag="" _ before
   for _ in $(seq 1 180); do
@@ -168,7 +169,17 @@ fetch_app_env() {
   if [ -z "$frag" ]; then log "warning: SSM parameter $FLOW_PARAM_NAME not readable; run install.sh again later"; return; fi
   before=$(cksum < "$ENV_FILE")
   while IFS='=' read -r k v; do if [ -n "$k" ]; then set_env "$k" "$v"; fi; done <<<"$frag"
+  fetch_origin_secret
   if [ "$(cksum < "$ENV_FILE")" != "$before" ]; then log "settings changed, restarting"; systemctl restart flow-mapper.service; fi
+}
+# The origin header secret (SecureString /flows/<stack>/origin-secret, written by infra/deploy.sh) goes into the env file as FLOW_ORIGIN_SECRET (mode 600):
+# the app then answers only requests that carry X-Flows-Origin with it (CloudFront adds it). Not there yet: the app does not check the header. A rotated
+# secret reaches the app on the next run of install.sh (or: aws ssm get-parameter, edit the env file, restart).
+fetch_origin_secret() {
+  local name=${FLOW_PARAM_NAME%/app-env}/origin-secret secret
+  if secret=$(aws ssm get-parameter --region "$REGION" --name "$name" --with-decryption --query Parameter.Value --output text 2>/dev/null) && [ -n "$secret" ] && [ "$secret" != None ]; then
+    set_env FLOW_ORIGIN_SECRET "$secret"; log "origin secret from SSM $name"
+  else log "warning: SSM SecureString $name not readable: the app will not check X-Flows-Origin"; fi
 }
 install_units() {
   local UNIT_SRC=$APP_DIR/deploy; [ "$DRY" = 1 ] && UNIT_SRC=$(cd "$(dirname "$0")" && pwd)

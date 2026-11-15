@@ -18,6 +18,7 @@ import { listActionItemsTool, addActionItemTool, updateActionItemTool } from './
 import { listUsersTool, listMentionsTool } from './users.ts';
 import { listFlowRelationsTool } from './relations.ts';
 import { getSubsystemsTool, getSubsystemMapTool, listOpenQuestionsTool, listAbstractLinksTool, suggestRefinementsTool, applyPlanLinksTool, setSubsystemSettingsTool, setLevelsTool } from './subsystems.ts';
+import { whoamiTool, shareEnvTool } from './accounts.ts';
 import type { Tool } from './common.ts';
 export type { Tool };
 
@@ -84,4 +85,6 @@ export const TOOLS: Tool[] = [
   listUsersTool,
   listMentionsTool,
   listOpenQuestionsTool,
+  whoamiTool,
+  shareEnvTool,
 ];

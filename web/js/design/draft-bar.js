@@ -5,6 +5,7 @@ import { h } from '../dom.js';
 import { state } from '../state.js';
 import { names, deltaText } from './who.js';
 import { openEditMenu } from './edit-menu.js';
+import { draftShare } from './draft-share.js';
 
 /** "by seed", "by seed and 2 others" (pure). */
 export function byText(authors) {
@@ -24,6 +25,7 @@ export function draftBar({ draft, changes, review, onReview, onApply, onDiscard,
     h('div.dz-bar-main',
       h('button.dz-draftname', { type: 'button', 'data-qa': 'draft-name', title: 'Switch draft', 'aria-label': `Draft ${draft.name}. Switch draft`, on: { click: (e) => onPick(e.currentTarget) } }, h('b', draft.name), h('span.dz-caret', '▾')),
       h('span.dz-by.muted.xs', { title: names(who) }, byText(who)),
+      draftShare(draft),
       h('span.dz-delta', { 'data-qa': 'draft-delta', title: deltaTitle(c, imported) },
         h('span.a', `+${c.added}`), h('span.r', `−${c.removed}`), h('span.c', `~${c.changed}`)),
       h('span.spacer'),

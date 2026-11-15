@@ -8,6 +8,7 @@ import { tx } from '../db/connection.ts';
 import type { GraphIndex } from '../../core/graph-index.ts';
 import { impact, suggestPriority, type EntityLink, type Priority, type Severity } from '../../core/impact.ts';
 import { bugCommented, bugCreated, bugPatched } from '../events/emitters.ts';
+import { readableEnvs } from '../access.ts';
 import { HttpError, badRequest, conflict, invalid, notFound } from '../errors.ts';
 
 export const STATUSES = ['open', 'triaged', 'in_progress', 'fixed', 'verified', 'closed', 'wont_fix', 'duplicate'] as const;
@@ -105,6 +106,8 @@ const shape = (r: any, appVersion: string) => ({
 
 export function getBug(db: DB, id: number, appVersion: string) {
   const r = row(db, id);
+  const ok = readableEnvs(db);
+  if (ok && r.env && !ok.has(r.env)) throw notFound(`bug ${id}`); // a bug about an environment the caller cannot read is not found
   return {
     ...shape(r, appVersion),
     links: (db.prepare('SELECT type, service, ref_id AS id FROM bug_links WHERE bug_id = ?').all(id) as any[]).map((l) => ({ ...l, service: l.service ?? undefined })),
@@ -131,6 +134,8 @@ export function listBugs(db: DB, f: BugFilter, appVersion: string) {
     where.push(`${col} IN (${xs.map(() => '?').join(',')})`);
     args.push(...xs);
   };
+  const ok = readableEnvs(db); // accounts: bugs linked to an environment the caller cannot read are absent
+  if (ok) { where.push(`(env IS NULL OR env IN (${[...ok].map(() => '?').join(',') || "''"}))`); args.push(...ok); }
   if (f.open) inList('status', OPEN_STATUSES.join(','));
   inList('status', f.status);
   inList('priority', f.priority);
@@ -235,6 +240,7 @@ export function readAttachment(db: DB, dataDir: string, bugId: number, attId: nu
 }
 
 export function bugStats(db: DB) {
-  const by = (col: string) => Object.fromEntries((db.prepare(`SELECT ${col} AS k, COUNT(*) AS n FROM bugs GROUP BY ${col}`).all() as any[]).map((r) => [r.k, r.n]));
+  const ok = readableEnvs(db), cond = ok ? `WHERE env IS NULL OR env IN (${[...ok].map(() => '?').join(',') || "''"})` : '';
+  const by = (col: string) => Object.fromEntries((db.prepare(`SELECT ${col} AS k, COUNT(*) AS n FROM bugs ${cond} GROUP BY ${col}`).all(...(ok ?? [])) as any[]).map((r) => [r.k, r.n]));
   return { byStatus: by('status'), byPriority: by('priority'), bySeverity: by('severity'), byVersion: by('app_version') };
 }

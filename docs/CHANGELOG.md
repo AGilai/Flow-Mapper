@@ -5,6 +5,18 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased (target 0.52.0: accounts, ownership, sharing)
+
+- **Auth is opt-in: `FLOW_AUTH=off` (the default) changes nothing.** A server run with `FLOW_AUTH=cognito` needs a credential on every `/api/*` and `/mcp` call, otherwise **401** (`UNAUTHENTICATED`). Open: `/healthz`, `/api/version`, `/api/me`, `/auth/*` and the web UI files.
+- **Harvesters and importers on a cognito server: send `Authorization: Bearer fm_...`.** A person creates the token under Tokens in the UI (optional expiry 30, 90 or 365 days; default never); an admin ticks Harvester for a harvester token. Wrong, revoked or unknown: 401 `TOKEN_INVALID`. Past its expiry: 401 `TOKEN_EXPIRED`, the message names the token and says to create a new one. A bearer call needs no CSRF header.
+- **Ingest (`POST /api/ingest`, DTOs, event DTOs, schemas, Redis keys) into a sealed env needs a token with the harvester scope**, otherwise **403 `SEALED`**. Dry runs (`?dryRun=1`) need none. The same applies to the MCP tools `ingest_manifest`, `load_dtos` and `load_schemas`. Annotations (descriptions, comments, notes, action items, colour, levels) stay open to everyone signed in.
+- **Hidden means 404.** A design env you cannot read is absent from `GET /api/envs`, `/api/envs/meta`, search, entry points, mentions, comments, action items, notes, open questions, bugs linked to it, `GET /api/events` and every MCP tool, and asking for it (or its draft, or a bug about it) by id is `404 NOT_FOUND`, never 403. Readable but not writable: `403 FORBIDDEN`.
+- **New design envs (`POST /api/envs`, MCP `create_env`) are private to their creator.** Designs that exist before the upgrade have no owner and stay readable by everyone signed in (only admins edit them until an admin gives one an owner with `PUT /api/envs/:env/access {owner}`). Copying an env needs read access to the source.
+- Drafts are private to their author until shared; applying a draft needs editor rights on the env; sharing, publishing and deleting an env need the owner or an admin.
+- New: `GET /api/me`, `POST/GET/DELETE /api/tokens`, `GET/PUT /api/envs/:env/access`, `PUT /api/envs/:env/drafts/:slug/share`; `GET /api/envs/meta` and `/api/envs/:env/meta` gain `access` ({ownerId, ownerName, visibility, published, memberCount, role, member}); drafts gain `ownerId` and `shared`. MCP: `whoami`, `share_env`; `list_envs` gains `access`. Changelog rows record the acting user id.
+- In cognito mode the signed-in user is the author of comments, notes and action items: `X-Flow-User` and the `author` fields no longer choose who you are. With auth off nothing changes.
+- UI: sign-in card, user menu with Tokens, env picker in groups (My designs, Shared with me, Published, Harvested), Share dialog, read-only banner, Tokens page.
+
 ## 0.51.3 (2026-11-15)
 
 - hosting: `GET /healthz` (`{ok, version}`, no DB access), `deploy/` (systemd units, Litestream, install and upgrade scripts) and `infra/` (CloudFormation stack, deploy script) for AWS. See [OPERATIONS.md](OPERATIONS.md). No API or manifest change.

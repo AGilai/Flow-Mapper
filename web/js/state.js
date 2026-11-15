@@ -25,7 +25,7 @@ const DESIGN_KEYS = { mode: 'view', draft: null, compare: 'baseline' };
 export const isDesign = (name = state.env, meta = state.envMeta) => meta.some((m) => m.name === name && m.kind === 'design');
 
 /** Pages that do not depend on an environment (global lists, the bug tracker, the env forms; env settings name theirs in the path): they never gain `env=`. */
-const ENV_FREE = new Set(['bugs', 'users', 'mentions', 'envs']);
+const ENV_FREE = new Set(['bugs', 'users', 'mentions', 'envs', 'tokens']);
 
 /** The `env=` a page URL carries: always the current env, except on a page that is not env-specific (then null). */
 export const pageEnv = (parts, env) => (ENV_FREE.has(parts[0]) ? null : env || null);

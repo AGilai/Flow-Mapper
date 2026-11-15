@@ -1,6 +1,7 @@
 // Environment tools: list (with kind and source) and create a design environment by copying another.
 
 import { copyEnv } from '../../store/env-copy.ts';
+import { summaries } from '../../store/env-access.ts';
 import { listEnvMeta } from '../../store/envs.ts';
 import { setEnvColor } from '../../store/env-color.ts';
 import { ENV_COLORS, envColorName } from '../../../core/env-colors.ts';
@@ -9,7 +10,7 @@ import { type Tool, obj } from './common.ts';
 export const listEnvsTool: Tool = {
   name: 'list_envs', description: "List environments with their kind ('sealed': filled by harvesters, read-only for manual edits; 'design': created by a copy, editable), the source and date it was copied from, its subsystems (groups) counts and colour (a slot 1..10 with its name; the UI shows it on flow tabs).",
   inputSchema: obj({}),
-  run: (c) => listEnvMeta(c.db).map((e) => ({ name: e.name, kind: e.kind, source: e.source, copiedAt: e.copiedAt, groups: e.groups, components: e.counts.components, color: e.color, colorName: envColorName(e.color), colorAuto: e.colorAuto })),
+  run: (c) => { const acc = summaries(c.db, listEnvMeta(c.db).map((e) => e.name)); return listEnvMeta(c.db).map((e) => ({ access: { owner: acc[e.name].ownerName, visibility: acc[e.name].visibility, yourRole: acc[e.name].role }, name: e.name, kind: e.kind, source: e.source, copiedAt: e.copiedAt, groups: e.groups, components: e.counts.components, color: e.color, colorName: envColorName(e.color), colorAuto: e.colorAuto })); },
 };
 
 export const createEnvTool: Tool = {

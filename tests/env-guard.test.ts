@@ -67,6 +67,8 @@ const DRAFT: Record<string, (e: string, slug: string) => Req> = {
 const EXEMPT = new Set(['PUT /api/envs/:env/descriptions', 'POST /api/bugs', 'PATCH /api/bugs/:id', 'POST /api/users', 'PATCH /api/users/:id', 'POST /api/users/:id/merge', 'POST /api/mentions/seen', 'POST /api/bugs/:id/comments', 'POST /api/bugs/:id/attachments', 'PUT /api/envs/:env/flow-names', 'POST /api/envs/:env/comments', 'PUT /api/envs/:env/notes', 'POST /api/envs/:env/notes/restore', 'PATCH /api/envs/:env/comments/:id', 'DELETE /api/envs/:env/comments/:id', 'POST /api/envs/:env/action-items', 'PATCH /api/envs/:env/action-items/:id', 'DELETE /api/envs/:env/action-items/:id',
   // 0.28: sealed subsystem settings (a design refuses with 409 USE_DRAFT: it never writes one) and level names are annotations
   'PUT /api/envs/:env/subsystems', 'PUT /api/envs/:env/levels', 'PUT /api/envs/:env/color',
+  // 0.52.0 accounts: sharing, tokens and logout are about people, not map data (their rules are in tests/access-*.test.ts)
+  'PUT /api/envs/:env/access', 'PUT /api/envs/:env/drafts/:slug/share', 'POST /api/tokens', 'DELETE /api/tokens/:id',
   'POST /api/envs', 'DELETE /api/envs/:env', 'POST /mcp']);
 
 const code = (r: { body: any }) => r.body?.error?.code;
@@ -153,7 +155,7 @@ const MCP_DRAFT: Record<string, (e: string, slug: string) => any> = {
   apply_plan_links: (env, draft) => ({ env, draft }),
   import_mermaid: (env, draft) => ({ env, draft, text: 'sequenceDiagram\nA->>B: x' }),
 };
-const MCP_EXEMPT = new Set(['set_description', 'set_flow_name', 'report_bug', 'update_bug', 'create_env', 'add_comment', 'resolve_comment', 'set_notes', 'add_action_item', 'update_action_item', 'set_subsystem_settings', 'set_levels', 'set_env_color']);
+const MCP_EXEMPT = new Set(['set_description', 'set_flow_name', 'report_bug', 'update_bug', 'create_env', 'add_comment', 'resolve_comment', 'set_notes', 'add_action_item', 'update_action_item', 'set_subsystem_settings', 'set_levels', 'set_env_color', 'share_env', 'whoami']); // share_env: owner or admin only (tests/access-matrix.test.ts); whoami reads nothing
 
 const mcp = async (name: string, args: any) => {
   const r = await app.call('POST', '/mcp', { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } });

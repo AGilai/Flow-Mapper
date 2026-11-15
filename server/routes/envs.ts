@@ -6,9 +6,11 @@ import { created } from '../http/router.ts';
 import type { Ctx } from '../context.ts';
 import { carryRows, neighbours, type CarryRow } from '../../core/neighbours.ts';
 import { checkFresh, memoGet, memoSet } from '../graph-cache.ts';
+import { requireRole } from '../access.ts';
 import { copyEnv } from '../store/env-copy.ts';
 import { deleteEnv, getEnv, listEnvMeta, requireEnv } from '../store/envs.ts';
 import { setEnvColor } from '../store/env-color.ts';
+import { summaries } from '../store/env-access.ts';
 import { loadModel } from '../store/snapshots-read.ts';
 
 export function dtoCounts(ctx: Ctx, env: string): Record<string, number> {
@@ -19,10 +21,12 @@ export function dtoCounts(ctx: Ctx, env: string): Record<string, number> {
 export function registerEnvs(r: Router, ctx: Ctx) {
   const { db } = ctx;
 
-  r.get('/api/envs/meta', () => listEnvMeta(db));
+  r.get('/api/envs/meta', () => { const l = listEnvMeta(db), a = summaries(db, l.map((e) => e.name)); return l.map((e) => ({ ...e, access: a[e.name] })); });
 
   r.post('/api/envs', async (req) => {
-    const out = copyEnv(db, await req.json());
+    const body = await req.json();
+    if (typeof body?.source === 'string' && body.source) requireRole(db, body.source, 'viewer', req.who); // copying needs read access to the source: a hidden one is 404
+    const out = copyEnv(db, body);
     ctx.changed(out.name);
     return created(out);
   });
@@ -34,7 +38,7 @@ export function registerEnvs(r: Router, ctx: Ctx) {
     return out;
   });
 
-  r.get('/api/envs/:env/meta', (req) => getEnv(db, req.params.env));
+  r.get('/api/envs/:env/meta', (req) => ({ ...getEnv(db, req.params.env), access: summaries(db, [req.params.env])[req.params.env] }));
 
   /** The components of an environment with what each would bring into a Components copy. */
   r.get('/api/envs/:env/components', (req) => {
