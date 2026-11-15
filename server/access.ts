@@ -52,6 +52,16 @@ export function filterByEnv<T>(db: DB, items: T[], envOfItem: (x: T) => string |
   return ok ? items.filter((x) => { const e = envOfItem(x); return e == null || ok.has(e); }) : items;
 }
 
+/** A dry-run ingest reads the environments its manifests name: a hidden one is not found (no diff of someone else's design), a draft that is not the caller's neither. */
+export function requireDryRunReadable(db: DB, manifests: unknown[], draft: string | null, p: Principal | undefined | null = currentWho()) {
+  if (isOff(p)) return;
+  for (const m of manifests) {
+    const env = typeof (m as any)?.env === 'string' && (m as any).env ? (m as any).env : 'default';
+    if (aclOf(db, env) && roleFor(db, env, p) === 'none') throw notFound(`environment '${env}'`);
+    if (draft) requireDraftRead(db, env, draft, p);
+  }
+}
+
 export function draftAclOf(db: DB, env: string, slug: string): DraftAcl | null {
   const r = db.prepare('SELECT owner_user_id, visibility FROM drafts WHERE env = ? AND slug = ?').get(env, slug) as { owner_user_id: string | null; visibility: DraftAcl['visibility'] } | undefined;
   return r ? { ownerId: r.owner_user_id, visibility: r.visibility } : null;

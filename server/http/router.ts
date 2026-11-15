@@ -35,6 +35,9 @@ interface Route { method: string; parts: string[]; handler: Handler }
 
 const MAX_BODY = 10 * 1024 * 1024;
 
+/** The path as the router matches it: segments decoded, empty ones dropped (`/api//envs/%61/x/` = `/api/envs/a/x`). Access rules read this, never the raw spelling. */
+export const canonicalPath = (p: string) => '/' + p.split('/').filter(Boolean).map(decodeURIComponent).join('/');
+
 export class Router {
   private routes: Route[] = [];
   private guards: ((req: Pick<Req, 'method' | 'path' | 'params' | 'query'>) => void)[] = [];
@@ -100,7 +103,7 @@ export class Router {
     try {
       if (m === 'method') throw new HttpError(405, 'METHOD_NOT_ALLOWED', `${req.method} not allowed on ${url.pathname}`);
       const request: Req = {
-        method: req.method ?? 'GET', path: url.pathname, params: m.params, query: url.searchParams, headers: req.headers, body, raw: { req, res },
+        method: req.method ?? 'GET', path: canonicalPath(url.pathname), params: m.params, query: url.searchParams, headers: req.headers, body, raw: { req, res },
         json: async () => {
           const b = await body();
           if (!b.length) return {};

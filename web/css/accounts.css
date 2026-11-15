@@ -79,7 +79,7 @@
 @media (max-width: 760px) { .ac-addrow { flex-wrap: wrap; } .ac-addrow .ac-fld { flex: 1 1 100%; } .ac-dh { padding: 14px 14px 10px; } .ac-ds { padding: 10px 14px; } .ac-own { padding-right: 38px; } }
 
 /* tokens page */
-.ac-tk { display: grid; gap: var(--s4); align-content: start; max-width: 860px; }
+.ac-tk { display: grid; gap: var(--s4); align-content: start; grid-auto-rows: max-content; max-width: 860px; }
 .ac-lead { color: var(--ink-2); line-height: 1.55; max-width: 70ch; }
 .ac-sec { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; }
 .ac-sec.pad { padding: 14px 16px; }

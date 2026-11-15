@@ -4,7 +4,7 @@
 import type { Ctx } from '../context.ts';
 import { HttpError, notFound } from '../errors.ts';
 import { atLeast, canApplyDraft, canDiscardDraft, canEditDraft, canReadDraft } from '../../core/env-access.ts';
-import { aclOf, draftAclOf, isOff, readableEnvs, requireRole, roleFor, whoOf } from '../access.ts';
+import { aclOf, draftAclOf, isOff, readableEnvs, requireDryRunReadable, requireRole, roleFor, whoOf } from '../access.ts';
 import { currentWho } from '../auth/context.ts';
 import type { Tool } from './tools/common.ts';
 
@@ -21,6 +21,7 @@ export function checkTool(ctx: Ctx, tool: Tool, a: any) {
   if (!p!.id) throw new HttpError(401, 'UNAUTHENTICATED', 'sign in required');
   if (name === 'ingest_manifest') { // the envs are named inside the manifests; a dry run writes nothing
     if (!a?.dryRun && p!.scope !== 'harvester') throw forbidden('ingest needs a token with the harvester scope (an admin creates one under Tokens)', 'SEALED');
+    if (a?.dryRun) requireDryRunReadable(db, Array.isArray(a.manifests) ? a.manifests : [a.manifest], typeof a.draft === 'string' ? a.draft : null, p);
     return;
   }
   const hasEnv = !!(tool.inputSchema as any).properties?.env;

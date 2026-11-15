@@ -7,7 +7,7 @@ import type { DB } from '../db/connection.ts';
 import type { Req } from '../http/router.ts';
 import { HttpError, notFound } from '../errors.ts';
 import { atLeast, canApplyDraft, canDiscardDraft, canShareDraft, roleOf } from '../../core/env-access.ts';
-import { aclOf, draftAclOf, readableEnvs, requireDraftEdit, requireDraftRead, whoOf } from '../access.ts';
+import { aclOf, draftAclOf, readableEnvs, requireDraftEdit, requireDraftRead, requireDryRunReadable, whoOf } from '../access.ts';
 import type { Principal } from './context.ts';
 
 const HARVEST = /^(dtos|event-dtos|schemas|resources\/[^/]+\/keys)(\/|$)/;
@@ -18,7 +18,13 @@ export async function authorize(db: DB, req: Req, p: Principal): Promise<void> {
   const write = req.method !== 'GET' && req.method !== 'HEAD';
   const path = req.path, dry = ['1', 'true'].includes(req.query.get('dryRun') ?? ''); // a dry run writes nothing
 
-  if (path === '/api/ingest') { if (write && !dry && p.scope !== 'harvester') throw forbidden('ingest needs a token with the harvester scope (an admin creates one under Tokens)', 'SEALED'); return; }
+  if (path === '/api/ingest') {
+    if (!write) return;
+    if (!dry) { if (p.scope !== 'harvester') throw forbidden('ingest needs a token with the harvester scope (an admin creates one under Tokens)', 'SEALED'); return; }
+    const b = await req.json();
+    requireDryRunReadable(db, Array.isArray(b?.manifests) ? b.manifests : [b], req.query.get('draft'), p);
+    return;
+  }
 
   if (path.startsWith('/api/bugs/') && req.params.id) {
     const b = db.prepare('SELECT env FROM bugs WHERE id = ?').get(Number(req.params.id)) as { env: string | null } | undefined;
