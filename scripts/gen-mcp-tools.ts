@@ -19,8 +19,23 @@ export const GROUPS: [string, string[]][] = [
   ['Bugs in Flow-Mapper', ['report_bug', 'list_bugs', 'get_bug', 'update_bug']],
 ];
 
+/** Summaries that read better by hand than cut from the tool description. */
+const SUMMARY: Record<string, string> = { create_env: 'Create a design environment: blank, or a copy of parts of another environment (`source`).',
+  edit_design: "Edit a design through one form-shaped edit (kinds: component, endpoint, function, call, leaf, flow, dto, subsystem, abstract-link...) instead of raw ops; `tools/list` has every form." };
 const type = (s: any): string => s.enum ? s.enum.map((v: string) => JSON.stringify(v)).join(' | ') : s.type === 'array' ? `${s.items?.type ?? 'any'}[]` : Array.isArray(s.type) ? s.type.join(' | ') : s.type ?? 'any';
-const first = (d: string) => { const m = d.match(/^.*?[.](?=\s|$)/s); return (m ? m[0] : d).replace(/\s+/g, ' ').trim().replace(/[.:]$/, '.'); };
+const dropParens = (d: string) => { let out = '', depth = 0; for (const ch of d) { if (ch === '(') depth++; else if (ch === ')' && depth) depth--; else if (!depth) out += ch; } return out.replace(/ +([,.;:])/g, '$1').replace(/\s+/g, ' ').trim(); };
+/** One short sentence: the first one (not ending at "e.g."), without long parentheticals, cut at a clause break near 170 characters. */
+const first = (d: string) => {
+  let s = d.replace(/\b(e\.g|i\.e)\./g, '$1\u0000').replace(/\s+/g, ' ').trim();
+  const m = s.match(/^.*?[.](?=\s|$)/); if (m) s = m[0];
+  if (s.length > 170) s = dropParens(s);
+  if (s.length > 170) { const cut = Math.max(s.lastIndexOf(', ', 170), s.lastIndexOf('; ', 170), s.lastIndexOf(': ', 170)); s = cut > 60 ? s.slice(0, cut) : s.slice(0, s.lastIndexOf(' ', 170)); }
+  for (let k = 0, depth = 0; k < s.length; k++) { // never end inside an open {...} or [...]: cut before the clause that opened it
+    if ('{['.includes(s[k])) { if (!depth++) var open = k; } else if ('}]'.includes(s[k])) depth--;
+    if (k === s.length - 1 && depth > 0) s = s.slice(0, Math.max(s.lastIndexOf(': ', open!), 0) || open!).trimEnd();
+  }
+  return s.replace(/\u0000/g, '.').replace(/[.:,;]$/, '') + '.';
+};
 
 export function renderMcpTools(): string {
   const by = new Map(TOOLS.map((t) => [t.name, t]));
@@ -32,7 +47,7 @@ export function renderMcpTools(): string {
       const t = by.get(n); if (!t) throw new Error(`gen-mcp-tools: group lists unknown tool ${n}`);
       const s: any = t.inputSchema, req = new Set<string>(s.required ?? []);
       const args = Object.entries(s.properties ?? {}).map(([k, v]) => `\`${k}${req.has(k) ? '*' : ''}\` (${type(v)})`).join(', ');
-      out.push(`- **\`${n}\`**: ${first(t.description)}${args ? ` Args: ${args}.` : ' No args.'}`);
+      out.push(`- **\`${n}\`**: ${SUMMARY[n] ?? first(t.description)}${args ? ` Args: ${args}.` : ' No args.'}`);
     }
     out.push('');
   }

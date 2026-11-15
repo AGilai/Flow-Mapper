@@ -13,9 +13,15 @@ Work top-down and stop when a level answers the question the reader has. Each it
 | **Subsystems**: the few big areas (a team or a deploy boundary each), 2 to 8 | env `groups` `{key, label, about}`; a component's `groupPath` | `create_env` (`groups`), `set_subsystem_settings` |
 | **Components**: what runs inside each (service, gateway, lambda, client-app, infra), one line of purpose each | `svc:<name>` with `{kind, groupPath, team, description}` | `edit_in_draft` |
 | **Channels**: how components talk: HTTP, gRPC, queues, topics, buses. One bind key per channel | `ing:` (receiver) and `egr:` (caller) sharing a `bindKey` | `edit_in_draft` |
+| **Queues and topics**: declare each one once, in the component that owns it | `ch:<bindKey>` `{bindKey, kind: sqs-queue\|sns-topic\|amqp-exchange\|amqp-queue\|eventbridge-bus, name}` with `service` = owner | `edit_in_draft` |
 | **Stores**: databases, caches, buckets, and who owns each | `res:<service>/<id>` with a `bindKey` | `edit_in_draft` |
 | **Flows**: the 3 to 10 journeys that matter, each starting at an entry point | an `ing:` with `entryPoint: true` plus the handler `fn:` | `edit_in_draft`, `export_mermaid` |
 | **Open questions**: what you could not decide | notes, comments, action items | `set_notes`, `add_comment`, `add_action_item` |
+
+**A queue or topic needs a declaration.** Publisher and consumer sharing a `sqs:` / `sns:` bind key link, but until a
+component declares the channel, `link_health` counts it in `channelsWithoutOwner` and `get_channel` has no name or kind
+for it. Add `{"op": "upsert", "anchor": "ch:sqs:order-events", "service": "orders-svc", "data": {"bindKey": "sqs:order-events", "kind": "sqs-queue", "name": "order-events"}}`
+(the op needs `service`, the owner; the worked example below does this).
 
 **Bind keys link components.** A call finds its receiver because both carry the same `bindKey`: `http:POST orders-svc/orders`,
 `sqs:order-events`, `redis:cache-main/stock:{sku}`, `postgres:orders-db/orders`. Pick one spelling per channel and reuse
@@ -50,6 +56,11 @@ Stop at what you would put in a design review; leave algorithms to code. State a
 call; an error lists every bad op by index). 4. `draft_changes`, `link_health {draft}`, `export_mermaid {draft}`: fix,
 repeat. 5. `apply_draft {dryRun: true}`, then `apply_draft`. 6. `share_env`.
 
+Open questions have two homes. Flow-level: `set_notes {env, service, ingress, body}` (`body` is the whole Notes document; it
+replaces the last version, read `get_notes` first), `add_comment {env, service, ingress, body}`, `add_action_item {env, service,
+ingress, owner, description}`. Component-level: a `## Open questions` list inside the component's `about` (`edit_design`
+`kind: "component"`, or `about` in the `svc:` upsert data); `list_open_questions` collects those.
+
 Common errors: `INVALID ... unknown property` (a step or item field the schema does not allow; steps take only `seq, type,
 target, mode, operation, condition, event, details, source...`), `env is required` (pass `env`), `404` (hidden or misspelt env or draft).
 
@@ -57,7 +68,7 @@ target, mode, operation, condition, event, details, source...`), `env is require
 
 Requirement: a shop web app places an order; orders-svc stores it, reserves stock in inventory-svc (sync), then
 announces `OrderPlaced` on a queue that notify-svc turns into an email. Subsystems: `storefront` (shop-web, orders-svc) and
-`fulfillment` (inventory-svc, notify-svc). The 19 ops are in [examples/orders-demo-ops.json](examples/orders-demo-ops.json).
+`fulfillment` (inventory-svc, notify-svc). The 20 ops are in [examples/orders-demo-ops.json](examples/orders-demo-ops.json).
 
 **1. Create the design** (no `source` needed for `blank`; designs start private):
 
@@ -81,12 +92,13 @@ create_env {"name": "orders-demo", "mode": "blank", "groups": [
   {"seq": 2, "type": "egress", "target": "out.reserve", "operation": "POST /reserve", "mode": "sync"},
   {"seq": 3, "type": "resource", "target": "ordersDb", "operation": "UPDATE orders"},
   {"seq": 4, "type": "egress", "target": "orderEvents.publish", "operation": "SendMessage", "mode": "async", "event": "OrderPlaced"}]}}
+{"op": "upsert", "anchor": "ch:sqs:order-events", "service": "orders-svc", "data": {"bindKey": "sqs:order-events", "kind": "sqs-queue", "name": "order-events"}}
 {"op": "upsert", "anchor": "ing:notify-svc/in.orderEvents", "data": {"id": "in.orderEvents", "bindKey": "sqs:order-events", "transport": "sqs", "handler": "on_order_placed", "entryPoint": false}}
 {"op": "upsert", "anchor": "dto:orders-svc/request/-/in.createOrder", "service": "orders-svc", "data": {"content": {"customerId": "string", "items": [{"sku": "string", "qty": "integer"}]}}}
 {"op": "upsert", "anchor": "evt:OrderPlaced", "data": {"content": {"orderId": "string", "customerId": "string", "total": "number"}}}
 ```
 
-The reply is `{from: 1, to: 19, counts: {added: 5, ...}}`. The other ops add shop-web (`client-app`, calling
+The reply is `{from: 1, to: 20, counts: {added: 5, ...}}`. The other ops add shop-web (`client-app`, calling
 `http:POST orders-svc/orders`), inventory-svc (`in.reserve`, a Redis `stockCache` decremented in `reserve_items`), notify-svc
 (`on_order_placed` calling `http:POST mail-provider/send`), the response DTO and the `ordersDb` resource.
 `entryPoint: false` on `in.reserve` and `in.orderEvents` keeps them out of the entry-point list: they are reached from `orders-svc`.
@@ -109,7 +121,7 @@ orders_svc-->>client: return
 
 (participant declarations omitted). `link_health {"env": "orders-demo", "draft": "first"}` shows `dangling: 1`: the
 mail provider has no component yet. That is a true open question, so record it:
-`set_notes` / `add_action_item` ("who sends the email: SES or a provider service?") rather than inventing a component.
+`add_action_item` / `set_notes` ("who sends the email: SES or a provider service?"; arguments above) rather than inventing a component.
 
 **5. Apply.** `apply_draft {"env": "orders-demo", "draft": "first", "dryRun": true}` returns `applied: false` and one result
 per component with its contract report (`missing-source` infos are normal for a design: nothing was harvested from code).

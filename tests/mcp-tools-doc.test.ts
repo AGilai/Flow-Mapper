@@ -37,6 +37,7 @@ test('the worked example of docs/DESIGN-FROM-SCRATCH.md replays: create, draft, 
     assert.equal(e.isError, false, e.text);
     const flow = { env: 'orders-demo', service: 'orders-svc', ingress: 'in.createOrder' };
     assert.match((await app.mcp('export_mermaid', { ...flow, draft: 'first' })).text, /POST \/reserve/);
+    assert.equal((await app.mcp('link_health', { env: 'orders-demo', draft: 'first' })).json.totals.channelsWithoutOwner, 0);
     assert.equal((await app.mcp('apply_draft', { env: 'orders-demo', draft: 'first', dryRun: true })).json.applied, false);
     assert.equal((await app.mcp('apply_draft', { env: 'orders-demo', draft: 'first' })).json.applied, true);
     assert.equal((await app.mcp('list_entry_points', { env: 'orders-demo' })).json[0].id, 'in.createOrder');
