@@ -14,7 +14,7 @@ import { renderChips } from '../users/chips.js';
  * createHistory({ env, anchor, current, onBack(), onRestored(doc) }) -> { el, dispose() }
  * current: the version the document is at now (Restore is off for it).
  */
-export function createHistory({ env, anchor, current, onBack, onRestored }) {
+export function createHistory({ env, anchor, current, onBack, onRestored, canRestore = true }) {
   let list = null, pick = current, mode = 'changes', alive = true, token = 0;
   const side = h('div.nt-hl', { role: 'listbox', 'aria-label': 'Versions' }), main = h('div.nt-hd');
   const back = h('button.nt-back', { type: 'button', 'data-qa': 'nt-back', on: { click: () => onBack?.() } }, '← Back to notes');
@@ -29,7 +29,7 @@ export function createHistory({ env, anchor, current, onBack, onRestored }) {
       if (!alive || mine !== token) return;
       const ops = diffBlocks(b.body, a.body), shown = mode === 'changes' ? changesOnly(ops) : ops, changed = ops.some((o) => o.op !== 'same');
       const tog = (m, t) => h('button.abtn', { type: 'button', 'aria-pressed': String(mode === m), on: { click: () => { mode = m; drawMain(); } } }, t);
-      const restore = h('button.btn.sm.primary', { type: 'button', disabled: pick === current, 'data-qa': 'nt-restore', title: pick === current ? 'This is the current version' : '', on: { click: () => doRestore(restore) } }, 'Restore this version');
+      const restore = h('button.btn.sm.primary', { type: 'button', hidden: !canRestore, disabled: pick === current, 'data-qa': 'nt-restore', title: pick === current ? 'This is the current version' : '', on: { click: () => doRestore(restore) } }, 'Restore this version');
       main.replaceChildren(
         h('div.nt-th', h('h3', `Version ${pick}${pick > 1 ? ` compared with ${pick - 1}` : ''}`), h('span.nt-tg', tog('changes', 'Changes'), tog('full', 'Full text')), restore),
         h('div.cm-hint', `${v?.author ?? ''} · ${v ? fullDate(v.createdAt) : ''}${v?.restoredFrom ? ` · Restored from version ${v.restoredFrom}` : ''}`),

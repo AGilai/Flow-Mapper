@@ -6,6 +6,7 @@ import { sanitize } from '../../core/rich-text.js';
 import { parseStepRef, stepRefText, clampRef } from '../../core/notes.js';
 import { renderChips } from '../users/chips.js';
 import { stepOfKey } from '../views/flow-scenario-pure.js';
+import { renderRefs, renderMermaid, renderCallouts } from './blocks.js';
 
 /** The label of a chip for a flow of `n` steps (0: not known yet): { text, gone, title }. */
 export function chipLook(ref, n) {
@@ -16,11 +17,14 @@ export function chipLook(ref, n) {
 }
 
 /**
- * docView(body, { steps() -> number of steps, onStep(ref) }) -> { el, outline, relabel(), dispose() }
- * outline: a <nav> of the headings (null when there are none); `relabel()` after the walk's steps changed.
+ * docView(body, { steps() -> number of steps, onStep(ref), env, onHover(step | null) }) -> { el, outline, relabel(), focusCallout(step), dispose() }
+ * outline: a <nav> of the headings (null when there are none); `relabel()` after the walk's steps changed. `env` is where reference chips link; `onHover` is the pointer on a callout card.
  */
-export function docView(body, { steps = () => 0, onStep, list = () => [], hidden = () => null }) { // list(): the walk's steps; hidden(key): a step the scenario does not show ({ text, show() }) or null (0.38.0)
+export function docView(body, { steps = () => 0, onStep, list = () => [], hidden = () => null, env = null, onHover }) { // list(): the walk's steps; hidden(key): a step the scenario does not show ({ text, show() }) or null (0.38.0)
   const el = renderChips(h('div.nt-doc.cm-body', { html: sanitize(body, { notes: true }) }));
+  if (env) renderRefs(el, env);
+  renderMermaid(el);
+  const cards = renderCallouts(el, { steps, onStep: (n) => onStep?.({ from: n, to: n }), onHover });
   const chips = [...el.querySelectorAll('span[data-step]')].map((s) => {
     const ref = parseStepRef(s.dataset.step), key = s.dataset.key || null, keyTo = s.dataset.keyTo || null, b = h('button.nt-sc', { type: 'button', 'data-qa': 'nt-step', on: { click: () => { const hid = key && !stepOfKey(list(), key) ? hidden(key) : null; if (hid) hid.show(); else if (!b.classList.contains('gone')) onStep?.(look(ref, key, keyTo).ref ?? clampRef(ref, steps()) ?? ref, ref); } } });
     s.replaceWith(b);
@@ -35,9 +39,9 @@ export function docView(body, { steps = () => 0, onStep, list = () => [], hidden
     if (hid) return { text: `${stepRefText(ref)} · ${hid.text}`, gone: false, hid: true, title: hid.locked ? 'A fixed decision keeps this step out' : 'Click to show it: the decision switches to the arm that holds this step', ref: null };
     return { ...chipLook(ref, steps()), ref: null };
   };
-  const relabel = () => { for (const { b, ref, key, keyTo } of chips) { const l = look(ref, key, keyTo); b.textContent = l.text; b.title = l.title; b.classList.toggle('gone', l.gone); b.classList.toggle('hid', !!l.hid); b.setAttribute('aria-disabled', String(l.gone)); } };
+  const relabel = () => { cards.forEach((c) => c.paint()); for (const { b, ref, key, keyTo } of chips) { const l = look(ref, key, keyTo); b.textContent = l.text; b.title = l.title; b.classList.toggle('gone', l.gone); b.classList.toggle('hid', !!l.hid); b.setAttribute('aria-disabled', String(l.gone)); } };
   relabel();
-  const heads = [...el.querySelectorAll('h2, h3')].filter((x) => x.textContent.trim());
+  const heads = [...el.querySelectorAll('h1, h2, h3')].filter((x) => x.textContent.trim() && !(x.tagName === 'H1' && x === el.firstElementChild)); // the title of a page is not in its own outline
   let outline = null, io = null;
   if (heads.length > 1) {
     const links = heads.map((x) => h('button.nt-ol-i', { type: 'button', class: x.tagName === 'H3' ? 's' : '', on: { click: () => { x.scrollIntoView({ block: 'start', behavior: matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); } } }, x.textContent.trim()));
@@ -48,5 +52,6 @@ export function docView(body, { steps = () => 0, onStep, list = () => [], hidden
       heads.forEach((x) => io.observe(x));
     }
   }
-  return { el, outline, relabel, dispose: () => io?.disconnect() };
+  const focusCallout = (step) => { const c = cards.find((x) => x.step === step); if (!c) return false; c.el.scrollIntoView({ block: 'nearest', behavior: matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); c.el.classList.add('flash'); setTimeout(() => c.el.classList.remove('flash'), 1600); return true; };
+  return { el, outline, relabel, focusCallout, dispose: () => io?.disconnect() };
 }

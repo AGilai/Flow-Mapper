@@ -25,6 +25,7 @@ import { regionsOf, regionCells } from '../graph/graph-regions.js';
 import { edgePanel } from './edge-panel.js';
 import { servicesText } from '../../core/external.js';
 import { createPane } from '../pane/pane.js';
+import { createDock } from '../notes/dock.js';
 import { parseSel } from '../pane/pane-pure.js';
 
 const TRANSPORTS = ['http', 'rpc', 'grpc', 'sns', 'sqs', 'amqp', 'eventbridge', 'socket'];
@@ -53,6 +54,7 @@ export async function render({ main, query }) {
   const content = h('div.content.flush', h('div.stage-wrap', stage, legend(marks, data, { regions })));
   let selected = null;
   const panel = createPanel(content, { onClose: () => { selected = null; graph.select(null); setQuery({ sel: null }); apply(); } });
+  const dock = createDock({ host: content, env: state.env, panel }); // Unreleased (frame 28e): the design doc beside the work
   const penHost = { panel, flowsEl: null }, pen = pencils(penHost);
   // The info pane (0.33.0): a component opens it; so does a subsystem picked inside it. `sel=` names it in the URL.
   const pane = createPane(panel, {
@@ -77,7 +79,7 @@ export async function render({ main, query }) {
         h('select.select', { 'aria-label': 'Hops around the filter or selection', on: { change: (e) => { opts.hops = Number(e.target.value); persist(); apply(); } } },
           [0, 1, 2, 3].map((n) => h('option', { value: n, selected: n === opts.hops }, String(n))))),
       showLevelControl(subs) ? levelControl('components', subs) : null,
-      h('button.btn', { on: { click: () => graph.fit() } }, icon('fit'), 'Fit')),
+      h('button.btn', { on: { click: () => graph.fit() } }, icon('fit'), 'Fit'), dock.button),
     h('div.filter-bar',
       h('span.small.muted', 'Show'), design ? [filt('fromProd', 'Components from prod'), filt('onlyNew', "Only what's new")] : null, toggle('channels', 'Queues and topics'), toggle('stores', 'Data stores'), h('label.check', h('input', { type: 'checkbox', checked: opts.broken, on: { change: (e) => { opts.broken = e.target.checked; persist(); rebuild(); } } }), 'Broken links only'),
       h('span.divider'),
@@ -202,5 +204,5 @@ export async function render({ main, query }) {
   if (want) pane.restore(query); // a component or a subsystem: the pane (and the expanded page, `expanded=1`)
   else if (sel && byId.has(sel)) { selectNode(sel); graph.zoomTo(sel); }
   pen.resume();
-  return { dispose: () => { graph.dispose(); pane.dispose(); panel.dispose(); } };
+  return { dispose: () => { graph.dispose(); pane.dispose(); panel.dispose(); dock.dispose(); } };
 }

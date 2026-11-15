@@ -21,6 +21,7 @@ const main = document.getElementById('main');
 route('/envs/new', () => import('./views/env-new.js'));
 route('/envs/:name/settings', () => import('./views/env-settings.js'));
 route('/system', () => import('./views/system.js'));
+route('/design-doc', () => import('./views/design-doc.js'));
 route('/inventory', () => import('./views/inventory.js'));
 route('/services', () => import('./views/inventory.js'));
 route('/stores/:key', () => import('./views/store.js'));

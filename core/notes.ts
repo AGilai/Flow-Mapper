@@ -5,11 +5,16 @@
 import { plainText } from './rich-text-text.ts';
 import { tokenize } from './rich-text-tokens.ts';
 
+/** The anchor of an environment's design doc: the same Notes storage (`flow_notes`, versions, History, Restore) with the anchor `env` instead of `flow:<service>/<ingress>`. */
+export const ENV_DOC = 'env';
+/** Is this the anchor of the design doc? */
+export const isEnvDoc = (anchor: unknown) => anchor === ENV_DOC;
+
 /** One version as the API returns it. `version` 0 is "no notes yet" (empty body, no author). */
 export interface NotesDoc { anchor: string; version: number; body: string; author: string | null; authorId: string | null; createdAt: string | null; restoredFrom: number | null }
 /** A line of History (no body: ask for the version). */
 export interface NotesVersion { version: number; author: string; authorId: string | null; createdAt: string; restoredFrom: number | null; size: number }
-export interface Heading { level: 2 | 3; text: string }
+export interface Heading { level: 1 | 2 | 3; text: string }
 export interface StepRef { from: number; to: number }
 
 /** The Notes a new flow starts from: the four headings of the frame 20b template. The editor puts a grey hint under each. */
@@ -22,11 +27,12 @@ export const hasNotes = (body: string | null | undefined) => !!body && !!plainTe
 /** The headings of a body, in order (the outline). */
 export function headings(html: string): Heading[] {
   const out: Heading[] = [];
-  let at: { level: 2 | 3; text: string } | null = null;
+  let at: { level: 1 | 2 | 3; text: string } | null = null;
+  const LV: Record<string, 1 | 2 | 3> = { h1: 1, h2: 2, h3: 3 };
   for (const t of tokenize(html)) {
-    if (t.t === 'start' && (t.name === 'h2' || t.name === 'h3')) at = { level: t.name === 'h2' ? 2 : 3, text: '' };
+    if (t.t === 'start' && LV[t.name]) at = { level: LV[t.name], text: '' };
     else if (t.t === 'text' && at) at.text += t.v;
-    else if (t.t === 'end' && at && (t.name === 'h2' || t.name === 'h3')) { const text = at.text.replace(/\s+/g, ' ').trim(); if (text) out.push({ level: at.level, text }); at = null; }
+    else if (t.t === 'end' && at && LV[t.name]) { const text = at.text.replace(/\s+/g, ' ').trim(); if (text) out.push({ level: at.level, text }); at = null; }
   }
   return out;
 }
@@ -63,7 +69,7 @@ export function splitBlocks(html: string): string[] {
   for (const m of html.matchAll(/<(\/?)([a-z0-9]+)[^>]*>/g)) {
     const closing = m[1] === '/', name = m[2], end = m.index! + m[0].length;
     if (name === 'br') continue;
-    if (depth === 0 && (closing || !['p', 'h2', 'h3', 'ul', 'ol', 'table', 'blockquote', 'pre'].includes(name))) continue; // inline markup at the top: it stays in the text before the next block
+    if (depth === 0 && (closing || !['p', 'h1', 'h2', 'h3', 'div', 'ul', 'ol', 'table', 'blockquote', 'pre'].includes(name))) continue; // inline markup at the top: it stays in the text before the next block
     if (depth === 0) { if (html.slice(from, m.index).trim()) loose += html.slice(from, m.index); from = m.index!; }
     depth += closing ? -1 : 1;
     if (depth === 0) { out.push(`${loose ? `<p>${loose}</p>` : ''}${html.slice(from, end)}`.trim()); loose = ''; from = end; }
@@ -74,14 +80,14 @@ export function splitBlocks(html: string): string[] {
 }
 
 export interface BlockOp { op: 'same' | 'del' | 'add'; html: string; head: boolean }
-const key = (b: string) => `${/^<(h[23])/.exec(b)?.[1] ?? ''}|${plainText(b)}|${(b.match(/data-step="[^"]*"/g) ?? []).join()}`;
+const key = (b: string) => `${/^<(h[123])/.exec(b)?.[1] ?? ''}|${plainText(b)}|${(b.match(/data-(?:step|callout|ref)="[^"]*"/g) ?? []).join()}`;
 
 /** The block-level difference of two bodies (LCS over blocks): same, removed and added blocks in reading order. */
 export function diffBlocks(before: string, after: string): BlockOp[] {
   const a = splitBlocks(before), b = splitBlocks(after), ka = a.map(key), kb = b.map(key);
   const n = a.length, m = b.length, t = Array.from({ length: n + 1 }, () => new Array<number>(m + 1).fill(0));
   for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) t[i][j] = ka[i] === kb[j] ? t[i + 1][j + 1] + 1 : Math.max(t[i + 1][j], t[i][j + 1]);
-  const out: BlockOp[] = [], op = (o: BlockOp['op'], html: string) => out.push({ op: o, html, head: /^<h[23]/.test(html) });
+  const out: BlockOp[] = [], op = (o: BlockOp['op'], html: string) => out.push({ op: o, html, head: /^<h[123]/.test(html) });
   let i = 0, j = 0;
   while (i < n || j < m) {
     if (i < n && j < m && ka[i] === kb[j]) { op('same', b[j]); i++; j++; } else if (i < n && (j === m || t[i + 1][j] >= t[i][j + 1])) op('del', a[i++]); else op('add', b[j++]);

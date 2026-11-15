@@ -1,0 +1,154 @@
+/* Documents (Unreleased, frame 28d-f): the rich blocks of the design doc and the flow doc (headings h1, code, Mermaid, reference chips, callouts), the design doc
+   page, the "/" menu, and the callout badges' outline on the diagram. Mockup: design/mockups/frames/frame-28.html. Tokens only; light and dark come from them. */
+
+/* ---- blocks, in the reader, the editor and History alike ---- */
+.nt-doc h1, .rte-area h1, .nt-blk h1 { font: 700 26px/1.25 var(--font); margin: 0 0 10px; color: var(--ink); letter-spacing: -.01em; }
+.nt-doc h2 { padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+.nt-doc pre, .rte-area pre, .nt-blk pre { margin: 8px 0; padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm); font: 400 12.5px/1.5 var(--mono); overflow: auto; white-space: pre; }
+.nt-doc pre code, .rte-area pre code { background: none; border: 0; padding: 0; font: inherit; }
+.nt-doc blockquote, .rte-area blockquote { margin: 8px 0; padding: 2px 12px; border-left: 3px solid var(--line-strong); color: var(--ink-2); }
+.nt-doc table, .rte-area table { border-collapse: collapse; margin: 10px 0; width: 100%; font-size: 13.5px; }
+.nt-doc th, .nt-doc td, .rte-area th, .rte-area td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; }
+.nt-doc th, .rte-area th { background: var(--surface-2); font-weight: 600; white-space: nowrap; }
+.ddock .nt-doc th { white-space: normal; }
+.nt-doc ul ul, .nt-doc ol ol, .nt-doc ul ol, .nt-doc ol ul { margin: 2px 0; }
+
+/* a Mermaid block: in the editor its source is a labelled code box; in the reader the same, with a note (no renderer yet) */
+.rte-area pre[data-mermaid], .nt-blk pre[data-mermaid] { position: relative; padding-top: 26px; border-style: dashed; }
+.rte-area pre[data-mermaid]::before, .nt-blk pre[data-mermaid]::before { content: 'Mermaid'; position: absolute; top: 4px; left: 10px; font: 700 10.5px var(--font); letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.nt-mm { margin: 10px 0; border: 1px dashed var(--line-strong); border-radius: var(--r-sm); background: var(--surface-2); }
+.nt-mm figcaption { padding: 6px 12px 0; font-size: var(--fs-xs); color: var(--muted); }
+.nt-mm figcaption b { color: var(--ink-2); text-transform: uppercase; letter-spacing: .05em; font-size: 10.5px; }
+.nt-doc .nt-mm pre { margin: 0; border: 0; background: none; padding-top: 4px; }
+
+/* reference chips: a service (dot), a flow, a call or step */
+.nt-ref, .rte-area span[data-ref] { display: inline-flex; align-items: center; gap: 4px; padding: 0 6px; border-radius: 4px; font: 500 .86em var(--mono); text-decoration: none; background: var(--surface-2); border: 1px solid var(--line); color: var(--ink); white-space: nowrap; vertical-align: baseline; }
+.nt-ref i, .nt-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--t-sqs); display: inline-block; flex: none; }
+.nt-ref.flow { color: var(--accent); background: var(--accent-soft); border-color: transparent; }
+.nt-ref.call { color: var(--t-http); border-color: color-mix(in srgb, var(--t-http) 40%, var(--surface)); background: color-mix(in srgb, var(--t-http) 9%, var(--surface)); }
+a.nt-ref:hover { border-color: var(--accent); }
+a.nt-ref:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.rte-area span[data-ref] { cursor: default; user-select: all; }
+
+/* callouts: a coloured card tied to a step. In the reader a header is drawn (label, step chip); in the editor and History the label is CSS only */
+.nt-doc div[data-callout], .rte-area div[data-callout], .nt-blk div[data-callout] { --cc: var(--accent); margin: 8px 0; padding: 6px 12px 8px; border-radius: 8px; border: 1px solid var(--cc); border-left-width: 4px; background: color-mix(in srgb, var(--cc) 9%, var(--surface)); font-size: 13.5px; line-height: 1.45; position: relative; scroll-margin: 40px; }
+div[data-callout='watch'] { --cc: var(--warn); }
+div[data-callout='risk'] { --cc: var(--bad); }
+div[data-callout] p { margin: 2px 0; }
+.rte-area div[data-callout]:not(.co-js)::before, .nt-blk div[data-callout]:not(.co-js)::before { display: block; font: 700 10.5px var(--font); letter-spacing: .05em; text-transform: uppercase; color: var(--cc); margin-bottom: 1px; content: 'Callout'; }
+.rte-area div[data-callout='key']::before, .nt-blk div[data-callout='key']::before { content: 'Key step'; }
+.rte-area div[data-callout='watch']::before, .nt-blk div[data-callout='watch']::before { content: 'Watch'; }
+.rte-area div[data-callout='risk']::before, .nt-blk div[data-callout='risk']::before { content: 'Risk'; }
+.rte-area div[data-callout='key'][data-step]::before, .nt-blk div[data-callout='key'][data-step]::before { content: 'Key step · step ' attr(data-step); }
+.rte-area div[data-callout='watch'][data-step]::before, .nt-blk div[data-callout='watch'][data-step]::before { content: 'Watch · step ' attr(data-step); }
+.rte-area div[data-callout='risk'][data-step]::before, .nt-blk div[data-callout='risk'][data-step]::before { content: 'Risk · step ' attr(data-step); }
+.nt-co-h { display: flex; align-items: center; gap: 8px; }
+.nt-co-h b { font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--cc); }
+.nt-co-i { display: inline-flex; color: var(--cc); }
+.nt-co-i svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+.nt-co-s { display: inline-grid; place-items: center; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px; border: 0; background: var(--ink); color: var(--surface); font: 700 10.5px var(--font); cursor: pointer; }
+.nt-co-s:hover { background: var(--accent); }
+.nt-co-s:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.nt-co-s.gone { background: var(--muted); }
+.nt-co-g { font-size: var(--fs-xs); color: var(--muted); }
+.nt-co:hover, .nt-co.flash, .nt-co:focus-within { box-shadow: 0 0 0 2px color-mix(in srgb, var(--cc) 45%, transparent); background: color-mix(in srgb, var(--cc) 16%, var(--surface)); }
+.rte-area div[data-callout] { background: color-mix(in srgb, var(--cc) 9%, var(--surface)); }
+
+/* the editor toolbar additions and the "/" menu */
+.nt-cm { width: 230px; }
+.nt-cs { padding: 6px 10px; }
+.nt-cs .input { width: 90px; }
+.nt-lm { width: 340px; }
+.nt-lk-l { display: grid; gap: 1px; max-height: 240px; overflow: auto; margin: 6px 0; }
+.nt-lk-l .om { display: flex; align-items: center; gap: 8px; text-align: left; }
+.nt-lk-l .om small { color: var(--muted); font-size: var(--fs-xs); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+.nt-lk-f { cursor: pointer; }
+.nt-lk-n { width: 64px; height: 24px; padding: 0 6px; font-size: 12px; flex: none; }
+.nt-slash { position: fixed; z-index: 9; width: 320px; max-height: 280px; overflow: auto; background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-md); box-shadow: var(--shadow-panel); padding: 4px; }
+.nt-slash .om { display: flex; align-items: baseline; gap: 8px; width: 100%; text-align: left; }
+.nt-slash .om b { font-weight: 600; font-size: var(--fs-sm); }
+.nt-slash .om small { color: var(--muted); font-size: var(--fs-xs); }
+.nt-slash .om.on { background: var(--accent-soft); }
+
+/* ---- the design doc as a page (frame 28d): its own toolbar row, the document centred, the outline sticky at the right ---- */
+.dd-page { display: flex; flex-direction: column; min-height: 0; height: 100%; background: var(--surface); }
+.dd-bar { flex: none; display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-bottom: 1px solid var(--line); background: var(--surface-2); flex-wrap: wrap; }
+.dd-bar h1 { font: 700 var(--fs-md) var(--font); margin: 0 8px 0 0; display: inline-flex; align-items: center; gap: 8px; }
+.dd-bar .dd-sp { flex: 1; }
+.dd-bar .dd-meta { font-size: var(--fs-xs); color: var(--muted); }
+.dd-seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: var(--r-sm); overflow: hidden; }
+.dd-seg button { appearance: none; border: 0; background: var(--surface); color: var(--ink-2); font: 500 var(--fs-xs) var(--font); padding: 4px 12px; cursor: pointer; }
+.dd-seg button + button { border-left: 1px solid var(--line-strong); }
+.dd-seg button.on { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.dd-seg button:disabled { cursor: not-allowed; opacity: .55; }
+.dd-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+.dd-body .nt { padding: 28px 32px 80px; margin: 0 auto; max-width: 1180px; }
+.nt-env .nt-wrap { gap: 56px; justify-content: center; }
+.nt-env .nt-doc { max-width: 820px; font-size: 15px; }
+.nt-env .nt-meta { display: none; }
+.dd-page .nt-ol { display: block; flex: 0 0 200px; position: sticky; top: 8px; }
+.nt-env .nt-edit { max-width: 900px; margin: 0 auto; }
+.nt-env .nt-edit .rte-area { min-height: 60vh; font-size: 15px; }
+@media (max-width: 1100px) { .dd-page .nt-ol { display: none; } }
+@media (max-width: 760px) { .dd-body .nt { padding: 16px 14px 60px; } .dd-bar { padding: 6px 10px; } }
+
+/* ---- docked beside the work (frame 28e): a right column with a drag grip on its left edge; hidden is no element at all ---- */
+.ddock { display: none; position: relative; flex-direction: column; width: var(--dk-w, 460px); max-width: 70vw; min-width: 0; min-height: 0; background: var(--surface); border-left: 1px solid var(--line-strong); overflow: hidden; }
+.ddock.open { display: flex; }
+.ddock.dk-away, .flows-right > .panel.dk-away, .content > .panel.dk-away { display: none !important; }
+.flows-right { grid-template-columns: minmax(0, 1fr) auto auto; }
+.content.flush:has(> .ddock) { display: flex; }
+.dk-head { flex: none; display: flex; align-items: center; gap: 4px; padding: 0 8px 0 12px; min-height: 36px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+.dk-tabs { display: flex; align-items: stretch; gap: 2px; min-width: 0; }
+.dk-head > .dk-tabs { flex: 1; }
+.dk-tab:first-child { flex: none; }
+.dk-tab:last-child:not(:first-child) { min-width: 0; }
+.dk-tab { appearance: none; background: none; border: 0; border-bottom: 2px solid transparent; padding: 9px 8px 7px; font: 500 var(--fs-sm) var(--font); color: var(--ink-2); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px; display: inline-flex; align-items: center; gap: 6px; }
+.dk-tab[aria-selected='true'] { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+.dk-tab em { font-style: normal; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; background: var(--accent-soft); color: var(--accent); border-radius: 3px; padding: 1px 5px; font-weight: 700; }
+.dk-tab:focus-visible, .dk-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.dk-btn { appearance: none; border: 0; background: none; color: var(--muted); width: 26px; height: 26px; border-radius: var(--r-sm); cursor: pointer; display: inline-grid; place-items: center; font-size: 12px; }
+.dk-btn:hover { background: var(--surface); color: var(--ink); }
+.dk-btn svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+.dk-bar2 { flex: none; display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.dk-bar2 .dd-meta { font-size: var(--fs-xs); color: var(--muted); margin-right: auto; }
+.dk-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+.ddock .nt { padding: 16px 18px 60px; }
+.ddock .nt-wrap { display: block; }
+.ddock .nt-ol { display: none; }
+.ddock .nt-doc { font-size: 14px; max-width: none; }
+.ddock .nt-doc h1 { font-size: 21px; }
+.ddock .nt-doc h2 { font-size: 16px; }
+.ddock .nt-doc table { font-size: 12px; display: block; overflow-x: auto; }
+.ddock .nt-doc td, .ddock .nt-doc th { padding: 4px 6px; word-break: break-word; }
+.ddock .nt-edit .rte-area { min-height: 240px; font-size: 14px; }
+.ddock .rte-tb { flex-wrap: wrap; }
+.ddock > .resizer.left { left: -3px; }
+.dk-tabs-in { display: none; }
+.panel.dk-tabbed > .dk-tabs-in { display: flex; flex: none; min-height: 36px; border-bottom: 1px solid var(--line); background: var(--surface-2); padding: 0 8px 0 12px; }
+.bk-btn { color: var(--muted); }
+.bk-btn.on { color: var(--accent); background: var(--accent-soft); }
+.bk-btn svg { fill: none; stroke: currentColor; }
+
+/* ---- the flow doc's tab icon (frame 28a, a1/a2), the pane's FLOW label, hidden states, and the diagram's callout badges ---- */
+.tb-fdi { color: var(--muted); }
+.tb-fdi.on { color: var(--accent); background: var(--accent-soft); }
+.fp-flow { display: inline-flex; align-items: center; gap: 5px; align-self: center; margin-right: 8px; padding: 2px 8px 2px 6px; border: 1px solid var(--line-strong); border-radius: 5px; background: var(--surface-2); font: 700 10.5px var(--font); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); }
+.fp-flow svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; }
+.fp-x { appearance: none; align-self: center; width: 28px; height: 28px; margin-bottom: 1px; border: 0; border-radius: var(--r-sm); background: none; color: var(--muted); cursor: pointer; font-size: 14px; }
+.fp-x:hover { background: var(--surface-2); color: var(--ink); }
+.fd-off .flow-bottom, .fd-off .fp-split { display: none !important; }
+.docbadge { cursor: pointer; }
+.docbadge .bd-key circle { fill: var(--accent); }
+.docbadge .bd-bang path { fill: var(--warn); }
+.docbadge .bd-bang.risk path { fill: var(--bad); }
+.docbadge text { font: 800 9.5px var(--font); fill: #fff; text-anchor: middle; pointer-events: none; }
+.docbadge:focus-visible { outline: none; }
+.docbadge:focus-visible .bd-key circle, .docbadge:focus-visible .bd-bang path { stroke: var(--ink); stroke-width: 2; }
+.dochov rect { fill: none; stroke: var(--warn); stroke-width: 2; stroke-dasharray: 6 3; pointer-events: none; }
+.dochov.key rect { stroke: var(--accent); }
+.dochov.risk rect { stroke: var(--bad); }
+.dochov text { font: 700 10.5px var(--font); fill: var(--warn); text-anchor: end; pointer-events: none; }
+.dochov.key text { fill: var(--accent); }
+.dochov.risk text { fill: var(--bad); }
+.nt-mk-menu { width: 170px; }

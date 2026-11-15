@@ -5,6 +5,14 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+
+Design doc (frame 28, stage 2).
+
+- **Design doc (stage 2).** A new page "Design doc" (left nav, `#/design-doc`) holds one rich document per environment, a page "like Confluence": no length limit you will meet (a safety cap of 1,000,000 characters), a sticky "On this page" outline, View | Edit, History. Storage is the Notes table with the anchor `env` (no migration): `GET/PUT /api/envs/:env/notes?anchor=env`, `GET .../notes/history?anchor=env`, `POST .../notes/restore` with `anchor: "env"`. Versions, `baseVersion` / `409 STALE_NOTES`, restore and the `notes.updated` event work as for a flow's Notes. Access is the Notes rule: a sealed environment takes it from every reader, a design needs editor rights (a viewer reads), a hidden environment is 404. A book icon docks the document in the right column of Flows and System map (a tab next to the detail pane, resizable, remembered per viewer and per environment).
+- **Sanitizer (`sanitize(html, { notes: true })`, used for every Notes document).** `h1` now stays `h1` (it was `h2`; h3 to h6 are `h3`). New: a Mermaid block `<pre data-mermaid="1">` (source as text; the app shows the source, it has no Mermaid renderer), reference chips `<span data-ref="svc:<service>">`, `data-ref="flow:<service>/<ingress>"`, `data-ref="step:<service>/<ingress>#<n>"` (any other value drops the chip), and callouts `<div data-callout="key|watch|risk" data-step="N">` (top-level blocks, one step, no nesting). Scripts, `on*` attributes, `javascript:` URLs and styles stay out. `MAX_NOTES` is 1,000,000 characters (was 100,000).
+- Seed: `samples/notes/sub-bands.json` (a design doc for `sub-bands`; an item with `"doc": "env"` is the design doc). MCP `get_notes` / `set_notes` are unchanged (flow notes only).
+
 ## 0.54.0 (2026-11-15): Flows page in two thin rows (frame 28 stage 1)
 
 - UI only: two thin rows replace the header above the diagram (about 56px from the top of the page to the diagram, was about 215). Row 1: the flow tabs with the environment / design pill at the right end (its menu holds Published and Share, Baseline / prod now, "from prod", Drafts). Row 2: Inside | Full, Simple | External | Full, the step player, View ▾, a ⋯ menu (Export, Import, Edit flow, links, Full screen), full screen, and View | Edit at the right end. Gone: the Collapse button (and the H key), the big title, "Name this flow" (rename on the tab: pencil or double-click), the repeated entry id (the active tab shows it while there is room), "About this flow" (the (i) on the tab), the line "Simple: each external call once..." (the tooltip of Simple), and the old step bar.

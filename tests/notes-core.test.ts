@@ -4,8 +4,8 @@ import assert from 'node:assert/strict';
 import { sanitize } from '../core/rich-text.ts';
 import { headings, stepRefs, parseStepRef, stepRefText, splitBlocks, diffBlocks, changesOnly, templateHtml, hasNotes } from '../core/notes.ts';
 
-test('sanitizer notes mode: h1/h2 -> h2, h3..h6 -> h3, step chips with digits only; comments keep paragraphs and bare spans', () => {
-  assert.equal(sanitize('<h1>A</h1><h3>B</h3><h6>C</h6>', { notes: true }), '<h2>A</h2><h3>B</h3><h3>C</h3>');
+test('sanitizer notes mode: h1 and h2 stay, h3..h6 -> h3, step chips with digits only; comments keep paragraphs and bare spans', () => {
+  assert.equal(sanitize('<h1>A</h1><h3>B</h3><h6>C</h6>', { notes: true }), '<h1>A</h1><h3>B</h3><h3>C</h3>');
   assert.equal(sanitize('<h2>A</h2><p><span data-step="4">x</span> <span data-step="4-9">y</span> <span data-step="9-4">z</span> <span data-step="x1">w</span></p>', { notes: true }),
     '<h2>A</h2><p><span data-step="4">x</span> <span data-step="4-9">y</span> z w</p>');
   assert.equal(sanitize('<h2>A</h2><p><span data-step="4">x</span></p>'), '<p>A</p><p>x</p>', 'a comment has neither');

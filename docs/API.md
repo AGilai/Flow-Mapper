@@ -705,6 +705,10 @@ A comment may carry `steps: {from, to}` (two step keys, `from` before `to`; 2 or
 returns it on every comment (`steps: null` when absent), and `step` is then `null`. A key that is not in the flow is `400`; a range of one step is `400` (use `step`). A range whose
 steps vanish from the flow (the flow changed) is read as what remains, or as a plain comment when none remain; the stored keys are never rewritten.
 
+### The design doc of an environment (Unreleased)
+
+The same endpoints with the anchor **`env`**: `GET /api/envs/:env/notes?anchor=env`, `PUT /api/envs/:env/notes` `{anchor: "env", body, baseVersion?, author?}`, `GET .../notes/history?anchor=env`, `POST .../notes/restore` `{anchor: "env", version, baseVersion?}`. One document per environment, stored in `flow_notes` with `anchor = 'env'` (no flow is looked up, so there is no 404 for a flow). `GET .../notes/index` lists it under the key `env`. Who may write: as for a flow's Notes (`server/auth/rules.ts`): a sealed environment takes it from every reader, a design needs editor rights (a viewer gets 403), a hidden environment is 404. The body is the document subset of the sanitizer: headings `h1`-`h3`, lists (nested), tables, `pre` / `code`, `<pre data-mermaid="1">`, reference chips `<span data-ref="svc:<service>|flow:<service>/<ingress>|step:<service>/<ingress>#<n>">`, callouts `<div data-callout="key|watch|risk" data-step="N">` (tied to a step; meaningful in a flow's Notes), step chips and @mentions. The limit is 1,000,000 characters of sanitized HTML (`422` above). The Mentions page counts mentions in flow Notes only.
+
 ## Mentions (0.32.0, #66 part 2)
 
 A comment can address a user with the token **`@[userId]`** in its body (the id is `u_` plus 8 hex characters; any `[A-Za-z0-9_-]{1,40}` is read as an id).

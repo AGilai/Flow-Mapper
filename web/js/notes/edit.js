@@ -19,15 +19,15 @@ const clock = (t) => new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', 
  * createNotesEditor({ env, anchor, doc, template, walk, pane, onSaved(doc), onTheirs(doc), onCancel() }) -> { el, focus(), dirty(), dispose() }
  * doc: the version the viewer started from (version 0: none yet). template: start from the Purpose / How it works / Decisions / Open questions headings.
  */
-export function createNotesEditor({ env, anchor, doc, template = false, walk, pane, onSaved, onTheirs, onCancel }) {
+export function createNotesEditor({ env, anchor, kind = 'flow', doc, template = false, walk, pane, onSaved, onTheirs, onCancel }) {
   const k = key(env, anchor), draft = readDraft(k);
   const useDraft = !template && draft && typeof draft.html === 'string' && draft.html !== doc.body;
   let base = doc.version, timer = 0, ask = false, busy = false;
   const hint = h('div.cm-hint.nt-ehint', { role: 'status' }), saved = h('span.nt-draft'), err = h('div.cm-err', { role: 'alert' }), bar = h('div.nt-bar', { hidden: true });
   const stepNow = () => { const s = walk?.picked() ? walk.steps()[walk.current() - 1] : null; return s ? { n: s.n } : null; };
   let ed, tb, nt;
-  ed = createEditor({ html: '', label: 'Notes', placeholder: 'Write the story of this flow…', notes: true, onSubmit: () => save(), onEscape: () => cancel(), onChange: () => { tb?.update(); nt?.update(); dirtyNote(); } });
-  tb = createToolbar(ed); nt = notesTools(ed, tb, { stepNow, keyOf: (n) => walk?.steps()[n - 1]?.key ?? null });
+  ed = createEditor({ html: '', label: kind === 'env' ? 'Design doc' : 'Notes', placeholder: kind === 'env' ? 'Write the design document… type / for blocks' : 'Write the story of this flow… type / for blocks', notes: true, onSubmit: () => save(), onEscape: () => cancel(), onChange: () => { tb?.update(); nt?.update(); dirtyNote(); } });
+  tb = createToolbar(ed); nt = notesTools(ed, tb, { kind, env, stepNow, keyOf: (n) => walk?.steps()[n - 1]?.key ?? null });
   tb.el.append(saved);
   if (template) { ed.setHtml(templateHtml()); hints(); } else ed.setHtml(useDraft ? draft.html : doc.body);
   const start = ed.getHtml();
@@ -77,5 +77,5 @@ export function createNotesEditor({ env, anchor, doc, template = false, walk, pa
   const cancelBtn = h('button.btn.sm', { type: 'button', 'data-qa': 'nt-cancel', on: { click: () => cancel() } }, 'Cancel');
   const sync = () => { saveBtn.disabled = busy; cancelBtn.disabled = busy; };
   pane.tools(h('span.fp-btns', cancelBtn, saveBtn));
-  return { el, focus: () => ed.focus(false), dirty, dispose: () => { clearTimeout(timer); nt.dispose(); tb.dispose(); ed.dispose(); pane.tools(null); } };
+  return { el, focus: () => ed.focus(false), dirty, cancel: () => cancel(), dispose: () => { clearTimeout(timer); nt.dispose(); tb.dispose(); ed.dispose(); pane.tools(null); } };
 }

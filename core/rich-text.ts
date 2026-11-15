@@ -8,21 +8,30 @@ import type { Token } from './rich-text-tokens.ts';
 export { plainText } from './rich-text-text.ts';
 
 export const MAX_BODY = 20000; // characters, after sanitizing
-export const MAX_NOTES = 100000; // the same for a flow's Notes (0.34.0)
+export const MAX_NOTES = 1000000; // a flow's Notes and the design doc (documents have no limit a writer meets; this only keeps a runaway paste out of the database)
 export const MAX_DEPTH = 20, MAX_ROWS = 50, MAX_COLS = 20, MAX_SPAN = 20;
 const MAX_INPUT = 400000; // what is read at all; the rest is ignored
+const MAX_INPUT_DOC = 2000000; // the same for a document (Notes: a flow's, and the design doc)
 const MAX_STACK = 60;
 export const PALETTE = ['cc-coral', 'cc-ochre', 'cc-sage', 'cc-cyan', 'cc-sky', 'cc-violet'];
 
 const ALLOWED = new Set(['p', 'br', 'b', 'strong', 'i', 'em', 's', 'del', 'strike', 'u', 'ul', 'ol', 'li', 'a', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'span', 'code', 'pre', 'blockquote']);
 /** Containers that paste brings (Word, Confluence, web pages) become paragraphs, so their line breaks survive. */
 const AS_P = new Set(['div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']);
-const BLOCK = new Set(['p', 'ul', 'ol', 'table', 'blockquote', 'pre', 'h2', 'h3']);
-const HEADING = new Set(['h2', 'h3']);
+const BLOCK = new Set(['p', 'ul', 'ol', 'table', 'blockquote', 'pre', 'h1', 'h2', 'h3', 'div']);
+const HEADING = new Set(['h1', 'h2', 'h3']);
+const HEADS = ['p', 'h1', 'h2', 'h3'];
+const headName = (n: string) => (n === 'h1' || n === 'h2' ? n : 'h3'); // h1 and h2 stay, h3 to h6 are h3
 const isHead = (n: string) => /^h[1-6]$/.test(n);
 /** A step chip's `data-step`: "4" or "4-9" (a range runs forward), as written back; null when it is neither. */
 const stepAttr = (v: string | undefined) => { const m = /^\s*(\d{1,4})(?:\s*[-\u2013]\s*(\d{1,4}))?\s*$/.exec(v ?? ''); if (!m) return null; const a = Number(m[1]), b = m[2] ? Number(m[2]) : a; return a > 0 && b >= a ? (b > a ? `${a}-${b}` : `${a}`) : null; };
 /** A step chip's `data-key` / `data-key-to` (0.38.0): the stable key of the step (`#step:...`), so the chip follows the step across scenarios and detail; null when it is not one. */
+const CALLOUTS = ['key', 'watch', 'risk'];
+/** A callout's `data-callout` (key | watch | risk), or null. */
+const calloutAttr = (v: string | undefined) => { const t = (v ?? '').trim().toLowerCase(); return CALLOUTS.includes(t) ? t : null; };
+/** A reference chip's `data-ref`: `svc:<service>`, `flow:<service>/<ingress>` or `step:<service>/<ingress>#<n>`; the text is escaped on output, so only the shape is checked. */
+// eslint-disable-next-line no-control-regex
+const refAttr = (v: string | undefined) => { const t = cleanText((v ?? '').trim()); const m = /^(svc|flow|step):([^\u0000-\u001f]{1,300})$/.exec(t); if (!m) return null; const [, k, rest] = m; return k === 'svc' ? t : k === 'flow' ? (/^[^/]+\/.+$/.test(rest) ? t : null) : /^[^/]+\/[^#]+#\d{1,4}$/.test(rest) ? t : null; };
 const keyAttr = (v: string | undefined) => { const t = (v ?? '').trim(); return /^#step:[^\u0000-\u001f]{3,500}$/.test(t) ? t : null; };
 const INLINE = new Set(['b', 'strong', 'i', 'em', 's', 'del', 'strike', 'u', 'span', 'a', 'code']);
 const FOSTER = new Set(['table', 'thead', 'tbody', 'tr', 'ul', 'ol']); // elements whose only children are their own parts: text and other tags in them are dropped
@@ -54,7 +63,7 @@ interface Open { name: string; emit: boolean; skip: boolean; at: number } // at:
 export function sanitize(html: string, opts: SanitizeOptions = {}): string {
   const notes = !!opts.notes;
   if (typeof html !== 'string' || !html) return '';
-  const toks: Token[] = tokenize(html.length > MAX_INPUT ? html.slice(0, MAX_INPUT) : html);
+  const cap = notes ? MAX_INPUT_DOC : MAX_INPUT, toks: Token[] = tokenize(html.length > cap ? html.slice(0, cap) : html);
   let out = '';
   const st: Open[] = [];
   let skipping = 0, emitted = 0, rows = 0, cols = 0;
@@ -71,8 +80,10 @@ export function sanitize(html: string, opts: SanitizeOptions = {}): string {
   const push = (name: string, emit: boolean, skip = false) => { st.push({ name, emit, skip, at: out.length }); if (emit) emitted++; if (skip) skipping++; };
 
   function start(name: string, attrs: Record<string, string>) {
-    if (notes && isHead(name)) name = name <= 'h2' ? 'h2' : 'h3'; else if (AS_P.has(name)) name = 'p';
-    if (!ALLOWED.has(name) && !(notes && HEADING.has(name))) return;
+    let callout: string | null = null;
+    if (notes && name === 'div' && st.every((o) => HEADS.includes(o.name))) callout = calloutAttr(attrs['data-callout']); // a callout is a top-level block; any other div is a paragraph
+    if (notes && isHead(name)) name = headName(name); else if (AS_P.has(name) && !callout) name = 'p';
+    if (!ALLOWED.has(name) && !(notes && HEADING.has(name)) && !callout) return;
     if (name === 'br') { if (!skipping && !FOSTER.has(top() ?? '')) out += '<br>'; return; }
     if (st.length >= MAX_STACK) return;
     // Implied ends and parents, as a browser would read them: li closes li, td closes td, a block closes an open p.
@@ -80,7 +91,7 @@ export function sanitize(html: string, opts: SanitizeOptions = {}): string {
     else if (name === 'td' || name === 'th') popThrough(['td', 'th'], ['tr', 'table']);
     else if (name === 'tr') popThrough(['tr'], ['table']);
     else if (name === 'thead' || name === 'tbody') popThrough(['thead', 'tbody'], ['table']);
-    else if (BLOCK.has(name) && !(name === 'p' && HEADING.has(top() ?? ''))) popThrough(['p', 'h2', 'h3'], ['li', 'td', 'th', 'blockquote', 'table', 'ul', 'ol']);
+    else if (BLOCK.has(name) && !(name === 'p' && HEADING.has(top() ?? ''))) popThrough(HEADS, ['li', 'td', 'th', 'blockquote', 'table', 'ul', 'ol', 'div']);
     const parent = top();
     if (parent && FOSTER.has(parent) && !CHILD[parent].includes(name)) return;
     if ((name === 'td' || name === 'th') && parent !== 'tr') return;
@@ -97,9 +108,14 @@ export function sanitize(html: string, opts: SanitizeOptions = {}): string {
       emit = emit && !!href && !st.some((o) => o.name === 'a' && o.emit); // links do not nest
       if (emit) extra = ` href="${escAttr(href!)}" rel="noopener noreferrer" target="_blank"`;
     } else if (name === 'span') {
-      const c = (attrs.class ?? '').split(/\s+/).find((x) => PALETTE.includes(x)), ds = notes ? stepAttr(attrs['data-step']) : null, dk = ds ? keyAttr(attrs['data-key']) : null, dt = dk ? keyAttr(attrs['data-key-to']) : null;
-      emit = emit && (!!c || !!ds); // a span with no palette colour (and no step) is nothing: its contents stay
-      if (emit) extra = ds ? ` data-step="${ds}"${dk ? ` data-key="${escAttr(dk)}"` : ''}${dt ? ` data-key-to="${escAttr(dt)}"` : ''}` : ` class="${c}"`;
+      const c = (attrs.class ?? '').split(/\s+/).find((x) => PALETTE.includes(x)), ds = notes ? stepAttr(attrs['data-step']) : null, dk = ds ? keyAttr(attrs['data-key']) : null, dt = dk ? keyAttr(attrs['data-key-to']) : null, dr = notes && !ds ? refAttr(attrs['data-ref']) : null;
+      emit = emit && (!!c || !!ds || !!dr); // a span with no palette colour (and no step, no reference) is nothing: its contents stay
+      if (emit) extra = ds ? ` data-step="${ds}"${dk ? ` data-key="${escAttr(dk)}"` : ''}${dt ? ` data-key-to="${escAttr(dt)}"` : ''}` : dr ? ` data-ref="${escAttr(dr)}"` : ` class="${c}"`;
+    } else if (name === 'pre') {
+      if (notes && 'data-mermaid' in attrs) extra = ' data-mermaid="1"'; // a Mermaid source block (the reader draws it, or shows the source)
+    } else if (name === 'div') {
+      const ds = stepAttr(attrs['data-step']), n = ds && !ds.includes('-') ? ds : null, dk = n ? keyAttr(attrs['data-key']) : null; // a callout names one step
+      extra = ` data-callout="${callout}"${n ? ` data-step="${n}"` : ''}${dk ? ` data-key="${escAttr(dk)}"` : ''}`;
     } else if (name === 'td' || name === 'th') {
       const cs = span(attrs.colspan), rs = span(attrs.rowspan);
       extra = (cs ? ` colspan="${cs}"` : '') + (rs ? ` rowspan="${rs}"` : '');
@@ -109,7 +125,11 @@ export function sanitize(html: string, opts: SanitizeOptions = {}): string {
   }
 
   function end(name: string) {
-    if (notes && isHead(name)) name = name <= 'h2' ? 'h2' : 'h3'; else if (AS_P.has(name)) name = 'p';
+    if (notes && name === 'div') { // closes the nearest open callout or paragraph (a div inside a callout is a paragraph)
+      for (let k = st.length - 1; k >= 0; k--) if (st[k].name === 'div' || st[k].name === 'p') { while (st.length > k) pop(); return; }
+      return;
+    }
+    if (notes && isHead(name)) name = headName(name); else if (AS_P.has(name)) name = 'p';
     if ((!ALLOWED.has(name) && !(notes && HEADING.has(name))) || name === 'br') return;
     // an end tag closes the nearest open element of its name, and what is open inside it; with no such element it is ignored.
     // It never reaches out of the cell, item or table it is in (a stray </b> in a cell does not close a <b> outside the table).
