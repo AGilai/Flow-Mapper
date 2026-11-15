@@ -680,6 +680,22 @@ Resources:
             Action: ['ec2:StopInstances', 'ec2:StartInstances']
             Resource: !Sub 'arn:${AWS::Partition}:ec2:${FlowsRegion}:${AWS::AccountId}:instance/*'
             Condition: {StringEquals: {'aws:ResourceTag/Project': flows}}
+          # Operations (DB import, upgrade.sh) without SSH: SSM Run Command on flows instances only, the stock shell document only.
+          - Sid: RunCommandOnFlowsInstances
+            Effect: Allow
+            Action: 'ssm:SendCommand'
+            Resource: !Sub 'arn:${AWS::Partition}:ec2:${FlowsRegion}:${AWS::AccountId}:instance/*'
+            Condition: {StringEquals: {'ssm:resourceTag/Project': flows}}
+          - Sid: RunCommandShellDocumentOnly
+            Effect: Allow
+            Action: 'ssm:SendCommand'
+            Resource: !Sub 'arn:${AWS::Partition}:ssm:${FlowsRegion}::document/AWS-RunShellScript'
+          # EXCEPTION (SSM): command results are addressed by command id, not by instance; read-only.
+          - {Sid: RunCommandResults, Effect: Allow, Action: ['ssm:GetCommandInvocation', 'ssm:ListCommandInvocations'], Resource: '*'}
+          - Sid: ImportPrefixInFlowsBuckets # a database file to load goes through <bucket>/import/ and is deleted after
+            Effect: Allow
+            Action: ['s3:PutObject', 's3:GetObject', 's3:DeleteObject']
+            Resource: 'arn:aws:s3:::flows-*/import/*'
           - Sid: SsmFlowsParameters # the origin secret, a SecureString under /flows/<stack>/origin-secret
             Effect: Allow
             Action: ['ssm:GetParameter', 'ssm:GetParameters', 'ssm:PutParameter', 'ssm:AddTagsToResource', 'ssm:ListTagsForResource']
