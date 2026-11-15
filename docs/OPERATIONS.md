@@ -89,9 +89,14 @@ Open exposure (what the service role can still reach beyond flows, accepted and 
 - Untagged CloudFront distributions: `CreateDistributionWithTags` makes CloudFront check `cloudfront:TagResource`, so the role may add `Project=flows` to a distribution that has no Project tag, and then control it. Distributions that already carry another project's tag are protected by an explicit Deny on Tag/Untag (`Null` on `aws:ResourceTag/Project` is false and the value is not `flows`). Tag every other project's distributions.
 - Trust policies of new `flows-*` roles are not restricted (`iam:UpdateAssumeRolePolicy` takes no boundary condition). The boundary still limits what such a role can do to flows data.
 - Create statements carry no `TagResource` for Cognito, DLM or ACM (tags go in the create call), and each has the same Deny against another project's tag, as defence in depth. Kehilot uses a lowercase key (`project=kehilot`); condition key names are case-insensitive, to be verified on the first run.
+- `flows-deployer` (Run Command): `ssm:GetCommandInvocation` / `ListCommandInvocations` take no instance scope, so the deployer can read the output of Run Command invocations on any instance in the account, Kehilot's included. Command output can contain secrets: don't print secrets in Run Command scripts on any instance.
+- `flows-deployer` has root on flows instances through `AWS-RunShellScript`, so it effectively holds the instance role's rights too (the flows bucket, `/flows/*` parameters).
 
-Watch on the first deploy:
-- `cloudformation:RoleArn` on `ExecuteChangeSet` (in `flows-deployer`). If AWS does not supply the key for that action the execute is denied; fallback: move `ExecuteChangeSet` to the unconditioned read statement (the change set was already created under the condition, and the stack keeps its role).
+First deploy (2026-11-15), resolved:
+- `ExecuteChangeSet` carries no `cloudformation:RoleArn` key: it is now its own unconditioned statement on the flows stacks (`ExecuteOwnChangeSets`).
+- Stack tags reach the CloudFront function: Tag/Untag/ListTags on `function/flows-*` added. `CreateFunction` scoped by name works.
+
+Still to verify:
 - That the lowercase-`project` Deny matches, and `aws:RequestTag` on `CreateDistribution`, `CreateUserPool`, `CreateLifecyclePolicy` (and `RequestCertificate` with a domain).
 
 ## Upgrade and roll back
