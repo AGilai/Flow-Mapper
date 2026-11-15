@@ -222,7 +222,15 @@ Resources:
                 Resource: !Sub '${Bucket.Arn}/*'
               - Effect: Allow
                 Action: ssm:GetParameter
-                Resource: !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/flows/${AWS::StackName}/app-env'
+                Resource:
+                  - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/flows/${AWS::StackName}/app-env'
+                  # SecureString written by infra/deploy.sh (CloudFormation cannot create one); part C reads the origin header secret from it.
+                  - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/flows/${AWS::StackName}/origin-secret'
+              - Effect: Allow
+                Action: kms:Decrypt
+                Resource: '*'
+                Condition:
+                  StringEquals: {'kms:ViaService': !Sub 'ssm.${AWS::Region}.amazonaws.com'}
               - !If
                 - HasKey
                 - {Effect: Allow, Action: 'secretsmanager:GetSecretValue', Resource: !Ref GitHubDeployKeySecretArn}

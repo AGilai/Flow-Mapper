@@ -17,7 +17,7 @@
 #                            generated one unless you pass this or --open. An existing stack keeps its current one.
 #   --open                   no gate: until part C (Cognito login in the app) the app has NO authentication, so this makes
 #                            the site, its data and its write API open to anyone who has the URL
-#   --origin-secret S        value of the X-Flows-Origin header (default: generated; part C makes the app require it)
+#   --origin-secret S        value of the X-Flows-Origin header (rotates it; default: kept from SSM, generated for a new stack)
 #   --dry-run                print the command and stop
 set -euo pipefail
 
@@ -44,8 +44,13 @@ PL=$(aws ec2 describe-managed-prefix-lists --region "$REGION" \
 [ -n "$PL" ] && [ "$PL" != None ] || { echo "deploy: CloudFront prefix list not found in $REGION" >&2; exit 1; }
 
 # The app has no login until part C: gate the site by default (see PreAuthPassword in the template).
-# Secret for the X-Flows-Origin header CloudFront sends (part C makes the app require it). A new one is generated on every run unless --origin-secret is given.
-[ -n "$OSECRET" ] || OSECRET=$(openssl rand -hex 16)
+# Secret for the X-Flows-Origin header CloudFront sends (part C makes the app require it). It must NOT change on a redeploy, or the app would
+# be locked out until the instance had the new value. Source of truth: the SecureString /flows/<stack>/origin-secret.
+# New stack (or no parameter yet): generate. Existing: reuse it. --origin-secret S rotates explicitly.
+OPARAM="/flows/$STACK/origin-secret"; WRITE_SECRET=0
+if [ -n "$OSECRET" ]; then WRITE_SECRET=1
+elif OSECRET=$(aws ssm get-parameter --region "$REGION" --name "$OPARAM" --with-decryption --query Parameter.Value --output text 2>/dev/null) && [ -n "$OSECRET" ]; then :
+else OSECRET=$(openssl rand -hex 16); WRITE_SECRET=1; fi
 GATE=("OriginSecret=$OSECRET")
 if [ "$OPEN" = 1 ] && [ -n "$GATEPW" ]; then echo "deploy: --open and --gate-password exclude each other" >&2; exit 2; fi
 if [ "$OPEN" = 1 ]; then GATE+=("PreAuthPassword=")
@@ -65,6 +70,11 @@ cmd=(aws cloudformation deploy --region "$REGION" --stack-name "$STACK" --templa
 echo "deploy: ${cmd[*]}" | sed -E 's/(PreAuthPassword=|OriginSecret=)[^ ]+/\1****/'
 [ "$DRY" = 1 ] && exit 0
 "${cmd[@]}"
+if [ "$WRITE_SECRET" = 1 ]; then
+  aws ssm put-parameter --region "$REGION" --name "$OPARAM" --type SecureString --overwrite --value "$OSECRET" --description "flows: X-Flows-Origin header secret" --tags Key=Project,Value=flows >/dev/null 2>&1 \
+    || aws ssm put-parameter --region "$REGION" --name "$OPARAM" --type SecureString --overwrite --value "$OSECRET" >/dev/null
+  echo "deploy: origin secret stored in SSM $OPARAM"
+fi
 
 echo; echo "Outputs:"
 aws cloudformation describe-stacks --region "$REGION" --stack-name "$STACK" --query 'Stacks[0].Outputs[].[OutputKey,OutputValue]' --output text
