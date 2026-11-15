@@ -114,7 +114,7 @@ export async function render({ main, query }) {
   const strip = createTabStrip({ end: pillSlot,
     renameOf: (k) => { const r = T.flowRoot(k); return r && envOfTab(k) === state.env && !gone(state.env) ? (ctxOf(k)?.nameOf(r.service, r.ingress) || '') : null; }, // a tab of another env is read only
     onRename: (k, name) => { const r = T.flowRoot(k); if (r) saveName(r, ctxOf(k)?.nameOf(r.service, r.ingress) || '', name); },
-    aboutOf: (k) => !!views.get(k)?.about, onAbout: about.open,
+    aboutOf: (k) => !!views.get(k)?.about, onAbout: about.open, docOf: (k) => !!views.get(k)?.about,
     describe: (k) => ctxOf(k)?.data.describe(k) ?? goneDescribe(k), chip: (k) => chips.get(k) ?? null, onActivate: (k) => commit(T.activate(S, k)), onClose: (k) => commit(T.closeTab(S, k)),
     onCloseOthers: (k) => commit(T.closeOthers(S, k)), onCloseAll: () => commit(T.closeAll(S)), envVars: (k) => (gone(envOfTab(k)) ? { '--ec': 'var(--muted)', '--ei': 'var(--ink-2)' } : envVars(state.envMeta, envOfTab(k))) });
   const flowLabel = () => { const r = S.active && T.flowRoot(S.active); return r ? ctxOf(S.active)?.nameOf(r.service, r.ingress) || `${r.service} · ${r.ingress}` : ''; }; const renderStrip = () => { chips = tabChips(S.keys); strip.render(S); list.setLabel(flowLabel()); }; if (urlCount > T.TAB_CAP) toast(`The link had ${urlCount} tabs. Opened ${T.TAB_CAP}: the limit.`, 5000);

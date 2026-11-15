@@ -7,11 +7,12 @@ in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.m
 
 ## Unreleased
 
-Design doc (frame 28, stage 2).
+Design doc and flow doc (frame 28, stages 2 and 3).
 
 - **Design doc (stage 2).** A new page "Design doc" (left nav, `#/design-doc`) holds one rich document per environment, a page "like Confluence": no length limit you will meet (a safety cap of 1,000,000 characters), a sticky "On this page" outline, View | Edit, History. Storage is the Notes table with the anchor `env` (no migration): `GET/PUT /api/envs/:env/notes?anchor=env`, `GET .../notes/history?anchor=env`, `POST .../notes/restore` with `anchor: "env"`. Versions, `baseVersion` / `409 STALE_NOTES`, restore and the `notes.updated` event work as for a flow's Notes. Access is the Notes rule: a sealed environment takes it from every reader, a design needs editor rights (a viewer reads), a hidden environment is 404. A book icon docks the document in the right column of Flows and System map (a tab next to the detail pane, resizable, remembered per viewer and per environment).
 - **Sanitizer (`sanitize(html, { notes: true })`, used for every Notes document).** `h1` now stays `h1` (it was `h2`; h3 to h6 are `h3`). New: a Mermaid block `<pre data-mermaid="1">` (source as text; the app shows the source, it has no Mermaid renderer), reference chips `<span data-ref="svc:<service>">`, `data-ref="flow:<service>/<ingress>"`, `data-ref="step:<service>/<ingress>#<n>"` (any other value drops the chip), and callouts `<div data-callout="key|watch|risk" data-step="N">` (top-level blocks, one step, no nesting). Scripts, `on*` attributes, `javascript:` URLs and styles stay out. `MAX_NOTES` is 1,000,000 characters (was 100,000).
-- Seed: `samples/notes/sub-bands.json` (a design doc for `sub-bands`; an item with `"doc": "env"` is the design doc). MCP `get_notes` / `set_notes` are unchanged (flow notes only).
+- **Flow doc (stage 3).** A flow's Notes are its "Flow doc" in the bottom pane (FLOW label, outline, Edit, History, Hide). Callouts (Key step, Watch, Risk, `div[data-callout][data-step]`) put a badge on their step in the diagram: a star for a step with a Key step, else an exclamation mark (Risk over Watch). Hovering a callout outlines its step band, pressing a badge scrolls to the callout. In Edit, clicking a step number offers Key step / Watch / Risk and adds the callout for that step. The pane's X or the note icon on the active tab hides the doc (no pane, no border); View > Descriptions > Flow doc removes the icon too; the badges stay in both cases. Old plain notes show as the document body, unchanged. No API change: callouts are part of the Notes body.
+- Seed: `samples/notes/sub-bands.json` (a design doc and a flow doc for `sub-bands`; an item with `"doc": "env"` is the design doc). MCP `get_notes` / `set_notes` are unchanged (flow notes only).
 
 ## 0.54.0 (2026-11-15): Flows page in two thin rows (frame 28 stage 1)
 

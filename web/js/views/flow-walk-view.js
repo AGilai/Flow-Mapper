@@ -26,6 +26,7 @@ const calm = () => { try { return matchMedia('(prefers-reduced-motion: reduce)')
 /** createWalkView({ store, root, messages, initial, onStep(n), onRestep(cols) }) -> { nav (the player), caption (the caption bar), legendSlot, decorate(res, built), endsOf(built), hit(event), onKey(ev), move(action), current(), dispose }
  *  onSteps(steps): the numbering of the lane just drawn (the partial-flow line reads it). onRestep(cols): the viewer moved to a step whose lifelines are the columns `cols` (Squeeze folds again for it). endsOf(built): the columns of the current step, before the lane is drawn. */
 export function createWalkView({ store, root, messages = () => null, initial = null, sb = () => 'tad', hl = () => true, extra = () => '', zoom = () => 1, onStep, onRestep, onSteps, onPick, readOnly = false }) {
+  let doc = { list: [], click: null }, mark = null; // the flow doc's callout badges (kept across a redraw) and the author's step-number menu (Unreleased, frame 28f)
   let steps = [], built = null, tiles = null, cur = initial ?? 0, curKey = null, jumpOnDraw = initial != null, rng = null; // rng: the range band (0.34.0), kept across a redraw
   let picked = initial != null; // a step the viewer chose (a click, a key, a link with step=): the comments' "Attach to step N" only offers one then
   const pickedNow = () => picked && cur >= 1; // ...and not at step 0
@@ -52,14 +53,14 @@ export function createWalkView({ store, root, messages = () => null, initial = n
     built = lane;
     steps = stepsOf(built, stepKeys, messages());
     onSteps?.(steps);
-    tiles = steps.length ? drawStepTiles(res, built, steps, (n, ev) => { if (!onPick?.(n, ev)) go(n); }, root && !readOnly ? (n) => { go(n, { scroll: false }); edit(steps[n - 1], tiles?.rowEl(n)); } : null, hl) : null;
+    tiles = steps.length ? drawStepTiles(res, built, steps, (n, ev) => { if (!onPick?.(n, ev)) go(n); mark?.(n, ev); }, root && !readOnly ? (n) => { go(n, { scroll: false }); edit(steps[n - 1], tiles?.rowEl(n)); } : null, hl) : null;
     if (root && !readOnly && steps.length) res.body.addEventListener('contextmenu', (ev) => { // right-click an arrow: Edit step description…
       const g = ev.target.closest?.('.msg[data-e]'), st = g && !ev.defaultPrevented ? stepAtRow(steps, Number(g.getAttribute('data-e'))) : null;
       if (!st) return;
       ev.preventDefault(); go(st.n, { scroll: false });
       openMenu(ev.clientX, ev.clientY, `Step ${st.n}`, [{ label: 'Edit step description…', icon: 'edit', hint: 'Title and description of this step (E)', onSelect: () => edit(st, g) }]);
     });
-    tiles?.setRange(rng?.[0] ?? null, rng?.[1] ?? null);
+    tiles?.setRange(rng?.[0] ?? null, rng?.[1] ?? null); tiles?.badges.set(doc.list, doc.click);
     const keep = stepByKey(steps, curKey), before = cur;
     go(keep ? keep.n : cur, { scroll: false, user: false });
     if (picked && cur !== before) onStep?.(cur); // the view changed (an arm, the detail): the same step has another number, and `step=` follows it (0.38.0)
@@ -74,6 +75,8 @@ export function createWalkView({ store, root, messages = () => null, initial = n
     nav: bar.nav, caption: bar.caption, legendSlot: bar.legendSlot, decorate, endsOf, refreshBar: () => bar.refresh(), refreshHl: () => tiles?.setCurrent(cur),
     /** A double-click on a step's text on its arrow, by key. */
     editKey(key) { const st = steps.find((x) => x.key === key); if (st) { go(st.n, { scroll: false }); edit(st, tiles?.rowEl(st.n)); } },
+    /** The flow doc's badges (core/callouts.ts StepBadge[]) and what a press on one does; hoverStep(n, kind) outlines a step's band; markHook(fn(n, ev) | null): a click on a step number while the doc is edited. */
+    setBadges: (list, click) => { doc = { list, click }; tiles?.badges.set(list, click); }, hoverStep: (n, kind) => tiles?.badges.hover(n, kind), markHook: (fn) => { mark = fn; },
     steps: () => steps, picked: pickedNow, rowSpan: (n) => tiles?.rowSpan(n) ?? null,
     /** The band over a range of steps (a hovered or chosen bracket); hlRange(null) takes it away. */
     hlRange: (from, to) => { rng = from == null ? null : [from, to]; tiles?.setRange(from, to); }, go: (n) => go(n), watch: (f) => { watchers.add(f); return () => watchers.delete(f); },

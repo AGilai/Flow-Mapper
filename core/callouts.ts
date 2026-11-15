@@ -1,6 +1,6 @@
 // Callouts of a flow doc (Unreleased, frame 28f): `<div data-callout="key|watch|risk" data-step="2">` blocks inside a flow's Notes. Pure: the
 // document is read as tokens, never as markup. The diagram's step badges come from here: a step with a callout carries a star (key) or an
-// exclamation mark (watch, risk); a step with several kinds shows the strongest one (risk, then watch, then key).
+// exclamation mark (watch, risk); a step with several kinds shows the star when one of them is a Key step, else the mark of the stronger of Risk and Watch.
 // `parseRef` reads the reference chips (`<span data-ref="svc:...">`) the design doc and the flow doc link into the app with.
 
 import { tokenize } from './rich-text-tokens.ts';
@@ -13,7 +13,7 @@ export interface StepBadge { step: number; badge: 'star' | 'bang'; kind: Callout
 
 export const CALLOUT_LABEL: Record<CalloutKind, string> = { key: 'Key step', watch: 'Watch', risk: 'Risk' };
 const KINDS: CalloutKind[] = ['key', 'watch', 'risk'];
-const RANK: Record<CalloutKind, number> = { key: 0, watch: 1, risk: 2 };
+const RANK: Record<CalloutKind, number> = { watch: 0, risk: 1, key: 2 }; // the star wins (frame 28f: step 2 has a Key step and a Risk and shows the star)
 
 /** The callouts of a body in reading order. `index` counts them from 0 (the order the reader draws them in). Only top-level `div[data-callout]` count. */
 export function callouts(html: string): Callout[] {

@@ -83,13 +83,14 @@ test('callouts() reads them in order with their step and text; callouts nested i
   assert.deepEqual(callouts('<div data-callout="nope">x</div>'), []);
 });
 
-test('badges(): a star for key, a bang for watch and risk, the strongest kind wins; a gone step has none', () => {
+test('badges(): a star for key, a bang for watch and risk; key beats risk beats watch on one step; a gone step has none', () => {
   const list = callouts('<div data-callout="key" data-step="2">a</div><div data-callout="watch" data-step="1">b</div><div data-callout="risk" data-step="2">c</div><div data-callout="key" data-step="9">d</div><div data-callout="key">e</div>');
   assert.deepEqual(badges(list, 3), [
     { step: 1, badge: 'bang', kind: 'watch', kinds: ['watch'], callouts: [1] },
-    { step: 2, badge: 'bang', kind: 'risk', kinds: ['key', 'risk'], callouts: [0, 2] },
+    { step: 2, badge: 'star', kind: 'key', kinds: ['key', 'risk'], callouts: [0, 2] },
   ]);
-  assert.deepEqual(badges(list, 0).map((b) => [b.step, b.badge]), [[1, 'bang'], [2, 'bang'], [9, 'star']], 'steps not known yet: nothing is judged');
+  assert.deepEqual(badges(list, 0).map((b) => [b.step, b.badge]), [[1, 'bang'], [2, 'star'], [9, 'star']], 'steps not known yet: nothing is judged');
+  assert.equal(badges(callouts('<div data-callout="watch" data-step="3">a</div><div data-callout="risk" data-step="3">b</div>'), 5)[0].kind, 'risk');
   assert.deepEqual(badges(callouts('<div data-callout="key" data-step="4">x</div>'), 5), [{ step: 4, badge: 'star', kind: 'key', kinds: ['key'], callouts: [0] }]);
 });
 

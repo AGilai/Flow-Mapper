@@ -8,6 +8,7 @@ import { sizeControl, textSize, setTextSize } from './flow-textsize.js';
 import { SIZE_DEFAULT } from './flow-info-pure.js';
 import { popPlace } from './flow-bars-pure.js';
 import { caps, setCap, onCaps } from './flow-caption-state.js';
+import { flowDoc, setFlowDoc } from '../notes/flow-doc-state.js';
 import { nonDefault } from './flow-view-pure.js';
 import { hintsDefault } from './flow-hints-pure.js';
 import { arrowsDefault } from './step-details-pure.js';
@@ -48,6 +49,7 @@ export function createViewMenu({ ctx, act, stepMenu }) {
       h('div.vm-top', h('b', 'View options'), h('button.vm-reset', { type: 'button', disabled: !n, on: { click: () => { reset(); paint(); } } }, 'Reset to defaults')),
       head('Descriptions'),
       sw('Call notes', { on: c.caption, qa: 'caption-switch', note: 'The caption bar under the diagram', change: (v) => setCap('caption', v) }),
+      sw('Flow doc', { on: flowDoc().enabled, qa: 'flowdoc-switch', note: 'The pane under the diagram and the note icon on the tab; step badges stay', change: (v) => setFlowDoc('enabled', v) }),
       sw('Legend', { on: c.legend, qa: 'legend-switch', note: 'Read / Write line key', change: (v) => setCap('legend', v) }),
       head('Diagram'),
       assigned ? sw('Group by subsystem', { on: opts.bands, qa: 'group-by-subsystem', tip: 'Put the components of one subsystem next to each other and show a band with its name over them', change: act.bands }) : null,

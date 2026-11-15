@@ -27,7 +27,7 @@ test('Maximize is the same flex column: the tab does not scroll, no display: con
   assert.doesNotMatch(max, /position: sticky/);
   assert.doesNotMatch(css('flow-pane.css'), /body\.is-max \.flow-bottom \{ display: block/);
   assert.doesNotMatch(css('flow-bars.css'), /position: sticky; top/);
-  assert.match(css('flow-pane.css'), /data-tab='notes'\]\) > \.flow-bottom \{ flex: 1 1 0; max-height: none; min-height: 0; \}/, 'the Notes document fills the window and scrolls inside');
+  assert.match(css('flow-pane.css'), /data-tab='notes'\](?::not\(\.fd-hide\))?\) > \.flow-bottom \{ flex: 1 1 0; max-height: none; min-height: 0; \}/, 'the Notes document fills the window and scrolls inside');
 });
 
 test('step navigation scrolls the box only, and zoom anchors on the box', () => {

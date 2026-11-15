@@ -50,8 +50,8 @@ export function renderCallouts(root, { steps = () => 0, onStep, onHover } = {}) 
     el.classList.add('nt-co', 'co-js'); el.prepend(head);
     const paint = () => { head.querySelector('.nt-co-g').hidden = !gone(); chip?.classList.toggle('gone', gone()); };
     paint();
-    el.addEventListener('pointerenter', () => onHover?.(gone() ? null : n)); el.addEventListener('pointerleave', () => onHover?.(null));
-    el.addEventListener('focusin', () => onHover?.(gone() ? null : n)); el.addEventListener('focusout', () => onHover?.(null));
+    el.addEventListener('pointerenter', () => onHover?.(gone() ? null : n, kind)); el.addEventListener('pointerleave', () => onHover?.(null));
+    el.addEventListener('focusin', () => onHover?.(gone() ? null : n, kind)); el.addEventListener('focusout', () => onHover?.(null));
     return { el, kind, step: n, paint };
   });
 }

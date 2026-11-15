@@ -32,8 +32,8 @@ a.nt-ref:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
 
 /* callouts: a coloured card tied to a step. In the reader a header is drawn (label, step chip); in the editor and History the label is CSS only */
 .nt-doc div[data-callout], .rte-area div[data-callout], .nt-blk div[data-callout] { --cc: var(--accent); margin: 8px 0; padding: 6px 12px 8px; border-radius: 8px; border: 1px solid var(--cc); border-left-width: 4px; background: color-mix(in srgb, var(--cc) 9%, var(--surface)); font-size: 13.5px; line-height: 1.45; position: relative; scroll-margin: 40px; }
-div[data-callout='watch'] { --cc: var(--warn); }
-div[data-callout='risk'] { --cc: var(--bad); }
+:is(.nt-doc, .rte-area, .nt-blk) div[data-callout='watch'] { --cc: var(--warn); }
+:is(.nt-doc, .rte-area, .nt-blk) div[data-callout='risk'] { --cc: var(--bad); }
 div[data-callout] p { margin: 2px 0; }
 .rte-area div[data-callout]:not(.co-js)::before, .nt-blk div[data-callout]:not(.co-js)::before { display: block; font: 700 10.5px var(--font); letter-spacing: .05em; text-transform: uppercase; color: var(--cc); margin-bottom: 1px; content: 'Callout'; }
 .rte-area div[data-callout='key']::before, .nt-blk div[data-callout='key']::before { content: 'Key step'; }
@@ -137,7 +137,7 @@ div[data-callout] p { margin: 2px 0; }
 .fp-flow svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; }
 .fp-x { appearance: none; align-self: center; width: 28px; height: 28px; margin-bottom: 1px; border: 0; border-radius: var(--r-sm); background: none; color: var(--muted); cursor: pointer; font-size: 14px; }
 .fp-x:hover { background: var(--surface-2); color: var(--ink); }
-.fd-off .flow-bottom, .fd-off .fp-split { display: none !important; }
+.flow-bottom.fd-hide, .fp-split.fd-hide { display: none !important; } /* the flow doc is hidden: no pane, no border (frame 28a) */
 .docbadge { cursor: pointer; }
 .docbadge .bd-key circle { fill: var(--accent); }
 .docbadge .bd-bang path { fill: var(--warn); }

@@ -42,7 +42,7 @@ export function createDock({ host, env, panel = null }) {
     if (panel && !panel.el.querySelector(':scope > .dk-tabs-in')) panel.el.prepend(inPanel.el);
   }
   function teardown() {
-    doc?.dispose(); doc = null; el.replaceChildren(); el.classList.remove('open'); el.style.removeProperty('--dk-w');
+    doc?.dispose(); doc = null; el.replaceChildren(); host.parentElement?.classList.remove('dk-open'); el.classList.remove('open'); el.style.removeProperty('--dk-w');
     panel?.el.classList.remove('dk-away', 'dk-tabbed'); inPanel.el.remove();
     document.dispatchEvent(new CustomEvent('fm:layout'));
   }
@@ -51,7 +51,7 @@ export function createDock({ host, env, panel = null }) {
     button.setAttribute('aria-pressed', String(docked)); button.classList.toggle('on', docked);
     button.title = button.ariaLabel = docked ? 'Design doc: hide it (it is docked beside the work)' : 'Design doc: dock it beside the work';
     if (!docked) { if (doc) teardown(); return; }
-    build();
+    build(); queueMicrotask(() => host.parentElement?.classList.add('dk-open')); // the Flows list steps back to its strip, as for any pane (a microtask: the page starts watching after it made the dock)
     const both = open();
     if (!both) tab = 'doc';
     el.classList.add('open'); el.classList.toggle('dk-away', both && tab === 'detail');
@@ -64,5 +64,5 @@ export function createDock({ host, env, panel = null }) {
   mo?.observe(panel.el, { attributes: true, attributeFilter: ['class'] });
   const off = onDocked((e) => { if (e === env) layout(); });
   layout();
-  return { el, button, dispose: () => { off(); mo?.disconnect(); doc?.dispose(); doc = null; el.remove(); inPanel.el.remove(); panel?.el.classList.remove('dk-away', 'dk-tabbed'); } };
+  return { el, button, dispose: () => { off(); mo?.disconnect(); host.parentElement?.classList.remove('dk-open'); doc?.dispose(); doc = null; el.remove(); inPanel.el.remove(); panel?.el.classList.remove('dk-away', 'dk-tabbed'); } };
 }
