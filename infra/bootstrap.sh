@@ -20,7 +20,7 @@ PARAMS="FlowsRegion=$REGION"
 cat <<EOF2
 Run these as an IAM administrator (not as the deploy role). Run from the repo root. Review infra/flows-bootstrap.yaml first.
 
-# 1. Create the permissions boundary, the CloudFormation service role and the deployer policy
+# 1. Create the permissions boundary, the CloudFormation service role, the deployer policy and flows-deployer-role
 aws cloudformation deploy --region $REGION --stack-name $STACK \\
   --template-file infra/flows-bootstrap.yaml \\
   --capabilities CAPABILITY_NAMED_IAM --tags Project=flows \\
@@ -29,7 +29,14 @@ aws cloudformation deploy --region $REGION --stack-name $STACK \\
 # 2. See the ARNs
 aws cloudformation describe-stacks --region $REGION --stack-name $STACK --query 'Stacks[0].Outputs[].[OutputKey,OutputValue]' --output text
 
-# 3. Attach the deployer policy to the machine's deploy role (only an IAM admin can do this)
-ACCOUNT=\$(aws sts get-caller-identity --query Account --output text)
-aws iam attach-role-policy --role-name $ROLE --policy-arn arn:aws:iam::\$ACCOUNT:policy/flows-deployer
+# 3. Let the machine's role ($ROLE) assume flows-deployer-role: add ONE statement to its permissions and to its
+#    permissions boundary, and do NOT attach flows-deployer to it. On the Kehilot account that is
+#    ~/tools/flows-aws/kehilot-assume-flows.sh (also detaches flows-deployer if it was attached earlier).
+#    Statement: {"Effect":"Allow","Action":"sts:AssumeRole","Resource":"arn:aws:iam::<account>:role/flows-deployer-role"}
+
+# 4. On the machine, ~/.aws/config:
+#    [profile flows]
+#    role_arn = arn:aws:iam::<account>:role/flows-deployer-role
+#    credential_source = Ec2InstanceMetadata
+#    region = $REGION
 EOF2
