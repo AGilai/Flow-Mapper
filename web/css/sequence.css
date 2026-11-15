@@ -50,8 +50,6 @@
 @media (max-width: 860px) {
   .flows, .flows.list-c { grid-template-columns: 1fr; grid-template-rows: 220px 1fr; }
   .flows.list-c { grid-template-rows: 34px 1fr; }
-  .flows-list.is-c .fl-strip { flex-direction: row; padding: 0 12px; }
-  .flows-list.is-c .fl-strip-t { writing-mode: horizontal-tb; }
   .flows-list .resizer { display: none; }
   .flows-list { border-right: 0; border-bottom: 1px solid var(--line); }
 }
@@ -88,4 +86,5 @@
 .flows-list.is-c .fl-strip:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
 .fl-strip svg { flex: none; width: 15px; height: 15px; stroke-width: 2.4; transform: rotate(180deg); }
 .fl-strip-t { writing-mode: vertical-rl; min-height: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 0 1 auto; }
-@media (max-width: 860px) { .fl-toggle svg { transform: rotate(90deg); } .fl-strip svg { transform: rotate(-90deg); } } /* stacked layout: the list folds up */
+@media (max-width: 860px) { .fl-toggle svg { transform: rotate(90deg); } .fl-strip svg { transform: rotate(-90deg); }
+  .flows-list.is-c .fl-strip { flex-direction: row; padding: 0 12px; } .flows-list.is-c .fl-strip-t { writing-mode: horizontal-tb; } } /* stacked layout: the list folds up */

@@ -234,3 +234,14 @@ test('report_bug without an env (or with an env label that is no env) is visible
   assert.equal((await P.other.call('POST', '/api/bugs', { title: 'rest no-env' })).status, 201);
   assert.equal((await P.other.call('POST', '/api/bugs', { title: 'x', env: 'd-private' })).status, 404, 'a private env is still not reportable by others');
 });
+
+test('bug.* events: a no-env bug reaches every reader, a private design env bug reaches only those who can read it', async () => {
+  const a = await P.other.call('POST', '/api/bugs', { title: 'ev no-env' });
+  assert.equal(a.status, 201);
+  const mine = await P.owner.call('POST', '/api/bugs', { title: 'ev private', env: 'd-private' });
+  assert.equal(mine.status, 201, JSON.stringify(mine.body));
+  const titles = async (w: keyof typeof P) => ((await P[w].call('GET', '/api/events/recent?limit=500&types=bug.*')).body.events as any[]).map((e) => e.summary as string);
+  for (const w of ['owner', 'other', 'viewer', 'admin'] as const) assert.ok((await titles(w)).some((s) => s.includes('ev no-env')), `${w} gets the no-env bug event`);
+  assert.ok((await titles('owner')).some((s) => s.includes('ev private')));
+  assert.ok(!(await titles('other')).some((s) => s.includes('ev private')), 'private design bug event hidden from others');
+});

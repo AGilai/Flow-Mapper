@@ -4,7 +4,7 @@ import type { Router } from '../http/router.ts';
 import { STREAMED } from '../http/router.ts';
 import type { Ctx } from '../context.ts';
 import { HttpError, badRequest } from '../errors.ts';
-import { roleFor, isOff } from '../access.ts';
+import { bugEnvHidden, readableEnvs, roleFor, isOff } from '../access.ts';
 import { busFor, matches, parseFilter, type PushEvent } from '../events/bus.ts';
 
 export interface StreamOptions { heartbeatMs?: number; maxClients?: number }
@@ -25,7 +25,9 @@ export function registerEvents(r: Router, ctx: Ctx, opts: StreamOptions = {}) {
   };
 
   // accounts: an event about an environment the caller cannot read is never sent (checked per event: sharing changes while a stream is open)
-  const seeable = (db: Ctx['db'], who: import('../auth/context.ts').Principal | undefined) => (e: PushEvent) => isOff(who) || e.env === undefined || roleFor(db, e.env, who) !== 'none';
+  // bug.* events follow the bug rule (a bug with no env / env 'default' / a label that is no env is visible to everyone who reads bugs)
+  const seeable = (db: Ctx['db'], who: import('../auth/context.ts').Principal | undefined) => (e: PushEvent) =>
+    isOff(who) || e.env === undefined || (e.type.startsWith('bug.') ? !bugEnvHidden(db, e.env, readableEnvs(db, who)) : roleFor(db, e.env, who) !== 'none');
 
   r.get('/api/events', (req) => {
     const filter = parseFilter(req.query), see = seeable(ctx.db, req.who);
