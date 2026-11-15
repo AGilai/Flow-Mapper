@@ -89,6 +89,13 @@ Parameters:
       Secret value of the custom origin header X-Flows-Origin that CloudFront adds to every request to the instance. Part C of the plan makes the app
       reject requests without it (defence in depth: the origin port is open to every CloudFront distribution). Until then it is only sent. infra/deploy.sh generates one.
 
+  PermissionsBoundaryArn:
+    Type: String
+    Default: ''
+    Description: >-
+      Permissions boundary set on every role of this stack. Empty means arn:<partition>:iam::<account>:policy/flows-permissions-boundary, created
+      by infra/flows-bootstrap.yaml. The stack's service role refuses to create a role without exactly that boundary.
+
 Rules:
   DomainNeedsUsEast1:
     RuleCondition: !Not [!Equals [!Ref DomainName, '']]
@@ -101,6 +108,7 @@ Rules:
 Conditions:
   HasVpc: !Not [!Equals [!Ref VpcId, '']]
   HasSubnet: !Not [!Equals [!Ref SubnetId, '']]
+  HasBoundaryArn: !Not [!Equals [!Ref PermissionsBoundaryArn, '']]
   HasKey: !Not [!Equals [!Ref GitHubDeployKeySecretArn, '']]
   HasRepoUrl: !Not [!Equals [!Ref RepoUrl, '']]
   HasOriginSecret: !Not [!Equals [!Ref OriginSecret, '']]
@@ -168,6 +176,8 @@ Resources:
   SnapshotRole:
     Type: AWS::IAM::Role
     Properties:
+      RoleName: !Sub 'flows-${AWS::StackName}-snapshot'
+      PermissionsBoundary: !If [HasBoundaryArn, !Ref PermissionsBoundaryArn, !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/flows-permissions-boundary']
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement: [{Effect: Allow, Principal: {Service: dlm.amazonaws.com}, Action: 'sts:AssumeRole'}]
@@ -205,6 +215,8 @@ Resources:
   InstanceRole:
     Type: AWS::IAM::Role
     Properties:
+      RoleName: !Sub 'flows-${AWS::StackName}-app'
+      PermissionsBoundary: !If [HasBoundaryArn, !Ref PermissionsBoundaryArn, !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/flows-permissions-boundary']
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement: [{Effect: Allow, Principal: {Service: ec2.amazonaws.com}, Action: 'sts:AssumeRole'}]
@@ -254,6 +266,7 @@ Resources:
   InstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
+      InstanceProfileName: !Sub 'flows-${AWS::StackName}-app'
       Roles: [!Ref InstanceRole]
 
   Instance:
@@ -452,6 +465,8 @@ Resources:
     Type: AWS::IAM::Role
     Condition: SelfSignUp
     Properties:
+      RoleName: !Sub 'flows-${AWS::StackName}-presignup'
+      PermissionsBoundary: !If [HasBoundaryArn, !Ref PermissionsBoundaryArn, !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/flows-permissions-boundary']
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement: [{Effect: Allow, Principal: {Service: lambda.amazonaws.com}, Action: 'sts:AssumeRole'}]
