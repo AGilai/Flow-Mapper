@@ -60,6 +60,16 @@ Every role in `flow-mapper.yaml` is named `flows-<stack>-...` and carries the bo
 
 Things the service role cannot scope by name or tag (all documented in comments in `flows-bootstrap.yaml`): CloudFront `CreateFunction` and `CreateCachePolicy` (no name or tag at create; cache policies are addressed by generated id, so change/delete cannot be scoped either); `cognito-idp:DescribeUserPoolDomain`, `logs:DescribeLogGroups`, `dlm:GetLifecyclePolicies`, `ssm:DescribeParameters` (read-only lists); `ec2:CreateSecurityGroup` on `vpc/*`, RunInstances on `image`, `subnet` and `network-interface`, AssociateAddress on `network-interface` (untagged by nature, the tagged resource is still required in the same call). The first-admin steps that `deploy.sh` prints (`cognito-idp admin-set-user-password`, `admin-create-user`) need Cognito rights that `flows-deployer` does not grant: run them as admin.
 
+Open exposure (what the service role can still reach beyond flows, accepted and known):
+- Cache policies (`cache-policy/*`) of any project can be edited or deleted: they have no tags and are addressed by generated id.
+- Untagged CloudFront distributions: `CreateDistributionWithTags` makes CloudFront check `cloudfront:TagResource`, so the role may add `Project=flows` to a distribution that has no Project tag, and then control it. Distributions that already carry another project's tag are protected by an explicit Deny on Tag/Untag (`Null` on `aws:ResourceTag/Project` is false and the value is not `flows`). Tag every other project's distributions.
+- Trust policies of new `flows-*` roles are not restricted (`iam:UpdateAssumeRolePolicy` takes no boundary condition). The boundary still limits what such a role can do to flows data.
+- Create statements carry no `TagResource` for Cognito, DLM or ACM (tags go in the create call), and each has the same Deny against another project's tag, as defence in depth. Kehilot uses a lowercase key (`project=kehilot`); condition key names are case-insensitive, to be verified on the first run.
+
+Watch on the first deploy:
+- `cloudformation:RoleArn` on `ExecuteChangeSet` (in `flows-deployer`). If AWS does not supply the key for that action the execute is denied; fallback: move `ExecuteChangeSet` to the unconditioned read statement (the change set was already created under the condition, and the stack keeps its role).
+- That the lowercase-`project` Deny matches, and `aws:RequestTag` on `CreateDistribution`, `CreateUserPool`, `CreateLifecyclePolicy` (and `RequestCertificate` with a domain).
+
 ## Upgrade and roll back
 - Upgrade: `sudo deploy/upgrade.sh v0.52.1` (through SSM, below). It checks out the tag, refreshes the unit files, restarts both services and waits for `/healthz`. It prints the previous tag.
 - Roll back code: `sudo deploy/upgrade.sh <previous tag>`.

@@ -141,7 +141,7 @@ Resources:
             Condition: {StringEquals: {'ec2:CreateAction': [CreateSnapshot, CreateSnapshots]}}
 
   # ------------------------------------------------------------------ 2. CloudFormation service role
-  # Split in four managed policies (iam, ec2, services, storage) because of the 6144-character limit; the domain policy is optional.
+  # Split in five managed policies (iam, ec2, edge, services, storage) because of the 6144-character limit; the domain policy is optional.
   CfnIamPolicy:
     Type: AWS::IAM::ManagedPolicy
     Properties:
@@ -152,7 +152,7 @@ Resources:
         Statement:
           - Sid: CreateRoleWithBoundary
             Effect: Allow
-            Action: ['iam:CreateRole', 'iam:PutRolePolicy', 'iam:UpdateAssumeRolePolicy']
+            Action: ['iam:CreateRole', 'iam:PutRolePolicy']
             Resource: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/flows-*'
             Condition: {StringEquals: {'iam:PermissionsBoundary': !Ref BoundaryPolicy}}
           - Sid: AttachOnlyThreeAwsManagedPolicies
@@ -169,6 +169,7 @@ Resources:
           - Sid: ManageFlowsRoles
             Effect: Allow
             Action:
+              - 'iam:UpdateAssumeRolePolicy' # no iam:PermissionsBoundary condition on this action (not supported); the explicit denies below protect the service role and kehilot*
               - 'iam:DeleteRole'
               - 'iam:DeleteRolePolicy'
               - 'iam:DetachRolePolicy'
@@ -337,78 +338,10 @@ Resources:
     Type: AWS::IAM::ManagedPolicy
     Properties:
       ManagedPolicyName: flows-cfn-services
-      Description: flows CloudFormation service role, CloudFront, Cognito, Lambda, Logs and DLM, scoped by flows-* name or the Project=flows tag.
+      Description: flows CloudFormation service role, Lambda, Logs and DLM, scoped by flows-* name or the Project=flows tag.
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
-          # ---- CloudFront (global ARNs, no region)
-          - Sid: CloudFrontCreateTagged
-            Effect: Allow
-            Action: ['cloudfront:CreateDistribution', 'cloudfront:TagResource']
-            Resource: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/*'
-            Condition: {StringEquals: {'aws:RequestTag/Project': flows}}
-          - Sid: CloudFrontChangeTagged
-            Effect: Allow
-            Action:
-              - 'cloudfront:UpdateDistribution'
-              - 'cloudfront:DeleteDistribution'
-              - 'cloudfront:GetDistribution'
-              - 'cloudfront:GetDistributionConfig'
-              - 'cloudfront:TagResource'
-              - 'cloudfront:UntagResource'
-              - 'cloudfront:ListTagsForResource'
-            Resource: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/*'
-            Condition: {StringEquals: {'aws:ResourceTag/Project': flows}}
-          - Sid: CloudFrontFunctionsByName
-            Effect: Allow
-            Action: ['cloudfront:UpdateFunction', 'cloudfront:DeleteFunction', 'cloudfront:DescribeFunction', 'cloudfront:GetFunction', 'cloudfront:PublishFunction', 'cloudfront:TestFunction']
-            Resource: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:function/flows-*'
-          # EXCEPTION (CloudFront): CreateFunction and CreateCachePolicy take no resource name and no tag, so they cannot be scoped.
-          # Cache policies are addressed by generated id (cache-policy/<id>), never by name, so their change/delete actions cannot be scoped to flows either.
-          - Sid: CloudFrontCreateUnscopable
-            Effect: Allow
-            Action: ['cloudfront:CreateFunction', 'cloudfront:CreateCachePolicy']
-            Resource: '*'
-          - Sid: CloudFrontCachePolicies
-            Effect: Allow
-            Action: ['cloudfront:UpdateCachePolicy', 'cloudfront:DeleteCachePolicy', 'cloudfront:GetCachePolicy', 'cloudfront:GetCachePolicyConfig']
-            Resource: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:cache-policy/*'
-          - Sid: CloudFrontReadManagedPolicies
-            Effect: Allow
-            Action: ['cloudfront:GetOriginRequestPolicy', 'cloudfront:GetOriginRequestPolicyConfig']
-            Resource: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:origin-request-policy/*'
-          # ---- Cognito
-          - Sid: CognitoCreatePoolTagged
-            Effect: Allow
-            Action: ['cognito-idp:CreateUserPool', 'cognito-idp:TagResource']
-            Resource: !Sub 'arn:${AWS::Partition}:cognito-idp:${FlowsRegion}:${AWS::AccountId}:userpool/*'
-            Condition: {StringEquals: {'aws:RequestTag/Project': flows}}
-          - Sid: CognitoChangeTaggedPool # clients, domain and users are children of the pool: the pool's tag governs them
-            Effect: Allow
-            Action:
-              - 'cognito-idp:UpdateUserPool'
-              - 'cognito-idp:DeleteUserPool'
-              - 'cognito-idp:DescribeUserPool'
-              - 'cognito-idp:CreateUserPoolClient'
-              - 'cognito-idp:UpdateUserPoolClient'
-              - 'cognito-idp:DeleteUserPoolClient'
-              - 'cognito-idp:DescribeUserPoolClient'
-              - 'cognito-idp:CreateUserPoolDomain'
-              - 'cognito-idp:UpdateUserPoolDomain'
-              - 'cognito-idp:DeleteUserPoolDomain'
-              - 'cognito-idp:AdminCreateUser'
-              - 'cognito-idp:AdminGetUser'
-              - 'cognito-idp:AdminDeleteUser'
-              - 'cognito-idp:AdminUpdateUserAttributes'
-              - 'cognito-idp:GetUserPoolMfaConfig'
-              - 'cognito-idp:SetUserPoolMfaConfig'
-              - 'cognito-idp:TagResource'
-              - 'cognito-idp:UntagResource'
-              - 'cognito-idp:ListTagsForResource'
-            Resource: !Sub 'arn:${AWS::Partition}:cognito-idp:${FlowsRegion}:${AWS::AccountId}:userpool/*'
-            Condition: {StringEquals: {'aws:ResourceTag/Project': flows}}
-          # EXCEPTION (Cognito): DescribeUserPoolDomain takes no resource (it looks a domain up by name). Read-only.
-          - {Sid: CognitoDescribeDomain, Effect: Allow, Action: 'cognito-idp:DescribeUserPoolDomain', Resource: '*'}
           # ---- Lambda (pre-sign-up trigger)
           - Sid: LambdaFlowsFunctions
             Effect: Allow
@@ -453,9 +386,16 @@ Resources:
           # ---- DLM (policies are named by generated id, so they are scoped by tag)
           - Sid: DlmCreateTagged
             Effect: Allow
-            Action: ['dlm:CreateLifecyclePolicy', 'dlm:TagResource']
+            Action: 'dlm:CreateLifecyclePolicy' # tags travel in the create call; no TagResource here (it would let the role tag any existing policy)
             Resource: !Sub 'arn:${AWS::Partition}:dlm:${FlowsRegion}:${AWS::AccountId}:policy/*'
             Condition: {StringEquals: {'aws:RequestTag/Project': flows}}
+          - Sid: DenyTagChangeOnOtherProjectsDlmPolicies # same pattern as CloudFront; verify the lowercase project key on the first run
+            Effect: Deny
+            Action: ['dlm:TagResource', 'dlm:UntagResource']
+            Resource: !Sub 'arn:${AWS::Partition}:dlm:${FlowsRegion}:${AWS::AccountId}:policy/*'
+            Condition:
+              'Null': {'aws:ResourceTag/Project': 'false'}
+              StringNotEquals: {'aws:ResourceTag/Project': flows}
           - Sid: DlmChangeTagged
             Effect: Allow
             Action: ['dlm:UpdateLifecyclePolicy', 'dlm:DeleteLifecyclePolicy', 'dlm:GetLifecyclePolicy', 'dlm:TagResource', 'dlm:UntagResource', 'dlm:ListTagsForResource']
@@ -463,6 +403,101 @@ Resources:
             Condition: {StringEquals: {'aws:ResourceTag/Project': flows}}
           # EXCEPTION (DLM): GetLifecyclePolicies is a list call without resource. Read-only.
           - {Sid: DlmList, Effect: Allow, Action: 'dlm:GetLifecyclePolicies', Resource: '*'}
+
+  CfnEdgePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: flows-cfn-edge
+      Description: flows CloudFormation service role, CloudFront and Cognito, scoped by flows-* name or the Project=flows tag.
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          # ---- CloudFront (global ARNs, no region)
+          # CreateDistributionWithTags also checks cloudfront:TagResource, so it stays here. That lets the role add Project=flows to an UNTAGGED
+          # distribution (open exposure, see docs/OPERATIONS.md); a distribution that carries another project's tag is protected by the Deny below.
+          - Sid: CloudFrontCreateTagged
+            Effect: Allow
+            Action: ['cloudfront:CreateDistribution', 'cloudfront:TagResource']
+            Resource: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/*'
+            Condition: {StringEquals: {'aws:RequestTag/Project': flows}}
+          # Defence in depth against tag hijack: a resource that already carries a Project tag with another value cannot be (un)tagged.
+          # Kehilot uses a lowercase key (project=kehilot). Condition key names are case-insensitive: VERIFY on the first run that this Deny matches.
+          - Sid: DenyTagChangeOnOtherProjectsDistributions
+            Effect: Deny
+            Action: ['cloudfront:TagResource', 'cloudfront:UntagResource']
+            Resource: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/*'
+            Condition:
+              'Null': {'aws:ResourceTag/Project': 'false'}
+              StringNotEquals: {'aws:ResourceTag/Project': flows}
+          - Sid: CloudFrontChangeTagged
+            Effect: Allow
+            Action:
+              - 'cloudfront:UpdateDistribution'
+              - 'cloudfront:DeleteDistribution'
+              - 'cloudfront:GetDistribution'
+              - 'cloudfront:GetDistributionConfig'
+              - 'cloudfront:TagResource'
+              - 'cloudfront:UntagResource'
+              - 'cloudfront:ListTagsForResource'
+            Resource: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/*'
+            Condition: {StringEquals: {'aws:ResourceTag/Project': flows}}
+          - Sid: CloudFrontFunctionsByName
+            Effect: Allow
+            Action: ['cloudfront:UpdateFunction', 'cloudfront:DeleteFunction', 'cloudfront:DescribeFunction', 'cloudfront:GetFunction', 'cloudfront:PublishFunction', 'cloudfront:TestFunction']
+            Resource: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:function/flows-*'
+          # EXCEPTION (CloudFront): CreateFunction and CreateCachePolicy take no resource name and no tag, so they cannot be scoped.
+          # Cache policies are addressed by generated id (cache-policy/<id>), never by name, so their change/delete actions cannot be scoped to flows either.
+          - Sid: CloudFrontCreateUnscopable
+            Effect: Allow
+            Action: ['cloudfront:CreateFunction', 'cloudfront:CreateCachePolicy']
+            Resource: '*'
+          - Sid: CloudFrontCachePolicies
+            Effect: Allow
+            Action: ['cloudfront:UpdateCachePolicy', 'cloudfront:DeleteCachePolicy', 'cloudfront:GetCachePolicy', 'cloudfront:GetCachePolicyConfig']
+            Resource: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:cache-policy/*'
+          - Sid: CloudFrontReadManagedPolicies
+            Effect: Allow
+            Action: ['cloudfront:GetOriginRequestPolicy', 'cloudfront:GetOriginRequestPolicyConfig']
+            Resource: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:origin-request-policy/*'
+          # ---- Cognito
+          - Sid: CognitoCreatePoolTagged
+            Effect: Allow
+            Action: 'cognito-idp:CreateUserPool' # tags travel in the create call; no TagResource here (it would let the role tag any existing pool)
+            Resource: !Sub 'arn:${AWS::Partition}:cognito-idp:${FlowsRegion}:${AWS::AccountId}:userpool/*'
+            Condition: {StringEquals: {'aws:RequestTag/Project': flows}}
+          - Sid: CognitoChangeTaggedPool # clients, domain and users are children of the pool: the pool's tag governs them
+            Effect: Allow
+            Action:
+              - 'cognito-idp:UpdateUserPool'
+              - 'cognito-idp:DeleteUserPool'
+              - 'cognito-idp:DescribeUserPool'
+              - 'cognito-idp:CreateUserPoolClient'
+              - 'cognito-idp:UpdateUserPoolClient'
+              - 'cognito-idp:DeleteUserPoolClient'
+              - 'cognito-idp:DescribeUserPoolClient'
+              - 'cognito-idp:CreateUserPoolDomain'
+              - 'cognito-idp:UpdateUserPoolDomain'
+              - 'cognito-idp:DeleteUserPoolDomain'
+              - 'cognito-idp:AdminCreateUser'
+              - 'cognito-idp:AdminGetUser'
+              - 'cognito-idp:AdminDeleteUser'
+              - 'cognito-idp:AdminUpdateUserAttributes'
+              - 'cognito-idp:GetUserPoolMfaConfig'
+              - 'cognito-idp:SetUserPoolMfaConfig'
+              - 'cognito-idp:TagResource'
+              - 'cognito-idp:UntagResource'
+              - 'cognito-idp:ListTagsForResource'
+            Resource: !Sub 'arn:${AWS::Partition}:cognito-idp:${FlowsRegion}:${AWS::AccountId}:userpool/*'
+            Condition: {StringEquals: {'aws:ResourceTag/Project': flows}}
+          # EXCEPTION (Cognito): DescribeUserPoolDomain takes no resource (it looks a domain up by name). Read-only.
+          - {Sid: CognitoDescribeDomain, Effect: Allow, Action: 'cognito-idp:DescribeUserPoolDomain', Resource: '*'}
+          - Sid: DenyTagChangeOnOtherProjectsUserPools
+            Effect: Deny
+            Action: ['cognito-idp:TagResource', 'cognito-idp:UntagResource']
+            Resource: !Sub 'arn:${AWS::Partition}:cognito-idp:${FlowsRegion}:${AWS::AccountId}:userpool/*'
+            Condition:
+              'Null': {'aws:ResourceTag/Project': 'false'}
+              StringNotEquals: {'aws:ResourceTag/Project': flows}
 
   CfnStoragePolicy:
     Type: AWS::IAM::ManagedPolicy
@@ -523,9 +558,16 @@ Resources:
           # EXCEPTION (ACM): certificates are named by generated id, so they are scoped by tag only.
           - Sid: AcmCreateTagged
             Effect: Allow
-            Action: ['acm:RequestCertificate', 'acm:AddTagsToCertificate']
+            Action: 'acm:RequestCertificate' # tags travel in the request; no AddTagsToCertificate here (it would let the role tag any certificate)
             Resource: !Sub 'arn:${AWS::Partition}:acm:${FlowsRegion}:${AWS::AccountId}:certificate/*'
             Condition: {StringEquals: {'aws:RequestTag/Project': flows}}
+          - Sid: DenyTagChangeOnOtherProjectsCertificates # same pattern as CloudFront; verify the lowercase project key on the first run
+            Effect: Deny
+            Action: ['acm:AddTagsToCertificate', 'acm:RemoveTagsFromCertificate']
+            Resource: !Sub 'arn:${AWS::Partition}:acm:${FlowsRegion}:${AWS::AccountId}:certificate/*'
+            Condition:
+              'Null': {'aws:ResourceTag/Project': 'false'}
+              StringNotEquals: {'aws:ResourceTag/Project': flows}
           - Sid: AcmChangeTagged
             Effect: Allow
             Action: ['acm:DescribeCertificate', 'acm:DeleteCertificate', 'acm:AddTagsToCertificate', 'acm:RemoveTagsFromCertificate', 'acm:ListTagsForCertificate']
@@ -558,6 +600,7 @@ Resources:
       ManagedPolicyArns:
         - !Ref CfnIamPolicy
         - !Ref CfnEc2Policy
+        - !Ref CfnEdgePolicy
         - !Ref CfnServicesPolicy
         - !Ref CfnStoragePolicy
         - !If [UseDomain, !Ref CfnDomainPolicy, !Ref 'AWS::NoValue']
