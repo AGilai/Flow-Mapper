@@ -1,14 +1,7 @@
 /* Flow tabs (0.13.0): the strip, the overflow list, a tab's breadcrumb, the empty state. Mockup: design/mockups/flow-activation.html */
 
 .ftabs { display: flex; align-items: flex-end; background: var(--surface-2); border-bottom: 1px solid var(--line-strong); padding: 6px 0 0 12px; min-height: 42px; position: relative; flex: none; }
-.tb-hint { display: inline-grid; place-items: center; color: var(--muted); cursor: help; border-radius: 50%; }
-.tb-hint svg { width: 15px; height: 15px; }
-.tb-hint:hover, .tb-hint:focus-visible { color: var(--ink); }
-.tb-hint:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .tabscroll { display: flex; align-items: flex-end; gap: 2px; overflow: hidden; flex: 1; min-width: 0; position: relative; margin-left: 2px; }
-.tabscroll.fadeL { -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 36px); mask-image: linear-gradient(90deg, transparent 0, #000 36px); }
-.tabscroll.fadeR { -webkit-mask-image: linear-gradient(270deg, transparent 0, #000 36px); mask-image: linear-gradient(270deg, transparent 0, #000 36px); }
-.tabscroll.fadeL.fadeR { -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 36px, #000 calc(100% - 36px), transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 36px, #000 calc(100% - 36px), transparent 100%); }
 .tab { display: inline-flex; align-items: center; gap: 6px; height: 35px; min-width: 130px; max-width: 230px; padding: 0 6px 0 10px; border: 1px solid var(--line); border-bottom: 0; border-radius: 8px 8px 0 0;
   font-size: var(--fs-sm); cursor: pointer; position: relative; flex: none; }
 /* Active vs inactive (0.33.3): the active tab joins the pane (same fill, no bottom line, 1 px taller), a full top bar and a heavier label; the rest recede. */
@@ -33,9 +26,6 @@
 .tab.on .tl b { font-weight: 700; color: var(--ink); }
 .tab.on .x { color: var(--ink-2); }
 .tab:not(.on) .x { opacity: .7; } .tab:hover .x, .tab .x:focus-visible { opacity: 1; }
-.tabnav, .tabmenu { height: 35px; border: 0; background: none; color: var(--ink-2); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 0 8px; font: inherit; font-size: var(--fs-sm); }
-.tabnav[hidden], .tabmenu[hidden] { display: none; }
-.tabnav:hover, .tabmenu:hover { color: var(--ink); }
 .tabmenu { border-left: 1px solid var(--line-strong); margin-right: 8px; padding: 0 10px; }
 .tabmenu b { font-weight: 700; color: var(--ink); }
 .tabmenu.full { box-shadow: inset 0 -2px 0 var(--warn); }
@@ -98,10 +88,3 @@ body.is-max .backbar { display: none; }
 .tpad .tp-lane > .svc { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tpad .tp-lane > .muted { flex: 0 100 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tpad .tp-lane > .grow { flex: 1 0 0; }
-/* #114: the right end of the view toolbar: (i) hint, step counts, Harvested chip. One group: it wraps as a whole, never splits. */
-.tb-meta { display: flex; align-items: center; justify-content: flex-end; gap: var(--s2); margin-left: auto; flex: 1 1 0; min-width: 210px; white-space: nowrap; } /* takes what the row has left; wraps to a second row only below 210px */
-.tb-meta > .small { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-.tb-meta > .tb-hint, .tb-meta > .pen-hint { flex: none; }
-.seq-toolbar { container-type: inline-size; } /* the "edit at the source" half of the Harvested chip shows only when the toolbar is wide */
-.ph-more { display: none; }
-@container (min-width: 1560px) { .ph-more { display: inline; } }

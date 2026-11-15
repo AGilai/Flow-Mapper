@@ -5,6 +5,13 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased: Flows page, stage 1 of the redesign (frame 28)
+
+- UI only: two thin rows replace the header above the diagram (about 56px from the top of the page to the diagram, was about 215). Row 1: the flow tabs with the environment / design pill at the right end (its menu holds Published and Share, Baseline / prod now, "from prod", Drafts). Row 2: Inside | Full, Simple | External | Full, the step player, View ▾, a ⋯ menu (Export, Import, Edit flow, links, Full screen), full screen, and View | Edit at the right end. Gone: the Collapse button (and the H key), the big title, "Name this flow" (rename on the tab: pencil or double-click), the repeated entry id (the active tab shows it while there is room), "About this flow" (the (i) on the tab), the line "Simple: each external call once..." (the tooltip of Simple), and the old step bar.
+- View ▾ holds every display option (group by subsystem, data stores, frontier, one arrow per target, squeeze, transport hints, depth, step details, text size, hide text) and a new Descriptions section (Call notes, Legend). A count shows how many differ from their defaults. Same storage and URL params as before.
+- The step's call line and description are a caption bar under the diagram that follows the step; Edit step is its pencil; the Read / Write legend sits at its right. Both can be hidden in View ▾ > Descriptions. Zoom floats on the diagram, bottom left.
+- The tab row folds what does not fit into "N more" (the active tab is never hidden); below 760px the two segments become one dropdown. The right detail pane pushes the diagram at every width and collapses to a 28px strip (title written top to bottom, close still works, state remembered). The Flows list never collapses by itself.
+
 ## 0.53.1 (2026-11-15): Flows list strip, bugs without an env under cognito
 
 - UI: the Flows entry list no longer disappears when a side pane (message, data store, drill-down) opens; it shows as its collapsed band, can be expanded meanwhile, and returns to its previous state when the pane closes (the saved collapse choice is not changed). The collapsed list is now a 30px vertical strip along the menu bar reading "Flows · <open flow>" (the flow's name, else service · entry); one click expands it. It replaces the "Flows" button in the tab row.

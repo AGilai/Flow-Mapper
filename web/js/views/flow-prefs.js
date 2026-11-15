@@ -13,10 +13,3 @@ export const detailSave = (d) => { try { localStorage.setItem('flow-mapper.detai
 export const mergeStored = () => { try { return localStorage.getItem('flow-mapper.merge') !== '0'; } catch { return true; } };
 export const mergeSave = (on) => { try { localStorage.setItem('flow-mapper.merge', on ? '1' : '0'); } catch { /* storage unavailable */ } };
 export const sqSave = (on) => { try { localStorage.setItem('flow-mapper.squeeze', on ? '1' : '0'); } catch { /* storage unavailable */ } };
-
-/** 0.44.0 (#90), 0.47.0 (#97): Simple and External never draw frontier steps (Full does), so the toolbar's Frontier checkbox (a label) does nothing there: disabled, with the reason as its tooltip. */
-export function frontierSimple(label, simple) {
-  label.dataset.tip ??= label.title;
-  label.querySelector('input').disabled = simple; label.classList.toggle('disabled', simple);
-  label.title = simple ? 'Frontier steps show in Full' : label.dataset.tip;
-}

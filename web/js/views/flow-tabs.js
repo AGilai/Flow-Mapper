@@ -1,105 +1,103 @@
-// The tab strip: an ARIA tablist (arrows, Home/End, Delete), ‹ › scrolling with fading edges, and the overflow list
-// ("▾ N": every tab with a filter, Close others, Close all). It draws what it is given; the state lives in flows.js.
+// The tab row (row 1 of the Flows page, frame 28): an ARIA tablist (arrows, Home/End, Delete) that never wraps and never scrolls. What does not fit folds into "N more"
+// (flow-tabs-menu.js); the active tab always stays in the row. Shrink order: the active tab drops its entry id (L1), inactive tabs show the name (a service with
+// several tabs keeps a short id tail), the rest goes into the menu. The active tab has a pencil (rename in place) and an (i) (About this flow).
+// It draws what it is given; the state lives in flows.js. Plan and levels: flow-levels.js.
 
 import { h, fill } from '../dom.js';
 import { TAB_CAP } from './flow-tabs-state.js';
+import { activeShowsId, shortTail, sharedTitles, planTabs, moreLabel } from './flow-levels.js';
+import { createMoreMenu } from './flow-tabs-menu.js';
 
 const ENTER = 'M2 8h8 M7 5l3 3-3 3 M12 3v10', FULL = 'M8 2v9 M4 8l4 4 4-4 M3 14h10', X = 'M4 4l8 8 M12 4l-8 8';
+const PEN = 'M3 13h2.5L13 5.500 10.500 3 3 10.500z', INFO = 'M8 7.200v4.300 M8 4.600h.01 M8 14A6 6 0 1 1 8 2a6 6 0 0 1 0 12z';
 export const enterIcon = () => svg(ENTER);
 const svg = (d) => h('svg', { viewBox: '0 0 16 16', html: `<path d="${d}"/>`, 'aria-hidden': 'true' });
 
 /**
- * createTabStrip({ lead (a node at the left end), describe(key), chip(key) -> short env text | null (shown only while the open tabs span 2+ envs), envVars(key) -> {--ec, --ei} (the env colour of that tab: bar and border), onActivate(key), onClose(key), onCloseOthers(key), onCloseAll() })
- *   -> { el, render(state), tabEl(key), focusActive() }
+ * createTabStrip({ end (a node at the right end: the design / env pill), describe(key), chip(key) -> short env text | null (only while the open tabs span 2+ envs), envVars(key) -> {--ec, --ei},
+ *   renameOf(key) -> the flow's name ('' = unnamed) | null (no rename), onRename(key, name), aboutOf(key) -> bool, onAbout(key, button),
+ *   onActivate(key), onClose(key), onCloseOthers(key), onCloseAll() }) -> { el, render(state), setLevel(n), fit(), tabEl(key), focusActive(), closeMenu() }
  */
 export function createTabStrip(cb) {
-  let state = { keys: [], active: null };
+  let state = { keys: [], active: null }, level = 0, visible = new Set();
   const scroll = h('div.tabscroll', { role: 'tablist', 'aria-label': 'Open flows' });
-  const prev = h('button.tabnav', { type: 'button', 'aria-label': 'Scroll tabs left', on: { click: () => scroll.scrollBy({ left: -240, behavior: 'smooth' }) } }, '‹');
-  const next = h('button.tabnav', { type: 'button', 'aria-label': 'Scroll tabs right', on: { click: () => scroll.scrollBy({ left: 240, behavior: 'smooth' }) } }, '›');
-  const menuBtn = h('button.tabmenu', { type: 'button', 'aria-haspopup': 'true', 'aria-expanded': 'false', title: 'All open flows', on: { click: () => toggleMenu() } });
-  const el = h('div.ftabs', cb.lead ?? null, prev, scroll, next, menuBtn); // cb.lead: the page label ("Flows · 102 · prod"), shown only while a tab is open (flow-tabs.css)
-  let pop = null, drawPop = null;
-
-  // --tc is the transport hue (glyph, .tn); --ec is the env colour (top bar, border) of the tab's own env (0.36.0).
+  const menuBtn = h('button.tabmenu', { type: 'button', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'data-qa': 'tab-more', on: { click: () => menu.toggle() } });
+  const el = h('div.ftabs', scroll, menuBtn, cb.end ?? null);
   const envChip = (key) => (cb.chip?.(key) ? h('span.tenv', { title: `Environment ${cb.chip(key)}` }, cb.chip(key)) : null);
-  const withColor = (el, c, key) => { el.style.setProperty('--tc', c); for (const [k, v] of Object.entries(cb.envVars?.(key) ?? {})) el.style.setProperty(k, v); return el; };
-  const label = (d) => [h('b', d.title), d.sub ? h('i', { title: d.sub }, `· ${d.sub}`) : null];
-  const tabFor = (key) => {
-    const d = cb.describe(key), on = key === state.active;
+  // --tc is the transport hue (glyph, .tn); --ec is the env colour (top bar, border) of the tab's own env (0.36.0).
+  const withColor = (e, c, key) => { e.style.setProperty('--tc', c); for (const [k, v] of Object.entries(cb.envVars?.(key) ?? {})) e.style.setProperty(k, v); return e; };
+  const menu = createMoreMenu({ anchor: el, button: menuBtn, paint: withColor, onPick: (k) => cb.onActivate(k), onClose: (k) => cb.onClose(k), onCloseOthers: () => cb.onCloseOthers(state.active), onCloseAll: () => cb.onCloseAll(),
+    rows: () => state.keys.filter((k) => !visible.has(k)).map((k) => { const d = cb.describe(k); return { key: k, title: d.title, sub: d.sub, tn: d.tn, color: d.color, chip: envChip(k) }; }) });
+
+  const iconBtn = (cls, label, d, click) => h(`button.${cls}`, { type: 'button', tabIndex: -1, 'aria-label': label, title: label, on: { click: (e) => { e.stopPropagation(); click(e); } } }, svg(d));
+  function rename(key, tab) { // in place: Enter saves, Esc cancels, an empty name removes it
+    const b = tab.querySelector('.tl b'), name = cb.renameOf(key) ?? '';
+    if (!b || tab.querySelector('.tl input')) return;
+    const input = h('input.input.tab-name', { type: 'text', value: name, maxLength: 200, 'aria-label': 'Flow name', placeholder: 'Name this flow', 'data-qa': 'flow-name-input' });
+    let done = false;
+    const end = (save) => { if (done) return; done = true; if (save && input.value.trim() !== name) cb.onRename(key, input.value.trim()); else render(state); queueMicrotask(() => tabEl(key)?.focus()); };
+    input.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); end(true); } else if (e.key === 'Escape') { e.preventDefault(); end(false); } });
+    input.addEventListener('keyup', (e) => e.stopPropagation());
+    input.addEventListener('click', (e) => e.stopPropagation()); input.addEventListener('dblclick', (e) => e.stopPropagation());
+    input.addEventListener('blur', () => end(true));
+    b.replaceWith(input); tab.classList.add('renaming'); input.focus(); input.select();
+  }
+  const tabFor = (key, shared) => {
+    const d = cb.describe(key), on = key === state.active, many = state.keys.length;
+    const tail = on ? (activeShowsId(level, many) ? d.sub : null) : d.sub && (shared.has(d.title) || d.tn) ? (d.tn ? null : shortTail(d.sub)) : null;
+    const canRename = on && cb.renameOf?.(key) != null, canAbout = on && cb.aboutOf?.(key);
     const t = h('div.tab', { role: 'tab', tabIndex: on ? 0 : -1, 'aria-selected': String(on), title: d.tip, class: `${on ? 'on' : ''} ${d.kind}${d.gone ? ' gone' : ''}`, 'data-key': key,
-      on: { click: (e) => { if (!e.target.closest('.x')) cb.onActivate(key); }, auxclick: (e) => { if (e.button === 1) { e.preventDefault(); cb.onClose(key); } }, mousedown: (e) => { if (e.button === 1) e.preventDefault(); } } },
+      on: { click: (e) => { if (!e.target.closest('.x, .tb-act, input')) cb.onActivate(key); }, auxclick: (e) => { if (e.button === 1) { e.preventDefault(); cb.onClose(key); } }, mousedown: (e) => { if (e.button === 1) e.preventDefault(); },
+        dblclick: (e) => { if (canRename && e.target.closest('.tl')) rename(key, t); } } },
       d.tn ? h('span.tn', d.tn) : svg(d.kind === 'full' ? FULL : ENTER),
       envChip(key),
-      h('span.tl', label(d)),
+      h('span.tl', h('b', d.title), tail ? h('i', { title: d.sub }, tail) : null),
+      canRename ? iconBtn('tb-act.tb-pen', cb.renameOf(key) ? 'Rename this flow' : 'Name this flow', PEN, () => rename(key, t)) : null,
+      canAbout ? iconBtn('tb-act.tb-info', 'About this flow', INFO, (e) => cb.onAbout(key, e.currentTarget)) : null,
       h('button.x', { type: 'button', tabIndex: -1, 'aria-label': `Close ${d.title}`, title: 'Close (Alt+W)', on: { click: (e) => { e.stopPropagation(); cb.onClose(key); } } }, svg(X)));
     return withColor(t, d.color, key);
   };
   scroll.addEventListener('keydown', (e) => {
+    if (e.target.closest?.('input')) return;
     const i = state.keys.indexOf(e.target.closest?.('.tab')?.dataset.key ?? state.active);
     const to = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: state.keys.length - 1 }[e.key];
     if (to != null) { e.preventDefault(); const k = state.keys[(to + state.keys.length) % state.keys.length]; cb.onActivate(k); queueMicrotask(() => tabEl(k)?.focus()); }
     else if (e.key === 'Delete' && i >= 0) { e.preventDefault(); cb.onClose(state.keys[i]); }
   });
-
   const tabEl = (key) => [...scroll.children].find((c) => c.dataset.key === key) ?? null;
-  const edges = () => {
-    const max = scroll.scrollWidth - scroll.clientWidth;
-    scroll.classList.toggle('fadeL', scroll.scrollLeft > 2);
-    scroll.classList.toggle('fadeR', scroll.scrollLeft < max - 2);
-    prev.hidden = next.hidden = max <= 2;
-  };
-  scroll.addEventListener('scroll', edges, { passive: true });
-  const reveal = () => { // keep the active tab in view
-    const t = tabEl(state.active);
-    if (!t) return;
-    const l = t.offsetLeft - scroll.offsetLeft, r = l + t.offsetWidth;
-    if (l < scroll.scrollLeft + 36) scroll.scrollLeft = Math.max(0, l - 36);
-    else if (r > scroll.scrollLeft + scroll.clientWidth - 36) scroll.scrollLeft = r - scroll.clientWidth + 36;
-  };
 
-  function closeMenu() { pop?.remove(); pop = null; drawPop = null; menuBtn.classList.remove('open'); menuBtn.setAttribute('aria-expanded', 'false'); removeEventListener('pointerdown', outside, true); removeEventListener('keydown', onKey, true); }
-  const outside = (e) => { if (pop && !pop.contains(e.target) && !menuBtn.contains(e.target)) closeMenu(); };
-  const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); closeMenu(); menuBtn.focus(); } };
-  function toggleMenu() {
-    if (pop) return closeMenu();
-    const list = h('div.tabpop-list', { role: 'listbox', 'aria-label': 'Open flows' });
-    const filter = h('input.input', { type: 'search', placeholder: 'Filter open flows', 'aria-label': 'Filter open flows' });
-    const draw = () => {
-      const q = filter.value.trim().toLowerCase();
-      fill(list, state.keys.map((k) => ({ k, d: cb.describe(k) })).filter(({ d }) => !q || `${d.tn ?? ''} ${d.title} ${d.sub}`.toLowerCase().includes(q)).map(({ k, d }) =>
-        withColor(h('div.ctx-item.tabrow', { role: 'option', 'aria-selected': String(k === state.active), class: k === state.active ? 'on' : '' },
-          h('button.tabrow-b', { type: 'button', on: { click: () => { closeMenu(); cb.onActivate(k); } } }, d.tn ? h('span.tn', d.tn) : svg(d.kind === 'full' ? FULL : ENTER), envChip(k), h('span.tl', label(d))),
-          h('button.x', { type: 'button', 'aria-label': `Close ${d.title}`, on: { click: () => { cb.onClose(k); if (!state.keys.length) closeMenu(); } } }, svg(X))), d.color, k)));
-      if (!list.children.length) list.append(h('p.xs.muted', { style: { padding: '6px 10px' } }, 'No open flow matches.'));
-
-    };
-    filter.addEventListener('input', draw);
-    pop = h('div.tabpop', { role: 'dialog', 'aria-label': 'Open flows' }, h('div.tabpop-s', filter), list,
-      h('div.tabpop-f', h('button.btn.sm', { type: 'button', on: { click: () => { closeMenu(); cb.onCloseOthers(state.active); } } }, 'Close others'),
-        h('button.btn.sm', { type: 'button', on: { click: () => { closeMenu(); cb.onCloseAll(); } } }, 'Close all')));
-    draw(); drawPop = draw;
-    el.append(pop);
-    menuBtn.classList.add('open'); menuBtn.setAttribute('aria-expanded', 'true');
-    setTimeout(() => { addEventListener('pointerdown', outside, true); addEventListener('keydown', onKey, true); });
-    filter.focus({ preventScroll: true });
+  /** Show the tabs that fit (the active one always), fold the rest into "N more". Measures the tabs at their natural width, so it runs after every render and resize. */
+  function fit() {
+    const tabs = [...scroll.children];
+    tabs.forEach((t) => { t.hidden = false; });
+    menuBtn.hidden = true;
+    if (!tabs.length) { visible = new Set(); return; }
+    const gap = 2, widths = tabs.map((t) => t.offsetWidth), sum = widths.reduce((s, w) => s + w, 0) + gap * (widths.length - 1);
+    let idx = tabs.map((_, i) => i);
+    if (sum > scroll.clientWidth + 1) {
+      menuBtn.hidden = false; fill(menuBtn, moreLabel(1, level), ' ▾'); // the label's width is the same for every count up to 9
+      idx = planTabs({ widths, avail: scroll.clientWidth, active: state.keys.indexOf(state.active), gap });
+      const hid = tabs.length - idx.length;
+      fill(menuBtn, moreLabel(hid, level), ' ▾');
+      const n = state.keys.length;
+      menuBtn.classList.toggle('near', n >= TAB_CAP - 2); menuBtn.classList.toggle('full', n >= TAB_CAP);
+      menuBtn.title = n >= TAB_CAP ? `${hid} more of ${n} open flows (${TAB_CAP} is the limit)` : `${hid} more open ${hid === 1 ? 'flow' : 'flows'}`;
+      menuBtn.hidden = hid < 1;
+    }
+    visible = new Set(idx.map((i) => state.keys[i]));
+    tabs.forEach((t) => { t.hidden = !visible.has(t.dataset.key); });
+    if (menu.isOpen()) menu.redraw();
   }
-
   function render(s) {
     state = s;
     const had = document.activeElement?.closest?.('.tab') ? document.activeElement.closest('.tab').dataset.key : null;
-    fill(scroll, s.keys.map(tabFor));
-    const n = s.keys.length; // from 8 of 10 the count shows the limit; at 10 the button is underlined in amber (and bold: amber alone is too faint)
-    fill(menuBtn, '▾ ', h('b', n >= TAB_CAP - 2 ? `${n}/${TAB_CAP}` : String(n)));
-    menuBtn.classList.toggle('near', n >= TAB_CAP - 2); menuBtn.classList.toggle('full', n >= TAB_CAP);
-    menuBtn.title = n >= TAB_CAP ? `${n} of ${TAB_CAP} tabs open. All open flows` : 'All open flows';
+    const shared = sharedTitles(s.keys.map((k) => cb.describe(k).title));
+    fill(scroll, s.keys.map((k) => tabFor(k, shared)));
     el.hidden = false;
-    menuBtn.hidden = !s.keys.length;
-    if (had && tabEl(had)) tabEl(had).focus();
-    reveal(); edges();
-    requestAnimationFrame(() => { reveal(); edges(); });
-    if (pop && !s.keys.length) closeMenu(); else drawPop?.();
+    fit();
+    if (had && tabEl(had) && !tabEl(had).hidden) tabEl(had).focus();
+    if (!s.keys.length) menu.close();
   }
-  if (typeof ResizeObserver === 'function') new ResizeObserver(edges).observe(scroll);
-  return { el, render, tabEl, focusActive: () => tabEl(state.active)?.focus(), closeMenu };
+  if (typeof ResizeObserver === 'function') new ResizeObserver(() => fit()).observe(scroll);
+  return { el, render, fit, setLevel(n) { if (n !== level) { level = n; render(state); } }, tabEl, focusActive: () => tabEl(state.active)?.focus(), closeMenu: () => menu.close() };
 }

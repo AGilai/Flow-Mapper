@@ -17,7 +17,7 @@ test('#109: "One arrow per target" is on unless the viewer turned it off; its re
   delete (globalThis as any).localStorage;
   const { requestKey } = await import('../web/js/views/flow-sub.js');
   assert.notEqual(requestKey({ service: 's', ingress: 'i', detail: 'simple' }), requestKey({ service: 's', ingress: 'i', detail: 'simple', merge: '1' }));
-  assert.match(src('js/views/flow-merge-check.js'), /One arrow per target/);
+  assert.match(src('js/views/flow-view-menu.js'), /sw\('One arrow per target', \{ on: opts\.merge, off: detail !== 'simple'/, 'the View menu switch, disabled outside Simple');
   assert.match(src('js/views/flow-tab-data.js'), /merge: detail === 'simple' && getOpts\(\)\.merge/);
 });
 

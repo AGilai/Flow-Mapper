@@ -18,9 +18,10 @@ import { visBadge } from '../components/env-badge.js';
 import { accessBanner } from './access-banner.js';
 import { openShare } from './share-dialog.js';
 import { batchText, latestBatch } from './mermaid-pure.js';
+import { designPill } from './design-pill.js';
 
-/** Mount the strip at the top of `main`; null for a sealed environment. */
-export function mountDesignStrip(main) {
+/** Mount the strip at the top of `main`; null for a sealed environment. `host` ({ pill, mode, below }: three elements of the Flows page, frame 28): no strip, the pieces go into them instead (the pill with a menu, View | Edit, the draft bar). */
+export function mountDesignStrip(main, host = null) {
   if (!isDesign()) return null;
   const meta = metaOf(state.envMeta, state.env), when = shortDate(meta.copiedAt);
   const sourceGone = !!meta.source && !state.envs.includes(meta.source);
@@ -30,15 +31,21 @@ export function mountDesignStrip(main) {
     state.draft ? 'Draft' : 'Drafts', h('span.dz-caret', '▾'));
   const role = roleIn(), viewer = isCognito() && role === 'viewer'; // accounts: a viewer reads only (no drafts, no Edit)
   const banner = accessBanner((a) => openDraftPicker(a, { edit: true, drafts }));
-  const el = h('div.dz', { 'data-qa': 'design-strip' },
+  const share = isCognito() && role === 'owner' ? h('button.btn.sm', { type: 'button', 'data-qa': 'share-btn', on: { click: () => openShare(state.env, () => { dispatchEvent(new HashChangeEvent('hashchange')); }) } }, 'Share') : null;
+  const mode = viewer ? null : modeToggle({ onNeedDraft: (a) => openDraftPicker(a, { edit: true, drafts }) });
+  let pill = null, el = null;
+  if (host) { // the Flows page: the pill at the end of the tab row, View | Edit at the end of the toolbar, the draft bar under it
+    pill = designPill({ meta, when, items: { share, compare: compareSwitch(meta, sourceGone), drafts: viewer ? null : picker } });
+    host.pill.replaceChildren(pill.el); host.mode.replaceChildren(...(mode ? [mode] : [])); host.below.replaceChildren(...[banner, bar].filter(Boolean));
+  } else el = h('div.dz', { 'data-qa': 'design-strip' },
     h('div.dz-row1',
       h('span.dz-chip', { title: `${state.env} is a design environment: a copy you can change in drafts` }, 'design'),
       isCognito() ? visBadge(meta) : null,
-      isCognito() && role === 'owner' ? h('button.btn.sm', { type: 'button', 'data-qa': 'share-btn', on: { click: () => openShare(state.env, () => { dispatchEvent(new HashChangeEvent('hashchange')); }) } }, 'Share') : null,
+      share,
       h('span.mk-meta', `${meta.source ? `from ${meta.source}` : 'blank'}${when ? ', ' + when : ''}`),
       compareSwitch(meta, sourceGone),
       h('span.spacer'), viewer ? null : picker,
-      viewer ? null : modeToggle({ onNeedDraft: (a) => openDraftPicker(a, { edit: true, drafts }) })),
+      mode),
     banner,
     bar);
 
@@ -69,8 +76,8 @@ export function mountDesignStrip(main) {
   const notOpen = () => h('div.dz-callout', { role: 'note' }, `The draft "${state.draft}" is not open any more (applied or discarded). `,
     h('button.btn.sm', { type: 'button', on: { click: () => setDesign({ draft: null, mode: 'view' }) } }, 'Look at the environment'));
 
-  main.prepend(el);
-  restoreFocus(el);
+  if (el) main.prepend(el);
+  restoreFocus(el ?? host.mode);
   load();
-  return { dispose: () => { alive = false; el.remove(); } };
+  return { dispose: () => { alive = false; pill?.close(); el?.remove(); if (host) { host.below.replaceChildren(); host.mode.replaceChildren(); } } };
 }

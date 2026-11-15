@@ -1,4 +1,4 @@
-// The "Step details" control of the flow toolbar (0.30.0, frame 17d): one button that says what is on, and a panel with two sections, Step bar and Arrows,
+// The "Step details" control of the flow toolbar (0.30.0, frame 17d): one button that says what is on, and a panel with two sections, Caption bar and Arrows (since frame 28 inside the View menu),
 // each with Title / API / Description checkboxes, and presets. The arrows keep at least one field. Remembered per viewer (storage may be unavailable) and in the URL.
 
 import { h } from '../dom.js';
@@ -14,11 +14,11 @@ export const stored = (which, dflt) => { try { const v = localStorage.getItem(KE
 const keep = (which, set) => { try { localStorage.setItem(KEY[which], set === '' ? '-' : set); } catch { /* storage unavailable */ } };
 
 /** createStepMenu({ bar, arrows, hl = true, cb = false, onChange({ bar, arrows, hl, cb }) }) -> { el, set(bar, arrows), close() } */
-export function createStepMenu({ bar, arrows, hl = true, cb = false, dflt = 'a', onChange }) {
+export function createStepMenu({ bar, arrows, hl = true, cb = false, dflt = 'a', inline = false, onChange }) { // inline: the sections are always open, with no button (inside the View menu)
   const FIELDS = [['t', 'Title'], ['a', 'API'], ['d', 'Description']];
   const label = h('span.sdm-l'), btn = h('button.btn.sm.sdm-btn', { type: 'button', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'data-qa': 'step-details', on: { click: () => (panel.hidden ? open() : close()) } }, label, h('span.sdm-c', '▾'));
   const panel = h('div.sd-menu', { hidden: true, role: 'group', 'aria-label': 'Step details' });
-  const el = h('span.sdm', btn, panel);
+  const el = inline ? h('span.sdm.inline', panel) : h('span.sdm', btn, panel);
 
   const section = (which, title, note, min) => {
     const cur = which === 'bar' ? bar : arrows;
@@ -29,11 +29,11 @@ export function createStepMenu({ bar, arrows, hl = true, cb = false, dflt = 'a',
   };
   function paint() {
     label.textContent = summary(bar, arrows);
-    panel.replaceChildren(section('bar', 'Step bar', 'above the diagram', 0), section('arrows', 'Arrows', 'on the diagram', 1),
+    panel.replaceChildren(section('bar', 'Caption bar', 'under the diagram', 0), section('arrows', 'Arrows', 'on the diagram', 1),
       h('div.sdm-sec.sdm-hl', h('label.sdm-o', { title: 'A soft yellow band behind the current step. The numbered dot always shows.' }, h('input', { type: 'checkbox', checked: hl, 'data-sd': 'highlight', on: { change: (e) => { hl = e.target.checked; keepHl(hl); onChange({ bar, arrows, hl, cb }); } } }), 'Highlight current step'),
         h('label.sdm-o', { title: 'Draw a bracket in the left gutter for each comment on a range of steps, and drag along the gutter to comment on one. On in design environments, off in harvested ones.' }, h('input', { type: 'checkbox', checked: cb, 'data-sd': 'brackets', on: { change: (e) => { cb = e.target.checked; keepCb(cb); onChange({ bar, arrows, hl, cb }); } } }), 'Comment brackets')),
       h('div.sdm-pre', ...PRESETS.map((p) => h('button.link', { type: 'button', on: { click: () => { bar = p.bar; arrows = p.arrows; keep('bar', bar); keep('arrows', arrows); paint(); onChange({ bar, arrows, hl, cb }); } } }, p.label))),
-      h('p.sdm-n', 'The bar always has the stepper. A step shows the fields it has; a step with none of the chosen arrow fields shows its API.'));
+      h('p.sdm-n', 'The caption always has the call line. A step shows the fields it has; a step with none of the chosen arrow fields shows its API.'));
   }
   function apply(which, set) {
     if (which === 'bar') bar = set; else arrows = set || dflt;
@@ -45,5 +45,6 @@ export function createStepMenu({ bar, arrows, hl = true, cb = false, dflt = 'a',
      btn.setAttribute('aria-expanded', 'true'); document.addEventListener('mousedown', onDoc, true); panel.addEventListener('keydown', onKey); }
   function close() { panel.hidden = true; btn.setAttribute('aria-expanded', 'false'); document.removeEventListener('mousedown', onDoc, true); panel.removeEventListener('keydown', onKey); }
   label.textContent = summary(bar, arrows);
-  return { el, close, set(b, a, h2) { if (h2 != null) hl = h2; bar = b ?? BAR_DEFAULT; arrows = a ?? dflt; label.textContent = summary(bar, arrows); if (!panel.hidden) paint(); } };
+  if (inline) { panel.hidden = false; paint(); }
+  return { el, close, summary: () => summary(bar, arrows), reset() { bar = BAR_DEFAULT; arrows = dflt; keep('bar', bar); keep('arrows', arrows); if (!panel.hidden) paint(); onChange({ bar, arrows, hl, cb }); }, set(b, a, h2) { if (h2 != null) hl = h2; bar = b ?? BAR_DEFAULT; arrows = a ?? dflt; label.textContent = summary(bar, arrows); if (!panel.hidden) paint(); } };
 }

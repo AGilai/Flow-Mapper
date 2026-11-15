@@ -91,7 +91,7 @@ async function boot() {
       const mod = await r.load();
       clear(main);
       const view = await mod.render({ main, params, query: loc.query });
-      const strip = mountDesignStrip(main);
+      const strip = mountDesignStrip(main, view?.designHost ?? null); // the Flows page lays the strip out in its own rows (frame 28)
       return { ...view, dispose: () => { view?.dispose?.(); strip?.dispose?.(); } };
     } catch (err) {
       console.error(err);

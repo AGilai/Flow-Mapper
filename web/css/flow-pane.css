@@ -54,7 +54,6 @@ body.fp-dragging iframe { pointer-events: none; }
 .cm-tools .cm-hint { margin: 0 auto 0 0; }
 
 /* the flow description's header stays reachable when the description is long */
-.flow-top .flowhead > .fh-sum { position: sticky; top: 0; z-index: 3; background: var(--surface); }
 
 @media (max-width: 600px) {
   .fp-tablist { display: none; }
