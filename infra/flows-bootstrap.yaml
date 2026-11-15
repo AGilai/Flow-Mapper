@@ -661,6 +661,7 @@ Resources:
               - 'cloudformation:DescribeChangeSet'
               - 'cloudformation:DeleteChangeSet'
               - 'cloudformation:GetTemplate'
+              - 'cloudformation:GetTemplateSummary' # `cloudformation deploy` calls it on stack updates
               - 'cloudformation:ListStackResources'
             Resource:
               - !Sub 'arn:${AWS::Partition}:cloudformation:${FlowsRegion}:${AWS::AccountId}:stack/flows/*'

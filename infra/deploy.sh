@@ -68,7 +68,7 @@ elif ST=$(aws cloudformation describe-stacks --region "$REGION" --stack-name "$S
   GATEPW=$(openssl rand -hex 16); GATE+=("PreAuthPassword=$GATEPW"); echo "deploy: generated a basic-auth password (shown again at the end)"
 fi
 if [ "$OPEN" = 1 ]; then
-  echo "deploy: WARNING: --open. Until part C the app has no authentication: anyone with the URL can read and change all data." >&2
+  echo "deploy: WARNING: --open removes the CloudFront gate. Only safe once FLOW_AUTH=cognito is on (docs/OPERATIONS.md \"Switching to Cognito login\"); with FLOW_AUTH=off anyone with the URL can read and change all data." >&2
 fi
 
 cmd=(aws cloudformation deploy --region "$REGION" --stack-name "$STACK" --template-file "$HERE/flow-mapper.yaml"
