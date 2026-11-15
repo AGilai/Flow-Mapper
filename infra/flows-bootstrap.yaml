@@ -637,11 +637,20 @@ Resources:
         Statement:
           - Sid: StacksOnlyThroughServiceRole
             Effect: Allow
-            Action: ['cloudformation:CreateStack', 'cloudformation:UpdateStack', 'cloudformation:DeleteStack', 'cloudformation:CreateChangeSet', 'cloudformation:ExecuteChangeSet']
+            Action: ['cloudformation:CreateStack', 'cloudformation:UpdateStack', 'cloudformation:DeleteStack', 'cloudformation:CreateChangeSet']
             Resource:
               - !Sub 'arn:${AWS::Partition}:cloudformation:${FlowsRegion}:${AWS::AccountId}:stack/flows/*'
               - !Sub 'arn:${AWS::Partition}:cloudformation:${FlowsRegion}:${AWS::AccountId}:stack/flows-*/*'
             Condition: {StringEquals: {'cloudformation:RoleArn': !GetAtt CfnServiceRole.Arn}}
+          # ExecuteChangeSet carries no cloudformation:RoleArn key (the role is fixed when the change set is created), so
+          # the condition above never matches it (AccessDenied on the first deploy, 2026-11-15). Unconditioned is safe:
+          # the only way to make a change set on these stacks is CreateChangeSet above, which forces the service role.
+          - Sid: ExecuteOwnChangeSets
+            Effect: Allow
+            Action: 'cloudformation:ExecuteChangeSet'
+            Resource:
+              - !Sub 'arn:${AWS::Partition}:cloudformation:${FlowsRegion}:${AWS::AccountId}:stack/flows/*'
+              - !Sub 'arn:${AWS::Partition}:cloudformation:${FlowsRegion}:${AWS::AccountId}:stack/flows-*/*'
           - Sid: StackReads
             Effect: Allow
             Action:
