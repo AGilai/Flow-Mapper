@@ -13,7 +13,7 @@ import { account, isCognito, isMine } from '../account.js';
 import { visBadge } from './env-badge.js';
 import { envGroups } from './env-groups.js';
 
-const rowBody = (name, line) => [envDot(name), h('b', name), h('small', line ?? envLine(metaOf(state.envMeta, name))), isCognito() ? visBadge(metaOf(state.envMeta, name)) : null];
+const rowBody = (name, line, badge = false) => [envDot(name), h('b', name), h('small', line ?? envLine(metaOf(state.envMeta, name))), badge && isCognito() ? visBadge(metaOf(state.envMeta, name)) : null];
 
 let refocus = false; // a pick re-renders the rail: put focus back on the new trigger
 
@@ -37,7 +37,7 @@ export function envPicker() {
   /** Fit the popover in the viewport: above the trigger when the rail is at the bottom, below it otherwise. */
   const place = () => {
     if (!pop) return;
-    const r = trigger.getBoundingClientRect(), w = Math.min(Math.max(r.width, 240), innerWidth - 16);
+    const r = trigger.getBoundingClientRect(), w = Math.min(Math.max(r.width, isCognito() ? 340 : 240), innerWidth - 16);
     const up = r.top > innerHeight - r.bottom;
     Object.assign(pop.style, { width: `${w}px`, left: `${Math.max(8, Math.min(r.left, innerWidth - w - 8))}px`,
       maxHeight: `${Math.max(120, (up ? r.top : innerHeight - r.bottom) - 12)}px`,
@@ -47,7 +47,7 @@ export function envPicker() {
     const row = (name, line) => {
       const on = name === state.env;
       return h('button.env-opt', { type: 'button', role: 'option', 'data-env': name, 'aria-selected': String(on), tabindex: on ? 0 : -1, title: `${name}: ${line ?? envLine(metaOf(state.envMeta, name))}`,
-        on: { click: () => { close(false); if (!on) { refocus = true; setEnv(name); } else trigger.focus(); } } }, rowBody(name, line));
+        on: { click: () => { close(false); if (!on) { refocus = true; setEnv(name); } else trigger.focus(); } } }, rowBody(name, line, true));
     };
     // accounts: four groups by who owns what (frame 27b); a server without accounts keeps the flat list as before
     const list = h('div.env-list', { role: 'listbox', 'aria-label': 'Environment' }, isCognito() ? envGroups(state.envMeta.filter((m) => state.envs.includes(m.name)), { me: account.user, admin: account.admin, row, isMine, close: () => close(false) }) : state.envs.map((name) => row(name)));

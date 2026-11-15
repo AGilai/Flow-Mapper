@@ -42,7 +42,7 @@ export async function openShare(env = state.env, onChange = () => {}) {
   name.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } });
 
   function draw() {
-    const who = (p, extra) => h('div.ac-pr', userAvatar(p), h('div.who', h('b', p.name, p.id === account.user?.id ? h('small', ' (you)') : null), h('span', p.email ?? '')), extra);
+    const who = (p, extra) => h('div.ac-pr', userAvatar(p), h('div.ac-who', h('b', p.name, p.id === account.user?.id ? h('small', ' (you)') : null), h('span', p.email ?? '')), extra);
     people.replaceChildren(
       ...(acc.owner ? [who(acc.owner, h('span.ac-own', 'Owner'))] : []),
       ...acc.members.map((m) => who(m.user, h('div.ac-end',

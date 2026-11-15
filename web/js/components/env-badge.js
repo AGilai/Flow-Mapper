@@ -9,7 +9,7 @@ export function visBadge(meta) {
   const a = meta?.access;
   if (!a) return null;
   const sealed = meta.kind !== 'design';
-  const [ic, text, tip] = sealed ? ['shield', 'Sealed', 'Harvested: read-only for everyone, only harvesters write it']
+  const [ic, text, tip] = sealed ? ['sealed', 'Sealed', 'Harvested: read-only for everyone, only harvesters write it']
     : a.visibility === 'published' ? ['globe', 'Published', 'Everyone who signs in can open it read-only']
     : a.visibility === 'shared' ? ['people', `Shared · ${a.memberCount}`, 'Shared with the people listed in Share']
     : ['lock', 'Private', 'Only its owner (and admins) can open it'];
