@@ -2,7 +2,7 @@
 
 import * as bugs from '../../store/bugs.ts';
 import * as keys from '../../store/keys.ts';
-import { type Tool, env, obj, envOf, listArg } from './common.ts';
+import { type Tool, envOptional, obj, envOf, listArg } from './common.ts';
 
 export const listBugsTool: Tool = {
   name: 'list_bugs', description: 'Bugs sorted by priority. Filter by status/priority/reporter (comma lists), service, version, text, open=true, or updatedSince (ISO time; includes new comments) for polling.',
@@ -20,7 +20,7 @@ export const reportBugTool: Tool = {
   name: 'report_bug', description: 'Report a bug in Flow-Mapper. Severity S1 (worst) to S4. Optionally link map entities.',
   inputSchema: obj({
     title: { type: 'string' }, description: { type: 'string' }, steps: { type: 'string' }, severity: { enum: ['S1', 'S2', 'S3', 'S4'] },
-    appVersion: { type: 'string' }, env, reporter: { type: 'string' },
+    appVersion: { type: 'string' }, env: envOptional, reporter: { type: 'string' },
     links: { type: 'array', items: obj({ type: { enum: ['service', 'function', 'ingress', 'egress', 'channel', 'resource'] }, service: { type: 'string' }, id: { type: 'string' } }, ['type', 'id']) },
     log: { type: 'string', description: 'Optional log text to attach' },
   }, ['title']),

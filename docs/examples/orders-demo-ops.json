@@ -1,0 +1,22 @@
+[
+  {"op":"upsert","anchor":"svc:shop-web","data":{"kind":"client-app","groupPath":"storefront","team":"web","description":"The storefront SPA. Places orders."}},
+  {"op":"upsert","anchor":"egr:shop-web/out.createOrder","data":{"id":"out.createOrder","bindKey":"http:POST orders-svc/orders","transport":"http","mode":"sync"}},
+  {"op":"upsert","anchor":"svc:orders-svc","data":{"kind":"service","groupPath":"storefront","team":"checkout","description":"Owns orders: validates, stores, reserves stock, announces."}},
+  {"op":"upsert","anchor":"ing:orders-svc/in.createOrder","data":{"id":"in.createOrder","bindKey":"http:POST orders-svc/orders","transport":"http","handler":"create_order","entryPoint":true,"details":{"method":"POST","path":"/orders"}}},
+  {"op":"upsert","anchor":"res:orders-svc/ordersDb","data":{"id":"ordersDb","kind":"postgres","name":"orders","bindKey":"postgres:orders-db/orders"}},
+  {"op":"upsert","anchor":"egr:orders-svc/out.reserve","data":{"id":"out.reserve","bindKey":"http:POST inventory-svc/reserve","transport":"http","mode":"sync"}},
+  {"op":"upsert","anchor":"egr:orders-svc/orderEvents.publish","data":{"id":"orderEvents.publish","bindKey":"sqs:order-events","transport":"sqs","mode":"async","events":["OrderPlaced"]}},
+  {"op":"upsert","anchor":"fn:orders-svc/create_order","data":{"id":"create_order","name":"create_order","steps":[{"seq":1,"type":"resource","target":"ordersDb","operation":"INSERT orders"},{"seq":2,"type":"egress","target":"out.reserve","operation":"POST /reserve","mode":"sync"},{"seq":3,"type":"resource","target":"ordersDb","operation":"UPDATE orders"},{"seq":4,"type":"egress","target":"orderEvents.publish","operation":"SendMessage","mode":"async","event":"OrderPlaced"}]}},
+  {"op":"upsert","anchor":"svc:inventory-svc","data":{"kind":"service","groupPath":"fulfillment","team":"warehouse","description":"Stock levels; reserves items for an order."}},
+  {"op":"upsert","anchor":"ing:inventory-svc/in.reserve","data":{"id":"in.reserve","bindKey":"http:POST inventory-svc/reserve","transport":"http","handler":"reserve_items","entryPoint":false,"details":{"method":"POST","path":"/reserve"}}},
+  {"op":"upsert","anchor":"res:inventory-svc/stockCache","data":{"id":"stockCache","kind":"redis","name":"stock:{sku}","bindKey":"redis:cache-main/stock:{sku}"}},
+  {"op":"upsert","anchor":"fn:inventory-svc/reserve_items","data":{"id":"reserve_items","name":"reserve_items","steps":[{"seq":1,"type":"resource","target":"stockCache","operation":"DECRBY stock:{sku}","details":{"keyTemplate":"stock:{sku}"}}]}},
+  {"op":"upsert","anchor":"svc:notify-svc","data":{"kind":"lambda","groupPath":"fulfillment","team":"warehouse","description":"Emails the customer when an order is placed."}},
+  {"op":"upsert","anchor":"ing:notify-svc/in.orderEvents","data":{"id":"in.orderEvents","bindKey":"sqs:order-events","transport":"sqs","handler":"on_order_placed","entryPoint":false}},
+  {"op":"upsert","anchor":"egr:notify-svc/out.mail","data":{"id":"out.mail","bindKey":"http:POST mail-provider/send","transport":"http","mode":"sync"}},
+  {"op":"upsert","anchor":"fn:notify-svc/on_order_placed","data":{"id":"on_order_placed","name":"on_order_placed","steps":[{"seq":1,"type":"egress","target":"out.mail","operation":"POST /send","mode":"sync"}]}},
+  {"op":"upsert","anchor":"ch:sqs:order-events","service":"orders-svc","data":{"bindKey":"sqs:order-events","kind":"sqs-queue","name":"order-events"}},
+  {"op":"upsert","anchor":"dto:orders-svc/request/-/in.createOrder","service":"orders-svc","data":{"content":{"customerId":"string","items":[{"sku":"string","qty":"integer"}]}}},
+  {"op":"upsert","anchor":"dto:orders-svc/response/-/in.createOrder","service":"orders-svc","data":{"content":{"orderId":"string","status":"confirmed | rejected"}}},
+  {"op":"upsert","anchor":"evt:OrderPlaced","data":{"content":{"orderId":"string","customerId":"string","total":"number"}}}
+]

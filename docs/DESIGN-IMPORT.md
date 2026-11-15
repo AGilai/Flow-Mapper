@@ -32,7 +32,7 @@ curl -s $FLOW/api/envs/meta  # environments with kind sealed | design
 - MCP over HTTP: `POST $FLOW/mcp`, one JSON-RPC 2.0 message per request (no SSE; `GET /mcp` is 405). On a hosted instance add the header `Authorization: Bearer fm_...` to the MCP client config; the tools then act as the token's user (`whoami` says who).
 - MCP over stdio: `FLOW_DB=/tmp/fm/flow.db node --disable-warning=ExperimentalWarning server/mcp/stdio.ts`
   (same as `npm run mcp`). It opens the database file directly: point `FLOW_DB` at the same file as the server.
-- Every MCP tool takes `env`; it **defaults to `default`**, not `prod`. Always pass `env: "prod"`.
+- Every MCP tool that takes `env` **requires** it (no default since 0.52.0+, Unreleased: a call without it errors and lists your environments). Pass `env` explicitly.
 - **Never call a write tool against `prod`** (`ingest_manifest` without `dryRun: true`,
   `load_dtos`, `load_schemas`, `set_description`, `create_env`, REST POST/PUT/PATCH/DELETE).
   `prod` is sealed, but a real ingest into it is still accepted (it is the harvester path), so the guard will not save you. Dry runs and drafts are safe: they never write the environment.
