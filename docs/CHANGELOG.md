@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased (target 0.52.0: accounts, ownership, sharing)
+## 0.52.0 (2026-11-15): accounts, ownership, sharing
 
 - **Auth is opt-in: `FLOW_AUTH=off` (the default) changes nothing.** A server run with `FLOW_AUTH=cognito` needs a credential on every `/api/*` and `/mcp` call, otherwise **401** (`UNAUTHENTICATED`). Open: `/healthz`, `/api/version`, `/api/me`, `/auth/*` and the web UI files.
 - **Harvesters and importers on a cognito server: send `Authorization: Bearer fm_...`.** A person creates the token under Tokens in the UI (optional expiry 30, 90 or 365 days; default never); an admin ticks Harvester for a harvester token. Wrong, revoked or unknown: 401 `TOKEN_INVALID`. Past its expiry: 401 `TOKEN_EXPIRED`, the message names the token and says to create a new one. A bearer call needs no CSRF header.
