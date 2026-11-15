@@ -16,9 +16,9 @@ const sealedMsg = (env: string) => `'${env}' is a sealed (harvested) environment
 
 export async function authorize(db: DB, req: Req, p: Principal): Promise<void> {
   const write = req.method !== 'GET' && req.method !== 'HEAD';
-  const path = req.path;
+  const path = req.path, dry = ['1', 'true'].includes(req.query.get('dryRun') ?? ''); // a dry run writes nothing
 
-  if (path === '/api/ingest') { if (write && p.scope !== 'harvester') throw forbidden('ingest needs a token with the harvester scope (an admin creates one under Tokens)', 'SEALED'); return; }
+  if (path === '/api/ingest') { if (write && !dry && p.scope !== 'harvester') throw forbidden('ingest needs a token with the harvester scope (an admin creates one under Tokens)', 'SEALED'); return; }
 
   if (path.startsWith('/api/bugs/') && req.params.id) {
     const b = db.prepare('SELECT env FROM bugs WHERE id = ?').get(Number(req.params.id)) as { env: string | null } | undefined;
@@ -65,7 +65,7 @@ export async function authorize(db: DB, req: Req, p: Principal): Promise<void> {
   if (rest === '' && req.method === 'DELETE') { if (role !== 'owner') throw forbidden(`only the owner of '${env}' (or an admin) can delete it`); return; }
   if (rest === 'access') { if (role !== 'owner') throw forbidden(`only the owner of '${env}' (or an admin) can share it`); return; }
   if (HARVEST.test(rest)) {
-    if (acl.kind === 'sealed') { if (p.scope !== 'harvester') throw forbidden(sealedMsg(env), 'SEALED'); return; }
+    if (acl.kind === 'sealed') { if (!dry && p.scope !== 'harvester') throw forbidden(sealedMsg(env), 'SEALED'); return; }
     if (!atLeast(role, 'editor')) throw forbidden(`you have read-only access to '${env}'`);
     return;
   }

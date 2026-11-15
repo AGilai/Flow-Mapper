@@ -19,6 +19,10 @@ export function checkTool(ctx: Ctx, tool: Tool, a: any) {
   if (isOff(p)) return;
   const db = ctx.db, who = whoOf(p!), name = tool.name;
   if (!p!.id) throw new HttpError(401, 'UNAUTHENTICATED', 'sign in required');
+  if (name === 'ingest_manifest') { // the envs are named inside the manifests; a dry run writes nothing
+    if (!a?.dryRun && p!.scope !== 'harvester') throw forbidden('ingest needs a token with the harvester scope (an admin creates one under Tokens)', 'SEALED');
+    return;
+  }
   const hasEnv = !!(tool.inputSchema as any).properties?.env;
   const ok = readableEnvs(db, p);
 
@@ -38,7 +42,7 @@ export function checkTool(ctx: Ctx, tool: Tool, a: any) {
   const d = draft ? draftAclOf(db, env, draft) : null;
   if (draft && d && !canReadDraft(role, d, who)) throw notFound(`draft '${draft}' in environment '${env}'`);
 
-  if (HARVEST.has(name)) {
+  if (HARVEST.has(name) && !a?.dryRun) {
     if (acl.kind === 'sealed') { if (p!.scope !== 'harvester') throw forbidden(`'${env}' is a sealed (harvested) environment: writing to it needs a token with the harvester scope`, 'SEALED'); return; }
     if (!atLeast(role, 'editor')) throw forbidden(`you have read-only access to '${env}'`);
     return;

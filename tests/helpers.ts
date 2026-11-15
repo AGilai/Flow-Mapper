@@ -27,7 +27,7 @@ export async function startApp(opts: { dir?: string; events?: StreamOptions; aut
   const { server, ctx, router } = createApp({ dbPath: join(dir, 'test.db'), dataDir: dir, events: opts.events, auth: opts.auth ?? { mode: 'off' } }); // tests never read FLOW_AUTH from the environment
   await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
   const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
-  if (opts.auth) opts.auth.publicUrl ??= base;
+  if (opts.auth && (!opts.auth.publicUrl || opts.auth.publicUrl === 'pending')) opts.auth.publicUrl = base; // cognito tests learn their port only after listening
   const call = async (method: string, path: string, body?: unknown, headers: Record<string, string> = {}) => {
     const isRaw = typeof body === 'string' || body instanceof Uint8Array;
     const res = await fetch(base + path, {
