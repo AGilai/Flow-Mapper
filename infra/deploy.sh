@@ -18,17 +18,19 @@
 #   --open                   no gate: until part C (Cognito login in the app) the app has NO authentication, so this makes
 #                            the site, its data and its write API open to anyone who has the URL
 #   --origin-secret S        value of the X-Flows-Origin header (rotates it; default: kept from SSM, generated for a new stack)
+#   --cfn-role ARN           CloudFormation service role (default: arn:aws:iam::<account>:role/flows-cfn-service-role from infra/flows-bootstrap.yaml)
+#   --boundary ARN           permissions boundary for the stack's roles (default: the stack's own default, flows-permissions-boundary)
 #   --dry-run                print the command and stop
 set -euo pipefail
 
-STACK=flows; REGION=${AWS_REGION:-}; ADMIN=; TAG=; TYPE=t4g.small; DOMAINS=; REPO_URL=; KEY=; PREFIX=; DOMAIN=; ZONE=; VPC=; SUBNET=; DRY=0; GATEPW=; OPEN=0; OSECRET=
+STACK=flows; REGION=${AWS_REGION:-}; ADMIN=; TAG=; TYPE=t4g.small; DOMAINS=; REPO_URL=; KEY=; PREFIX=; DOMAIN=; ZONE=; VPC=; SUBNET=; DRY=0; GATEPW=; OPEN=0; OSECRET=; CFNROLE=; BOUNDARY=
 while [ $# -gt 0 ]; do
   case $1 in
     --stack) STACK=$2; shift 2 ;; --region) REGION=$2; shift 2 ;; --admin-email) ADMIN=$2; shift 2 ;; --repo-tag) TAG=$2; shift 2 ;;
     --instance-type) TYPE=$2; shift 2 ;; --allowed-domains) DOMAINS=$2; shift 2 ;; --repo-url) REPO_URL=$2; shift 2 ;;
     --key-secret-arn) KEY=$2; shift 2 ;; --hosted-ui-prefix) PREFIX=$2; shift 2 ;; --domain) DOMAIN=$2; shift 2 ;; --zone) ZONE=$2; shift 2 ;;
-    --vpc) VPC=$2; shift 2 ;; --subnet) SUBNET=$2; shift 2 ;; --gate-password) GATEPW=$2; shift 2 ;; --open) OPEN=1; shift ;; --origin-secret) OSECRET=$2; shift 2 ;; --dry-run) DRY=1; shift ;;
-    -h|--help) sed -n 2,20p "$0"; exit 0 ;;
+    --vpc) VPC=$2; shift 2 ;; --subnet) SUBNET=$2; shift 2 ;; --gate-password) GATEPW=$2; shift 2 ;; --open) OPEN=1; shift ;; --origin-secret) OSECRET=$2; shift 2 ;; --cfn-role) CFNROLE=$2; shift 2 ;; --boundary) BOUNDARY=$2; shift 2 ;; --dry-run) DRY=1; shift ;;
+    -h|--help) sed -n 2,22p "$0"; exit 0 ;;
     *) echo "deploy: unknown argument $1" >&2; exit 2 ;;
   esac
 done
@@ -36,6 +38,12 @@ done
 if [ -z "$REGION" ]; then REGION=$(aws configure get region || true); fi
 [ -n "$REGION" ] || { echo "deploy: no region (use --region)" >&2; exit 2; }
 if [ -n "$DOMAIN" ] && [ "$REGION" != us-east-1 ]; then echo "deploy: a custom domain needs --region us-east-1 (CloudFront certificates live there)" >&2; exit 2; fi
+
+# CloudFormation acts through the flows service role (created once by an IAM admin: infra/bootstrap.sh). The deploy role may pass only that role.
+if [ -z "$CFNROLE" ]; then
+  ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
+  CFNROLE="arn:aws:iam::$ACCOUNT:role/flows-cfn-service-role"
+fi
 
 HERE=$(cd "$(dirname "$0")" && pwd)
 PL=$(aws ec2 describe-managed-prefix-lists --region "$REGION" \
@@ -63,10 +71,11 @@ if [ "$OPEN" = 1 ]; then
 fi
 
 cmd=(aws cloudformation deploy --region "$REGION" --stack-name "$STACK" --template-file "$HERE/flow-mapper.yaml"
-  --capabilities CAPABILITY_IAM --tags Project=flows --no-fail-on-empty-changeset
+  --role-arn "$CFNROLE" --capabilities CAPABILITY_NAMED_IAM --tags Project=flows --no-fail-on-empty-changeset
   --parameter-overrides "RepoTag=$TAG" "AdminEmail=$ADMIN" "InstanceType=$TYPE" "CloudFrontPrefixListId=$PL"
   "AllowedEmailDomains=$DOMAINS" "RepoUrl=$REPO_URL" "GitHubDeployKeySecretArn=$KEY" "HostedUiDomainPrefix=$PREFIX"
   "DomainName=$DOMAIN" "HostedZoneId=$ZONE" "VpcId=$VPC" "SubnetId=$SUBNET" ${GATE[@]+"${GATE[@]}"})
+[ -z "$BOUNDARY" ] || cmd+=("PermissionsBoundaryArn=$BOUNDARY")
 echo "deploy: ${cmd[*]}" | sed -E 's/(PreAuthPassword=|OriginSecret=)[^ ]+/\1****/'
 [ "$DRY" = 1 ] && exit 0
 "${cmd[@]}"

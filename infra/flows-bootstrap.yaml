@@ -1,0 +1,633 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  Flow-Mapper (flows) one-time bootstrap, deployed by an IAM admin (the account owner). Creates the permissions boundary, the CloudFormation
+  service role for the flows stack and the flows-deployer policy that the owner attaches to the deploy role. Least privilege by design:
+  see docs/OPERATIONS.md ("One-time bootstrap" and "Permission model"). Nothing here runs unless the owner deploys it.
+
+# Why this exists: the account is shared with another project. The machine that deploys flows may not hold account-admin rights, so
+# (1) the deploy role may only drive CloudFormation stacks named flows / flows-* and pass ONE role to CloudFormation,
+# (2) CloudFormation acts through flows-cfn-service-role, which can only touch flows-* / Project=flows resources, and
+# (3) every role the flows stack creates carries flows-permissions-boundary, so even a template change cannot give a role more than the boundary.
+# Nobody in this chain can raise rights: the service role has no right to edit the boundary, the deployer policy, itself or kehilot*.
+# IAM managed policies are limited to 6144 characters, hence several flows-cfn-* policies attached to the one service role.
+
+Parameters:
+  FlowsRegion:
+    Type: String
+    Default: eu-central-1
+    AllowedPattern: '^[a-z]{2}-[a-z]+-[0-9]$'
+    Description: The one region where the flows stack runs (regional ARNs and kms:ViaService are pinned to it). Use us-east-1 when a custom domain is wanted.
+  EnableDomain:
+    Type: String
+    Default: 'false'
+    AllowedValues: ['false', 'true']
+    Description: Also allow ACM and Route 53 for an optional custom domain (needs FlowsRegion us-east-1 and DomainHostedZoneId). Off by default.
+  DomainHostedZoneId:
+    Type: String
+    Default: ''
+    AllowedPattern: '^[A-Z0-9]*$'
+    Description: Route 53 hosted zone id that the flows stack may change. Only used when EnableDomain is true.
+
+Rules:
+  DomainNeedsZoneAndUsEast1:
+    RuleCondition: !Equals [!Ref EnableDomain, 'true']
+    Assertions:
+      - Assert: !Not [!Equals [!Ref DomainHostedZoneId, '']]
+        AssertDescription: EnableDomain needs DomainHostedZoneId.
+      - Assert: !Equals [!Ref FlowsRegion, us-east-1]
+        AssertDescription: CloudFront certificates live in us-east-1, so FlowsRegion must be us-east-1 with a custom domain.
+
+Conditions:
+  UseDomain: !Equals [!Ref EnableDomain, 'true']
+
+Resources:
+  # ------------------------------------------------------------------ 1. permissions boundary
+  # The most any role created by the flows stack may ever do. The flows stack sets it on every role (PermissionsBoundary parameter).
+  BoundaryPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: flows-permissions-boundary
+      Description: Ceiling for every role created by the flows stack (instance role, DLM role, pre-sign-up Lambda role).
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: S3FlowsBuckets # Litestream replica
+            Effect: Allow
+            Action: ['s3:ListBucket', 's3:GetBucketLocation']
+            Resource: !Sub 'arn:${AWS::Partition}:s3:::flows-*'
+          - Sid: S3FlowsObjects
+            Effect: Allow
+            Action: ['s3:GetObject', 's3:PutObject', 's3:DeleteObject', 's3:AbortMultipartUpload', 's3:ListMultipartUploadParts']
+            Resource: !Sub 'arn:${AWS::Partition}:s3:::flows-*/*'
+          - Sid: SsmFlowsParameters
+            Effect: Allow
+            Action: ['ssm:GetParameter', 'ssm:GetParameters', 'ssm:GetParametersByPath']
+            Resource: !Sub 'arn:${AWS::Partition}:ssm:${FlowsRegion}:${AWS::AccountId}:parameter/flows/*'
+          - Sid: KmsDecryptOnlyViaSsm # SecureString parameters (origin secret) are encrypted with the aws/ssm key
+            Effect: Allow
+            Action: 'kms:Decrypt'
+            Resource: '*'
+            Condition:
+              StringEquals:
+                'kms:ViaService': !Sub 'ssm.${FlowsRegion}.amazonaws.com'
+                'kms:CallerAccount': !Ref 'AWS::AccountId'
+          - Sid: SecretsDeployKey # optional private-repo deploy key; the secret must be named flows-... or flows/...
+            Effect: Allow
+            Action: 'secretsmanager:GetSecretValue'
+            Resource:
+              - !Sub 'arn:${AWS::Partition}:secretsmanager:${FlowsRegion}:${AWS::AccountId}:secret:flows-*'
+              - !Sub 'arn:${AWS::Partition}:secretsmanager:${FlowsRegion}:${AWS::AccountId}:secret:flows/*'
+          - Sid: SsmSessionManagerCore # what AmazonSSMManagedInstanceCore grants; they have no resource-level scoping
+            Effect: Allow
+            Action:
+              - 'ssm:DescribeAssociation'
+              - 'ssm:GetDeployablePatchSnapshotForInstance'
+              - 'ssm:GetDocument'
+              - 'ssm:DescribeDocument'
+              - 'ssm:GetManifest'
+              - 'ssm:ListAssociations'
+              - 'ssm:ListInstanceAssociations'
+              - 'ssm:PutInventory'
+              - 'ssm:PutComplianceItems'
+              - 'ssm:PutConfigurePackageResult'
+              - 'ssm:UpdateAssociationStatus'
+              - 'ssm:UpdateInstanceAssociationStatus'
+              - 'ssm:UpdateInstanceInformation'
+              - 'ssmmessages:CreateControlChannel'
+              - 'ssmmessages:CreateDataChannel'
+              - 'ssmmessages:OpenControlChannel'
+              - 'ssmmessages:OpenDataChannel'
+              - 'ec2messages:AcknowledgeMessage'
+              - 'ec2messages:DeleteMessage'
+              - 'ec2messages:FailMessage'
+              - 'ec2messages:GetEndpoint'
+              - 'ec2messages:GetMessages'
+              - 'ec2messages:SendReply'
+            Resource: '*'
+          - Sid: LogsFlowsGroups # Lambda basic execution (pre-sign-up trigger) and any flows-* log group
+            Effect: Allow
+            Action: ['logs:CreateLogGroup', 'logs:CreateLogStream', 'logs:PutLogEvents', 'logs:DescribeLogStreams']
+            Resource:
+              - !Sub 'arn:${AWS::Partition}:logs:${FlowsRegion}:${AWS::AccountId}:log-group:/aws/lambda/flows-*'
+              - !Sub 'arn:${AWS::Partition}:logs:${FlowsRegion}:${AWS::AccountId}:log-group:/aws/lambda/flows-*:*'
+              - !Sub 'arn:${AWS::Partition}:logs:${FlowsRegion}:${AWS::AccountId}:log-group:flows-*'
+              - !Sub 'arn:${AWS::Partition}:logs:${FlowsRegion}:${AWS::AccountId}:log-group:flows-*:*'
+          # DLM service role (the actions of AWSDataLifecycleManagerServiceRole that EBS snapshot policies use), tag-conditioned.
+          - Sid: DlmDescribe
+            Effect: Allow
+            Action: ['ec2:DescribeInstances', 'ec2:DescribeVolumes', 'ec2:DescribeSnapshots', 'ec2:DescribeSnapshotAttribute']
+            Resource: '*'
+          - Sid: DlmSnapshotFlowsVolumes
+            Effect: Allow
+            Action: ['ec2:CreateSnapshot', 'ec2:CreateSnapshots']
+            Resource:
+              - !Sub 'arn:${AWS::Partition}:ec2:${FlowsRegion}:${AWS::AccountId}:volume/*'
+              - !Sub 'arn:${AWS::Partition}:ec2:${FlowsRegion}:${AWS::AccountId}:instance/*'
+            Condition: {StringEquals: {'aws:ResourceTag/Project': flows}}
+          - Sid: DlmSnapshotCreateTagged
+            Effect: Allow
+            Action: ['ec2:CreateSnapshot', 'ec2:CreateSnapshots']
+            Resource: !Sub 'arn:${AWS::Partition}:ec2:${FlowsRegion}::snapshot/*'
+            Condition: {StringEquals: {'aws:RequestTag/Project': flows}}
+          - Sid: DlmManageFlowsSnapshots
+            Effect: Allow
+            Action: ['ec2:DeleteSnapshot', 'ec2:CreateTags', 'ec2:DeleteTags']
+            Resource: !Sub 'arn:${AWS::Partition}:ec2:${FlowsRegion}::snapshot/*'
+            Condition: {StringEquals: {'aws:ResourceTag/Project': flows}}
+          - Sid: DlmTagOnCreate
+            Effect: Allow
+            Action: 'ec2:CreateTags'
+            Resource: !Sub 'arn:${AWS::Partition}:ec2:${FlowsRegion}::snapshot/*'
+            Condition: {StringEquals: {'ec2:CreateAction': [CreateSnapshot, CreateSnapshots]}}
+
+  # ------------------------------------------------------------------ 2. CloudFormation service role
+  # Split in four managed policies (iam, ec2, services, storage) because of the 6144-character limit; the domain policy is optional.
+  CfnIamPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: flows-cfn-iam
+      Description: flows CloudFormation service role, IAM part. Roles only as role/flows-* and only with the permissions boundary.
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: CreateRoleWithBoundary
+            Effect: Allow
+            Action: ['iam:CreateRole', 'iam:PutRolePolicy', 'iam:UpdateAssumeRolePolicy']
+            Resource: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/flows-*'
+            Condition: {StringEquals: {'iam:PermissionsBoundary': !Ref BoundaryPolicy}}
+          - Sid: AttachOnlyThreeAwsManagedPolicies
+            Effect: Allow
+            Action: 'iam:AttachRolePolicy'
+            Resource: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/flows-*'
+            Condition:
+              StringEquals: {'iam:PermissionsBoundary': !Ref BoundaryPolicy}
+              ArnEquals:
+                'iam:PolicyARN':
+                  - !Sub 'arn:${AWS::Partition}:iam::aws:policy/AmazonSSMManagedInstanceCore'
+                  - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+                  - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSDataLifecycleManagerServiceRole'
+          - Sid: ManageFlowsRoles
+            Effect: Allow
+            Action:
+              - 'iam:DeleteRole'
+              - 'iam:DeleteRolePolicy'
+              - 'iam:DetachRolePolicy'
+              - 'iam:GetRole'
+              - 'iam:GetRolePolicy'
+              - 'iam:ListRolePolicies'
+              - 'iam:ListAttachedRolePolicies'
+              - 'iam:ListInstanceProfilesForRole'
+              - 'iam:TagRole'
+              - 'iam:UntagRole'
+            Resource: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/flows-*'
+          - Sid: InstanceProfiles
+            Effect: Allow
+            Action:
+              - 'iam:CreateInstanceProfile'
+              - 'iam:DeleteInstanceProfile'
+              - 'iam:GetInstanceProfile'
+              - 'iam:AddRoleToInstanceProfile'
+              - 'iam:RemoveRoleFromInstanceProfile'
+              - 'iam:TagInstanceProfile'
+              - 'iam:UntagInstanceProfile'
+            Resource: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:instance-profile/flows-*'
+          - Sid: PassRoleOnlyToEc2DlmLambda
+            Effect: Allow
+            Action: 'iam:PassRole'
+            Resource: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/flows-*'
+            Condition: {StringEquals: {'iam:PassedToService': [ec2.amazonaws.com, dlm.amazonaws.com, lambda.amazonaws.com]}}
+          # ---- explicit denies: they win over every allow, in this role and in any policy added to it later
+          - Sid: DenyProtectedPolicies # boundary, deployer policy and this role's own policies cannot be edited, deleted or re-versioned
+            Effect: Deny
+            Action: ['iam:CreatePolicyVersion', 'iam:DeletePolicy', 'iam:DeletePolicyVersion', 'iam:SetDefaultPolicyVersion']
+            Resource:
+              - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/flows-permissions-boundary'
+              - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/flows-deployer'
+              - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/flows-cfn-*'
+              - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/kehilot*'
+          - Sid: DenyOwnRoleAndKehilotRoles # no IAM write against itself (trust policy, policies, tags, deletion) or kehilot roles
+            Effect: Deny
+            Action:
+              - 'iam:UpdateAssumeRolePolicy'
+              - 'iam:PutRolePolicy'
+              - 'iam:DeleteRolePolicy'
+              - 'iam:AttachRolePolicy'
+              - 'iam:DetachRolePolicy'
+              - 'iam:DeleteRole'
+              - 'iam:UpdateRole'
+              - 'iam:UpdateRoleDescription'
+              - 'iam:TagRole'
+              - 'iam:UntagRole'
+              - 'iam:PutRolePermissionsBoundary'
+              - 'iam:DeleteRolePermissionsBoundary'
+              - 'iam:PassRole'
+            Resource:
+              - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/flows-cfn-service-role'
+              - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/kehilot*'
+              - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/kehilot/*'
+          - Sid: DenyBoundaryRemoval # a role's boundary can never be removed, and can only be set to the flows boundary
+            Effect: Deny
+            Action: 'iam:DeleteRolePermissionsBoundary'
+            Resource: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/*'
+          - Sid: DenyBoundaryChange
+            Effect: Deny
+            Action: 'iam:PutRolePermissionsBoundary'
+            Resource: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/*'
+            Condition: {StringNotEquals: {'iam:PermissionsBoundary': !Ref BoundaryPolicy}}
+          - Sid: DenyCreateRoleWithoutBoundary
+            Effect: Deny
+            Action: 'iam:CreateRole'
+            Resource: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/*'
+            Condition: {'Null': {'iam:PermissionsBoundary': 'true'}}
+          - Sid: DenyCreateRoleWithOtherBoundary
+            Effect: Deny
+            Action: 'iam:CreateRole'
+            Resource: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/*'
+            Condition: {StringNotEquals: {'iam:PermissionsBoundary': !Ref BoundaryPolicy}}
+
+  CfnEc2Policy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: flows-cfn-ec2
+      Description: flows CloudFormation service role, EC2 part. Create needs the request tag Project=flows, change and delete need the resource tag.
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - {Sid: Describe, Effect: Allow, Action: 'ec2:Describe*', Resource: '*'}
+          - Sid: CreateWithRequestTag
+            Effect: Allow
+            Action: ['ec2:RunInstances', 'ec2:CreateVolume', 'ec2:CreateSecurityGroup', 'ec2:AllocateAddress']
+            Resource:
+              - !Sub 'arn:${AWS::Partition}:ec2:${FlowsRegion}:${AWS::AccountId}:instance/*'
+              - !Sub 'arn:${AWS::Partition}:ec2:${FlowsRegion}:${AWS::AccountId}:volume/*'
+              - !Sub 'arn:${AWS::Partition}:ec2:${FlowsRegion}:${AWS::AccountId}:security-group/*'
+              - !Sub 'arn:${AWS::Partition}:ec2:${FlowsRegion}:${AWS::AccountId}:elastic-ip/*'
+            Condition: {StringEquals: {'aws:RequestTag/Project': flows}}
+          # RunInstances also needs the things the instance is built from. None of them can carry the request tag.
+          # EXCEPTION: image (public AMI), subnet (existing network) and network-interface (created implicitly by RunInstances) are untagged.
+          - Sid: RunInstancesParts
+            Effect: Allow
+            Action: 'ec2:RunInstances'
+            Resource:
+              - !Sub 'arn:${AWS::Partition}:ec2:${FlowsRegion}::image/*'
+              - !Sub 'arn:${AWS::Partition}:ec2:${FlowsRegion}:${AWS::AccountId}:subnet/*'
+              - !Sub 'arn:${AWS::Partition}:ec2:${FlowsRegion}:${AWS::AccountId}:network-interface/*'
+          - Sid: RunInstancesWithFlowsSecurityGroup
+            Effect: Allow
+            Action: 'ec2:RunInstances'
+            Resource: !Sub 'arn:${AWS::Partition}:ec2:${FlowsRegion}:${AWS::AccountId}:security-group/*'
+            Condition: {StringEquals: {'aws:ResourceTag/Project': flows}}
+          # EXCEPTION: CreateSecurityGroup also names the VPC, which cannot carry a tag condition. The group itself must still be tagged Project=flows.
+          - Sid: CreateSecurityGroupInVpc
+            Effect: Allow
+            Action: 'ec2:CreateSecurityGroup'
+            Resource: !Sub 'arn:${AWS::Partition}:ec2:${FlowsRegion}:${AWS::AccountId}:vpc/*'
+          - Sid: TagOnCreate
+            Effect: Allow
+            Action: 'ec2:CreateTags'
+            Resource:
+              - !Sub 'arn:${AWS::Partition}:ec2:${FlowsRegion}:${AWS::AccountId}:instance/*'
+              - !Sub 'arn:${AWS::Partition}:ec2:${FlowsRegion}:${AWS::AccountId}:volume/*'
+              - !Sub 'arn:${AWS::Partition}:ec2:${FlowsRegion}:${AWS::AccountId}:security-group/*'
+              - !Sub 'arn:${AWS::Partition}:ec2:${FlowsRegion}:${AWS::AccountId}:elastic-ip/*'
+            Condition:
+              StringEquals:
+                'ec2:CreateAction': [RunInstances, CreateVolume, CreateSecurityGroup, AllocateAddress]
+                'aws:RequestTag/Project': flows
+          - Sid: ChangeFlowsResources
+            Effect: Allow
+            Action:
+              - 'ec2:CreateTags'
+              - 'ec2:DeleteTags'
+              - 'ec2:StartInstances'
+              - 'ec2:StopInstances'
+              - 'ec2:RebootInstances'
+              - 'ec2:TerminateInstances'
+              - 'ec2:ModifyInstanceAttribute'
+              - 'ec2:ModifyInstanceMetadataOptions'
+              - 'ec2:AttachVolume'
+              - 'ec2:DetachVolume'
+              - 'ec2:ModifyVolume'
+              - 'ec2:DeleteVolume'
+              - 'ec2:DeleteSecurityGroup'
+              - 'ec2:AuthorizeSecurityGroupIngress'
+              - 'ec2:AuthorizeSecurityGroupEgress'
+              - 'ec2:RevokeSecurityGroupIngress'
+              - 'ec2:RevokeSecurityGroupEgress'
+              - 'ec2:ModifySecurityGroupRules'
+              - 'ec2:UpdateSecurityGroupRuleDescriptionsIngress'
+              - 'ec2:UpdateSecurityGroupRuleDescriptionsEgress'
+              - 'ec2:AssociateAddress'
+              - 'ec2:DisassociateAddress'
+              - 'ec2:ReleaseAddress'
+            Resource:
+              - !Sub 'arn:${AWS::Partition}:ec2:${FlowsRegion}:${AWS::AccountId}:instance/*'
+              - !Sub 'arn:${AWS::Partition}:ec2:${FlowsRegion}:${AWS::AccountId}:volume/*'
+              - !Sub 'arn:${AWS::Partition}:ec2:${FlowsRegion}:${AWS::AccountId}:security-group/*'
+              - !Sub 'arn:${AWS::Partition}:ec2:${FlowsRegion}:${AWS::AccountId}:security-group-rule/*'
+              - !Sub 'arn:${AWS::Partition}:ec2:${FlowsRegion}:${AWS::AccountId}:elastic-ip/*'
+            Condition: {StringEquals: {'aws:ResourceTag/Project': flows}}
+          # EXCEPTION: AssociateAddress also names the instance's network interface, which carries no tag. The address and the instance must be flows-tagged.
+          - Sid: AssociateAddressNetworkInterface
+            Effect: Allow
+            Action: 'ec2:AssociateAddress'
+            Resource: !Sub 'arn:${AWS::Partition}:ec2:${FlowsRegion}:${AWS::AccountId}:network-interface/*'
+
+  CfnServicesPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: flows-cfn-services
+      Description: flows CloudFormation service role, CloudFront, Cognito, Lambda, Logs and DLM, scoped by flows-* name or the Project=flows tag.
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          # ---- CloudFront (global ARNs, no region)
+          - Sid: CloudFrontCreateTagged
+            Effect: Allow
+            Action: ['cloudfront:CreateDistribution', 'cloudfront:TagResource']
+            Resource: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/*'
+            Condition: {StringEquals: {'aws:RequestTag/Project': flows}}
+          - Sid: CloudFrontChangeTagged
+            Effect: Allow
+            Action:
+              - 'cloudfront:UpdateDistribution'
+              - 'cloudfront:DeleteDistribution'
+              - 'cloudfront:GetDistribution'
+              - 'cloudfront:GetDistributionConfig'
+              - 'cloudfront:TagResource'
+              - 'cloudfront:UntagResource'
+              - 'cloudfront:ListTagsForResource'
+            Resource: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/*'
+            Condition: {StringEquals: {'aws:ResourceTag/Project': flows}}
+          - Sid: CloudFrontFunctionsByName
+            Effect: Allow
+            Action: ['cloudfront:UpdateFunction', 'cloudfront:DeleteFunction', 'cloudfront:DescribeFunction', 'cloudfront:GetFunction', 'cloudfront:PublishFunction', 'cloudfront:TestFunction']
+            Resource: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:function/flows-*'
+          # EXCEPTION (CloudFront): CreateFunction and CreateCachePolicy take no resource name and no tag, so they cannot be scoped.
+          # Cache policies are addressed by generated id (cache-policy/<id>), never by name, so their change/delete actions cannot be scoped to flows either.
+          - Sid: CloudFrontCreateUnscopable
+            Effect: Allow
+            Action: ['cloudfront:CreateFunction', 'cloudfront:CreateCachePolicy']
+            Resource: '*'
+          - Sid: CloudFrontCachePolicies
+            Effect: Allow
+            Action: ['cloudfront:UpdateCachePolicy', 'cloudfront:DeleteCachePolicy', 'cloudfront:GetCachePolicy', 'cloudfront:GetCachePolicyConfig']
+            Resource: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:cache-policy/*'
+          - Sid: CloudFrontReadManagedPolicies
+            Effect: Allow
+            Action: ['cloudfront:GetOriginRequestPolicy', 'cloudfront:GetOriginRequestPolicyConfig']
+            Resource: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:origin-request-policy/*'
+          # ---- Cognito
+          - Sid: CognitoCreatePoolTagged
+            Effect: Allow
+            Action: ['cognito-idp:CreateUserPool', 'cognito-idp:TagResource']
+            Resource: !Sub 'arn:${AWS::Partition}:cognito-idp:${FlowsRegion}:${AWS::AccountId}:userpool/*'
+            Condition: {StringEquals: {'aws:RequestTag/Project': flows}}
+          - Sid: CognitoChangeTaggedPool # clients, domain and users are children of the pool: the pool's tag governs them
+            Effect: Allow
+            Action:
+              - 'cognito-idp:UpdateUserPool'
+              - 'cognito-idp:DeleteUserPool'
+              - 'cognito-idp:DescribeUserPool'
+              - 'cognito-idp:CreateUserPoolClient'
+              - 'cognito-idp:UpdateUserPoolClient'
+              - 'cognito-idp:DeleteUserPoolClient'
+              - 'cognito-idp:DescribeUserPoolClient'
+              - 'cognito-idp:CreateUserPoolDomain'
+              - 'cognito-idp:UpdateUserPoolDomain'
+              - 'cognito-idp:DeleteUserPoolDomain'
+              - 'cognito-idp:AdminCreateUser'
+              - 'cognito-idp:AdminGetUser'
+              - 'cognito-idp:AdminDeleteUser'
+              - 'cognito-idp:AdminUpdateUserAttributes'
+              - 'cognito-idp:GetUserPoolMfaConfig'
+              - 'cognito-idp:SetUserPoolMfaConfig'
+              - 'cognito-idp:TagResource'
+              - 'cognito-idp:UntagResource'
+              - 'cognito-idp:ListTagsForResource'
+            Resource: !Sub 'arn:${AWS::Partition}:cognito-idp:${FlowsRegion}:${AWS::AccountId}:userpool/*'
+            Condition: {StringEquals: {'aws:ResourceTag/Project': flows}}
+          # EXCEPTION (Cognito): DescribeUserPoolDomain takes no resource (it looks a domain up by name). Read-only.
+          - {Sid: CognitoDescribeDomain, Effect: Allow, Action: 'cognito-idp:DescribeUserPoolDomain', Resource: '*'}
+          # ---- Lambda (pre-sign-up trigger)
+          - Sid: LambdaFlowsFunctions
+            Effect: Allow
+            Action:
+              - 'lambda:CreateFunction'
+              - 'lambda:DeleteFunction'
+              - 'lambda:GetFunction'
+              - 'lambda:GetFunctionConfiguration'
+              - 'lambda:UpdateFunctionCode'
+              - 'lambda:UpdateFunctionConfiguration'
+              - 'lambda:AddPermission'
+              - 'lambda:RemovePermission'
+              - 'lambda:GetPolicy'
+              - 'lambda:TagResource'
+              - 'lambda:UntagResource'
+              - 'lambda:ListTags'
+              - 'lambda:ListVersionsByFunction'
+              - 'lambda:GetFunctionCodeSigningConfig'
+              - 'lambda:GetRuntimeManagementConfig'
+            Resource: !Sub 'arn:${AWS::Partition}:lambda:${FlowsRegion}:${AWS::AccountId}:function:flows-*'
+          # ---- CloudWatch Logs
+          - Sid: LogsFlowsGroups
+            Effect: Allow
+            Action:
+              - 'logs:CreateLogGroup'
+              - 'logs:DeleteLogGroup'
+              - 'logs:PutRetentionPolicy'
+              - 'logs:DeleteRetentionPolicy'
+              - 'logs:TagResource'
+              - 'logs:UntagResource'
+              - 'logs:TagLogGroup'
+              - 'logs:UntagLogGroup'
+              - 'logs:ListTagsForResource'
+              - 'logs:ListTagsLogGroup'
+            Resource:
+              - !Sub 'arn:${AWS::Partition}:logs:${FlowsRegion}:${AWS::AccountId}:log-group:/aws/lambda/flows-*'
+              - !Sub 'arn:${AWS::Partition}:logs:${FlowsRegion}:${AWS::AccountId}:log-group:/aws/lambda/flows-*:*'
+              - !Sub 'arn:${AWS::Partition}:logs:${FlowsRegion}:${AWS::AccountId}:log-group:flows-*'
+              - !Sub 'arn:${AWS::Partition}:logs:${FlowsRegion}:${AWS::AccountId}:log-group:flows-*:*'
+          # EXCEPTION (Logs): DescribeLogGroups cannot be resource-scoped. Read-only.
+          - {Sid: LogsDescribe, Effect: Allow, Action: 'logs:DescribeLogGroups', Resource: '*'}
+          # ---- DLM (policies are named by generated id, so they are scoped by tag)
+          - Sid: DlmCreateTagged
+            Effect: Allow
+            Action: ['dlm:CreateLifecyclePolicy', 'dlm:TagResource']
+            Resource: !Sub 'arn:${AWS::Partition}:dlm:${FlowsRegion}:${AWS::AccountId}:policy/*'
+            Condition: {StringEquals: {'aws:RequestTag/Project': flows}}
+          - Sid: DlmChangeTagged
+            Effect: Allow
+            Action: ['dlm:UpdateLifecyclePolicy', 'dlm:DeleteLifecyclePolicy', 'dlm:GetLifecyclePolicy', 'dlm:TagResource', 'dlm:UntagResource', 'dlm:ListTagsForResource']
+            Resource: !Sub 'arn:${AWS::Partition}:dlm:${FlowsRegion}:${AWS::AccountId}:policy/*'
+            Condition: {StringEquals: {'aws:ResourceTag/Project': flows}}
+          # EXCEPTION (DLM): GetLifecyclePolicies is a list call without resource. Read-only.
+          - {Sid: DlmList, Effect: Allow, Action: 'dlm:GetLifecyclePolicies', Resource: '*'}
+
+  CfnStoragePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: flows-cfn-storage
+      Description: flows CloudFormation service role, S3 buckets named flows-* and SSM parameters under /flows/.
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: S3FlowsBucketsOnly # bucket configuration only, no object access
+            Effect: Allow
+            Action:
+              - 's3:CreateBucket'
+              - 's3:DeleteBucket'
+              - 's3:ListBucket'
+              - 's3:GetBucketLocation'
+              - 's3:GetBucketTagging'
+              - 's3:PutBucketTagging'
+              - 's3:GetBucketVersioning'
+              - 's3:PutBucketVersioning'
+              - 's3:GetEncryptionConfiguration'
+              - 's3:PutEncryptionConfiguration'
+              - 's3:GetLifecycleConfiguration'
+              - 's3:PutLifecycleConfiguration'
+              - 's3:GetBucketPublicAccessBlock'
+              - 's3:PutBucketPublicAccessBlock'
+            Resource: !Sub 'arn:${AWS::Partition}:s3:::flows-*'
+          # The stack's SSM parameter (app-env). The deployer writes /flows/<stack>/origin-secret itself.
+          - Sid: SsmFlowsParameters
+            Effect: Allow
+            Action:
+              - 'ssm:PutParameter'
+              - 'ssm:DeleteParameter'
+              - 'ssm:GetParameter'
+              - 'ssm:GetParameters'
+              - 'ssm:AddTagsToResource'
+              - 'ssm:RemoveTagsFromResource'
+              - 'ssm:ListTagsForResource'
+            Resource: !Sub 'arn:${AWS::Partition}:ssm:${FlowsRegion}:${AWS::AccountId}:parameter/flows/*'
+          # The stack resolves the Ubuntu AMI id from this public parameter ({{resolve:ssm:...}} runs with the service role).
+          - Sid: SsmPublicAmiParameter
+            Effect: Allow
+            Action: 'ssm:GetParameters'
+            Resource: !Sub 'arn:${AWS::Partition}:ssm:${FlowsRegion}::parameter/aws/service/canonical/*'
+          # EXCEPTION (SSM): DescribeParameters is a list call without resource. Read-only.
+          - {Sid: SsmDescribe, Effect: Allow, Action: 'ssm:DescribeParameters', Resource: '*'}
+
+  # Only created when EnableDomain is true.
+  CfnDomainPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Condition: UseDomain
+    Properties:
+      ManagedPolicyName: flows-cfn-domain
+      Description: flows CloudFormation service role, optional custom domain (ACM certificate and one Route 53 zone).
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          # EXCEPTION (ACM): certificates are named by generated id, so they are scoped by tag only.
+          - Sid: AcmCreateTagged
+            Effect: Allow
+            Action: ['acm:RequestCertificate', 'acm:AddTagsToCertificate']
+            Resource: !Sub 'arn:${AWS::Partition}:acm:${FlowsRegion}:${AWS::AccountId}:certificate/*'
+            Condition: {StringEquals: {'aws:RequestTag/Project': flows}}
+          - Sid: AcmChangeTagged
+            Effect: Allow
+            Action: ['acm:DescribeCertificate', 'acm:DeleteCertificate', 'acm:AddTagsToCertificate', 'acm:RemoveTagsFromCertificate', 'acm:ListTagsForCertificate']
+            Resource: !Sub 'arn:${AWS::Partition}:acm:${FlowsRegion}:${AWS::AccountId}:certificate/*'
+            Condition: {StringEquals: {'aws:ResourceTag/Project': flows}}
+          - Sid: Route53OneZone
+            Effect: Allow
+            Action: ['route53:ChangeResourceRecordSets', 'route53:ListResourceRecordSets', 'route53:GetHostedZone']
+            Resource: !Sub 'arn:${AWS::Partition}:route53:::hostedzone/${DomainHostedZoneId}'
+          # EXCEPTION (Route 53): GetChange addresses a change id, which belongs to no zone. Read-only.
+          - {Sid: Route53GetChange, Effect: Allow, Action: 'route53:GetChange', Resource: !Sub 'arn:${AWS::Partition}:route53:::change/*'}
+
+  CfnServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: flows-cfn-service-role
+      Description: Assumed by CloudFormation for the flows stack. Cannot change itself, the boundary, the deployer policy or kehilot*.
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Service: cloudformation.amazonaws.com}
+            Action: 'sts:AssumeRole'
+            Condition:
+              StringEquals: {'aws:SourceAccount': !Ref 'AWS::AccountId'}
+              StringLike:
+                'aws:SourceArn':
+                  - !Sub 'arn:${AWS::Partition}:cloudformation:${FlowsRegion}:${AWS::AccountId}:stack/flows/*'
+                  - !Sub 'arn:${AWS::Partition}:cloudformation:${FlowsRegion}:${AWS::AccountId}:stack/flows-*/*'
+      ManagedPolicyArns:
+        - !Ref CfnIamPolicy
+        - !Ref CfnEc2Policy
+        - !Ref CfnServicesPolicy
+        - !Ref CfnStoragePolicy
+        - !If [UseDomain, !Ref CfnDomainPolicy, !Ref 'AWS::NoValue']
+      Tags: [{Key: Project, Value: flows}, {Key: Name, Value: flows-cfn-service-role}]
+
+  # ------------------------------------------------------------------ 3. deployer policy (the owner attaches it to kehilot-deployer)
+  DeployerPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: flows-deployer
+      Description: What the machine's deploy role needs for flows. CloudFormation only through flows-cfn-service-role, stack names flows / flows-*.
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: StacksOnlyThroughServiceRole
+            Effect: Allow
+            Action: ['cloudformation:CreateStack', 'cloudformation:UpdateStack', 'cloudformation:DeleteStack', 'cloudformation:CreateChangeSet', 'cloudformation:ExecuteChangeSet']
+            Resource:
+              - !Sub 'arn:${AWS::Partition}:cloudformation:${FlowsRegion}:${AWS::AccountId}:stack/flows/*'
+              - !Sub 'arn:${AWS::Partition}:cloudformation:${FlowsRegion}:${AWS::AccountId}:stack/flows-*/*'
+            Condition: {StringEquals: {'cloudformation:RoleArn': !GetAtt CfnServiceRole.Arn}}
+          - Sid: StackReads
+            Effect: Allow
+            Action:
+              - 'cloudformation:DescribeStacks'
+              - 'cloudformation:DescribeStackEvents'
+              - 'cloudformation:DescribeStackResource'
+              - 'cloudformation:DescribeStackResources'
+              - 'cloudformation:DescribeChangeSet'
+              - 'cloudformation:DeleteChangeSet'
+              - 'cloudformation:GetTemplate'
+              - 'cloudformation:ListStackResources'
+            Resource:
+              - !Sub 'arn:${AWS::Partition}:cloudformation:${FlowsRegion}:${AWS::AccountId}:stack/flows/*'
+              - !Sub 'arn:${AWS::Partition}:cloudformation:${FlowsRegion}:${AWS::AccountId}:stack/flows-*/*'
+          - Sid: DenyTouchingTheBootstrapStack # flows-bootstrap matches flows-*, but only an IAM admin may change it
+            Effect: Deny
+            Action: ['cloudformation:CreateStack', 'cloudformation:UpdateStack', 'cloudformation:DeleteStack', 'cloudformation:CreateChangeSet', 'cloudformation:ExecuteChangeSet', 'cloudformation:DeleteChangeSet']
+            Resource: !Sub 'arn:${AWS::Partition}:cloudformation:${FlowsRegion}:${AWS::AccountId}:stack/flows-bootstrap/*'
+          - Sid: PassOnlyTheServiceRoleToCloudFormation
+            Effect: Allow
+            Action: 'iam:PassRole'
+            Resource: !GetAtt CfnServiceRole.Arn
+            Condition: {StringEquals: {'iam:PassedToService': cloudformation.amazonaws.com}}
+          - {Sid: Ec2ReadOnlyLookups, Effect: Allow, Action: ['ec2:DescribeManagedPrefixLists', 'ec2:DescribeInstances'], Resource: '*'}
+          - Sid: StopStartFlowsInstances # replaces flows-power-policy.json
+            Effect: Allow
+            Action: ['ec2:StopInstances', 'ec2:StartInstances']
+            Resource: !Sub 'arn:${AWS::Partition}:ec2:${FlowsRegion}:${AWS::AccountId}:instance/*'
+            Condition: {StringEquals: {'aws:ResourceTag/Project': flows}}
+          - Sid: SsmFlowsParameters # the origin secret, a SecureString under /flows/<stack>/origin-secret
+            Effect: Allow
+            Action: ['ssm:GetParameter', 'ssm:GetParameters', 'ssm:PutParameter', 'ssm:AddTagsToResource', 'ssm:ListTagsForResource']
+            Resource: !Sub 'arn:${AWS::Partition}:ssm:${FlowsRegion}:${AWS::AccountId}:parameter/flows/*'
+          - Sid: KmsOnlyViaSsm # the aws/ssm key encrypts that SecureString
+            Effect: Allow
+            Action: ['kms:Encrypt', 'kms:Decrypt', 'kms:GenerateDataKey']
+            Resource: '*'
+            Condition:
+              StringEquals:
+                'kms:ViaService': !Sub 'ssm.${FlowsRegion}.amazonaws.com'
+                'kms:CallerAccount': !Ref 'AWS::AccountId'
+
+Outputs:
+  ServiceRoleArn:
+    Value: !GetAtt CfnServiceRole.Arn
+    Description: Pass to infra/deploy.sh as --cfn-role (it also finds it by name).
+  DeployerPolicyArn:
+    Value: !Ref DeployerPolicy
+    Description: The owner attaches this to kehilot-deployer.
+  BoundaryArn:
+    Value: !Ref BoundaryPolicy
+    Description: The PermissionsBoundary of every role in the flows stack.
