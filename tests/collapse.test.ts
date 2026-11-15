@@ -47,3 +47,18 @@ test('0.19.1: with no saved choice a narrow viewport starts collapsed; a saved c
   writeCollapsed(KEYS.list, true, s);
   assert.equal(readCollapsed(KEYS.list, s, false), true);
 });
+
+test('the entry list shows collapsed while a pane is open and returns to the saved choice (Flows pane)', async () => {
+  // @ts-ignore plain JS module
+  const { listState } = await import('../web/js/collapse.js');
+  for (const saved of [false, true]) {
+    const s = mem(); writeCollapsed(KEYS.list, saved, s);
+    const st = listState(KEYS.list, { storage: s });
+    assert.equal(st.view(), saved);
+    assert.equal(st.setPane(true), true, 'pane open: collapsed band');
+    assert.equal(st.set(false), false, 'the user may expand it meanwhile');
+    assert.equal(readCollapsed(KEYS.list, s), saved, 'neither step overwrote the saved choice');
+    assert.equal(st.setPane(false), saved, 'pane closed: back to the saved state');
+    assert.equal(readCollapsed(KEYS.list, s), saved);
+  }
+});

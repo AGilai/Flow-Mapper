@@ -1,6 +1,6 @@
 /* Flows page and sequence diagram. */
 .flows { display: grid; grid-template-columns: var(--list-w, 300px) minmax(0, 1fr); height: 100%; transition: grid-template-columns .18s ease; }
-.flows.list-c { grid-template-columns: 0 minmax(0, 1fr); } /* #114/#112: collapsed = no band, the diagram gets the width */
+.flows.list-c { grid-template-columns: 30px minmax(0, 1fr); } /* collapsed = a 30px vertical strip (.fl-strip), the diagram gets the rest */
 .flows-list { position: relative; border-right: 1px solid var(--line); background: var(--surface); display: flex; flex-direction: column; min-height: 0; }
 .flows-list .search { padding: var(--s3); border-bottom: 1px solid var(--line); }
 .flows-list .search .input { width: 100%; }
@@ -49,7 +49,9 @@
 .pub-go { flex: none; color: var(--accent); font-size: 18px; }
 @media (max-width: 860px) {
   .flows, .flows.list-c { grid-template-columns: 1fr; grid-template-rows: 220px 1fr; }
-  .flows.list-c { grid-template-rows: 0 1fr; }
+  .flows.list-c { grid-template-rows: 34px 1fr; }
+  .flows-list.is-c .fl-strip { flex-direction: row; padding: 0 12px; }
+  .flows-list.is-c .fl-strip-t { writing-mode: horizontal-tb; }
   .flows-list .resizer { display: none; }
   .flows-list { border-right: 0; border-bottom: 1px solid var(--line); }
 }
@@ -78,5 +80,12 @@
 .fl-sub { font-size: var(--fs-xs); color: var(--muted); overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .fl-sub .env-chip { font-size: 11.5px; }
 .fl-body { display: flex; flex-direction: column; min-height: 0; flex: 1; }
-.flows-list.is-c { visibility: hidden; border: 0; min-width: 0; }
-@media (max-width: 860px) { .fl-toggle svg { transform: rotate(90deg); } .ft-show svg { transform: rotate(-90deg); } } /* stacked layout: the list folds up */
+.fl-strip { display: none; }
+.flows-list.is-c { min-width: 0; overflow: hidden; }
+.flows-list.is-c > .fl-head, .flows-list.is-c > .fl-body, .flows-list.is-c .resizer { display: none; }
+.flows-list.is-c .fl-strip { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; height: 100%; padding: 12px 0; box-sizing: border-box; border: 0; background: var(--surface-2); color: var(--ink-2); cursor: pointer; font: 650 var(--fs-sm) var(--font); }
+.flows-list.is-c .fl-strip:hover { background: var(--accent-soft); color: var(--accent); }
+.flows-list.is-c .fl-strip:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.fl-strip svg { flex: none; width: 15px; height: 15px; stroke-width: 2.4; transform: rotate(180deg); }
+.fl-strip-t { writing-mode: vertical-rl; min-height: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 0 1 auto; }
+@media (max-width: 860px) { .fl-toggle svg { transform: rotate(90deg); } .fl-strip svg { transform: rotate(-90deg); } } /* stacked layout: the list folds up */

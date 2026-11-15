@@ -12,7 +12,7 @@ import { metaOf, envVars } from '../env-info.js';
 import { envChip } from '../components/env-chip.js';
 import { setQuery, go } from '../router.js';
 import { createPanel } from '../components/panel.js';
-import { resizer } from '../components/resizer.js';
+import { resizer } from '../components/resizer.js'; import { watchPane } from '../collapse.js';
 import { createList } from './flow-list.js';
 import { createTabStrip, enterIcon } from './flow-tabs.js';
 import { createHostFor } from './flow-tab-host.js';
@@ -76,7 +76,7 @@ export async function render({ main, query }) {
     onAll: () => { const u = T.encodeUrl(S, state.env); go('/flows', { tabs: u.tabs, tab: u.tab }); },
     onCollapse: (c) => flowsEl.classList.toggle('list-c', c) });
   const flowsEl = h('div.flows', list.el, rightEl);
-  flowsEl.classList.toggle('list-c', list.collapsed());
+  flowsEl.classList.toggle('list-c', list.collapsed()); watchPane(flowsEl, list.setPane); // the list steps back to its collapsed band while a pane is open
   resizer(list.el, { edge: 'right', key: 'flows-list', defaultWidth: 300, label: 'Resize entry point list',
     width: () => list.el.offsetWidth, apply: (px) => flowsEl.style.setProperty('--list-w', `${px}px`) });
   resizer(panel.el, { edge: 'left', key: 'flow-panel', defaultWidth: 380, label: 'Resize flow details',
@@ -109,10 +109,10 @@ export async function render({ main, query }) {
     editing() ? h('button.btn.sm', { type: 'button', 'data-qa': 'add-component', title: 'Add a component to the draft', on: { click: () => host.edit.addComponent() } }, '+ component') : null);
   // ---- tabs ----
   let chips = new Map(); // key -> env chip text; empty while the open tabs are of one env
-  const lead = h('button.ft-show', { type: 'button', 'aria-expanded': 'false', 'aria-label': 'Show entry points', title: `Show entry points: ${list.sentence}`, 'data-qa': 'show-entry-points', on: { click: () => list.expand() } }, icon('chev'), h('b', 'Flows'), h('span.ft-dot', '·'), envChip()); // visible only while the list is collapsed (flow-tabs.css)
+  const lead = null; // the collapsed list is a vertical strip at the left (flow-list.js), no button in the tab row
   const strip = createTabStrip({ lead, describe: (k) => ctxOf(k)?.data.describe(k) ?? goneDescribe(k), chip: (k) => chips.get(k) ?? null, onActivate: (k) => commit(T.activate(S, k)), onClose: (k) => commit(T.closeTab(S, k)),
     onCloseOthers: (k) => commit(T.closeOthers(S, k)), onCloseAll: () => commit(T.closeAll(S)), envVars: (k) => (gone(envOfTab(k)) ? { '--ec': 'var(--muted)', '--ei': 'var(--ink-2)' } : envVars(state.envMeta, envOfTab(k))) });
-  const renderStrip = () => { chips = tabChips(S.keys); strip.render(S); }; if (urlCount > T.TAB_CAP) toast(`The link had ${urlCount} tabs. Opened ${T.TAB_CAP}: the limit.`, 5000);
+  const flowLabel = () => { const r = S.active && T.flowRoot(S.active); return r ? ctxOf(S.active)?.nameOf(r.service, r.ingress) || `${r.service} · ${r.ingress}` : ''; }; const renderStrip = () => { chips = tabChips(S.keys); strip.render(S); list.setLabel(flowLabel()); }; if (urlCount > T.TAB_CAP) toast(`The link had ${urlCount} tabs. Opened ${T.TAB_CAP}: the limit.`, 5000);
   const empty = h('div.emptyst', h('div.emptyst-i', enterIcon()), h('h3', 'Pick an entry point'), h('p.muted', 'Pick a flow in the list. Click opens it here; "Tab" opens it next to the others.'));
   mainPane.append(strip.el, toolbar, empty); // #114: the tab row first, the toolbar under it
 
