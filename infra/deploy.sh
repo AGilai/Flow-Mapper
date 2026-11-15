@@ -63,7 +63,8 @@ GATE=("OriginSecret=$OSECRET")
 if [ "$OPEN" = 1 ] && [ -n "$GATEPW" ]; then echo "deploy: --open and --gate-password exclude each other" >&2; exit 2; fi
 if [ "$OPEN" = 1 ]; then GATE+=("PreAuthPassword=")
 elif [ -n "$GATEPW" ]; then GATE+=("PreAuthPassword=$GATEPW")
-elif ! aws cloudformation describe-stacks --region "$REGION" --stack-name "$STACK" >/dev/null 2>&1; then
+elif ST=$(aws cloudformation describe-stacks --region "$REGION" --stack-name "$STACK" --query 'Stacks[0].StackStatus' --output text 2>/dev/null); \
+     [ -z "$ST" ] || [ "$ST" = REVIEW_IN_PROGRESS ]; then  # REVIEW_IN_PROGRESS: a create that never ran, it has no gate yet
   GATEPW=$(openssl rand -hex 16); GATE+=("PreAuthPassword=$GATEPW"); echo "deploy: generated a basic-auth password (shown again at the end)"
 fi
 if [ "$OPEN" = 1 ]; then
