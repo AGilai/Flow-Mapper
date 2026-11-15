@@ -4,7 +4,7 @@
 import type { Ctx } from '../context.ts';
 import { HttpError, notFound } from '../errors.ts';
 import { atLeast, canApplyDraft, canDiscardDraft, canEditDraft, canReadDraft } from '../../core/env-access.ts';
-import { aclOf, draftAclOf, isOff, readableEnvs, requireDryRunReadable, requireRole, roleFor, whoOf } from '../access.ts';
+import { aclOf, bugEnvHidden, draftAclOf, isOff, readableEnvs, requireDryRunReadable, requireRole, roleFor, whoOf } from '../access.ts';
 import { currentWho } from '../auth/context.ts';
 import type { Tool } from './tools/common.ts';
 
@@ -29,9 +29,9 @@ export function checkTool(ctx: Ctx, tool: Tool, a: any) {
 
   if ((name === 'get_bug' || name === 'update_bug') && a?.id != null) {
     const b = db.prepare('SELECT env FROM bugs WHERE id = ?').get(Number(a.id)) as { env: string | null } | undefined;
-    if (b?.env && ok && !ok.has(b.env)) throw notFound(`bug ${a.id}`);
+    if (bugEnvHidden(db, b?.env, ok)) throw notFound(`bug ${a.id}`);
   }
-  if (name === 'report_bug' && typeof a?.env === 'string' && ok && !ok.has(a.env)) throw notFound(`environment '${a.env}'`);
+  if (name === 'report_bug' && typeof a?.env === 'string' && bugEnvHidden(db, a.env, ok)) throw notFound(`environment '${a.env}'`);
   if (name === 'create_env') { if (typeof a?.source === 'string' && a.source) requireRole(db, a.source, 'viewer', p); return; }
   if (!hasEnv) return;
 

@@ -8,6 +8,7 @@ in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.m
 ## Unreleased
 
 - UI: the Flows entry list no longer disappears when a side pane (message, data store, drill-down) opens; it shows as its collapsed band, can be expanded meanwhile, and returns to its previous state when the pane closes (the saved collapse choice is not changed). The collapsed list is now a 30px vertical strip along the menu bar reading "Flows · <open flow>" (the flow's name, else service · entry); one click expands it. It replaces the "Flows" button in the tab row.
+- Fix (cognito mode): `report_bug` (MCP) and `POST /api/bugs` without `env` no longer fail with `NOT_FOUND: bug N not found` for a non-admin. A bug with no env (stored as `default`), or whose `env` label is not an existing environment, is not env-scoped: its reporter, other users and admins all see it in lists and by id. A bug on a real env the caller cannot read stays hidden. REST behaviour and stored rows are unchanged.
 
 ## 0.53.0 (2026-11-15): agent onboarding docs, env required on MCP tools
 

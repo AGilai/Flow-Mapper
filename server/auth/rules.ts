@@ -7,7 +7,7 @@ import type { DB } from '../db/connection.ts';
 import type { Req } from '../http/router.ts';
 import { HttpError, notFound } from '../errors.ts';
 import { atLeast, canApplyDraft, canDiscardDraft, canShareDraft, roleOf } from '../../core/env-access.ts';
-import { aclOf, draftAclOf, readableEnvs, requireDraftEdit, requireDraftRead, requireDryRunReadable, whoOf } from '../access.ts';
+import { aclOf, bugEnvHidden, draftAclOf, readableEnvs, requireDraftEdit, requireDraftRead, requireDryRunReadable, whoOf } from '../access.ts';
 import type { Principal } from './context.ts';
 
 const HARVEST = /^(dtos|event-dtos|schemas|resources\/[^/]+\/keys)(\/|$)/;
@@ -29,12 +29,12 @@ export async function authorize(db: DB, req: Req, p: Principal): Promise<void> {
   if (path.startsWith('/api/bugs/') && req.params.id) {
     const b = db.prepare('SELECT env FROM bugs WHERE id = ?').get(Number(req.params.id)) as { env: string | null } | undefined;
     const ok = readableEnvs(db, p);
-    if (b?.env && ok && !ok.has(b.env)) throw notFound(`bug ${req.params.id}`);
+    if (bugEnvHidden(db, b?.env, ok)) throw notFound(`bug ${req.params.id}`);
     return;
   }
   if (path === '/api/bugs' && req.method === 'POST') {
     const env = (await req.json())?.env, ok = readableEnvs(db, p);
-    if (typeof env === 'string' && ok && !ok.has(env)) throw notFound(`environment '${env}'`);
+    if (typeof env === 'string' && bugEnvHidden(db, env, ok)) throw notFound(`environment '${env}'`);
     return;
   }
   if (path.startsWith('/api/users/') && write) {
