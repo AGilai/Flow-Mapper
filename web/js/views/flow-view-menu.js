@@ -44,7 +44,7 @@ export function createViewMenu({ ctx, act, stepMenu }) {
     const top = pop.scrollTop;
     size?.dispose(); size = sizeControl(); size.el.addEventListener('click', paintBtn);
     const depth = h('select.select', { 'aria-label': 'Depth', 'data-qa': 'depth', on: { change: (e) => { act.depth(e.target.value); paint(); } } }, DEPTHS.map((d) => h('option', { value: d, selected: d === opts.depth }, d === 'all' ? 'All depths' : `Depth ${d}`)));
-    pop.replaceChildren(
+    pop.replaceChildren(...[
       h('div.vm-top', h('b', 'View options'), h('button.vm-reset', { type: 'button', disabled: !n, on: { click: () => { reset(); paint(); } } }, 'Reset to defaults')),
       head('Descriptions'),
       sw('Call notes', { on: c.caption, qa: 'caption-switch', note: 'The caption bar under the diagram', change: (v) => setCap('caption', v) }),
@@ -62,7 +62,7 @@ export function createViewMenu({ ctx, act, stepMenu }) {
       h('div.vm-row', h('span.vm-t', 'Text size'), size.el),
       sw('Hide text', { on: c.hideText, qa: 'hide-text', note: 'The step description in the caption', change: (v) => setCap('hideText', v) }),
       h('p.vm-tip', icon('info'), 'Double-click a bar, or right-click it, to look inside.'),
-      h('div.vm-foot', { hidden: !n }, h('span.vm-n', String(n)), `${n === 1 ? 'option differs' : 'options differ'} from the default`));
+      h('div.vm-foot', { hidden: !n }, h('span.vm-n', String(n)), `${n === 1 ? 'option differs' : 'options differ'} from the default`)].filter(Boolean));
     pop.scrollTop = top;
   }
   const away = (e) => { if (pop && !pop.contains(e.target) && !btn.contains(e.target)) close(); };

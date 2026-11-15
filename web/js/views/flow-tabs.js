@@ -46,8 +46,9 @@ export function createTabStrip(cb) {
     const d = cb.describe(key), on = key === state.active, many = state.keys.length;
     const tail = on ? (activeShowsId(level, many) ? d.sub : null) : d.sub && (shared.has(d.title) || d.tn) ? (d.tn ? null : shortTail(d.sub)) : null;
     const canRename = on && cb.renameOf?.(key) != null, canAbout = on && cb.aboutOf?.(key);
+    // a click on the active tab does nothing: re-rendering it between the two clicks of a double click would swallow the rename gesture
     const t = h('div.tab', { role: 'tab', tabIndex: on ? 0 : -1, 'aria-selected': String(on), title: d.tip, class: `${on ? 'on' : ''} ${d.kind}${d.gone ? ' gone' : ''}`, 'data-key': key,
-      on: { click: (e) => { if (!e.target.closest('.x, .tb-act, input')) cb.onActivate(key); }, auxclick: (e) => { if (e.button === 1) { e.preventDefault(); cb.onClose(key); } }, mousedown: (e) => { if (e.button === 1) e.preventDefault(); },
+      on: { click: (e) => { if (!e.target.closest('.x, .tb-act, input') && key !== state.active) cb.onActivate(key); }, auxclick: (e) => { if (e.button === 1) { e.preventDefault(); cb.onClose(key); } }, mousedown: (e) => { if (e.button === 1) e.preventDefault(); },
         dblclick: (e) => { if (canRename && e.target.closest('.tl')) rename(key, t); } } },
       d.tn ? h('span.tn', d.tn) : svg(d.kind === 'full' ? FULL : ENTER),
       envChip(key),

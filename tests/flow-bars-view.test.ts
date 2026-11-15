@@ -82,9 +82,9 @@ test('the right pane: a 28px strip with the title top to bottom, close still wor
   assert.match(lane, /width: min\(var\(--panel\), 62%\) !important/, 'it pushes at narrow widths too');
 });
 
-test('the Flows list strip stays and never collapses by itself', () => {
+test('the Flows list steps back to its strip while a pane is open (0.53.1) and returns to its own state', () => {
   const f = src('js/views/flows.js');
-  assert.doesNotMatch(f, /watchPane\(/); assert.match(f, /flowsEl\.classList\.toggle\('list-c', list\.collapsed\(\)\)/);
+  assert.match(f, /watchPane\(flowsEl, list\.setPane\)/); assert.match(f, /flowsEl\.classList\.toggle\('list-c', list\.collapsed\(\)\)/);
   assert.match(src('css/sequence.css'), /\.flows\.list-c \{ grid-template-columns: 30px minmax\(0, 1fr\); \}/);
 });
 
@@ -104,4 +104,10 @@ test('stylesheet and static build: flow-bars.css replaces flow-headmin.css; toke
 
 test('a cached About text does not break a re-made tab', () => {
   assert.match(src('js/views/flow-head.js'), /built = true; paint\(\);/);
+});
+
+test('QA: the View popover drops null children (it printed "null" without subsystems); a click on the active tab does not re-render it (so a double click renames)', () => {
+  const m = src('js/views/flow-view-menu.js'), tabs = src('js/views/flow-tabs.js');
+  assert.match(m, /pop\.replaceChildren\(\.\.\.\[[^]*\]\.filter\(Boolean\)\);/);
+  assert.match(tabs, /closest\('\.x, \.tb-act, input'\) && key !== state\.active\) cb\.onActivate\(key\)/);
 });

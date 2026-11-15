@@ -2,7 +2,7 @@
 // here") and it opens a tab; tabs are equal and closable. Each tab keeps its own diagram, list and drill-down.
 // The state (open tabs, active one, closed stack) is pure (flow-tabs-state.js) and mirrored in the URL: tabs= and tab=.
 
-import { loadMarks } from '../design/marks-store.js';
+import { loadMarks } from '../design/marks-store.js'; import { watchPane } from '../collapse.js';
 import { boundaryNote } from './flow-boundary.js';
 import { h, fill, toast } from '../dom.js';
 import { icon } from '../icons.js';
@@ -79,7 +79,7 @@ export async function render({ main, query }) {
     onAll: () => { const u = T.encodeUrl(S, state.env); go('/flows', { tabs: u.tabs, tab: u.tab }); },
     onCollapse: (c) => flowsEl.classList.toggle('list-c', c) });
   const flowsEl = h('div.flows', list.el, rightEl);
-  flowsEl.classList.toggle('list-c', list.collapsed()); // frame 28: the list never collapses by itself (a pane opening pushes the diagram instead); the vertical strip is the viewer's choice
+  flowsEl.classList.toggle('list-c', list.collapsed()); watchPane(flowsEl, list.setPane); // the list steps back to its vertical strip while a pane is open (0.53.1, and the frame 28 shots); it returns to its own state when the pane closes
   resizer(list.el, { edge: 'right', key: 'flows-list', defaultWidth: 300, label: 'Resize entry point list',
     width: () => list.el.offsetWidth, apply: (px) => flowsEl.style.setProperty('--list-w', `${px}px`) });
   resizer(panel.el, { edge: 'left', key: 'flow-panel', defaultWidth: 380, label: 'Resize flow details',
