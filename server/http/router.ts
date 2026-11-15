@@ -4,6 +4,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { HttpError, badRequest } from '../errors.ts';
 import { sendJsonFor } from './json-body.ts';
+import type { Principal } from '../auth/context.ts';
 
 export interface Req {
   method: string;
@@ -15,16 +16,20 @@ export interface Req {
   json: () => Promise<any>;
   /** The raw exchange, for streaming handlers (SSE). Return STREAMED after taking over `res`. */
   raw: { req: IncomingMessage; res: ServerResponse };
+  /** Who is calling, set by the auth middleware (server/auth/gate.ts); always set once the app is wired. */
+  who?: Principal;
 }
 /** Returned by a handler that wrote its own response (a stream). */
 export const STREAMED = Symbol('streamed');
 export class Reply {
-  status: number; headers: Record<string, string>; body: string | Buffer;
-  constructor(status: number, body: string | Buffer, headers: Record<string, string> = {}) {
+  status: number; headers: Record<string, string | string[]>; body: string | Buffer;
+  constructor(status: number, body: string | Buffer, headers: Record<string, string | string[]> = {}) {
     this.status = status; this.body = body; this.headers = headers;
   }
 }
 export type Handler = (req: Req) => unknown | Promise<unknown>;
+/** Middleware around every matched handler: authentication and access checks (throw an HttpError to refuse), and the caller's context for the handler. */
+export type Around = (req: Req, next: () => Promise<unknown>) => Promise<unknown>;
 
 interface Route { method: string; parts: string[]; handler: Handler }
 
@@ -33,6 +38,10 @@ const MAX_BODY = 10 * 1024 * 1024;
 export class Router {
   private routes: Route[] = [];
   private guards: ((req: Pick<Req, 'method' | 'path' | 'params' | 'query'>) => void)[] = [];
+  private arounds: Around[] = [];
+
+  /** Runs outside the guards and the handler of every matched route, in the order added. */
+  around(fn: Around) { this.arounds.push(fn); return this; }
 
   /** Runs before every matched handler (throw an HttpError to refuse): checks that apply to a whole family of routes. */
   guard(fn: (req: Pick<Req, 'method' | 'path' | 'params' | 'query'>) => void) { this.guards.push(fn); return this; }
@@ -90,15 +99,16 @@ export class Router {
     };
     try {
       if (m === 'method') throw new HttpError(405, 'METHOD_NOT_ALLOWED', `${req.method} not allowed on ${url.pathname}`);
-      for (const g of this.guards) g({ method: req.method ?? 'GET', path: url.pathname, params: m.params, query: url.searchParams });
-      const out = await m.handler({
+      const request: Req = {
         method: req.method ?? 'GET', path: url.pathname, params: m.params, query: url.searchParams, headers: req.headers, body, raw: { req, res },
         json: async () => {
           const b = await body();
           if (!b.length) return {};
           try { return JSON.parse(b.toString('utf8')); } catch { throw badRequest('body is not valid JSON'); }
         },
-      });
+      };
+      const inner = async () => { for (const g of this.guards) g(request); return m.handler(request); };
+      const out = await this.arounds.reduceRight<() => Promise<unknown>>((next, mw) => () => mw(request, next), inner)();
       if (out === STREAMED) return true;
       if (out instanceof Reply) send(res, out.status, out.body, out.headers);
       else await sendJsonFor(req, res, req.method === 'POST' && out && typeof out === 'object' && (out as any).__created ? 201 : 200, stripMarker(out)); // gzip for big bodies when the client accepts it (json-body.ts)
@@ -117,7 +127,7 @@ export class Router {
 export const created = <T extends object>(x: T): T => Object.assign(x, { __created: true });
 const stripMarker = (x: any) => { if (x && typeof x === 'object' && '__created' in x) { const { __created, ...rest } = x; return rest; } return x; };
 
-export function send(res: ServerResponse, status: number, body: string | Buffer, headers: Record<string, string> = {}) {
+export function send(res: ServerResponse, status: number, body: string | Buffer, headers: Record<string, string | string[]> = {}) {
   res.writeHead(status, headers);
   res.end(body);
 }

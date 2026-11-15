@@ -1,6 +1,7 @@
 // Mentions in a flow's Notes (0.34.0): a `@[userId]` in the current version of Notes counts on the Mentions page, as "in Notes". Like an About, a document has no
 // thread to answer, so nothing is "unread": these rows never count in the rail's badge. A user merge re-points the token and the author id in every version.
 
+import { filterByEnv } from '../access.ts';
 import type { DB } from '../db/connection.ts';
 import { parseFlowAnchor } from '../../core/comments.ts';
 import { sanitize } from '../../core/rich-text.ts';
@@ -22,7 +23,7 @@ export function notesLine(body: string, user: string, names: Map<string, { name:
 export function listNotesMentions(db: DB, userId: unknown, env: string | null = null): NotesMention[] {
   const user = userOf(db, userId); // the LIKE scan of the notes runs once per user between writes (F11)
   const all = sinceWrite(db, `notes-mentions|${user}`, () => scanNotes(db, user));
-  return env ? all.filter((m) => m.env === env) : all;
+  return filterByEnv(db, env ? all.filter((m) => m.env === env) : all, (m) => m.env);
 }
 function scanNotes(db: DB, user: string): NotesMention[] {
   const names = nameIndex(db), out: NotesMention[] = [];

@@ -8,6 +8,7 @@ import { conflict, notFound } from '../errors.ts';
 import { ensureColors } from './colors.ts';
 import { envRanks, envSlot } from '../../core/env-colors.ts';
 import { newEnvSlot } from './env-color.ts';
+import { readableEnvs } from '../access.ts';
 
 export type EnvKind = 'sealed' | 'design';
 export interface EnvGroup { key: string; label: string; icon?: string; about?: string; owners?: string[] }
@@ -39,7 +40,9 @@ const backfillColors = (db: DB, r: Row) => { if (!r.colors || r.colors === '{}')
 
 /** Names only (GET /api/envs): the envs table plus any env that still has snapshots (a rollout safety net). */
 export function listEnvs(db: DB): string[] {
-  return (db.prepare('SELECT name FROM envs UNION SELECT DISTINCT env FROM snapshots ORDER BY 1').all() as { name: string }[]).map((r) => r.name);
+  const ok = readableEnvs(db); // accounts: the caller's readable envs only (null: all)
+  const all = (db.prepare('SELECT name FROM envs UNION SELECT DISTINCT env FROM snapshots ORDER BY 1').all() as { name: string }[]).map((r) => r.name);
+  return ok ? all.filter((n) => ok.has(n)) : all;
 }
 
 export function getEnvRow(db: DB, name: string): Row | undefined {

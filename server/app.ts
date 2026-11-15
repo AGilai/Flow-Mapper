@@ -33,10 +33,15 @@ import { getDraft } from './store/drafts.ts';
 import { registerMcpHttp } from './mcp/http.ts';
 import { registerEvents, type StreamOptions } from './routes/events.ts';
 import { announceVersion } from './events/bus.ts';
+import { authFromEnv, checkAuth, type AuthOptions } from './auth/options.ts';
+import { registerAuthGate } from './auth/gate.ts';
+import { registerOidc } from './auth/oidc.ts';
+import { registerAccounts } from './routes/accounts.ts';
+import { safeEq } from './auth/sessions.ts';
 
 export const APP_VERSION: string = JSON.parse(readFileSync(join(import.meta.dirname, '../package.json'), 'utf8')).version;
 
-export interface AppOptions { dbPath: string; dataDir: string; dev?: boolean; events?: StreamOptions }
+export interface AppOptions { dbPath: string; dataDir: string; dev?: boolean; events?: StreamOptions; /** Default: FLOW_AUTH and friends from the environment (off when unset). */ auth?: AuthOptions }
 
 export function createContext(opts: AppOptions): Ctx {
   const db = openDb(opts.dbPath);
@@ -52,6 +57,8 @@ export function createContext(opts: AppOptions): Ctx {
 }
 
 export function createApp(opts: AppOptions): { server: Server; ctx: Ctx; router: Router } {
+  const auth = opts.auth ?? authFromEnv();
+  checkAuth(auth);
   const ctx = createContext(opts);
   announceVersion(ctx.db, ctx.appVersion);
   const router = new Router();
@@ -59,6 +66,9 @@ export function createApp(opts: AppOptions): { server: Server; ctx: Ctx; router:
   router.get('/healthz', () => ({ ok: true, version: APP_VERSION })); // liveness for CloudFront and systemd: no database access
   // Any GET under /api/envs/:env/ may carry ?draft=<slug>: an unknown draft is 404 and a closed one 409, whichever route it is.
   router.guard((req) => { const slug = req.query.get('draft'); if (req.method === 'GET' && slug && req.params.env) getDraft(ctx.db, req.params.env, slug); });
+  registerAuthGate(router, ctx, auth);
+  if (auth.mode === 'cognito') registerOidc(router, ctx, auth);
+  registerAccounts(router, ctx, auth);
   registerEnvs(router, ctx);
   registerMap(router, ctx);
   registerQueries(router, ctx);
@@ -83,6 +93,11 @@ export function createApp(opts: AppOptions): { server: Server; ctx: Ctx; router:
   registerEvents(router, ctx, opts.events);
 
   const server = createServer(async (req, res) => {
+    // CloudFront adds X-Flows-Origin: the instance answers nobody else (a health check on this machine is exempt).
+    if (auth.originSecret && !(req.url === '/healthz' || req.url?.startsWith('/healthz?'))) {
+      const h = req.headers['x-flows-origin'];
+      if (typeof h !== 'string' || !safeEq(h, auth.originSecret)) return sendJson(res, 403, { error: { code: 'FORBIDDEN_ORIGIN', message: 'requests must come through the site address' } });
+    }
     if (await router.handle(req, res)) return;
     if (req.url?.startsWith('/api/')) return sendJson(res, 404, { error: { code: 'NOT_FOUND', message: 'no such endpoint' } });
     if (await serveStatic(req, res, !!opts.dev)) return;

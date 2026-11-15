@@ -67,6 +67,8 @@ const DRAFT: Record<string, (e: string, slug: string) => Req> = {
 const EXEMPT = new Set(['PUT /api/envs/:env/descriptions', 'POST /api/bugs', 'PATCH /api/bugs/:id', 'POST /api/users', 'PATCH /api/users/:id', 'POST /api/users/:id/merge', 'POST /api/mentions/seen', 'POST /api/bugs/:id/comments', 'POST /api/bugs/:id/attachments', 'PUT /api/envs/:env/flow-names', 'POST /api/envs/:env/comments', 'PUT /api/envs/:env/notes', 'POST /api/envs/:env/notes/restore', 'PATCH /api/envs/:env/comments/:id', 'DELETE /api/envs/:env/comments/:id', 'POST /api/envs/:env/action-items', 'PATCH /api/envs/:env/action-items/:id', 'DELETE /api/envs/:env/action-items/:id',
   // 0.28: sealed subsystem settings (a design refuses with 409 USE_DRAFT: it never writes one) and level names are annotations
   'PUT /api/envs/:env/subsystems', 'PUT /api/envs/:env/levels', 'PUT /api/envs/:env/color',
+  // 0.52.0 accounts: sharing, tokens and logout are about people, not map data (their rules are in tests/access-*.test.ts)
+  'PUT /api/envs/:env/access', 'PUT /api/envs/:env/drafts/:slug/share', 'POST /api/tokens', 'DELETE /api/tokens/:id',
   'POST /api/envs', 'DELETE /api/envs/:env', 'POST /mcp']);
 
 const code = (r: { body: any }) => r.body?.error?.code;

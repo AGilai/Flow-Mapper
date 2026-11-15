@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import type { AddressInfo } from 'node:net';
 import { createApp } from '../server/app.ts';
 import type { StreamOptions } from '../server/routes/events.ts';
+import type { AuthOptions } from '../server/auth/options.ts';
 
 export const SAMPLES = join(import.meta.dirname, '../samples');
 export const readSample = (name: string) => JSON.parse(readFileSync(join(SAMPLES, name), 'utf8'));
@@ -21,11 +22,12 @@ export function sampleModel(): any {
   return model;
 }
 
-export async function startApp(opts: { dir?: string; events?: StreamOptions } = {}) {
+export async function startApp(opts: { dir?: string; events?: StreamOptions; auth?: AuthOptions } = {}) {
   const dir = opts.dir ?? mkdtempSync(join(tmpdir(), 'flow-mapper-test-'));
-  const { server, ctx, router } = createApp({ dbPath: join(dir, 'test.db'), dataDir: dir, events: opts.events });
+  const { server, ctx, router } = createApp({ dbPath: join(dir, 'test.db'), dataDir: dir, events: opts.events, auth: opts.auth ?? { mode: 'off' } }); // tests never read FLOW_AUTH from the environment
   await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
   const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  if (opts.auth) opts.auth.publicUrl ??= base;
   const call = async (method: string, path: string, body?: unknown, headers: Record<string, string> = {}) => {
     const isRaw = typeof body === 'string' || body instanceof Uint8Array;
     const res = await fetch(base + path, {

@@ -2,6 +2,7 @@
 // as "about of <item>". They are read from the environments as they are (a draft's about shows once it is applied). An about has no thread to answer, so there is
 // nothing "unread" about it: these rows never count in the rail's badge.
 
+import { filterByEnv } from '../access.ts';
 import type { DB } from '../db/connection.ts';
 import { MENTION_RE } from '../../core/mentions.ts';
 import { nameIndex } from './users.ts';
@@ -20,7 +21,7 @@ export function mentionLine(about: string, user: string, names: Map<string, { na
 export function listAboutMentions(db: DB, userId: unknown, env: string | null = null): AboutMention[] {
   const user = userOf(db, userId); // the two LIKE scans (snapshots.meta, envs.groups) run once per user between writes (F11)
   const all = sinceWrite(db, `about-mentions|${user}`, () => scanAbout(db, user));
-  return env ? all.filter((m) => m.env === env) : all;
+  return filterByEnv(db, env ? all.filter((m) => m.env === env) : all, (m) => m.env);
 }
 function scanAbout(db: DB, user: string): AboutMention[] {
   const names = nameIndex(db), like = `%@[${user}]%`, out: AboutMention[] = [];

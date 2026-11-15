@@ -4,6 +4,7 @@
 import type { Ctx } from '../context.ts';
 import { HttpError } from '../errors.ts';
 import { TOOLS } from './tools.ts';
+import { checkTool } from './access.ts';
 
 const PROTOCOL = '2025-06-18';
 const byName = new Map(TOOLS.map((t) => [t.name, t]));
@@ -39,6 +40,7 @@ export function handleRpc(ctx: Ctx, msg: RpcRequest): object | null {
       // one check for every tool that takes dryRun: a string like "false" must never read as a real run
       if ((tool.inputSchema as any).properties?.dryRun && args.dryRun !== undefined && args.dryRun !== null && typeof args.dryRun !== 'boolean') return error(-32602, `invalid params: dryRun must be a boolean (true or false), got ${JSON.stringify(args.dryRun)}`);
       try {
+        checkTool(ctx, tool, args); // accounts: the REST rules for the token's user (no-op with auth off)
         const out = tool.run(ctx, args);
         return reply({ content: [{ type: 'text', text: JSON.stringify(out, null, 1) }], isError: false });
       } catch (err) {

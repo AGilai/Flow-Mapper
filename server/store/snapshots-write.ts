@@ -4,6 +4,7 @@ import type { DB } from '../db/connection.ts';
 import { LISTS, keyOf, type ListName } from '../schema.ts';
 import { integrityErrors } from '../../core/integrity.ts';
 import { invalid } from '../errors.ts';
+import { actorId } from '../auth/context.ts';
 import type { Changes, Entities, Source } from './snapshots-read.ts';
 
 export const now = () => new Date().toISOString();
@@ -36,8 +37,8 @@ export function replaceEntities(db: DB, env: string, service: string, e: Entitie
 }
 
 export function writeChangelog(db: DB, env: string, service: string, from: number | null, to: number | null, kind: string, source: Source, changes: unknown, draftId?: number): number {
-  const r = db.prepare('INSERT INTO changelog (env, service, from_version, to_version, kind, source, at, changes, draft_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
-    .run(env, service, from, to, kind, source, now(), JSON.stringify(changes), draftId ?? null);
+  const r = db.prepare('INSERT INTO changelog (env, service, from_version, to_version, kind, source, at, changes, draft_id, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    .run(env, service, from, to, kind, source, now(), JSON.stringify(changes), draftId ?? null, actorId()); // the acting user (null: auth off or a script)
   return Number(r.lastInsertRowid);
 }
 
