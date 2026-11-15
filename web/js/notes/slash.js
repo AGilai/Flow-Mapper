@@ -37,8 +37,11 @@ export function attachSlash(ed, items) {
     if (!a || !a.node.isConnected) return;
     a.node.deleteData(0, a.end); // the "/word" goes; an empty paragraph is left for the block to replace
     const blk = a.node.parentElement; if (blk && !blk.querySelector('br') && !blk.textContent) blk.append(document.createElement('br'));
-    const r = document.createRange(); r.setStart(a.node, 0); r.collapse(true);
+    const r = document.createRange();
+    if (!a.node.data && blk) { a.node.remove(); r.setStart(blk, 0); } else r.setStart(a.node, 0); // no empty text node left in the line: a block command would leave a paragraph with nothing in it (and no place for the caret) behind
+    r.collapse(true);
     const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+    ed.exec(() => {}); // remember the caret now: a menu that takes the focus (Callout, Link to) puts its block back here, not where the "/word" was typed
     item.run();
   }
   const onInput = () => { const t = typed(); if (t) draw(t); else close(); };

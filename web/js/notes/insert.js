@@ -27,7 +27,13 @@ export const calloutAt = (ed) => { const r = ed.range(); const n = r?.startConta
 
 /** The commands: id -> { label, hint, run(), kinds } (kinds: which documents offer it). `ask(name)` opens a toolbar menu (link, callout, step). */
 export function commands(ed, { kind, ask }) {
-  const fmt = (tag) => () => ed.exec(() => document.execCommand('formatBlock', false, tag));
+  // A heading is never put inside a list item (formatBlock would wrap the list in the heading): on the empty item the "/" was typed in it replaces the item, on a filled one it does nothing.
+  const fmt = (tag) => () => ed.exec((r) => {
+    const at = r?.startContainer, li = (at?.nodeType === 1 ? at : at?.parentElement)?.closest?.('li');
+    if (!li) { document.execCommand('formatBlock', false, tag); return; }
+    if (li.textContent.trim()) return;
+    const hd = document.createElement(tag); hd.append(document.createElement('br')); putBlock(ed, r, hd);
+  });
   const list = (cmd) => () => ed.exec(() => document.execCommand(cmd));
   const code = () => ed.exec((r) => { const pre = document.createElement('pre'), c = document.createElement('code'); c.append(document.createElement('br')); pre.append(c); putBlock(ed, r, pre, c); });
   const mermaid = () => ed.exec((r) => { const pre = document.createElement('pre'); pre.setAttribute('data-mermaid', '1'); pre.textContent = MERMAID_SAMPLE; putBlock(ed, r, pre); });

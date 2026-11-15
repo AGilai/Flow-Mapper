@@ -44,9 +44,11 @@ export function createEditor({ html = '', label = 'Comment', placeholder = '', o
   document.addEventListener('selectionchange', keep);
 
   function exec(fn) { // run a command on the saved selection, the editor focused
+    // the saved selection comes back only when the editor lost focus; while it has focus the live selection (and a pending format) stays.
+    // Decided before focus(): focus() itself moves a lost selection to the start of the editor, and a menu with an input (Callout, Link to, step) inserted there.
+    const live = document.activeElement === el && !!range();
     el.focus({ preventScroll: true });
-    // the saved selection comes back only when the editor lost focus; while it has focus the live selection (and a pending format) stays
-    if (saved && !(document.activeElement === el && range())) { const s = getSelection(); s.removeAllRanges(); s.addRange(saved); }
+    if (saved && !live) { const s = getSelection(); s.removeAllRanges(); s.addRange(saved); }
     fn(range());
     keep(); note();
   }

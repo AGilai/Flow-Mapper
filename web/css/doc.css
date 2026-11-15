@@ -152,3 +152,9 @@ div[data-callout] p { margin: 2px 0; }
 .dochov.key text { fill: var(--accent); }
 .dochov.risk text { fill: var(--bad); }
 .nt-mk-menu { width: 170px; }
+
+/* a narrow window has no room beside the work: the docked column covers it (the book icon or the X brings the work back), and there is nothing to drag */
+@media (max-width: 900px) {
+  .ddock.open { position: absolute; inset: 0; width: auto; max-width: none; z-index: 8; border-left: 0; }
+  .ddock > .resizer { display: none; }
+}
