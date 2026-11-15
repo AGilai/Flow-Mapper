@@ -5,7 +5,7 @@
 import { h, fill, debounce } from '../dom.js';
 import { icon } from '../icons.js';
 import { href, setQuery } from '../router.js';
-import { KEYS, SLIDE_MS, isNarrow, readCollapsed, writeCollapsed, toggleLabel } from '../collapse.js';
+import { KEYS, SLIDE_MS, isNarrow, listState, toggleLabel } from '../collapse.js';
 import { envChip } from '../components/env-chip.js';
 import { createGroup } from './flow-list-groups.js';
 import { TAB_CAP, qual } from './flow-tabs-state.js';
@@ -21,11 +21,12 @@ const LIST_CAP = 300;
 export function createList({ env = '', points: allPoints, counts, cmts = {}, acts = {}, ments = {}, relBy = new Map(), service, groupOf = new Map(), groups = [], marks = null, design = false, query = new URLSearchParams(), onPick, onPickTab, onAll, onCollapse }) {
   const body = h('div.flows-scroll');
   const filter = h('input.input', { type: 'search', placeholder: service ? 'Filter ingress' : 'Filter entry points', 'aria-label': 'Filter starting points' });
-  let marked = { keys: [], active: null }, collapsed = readCollapsed(KEYS.list, undefined, isNarrow()); // narrow viewport: starts collapsed unless a choice was saved
+  let marked = { keys: [], active: null }, state = listState(KEYS.list, { fallback: isNarrow() }), collapsed = state.view(); // narrow viewport: starts collapsed unless a choice was saved
   const fs = { all: query.get('endpoints') === 'all', subs: parseSel(query.get('subsystems')), comps: parseSel(query.get('components')), changed: design && ['1', 'all'].includes(query.get('changed')) ? query.get('changed') : null, rel: relBy.size ? parseRel(query.get('rel')) : null, group: startGroup(query, env, design), inc: false };
   const covered = hasCoverage(allPoints); // #85: "Incomplete flows only" is offered only where some flow reports coverage; `incomplete=1` is ignored elsewhere
   fs.inc = incompleteOn(query, covered);
-  const btn = h('button.collapse-btn.fl-toggle', { type: 'button', on: { click: () => { set(!collapsed); if (collapsed) document.querySelector('.ft-show')?.focus({ preventScroll: true }); } } }, icon('chev')); // collapsed: focus goes to the tab row's Flows button, which brings the list back
+  const strip = h('button.fl-strip', { type: 'button', 'aria-label': 'Show flows list', 'aria-expanded': 'false', title: 'Show flows list', 'data-qa': 'show-entry-points', on: { click: () => { set(false); btn.focus({ preventScroll: true }); } } }, icon('chev'), h('span.fl-strip-t', 'Flows')); // collapsed: this thin vertical strip is the list; one click brings it back
+  const btn = h('button.collapse-btn.fl-toggle', { type: 'button', on: { click: () => { set(!collapsed); if (collapsed) strip.focus({ preventScroll: true }); } } }, icon('chev')); // collapsed: focus goes to the tab row's Flows button, which brings the list back
   let points = scopePoints(allPoints, { design, service, all: fs.all }), subRows = subsystemRows(points, groupOf, groups);
   const flowsOnly = design && !service;   // the "All endpoints" switch exists only where the list is scoped
   const allBox = h('input', { type: 'checkbox', checked: fs.all, 'data-qa': 'all-endpoints', on: { change: (e) => {
@@ -53,10 +54,11 @@ export function createList({ env = '', points: allPoints, counts, cmts = {}, act
   const summary = () => filterSummary({ subs: fs.subs, comps: fs.comps, subRows, compRows: vis(), changed: fs.changed, rel: fs.rel, incomplete: fs.inc, q: filter.value.trim() });
   const paint = () => {
     btn.setAttribute('aria-expanded', String(!collapsed)); btn.setAttribute('aria-label', toggleLabel('the entry point list', collapsed)); btn.title = toggleLabel('the entry point list', collapsed);
-    el.classList.toggle('is-c', collapsed); el.inert = collapsed; // collapsed: no band at all (width 0); the tab row's "Flows" button brings it back
+    el.classList.toggle('is-c', collapsed); strip.setAttribute('aria-expanded', String(!collapsed)); strip.tabIndex = collapsed ? 0 : -1; // collapsed: a thin vertical strip ("Flows · <open flow>"), the whole strip expands the list
+    for (const x of [el.querySelector('.fl-head'), el.querySelector('.fl-body')]) x.inert = collapsed;
     el.querySelectorAll('.fl-body input, .fl-body a, .fl-body button').forEach((x) => { x.tabIndex = collapsed ? -1 : 0; });
   };
-  const set = (c) => { collapsed = writeCollapsed(KEYS.list, c); paint(); onCollapse?.(collapsed); setTimeout(() => document.dispatchEvent(new CustomEvent('fm:layout')), SLIDE_MS + 40); };
+  const set = (c) => { collapsed = state.set(c); paint(); onCollapse?.(collapsed); setTimeout(() => document.dispatchEvent(new CustomEvent('fm:layout')), SLIDE_MS + 40); };
   function commit() { // a filter changed: the URL (a parameter that selects everything is left out), the groups and the list
     const rows = vis();
     setQuery({ subsystems: encodeSel(fs.subs, subRows.map((r) => r.key)), components: encodeSel(fs.comps, rows.map((r) => r.key)), changed: fs.changed, rel: fs.rel, endpoints: fs.all ? 'all' : null, incomplete: incompleteParam(fs.inc), group: encodeGroup(fs.group, design) });
@@ -99,8 +101,10 @@ export function createList({ env = '', points: allPoints, counts, cmts = {}, act
   if (!service && !query.get('group') && encodeGroup(fs.group, design)) setQuery({ group: encodeGroup(fs.group, design) }); // a mode that came only from the per-env memory goes into the URL once, so a copied link keeps it
   const sentence = service ? `Starting points in ${service}` : `${allPoints.length} entry points in ${env}`; // #114: the Flows header lives here
   const el = h('aside.flows-list', h('div.fl-head', h('span.fl-title', { title: sentence }, h('b', 'Flows'), h('span.fl-sub', service ? `Starting points in ${service}` : h('span', `${allPoints.length} entry points in `, envChip(env || undefined)))), btn),
-    h('div.fl-body', groupRow, filters, h('div.search', icon('search'), filter), changedRow, incRow, incStatus, relRow, body));
+    strip, h('div.fl-body', groupRow, filters, h('div.search', icon('search'), filter), changedRow, incRow, incStatus, relRow, body));
   paint();
-  return { el, mark, collapsed: () => collapsed, expand: () => { set(false); btn.focus({ preventScroll: true }); }, // the Flows button was pressed: focus moves into the list
+  const setPane = (open) => { const was = collapsed; collapsed = state.setPane(open); if (collapsed === was) return; paint(); onCollapse?.(collapsed); setTimeout(() => document.dispatchEvent(new CustomEvent('fm:layout')), SLIDE_MS + 40); }; // a side pane opened or closed: shown collapsed meanwhile, the saved choice untouched
+  const setLabel = (name) => { const t = name ? `Flows · ${name}` : 'Flows'; strip.firstChild.nextSibling.textContent = t; strip.title = `Show flows list: ${t}`; };
+  return { el, mark, setPane, setLabel, collapsed: () => collapsed, expand: () => { set(false); btn.focus({ preventScroll: true }); }, // the Flows button was pressed: focus moves into the list
     sentence };
 }

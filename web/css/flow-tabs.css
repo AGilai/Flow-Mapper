@@ -1,14 +1,6 @@
 /* Flow tabs (0.13.0): the strip, the overflow list, a tab's breadcrumb, the empty state. Mockup: design/mockups/flow-activation.html */
 
 .ftabs { display: flex; align-items: flex-end; background: var(--surface-2); border-bottom: 1px solid var(--line-strong); padding: 6px 0 0 12px; min-height: 42px; position: relative; flex: none; }
-/* #114: the entry-point list's header is the Flows header; while the list is collapsed (no band at all) this button at the left end of the row brings it back */
-.ft-show { display: none; align-items: center; gap: 6px; height: 28px; margin: 0 var(--s3) 7px 0; padding: 0 10px 0 6px; flex: none; white-space: nowrap; font: 650 var(--fs-sm) var(--font); color: var(--accent); background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent); border-radius: var(--r-sm); cursor: pointer; }
-.ft-show:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, var(--accent-soft)); }
-.ft-show:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
-.ft-show svg { width: 15px; height: 15px; stroke-width: 2.4; transform: rotate(180deg); }
-.ft-show .ft-dot { color: var(--muted); font-weight: 400; }
-.ft-show .env-chip { font-size: 11.5px; }
-.flows.list-c .ft-show { display: inline-flex; }
 .tb-hint { display: inline-grid; place-items: center; color: var(--muted); cursor: help; border-radius: 50%; }
 .tb-hint svg { width: 15px; height: 15px; }
 .tb-hint:hover, .tb-hint:focus-visible { color: var(--ink); }

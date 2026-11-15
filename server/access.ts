@@ -46,6 +46,15 @@ export function readableEnvs(db: DB, p: Principal | undefined | null = currentWh
   for (const r of db.prepare('SELECT DISTINCT env FROM snapshots').all() as { env: string }[]) if (!db.prepare('SELECT 1 FROM envs WHERE name = ?').get(r.env)) out.add(r.env);
   return out;
 }
+/** A bug is hidden only when it names a real env the caller cannot read. A bug with no env (stored as 'default'), or whose env label is no env, is not env-scoped: everyone who reads bugs sees it. */
+export function bugEnvHidden(db: DB, env: string | null | undefined, ok: Set<string> | null): boolean {
+  return !!(env && ok && env !== 'default' && !ok.has(env) && db.prepare('SELECT 1 FROM envs WHERE name = ?').get(env));
+}
+/** The SQL form of `!bugEnvHidden` on column `env`, with its arguments; '' when everything is readable. */
+export function bugEnvSql(ok: Set<string> | null): { cond: string; args: string[] } {
+  if (!ok) return { cond: '', args: [] };
+  return { cond: `(env IS NULL OR env = 'default' OR env NOT IN (SELECT name FROM envs) OR env IN (${[...ok].map(() => '?').join(',') || "''"}))`, args: [...ok] };
+}
 /** Keeps what the caller may read: `env` of each item (null / undefined env = not env-bound, kept). */
 export function filterByEnv<T>(db: DB, items: T[], envOfItem: (x: T) => string | null | undefined, p: Principal | undefined | null = currentWho()): T[] {
   const ok = readableEnvs(db, p);

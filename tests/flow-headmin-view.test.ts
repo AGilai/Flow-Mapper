@@ -18,17 +18,15 @@ test('the Flows header lives in the entry-point list; the page head is gone; the
   assert.match(src('css/sequence.css'), /\.fl-head \{[^}]*height: 43px/, 'level with the 42px tab row and its line');
 });
 
-test('collapsed list: no band (width 0, no rotated label); a labelled "Show entry points" button leads the tab row and reopens it', () => {
+test('collapsed list: a 30px vertical strip "Flows · <flow>" (a button) reopens it', () => {
   const f = src('js/views/flows.js'), css = src('css/sequence.css'), tabs = src('css/flow-tabs.css'), l = src('js/views/flow-list.js');
-  assert.match(css, /\.flows\.list-c \{ grid-template-columns: 0 minmax\(0, 1fr\); \}/);
-  assert.doesNotMatch(css + tabs + l, /writing-mode|fl-strip|fl-word/, 'no rotated band');
-  assert.match(f, /'aria-expanded': 'false', 'aria-label': 'Show entry points', title: `Show entry points: \$\{list\.sentence\}`/);
-  assert.match(f, /click: \(\) => list\.expand\(\)/);
-  assert.match(f, /icon\('chev'\), h\('b', 'Flows'\), h\('span\.ft-dot', '·'\), envChip\(\)/);
-  assert.match(tabs, /\.flows\.list-c \.ft-show \{ display: inline-flex; \}/);
-  assert.match(tabs, /\.ft-show \{ display: none;/, 'hidden while the list is open');
-  assert.match(l, /el\.inert = collapsed/, 'collapsed content is out of the tab order');
-  assert.match(l, /writeCollapsed\(KEYS\.list, c\)/, 'the choice is stored (fm:collapse:flows-list)');
+  assert.match(css, /\.flows\.list-c \{ grid-template-columns: 30px minmax\(0, 1fr\); \}/, 'collapsed: a 30px strip');
+  assert.match(css, /\.fl-strip-t \{ writing-mode: vertical-rl;/, 'the strip text runs downward');
+  assert.match(l, /'aria-label': 'Show flows list', 'aria-expanded': 'false'/, 'the strip is a button');
+  assert.match(f, /list\.setLabel\(flowLabel\(\)\)/, 'it names the open flow');
+  assert.doesNotMatch(tabs + f, /ft-show/, 'the strip replaces the tab-row button');
+  assert.match(l, /x\.inert = collapsed/, 'collapsed content is out of the tab order');
+  assert.match(l, /listState\(KEYS\.list/, 'the choice is stored (fm:collapse:flows-list) by listState');
 });
 
 test('the toolbar holds the Harvested chip and an (i) tooltip for the bar hint; neither is a row of its own', () => {

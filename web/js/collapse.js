@@ -32,3 +32,20 @@ export function stripLabel({ service = null, active = null, count = 0, summary =
 
 /** The compact environment indicator of the collapsed rail: up to three characters. */
 export const envShort = (env) => String(env ?? '').slice(0, 5) || '·';
+
+/** The entry-point list's state next to the side pane: `pref` is the user's saved choice, `view` what is shown.
+ *  While a pane is open (`setPane(true)`) the list shows collapsed, the user may expand it, and none of that is saved; closing returns to `pref`. */
+export function listState(key, { storage = store(), fallback = false } = {}) {
+  let pref = readCollapsed(key, storage, fallback), pane = false, view = pref;
+  return {
+    view: () => view, pref: () => pref, pane: () => pane,
+    setPane(open) { open = !!open; if (open === pane) return view; pane = open; view = open ? true : pref; return view; },
+    set(c) { view = !!c; if (!pane) pref = writeCollapsed(key, view, storage); return view; },
+  };
+}
+
+/** Calls `onChange(open)` whenever a side pane (`fi-open` / `mp-open`) opens or closes on `flowsEl`; only in the side-by-side layout (861px and up). */
+export function watchPane(flowsEl, onChange) {
+  const open = () => globalThis.matchMedia?.('(min-width: 861px)').matches && (flowsEl.classList.contains('fi-open') || flowsEl.classList.contains('mp-open'));
+  new MutationObserver(() => onChange(!!open())).observe(flowsEl, { attributes: true, attributeFilter: ['class'] });
+}

@@ -215,3 +215,33 @@ test('new design envs are private to their creator; the changelog of the copy na
   assert.equal(c.status, 201, JSON.stringify(c.body));
   assert.equal((t.ctx.db.prepare('SELECT author_id FROM comments WHERE id = ?').get(c.body.id) as any).author_id, P.owner.id, 'the signed-in user is the author, not the header');
 });
+
+test('report_bug without an env (or with an env label that is no env) is visible to its reporter, other users and admins; a private design env stays hidden', async () => {
+  const tok = async (p: typeof P.owner, name: string) => t.bearer((await t.token(p, name)).token);
+  const other = await tok(P.other, 'rb-x'), viewer = await tok(P.viewer, 'rb-v'), admin = await tok(P.admin, 'rb-a');
+  const r = await other.mcp('report_bug', { title: 'no-env bug' });
+  assert.equal(r.isError, false, r.text);
+  const label = await other.mcp('report_bug', { title: 'label-env bug', env: 'some-harvester-label' });
+  assert.equal(label.isError, false, label.text);
+  for (const [name, c] of [['other', other], ['viewer', viewer], ['admin', admin]] as const) {
+    const titles = (await c.mcp('list_bugs')).json.map((b: any) => b.title);
+    assert.ok(titles.includes('no-env bug'), `${name} sees the no-env bug`);
+    assert.ok(titles.includes('label-env bug'), `${name} sees the label-env bug`);
+    assert.ok(!titles.includes('bug in d-private') || name === 'admin', `${name}: the private design's bug stays hidden`);
+    assert.equal((await c.mcp('get_bug', { id: r.json.id })).isError, false, `${name} can get it`);
+  }
+  assert.equal((await P.other.call('GET', '/api/bugs')).body.some((b: any) => b.title === 'no-env bug'), true, 'REST list too');
+  assert.equal((await P.other.call('POST', '/api/bugs', { title: 'rest no-env' })).status, 201);
+  assert.equal((await P.other.call('POST', '/api/bugs', { title: 'x', env: 'd-private' })).status, 404, 'a private env is still not reportable by others');
+});
+
+test('bug.* events: a no-env bug reaches every reader, a private design env bug reaches only those who can read it', async () => {
+  const a = await P.other.call('POST', '/api/bugs', { title: 'ev no-env' });
+  assert.equal(a.status, 201);
+  const mine = await P.owner.call('POST', '/api/bugs', { title: 'ev private', env: 'd-private' });
+  assert.equal(mine.status, 201, JSON.stringify(mine.body));
+  const titles = async (w: keyof typeof P) => ((await P[w].call('GET', '/api/events/recent?limit=500&types=bug.*')).body.events as any[]).map((e) => e.summary as string);
+  for (const w of ['owner', 'other', 'viewer', 'admin'] as const) assert.ok((await titles(w)).some((s) => s.includes('ev no-env')), `${w} gets the no-env bug event`);
+  assert.ok((await titles('owner')).some((s) => s.includes('ev private')));
+  assert.ok(!(await titles('other')).some((s) => s.includes('ev private')), 'private design bug event hidden from others');
+});
