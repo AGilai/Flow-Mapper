@@ -224,6 +224,7 @@ Resources:
               - 'iam:PassRole'
             Resource:
               - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/flows-cfn-service-role'
+              - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/flows-deployer-role'
               - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/kehilot*'
               - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/kehilot/*'
           - Sid: DenyBoundaryRemoval # a role's boundary can never be removed, and can only be set to the flows boundary
@@ -608,7 +609,24 @@ Resources:
         - !If [UseDomain, !Ref CfnDomainPolicy, !Ref 'AWS::NoValue']
       Tags: [{Key: Project, Value: flows}, {Key: Name, Value: flows-cfn-service-role}]
 
-  # ------------------------------------------------------------------ 3. deployer policy (the owner attaches it to kehilot-deployer)
+  # ------------------------------------------------------------------ 3. deployer role + policy
+  # The machine's kehilot-deployer assumes this role (profile `flows`); kehilot-boundary grows by one
+  # sts:AssumeRole on it instead of carrying the flows actions, so every flows guard stays in flows-deployer.
+  DeployerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: flows-deployer-role
+      Description: Deploys and powers the flows stack. Assumed only by kehilot-deployer. Its rights are exactly the flows-deployer policy.
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {AWS: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/kehilot/kehilot-deployer'}
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns: [!Ref DeployerPolicy]
+      Tags: [{Key: Project, Value: flows}, {Key: Name, Value: flows-deployer-role}]
+
   DeployerPolicy:
     Type: AWS::IAM::ManagedPolicy
     Properties:
@@ -676,3 +694,6 @@ Outputs:
   BoundaryArn:
     Value: !Ref BoundaryPolicy
     Description: The PermissionsBoundary of every role in the flows stack.
+  DeployerRoleArn:
+    Value: !GetAtt DeployerRole.Arn
+    Description: The machine's ~/.aws/config profile `flows` assumes this role (credential_source = Ec2InstanceMetadata).
