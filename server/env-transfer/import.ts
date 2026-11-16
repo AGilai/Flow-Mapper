@@ -5,7 +5,7 @@ import type { DB } from '../db/connection.ts';
 import { tx } from '../db/connection.ts';
 import { HttpError, badRequest, conflict } from '../errors.ts';
 import { actorId, authOff, currentWho } from '../auth/context.ts';
-import { ensureUser, findUser } from '../store/users.ts';
+import { findUser } from '../store/users.ts';
 import { newEnvSlot } from '../store/env-color.ts';
 import { FORMAT, q, schemaVersion } from './export.ts';
 import { SPECS } from './spec.ts';
@@ -34,15 +34,11 @@ export function importEnv(db: DB, bundle: any, opts: { as?: string | null; owner
   const owner = resolveOwner(db, opts.owner ?? null);
   const warnings: string[] = [], counts: Record<string, number> = {};
   const warn = (w: string) => { if (!warnings.includes(w)) warnings.push(w); };
-  const created = new Set<string>();
-  /** The user of the same name here; one is made when there is none (as every comment author already is), so colours and mentions keep working. */
+  /** The user of the same exact email here, else null: nobody is matched by display name and none is created (the author names stay as text on the rows). */
   const userMap = (id: unknown): string | null => {
-    const n = bundle.users?.[id as string];
-    if (typeof n !== 'string') return null;
-    const before = db.prepare('SELECT count(*) AS n FROM users').get() as { n: number };
-    const u = ensureUser(db, { name: n });
-    if ((db.prepare('SELECT count(*) AS n FROM users').get() as { n: number }).n > before.n) created.add(n);
-    return u?.id ?? null;
+    const email = bundle.users?.[id as string]?.email;
+    if (typeof email !== 'string' || !email) return null;
+    return (db.prepare('SELECT id FROM users WHERE lower(email) = lower(?) AND merged_into IS NULL').get(email) as { id: string } | undefined)?.id ?? null;
   };
 
   const run = () => tx(db, () => {
@@ -68,7 +64,7 @@ export function importEnv(db: DB, bundle: any, opts: { as?: string | null; owner
         }
         for (const c of s.nulls ?? []) r[c] = null;
         for (const c of s.owner ?? []) r[c] = owner;
-        for (const c of s.users ?? []) if (r[c] != null) { const m = userMap(r[c]); if (m === null) unmappedUsers.add(String(bundle.users?.[r[c] as string] ?? r[c])); r[c] = m; }
+        for (const c of s.users ?? []) if (r[c] != null) { const m = userMap(r[c]); if (m === null) unmappedUsers.add(String(bundle.users?.[r[c] as string]?.name ?? r[c])); r[c] = m; }
         if (s.table === 'comment_mentions' && r.user_id == null) continue; // a mention of someone unknown here has nobody to point at
         const old = r.id;
         const selfLater: [string, unknown][] = [];
@@ -86,8 +82,7 @@ export function importEnv(db: DB, bundle: any, opts: { as?: string | null; owner
       counts[s.table] = n;
     }
     for (const t of Object.keys(bundle.tables)) if (!SPECS.some((s) => s.table === t)) warn(`table '${t}' is not known here: ignored`);
-    if (created.size) warn(`users created here from names in the bundle: ${[...created].join(', ')}`);
-    if (unmappedUsers.size) warn(`user ids without a name in the bundle, left unlinked: ${[...unmappedUsers].join(', ')}`);
+    if (unmappedUsers.size) warn(`users not matched here by email, left unlinked (author names kept as text): ${[...unmappedUsers].join(', ')}`);
     const src = meta.source;
     if (typeof src === 'string' && src && !db.prepare('SELECT 1 FROM envs WHERE name = ?').get(src)) warn(`source ${src} not here: imported standalone (the baseline is carried; compare against the source is unavailable)`);
     if (opts.dryRun) throw new Rollback();

@@ -37,7 +37,7 @@ export function exportEnv(db: DB, env: string, appVersion: string) {
     tables[s.table] = selectRows(db, s, env);
     for (const r of tables[s.table]) for (const c of s.users ?? []) if (typeof r[c] === 'string') userIds.add(r[c] as string);
   }
-  const users: Record<string, string> = {}; // user id -> name, so an importer can map people by name
-  for (const id of userIds) { const u = db.prepare('SELECT name FROM users WHERE id = ?').get(id) as { name: string } | undefined; if (u) users[id] = u.name; }
+  const users: Record<string, { name: string; email: string | null }> = {}; // user id -> name and email: an importer matches people by exact email only, the names stay as text on the rows
+  for (const id of userIds) { const u = db.prepare('SELECT name, email FROM users WHERE id = ?').get(id) as { name: string; email: string | null } | undefined; if (u) users[id] = { name: u.name, email: u.email }; }
   return { format: FORMAT, formatVersion: 1, appVersion, schemaVersion: schemaVersion(db), exportedAt: new Date().toISOString(), env: meta, users, tables };
 }

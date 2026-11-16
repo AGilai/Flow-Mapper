@@ -138,3 +138,19 @@ test('export refuses a sealed env and an unknown one', async () => {
   assert.equal((await A.call('GET', '/api/envs/prod/export')).status, 400);
   assert.equal((await A.call('GET', '/api/envs/nope/export')).status, 404);
 });
+
+test('users: matched by exact email only, never by name, none created', async () => {
+  const count = () => (B.ctx.db.prepare('SELECT count(*) AS n FROM users').get() as any).n;
+  const n = (sql: string) => (B.ctx.db.prepare(sql).get() as any).n;
+  const before = count();
+  const r = await B.call('POST', '/api/envs/import?as=u1', bundle);
+  assert.ok(r.body.warnings.some((w: string) => /not matched here by email/.test(w) && /Ana/.test(w)), JSON.stringify(r.body.warnings));
+  assert.equal(count(), before, 'no user was created');
+  assert.equal(n("SELECT count(*) AS n FROM comments WHERE env = 'u1' AND author_id IS NOT NULL"), 0);
+  assert.equal(n("SELECT count(*) AS n FROM comments WHERE env = 'u1' AND author = 'Ana'"), 1, 'the name stays as text');
+  B.ctx.db.prepare("INSERT INTO users (id, name, color, created_at, email) VALUES ('u_bb', 'Ana', 0, 'x', 'ana@example.com')").run();
+  const withEmail = structuredClone(bundle);
+  for (const u of Object.values(withEmail.users) as any[]) if (u.name === 'Ana') u.email = 'ANA@example.com';
+  assert.equal((await B.call('POST', '/api/envs/import?as=u2', withEmail)).status, 201);
+  assert.equal(n("SELECT count(*) AS n FROM comments WHERE env = 'u2' AND author_id = 'u_bb'"), 1);
+});
