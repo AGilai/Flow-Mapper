@@ -3,6 +3,7 @@
 // per viewer and in the URL (`pane=`). The border to the diagram is the splitter (splitter.js).
 
 import { h } from '../dom.js';
+import { icon } from '../icons.js';
 import { setQuery, parseHash } from '../router.js';
 import { TABS, TAB_NAMES, paneParam, initialTab, stepTab, countText, primaryLabel } from './pure.js';
 import { createSplitter } from './splitter.js';
@@ -37,11 +38,12 @@ export function createPane({ panels, diagram, hasNotes = false }) {
   const menu = h('div.fp-menu', { role: 'menu', hidden: true });
   for (const [id, label] of [['comments', 'Comment'], ['actions', 'Action item']]) if (panels[id]) menu.append(h('button.fp-mi', { type: 'button', role: 'menuitem', 'data-id': id, on: { click: () => { closeMenu(); doAdd(id); } } }, h('i'), h('b', label)));
   const addGroup = h('div.fp-add', primary, more, menu);
-  const fold = h('button.fp-fold', { type: 'button', 'data-qa': 'pane-fold', on: { click: () => { split.toggle(); paint(); } } }, '▾');
+  const fold = h('button.fp-fold.cardtog', { type: 'button', 'data-qa': 'pane-fold', on: { click: () => { split.toggle(); paint(); } } }, icon('chevdown')); // up = expanded (Collapse), down = collapsed (Expand): the same as the call card
   const tools = h('span.fp-tools', addGroup);
   const flowTag = h('span.fp-flow', { title: 'The flow doc: the notes, comments and action items of this flow', html: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2v12M3 4h6M3 8h8M3 12h5"/></svg>Flow' });
   const size = panels.notes ? textSize('flowdoc', panels.notes.el).el : null; // A- / A / A+ for the flow doc's text (Unreleased), shown on the Notes tab
-  const tabs = h('div.fp-tabs', flowTag, list, sel, h('span.fp-sp'), size, tools, fold);
+  const tabs = h('div.fp-tabs', fold, flowTag, list, sel, h('span.fp-sp'), size, tools);
+  tabs.addEventListener('click', (e) => { if (!e.target.closest('button, select, a, input, .fp-menu') && !document.body.classList.contains('is-max')) { split.toggle(); paint(); } }); // the whole header row is the handle too
   const body = h('div.fp-body');
   for (const id of ids) { panelEl[id] = h('div.fp-panel', { role: 'tabpanel', 'aria-labelledby': `fp-tab-${id}`, hidden: true }, panels[id].el); body.append(panelEl[id]); }
   const offLine = h('div.fp-off', { 'data-qa': 'flowdoc-off' }, 'Flow doc hidden · ', h('button', { type: 'button', 'data-qa': 'flowdoc-show', on: { click: () => setFlowDoc('enabled', true) } }, 'Show'));
@@ -84,9 +86,9 @@ export function createPane({ panels, diagram, hasNotes = false }) {
     sel.value = cur; el.dataset.tab = cur; // maximized, the Notes tab is the whole page (flow-pane.css)
     primary.textContent = primaryLabel(cur, compact);
     primary.hidden = cur !== 'notes' && !panels[cur]?.add;
-    fold.setAttribute('aria-label', split.collapsed() ? 'Expand the pane' : 'Collapse the pane to its tab row');
+    fold.setAttribute('aria-label', split.collapsed() ? 'Expand the flow doc' : 'Collapse the flow doc'); fold.title = fold.getAttribute('aria-label');
     fold.setAttribute('aria-expanded', String(!split.collapsed()));
-    fold.classList.toggle('up', split.collapsed());
+    fold.classList.toggle('up', !split.collapsed());
   }
   function show(id, { user = false, quiet = false } = {}) { // quiet: the default tab following the flow's notes; it never opens a pane the viewer folded
     if (!panels[id]) return;

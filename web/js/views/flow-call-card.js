@@ -13,9 +13,10 @@ import { docView } from '../notes/read.js';
 import { createNotesEditor } from '../notes/edit.js';
 import { textSize } from '../notes/text-size.js';
 
-/** createCallCard({ store, canEdit(), docLink(n) -> fn | null }) -> { el, size (the text size control), paint(step | null, n), hasText(step), what(step), editing(), cancel() } */
+/** createCallCard({ store, canEdit(), docLink(n) -> fn | null }) -> { el, size (the text size control), edit (the header's Edit button), paint(step | null, n), hasText(step), what(step), editing(), cancel() } */
 export function createCallCard({ store, canEdit, quiet = () => false, docLink = () => null, onChange = () => {} }) {
   const el = h('div.cap-card', { 'data-qa': 'call-card', hidden: true }), size = textSize('call', el);
+  const editBtn = h('button.cc-edit', { type: 'button', 'data-qa': 'edit-call-note', 'aria-label': 'Edit call description', title: 'Edit this call’s description', hidden: true, on: { click: () => open() } }, icon('edit'), h('span.cc-edit-t', 'Edit')); // lives in the card header (the stepbar's step line)
   let step = null, n = 0, form = false, editor = null, view = null, opening = false;
   const call = () => callOf(step);
   const note = (st = step) => store.of(callOf(st)) ?? null;
@@ -35,7 +36,7 @@ export function createCallCard({ store, canEdit, quiet = () => false, docLink = 
     const act = h('div.cc-act'), done = (saved) => { stop(); form = false; if (saved) store.adopt(c, saved); paint(step, n); onChange(); };
     const pane = { tools: (node) => act.replaceChildren(...(node ? [node] : [])) };
     editor = createNotesEditor({ env: store.env, anchor: callAnchor(c.from, c.to, c.op), kind: 'call', doc: d, template: !hasCall(parseCall(d.body)), pane, onSaved: done, onTheirs: done, onCancel: () => done(null) });
-    el.hidden = false; el.replaceChildren(h('div.cc-editor', editor.el, act)); editor.focus(); onChange();
+    editBtn.hidden = true; el.hidden = false; el.replaceChildren(h('div.cc-editor', editor.el, act)); editor.focus(); onChange();
   }
   function cancel() { if (form) editor?.cancel(); }
 
@@ -43,6 +44,7 @@ export function createCallCard({ store, canEdit, quiet = () => false, docLink = 
     if (editor) return; // writing: the card stays on the call it opened
     step = st; n = num;
     stop();
+    editBtn.hidden = true;
     if (!st) { el.hidden = true; el.replaceChildren(); return; }
     const cur = note(), ed = canEdit() && !!callOf(st);
     form = false;
@@ -54,9 +56,8 @@ export function createCallCard({ store, canEdit, quiet = () => false, docLink = 
     }
     const link = docLink(n), a = link ? h('a', { href: '#', 'data-qa': 'cc-doc', on: { click: (e) => { e.preventDefault(); link(); } } }, 'Flow doc') : null;
     view = docView(cur.body, { env: store.env });
-    el.hidden = false;
-    el.replaceChildren(...[h('div.cc-read', { 'data-qa': 'cc-read' }, view.el, a ? h('p.cc-doclink', 'A callout on this step: ', a) : null),
-      ed ? h('button.cc-edit', { type: 'button', 'data-qa': 'edit-call-note', 'aria-label': 'Edit call description', title: 'Edit this call’s description', on: { click: open } }, icon('edit')) : null].filter(Boolean));
+    el.hidden = false; editBtn.hidden = !ed;
+    el.replaceChildren(h('div.cc-read', { 'data-qa': 'cc-read' }, view.el, a ? h('p.cc-doclink', 'A callout on this step: ', a) : null));
   }
-  return { el, size: size.el, paint, hasText: (st) => !!note(st), what: (st) => note(st)?.note.first ?? '', editing: () => form, cancel };
+  return { el, size: size.el, edit: editBtn, paint, hasText: (st) => !!note(st), what: (st) => note(st)?.note.first ?? '', editing: () => form, cancel };
 }

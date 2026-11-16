@@ -1,12 +1,18 @@
 /* Call notes (frame 28g): the card under the caption bar's step line, its form, the hover preview and the diagram markers. */
 .cap-what { color: var(--ink-2); }
-.capbar.prev { background: var(--surface-2); }
 .capbar.prev .cap-chip-t::after { content: ' · preview'; text-transform: none; letter-spacing: 0; font-weight: 500; }
 .cap-card { padding: 2px 12px 8px 36px; position: relative; }
 .cap-card[hidden] { display: none; }
-.cc-edit { position: absolute; right: 10px; top: 0; width: 22px; height: 22px; display: inline-grid; place-items: center; padding: 0; border: 0; border-radius: 6px; background: none; color: var(--ink-2); cursor: pointer; opacity: .7; }
-.cc-edit:hover, .cc-edit:focus-visible { opacity: 1; background: var(--accent-soft); color: var(--accent); }
-.cc-edit svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+.cc-edit { flex: none; height: 28px; min-width: 28px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 0 6px; border: 1px solid var(--accent); border-radius: 6px; background: var(--accent-soft); color: var(--accent); font: 600 12px var(--font); cursor: pointer; }
+.cc-edit:hover { background: var(--accent); color: var(--surface); } .cc-edit:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; } .cc-edit[hidden] { display: none; }
+.cc-edit svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; } .cc-edit-t { display: none; }
+@media (min-width: 1024px) { .cc-edit { padding: 0 10px 0 8px; } .cc-edit-t { display: inline; } }
+/* The collapse chevron of a card header (call card, flow doc): a bordered 28px button, up = expanded, down = collapsed. */
+.cardtog { flex: none; appearance: none; width: 28px; height: 28px; display: inline-grid; place-items: center; padding: 0; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--surface); color: var(--ink-2); cursor: pointer; }
+.cardtog svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; } .cardtog.up svg { transform: rotate(180deg); }
+.cardtog:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); } .cardtog:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.fp-tabs > .fp-fold { align-self: center; margin: 0 8px 1px 0; }
+.capbar .cap-row { background: var(--surface-2); } .capbar.prev .cap-row { background: var(--accent-soft); }
 .cc-add { display: inline-flex; align-items: center; gap: 5px; border: 1px dashed var(--line-strong); border-radius: 6px; background: none; color: var(--accent); font: 600 12px var(--font); padding: 3px 9px; cursor: pointer; }
 .cc-add:hover { background: var(--accent-soft); } .cc-add svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; }
 .callmark rect { fill: var(--surface); stroke: var(--ink-2); stroke-width: 1.2; }

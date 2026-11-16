@@ -9,7 +9,7 @@
 .fp-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-right: 64px; }
 .fp-panel[hidden] { display: none; }
 
-.fp-tabs { flex: none; display: flex; align-items: flex-end; gap: 2px; padding: 0 64px 0 var(--s4); border-bottom: 1px solid var(--line); background: var(--surface); position: relative; z-index: 2; min-height: 40px; }
+.fp-tabs { flex: none; display: flex; align-items: flex-end; gap: 2px; padding: 0 64px 0 var(--s4); border-top: 1px solid var(--line-strong); border-bottom: 1px solid var(--line); background: var(--surface-2); position: relative; z-index: 2; min-height: 40px; }
 .fp-tablist { display: flex; align-items: flex-end; gap: 2px; min-width: 0; }
 .fp-tab { appearance: none; background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; padding: 11px 12px 9px; font: 500 var(--fs-sm) var(--font); color: var(--ink-2); white-space: nowrap; display: inline-flex; gap: 5px; align-items: baseline; cursor: pointer; border-radius: var(--r-sm) var(--r-sm) 0 0; }
 .fp-tab small { font-size: var(--fs-xs); color: var(--muted); font-weight: 400; }
@@ -34,9 +34,6 @@
 .fp-mi i { font-style: normal; width: 16px; text-align: center; color: var(--accent); font-weight: 700; }
 .fp-mi b { font-weight: 600; }
 .fp-mi:hover, .fp-mi.on { background: var(--accent-soft); }
-.fp-fold { appearance: none; align-self: center; width: 28px; height: 28px; margin-bottom: 1px; border: 0; border-radius: var(--r-sm); background: none; color: var(--muted); cursor: pointer; font-size: 12px; }
-.fp-fold:hover { background: var(--surface-2); color: var(--ink); }
-.fp-fold.up { transform: rotate(180deg); }
 
 /* the border to the diagram: a 7 px grab area over a 1 px line */
 .fp-split { flex: none; height: 7px; margin: -4px 0 -3px; position: relative; z-index: 3; cursor: row-resize; touch-action: none; }

@@ -39,7 +39,7 @@ export function drawStepTiles(res, built, steps, onPick, onEdit = null, hl = () 
     if (!onEdit) return t;
     // 0.30.0: a pencil next to the tile opens the step editor; shown on hover, on the current step, and always on touch (flow-walk.css)
     const px = cx + sp.dir * (w / 2 + 15), pen = s('g', { class: 'steppen', role: 'button', 'aria-label': `Edit step ${st.n}` },
-      s('rect', { x: px - 10, y: y - 6, width: 20, height: H, rx: 5 }), s('path', { d: `M${px - 4} ${y + 6.5}h2.3l5.2-5.2-2.3-2.3-5.2 5.2z`, class: 'pp' }), s('title', {}, `Edit step ${st.n}`));
+      s('rect', { x: px - 11, y: y - 7, width: 22, height: H + 2, rx: 6 }), s('path', { d: `M${px - 4} ${y + 6.5}h2.3l5.2-5.2-2.3-2.3-5.2 5.2z`, class: 'pp', transform: `translate(${px} ${y + 3}) scale(1.5) translate(${-px} ${-(y + 3)})` }), s('title', {}, `Edit step ${st.n} label`));
     const open = (ev) => { ev.stopPropagation(); ev.preventDefault?.(); onEdit(st.n); };
     pen.addEventListener('click', open); // keyboard: the key E, or Edit step on the bar
     const grp = s('g', { class: 'stepgrp', 'data-step': st.n }, t, pen);
