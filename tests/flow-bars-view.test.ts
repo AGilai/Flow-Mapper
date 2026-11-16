@@ -56,7 +56,7 @@ test('the View menu: every old toolbar option, the Descriptions section, a count
 test('the caption bar follows the step, can be hidden, edits the step; the player is in the toolbar; the legend moves to the caption', () => {
   const bar = src('js/views/flow-stepbar.js'), walk = src('js/views/flow-walk-view.js'), st = src('js/views/flow-caption-state.js');
   assert.match(bar, /Call · step \$\{n\}/); assert.match(bar, /mdBlock\(t\.desc\)/, 'the step description renders as Markdown');
-  assert.match(bar, /'data-qa': 'edit-step'/); assert.match(bar, /'data-qa': 'add-description'/); assert.match(bar, /setCap\('caption', false\)/);
+  assert.match(bar, /'data-qa': 'edit-step'/); assert.match(bar, /'data-qa': 'add-description'/); assert.match(bar, /setCap\('caption', true\)/);
   assert.match(bar, /cnt-l.*cnt-s/s, 'the player has a long and a short count: "Step 2 of 3", "2/3"');
   assert.match(walk, /nav: bar\.nav, caption: bar\.caption, legendSlot: bar\.legendSlot/); assert.match(walk, /go\(n, \{ scroll = true, user = true \} = \{\}\) \{[^]*bar\.show\(st, cur, steps\.length\)/, 'every move of the step repaints the caption');
   assert.match(st, /setCap/); assert.match(st, /export function onCaps/);

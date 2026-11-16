@@ -122,7 +122,7 @@ button.dz-pill:focus-visible { outline: 2px solid var(--focus); outline-offset: 
 .zfloat .zoomc .btn.sm { height: 24px; }
 .leg-float { position: absolute; right: 12px; bottom: 44px; z-index: 3; display: none; padding: 3px 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow-panel); }
 .leg-float .store-legend { padding: 0; }
-.flow-tab:not(:has(> .capbar:not([hidden]))) .seq-wrap.has-legend:not(.leg-off) .leg-float, .lv3 .seq-wrap.has-legend:not(.leg-off) .leg-float { display: block; }
+.flow-tab:not(:has(> .capbar:not([hidden]):not(.off))) .seq-wrap.has-legend:not(.leg-off) .leg-float, .lv3 .seq-wrap.has-legend:not(.leg-off) .leg-float { display: block; }
 .store-legend[hidden] { display: none; }
 .leg-float .lg-x, .capbar .lg-x { display: none; }
 .seq-scroll .store-legend { display: none; }

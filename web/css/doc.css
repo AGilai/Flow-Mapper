@@ -135,9 +135,10 @@ div[data-callout] p { margin: 2px 0; }
 .tb-fdi.on { color: var(--accent); background: var(--accent-soft); }
 .fp-flow { display: inline-flex; align-items: center; gap: 5px; align-self: center; margin-right: 8px; padding: 2px 8px 2px 6px; border: 1px solid var(--line-strong); border-radius: 5px; background: var(--surface-2); font: 700 10.5px var(--font); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); }
 .fp-flow svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; }
-.fp-x { appearance: none; align-self: center; width: 28px; height: 28px; margin-bottom: 1px; border: 0; border-radius: var(--r-sm); background: none; color: var(--muted); cursor: pointer; font-size: 14px; }
-.fp-x:hover { background: var(--surface-2); color: var(--ink); }
-.flow-bottom.fd-hide, .fp-split.fd-hide { display: none !important; } /* the flow doc is hidden: no pane, no border (frame 28a) */
+.fp-split.fd-hide { display: none !important; }
+.flow-bottom.fd-hide { flex: none; min-height: 0; max-height: none; height: auto !important; } .flow-bottom.fd-hide > :not(.fp-off) { display: none !important; }
+.flow-bottom:not(.fd-hide) > .fp-off { display: none; }
+.fp-off { padding: 3px 12px; font-size: 12px; color: var(--muted); } .fp-off button { border: 0; background: none; padding: 0; font: inherit; font-weight: 600; color: var(--accent); cursor: pointer; } .fp-off button:hover { text-decoration: underline; }
 .docbadge { cursor: pointer; }
 .docbadge .bd-key circle { fill: var(--accent); }
 .docbadge .bd-bang path { fill: var(--warn); }
