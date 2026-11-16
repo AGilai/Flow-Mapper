@@ -4,6 +4,7 @@
 
 import { h } from '../dom.js';
 import { icon } from '../icons.js';
+import { me } from '../users/directory.js';
 import { callOf } from './flow-call-store.js';
 import { CALL_MAX } from '../../core/call-notes.js';
 
@@ -11,7 +12,7 @@ const lines = (t) => String(t ?? '').split('\n').filter(Boolean).map((l) => h('p
 const col = (title, ...body) => h('div.cc-col', h('h5', title), ...body);
 
 /** createCallCard({ store, canEdit(), docLink(n) -> fn | null }) -> { el, paint(step | null, n), hasText(step), what(step), editing(), cancel() } */
-export function createCallCard({ store, canEdit, docLink = () => null, onChange = () => {} }) {
+export function createCallCard({ store, canEdit, quiet = () => false, docLink = () => null, onChange = () => {} }) {
   const el = h('div.cap-card', { 'data-qa': 'call-card', hidden: true });
   let step = null, n = 0, form = false;
   const call = () => callOf(step);
@@ -47,8 +48,9 @@ export function createCallCard({ store, canEdit, docLink = () => null, onChange 
     if (form && ed) { el.hidden = false; el.replaceChildren(editor(cur)); return; }
     form = false;
     if (!cur) {
-      el.hidden = !ed;
-      el.replaceChildren(ed ? h('button.cc-add', { type: 'button', 'data-qa': 'add-call-note', on: { click: open } }, icon('plus'), 'Add call description') : '');
+      const q = quiet(), show = ed && (!q || !!me()); // View mode: only a signed-in editor gets the one muted line
+      el.hidden = !show;
+      el.replaceChildren(show ? h(q ? 'button.cc-add.quiet' : 'button.cc-add', { type: 'button', 'data-qa': 'add-call-note', on: { click: open } }, ...(q ? ['+ describe this call'] : [icon('plus'), 'Add call description'])) : '');
       return;
     }
     const link = docLink(n), a = link ? h('a', { href: '#', 'data-qa': 'cc-doc', on: { click: (e) => { e.preventDefault(); link(); } } }, 'Flow doc') : null;

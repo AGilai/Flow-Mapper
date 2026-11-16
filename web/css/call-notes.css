@@ -25,3 +25,4 @@
 .callmark rect { fill: var(--surface); stroke: var(--ink-2); stroke-width: 1.2; }
 .callmark path { fill: none; stroke: var(--ink-2); stroke-width: 1.2; stroke-linecap: round; }
 .callmark-bang { pointer-events: auto; }
+.cc-add.quiet { border: 0; padding: 0 2px; color: var(--muted); font-weight: 500; } .cc-add.quiet:hover { background: none; color: var(--accent); text-decoration: underline; }

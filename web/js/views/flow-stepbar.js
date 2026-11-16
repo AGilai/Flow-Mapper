@@ -15,6 +15,7 @@ import { createCallCard } from './flow-call-card.js';
 import { callOf } from './flow-call-store.js';
 import { readKey, writeKey } from './flow-info-pure.js';
 import { state } from '../state.js';
+import { watchUsers } from '../users/directory.js';
 
 const dot = (c) => { const v = colVar(c); return v ? h('span.cdot', { style: { '--cc': v }, 'aria-hidden': 'true' }) : null; };
 
@@ -36,7 +37,7 @@ export function createStepbar({ store, root, onMove, onEdit, sb = () => 'tad', e
   const caption = h('div.capbar', { role: 'group', 'aria-label': 'Call notes', 'data-qa': 'caption-bar', hidden: true },
     h('div.cap-row', chip, num, call, ext, edit, desc, more, h('span.grow'), legendSlot, close));
   let last = null, data = null, total = 0, exp = false, cardOpen = readKey('callcard-open') !== '0', pv = null; // pv: the step a hovered arrow previews (frame 28g); cardOpen: the call card is expanded (remembered)
-  const card = calls ? createCallCard({ store: calls, canEdit: () => !readOnly && state.mode === 'edit', docLink, onChange: () => requestAnimationFrame(() => document.dispatchEvent(new CustomEvent('fm:layout'))) }) : null;
+  const card = calls ? createCallCard({ store: calls, canEdit: () => true, quiet: () => state.mode !== 'edit', docLink, onChange: () => requestAnimationFrame(() => document.dispatchEvent(new CustomEvent('fm:layout'))) }) : null;
   if (card) caption.append(card.el);
   const cardNote = () => !!card && !!last && card.hasText(pv ?? last.step);
 
@@ -51,6 +52,7 @@ export function createStepbar({ store, root, onMove, onEdit, sb = () => 'tad', e
     requestAnimationFrame(clipped);
   };
   const off = onCaps(paintCaps);
+  const unUsers = card ? watchUsers(() => { if (last) paint(); }) : () => {}; // signing in shows "+ describe this call"
   const unCalls = calls ? calls.watch(() => { if (last) paint(); }) : () => {};
   const unwatch = root ? store.watch(root, (d) => { data = d; if (last) paint(); }) : () => {};
   if (root && !readOnly) desc.addEventListener('dblclick', (e) => { if (!e.target.closest('a, button')) { getSelection()?.removeAllRanges(); onEdit?.(caption); } });
@@ -103,5 +105,5 @@ export function createStepbar({ store, root, onMove, onEdit, sb = () => 'tad', e
     if ((next?.n ?? null) === (pv?.n ?? null)) return;
     pv = next; paint();
   }
-  return { nav, caption, bar: caption, preview, legendSlot, show, refresh: () => last && paint(), dispose: () => { unwatch(); off(); unCalls(); } };
+  return { nav, caption, bar: caption, preview, legendSlot, show, refresh: () => last && paint(), dispose: () => { unwatch(); off(); unCalls(); unUsers(); } };
 }

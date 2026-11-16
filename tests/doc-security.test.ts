@@ -135,6 +135,8 @@ test('cognito + MCP: a viewer cannot write the design doc, a stranger gets 404, 
     assert.equal((await other.call('GET', '/api/envs/d-sec/notes/history?anchor=env')).status, 404);
     assert.equal((await other.call('GET', '/api/envs/d-sec/notes/index')).status, 404);
     assert.equal((await other.call('GET', '/api/envs/d-sec/notes/calls')).status, 404, 'call notes follow the same access rule');
+    const cv = await mcpOf(v)('set_notes', { env: 'd-sec', call: { from: 'a', to: 'b', op: 'c' }, body: 'x' }); assert.equal(cv.isError, true, 'a viewer cannot write a call note'); assert.equal((await mcpOf(e)('set_notes', { env: 'd-sec', call: { from: 'a', to: 'b', op: 'c|d' }, body: '<img src=x onerror=1>hi' })).isError, false);
+    assert.doesNotMatch((await mcpOf(o)('get_notes', { env: 'd-sec', call: { from: 'a', to: 'b', op: 'c|d' } })).json.html, /<img/); // text is escaped; the UI draws it with textContent
     assert.equal((await other.call('PUT', '/api/envs/d-sec/notes', { anchor: 'call:a|b|c', body: 'x', author: 'X' })).status, 404);
   } finally { await t.close(); }
 });
