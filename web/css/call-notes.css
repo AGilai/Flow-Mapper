@@ -44,3 +44,9 @@
 .ts-ctl[hidden] { display: none; }
 .cap-row .ts-ctl { margin-left: auto; }
 .fp-tabs .ts-ctl { align-self: center; margin-right: 8px; }
+/* The call card's own height (Unreleased): its top border is a drag handle (card-splitter.js sets --cc-h on the bar); without it the reading area is its natural height, 42vh at most. */
+.capbar > .cc-split { position: absolute; top: -4px; left: 0; right: 0; margin: 0; }
+.capbar > .cc-split[hidden] { display: none; }
+.capbar.sized .cap-card .cc-read { height: calc(var(--cc-h) / var(--ts, 1)); max-height: none; }
+.capbar.sized .cap-card .nt-edit .rte-area { min-height: calc(var(--cc-h) / var(--ts, 1)); max-height: calc(var(--cc-h) / var(--ts, 1)); }
+.flow-tab:has(.capbar.sized) > .flow-body { min-height: 120px; } /* the diagram gives way down to MIN_DIAGRAM before the pane does */
