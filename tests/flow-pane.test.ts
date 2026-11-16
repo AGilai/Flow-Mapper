@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 // @ts-ignore plain JS module shared with the browser
-import { paneParam, initialTab, stepTab, countText, primaryLabel, dragHeight, maxPane, heightOf } from '../web/js/flow-pane/pure.js';
+import { paneParam, initialTab, stepTab, countText, primaryLabel, dragHeight, maxPane, heightOf, cardHeightOf, MIN_CARD } from '../web/js/flow-pane/pure.js';
 
 test('pane= is one of the three tabs, else null', () => {
   assert.equal(paneParam(new URLSearchParams('pane=notes')), 'notes');
@@ -41,4 +41,13 @@ test('splitter: dragging up grows the pane, clamped between the tab row and what
   assert.equal(maxPane({ tab: 800, others: 200 }), 480);
   assert.equal(maxPane({ tab: 200, others: 200 }), 0);
   assert.equal(heightOf('240'), 240); assert.equal(heightOf('x'), null); assert.equal(heightOf('5'), null); assert.equal(heightOf(null), null);
+});
+
+test('call card height: a saved value is a whole number of px of at least 60, else the default; a drag clamps to [60, max]', () => {
+  assert.equal(cardHeightOf('240'), 240); assert.equal(cardHeightOf('240.4'), 240);
+  assert.equal(cardHeightOf(null), null); assert.equal(cardHeightOf(''), null); assert.equal(cardHeightOf('x'), null); assert.equal(cardHeightOf('59'), null); assert.equal(cardHeightOf('9000'), null);
+  assert.equal(MIN_CARD, 60);
+  assert.equal(dragHeight({ start: 200, dy: -120, min: MIN_CARD, max: 500 }).h, 320, 'up = taller');
+  assert.equal(dragHeight({ start: 200, dy: 400, min: MIN_CARD, max: 500 }).h, 60, 'down stops at 60');
+  assert.equal(dragHeight({ start: 200, dy: -900, min: MIN_CARD, max: 500 }).h, 500, 'up stops where the diagram keeps its minimum');
 });

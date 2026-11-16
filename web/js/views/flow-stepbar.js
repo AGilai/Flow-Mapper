@@ -15,6 +15,7 @@ import { createCallCard } from './flow-call-card.js';
 import { callOf } from './flow-call-store.js';
 import { readKey, writeKey } from './flow-info-pure.js';
 import { state } from '../state.js';
+import { createCardSplitter } from '../flow-pane/card-splitter.js';
 import { watchUsers } from '../users/directory.js';
 
 const dot = (c) => { const v = colVar(c); return v ? h('span.cdot', { style: { '--cc': v }, 'aria-hidden': 'true' }) : null; };
@@ -39,6 +40,8 @@ export function createStepbar({ store, root, onMove, onEdit, sb = () => 'tad', e
   let last = null, data = null, total = 0, exp = false, cardOpen = readKey('callcard-open') !== '0', pv = null; // pv: the step a hovered arrow previews (frame 28g); cardOpen: the call card is expanded (remembered)
   const card = calls ? createCallCard({ store: calls, canEdit: () => true, quiet: () => state.mode !== 'edit', docLink, onChange: () => requestAnimationFrame(() => document.dispatchEvent(new CustomEvent('fm:layout'))) }) : null;
   if (card) { caption.append(card.el); caption.querySelector('.cap-row').append(card.size, card.edit); card.size.hidden = true; }
+  const split = card ? createCardSplitter({ bar: caption, body: () => caption.previousElementSibling, area: () => card.el.querySelector('.rte-area') ?? card.el.querySelector('.cc-read') }) : null; // the border above the card (Unreleased)
+  if (split) caption.prepend(split.el);
   const cardNote = () => !!card && !!last && card.hasText(pv ?? last.step);
 
   const toggleCard = () => { cardOpen = !cardOpen; writeKey('callcard-open', cardOpen ? '1' : '0'); more.setAttribute('aria-expanded', String(cardOpen)); more.classList.toggle('up', cardOpen); paint(); document.dispatchEvent(new CustomEvent('fm:layout')); }; // the call card: ONLY an explicit user action (chevron, header) calls this, never a repaint
@@ -79,6 +82,7 @@ export function createStepbar({ store, root, onMove, onEdit, sb = () => 'tad', e
     more.setAttribute('aria-expanded', String(cn ? cardOpen : exp)); more.classList.toggle('up', cn ? cardOpen : exp); more.title = cn ? (cardOpen ? 'Collapse the call notes' : 'Expand the call notes') : (exp ? 'Show one line' : 'Show the whole description'); more.setAttribute('aria-label', more.title);
     caption.classList.toggle('prev', !!pv); caption.classList.toggle('plain', !parts.length && !(card && !card.el.hidden));
     paintCaps();
+    if (split) { const on = !!cn && (cardOpen || card.editing()) && caps().caption; split.show(on); if (on) requestAnimationFrame(() => split.show(true)); } // only over an open card that shows a note; the height itself is never touched here
     if (!pv) live.textContent = announce(n, last.total, `${t.title ? `${t.title}, ` : ''}${step.label}, ${step.from} to ${step.to}`);
   }
 

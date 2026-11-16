@@ -44,3 +44,8 @@ export const maxPane = ({ tab, others, diagram = MIN_DIAGRAM }) => Math.max(0, t
 
 /** A saved height read back: a whole number of px in a sane range, else null. */
 export const heightOf = (v) => { const n = Number(v); return Number.isFinite(n) && n >= 60 && n <= 5000 ? Math.round(n) : null; };
+
+export const MIN_CARD = 60; // the call card's reading area is at least this tall
+
+/** A saved call card height read back: a whole number of px, at least MIN_CARD, else null (the default: natural height, 42vh at most). */
+export const cardHeightOf = (v) => { const n = Number(v); return v != null && v !== '' && Number.isFinite(n) && n >= MIN_CARD && n <= 5000 ? Math.round(n) : null; };
