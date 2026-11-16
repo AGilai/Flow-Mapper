@@ -10,6 +10,7 @@ import { serveStatic } from './http/static.ts';
 import { afterWrite, graphFor, invalidateDraft, viewFor } from './graph-cache.ts';
 import type { Ctx } from './context.ts';
 import { registerEnvs } from './routes/envs.ts';
+import { registerEnvTransfer } from './routes/env-transfer.ts';
 import { registerMap } from './routes/map.ts';
 import { registerQueries } from './routes/queries.ts';
 import { registerBugs } from './routes/bugs.ts';
@@ -70,6 +71,7 @@ export function createApp(opts: AppOptions): { server: Server; ctx: Ctx; router:
   if (auth.mode === 'cognito') registerOidc(router, ctx, auth);
   registerAccounts(router, ctx, auth);
   registerEnvs(router, ctx);
+  registerEnvTransfer(router, ctx);
   registerMap(router, ctx);
   registerQueries(router, ctx);
   registerBugs(router, ctx);

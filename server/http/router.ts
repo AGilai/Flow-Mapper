@@ -34,6 +34,8 @@ export type Around = (req: Req, next: () => Promise<unknown>) => Promise<unknown
 interface Route { method: string; parts: string[]; handler: Handler }
 
 const MAX_BODY = 10 * 1024 * 1024;
+/** Environment import takes a whole exported environment (server/env-transfer): the one route with a larger limit. */
+const MAX_IMPORT_BODY = 200 * 1024 * 1024;
 
 /** The path as the router matches it: segments decoded, empty ones dropped (`/api//envs/%61/x/` = `/api/envs/a/x`). Access rules read this, never the raw spelling. */
 export const canonicalPath = (p: string) => '/' + p.split('/').filter(Boolean).map(decodeURIComponent).join('/');
@@ -88,6 +90,7 @@ export class Router {
     const url = new URL(req.url ?? '/', 'http://localhost');
     const m = this.match(req.method ?? 'GET', url.pathname);
     if (m === null) return false;
+    const limit = req.method === 'POST' && canonicalPath(url.pathname) === '/api/envs/import' ? MAX_IMPORT_BODY : MAX_BODY;
     let bodyCache: Buffer | null = null;
     const body = async () => {
       if (bodyCache) return bodyCache;
@@ -95,7 +98,7 @@ export class Router {
       let size = 0;
       for await (const c of req) {
         size += (c as Buffer).length;
-        if (size > MAX_BODY) throw new HttpError(413, 'TOO_LARGE', 'request body too large');
+        if (size > limit) throw new HttpError(413, 'TOO_LARGE', 'request body too large');
         chunks.push(c as Buffer);
       }
       return (bodyCache = Buffer.concat(chunks));

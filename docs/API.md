@@ -72,6 +72,13 @@ a service's `groupPath` must be one of them. `levels` defaults to `["Subsystem",
 A design owns its rows: nothing is shared with the source. The copied rows of a sealed source are frozen into `baseline_items`
 (what the design was copied from; the marks below compare with it); a copy of a design keeps that design's original baseline.
 
+## Export and import an environment
+
+| Method | Path | |
+|---|---|---|
+| GET | `/api/envs/:env/export` | A design environment as one bundle `{format: 'flow-mapper-env', formatVersion: 1, appVersion, schemaVersion (latest migration number), exportedAt, env (the envs row without owner and visibility), users ({id: {name, email}} of people referenced), tables: {<table>: [rows]}}`. Owner or admin only (auth off: allowed). `400` for a sealed env, `404` unknown. Which tables travel (and which are skipped, with the reason) is listed in `server/env-transfer/spec.ts`: baseline, snapshots, entities, DTOs, health history, changelog, drafts with ops (all statuses), comments, action items, flow and call notes, flow names, links, relations; not bugs, members, events, accounts. |
+| POST | `/api/envs/import?as=<name>&owner=<user id or email>&dryRun=1` | Body = a bundle. `201 {env, counts: {<table>: n}, warnings}`; `dryRun=1` runs everything and rolls back (`200`). All or nothing. `as` defaults to the bundle's name. `400 BAD_FORMAT` (not formatVersion 1), `409 SCHEMA_NEWER` (bundle from a newer server), `409 ENV_EXISTS`. The body limit of this route is 200 MB (10 MB elsewhere). A bundle from an older schema is read by column name (unknown columns dropped with a warning, missing ones take defaults). The owner is the caller (auth off: none); `owner` is admin only. Visibility starts private (auth off: published, like a copy). Autoincrement ids (comments, parent ids, drafts, draft ops, changelog, action items, note versions) are re-keyed and the columns pointing at them follow. People are matched to an existing user by exact email only (never by name, none is created; the rest are unlinked, author names stay as text, one warning lists them). `source` and `copied_at` are kept as a label; marks read the carried baseline, so they equal the origin's with the source missing (a warning says so; `against=source` then answers `409 NO_SOURCE`). |
+
 ## Drafts, marks and `?draft=` (0.23.0)
 
 A **draft** is a named list of whole-item ops on a design environment. Reading with `?draft=<slug>` shows the environment as the
