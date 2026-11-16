@@ -5,6 +5,9 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## 0.56.1 (2026-11-16): Call notes hover
+- Hovering anywhere near an arrow (not only its label) previews that call in the Call bar; empty diagram space keeps the previewed call, leaving the diagram or clicking returns to the chosen step.
+
 ## 0.56.0 (2026-11-16): Call notes (frame 28 stage 4)
 
 - **Call notes.** A description of one CALL, kept once and shown in every flow that uses it (HLD: describe an API once). Stored in the Notes storage (`flow_notes`, versions, History; no migration) under the anchor `call:<from>|<to>|<op>`: `from` / `to` are the names the step shows (service, queue, data store) and `op` its label (`GET /products/{id}/reviews`, `find · reviews`); a `|` or `%` in a name is written `%7C` / `%25`. The body is the Notes subset: `<h2>What it does</h2><p>…</p><h2>Contract</h2><p>one line</p><div data-callout="watch"><p>…</p></div>` (the Watch callout makes the step show a `!` on the diagram). Limits: what 2,000, contract 500, watch 500 characters (`422`).
