@@ -69,7 +69,7 @@ const EXEMPT = new Set(['PUT /api/envs/:env/descriptions', 'POST /api/bugs', 'PA
   'PUT /api/envs/:env/subsystems', 'PUT /api/envs/:env/levels', 'PUT /api/envs/:env/color',
   // 0.52.0 accounts: sharing, tokens and logout are about people, not map data (their rules are in tests/access-*.test.ts)
   'PUT /api/envs/:env/access', 'PUT /api/envs/:env/drafts/:slug/share', 'POST /api/tokens', 'DELETE /api/tokens/:id',
-  'POST /api/envs', 'DELETE /api/envs/:env', 'POST /mcp']);
+  'POST /api/envs', 'DELETE /api/envs/:env', 'POST /api/envs/import', 'POST /mcp']);
 
 const code = (r: { body: any }) => r.body?.error?.code;
 
