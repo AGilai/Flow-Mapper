@@ -32,7 +32,7 @@ export function createStepbar({ store, root, onMove, onEdit, sb = () => 'tad', e
   const chip = h('span.cap-chip', icon('arrow'), h('span.cap-chip-t')), num = h('span.cap-n'), call = h('span.cap-call', { 'data-qa': 'step-title' });
   const ext = h('span.stepext.xs.muted', { 'data-qa': 'step-range' }), desc = h('div.cap-desc', { 'data-qa': 'step-detail' });
   const edit = root && !readOnly ? h('button.cap-edit', { type: 'button', 'data-qa': 'edit-step', 'aria-label': 'Edit step label', title: 'Edit step label (E)', on: { click: () => onEdit?.(caption) } }, icon('edit')) : null;
-  const more = h('button.cap-more.cardtog', { type: 'button', 'aria-label': 'Show the whole description', 'aria-expanded': 'false', title: 'Show the whole description', hidden: true, on: { click: () => toggle() } }, icon('chevdown')); // up = expanded, down = collapsed
+  const more = h('button.cap-more.cardtog', { type: 'button', 'aria-label': 'Show the whole description', 'aria-expanded': 'false', title: 'Show the whole description', hidden: true, on: { click: () => (cardNote() ? toggleCard() : setExp(!exp)) } }, icon('chevdown')); // up = expanded, down = collapsed
   const legendSlot = h('span.cap-leg'), offLine = h('div.cap-off', { 'data-qa': 'callnotes-off' }, 'Call notes hidden · ', h('button', { type: 'button', 'data-qa': 'callnotes-show', on: { click: () => setCap('caption', true) } }, 'Show'));
   const caption = h('div.capbar', { role: 'group', 'aria-label': 'Call notes', 'data-qa': 'caption-bar', hidden: true },
     h('div.cap-row', more, chip, num, call, ext, edit, desc, legendSlot), offLine);
@@ -41,17 +41,16 @@ export function createStepbar({ store, root, onMove, onEdit, sb = () => 'tad', e
   if (card) { caption.append(card.el); caption.querySelector('.cap-row').append(card.size, card.edit); card.size.hidden = true; }
   const cardNote = () => !!card && !!last && card.hasText(pv ?? last.step);
 
-  const toggle = (v = !exp) => {
-    if (cardNote()) { cardOpen = !cardOpen; writeKey('callcard-open', cardOpen ? '1' : '0'); more.setAttribute('aria-expanded', String(cardOpen)); more.classList.toggle('up', cardOpen); paint(); document.dispatchEvent(new CustomEvent('fm:layout')); return; }
-    exp = v; caption.classList.toggle('exp', exp); more.setAttribute('aria-expanded', String(exp)); more.classList.toggle('up', exp); };
+  const toggleCard = () => { cardOpen = !cardOpen; writeKey('callcard-open', cardOpen ? '1' : '0'); more.setAttribute('aria-expanded', String(cardOpen)); more.classList.toggle('up', cardOpen); paint(); document.dispatchEvent(new CustomEvent('fm:layout')); }; // the call card: ONLY an explicit user action (chevron, header) calls this, never a repaint
+  const setExp = (v) => { exp = v; caption.classList.toggle('exp', exp); if (!cardNote()) { more.setAttribute('aria-expanded', String(exp)); more.classList.toggle('up', exp); } }; // the one-line description's own state; independent of the card
   const clipped = () => { more.hidden = !(cardNote() || exp || desc.scrollWidth > desc.clientWidth + 1 || desc.scrollHeight > desc.clientHeight + 1); };
   const paintCaps = () => {
     const c = caps();
     caption.hidden = total < 1; caption.classList.toggle('off', !c.caption); legendSlot.hidden = !c.legend; // off (View > Descriptions): one muted line in the bar's place
-    desc.hidden = c.hideText || !desc.childNodes.length; if (c.hideText) toggle(false);
+    desc.hidden = c.hideText || !desc.childNodes.length; if (c.hideText) setExp(false);
     requestAnimationFrame(clipped);
   };
-  caption.querySelector('.cap-row').addEventListener('click', (e) => { if (cardNote() && !e.target.closest('a, button, .cap-desc')) toggle(); }); // the header line is the card's handle too
+  caption.querySelector('.cap-row').addEventListener('click', (e) => { if (cardNote() && !e.target.closest('a, button, .cap-desc')) toggleCard(); }); // the header line is the card's handle too
   const off = onCaps(paintCaps);
   const unUsers = card ? watchUsers(() => { if (last) paint(); }) : () => {}; // signing in shows "+ describe this call"
   const unCalls = calls ? calls.watch(() => { if (last) paint(); }) : () => {};
