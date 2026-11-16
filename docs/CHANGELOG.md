@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased: Collapsible call notes and flow doc
+## 0.57.0 (2026-11-16): Collapsible call notes and flow doc
 - UI only. The call notes bar and the flow doc pane are collapsible cards: shown and expanded by default, header always visible with a chevron, the × is gone. View > Descriptions hides them to a one-line "hidden · Show". Hidden prefs from the old × are reset once; wide screens cap the card width.
 
 ## 0.56.1 (2026-11-16): Call notes hover
