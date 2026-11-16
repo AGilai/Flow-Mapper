@@ -119,6 +119,7 @@ const remote = {
   resolveComment: (env, id, body) => http('PATCH', `/api/envs/${e(env)}/comments/${id}`, body), // { actor, resolved } (0.29.2)
   deleteComment: (env, id, author) => http('DELETE', `/api/envs/${e(env)}/comments/${id}${qs({ author })}`),
   notes: (env, anchor, version) => get(`/api/envs/${e(env)}/notes${qs({ anchor, version })}`), // 0.34.0: a flow's Notes, kept as versions
+  callNotes: (env) => get(`/api/envs/${e(env)}/notes/calls`), // frame 28g: every call note of the env with content, in one read
   notesHistory: (env, anchor) => get(`/api/envs/${e(env)}/notes/history${qs({ anchor })}`),
   saveNotes: (env, body) => http('PUT', `/api/envs/${e(env)}/notes${qs({ draft: draftOf(env) })}`, body), // { anchor, body, baseVersion, author }
   restoreNotes: (env, body) => http('POST', `/api/envs/${e(env)}/notes/restore${qs({ draft: draftOf(env) })}`, body),

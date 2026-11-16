@@ -25,6 +25,29 @@
       "author": "Dana Levi",
       "ago": 200,
       "body": "<h2>Purpose</h2><p>Returns the reviews of one product. Read-only: one <code>find</code> on <span data-ref=\"svc:catalog-db\">catalog-db</span>.</p><h2>Callouts</h2><div data-callout=\"key\" data-step=\"2\"><p>find on reviews is the only data-store access. The endpoint latency is this call.</p></div><div data-callout=\"watch\" data-step=\"1\"><p>The product id is not validated before the find, so a bad id returns an empty list, not a 404.</p></div><div data-callout=\"risk\" data-step=\"2\"><p>No pagination: every review of a hot product comes back in one find.</p></div><h2>How it works</h2><ol><li><span data-step=\"1\">step 1</span> The client calls <span data-ref=\"step:catalog-svc/in.get.products.id.reviews#1\">GET /products/{id}/reviews</span>.</li><li><span data-step=\"2\">step 2</span> <span data-ref=\"svc:catalog-svc\">catalog-svc</span> runs <code>find({ productId })</code> on the reviews collection.</li><li><span data-step=\"3\">step 3</span> The list goes back as <code>200 Review[]</code>.</li></ol>"
+    },
+    {
+      "call": {
+        "from": "client",
+        "to": "catalog-svc",
+        "op": "GET /products/{id}/reviews",
+        "what": "Public entry. Checks the session only; the product id goes to the find unchecked.",
+        "contract": "GET /products/{id}/reviews → 200 Review[] · 401 no session",
+        "watch": "The id is not validated here."
+      },
+      "author": "Dana Levi",
+      "ago": 150
+    },
+    {
+      "call": {
+        "from": "catalog-svc",
+        "to": "catalog-db",
+        "op": "find · reviews",
+        "what": "Reads every review of the product by id. The reviews collection is indexed on productId.",
+        "contract": "find({ productId }) → Review[] · unknown id → [] · sorted by createdAt desc"
+      },
+      "author": "Dana Levi",
+      "ago": 140
     }
   ]
 }

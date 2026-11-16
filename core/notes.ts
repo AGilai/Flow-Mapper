@@ -97,3 +97,21 @@ export function diffBlocks(before: string, after: string): BlockOp[] {
 
 /** "Changes" view: what changed, with the unchanged headings kept for context. */
 export const changesOnly = (ops: BlockOp[]) => ops.filter((o) => o.op !== 'same' || o.head);
+
+/** What a flow doc says the flow is for: the first paragraph under its "Purpose" heading, else its first paragraph (callouts and lists are not paragraphs here). '' when there is none. */
+export function docSummary(html: string): string {
+  let sec = '', head = '', inHead = false, inP = false, text = '', depth = 0;
+  let first = '', purpose = '';
+  for (const t of tokenize(typeof html === 'string' ? html : '')) {
+    if (t.t === 'start') {
+      if (/^h[1-6]$/.test(t.name)) { inHead = true; head = ''; }
+      else if (t.name === 'div') depth++;
+      else if (t.name === 'p' && !depth) { inP = true; text = ''; }
+    } else if (t.t === 'end') {
+      if (/^h[1-6]$/.test(t.name) && inHead) { inHead = false; sec = head.replace(/\s+/g, ' ').trim().toLowerCase(); }
+      else if (t.name === 'div' && depth) depth--;
+      else if (t.name === 'p' && inP) { inP = false; const p = text.replace(/\s+/g, ' ').trim(); if (p) { first ||= p; if (!purpose && sec === 'purpose') purpose = p; } }
+    } else if (inHead) head += t.v; else if (inP) text += t.v;
+  }
+  return purpose || first;
+}

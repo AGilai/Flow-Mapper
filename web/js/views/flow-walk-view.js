@@ -9,6 +9,7 @@ import { clampStep, moveStep, walkAction, scrollLeftFor } from './flow-walk.js';
 import { colsOfEvent } from './flow-squeeze.js';
 import { openStepEditor } from './flow-step-editor.js';
 import { openMenu } from '../components/context-menu.js';
+import { callOf } from './flow-call-store.js';
 
 /** Bring a step into view: its row to the middle, and sideways both ends of its arrow when they fit (else the source end). */
 function reveal(tiles, n, behavior, barEl = null, z = 1) {
@@ -25,13 +26,13 @@ const calm = () => { try { return matchMedia('(prefers-reduced-motion: reduce)')
 
 /** createWalkView({ store, root, messages, initial, onStep(n), onRestep(cols) }) -> { nav (the player), caption (the caption bar), legendSlot, decorate(res, built), endsOf(built), hit(event), onKey(ev), move(action), current(), dispose }
  *  onSteps(steps): the numbering of the lane just drawn (the partial-flow line reads it). onRestep(cols): the viewer moved to a step whose lifelines are the columns `cols` (Squeeze folds again for it). endsOf(built): the columns of the current step, before the lane is drawn. */
-export function createWalkView({ store, root, messages = () => null, initial = null, sb = () => 'tad', hl = () => true, extra = () => '', zoom = () => 1, onStep, onRestep, onSteps, onPick, readOnly = false }) {
+export function createWalkView({ calls = null, store, root, messages = () => null, initial = null, sb = () => 'tad', hl = () => true, extra = () => '', zoom = () => 1, onStep, onRestep, onSteps, onPick, readOnly = false }) {
   let doc = { list: [], click: null }, mark = null; // the flow doc's callout badges (kept across a redraw) and the author's step-number menu (Unreleased, frame 28f)
   let steps = [], built = null, tiles = null, cur = initial ?? 0, curKey = null, jumpOnDraw = initial != null, rng = null; // rng: the range band (0.34.0), kept across a redraw
   let picked = initial != null; // a step the viewer chose (a click, a key, a link with step=): the comments' "Attach to step N" only offers one then
   const pickedNow = () => picked && cur >= 1; // ...and not at step 0
   const watchers = new Set(); // the comments section reads the steps and the current one (0.27.0)
-  const bar = createStepbar({ store, root, sb, extra, readOnly, onMove: (a) => move(a), onEdit: (anchor) => edit(steps[cur - 1], anchor) });
+  const bar = createStepbar({ store, root, sb, extra, readOnly, calls, docLink: (n) => (doc.list.some((b) => b.step === n) && doc.click ? () => doc.click(n) : null), onMove: (a) => move(a), onEdit: (anchor) => edit(steps[cur - 1], anchor) });
   /** The step editor (0.30.0) for a step, hanging under `anchor` (the bar, or the step's row). */
   function edit(st, anchor = bar.bar) { if (root && st && !readOnly) openStepEditor({ store, root, key: st.key, n: st.n, label: st.label, anchor }); }
 
@@ -48,6 +49,15 @@ export function createWalkView({ store, root, messages = () => null, initial = n
   }
   function move(action) { go(moveStep(cur, steps.length, action)); }
 
+  /** Hovering an arrow (or its number) previews that call in the caption bar; the pointer leaving the diagram puts the chosen step back (frame 28g). */
+  function wireHover(body) {
+    const at = (ev) => { const g = ev.target.closest?.('.msg[data-e], .steptile[data-step]'); return !g ? null : g.matches('.steptile') ? steps[Number(g.getAttribute('data-step')) - 1] ?? null : stepAtRow(steps, Number(g.getAttribute('data-e'))); };
+    body.addEventListener('mouseover', (ev) => bar.preview(at(ev)));
+    body.addEventListener('mouseleave', () => bar.preview(null));
+  }
+  const paintMarks = () => tiles?.callMarks?.set(calls ? steps.map((st) => ({ step: st.n, note: calls.of(callOf(st))?.note })).filter((x) => x.note) : []);
+  const unMarks = calls ? calls.watch(() => paintMarks()) : null;
+
   /** A lane was drawn (first time, or again): number its arrows and put the highlight back on the same step. */
   function decorate(res, lane) {
     built = lane;
@@ -60,7 +70,8 @@ export function createWalkView({ store, root, messages = () => null, initial = n
       ev.preventDefault(); go(st.n, { scroll: false });
       openMenu(ev.clientX, ev.clientY, `Step ${st.n}`, [{ label: 'Edit step description…', icon: 'edit', hint: 'Title and description of this step (E)', onSelect: () => edit(st, g) }]);
     });
-    tiles?.setRange(rng?.[0] ?? null, rng?.[1] ?? null); tiles?.badges.set(doc.list, doc.click);
+    if (calls && steps.length) wireHover(res.body);
+    tiles?.setRange(rng?.[0] ?? null, rng?.[1] ?? null); tiles?.badges.set(doc.list, doc.click); paintMarks();
     const keep = stepByKey(steps, curKey), before = cur;
     go(keep ? keep.n : cur, { scroll: false, user: false });
     if (picked && cur !== before) onStep?.(cur); // the view changed (an arm, the detail): the same step has another number, and `step=` follows it (0.38.0)
@@ -86,6 +97,6 @@ export function createWalkView({ store, root, messages = () => null, initial = n
     onKey(ev) {
       if ((ev.key === 'e' || ev.key === 'E') && !ev.ctrlKey && !ev.metaKey && !ev.altKey && !ev.defaultPrevented && root && steps.length && !/^(INPUT|TEXTAREA|SELECT)$/.test(ev.target?.tagName) && !ev.target?.isContentEditable && !ev.target?.closest?.('.fi, .cm-sec')) { ev.preventDefault(); edit(steps[cur - 1], tiles?.rowEl(cur)); return; } // E: edit the current step
       const a = walkAction(ev); if (a && steps.length) { ev.preventDefault(); move(a); } },
-    dispose: () => bar.dispose(),
+    dispose: () => { bar.dispose(); unMarks?.(); },
   };
 }

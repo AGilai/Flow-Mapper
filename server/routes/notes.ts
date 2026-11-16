@@ -8,9 +8,10 @@ import { badRequest } from '../errors.ts';
 import * as notes from '../store/notes.ts';
 import { headerUser } from '../identity.ts';
 
-const anchorOf = (q: URLSearchParams) => q.get('anchor') ?? (() => { throw badRequest('anchor is required (flow:<service>/<ingress>)'); })();
+const anchorOf = (q: URLSearchParams) => q.get('anchor') ?? (() => { throw badRequest('anchor is required (flow:<service>/<ingress> or call:<from>|<to>|<op>)'); })();
 
 export function registerNotes(r: Router, ctx: Ctx) {
+  r.get('/api/envs/:env/notes/calls', (req) => notes.callNotes(ctx.db, req.params.env));
   r.get('/api/envs/:env/notes/index', (req) => notes.notesIndex(ctx.db, req.params.env));
   r.get('/api/envs/:env/notes/history', (req) => notes.history(ctx.db, req.params.env, anchorOf(req.query), Number(req.query.get('limit')) || undefined));
   r.get('/api/envs/:env/notes', (req) => notes.getNotes(ctx.db, req.params.env, anchorOf(req.query), req.query.get('version') ? Number(req.query.get('version')) : null));

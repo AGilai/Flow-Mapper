@@ -13,7 +13,7 @@ import { createTabScenario } from './flow-tab-scenario.js';
 import { stepByKey } from './flow-steps.js';
 import { descBlock, descLine } from './flow-desc.js';
 import { descDetails } from './flow-head.js';
-import { createWalkView } from './flow-walk-view.js';
+import { createWalkView } from './flow-walk-view.js'; import { callStore } from './flow-call-store.js';
 import { headBadge } from './incomplete-badge.js';
 import { createStorePanel } from './store-panel-wire.js';
 import { whySection } from './incomplete-why.js';
@@ -31,7 +31,7 @@ import { foreignNote, maxReadOnly } from './flow-xenv-ui.js';
 import { createPartial } from './flow-partial.js';
 import { createComments } from '../comments/thread.js';
 import { createPane } from '../flow-pane/pane.js';
-import { createNotes } from '../notes/view.js'; import { createFlowDocLink } from '../notes/flow-doc-link.js';
+import { docSummary } from '../../core/notes.js'; import { revealFlowDoc } from '../notes/flow-doc-state.js'; import { createNotes } from '../notes/view.js'; import { createFlowDocLink } from '../notes/flow-doc-link.js';
 import { createBrackets } from '../brackets/view.js';
 import { stepsParam } from '../comments/range.js';
 import { plainText } from '../../core/rich-text.js';
@@ -77,8 +77,8 @@ export function createTabView(data, host) {
   const paintInc = () => { const { n, source } = traceBlocked(trace, trace.coverage); inc.update(n, source, trace.start?.service, trace.coverage?.status); };
   paintInc();
   // The flow's description sits under its title, full width and collapsible (0.20.0); a sub-flow tab keeps its one line.
-  let flowBox = null; const related = root && data.kind !== 'sub' ? createRelations({ host, root, editing, onCount: (n) => flowBox?.setRelated(n) }) : null; // 0.28.2: typed links to other flows
-  flowBox = root && data.kind !== 'sub' ? descDetails(host.desc, root, null, { cls: 'flowhead', relations: related, seenKey: `${host.env}/${root.service}/${root.ingress}`, title: 'What this flow is for', onGenerate: () => generate(null), pen: host.pen, summary: [] }) : null; // frame 28: shown in the (i) popover of the tab (flows.js); the title, id, links, Export and the rest of the old title row are the tab, the toolbar and its ⋯ menu
+  let flowBox = null, docText = ''; const related = root && data.kind !== 'sub' ? createRelations({ host, root, editing, onCount: (n) => flowBox?.setRelated(n) }) : null; // 0.28.2: typed links to other flows
+  flowBox = root && data.kind !== 'sub' ? descDetails(host.desc, root, null, { cls: 'flowhead', docText: () => docText, openDoc: () => { revealFlowDoc(); pane?.show('notes'); }, relations: related, seenKey: `${host.env}/${root.service}/${root.ingress}`, title: 'What this flow is for', onGenerate: () => generate(null), pen: host.pen, summary: [] }) : null; // frame 28: shown in the (i) popover of the tab (flows.js); the title, id, links, Export and the rest of the old title row are the tab, the toolbar and its ⋯ menu
   const subLine = root && data.kind === 'sub' ? descLine(host.desc, root, [`${data.service}:${data.name}`, data.service], { onGenerate: () => generate(data.service) }) : null;
   descs.push(flowBox, subLine);
   // Comments under the description (0.27.0): the flow's own discussion; a sub-flow or function tab has none.
@@ -87,7 +87,7 @@ export function createTabView(data, host) {
   const partial = createPartial({ trace: () => trace, editing, onImport: (anchor, source) => host.importRef?.(anchor, source) });
   const noHint = trace.noHandler ? h('div.noh-hint', { role: 'note', 'data-qa': 'no-handler' }, `No handler function. This entry point has no behaviour in ${host.env} yet.`) : null; // #59
   let brackets = null; // comment brackets in the left gutter (0.34.0): made once the walk and the comments exist
-  const walk = createWalkView({ store: host.desc, messages: () => trace.messages, root: data.kind === 'sub' ? null : root, initial: host.initialStep?.(key) ?? null, sb: () => opts.sb, hl: () => opts.hl, extra: ts.range, zoom: () => factor, readOnly: host.readOnly, onStep: (n) => host.setStep?.(key, n), onRestep: (cols) => render?.restep(cols), onSteps: (st) => partial.update(st), onPick: (n, ev) => brackets?.pick(n, ev) });
+  const walk = createWalkView({ calls: callStore(host.env), store: host.desc, messages: () => trace.messages, root: data.kind === 'sub' ? null : root, initial: host.initialStep?.(key) ?? null, sb: () => opts.sb, hl: () => opts.hl, extra: ts.range, zoom: () => factor, readOnly: host.readOnly, onStep: (n) => host.setStep?.(key, n), onRestep: (cols) => render?.restep(cols), onSteps: (st) => partial.update(st), onPick: (n, ev) => brackets?.pick(n, ev) });
   walk.hiddenOf = (k) => ts.scen.hiddenOf(k); // comments, action items and notes on a step this scenario hides say so and offer "Show"
   const stepRoot = data.kind === 'sub' ? null : root, sdet = createStepDetails({ store: host.desc, root: stepRoot, opts }); // 0.30.0: title / description on the arrows (opts.sd)
   const unDesc = stepRoot ? host.desc.watch(stepRoot, () => { if (render && opts.sd !== 'a') draw(); }) : null; // a saved or loaded step text redraws the lane when the arrows show it
@@ -101,7 +101,7 @@ export function createTabView(data, host) {
   brackets = items ? createBrackets({ walk, factor: () => factor, on: () => !!opts.cb, hl: () => !!opts.hl, open: (ids) => { pane?.show('comments'); items.focusComment(ids[0]); }, create: (a, b) => comments.startRange(a, b) }) : null;
   const gotoStep = (ref) => { const go = () => walk.go(ref.from); if (host.max?.isOn()) { host.max.set(false); requestAnimationFrame(go); } else go(); }; // a step chip in Notes: leave Maximize, scroll to the step and select it
   const dl = createFlowDocLink({ walk, open: (n) => { pane?.show('notes'); requestAnimationFrame(() => notes?.focusCallout(n)); } }); // Unreleased (frame 28f): callout badges on the diagram, the hover outline, a badge opens its callout
-  const notes = items ? createNotes({ env: host.env, root, walk, pane: hub('notes'), onStep: gotoStep, onBody: dl.onBody, onHover: dl.onHover }) : null; items?.refresh();
+  const notes = items ? createNotes({ env: host.env, root, walk, pane: hub('notes'), onStep: gotoStep, onBody: (html) => { dl.onBody(html); docText = html ? docSummary(html) : ''; flowBox?.redraw(); }, onHover: dl.onHover }) : null; items?.refresh();
   const scroller = h('div.seq-scroll');
   const hint = h('span.seq-hint', 'More to the right. Scroll sideways ›');
   const zctl = createZoomControl({ onZoom: (v) => setZoom(v) }); // frame 28: floats on the diagram, bottom left
