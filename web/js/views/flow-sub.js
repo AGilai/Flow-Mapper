@@ -13,6 +13,8 @@ const socketProtocol = (m) => m.protocol ?? 'tcp';
  * transport as the sub line. socket: "client · tls socket" (tcp, ws). cron: "schedule". A delivery (a slice that starts at the queue hop): the queue it came from.
  */
 export function callerFor(first) {
+  const ca = first?.callers; // #116: client apps whose egress reaches this entry: the first, "+N" for more, all in the tooltip; the client-app look
+  if (ca?.length && first.kind === 'entry') return { id: 'client', label: ca[0] + (ca.length > 1 ? ` +${ca.length - 1}` : ''), sub: first.transport === 'socket' ? `${socketProtocol(first)} socket` : 'client app', kind: 'client', serviceKind: 'client-app', callers: ca };
   if (!first) return { id: 'client', label: 'client', sub: 'browser', kind: 'client' };
   if (first.kind === 'deliver') return { id: 'src', label: first.from.replace(/^ch:/, ''), sub: 'queue delivery', kind: 'source' };
   const t = first.transport;

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "demo-agent-app",
+    "kind": "client-app",
+    "team": "network-edge",
+    "description": "Demo (#116): the agent. Its code is not harvested; its egress says which gateway route it calls."
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-16T08:00:00Z",
+  "commit": "116aa01",
+  "functions": [],
+  "ingress": [],
+  "egress": [
+    {
+      "id": "out.wsConnect",
+      "bindKey": "socket:ws/demo-agent-apigw-ws/$connect",
+      "transport": "socket",
+      "mode": "sync"
+    }
+  ],
+  "resources": []
+}

@@ -5,6 +5,7 @@
 import type { GraphIndex } from './graph-index.ts';
 import type { Fn, Ingress, PathParam, Service, Source } from './types.ts';
 import { ingressEvents, type EventRow } from './events.ts';
+import { callersOf } from './callers.ts';
 import { egressVia, ingressVia, type LinkedHop } from './via.ts';
 import { rpcPanel, type RpcPanel } from './rpc-endpoint.ts';
 import { rpcServed } from './amqp-route.ts';
@@ -35,6 +36,8 @@ export interface EndpointInfo {
   rpc: RpcPanel | null;
   /** #98: a REST route's path parameters (harvested, else derived from the path), each with its code link. Empty for other transports. */
   pathParams: (PathParam & { link: SourceLink | null })[];
+  /** #116: the client apps whose egress reaches this entry ingress (socket, or http with entryPoint true); empty otherwise. */
+  callers: string[];
 }
 
 const BODY_METHODS = ['POST', 'PUT', 'PATCH'];
@@ -122,7 +125,7 @@ export function endpointInfo(g: GraphIndex, service: string, ingressId: string, 
     service, ingress, method: httpMethod(ingress), handler, source: sourceLink(svc, handler), harvestedAt: svc.harvestedAt, note: pathOnly ? null : note, pathParams,
     definedAt: codeLink(svc, ingress.source),
     handlerVia: ingressVia(svc, ingress),
-    rpc: rpcPanel(g, ingress),
+    rpc: rpcPanel(g, ingress), callers: callersOf(g, ingress),
     events: ingressEvents(g, ingress).map((r) => ({
       ...r,
       producers: r.producers.map((p) => withVia(g, p)),

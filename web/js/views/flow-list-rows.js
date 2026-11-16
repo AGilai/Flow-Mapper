@@ -52,6 +52,7 @@ export function entryRow(p, { marks, counts, cmts = {}, acts = {}, ments = {}, r
     h('span.row', p.bindKey.startsWith('amqp-rpc:') ? chip('rpc', 'amqp rpc') : chip(p.transport), p.entryPoint ? h('span.xs.muted', 'entry point') : null,
       p.name ? null : [lock, info ? markBadge(info, { store: marks, short: true, title: markTip(info, marks) }) : null, extLink(p.flowLinks?.main ? p.flowLinks : p.links)]),
     h('span.key', rest, p.name || !flat ? null : h('span.xs.muted', ` · ${p.service}`), p.name ? null : countBadge(counts.get(`${p.service}:${p.id}`)), p.name ? null : cm), p.name ? h('span.xs.muted', `${p.service} · ${p.id}`, countBadge(counts.get(`${p.service}:${p.id}`)), cm) : null,
+    p.callers?.length ? h('span.fl-from.xs.muted', { title: `Called by ${p.callers.length === 1 ? 'the client app' : 'client apps'}: ${p.callers.join(', ')}` }, `from ${p.callers[0]}${p.callers.length > 1 ? ` +${p.callers.length - 1}` : ''}`) : null,
     p.summary ? h('span.fl-sum.xs.muted', stripMarkdown(p.summary)) : null);
   // The row is a wrapper: a button inside the link would be invalid. "Tab" is always visible (never hover only) and opens the flow in a new tab.
   return h('div.entry-r', link, h('button.entry-tab', { type: 'button', 'aria-label': `Open ${name} in a new tab`, title: 'Open in a new tab', 'data-qa': 'entry-tab', on: { click: () => onPickTab(p) } }, h('span', { 'aria-hidden': 'true' }, '+'), 'Tab'));
