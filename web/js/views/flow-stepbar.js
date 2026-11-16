@@ -31,14 +31,14 @@ export function createStepbar({ store, root, onMove, onEdit, sb = () => 'tad', e
 
   const chip = h('span.cap-chip', icon('arrow'), h('span.cap-chip-t')), num = h('span.cap-n'), call = h('span.cap-call', { 'data-qa': 'step-title' });
   const ext = h('span.stepext.xs.muted', { 'data-qa': 'step-range' }), desc = h('div.cap-desc', { 'data-qa': 'step-detail' });
-  const edit = root && !readOnly ? h('button.cap-edit', { type: 'button', 'data-qa': 'edit-step', 'aria-label': 'Edit step', title: 'Edit this step (E)', on: { click: () => onEdit?.(caption) } }, icon('edit')) : null;
-  const more = h('button.cap-more', { type: 'button', 'aria-label': 'Show the whole description', 'aria-expanded': 'false', title: 'Show the whole description', hidden: true, on: { click: () => toggle() } }, icon('chevdown'));
+  const edit = root && !readOnly ? h('button.cap-edit', { type: 'button', 'data-qa': 'edit-step', 'aria-label': 'Edit step label', title: 'Edit step label (E)', on: { click: () => onEdit?.(caption) } }, icon('edit')) : null;
+  const more = h('button.cap-more.cardtog', { type: 'button', 'aria-label': 'Show the whole description', 'aria-expanded': 'false', title: 'Show the whole description', hidden: true, on: { click: () => toggle() } }, icon('chevdown')); // up = expanded, down = collapsed
   const legendSlot = h('span.cap-leg'), offLine = h('div.cap-off', { 'data-qa': 'callnotes-off' }, 'Call notes hidden · ', h('button', { type: 'button', 'data-qa': 'callnotes-show', on: { click: () => setCap('caption', true) } }, 'Show'));
   const caption = h('div.capbar', { role: 'group', 'aria-label': 'Call notes', 'data-qa': 'caption-bar', hidden: true },
-    h('div.cap-row', chip, num, call, ext, edit, desc, more, legendSlot), offLine);
+    h('div.cap-row', more, chip, num, call, ext, edit, desc, legendSlot), offLine);
   let last = null, data = null, total = 0, exp = false, cardOpen = readKey('callcard-open') !== '0', pv = null; // pv: the step a hovered arrow previews (frame 28g); cardOpen: the call card is expanded (remembered)
   const card = calls ? createCallCard({ store: calls, canEdit: () => true, quiet: () => state.mode !== 'edit', docLink, onChange: () => requestAnimationFrame(() => document.dispatchEvent(new CustomEvent('fm:layout'))) }) : null;
-  if (card) { caption.append(card.el); caption.querySelector('.cap-row').insertBefore(card.size, more); card.size.hidden = true; }
+  if (card) { caption.append(card.el); caption.querySelector('.cap-row').append(card.size, card.edit); card.size.hidden = true; }
   const cardNote = () => !!card && !!last && card.hasText(pv ?? last.step);
 
   const toggle = (v = !exp) => {
@@ -76,7 +76,8 @@ export function createStepbar({ store, root, onMove, onEdit, sb = () => 'tad', e
     desc.replaceChildren(...parts.filter(Boolean));
     if (card && !card.editing()) { card.paint(step, n); if (cn && !cardOpen) card.el.hidden = true; }
     if (card) card.size.hidden = !(cn && (cardOpen || card.editing())); // the text size control: only while the card shows a note
-    more.setAttribute('aria-expanded', String(cn ? cardOpen : exp)); more.classList.toggle('up', cn ? cardOpen : exp); more.title = cn ? (cardOpen ? 'Collapse the call notes' : 'Expand the call notes') : 'Show the whole description';
+    if (card && !cardOpen && !card.editing()) card.edit.hidden = true; // the Edit button is the expanded card's
+    more.setAttribute('aria-expanded', String(cn ? cardOpen : exp)); more.classList.toggle('up', cn ? cardOpen : exp); more.title = cn ? (cardOpen ? 'Collapse the call notes' : 'Expand the call notes') : (exp ? 'Show one line' : 'Show the whole description'); more.setAttribute('aria-label', more.title);
     caption.classList.toggle('prev', !!pv); caption.classList.toggle('plain', !parts.length && !(card && !card.el.hidden));
     paintCaps();
     if (!pv) live.textContent = announce(n, last.total, `${t.title ? `${t.title}, ` : ''}${step.label}, ${step.from} to ${step.to}`);

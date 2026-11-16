@@ -5,6 +5,10 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+
+UI only: the collapse control of the call card and of the flow doc pane is a bordered chevron button at the start of the header (up = expanded, down = collapsed; the header row toggles too); the call note's Edit is a coloured button in the card header; the step pencils are larger and accent-coloured.
+
 ## 0.58.0 (2026-11-16): Rich call notes, text size, client-app callers (#116)
 
 - **Fix #116: the client app is the caller of an entry ingress it calls.** No schema change: when a `client-app` service has an egress whose bindKey matches an entry ingress (socket, or http with `entryPoint: true`), `GET /trace` names it: the `entry` message and the `client` participant carry `callers: [<client-app names>]`, and the participant label is the first name plus `+N` (none: `client` as before). `GET /entry-points` items carry `callers` (omitted when empty), `GET /endpoints/:service/*ingress` carries `callers: []`. The egress was already matched (never dangling); the ingress stays an entry point and is never a hop. UI: the caller head is the client app, Flows shows "from <name>", the endpoint panel lists the Callers.
