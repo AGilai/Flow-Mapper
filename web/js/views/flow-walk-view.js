@@ -52,7 +52,8 @@ export function createWalkView({ calls = null, store, root, messages = () => nul
   /** Hovering an arrow (or its number) previews that call in the caption bar; the pointer leaving the diagram puts the chosen step back (frame 28g). */
   function wireHover(body) {
     const at = (ev) => { const g = ev.target.closest?.('.msg[data-e], .steptile[data-step]'); return !g ? null : g.matches('.steptile') ? steps[Number(g.getAttribute('data-step')) - 1] ?? null : stepAtRow(steps, Number(g.getAttribute('data-e'))); };
-    body.addEventListener('mouseover', (ev) => bar.preview(at(ev)));
+    body.addEventListener('mouseover', (ev) => { const st = at(ev); if (st) bar.preview(st); }); // empty diagram space keeps the last previewed call; only leaving the body (or a click) gives the chosen step back
+    body.addEventListener('click', () => bar.preview(null));
     body.addEventListener('mouseleave', () => bar.preview(null));
   }
   const paintMarks = () => tiles?.callMarks?.set(calls ? steps.map((st) => ({ step: st.n, note: calls.of(callOf(st))?.note })).filter((x) => x.note) : []);
