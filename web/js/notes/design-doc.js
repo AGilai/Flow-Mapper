@@ -8,12 +8,13 @@ import { isDesign } from '../state.js';
 import { canEditEnv } from '../account.js';
 import { relTime } from '../comments/pure.js';
 import { createNotes } from './view.js';
+import { textSize } from './text-size.js';
 
 /** May the viewer write the document of `env`? (Server rules, mirrored so the button is honest.) */
 export const canWriteDoc = (env) => !isDesign(env) || canEditEnv(env);
 
 /**
- * createDesignDoc({ env }) -> { notes, el (the document), controls: { history, seg, tools, meta }, editing(), onEdit(fn), dispose() }
+ * createDesignDoc({ env }) -> { notes, el (the document), controls: { history, seg, tools, meta, size }, editing(), onEdit(fn), dispose() }
  * `controls` are nodes the caller lays out in its own bar.
  */
 export function createDesignDoc({ env }) {
@@ -26,5 +27,5 @@ export function createDesignDoc({ env }) {
   const paint = (on) => { view.classList.toggle('on', !on); edit.classList.toggle('on', on); view.setAttribute('aria-pressed', String(!on)); edit.setAttribute('aria-pressed', String(on)); history.disabled = on; listeners.forEach((f) => f(on)); };
   const pane = { shown: () => true, reveal() {}, set() {}, loaded() {}, tools: (n) => tools.replaceChildren(...(n ? [n] : [])), mode: paint };
   const notes = createNotes({ env, kind: 'env', pane, canEdit: can, onDoc: (d) => { meta.textContent = d?.version ? `Edited by ${d.author ?? 'someone'}, ${relTime(d.createdAt)} · v${d.version}` : ''; } });
-  return { notes, el: notes.el, controls: { history, seg, tools, meta }, editing: () => notes.isEditing(), onEdit: (f) => { listeners.add(f); return () => listeners.delete(f); }, dispose: () => { listeners.clear(); notes.dispose(); } };
+  return { notes, el: notes.el, controls: { history, seg, tools, meta, size: textSize('envdoc', notes.el).el }, editing: () => notes.isEditing(), onEdit: (f) => { listeners.add(f); return () => listeners.delete(f); }, dispose: () => { listeners.clear(); notes.dispose(); } };
 }

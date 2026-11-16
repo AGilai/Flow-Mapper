@@ -13,7 +13,7 @@ export async function render({ main }) {
   const doc = createDesignDoc({ env: state.env }), c = doc.controls;
   const pillSlot = h('span.dd-pill'), below = h('div.dd-below');
   const dock = h('button.btn.sm', { type: 'button', 'data-qa': 'dd-dock', title: 'Show the document beside the flows, in the right column', on: { click: () => { setDocked(state.env, true); go('/flows'); } } }, icon('book'), ' Dock beside work');
-  const bar = h('div.dd-bar', h('h1', icon('book'), 'Design doc'), c.history, dock, c.meta, h('span.dd-sp'), c.tools, c.seg, pillSlot);
+  const bar = h('div.dd-bar', h('h1', icon('book'), 'Design doc'), c.history, dock, c.meta, h('span.dd-sp'), c.size, c.tools, c.seg, pillSlot);
   main.append(h('div.content.flush', h('div.dd-page', bar, below, h('div.dd-body', { 'data-qa': 'dd-body' }, doc.el))));
   return { designHost: { pill: pillSlot, mode: h('span'), below }, dispose: () => doc.dispose() };
 }

@@ -37,7 +37,7 @@ export function createDock({ host, env, panel = null }) {
     const c = doc.controls;
     const hide = h('button.dk-btn', { type: 'button', 'data-qa': 'dk-hide', title: 'Hide the design doc (the book icon brings it back)', 'aria-label': 'Hide the design doc', on: { click: () => setDocked(env, false) } }, icon('close'));
     const page = h('button.dk-btn', { type: 'button', 'data-qa': 'dk-page', title: 'Open as a page', 'aria-label': 'Open the design doc as a page', on: { click: () => go('/design-doc') } }, icon('arrow'));
-    el.append(h('div.dk-head', head.el, page, hide), h('div.dk-bar2', c.history, c.meta, c.tools, c.seg), h('div.dk-body', { 'data-qa': 'dk-body' }, doc.el));
+    el.append(h('div.dk-head', head.el, page, hide), h('div.dk-bar2', c.history, c.meta, c.size, c.tools, c.seg), h('div.dk-body', { 'data-qa': 'dk-body' }, doc.el));
     resizer(el, { edge: 'left', key: 'design-dock', defaultWidth: 460, min: 320, maxFraction: 0.55, label: 'Resize the design doc', width: () => el.offsetWidth, apply: (px) => { el.style.setProperty('--dk-w', `${px}px`); } });
     if (panel && !panel.el.querySelector(':scope > .dk-tabs-in')) panel.el.prepend(inPanel.el);
   }

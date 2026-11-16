@@ -7,7 +7,8 @@ import { api } from '../api.js';
 import { createEditor } from '../comments/rte.js';
 import { createToolbar } from '../comments/rte-toolbar.js';
 import { ensureUser } from '../users/signin.js';
-import { TEMPLATE, templateHtml } from '../../core/notes.js';
+import { TEMPLATE, CALL_TEMPLATE, templateHtml } from '../../core/notes.js';
+import { parseCall, hasCall } from '../../core/call-notes.js';
 import { notesTools } from './edit-toolbar.js';
 import { markMenu } from './mark-menu.js';
 
@@ -27,13 +28,14 @@ export function createNotesEditor({ env, anchor, kind = 'flow', doc, template = 
   const hint = h('div.cm-hint.nt-ehint', { role: 'status' }), saved = h('span.nt-draft'), err = h('div.cm-err', { role: 'alert' }), bar = h('div.nt-bar', { hidden: true });
   const stepNow = () => { const s = walk?.picked() ? walk.steps()[walk.current() - 1] : null; return s ? { n: s.n } : null; };
   let ed, tb, nt;
-  ed = createEditor({ html: '', label: kind === 'env' ? 'Design doc' : 'Notes', placeholder: kind === 'env' ? 'Write the design document… type / for blocks' : 'Write the story of this flow… type / for blocks', notes: true, onSubmit: () => save(), onEscape: () => cancel(), onChange: () => { tb?.update(); nt?.update(); dirtyNote(); } });
+  ed = createEditor({ html: '', label: kind === 'env' ? 'Design doc' : kind === 'call' ? 'Call description' : 'Notes', placeholder: kind === 'call' ? 'Describe this call… type / for blocks' : kind === 'env' ? 'Write the design document… type / for blocks' : 'Write the story of this flow… type / for blocks', notes: true, onSubmit: () => save(), onEscape: () => cancel(), onChange: () => { tb?.update(); nt?.update(); dirtyNote(); } });
   tb = createToolbar(ed); nt = notesTools(ed, tb, { kind, env, stepNow, keyOf: (n) => walk?.steps()[n - 1]?.key ?? null });
   tb.el.append(saved);
   if (kind === 'flow') walk?.markHook?.((n, ev) => { const st = walk.steps()[n - 1]; if (st) markMenu(ed, { n, key: st.key }, ev); }); // f3: a click on a step number offers Key step / Watch / Risk
-  if (template) { ed.setHtml(templateHtml()); hints(); } else ed.setHtml(useDraft ? draft.html : doc.body);
+  const TPL = kind === 'call' ? CALL_TEMPLATE : TEMPLATE; // kind 'call' (Unreleased): a call note, the same editor with a shorter toolbar (no Mermaid, no step chip, callouts without a step)
+  if (template) { ed.setHtml(templateHtml(TPL)); hints(); } else ed.setHtml(useDraft ? draft.html : doc.body);
   const start = ed.getHtml();
-  hint.textContent = template ? 'Template inserted. Delete any heading you do not need.' : useDraft ? `Your draft from ${clock(draft.at)} was restored.` : '';
+  hint.textContent = template ? (kind === 'call' ? '' : 'Template inserted. Delete any heading you do not need.') : useDraft ? `Your draft from ${clock(draft.at)} was restored.` : '';
   if (doc.version) hint.textContent += `${hint.textContent ? ' ' : ''}Others see version ${doc.version} until you save.`;
   if (useDraft) hint.append(' ', h('button.lnk', { type: 'button', 'data-qa': 'nt-discard-draft', on: { click: () => { ed.setHtml(doc.body); writeDraft(k, null); hint.textContent = `Draft discarded. Others see version ${doc.version}.`; } } }, 'Discard draft'));
   const wrap = h('div.rte-wrap.nt-wrap', tb.el, ed.el);
@@ -41,7 +43,7 @@ export function createNotesEditor({ env, anchor, kind = 'flow', doc, template = 
   el.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) { e.preventDefault(); save(); } });
 
   function hints() { // the template's grey hints: attributes of the editor's DOM only (the sanitizer drops them on save), gone as soon as there is text
-    [...ed.el.querySelectorAll('h2')].forEach((hd, i) => { const p = hd.nextElementSibling; if (p && TEMPLATE[i]) p.setAttribute('data-ph', TEMPLATE[i][1]); });
+    [...ed.el.querySelectorAll('h2')].forEach((hd, i) => { const p = hd.nextElementSibling; if (p && TPL[i]) p.setAttribute('data-ph', TPL[i][1]); });
   }
   const dirty = () => ed.getHtml() !== start;
   function dirtyNote() { clearTimeout(timer); timer = setTimeout(() => { const html = ed.getHtml(); writeDraft(k, html === doc.body || html === start && !useDraft ? null : { html, at: Date.now(), base }); if (html !== start) saved.textContent = `Draft saved ${clock(Date.now())}`; }, 700); }
@@ -56,7 +58,8 @@ export function createNotesEditor({ env, anchor, kind = 'flow', doc, template = 
   }
   async function save(current = null) {
     if (busy) return;
-    const html = ed.getHtml();
+    let html = ed.getHtml();
+    if (kind === 'call' && !hasCall(parseCall(html))) html = ''; // headings with nothing under them (the untouched template) say nothing: no note
     if (!html && !doc.version) { onCancel?.(); return; }
     busy = true; err.textContent = ''; sync();
     try {

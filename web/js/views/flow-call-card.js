@@ -1,51 +1,50 @@
-// The call card under the caption bar's step line (frame 28g): what the CALL does (short text), its contract (one line), an optional Watch, a link to the flow doc's
-// callout for the same step, and, in Edit mode, "+ Add call description" with a small form. The text belongs to the call (flow-call-store.js), so every flow that
-// uses it shows the same. Quiet when there is nothing: View mode draws nothing at all.
+// The call card under the caption bar's step line (frame 28g): the note of the CALL, a full rich document (Unreleased: read with the Notes renderer, written with the same
+// editor as the flow doc, in its compact form: toolbar, "/" menu, callouts Key / Watch / Risk, no outline, no History panel), a link to the flow doc's callout for the same
+// step, and, in Edit mode, "+ Add call description". The text belongs to the call (flow-call-store.js), so every flow that uses it shows the same. Quiet when there is
+// nothing: View mode draws nothing at all. A save is a new version (the Notes storage keeps them all), made by the editor itself (notes/edit.js) from the version it opened.
 
 import { h } from '../dom.js';
 import { icon } from '../icons.js';
+import { api } from '../api.js';
 import { me } from '../users/directory.js';
 import { callOf } from './flow-call-store.js';
-import { CALL_MAX } from '../../core/call-notes.js';
+import { callAnchor, parseCall, hasCall } from '../../core/call-notes.js';
+import { docView } from '../notes/read.js';
+import { createNotesEditor } from '../notes/edit.js';
+import { textSize } from '../notes/text-size.js';
 
-const lines = (t) => String(t ?? '').split('\n').filter(Boolean).map((l) => h('p', l));
-const col = (title, ...body) => h('div.cc-col', h('h5', title), ...body);
-
-/** createCallCard({ store, canEdit(), docLink(n) -> fn | null }) -> { el, paint(step | null, n), hasText(step), what(step), editing(), cancel() } */
+/** createCallCard({ store, canEdit(), docLink(n) -> fn | null }) -> { el, size (the text size control), paint(step | null, n), hasText(step), what(step), editing(), cancel() } */
 export function createCallCard({ store, canEdit, quiet = () => false, docLink = () => null, onChange = () => {} }) {
-  const el = h('div.cap-card', { 'data-qa': 'call-card', hidden: true });
-  let step = null, n = 0, form = false;
+  const el = h('div.cap-card', { 'data-qa': 'call-card', hidden: true }), size = textSize('call', el);
+  let step = null, n = 0, form = false, editor = null, view = null, opening = false;
   const call = () => callOf(step);
-  const note = (st = step) => store.of(callOf(st))?.note ?? null;
+  const note = (st = step) => store.of(callOf(st)) ?? null;
 
-  function open() { form = true; paint(step, n); el.querySelector('textarea')?.focus(); onChange(); }
-  function cancel() { if (!form) return; form = false; paint(step, n); onChange(); }
-
-  function editor(cur) {
-    const what = h('textarea.cc-in', { rows: 2, maxLength: CALL_MAX.what, placeholder: 'Describe this call', 'aria-label': 'What it does', 'data-qa': 'cc-what' }, cur?.what ?? '');
-    const contract = h('input.cc-in.mono', { type: 'text', maxLength: CALL_MAX.contract, placeholder: 'Request, response, errors', 'aria-label': 'Contract', 'data-qa': 'cc-contract', value: cur?.contract ?? '' });
-    const wt = h('textarea.cc-in', { rows: 2, maxLength: CALL_MAX.watch, placeholder: 'What to watch for in this call', 'aria-label': 'Watch text', 'data-qa': 'cc-watch' }, cur?.watch.text ?? '');
-    const on = h('input.vm-sw', { type: 'checkbox', role: 'switch', checked: !!cur?.watch.on, 'aria-label': 'Flag with ! in the diagram', 'data-qa': 'cc-watch-on', on: { change: () => sync() } });
-    const err = h('span.cc-err', { role: 'alert' }), save = h('button.btn.sm.primary', { type: 'button', 'data-qa': 'cc-save' }, 'Save'), cancelB = h('button.btn.sm', { type: 'button', on: { click: cancel } }, 'Cancel');
-    const sync = () => { wt.disabled = !on.checked; wt.closest('.cc-col')?.classList.toggle('off', !on.checked); };
-    save.addEventListener('click', async () => {
-      save.disabled = true; err.textContent = '';
-      try { await store.save(call(), { what: what.value, contract: contract.value, watch: { on: on.checked, text: wt.value } }); form = false; paint(step, n); onChange(); }
-      catch (e) { err.textContent = e.cancelled ? '' : e.message || 'Could not save.'; save.disabled = false; }
-    });
-    const key = (e) => { if (e.key === 'Escape') { e.stopPropagation(); cancel(); } else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) save.click(); };
-    queueMicrotask(sync);
-    return h('div.cc-form', { on: { keydown: key } },
-      col('What it does', what), col('Contract', contract),
-      col('Watch this call', h('label.cc-wrow', on, h('span', 'Flag with ! in the diagram')), wt),
-      h('div.cc-act', err, cancelB, save));
+  const stop = () => { editor?.dispose(); editor = null; view?.dispose(); view = null; };
+  async function open() {
+    const c = call();
+    if (!c || form || opening) return;
+    opening = true;
+    try {
+      const d = await api.notes(store.env, callAnchor(c.from, c.to, c.op)); // the version to write from (an emptied note has one too)
+      form = true; edit(c, d);
+    } catch { /* the card keeps its read view */ } finally { opening = false; }
   }
+  function edit(c, d) {
+    stop();
+    const act = h('div.cc-act'), done = (saved) => { stop(); form = false; if (saved) store.adopt(c, saved); paint(step, n); onChange(); };
+    const pane = { tools: (node) => act.replaceChildren(...(node ? [node] : [])) };
+    editor = createNotesEditor({ env: store.env, anchor: callAnchor(c.from, c.to, c.op), kind: 'call', doc: d, template: !hasCall(parseCall(d.body)), pane, onSaved: done, onTheirs: done, onCancel: () => done(null) });
+    el.hidden = false; el.replaceChildren(h('div.cc-editor', editor.el, act)); editor.focus(); onChange();
+  }
+  function cancel() { if (form) editor?.cancel(); }
 
   function paint(st, num) {
+    if (editor) return; // writing: the card stays on the call it opened
     step = st; n = num;
+    stop();
     if (!st) { el.hidden = true; el.replaceChildren(); return; }
     const cur = note(), ed = canEdit() && !!callOf(st);
-    if (form && ed) { el.hidden = false; el.replaceChildren(editor(cur)); return; }
     form = false;
     if (!cur) {
       const q = quiet(), show = ed && (!q || !!me()); // View mode: only a signed-in editor gets the one muted line
@@ -54,12 +53,10 @@ export function createCallCard({ store, canEdit, quiet = () => false, docLink = 
       return;
     }
     const link = docLink(n), a = link ? h('a', { href: '#', 'data-qa': 'cc-doc', on: { click: (e) => { e.preventDefault(); link(); } } }, 'Flow doc') : null;
+    view = docView(cur.body, { env: store.env });
     el.hidden = false;
-    el.replaceChildren(...[h('div.cc-grid',
-      cur.what ? col('What it does', ...lines(cur.what)) : null,
-      cur.contract ? col('Contract', h('p.mono', cur.contract)) : null,
-      cur.watch.on ? h('div.cc-col.wt', h('h5', icon('warn'), 'Watch'), ...lines(cur.watch.text), a) : a ? col('Flow doc', h('p', 'A callout on this step: ', a)) : null),
-    ed ? h('button.cc-edit', { type: 'button', 'data-qa': 'edit-call-note', 'aria-label': 'Edit call description', title: 'Edit this call’s description', on: { click: open } }, icon('edit')) : null].filter(Boolean));
+    el.replaceChildren(...[h('div.cc-read', { 'data-qa': 'cc-read' }, view.el, a ? h('p.cc-doclink', 'A callout on this step: ', a) : null),
+      ed ? h('button.cc-edit', { type: 'button', 'data-qa': 'edit-call-note', 'aria-label': 'Edit call description', title: 'Edit this call’s description', on: { click: open } }, icon('edit')) : null].filter(Boolean));
   }
-  return { el, paint, hasText: (st) => !!note(st), what: (st) => note(st)?.what ?? '', editing: () => form, cancel };
+  return { el, size: size.el, paint, hasText: (st) => !!note(st), what: (st) => note(st)?.note.first ?? '', editing: () => form, cancel };
 }

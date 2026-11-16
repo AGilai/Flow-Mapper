@@ -59,11 +59,11 @@ export function notesTools(ed, tb, { kind = 'flow', env, stepNow = () => null, k
   function calloutMenu() {
     const at = calloutAt(ed), k0 = pending ?? at?.dataset.callout ?? 'key'; pending = null;
     let k = k0;
-    const n = at?.dataset.step ?? (kind === 'flow' ? stepNow()?.n ?? 1 : ''), step = h('input.input', { type: 'number', min: 1, max: 9999, value: n, placeholder: kind === 'flow' ? 'step' : 'step (optional)', 'aria-label': 'Step of the callout', 'data-qa': 'nt-co-step-in' });
+    const n = at?.dataset.step ?? (kind === 'flow' ? stepNow()?.n ?? 1 : ''), step = kind === 'call' ? h('span') : h('input.input', { type: 'number', min: 1, max: 9999, value: n, placeholder: kind === 'flow' ? 'step' : 'step (optional)', 'aria-label': 'Step of the callout', 'data-qa': 'nt-co-step-in' });
     const kinds = ['key', 'watch', 'risk'].map((x) => h('button.om', { type: 'button', role: 'menuitemradio', 'aria-checked': String(x === k), 'data-kind': x, on: { mousedown: keep, click: () => { k = x; kinds.forEach((b) => { b.setAttribute('aria-checked', String(b.dataset.kind === k)); b.firstChild.textContent = b.dataset.kind === k ? '✓' : ''; }); } } }, h('span.nt-mk', x === k ? '✓' : ''), CALLOUT_LABEL[x]));
-    const apply = () => { const s = Number(step.value) || 0; close(); insertCallout(ed, k, s > 0 && s <= 9999 ? s : null, s > 0 ? keyOf(s) : null); update(); };
+    const apply = () => { const s = Number(step.value ?? 0) || 0; close(); insertCallout(ed, k, s > 0 && s <= 9999 ? s : null, s > 0 ? keyOf(s) : null); update(); };
     step.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); apply(); } });
-    return h('div.omenu.nt-cm', { role: 'group', 'aria-label': 'Callout' }, h('h5', at ? 'Change this callout' : 'Callout'), kinds, h('div.nt-sr.nt-cs', h('span', 'Step'), step), h('div.lk-b', h('button.btn.sm.primary', { type: 'button', 'data-qa': 'nt-co-apply', on: { click: apply } }, at ? 'Update' : 'Insert')));
+    return h('div.omenu.nt-cm', { role: 'group', 'aria-label': 'Callout' }, h('h5', at ? 'Change this callout' : 'Callout'), kinds, kind === 'call' ? null : h('div.nt-sr.nt-cs', h('span', 'Step'), step), h('div.lk-b', h('button.btn.sm.primary', { type: 'button', 'data-qa': 'nt-co-apply', on: { click: apply } }, at ? 'Update' : 'Insert')));
   }
   function linkMenu() {
     const q = h('input.input', { type: 'search', placeholder: 'Find a service or flow…', 'aria-label': 'Find a service or flow', 'data-qa': 'nt-link-q' }), list = h('div.nt-lk-l', { role: 'listbox' });
@@ -89,7 +89,7 @@ export function notesTools(ed, tb, { kind = 'flow', env, stepNow = () => null, k
   function update() { head.firstChild.textContent = `${BLOCKS.find(([t]) => t === current())[1]} ▾`; calloutBtn.classList.toggle('on', !!calloutAt(ed)); }
   const first = tb.el.firstChild, more = tb.el.querySelector('.tb-more');
   tb.el.insertBefore(head, first); tb.el.insertBefore(h('span.tbsep', { 'aria-hidden': 'true' }), first);
-  for (const b of [codeBtn, mmBtn, linkBtn, calloutBtn, stepBtn]) if (b) tb.el.insertBefore(b, more);
+  for (const b of [codeBtn, kind === 'call' ? null : mmBtn, linkBtn, calloutBtn, stepBtn]) if (b) tb.el.insertBefore(b, more);
   const slash = attachSlash(ed, cmds.map((c) => ({ ...c, run: () => { close(); c.run(); update(); } })));
   const onDown = (e) => { if (menu && !menu.contains(e.target) && !btns.some((b) => b.contains(e.target))) close(); };
   document.addEventListener('mousedown', onDown);

@@ -140,3 +140,18 @@ test('cognito + MCP: a viewer cannot write the design doc, a stranger gets 404, 
     assert.equal((await other.call('PUT', '/api/envs/d-sec/notes', { anchor: 'call:a|b|c', body: 'x', author: 'X' })).status, 404);
   } finally { await t.close(); }
 });
+
+test('call notes (the card editor path): the XSS payloads through REST and MCP html are inert and idempotent', async () => {
+  const mcp = mcpOf(app), anchor = 'call:x|y|GET /z', call = { from: 'x', to: 'y', op: 'GET /z' };
+  for (const [i, p] of PAYLOADS.entries()) {
+    const r = await put({ anchor, body: p });
+    assert.equal(r.status, 200, `${i}: ${JSON.stringify(r.body).slice(0, 100)}`);
+    assertInert(r.body.body, `call payload ${i}`);
+    const m = await mcp('set_notes', { env: 'prod', call, html: p });
+    assert.equal(m.isError, false, m.text);
+    const g = await mcp('get_notes', { env: 'prod', call });
+    assertInert(g.json.html, `call mcp payload ${i}`);
+    assert.equal(g.json.html, r.body.body, `payload ${i}: REST and MCP html sanitize the same`);
+    assert.equal((await put({ anchor, body: r.body.body })).body.body, r.body.body, `call payload ${i} idempotent`);
+  }
+});

@@ -19,7 +19,9 @@ export interface StepRef { from: number; to: number }
 
 /** The Notes a new flow starts from: the four headings of the frame 20b template. The editor puts a grey hint under each. */
 export const TEMPLATE = [['Purpose', 'Why does this flow exist? One or two sentences.'], ['How it works', 'The path in words. Type "step" and a number to link a step.'], ['Decisions', 'What was decided and why. @ mentions the people involved.'], ['Open questions', 'What is still unknown.']] as const;
-export const templateHtml = () => TEMPLATE.map(([h]) => `<h2>${h}</h2><p><br></p>`).join('');
+/** A call note's template (Unreleased): two headings, each over an empty paragraph that shows its hint as a placeholder (not text). */
+export const CALL_TEMPLATE = [['What it does', 'Describe this call in a sentence or two.'], ['Contract', 'Request, response, errors.']] as const;
+export const templateHtml = (t: readonly (readonly [string, string])[] = TEMPLATE) => t.map(([h]) => `<h2>${h}</h2><p><br></p>`).join('');
 
 /** Has the document any content a reader sees? (an emptied one is a version with an empty body) */
 export const hasNotes = (body: string | null | undefined) => !!body && !!plainText(body);

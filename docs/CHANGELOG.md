@@ -5,6 +5,10 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+- MCP / REST: a call note is a full rich document. `set_notes` with `call` takes `html` (the whole body: headings, lists, tables, code, links, callouts `key|watch|risk`) and still takes `{body, contract, watch}` (written into the usual shape); `body` is no longer required when `html` is given. `get_notes` with `call` returns `html` plus the derived `call: {what, contract, first, risk, watch: {on, text}, other}`; `watch.on` is true when the body holds a Watch callout (even an empty one). The length limit is 12,000 characters of text for the whole note (was 2,000 / 500 / 500 per field).
+- UI: the call card is edited with the flow doc's editor (toolbar, `/` menu, callouts) and read as a full document; A- / A / A+ text size on the call card, the flow doc pane and the design doc.
+
 ## 0.57.0 (2026-11-16): Collapsible call notes and flow doc
 - UI only. The call notes bar and the flow doc pane are collapsible cards: shown and expanded by default, header always visible with a chevron, the × is gone. View > Descriptions hides them to a one-line "hidden · Show". Hidden prefs from the old × are reset once; wide screens cap the card width.
 

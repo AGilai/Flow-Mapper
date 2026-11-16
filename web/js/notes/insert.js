@@ -42,7 +42,7 @@ export function commands(ed, { kind, ask }) {
     ['h1', 'Heading 1', 'Page title', fmt('h1')], ['h2', 'Heading 2', 'Section', fmt('h2')], ['h3', 'Heading 3', 'Subsection', fmt('h3')],
     ['ul', 'Bulleted list', 'Nested with Tab', list('insertUnorderedList')], ['ol', 'Numbered list', '', list('insertOrderedList')],
     ['table', 'Table', '3 by 3', () => ed.exec((r) => insertTable(ed.el, r))],
-    ['code', 'Code block', 'Monospaced', code], ['mermaid', 'Mermaid diagram', 'sequenceDiagram source', mermaid],
+    ['code', 'Code block', 'Monospaced', code], ...(kind === 'call' ? [] : [['mermaid', 'Mermaid diagram', 'sequenceDiagram source', mermaid]]),
     ['key', 'Callout: Key step', 'Tie a point to a step', callout('key')], ['watch', 'Callout: Watch', 'Something to look at', callout('watch')], ['risk', 'Callout: Risk', 'Something that can go wrong', callout('risk')],
     ['link', 'Link to a service or flow', 'A chip that opens it', () => ask('link')],
     ...(kind === 'flow' ? [['step', 'Step chip', 'Jump to a step', () => ask('step')]] : []),
