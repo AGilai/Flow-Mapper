@@ -15,7 +15,7 @@ import { channelOwner } from './channel-owner.ts'; import { gapNames, gapLabel, 
 import { linksFrom, sid, type GraphIndex } from './graph-index.ts';
 import { isLeaf, type Ingress, type Link, type Mode, type Ref, type Step, type StepAlternative, type StepFix, type StepField, type Unresolved } from './types.ts';
 import { handlerFor, passes, passesUntyped, untypedEventSet, type EventSet } from './events.ts';
-import { emptyFlow } from './entry-points.ts';
+import { emptyFlow } from './entry-points.ts'; import { callersOf } from './callers.ts';
 export { entryPoints } from './entry-points.ts';
 import { codeLink, sourceLink, type SourceLink } from './endpoint-info.ts';
 import { refKey, unresolvedTarget } from './resolve.ts';
@@ -300,8 +300,8 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
     }
   };
 
-  const client = part({ id: 'client', label: ing?.entryPoint ? 'client' : 'caller', kind: 'client' });
-  push({ from: client, to: fnPart(root, fnId), label: (ing?.bindKey ?? fnId) + (start.event ? ` · ${start.event}` : ''), event: start.event, mode: 'sync', kind: 'entry', depth: 0, service: root, fn: fnId, transport: ing?.transport, ...(ing?.transport === 'socket' ? { protocol: socketProtocol(ing) } : {}), target: ing ? { service: root, ingress: ing.id, fn: fnId } : undefined, ...(ing && chainOf(ing).length ? { middlewareChain: chainOf(ing) } : {}) });
+  const callers = callersOf(g, ing), client = part({ id: 'client', label: callers.length ? callers[0] + (callers.length > 1 ? ` +${callers.length - 1}` : '') : ing?.entryPoint ? 'client' : 'caller', kind: 'client', ...(callers.length ? { callers } : {}) }); // #116: client apps whose egress reaches this entry
+  push({ from: client, to: fnPart(root, fnId), label: (ing?.bindKey ?? fnId) + (start.event ? ` · ${start.event}` : ''), event: start.event, mode: 'sync', kind: 'entry', depth: 0, service: root, fn: fnId, transport: ing?.transport, ...(callers.length ? { callers } : {}), ...(ing?.transport === 'socket' ? { protocol: socketProtocol(ing) } : {}), target: ing ? { service: root, ingress: ing.id, fn: fnId } : undefined, ...(ing && chainOf(ing).length ? { middlewareChain: chainOf(ing) } : {}) });
   if (ing) runIngress(ing, fnId, 1, [sid(root, fnId)]); else visitFn(root, fnId, 1, [sid(root, fnId)]);
 
   for (const p of participants.values()) {

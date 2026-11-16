@@ -19,10 +19,13 @@ export interface Participant {
   owner?: string;
   /** #87: a service lifeline of an external (third-party) service. */
   external?: true;
+  /** #116, the `client` lifeline: the client-app services whose egress reaches the entry ingress (the label is the first, plus "+N"). */
+  callers?: string[];
 }
 export interface Message {
   from: string; to: string; label: string; mode: Mode;
   kind: 'entry' | 'call' | 'egress' | 'deliver' | 'resource' | 'leaf' | 'frontier';
+  callers?: string[];                                        // #116, on the `entry` message: client apps that call the entry ingress (none: the generic client)
   depth: number; internal?: boolean; broken?: boolean; cycle?: boolean;
   condition?: string; loop?: boolean; alternatives?: StepAlternative[]; fixes?: StepFix[]; stepId?: string; // 0.36.1 (#82): the step's either/or groups as sent, and the id `arms[].step_ids` use (`<service>:<fn>#<seq>`)
   mark?: 'new' | 'changed'; changed?: string; over?: string[]; real?: string; returns?: { label: string; detail?: string }; self?: boolean; returnTo?: string; // 0.41.1: a return step's target; 0.33.2: what the call returns (#81); 0.33.1: a mermaid import's `%% real:` bind key, the return's label, a self-message; 0.32.2: the step's mark and its details.changed text (#75), the components a leaf note spans (#74)

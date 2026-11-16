@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "demo-agent-lambda-connect",
+    "kind": "lambda",
+    "team": "network-edge",
+    "description": "Demo (#116): handles agent connections from the connect queue."
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-16T08:00:00Z",
+  "commit": "116aa01",
+  "functions": [
+    {
+      "id": "handleConnect",
+      "name": "ConnectHandler.handle",
+      "file": "src/ConnectHandler.ts",
+      "line": 20,
+      "steps": []
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.connect",
+      "bindKey": "sqs:demo-agent-sqs-connect",
+      "transport": "sqs",
+      "handler": "handleConnect"
+    }
+  ],
+  "egress": [],
+  "resources": []
+}

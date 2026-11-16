@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "demo-agent-apigw-ws",
+    "kind": "gateway",
+    "team": "network-edge",
+    "description": "Demo (#116): API Gateway WebSocket for the agent. $connect writes straight to SQS."
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-16T08:00:00Z",
+  "commit": "116aa01",
+  "functions": [
+    {
+      "id": "onConnect",
+      "name": "$connect route",
+      "file": "infra/demo-agent-apigw-ws/terragrunt.hcl",
+      "line": 89,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "out.connect",
+          "source": {
+            "file": "infra/demo-agent-apigw-ws/terragrunt.hcl",
+            "line": 96
+          }
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.ws.connect",
+      "bindKey": "socket:ws/demo-agent-apigw-ws/$connect",
+      "transport": "socket",
+      "handler": "onConnect",
+      "details": {
+        "protocol": "ws",
+        "event": "$connect"
+      }
+    }
+  ],
+  "egress": [
+    {
+      "id": "out.connect",
+      "bindKey": "sqs:demo-agent-sqs-connect",
+      "transport": "sqs",
+      "mode": "async"
+    }
+  ],
+  "resources": [],
+  "channels": [
+    {
+      "bindKey": "sqs:demo-agent-sqs-connect",
+      "kind": "sqs-queue",
+      "name": "demo-agent-sqs-connect"
+    }
+  ]
+}

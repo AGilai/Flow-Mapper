@@ -26,7 +26,7 @@ export function endpointPanel(info, env) {
     h('div.ep-title', method ? h('span.ep-method', { 'data-m': method }, method) : rpc ? chip('rpc', 'amqp rpc') : chip(i.transport), h('span.ep-target', target), markBadge(marksNow().markOf(`ing:${service}/${i.id}`), { store: marksNow() })),
     h('div.ep-sub', h('span', service), method ? chip(i.transport) : null, i.entryPoint ? h('span.pill', 'entry point') : null));
 
-  return [head, rpc ? rpcCards(rpc, service) : null, i.handler ? codeCard(fn, i, source, info.definedAt, info.handlerVia) : null, pathParamsCard(info.pathParams), ...info.slots.map((s) => dtoCard(s, env, service, i.id)),
+  return [head, rpc ? rpcCards(rpc, service) : null, callersCard(info.callers), i.handler ? codeCard(fn, i, source, info.definedAt, info.handlerVia) : null, pathParamsCard(info.pathParams), ...info.slots.map((s) => dtoCard(s, env, service, i.id)),
     info.events.length ? eventsSection(info, env) : null,
     info.note ? h('p.ep-note', info.note) : null,
     h('a.btn.primary.ep-trace', { href: href('/flows', { service, ingress: i.id }) }, icon('flow'), 'Trace from here')];
@@ -116,3 +116,7 @@ function producerChip(p) {
     tag ? h('span.xs.muted', tag) : null);
   return p.via?.length ? h('span.ep-producer-box', pill, viaChip(p.via)) : pill;
 }
+
+/** #116: the client apps whose egress reaches this entry ingress (their code is not harvested; the egress is what links them). */
+const callersCard = (callers) => callers?.length ? h('section.ep-card', h('header', h('h3', 'Callers', h('span.muted', ` ${callers.length}`))),
+  h('div.rpc-callers', callers.map((c) => h('div.rpc-caller', h('div.l1', h('a.b', { href: href(`/services/${encodeURIComponent(c)}`) }, c), h('span.muted', 'client app')))))) : null;

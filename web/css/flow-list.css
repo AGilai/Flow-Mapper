@@ -29,6 +29,7 @@
 .fl-nm b { font-weight: 600; overflow-wrap: anywhere; }
 .fl-nm .lock-chip, .entry .lock-chip { height: 18px; }
 .fl-sum { overflow-wrap: anywhere; }
+.fl-from { overflow-wrap: anywhere; } /* #116: "from <client app>" under the key */
 .fl-ext { display: inline-grid; place-items: center; width: 18px; height: 18px; color: var(--ink-2); cursor: pointer; border-radius: 4px; }
 .fl-ext:hover, .fl-ext:focus-visible { color: var(--accent); background: var(--accent-soft); outline: none; }
 .fl-ext svg { width: 13px; height: 13px; }
