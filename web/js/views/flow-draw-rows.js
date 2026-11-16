@@ -24,7 +24,7 @@ export function drawRows({ events, colX, ys, barX, edge, marks, refs, stacked, f
   return events.map((e, r) => {
     const y0 = ys[r], lab = (v) => (noApi?.has(e) ? null : v), mk = () => ({ ow: runs?.byMsg.get(e.msg)?.first, label: lab(e.label) }); // 0.38.1: the step markers (flow-markers-draw.js) // step details: an arrow that shows title / description only has no API label
     const g = (cls, ...kids) => s('g', { class: `msg ${cls}`, 'data-e': r, tabindex: e.msg ? 0 : null, role: e.msg ? 'button' : null }, ...kids);
-    const hit = (x1, x2) => s('rect', { class: 'hit', x: Math.min(x1, x2) - 4, y: y0 - 22, width: Math.abs(x2 - x1) + 8, height: 30 });
+    const hit = (x1, x2) => s('rect', { class: 'hit', x: Math.min(x1, x2) - 4, y: y0 - 22, width: Math.abs(x2 - x1) + 8, height: 34 }); // the whole arrow: label above, ~12px of line below
     // the shared trunk of a fan-out (service to topic): opens the publish, not the first delivery (0.19.1)
     const trunkHit = (x1, x2, y, ev) => s('rect', { class: 'hit trunk', x: Math.min(x1, x2) - 4, y: y - 22, width: Math.abs(x2 - x1) + 4, height: 30, tabindex: 0, role: 'button', 'aria-label': `Publish ${ev.label}, fans out to ${ev.publish.deliveries.length} queues` });
     const owner = e.fromBar ?? e.bar;
