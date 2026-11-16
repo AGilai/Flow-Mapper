@@ -111,3 +111,13 @@ test('QA: the View popover drops null children (it printed "null" without subsys
   assert.match(m, /pop\.replaceChildren\(\.\.\.\[[^]*\]\.filter\(Boolean\)\);/);
   assert.match(tabs, /closest\('\.x, \.tb-act, input'\) && key !== state\.active\) cb\.onActivate\(key\)/);
 });
+
+test('the call card opens or closes only on a user action: a repaint (paintCaps, View > Hide text) never flips it', () => {
+  const s = src('js/views/flow-stepbar.js'), caps = s.match(/const paintCaps = \(\) => \{[\s\S]*?\n  \};/)![0];
+  assert.doesNotMatch(s, /(?<![.\w])toggle\(/, 'no ambiguous toggle(): toggleCard() for the card, setExp() for the description');
+  assert.match(caps, /if \(c\.hideText\) setExp\(false\)/);
+  assert.doesNotMatch(caps, /toggleCard|cardOpen/, 'paintCaps never touches the card state');
+  const set = s.match(/const setExp = [^\n]*/)![0];
+  assert.doesNotMatch(set, /cardOpen|writeKey/, 'setExp leaves the card and its remembered state alone');
+  assert.equal([...s.matchAll(/toggleCard\(\)/g)].length, 2, 'only the chevron and the header click call it');
+});
