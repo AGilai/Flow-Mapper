@@ -5,6 +5,7 @@
 import { s } from '../dom.js';
 import { NEST, BAR } from './flow-draw-layout.js';
 import { drawBadges } from './flow-step-badges.js';
+import { drawCallMarks } from './flow-call-marks.js';
 
 const H = 16, tw = (n) => Math.max(20, String(n).length * 7 + 12);
 const blocked = (st) => !!st.event?.msg?.blocked; // #85: a blocked step's tile is an amber "!" bubble, not a number
@@ -30,7 +31,7 @@ export function drawStepTiles(res, built, steps, onPick, onEdit = null, hl = () 
   const tiles = new Map(), spans = new Map(), grps = new Map(), where = new Map(); // where: the place of a step's callout badge (flow-step-badges.js)
   const g = s('g', { class: 'steptiles' }, ...steps.map((st) => {
     const sp = arrowSpan(st, { columns: built.columns, geometry: res.geometry }), w = blocked(st) ? 18 : tw(st.n), cx = sp.x1 + sp.dir * (w / 2 + 3), y = res.geometry.y[st.row];
-    spans.set(st.n, sp); where.set(st.n, { x: sp.x1 - sp.dir * (BAR + 12), y: y + 2 }); // the badge sits before the bar, opposite the arrow, clear of its label
+    spans.set(st.n, sp); where.set(st.n, { x: sp.x1 - sp.dir * (BAR + 12), y: y + 2, dir: sp.dir }); // the badge sits before the bar, opposite the arrow, clear of its label
     const t = s('g', { class: `steptile${blocked(st) ? ' blk' : ''}`, 'data-step': st.n, 'aria-hidden': 'true' },
       s('rect', { x: cx - w / 2, y: y - 6, width: w, height: blocked(st) ? 18 : H, rx: blocked(st) ? 9 : H / 2 }), s('text', { x: cx, y: y + (blocked(st) ? 7 : 6), 'text-anchor': 'middle' }, blocked(st) ? '!' : st.n), s('title', {}, `Step ${st.n}${blocked(st) ? ' (blocked)' : ''}: ${st.label}`));
     t.addEventListener('click', (ev) => { ev.stopPropagation(); onPick(st.n, ev); });
@@ -47,7 +48,7 @@ export function drawStepTiles(res, built, steps, onPick, onEdit = null, hl = () 
   }));
   res.body.append(g);
   const rowOf = (n) => { const st = steps[n - 1], top = res.geometry.top; return st && top?.[st.row] != null && top[st.row + 1] != null ? { top: top[st.row], bottom: top[st.row + 1] } : null; };
-  const badges = drawBadges(res, (n) => where.get(n) ?? null, rowOf);
+  const badges = drawBadges(res, (n) => where.get(n) ?? null, rowOf), callMarks = drawCallMarks(res, (n) => where.get(n) ?? null); // frame 28g: a marker on the arrows whose call has a note
   // after the column fills (fold bands) so the yellow reads as one band across the row, before frames, lifelines, arrows and text
   const under = [...res.body.querySelectorAll(':scope > .sq-band')].pop() ?? res.body.querySelector(':scope > defs'); if (under) under.after(band); else res.body.prepend(band);
   band.after(rband);
@@ -62,7 +63,7 @@ export function drawStepTiles(res, built, steps, onPick, onEdit = null, hl = () 
       if (!hl() || !st || !sp || top?.[st.row] == null || top[st.row + 1] == null) { band.setAttribute('visibility', 'hidden'); return; }
       band.setAttribute('y', top[st.row]); band.setAttribute('height', top[st.row + 1] - top[st.row]); band.setAttribute('width', res.geometry.width); band.setAttribute('visibility', 'visible');
     },
-    rowSpan: rowOf, badges,
+    rowSpan: rowOf, badges, callMarks,
     setRange(from, to) {
       const a = from == null ? null : this.rowSpan(from), b = to == null ? null : this.rowSpan(to);
       if (!a || !b) { rband.setAttribute('visibility', 'hidden'); return; }

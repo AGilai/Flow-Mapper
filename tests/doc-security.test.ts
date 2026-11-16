@@ -134,5 +134,7 @@ test('cognito + MCP: a viewer cannot write the design doc, a stranger gets 404, 
     assert.deepEqual(ev, [], 'a stranger sees no event of the private design');
     assert.equal((await other.call('GET', '/api/envs/d-sec/notes/history?anchor=env')).status, 404);
     assert.equal((await other.call('GET', '/api/envs/d-sec/notes/index')).status, 404);
+    assert.equal((await other.call('GET', '/api/envs/d-sec/notes/calls')).status, 404, 'call notes follow the same access rule');
+    assert.equal((await other.call('PUT', '/api/envs/d-sec/notes', { anchor: 'call:a|b|c', body: 'x', author: 'X' })).status, 404);
   } finally { await t.close(); }
 });

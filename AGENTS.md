@@ -55,6 +55,11 @@ and, in a **flow doc**, callouts tied to one step that show as a badge on that s
 at, `risk` = something that can go wrong). Same access as other annotations: a design needs editor rights, a sealed env takes it
 from any reader, a hidden env is 404.
 
+A **call note** describes one call (one arrow), once for every flow that uses it: `set_notes {env*, call: {from*, to*, op*}, body*, contract?, watch?}`
+where `from` / `to` are the names a step shows (service, queue, data store) and `op` its label (as in `get_flow` steps: `GET /orders`, `find · orders`);
+`body` is what the call does (plain text), `contract` one line (`GET /orders -> 200 Order[] · 401 no session`), `watch` text that makes the step show a `!`.
+Read it with `get_notes {env*, call}` (the answer has `call: {what, contract, watch}`). Same access as other annotations.
+
 Design in passes: subsystems and components first, then channels and flows, then the LLD. Record what you do not know
 with `set_notes` / `add_comment` / `add_action_item` instead of guessing. Check yourself with `link_health` (dangling
 calls, orphan endpoints) and `list_open_questions`.

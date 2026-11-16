@@ -15,6 +15,7 @@ export function createAboutPop({ aboutOf }) {
     const el = h('div.about-pop', { role: 'dialog', 'aria-label': 'About this flow', 'data-qa': 'about-pop' }, a.el), r = anchor.getBoundingClientRect(), w = Math.min(600, innerWidth - 16);
     Object.assign(el.style, { top: `${Math.round(r.bottom + 6)}px`, left: `${Math.max(8, Math.min(r.left - 40, innerWidth - w - 8))}px`, width: `${w}px`, maxHeight: `${Math.max(160, innerHeight - r.bottom - 20)}px` });
     document.body.append(el);
+    el.addEventListener('fm:about-close', () => close()); // "Open the flow doc" in the text
     const down = (e) => { if (!el.contains(e.target) && !anchor.contains(e.target) && !e.target.closest('.ctx-menu, .toast')) close(); };
     const key2 = (e) => { if (e.key === 'Escape' && !e.target.closest?.('textarea, input')) { close(); anchor.focus?.(); } };
     setTimeout(() => { addEventListener('pointerdown', down, true); addEventListener('keydown', key2, true); });

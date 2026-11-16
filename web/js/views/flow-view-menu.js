@@ -48,7 +48,7 @@ export function createViewMenu({ ctx, act, stepMenu }) {
     pop.replaceChildren(...[
       h('div.vm-top', h('b', 'View options'), h('button.vm-reset', { type: 'button', disabled: !n, on: { click: () => { reset(); paint(); } } }, 'Reset to defaults')),
       head('Descriptions'),
-      sw('Call notes', { on: c.caption, qa: 'caption-switch', note: 'The caption bar under the diagram', change: (v) => setCap('caption', v) }),
+      sw('Call notes', { on: c.caption, qa: 'caption-switch', note: 'The bar under the diagram: the call you are on, and its description', change: (v) => setCap('caption', v) }),
       sw('Flow doc', { on: flowDoc().enabled, qa: 'flowdoc-switch', note: 'The pane under the diagram and the note icon on the tab; step badges stay', change: (v) => setFlowDoc('enabled', v) }),
       sw('Legend', { on: c.legend, qa: 'legend-switch', note: 'Read / Write line key', change: (v) => setCap('legend', v) }),
       head('Diagram'),

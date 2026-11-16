@@ -18,10 +18,10 @@ let seq = 0;
  * summary: the nodes of the title row (the first one is the title). relations: createRelations(...) | null, drawn inside the region; it calls setRelated(n).
  * seenKey: what the "first visit" is remembered by.
  */
-export function descDetails(store, root, callee, { cls, summary, title, onGenerate, pen = null, relations = null, seenKey = '' }) {
+export function descDetails(store, root, callee, { cls, summary, title, onGenerate, pen = null, relations = null, seenKey = '', docText = undefined, openDoc = null }) {
   const id = `about-body-${++seq}`, size = sizeControl();
   let related = 0, isOpen = false, all = false, decided = false, clipped = false, built = false; // built: aboutText calls onChange at once when its store already holds the text (a re-made tab), before the nodes below exist
-  const about = aboutText(store, root, { title, onChange: () => { if (built) { paint(); requestAnimationFrame(fit); } } });
+  const about = aboutText(store, root, { title, docText, openDoc, onChange: () => { if (built) { paint(); requestAnimationFrame(fit); } } });
 
   const pv = h('span.pv'), cnt = h('span.fab-cnt', { 'data-qa': 'about-related', hidden: true });
   const tg = h('button.fab-tg', { type: 'button', 'data-qa': 'about-toggle', 'aria-expanded': 'false', 'aria-controls': id, on: { click: () => set(!isOpen, true) } },
@@ -64,5 +64,5 @@ export function descDetails(store, root, callee, { cls, summary, title, onGenera
   sec.addEventListener('fm:md', fit);
   const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(() => { el.style.setProperty('--fh-sum-h', `${row.offsetHeight}px`); fit(); }) : null; ro?.observe(row); ro?.observe(bd);
   built = true; paint();
-  return { el, setRelated: (n) => { related = n; paint(); }, open: (on) => set(on, false), dispose: () => { unwatch(); about.dispose(); size.dispose(); menu.close(false); ro?.disconnect(); relations?.dispose(); } };
+  return { el, redraw: () => about.redraw(), setRelated: (n) => { related = n; paint(); }, open: (on) => set(on, false), dispose: () => { unwatch(); about.dispose(); size.dispose(); menu.close(false); ro?.disconnect(); relations?.dispose(); } };
 }

@@ -5,6 +5,14 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased: Call notes (frame 28 stage 4)
+
+- **Call notes.** A description of one CALL, kept once and shown in every flow that uses it (HLD: describe an API once). Stored in the Notes storage (`flow_notes`, versions, History; no migration) under the anchor `call:<from>|<to>|<op>`: `from` / `to` are the names the step shows (service, queue, data store) and `op` its label (`GET /products/{id}/reviews`, `find · reviews`); a `|` or `%` in a name is written `%7C` / `%25`. The body is the Notes subset: `<h2>What it does</h2><p>…</p><h2>Contract</h2><p>one line</p><div data-callout="watch"><p>…</p></div>` (the Watch callout makes the step show a `!` on the diagram). Limits: what 2,000, contract 500, watch 500 characters (`422`).
+- **REST.** `GET` / `PUT /api/envs/:env/notes?anchor=call:…` (and `/history`, `/restore`) take a call anchor, with the same access rules as flow notes; no flow is checked. New `GET /api/envs/:env/notes/calls` -> `{<anchor>: {version, body}}` for every call note with content (one request for the diagram's markers). `notes/index` lists flows only.
+- **MCP.** `get_notes` / `set_notes` take `call: {from, to, op}` (instead of `service` + `ingress` / `doc`). `set_notes`: `body` is "What it does", plus `contract` and `watch` (text; empty = no watch); `get_notes` answers also `call: {what, contract, watch: {on, text}}`.
+- Seed: `samples/notes/sub-bands.json` items with `call: {from, to, op, what, contract, watch}` (the sub-bands reviews flow, steps 1 and 2).
+- UI: the caption bar under the diagram ("Call notes" in View > Descriptions) shows the call card; hovering an arrow previews its call; markers on the diagram; Edit mode adds "Add call description". Fix: "About this flow" shows the flow doc's Purpose when the flow has no description of its own, and no longer scrolls sideways.
+
 ## 0.55.0 (2026-11-16): Design doc and flow doc (frame 28 stages 2+3)
 
 Design doc and flow doc (frame 28, stages 2 and 3).

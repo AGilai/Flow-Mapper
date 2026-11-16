@@ -10,12 +10,12 @@ import { mdBlock } from './flow-md.js';
  * aboutText(store, root, { title, onChange }) -> { el, edit(), hasText(), editing(), preview(), clipped(), setClamp(on), dispose }.
  * onChange(): the text, the editing state or the layout changed (the header repaints).
  */
-export function aboutText(store, root, { title, onChange }) {
+export function aboutText(store, root, { title, onChange, docText = () => '', openDoc = null }) { // docText(): the flow doc's Purpose (first paragraph), shown when the flow has no description of its own
   const el = h('div.fab-txt', { 'data-qa': 'about-text' });
   let data = null, editing = false, clamp = true, aiOpen = false, md = null;
   const start = (e) => { e?.preventDefault(); if (!editing) { editing = true; render(); onChange(); } };
   const pair = () => pairOf(data, null);
-  const textOf = (p) => (p.human?.text ?? p.ai?.text ?? '');
+  const textOf = (p) => (p.human?.text ?? p.ai?.text ?? docText());
 
   function render() {
     if (editing && el.querySelector('.editing')) return;
@@ -25,6 +25,11 @@ export function aboutText(store, root, { title, onChange }) {
       const ed = noteEditor({ initial: p.human?.text, label: `Human note: ${title}`, onCancel: () => { editing = false; render(); onChange(); },
         onSave: async (t) => { await store.save(root, null, t); editing = false; render(); onChange(); } });
       el.replaceChildren(ed.el); queueMicrotask(() => ed.focus());
+      return;
+    }
+    if (!p.human && !p.ai && docText()) { // no description of its own: the flow doc says what the flow is for
+      md = mdBlock(docText(), clamp ? 'fab-md clamped' : 'fab-md');
+      el.replaceChildren(md, h('div.fab-meta', 'From the flow doc', openDoc ? [' · ', h('a', { href: '#', 'data-qa': 'about-open-doc', on: { click: (e) => { e.preventDefault(); el.dispatchEvent(new CustomEvent('fm:about-close', { bubbles: true })); openDoc(); } } }, 'Open the flow doc')] : null, ' · ', h('a', { href: '#', on: { click: start } }, 'Write a description')));
       return;
     }
     if (!p.human && !p.ai) { el.replaceChildren(h('p.fab-empty', data ? 'No description yet · ' : 'Loading…', data ? h('a', { href: '#', on: { click: start } }, 'Write one') : null)); return; }
@@ -42,7 +47,8 @@ export function aboutText(store, root, { title, onChange }) {
   return {
     el, edit: start, dispose: unwatch,
     loaded: () => !!data,
-    hasText: () => !!(data && (pair().human || pair().ai)),
+    hasText: () => !!(data && (pair().human || pair().ai || docText())),
+    redraw: () => { if (!editing) render(); onChange(); },
     editing: () => editing,
     preview: () => textOf(pair()),
     clipped: () => !!md && md.scrollHeight > md.clientHeight + 2,

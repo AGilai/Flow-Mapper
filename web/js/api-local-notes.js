@@ -5,13 +5,14 @@ import { trace } from '../core/trace.js';
 import { HASH_TRACE } from '../core/description.js';
 import { parseFlowAnchor, cleanName, MAX_AUTHOR } from '../core/comments.js';
 import { isEnvDoc } from '../core/notes.js';
+import { isCallAnchor, parseCall, hasCall, callTooLong } from '../core/call-notes.js';
 import { sanitize, notesTooLong, plainText } from '../core/rich-text.js';
 
 export function createNotes(data, g, U) {
   const fail = (message, status, code, details) => { const e = new Error(message); e.status = status; e.code = code; e.details = details; throw e; };
   const rows = (env) => ((data.notes ??= {})[env] ??= []);
   const mine = (env, anchor) => rows(env).filter((r) => r.anchor === anchor).sort((a, b) => a.version - b.version);
-  const anchorOf = (a) => (isEnvDoc(a) || parseFlowAnchor(a)) ? a : fail("anchor must be 'flow:<service>/<ingress>' (or 'env' for the design doc)", 400);
+  const anchorOf = (a) => (isEnvDoc(a) || parseFlowAnchor(a) || isCallAnchor(a)) ? a : fail("anchor must be 'flow:<service>/<ingress>' (or 'env' for the design doc)", 400);
   const doc = (r) => ({ anchor: r.anchor, version: r.version, body: sanitize(r.body, { notes: true }), author: r.author, authorId: r.authorId ?? null, createdAt: r.createdAt, restoredFrom: r.restoredFrom ?? null });
   const none = (anchor) => ({ anchor, version: 0, body: '', author: null, authorId: null, createdAt: null, restoredFrom: null });
   const write = (env, i, restoredFrom = null) => {
@@ -19,6 +20,8 @@ export function createNotes(data, g, U) {
     if (typeof i.body !== 'string') fail('body is required', 400);
     const body = sanitize(i.body, { notes: true }), long = notesTooLong(body);
     if (long) fail(long, 422);
+    const tl = isCallAnchor(anchor) ? callTooLong(parseCall(body)) : null;
+    if (tl) fail(tl, 422);
     if (f && !trace(g(env), { service: f.service, ingress: f.ingress }, HASH_TRACE)) fail(`flow ${f.service} / ${f.ingress} not found`, 404);
     const author = typeof i.author === 'string' ? cleanName(i.author) : '';
     if (!author) fail('author is required', 400);
@@ -31,6 +34,7 @@ export function createNotes(data, g, U) {
     return doc(r);
   };
   return {
+    callNotes: async (env) => { const out = {}; for (const r of rows(env)) { if (!isCallAnchor(r.anchor)) continue; const cur = mine(env, r.anchor).at(-1); if (cur === r && hasCall(parseCall(r.body))) out[r.anchor] = { version: r.version, body: sanitize(r.body, { notes: true }) }; } return out; },
     notes: async (env, anchor, version) => {
       const all = mine(env, anchorOf(anchor));
       if (version == null) return all.length ? doc(all.at(-1)) : none(anchor);
