@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased
+## 0.58.1 (2026-11-16)
 
 UI only: the collapse control of the call card and of the flow doc pane is a bordered chevron button at the start of the header (up = expanded, down = collapsed; the header row toggles too); the call note's Edit is a coloured button in the card header; the step pencils are larger and accent-coloured.
 
