@@ -1,6 +1,6 @@
 // The step walk's two views (0.20.0, reworked 0.30.0 and 0.45.0, frame 28): the PLAYER, "‹ Step N of M ›", which lives in the toolbar (row 2), and the CAPTION BAR under the
 // diagram, which follows the current step: its call line (title, API, route), the step's description (Markdown-lite; "Add a description" when it has none), the pencil that
-// edits the step, and at its right the Read / Write legend and a close button. What the caption shows is the viewer's choice (`sb=`, step-details-pure.js); the whole bar, the legend
+// edits the step, and at its right the Read / Write legend (no close button: View > Descriptions hides the bar to a "hidden · Show" line). What the caption shows is the viewer's choice (`sb=`, step-details-pure.js); the whole bar, the legend
 // and the description can be switched off in View > Descriptions (flow-caption-state.js). Pure view of the state it is given: the walk (current step, keys, URL) is flow-walk-view.js.
 
 import { h } from '../dom.js';
@@ -33,9 +33,9 @@ export function createStepbar({ store, root, onMove, onEdit, sb = () => 'tad', e
   const ext = h('span.stepext.xs.muted', { 'data-qa': 'step-range' }), desc = h('div.cap-desc', { 'data-qa': 'step-detail' });
   const edit = root && !readOnly ? h('button.cap-edit', { type: 'button', 'data-qa': 'edit-step', 'aria-label': 'Edit step', title: 'Edit this step (E)', on: { click: () => onEdit?.(caption) } }, icon('edit')) : null;
   const more = h('button.cap-more', { type: 'button', 'aria-label': 'Show the whole description', 'aria-expanded': 'false', title: 'Show the whole description', hidden: true, on: { click: () => toggle() } }, icon('chevdown'));
-  const legendSlot = h('span.cap-leg'), close = h('button.cap-x', { type: 'button', 'aria-label': 'Hide the caption bar', title: 'Hide the caption bar (View > Descriptions brings it back)', on: { click: () => setCap('caption', false) } }, icon('close'));
+  const legendSlot = h('span.cap-leg'), offLine = h('div.cap-off', { 'data-qa': 'callnotes-off' }, 'Call notes hidden · ', h('button', { type: 'button', 'data-qa': 'callnotes-show', on: { click: () => setCap('caption', true) } }, 'Show'));
   const caption = h('div.capbar', { role: 'group', 'aria-label': 'Call notes', 'data-qa': 'caption-bar', hidden: true },
-    h('div.cap-row', chip, num, call, ext, edit, desc, more, h('span.grow'), legendSlot, close));
+    h('div.cap-row', chip, num, call, ext, edit, desc, more, legendSlot), offLine);
   let last = null, data = null, total = 0, exp = false, cardOpen = readKey('callcard-open') !== '0', pv = null; // pv: the step a hovered arrow previews (frame 28g); cardOpen: the call card is expanded (remembered)
   const card = calls ? createCallCard({ store: calls, canEdit: () => true, quiet: () => state.mode !== 'edit', docLink, onChange: () => requestAnimationFrame(() => document.dispatchEvent(new CustomEvent('fm:layout'))) }) : null;
   if (card) caption.append(card.el);
@@ -47,10 +47,11 @@ export function createStepbar({ store, root, onMove, onEdit, sb = () => 'tad', e
   const clipped = () => { more.hidden = !(cardNote() || exp || desc.scrollWidth > desc.clientWidth + 1 || desc.scrollHeight > desc.clientHeight + 1); };
   const paintCaps = () => {
     const c = caps();
-    caption.hidden = !c.caption || total < 1; legendSlot.hidden = !c.legend;
+    caption.hidden = total < 1; caption.classList.toggle('off', !c.caption); legendSlot.hidden = !c.legend; // off (View > Descriptions): one muted line in the bar's place
     desc.hidden = c.hideText || !desc.childNodes.length; if (c.hideText) toggle(false);
     requestAnimationFrame(clipped);
   };
+  caption.querySelector('.cap-row').addEventListener('click', (e) => { if (cardNote() && !e.target.closest('a, button, .cap-desc')) toggle(); }); // the header line is the card's handle too
   const off = onCaps(paintCaps);
   const unUsers = card ? watchUsers(() => { if (last) paint(); }) : () => {}; // signing in shows "+ describe this call"
   const unCalls = calls ? calls.watch(() => { if (last) paint(); }) : () => {};

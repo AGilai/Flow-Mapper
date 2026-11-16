@@ -3,7 +3,7 @@
 //   shown    the pane itself. Off (with enabled on) is "hidden" (a1/a2): no pane, a note icon on the active tab that brings it back.
 // The diagram's callout badges do not depend on either: they come from the document's callouts, not from the pane being open.
 
-const KEY = { enabled: 'flow-mapper.flowdoc-on', shown: 'flow-mapper.flowdoc-shown' };
+const KEY = { enabled: 'flow-mapper.flowdoc-on2', shown: 'flow-mapper.flowdoc-shown2' } /* renamed in Unreleased: a pane hidden with the old × or switch comes back once */;
 const subs = new Set();
 const read = (k) => { try { return localStorage.getItem(k) !== '0'; } catch { return true; } };
 const st = { enabled: read(KEY.enabled), shown: read(KEY.shown) };

@@ -4,9 +4,9 @@
 import { readKey, writeKey, SIZE_DEFAULT } from './flow-info-pure.js';
 import { BAR_DEFAULT } from './step-details-pure.js';
 
-/** The caption bar and the legend are on unless the viewer turned them off (`flow-mapper.flow-caption`, `flow-mapper.flow-legend`: '0' = off). */
-export const captionOn = (st) => readKey('flow-caption', st) !== '0';
-export const captionSave = (on, st) => writeKey('flow-caption', on ? '1' : '0', st);
+/** The call notes bar and the legend are on unless the viewer turned them off (`flow-mapper.flow-caption2`, `flow-mapper.flow-legend`: '0' = off). The bar's key was renamed from `flow-caption` in Unreleased so a bar hidden with the old × comes back once. */
+export const captionOn = (st) => readKey('flow-caption2', st) !== '0';
+export const captionSave = (on, st) => writeKey('flow-caption2', on ? '1' : '0', st);
 export const legendOn = (st) => readKey('flow-legend', st) !== '0';
 export const legendSave = (on, st) => writeKey('flow-legend', on ? '1' : '0', st);
 

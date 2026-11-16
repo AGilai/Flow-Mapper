@@ -58,11 +58,11 @@ test('Transport hints differ from the environment kind\'s default (off in a desi
   assert.deepEqual(V.nonDefault({ ...base, hints: false, hintsDefault: true }), ['Transport hints']);
 });
 
-test('the caption bar and the legend are on unless stored "0"; broken storage means on; the keys are flow-mapper.flow-caption and flow-mapper.flow-legend', () => {
+test('the caption bar and the legend are on unless stored "0"; broken storage means on; the keys are flow-mapper.flow-caption2 and flow-mapper.flow-legend', () => {
   const st = mem();
   assert.equal(V.captionOn(st), true); assert.equal(V.legendOn(st), true);
   V.captionSave(false, st); V.legendSave(false, st);
-  assert.equal(st.m.get('flow-mapper.flow-caption'), '0'); assert.equal(st.m.get('flow-mapper.flow-legend'), '0');
+  assert.equal(st.m.get('flow-mapper.flow-caption2'), '0'); assert.equal(st.m.get('flow-mapper.flow-legend'), '0');
   assert.equal(V.captionOn(st), false); assert.equal(V.legendOn(st), false);
   V.captionSave(true, st); assert.equal(V.captionOn(st), true);
   assert.equal(V.captionOn(broken as any), true); assert.doesNotThrow(() => V.legendSave(false, broken as any));

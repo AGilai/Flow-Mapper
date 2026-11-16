@@ -39,13 +39,13 @@ export function createPane({ panels, diagram, hasNotes = false }) {
   const fold = h('button.fp-fold', { type: 'button', 'data-qa': 'pane-fold', on: { click: () => { split.toggle(); paint(); } } }, '▾');
   const tools = h('span.fp-tools', addGroup);
   const flowTag = h('span.fp-flow', { title: 'The flow doc: the notes, comments and action items of this flow', html: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2v12M3 4h6M3 8h8M3 12h5"/></svg>Flow' });
-  const hideBtn = h('button.fp-x', { type: 'button', 'data-qa': 'pane-hide', title: 'Hide the flow doc (the note icon on the tab brings it back)', 'aria-label': 'Hide the flow doc', on: { click: () => setFlowDoc('shown', false) } }, '×');
-  const tabs = h('div.fp-tabs', flowTag, list, sel, h('span.fp-sp'), tools, fold, hideBtn);
+  const tabs = h('div.fp-tabs', flowTag, list, sel, h('span.fp-sp'), tools, fold);
   const body = h('div.fp-body');
   for (const id of ids) { panelEl[id] = h('div.fp-panel', { role: 'tabpanel', 'aria-labelledby': `fp-tab-${id}`, hidden: true }, panels[id].el); body.append(panelEl[id]); }
-  const el = h('div.flow-bottom', { 'data-qa': 'pane' }, tabs, body);
+  const offLine = h('div.fp-off', { 'data-qa': 'flowdoc-off' }, 'Flow doc hidden · ', h('button', { type: 'button', 'data-qa': 'flowdoc-show', on: { click: () => setFlowDoc('enabled', true) } }, 'Show'));
+  const el = h('div.flow-bottom', { 'data-qa': 'pane' }, tabs, body, offLine);
   const split = createSplitter({ pane: el, tabs, diagram });
-  const paintDoc = () => { const on = docVisible(); el.classList.toggle('fd-hide', !on); split.el.classList.toggle('fd-hide', !on); }; // Unreleased (frame 28a): hidden is no pane and no border
+  const paintDoc = () => { const on = docVisible(); el.classList.toggle('fd-hide', !on); split.el.classList.toggle('fd-hide', !on); }; // hidden in View: one muted line "Flow doc hidden · Show" and no border; the fold chevron is the everyday control
   const unDoc = onFlowDoc(() => { paintDoc(); document.dispatchEvent(new CustomEvent('fm:layout')); }); paintDoc();
 
   function onKey(e, id) {

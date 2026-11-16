@@ -7,7 +7,7 @@ import { h, fill } from '../dom.js';
 import { TAB_CAP } from './flow-tabs-state.js';
 import { activeShowsId, shortTail, sharedTitles, planTabs, moreLabel } from './flow-levels.js';
 import { createMoreMenu } from './flow-tabs-menu.js';
-import { flowDoc, setFlowDoc, onFlowDoc } from '../notes/flow-doc-state.js';
+import { onFlowDoc } from '../notes/flow-doc-state.js';
 
 const ENTER = 'M2 8h8 M7 5l3 3-3 3 M12 3v10', FULL = 'M8 2v9 M4 8l4 4 4-4 M3 14h10', X = 'M4 4l8 8 M12 4l-8 8';
 const NOTE = 'M3.500 2.500h9v11h-9z M5.500 6h5 M5.500 8.500h5 M5.500 11h3', PEN = 'M3 13h2.5L13 5.500 10.500 3 3 10.500z', INFO = 'M8 7.200v4.300 M8 4.600h.01 M8 14A6 6 0 1 1 8 2a6 6 0 0 1 0 12z';
@@ -47,7 +47,7 @@ export function createTabStrip(cb) {
   const tabFor = (key, shared) => {
     const d = cb.describe(key), on = key === state.active, many = state.keys.length;
     const tail = on ? (activeShowsId(level, many) ? d.sub : null) : d.sub && (shared.has(d.title) || d.tn) ? (d.tn ? null : shortTail(d.sub)) : null;
-    const canRename = on && cb.renameOf?.(key) != null, canAbout = on && cb.aboutOf?.(key), canDoc = on && flowDoc().enabled && cb.docOf?.(key), fd = flowDoc().shown;
+    const canRename = on && cb.renameOf?.(key) != null, canAbout = on && cb.aboutOf?.(key);
     // a click on the active tab does nothing: re-rendering it between the two clicks of a double click would swallow the rename gesture
     const t = h('div.tab', { role: 'tab', tabIndex: on ? 0 : -1, 'aria-selected': String(on), title: d.tip, class: `${on ? 'on' : ''} ${d.kind}${d.gone ? ' gone' : ''}`, 'data-key': key,
       on: { click: (e) => { if (!e.target.closest('.x, .tb-act, input') && key !== state.active) cb.onActivate(key); }, auxclick: (e) => { if (e.button === 1) { e.preventDefault(); cb.onClose(key); } }, mousedown: (e) => { if (e.button === 1) e.preventDefault(); },
@@ -57,7 +57,6 @@ export function createTabStrip(cb) {
       h('span.tl', h('b', d.title), tail ? h('i', { title: d.sub }, tail) : null),
       canRename ? iconBtn('tb-act.tb-pen', cb.renameOf(key) ? 'Rename this flow' : 'Name this flow', PEN, () => rename(key, t)) : null,
       canAbout ? iconBtn('tb-act.tb-info', 'About this flow', INFO, (e) => cb.onAbout(key, e.currentTarget)) : null,
-      canDoc ? Object.assign(iconBtn(`tb-act.tb-fdi${fd ? '.on' : ''}`, fd ? 'Flow doc: hide' : 'Flow doc: show', NOTE, () => setFlowDoc('shown', !flowDoc().shown)), { ariaPressed: String(fd) }) : null,
       h('button.x', { type: 'button', tabIndex: -1, 'aria-label': `Close ${d.title}`, title: 'Close (Alt+W)', on: { click: (e) => { e.stopPropagation(); cb.onClose(key); } } }, svg(X)));
     return withColor(t, d.color, key);
   };
