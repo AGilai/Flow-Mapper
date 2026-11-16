@@ -712,7 +712,7 @@ The same endpoints with the anchor **`env`**: `GET /api/envs/:env/notes?anchor=e
 
 ### Call notes (Unreleased)
 
-The same endpoints with the anchor **`call:<from>|<to>|<op>`** (the names a step shows and its label; `|` and `%` inside a name are `%7C` and `%25`): one document per call and environment, shared by every flow that uses the call, with versions, History and Restore. The body is `<h2>What it does</h2><p>…</p><h2>Contract</h2><p>…</p><div data-callout="watch"><p>…</p></div>` (core/call-notes.ts `serializeCall` / `parseCall`); a field over its limit (what 2,000, contract 500, watch 500 characters) is `422`. No flow is checked; access is the flow notes' (`404` for a hidden env). `GET .../notes/calls` lists them. MCP: `get_notes` / `set_notes` with `call: {from, to, op}`.
+The same endpoints with the anchor **`call:<from>|<to>|<op>`** (the names a step shows and its label; `|` and `%` inside a name are `%7C` and `%25`): one document per call and environment, shared by every flow that uses the call, with versions, History and Restore. The body is a full Notes document (the flow doc's rich editor writes it; callouts have no step); one written from fields is `<h2>What it does</h2><p>…</p><h2>Contract</h2><p>…</p><div data-callout="watch"><p>…</p></div>` (core/call-notes.ts `serializeCall` / `parseCall`). The diagram's `!` is "the body holds a Watch callout" (`data-callout="watch"`), a red `!` for Risk. More than 12,000 characters of text is `422`. No flow is checked; access is the flow notes' (`404` for a hidden env). `GET .../notes/calls` lists them. MCP: `get_notes` / `set_notes` with `call: {from, to, op}`.
 
 ## Mentions (0.32.0, #66 part 2)
 

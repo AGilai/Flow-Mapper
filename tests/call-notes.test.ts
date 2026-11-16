@@ -19,7 +19,7 @@ test('serialize and parse: fields round-trip, text is escaped, blanks are left o
   const html = serializeCall(n);
   assert.match(html, /^<h2>What it does<\/h2><p>Reads &lt;b&gt;every&lt;\/b&gt; review\.<\/p><p>Indexed on productId\.<\/p><h2>Contract<\/h2>/);
   assert.match(html, /<div data-callout="watch"><p>No limit &amp; no paging<\/p><\/div>$/);
-  assert.deepEqual(parseCall(html), n);
+  assert.deepEqual(parseCall(html), { ...n, first: 'Reads <b>every</b> review.', risk: false, other: false });
   assert.equal(serializeCall({}), '');
   assert.equal(serializeCall({ what: 'x', watch: { on: false, text: 'ignored' } }), '<h2>What it does</h2><p>x</p>');
   assert.equal(hasCall(parseCall('')), false);
@@ -27,8 +27,9 @@ test('serialize and parse: fields round-trip, text is escaped, blanks are left o
 });
 
 test('limits', () => {
-  assert.equal(callTooLong({ what: 'x'.repeat(CALL_MAX.what + 1), contract: '', watch: { on: false, text: '' } }), `what is longer than ${CALL_MAX.what} characters`);
-  assert.equal(callTooLong({ what: 'ok', contract: '', watch: { on: true, text: 'w' } }), null);
+  const n = { what: '', contract: '', first: '', risk: false, other: false, watch: { on: false, text: '' } };
+  assert.equal(callTooLong({ ...n, what: 'x'.repeat(CALL_MAX.body + 1) }), `a call note is longer than ${CALL_MAX.body} characters`);
+  assert.equal(callTooLong({ ...n, what: 'ok', watch: { on: true, text: 'w' } }), null);
 });
 
 let app: Awaited<ReturnType<typeof startDesign>>;
@@ -49,7 +50,7 @@ test('REST: a call anchor is read and written with versions, no flow is needed, 
   assert.equal(two.body.version, 2);
   assert.equal((await put({ body, baseVersion: 1 })).status, 409, 'a stale save is refused');
   assert.equal((await app.call('GET', q + '&version=1')).body.body, body);
-  assert.equal((await put({ body: 'x'.repeat(CALL_MAX.what + 1), baseVersion: 2 })).status, 422);
+  assert.equal((await put({ body: 'x'.repeat(CALL_MAX.body + 1), baseVersion: 2 })).status, 422);
   assert.equal((await app.call('GET', '/api/envs/prod/notes?anchor=call:broken')).status, 400);
 });
 
@@ -75,7 +76,7 @@ test('MCP: set_notes / get_notes with call; contract and watch; the answer carri
   const s = await mcp('set_notes', { env: 'prod', call, body: 'Public entry.', contract: 'GET /products/{id}/reviews → 200 Review[]', watch: 'The id is not validated here.' });
   assert.equal(s.isError, false, s.text); assert.equal(s.json.anchor, callAnchor(call.from, call.to, call.op));
   const g = await mcp('get_notes', { env: 'prod', call });
-  assert.deepEqual(g.json.call, { what: 'Public entry.', contract: 'GET /products/{id}/reviews → 200 Review[]', watch: { on: true, text: 'The id is not validated here.' } });
+  assert.deepEqual(g.json.call, { what: 'Public entry.', contract: 'GET /products/{id}/reviews → 200 Review[]', first: 'Public entry.', risk: false, other: false, watch: { on: true, text: 'The id is not validated here.' } });
   assert.equal((await mcp('get_notes', { env: 'prod', call: { from: 'a' } })).isError, true);
   assert.equal((await mcp('get_notes', { env: 'prod', call, doc: 'env' })).isError, true);
 });
@@ -95,4 +96,28 @@ test('docSummary: the Purpose paragraph of a flow doc, else its first paragraph,
   assert.equal(docSummary('<div data-callout="watch"><p>careful</p></div><h2>Decisions</h2><ul><li>a</li></ul><p>Plain</p>'), 'Plain');
   assert.equal(docSummary('<h2>Purpose</h2><p><br></p>'), '');
   assert.equal(docSummary(''), '');
+});
+
+test('a rich body: the Watch flag is a Watch callout (even empty), Risk is its own flag, first is the first paragraph outside callouts and headings', () => {
+  const rich = '<h2>What it does</h2><p>Reads reviews.</p><ul><li>a</li></ul><table><tr><td>t</td></tr></table><div data-callout="watch"><p><br></p></div>';
+  const n = parseCall(rich);
+  assert.equal(n.watch.on, true); assert.equal(n.risk, false); assert.equal(n.first, 'Reads reviews.'); assert.equal(hasCall(n), true);
+  const r = parseCall('<div data-callout="risk"><p>Slow</p></div><p>Body</p>');
+  assert.deepEqual([r.risk, r.watch.on, r.first, r.what], [true, false, 'Body', 'Body']);
+  assert.equal(parseCall('<div data-callout="key"><p>Only a key point</p></div>').other, true);
+  assert.equal(hasCall(parseCall('<h2>What it does</h2><h2>Contract</h2>')), false, 'headings with nothing under them say nothing');
+  assert.equal(hasCall(parseCall('<div data-callout="watch"><p><br></p></div>')), true, 'an empty Watch still flags');
+});
+
+test('MCP: html is the whole rich body; get_notes returns html and the derived fields; body + contract + watch still serialize', async () => {
+  const call = { from: 'orders-svc', to: 'orders-db', op: 'insert orders' };
+  const html = '<h2>What it does</h2><p>Inserts.</p><table><tr><th>k</th></tr><tr><td>v</td></tr></table><div data-callout="risk"><p>Hot row</p></div><p onclick="x()">hi<script>alert(1)</script></p>';
+  const s = await mcp('set_notes', { env: 'prod', call, html });
+  assert.equal(s.isError, false, s.text);
+  const g = await mcp('get_notes', { env: 'prod', call });
+  assert.match(g.json.html, /<table>/); assert.doesNotMatch(g.json.html, /script|onclick/);
+  assert.equal(g.json.call.risk, true); assert.equal(g.json.call.watch.on, false); assert.equal(g.json.call.first, 'Inserts.');
+  assert.equal((await mcp('set_notes', { env: 'prod', call })).isError, true, 'neither body nor html');
+  const w = await mcp('set_notes', { env: 'prod', call, html: '<div data-callout="watch"><p>w</p></div>' });
+  assert.equal((await mcp('get_notes', { env: 'prod', call })).json.call.watch.on, true, w.text);
 });

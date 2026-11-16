@@ -38,7 +38,7 @@ export function createStepbar({ store, root, onMove, onEdit, sb = () => 'tad', e
     h('div.cap-row', chip, num, call, ext, edit, desc, more, legendSlot), offLine);
   let last = null, data = null, total = 0, exp = false, cardOpen = readKey('callcard-open') !== '0', pv = null; // pv: the step a hovered arrow previews (frame 28g); cardOpen: the call card is expanded (remembered)
   const card = calls ? createCallCard({ store: calls, canEdit: () => true, quiet: () => state.mode !== 'edit', docLink, onChange: () => requestAnimationFrame(() => document.dispatchEvent(new CustomEvent('fm:layout'))) }) : null;
-  if (card) caption.append(card.el);
+  if (card) { caption.append(card.el); caption.querySelector('.cap-row').insertBefore(card.size, more); card.size.hidden = true; }
   const cardNote = () => !!card && !!last && card.hasText(pv ?? last.step);
 
   const toggle = (v = !exp) => {
@@ -75,6 +75,7 @@ export function createStepbar({ store, root, onMove, onEdit, sb = () => 'tad', e
     }
     desc.replaceChildren(...parts.filter(Boolean));
     if (card && !card.editing()) { card.paint(step, n); if (cn && !cardOpen) card.el.hidden = true; }
+    if (card) card.size.hidden = !(cn && (cardOpen || card.editing())); // the text size control: only while the card shows a note
     more.setAttribute('aria-expanded', String(cn ? cardOpen : exp)); more.classList.toggle('up', cn ? cardOpen : exp); more.title = cn ? (cardOpen ? 'Collapse the call notes' : 'Expand the call notes') : 'Show the whole description';
     caption.classList.toggle('prev', !!pv); caption.classList.toggle('plain', !parts.length && !(card && !card.el.hidden));
     paintCaps();

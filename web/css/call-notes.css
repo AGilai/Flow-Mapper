@@ -4,24 +4,11 @@
 .capbar.prev .cap-chip-t::after { content: ' · preview'; text-transform: none; letter-spacing: 0; font-weight: 500; }
 .cap-card { padding: 2px 12px 8px 36px; position: relative; }
 .cap-card[hidden] { display: none; }
-.cc-grid, .cc-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 4px 28px; max-height: 34vh; overflow-y: auto; }
-.cc-col h5 { margin: 0 0 2px; font: 700 10.5px var(--font); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 4px; }
-.cc-col p { margin: 0 0 3px; font-size: max(12px, var(--fm-text, 13px)); line-height: 1.4; color: var(--ink-2); overflow-wrap: anywhere; }
-.cc-col p.mono { font-family: var(--mono); font-size: 12px; color: var(--ink); }
-.cc-col.wt h5 { color: var(--inc-ink); } .cc-col.wt h5 svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.8; }
-.cc-col a { color: var(--accent); }
 .cc-edit { position: absolute; right: 10px; top: 0; width: 22px; height: 22px; display: inline-grid; place-items: center; padding: 0; border: 0; border-radius: 6px; background: none; color: var(--ink-2); cursor: pointer; opacity: .7; }
 .cc-edit:hover, .cc-edit:focus-visible { opacity: 1; background: var(--accent-soft); color: var(--accent); }
 .cc-edit svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.8; }
 .cc-add { display: inline-flex; align-items: center; gap: 5px; border: 1px dashed var(--line-strong); border-radius: 6px; background: none; color: var(--accent); font: 600 12px var(--font); padding: 3px 9px; cursor: pointer; }
 .cc-add:hover { background: var(--accent-soft); } .cc-add svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; }
-.cc-in { width: 100%; box-sizing: border-box; font: 12.5px var(--font); padding: 4px 6px; border: 1px solid var(--line-strong); border-radius: 5px; background: var(--surface); color: var(--ink); resize: vertical; }
-.cc-in.mono { font-family: var(--mono); font-size: 12px; }
-.cc-in:disabled { background: var(--surface-2); color: var(--muted); }
-.cc-wrow { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; font-size: 12px; }
-.cc-form .off h5 { color: var(--muted); }
-.cc-act { grid-column: 1 / -1; display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
-.cc-err { color: var(--bad); margin-right: auto; font-size: 12px; }
 .callmark rect { fill: var(--surface); stroke: var(--ink-2); stroke-width: 1.2; }
 .callmark path { fill: none; stroke: var(--ink-2); stroke-width: 1.2; stroke-linecap: round; }
 .callmark-bang { pointer-events: auto; }
@@ -31,4 +18,23 @@
 .cap-off { padding: 3px 12px; font-size: 12px; color: var(--muted); } .cap-off button { border: 0; background: none; padding: 0; font: inherit; font-weight: 600; color: var(--accent); cursor: pointer; } .cap-off button:hover { text-decoration: underline; }
 .capbar .cap-row { max-width: 1400px; cursor: default; } .capbar .cap-row:has(.cap-more:not([hidden])) { cursor: pointer; }
 .cap-card { max-width: 1160px; }
-.cc-grid, .cc-form { grid-template-columns: repeat(auto-fit, minmax(190px, 340px)); }
+
+/* The call note is a rich document (Unreleased): read with the Notes renderer, written with the Notes editor in a compact form. Reading width capped at ~1100px. */
+.cc-read, .cc-editor { max-width: 1100px; }
+.cc-read { max-height: 42vh; overflow-y: auto; padding-right: 28px; }
+.cc-read .nt-doc { max-width: none; font-size: 14px; line-height: 1.5; }
+.cc-read .nt-doc h2 { font-size: 15px; margin: 10px 0 3px; padding-bottom: 2px; } .cc-read .nt-doc h3 { font-size: 14px; margin: 8px 0 2px; } .cc-read .nt-doc h1 { font-size: 18px; }
+.cc-doclink { margin: 4px 0 0; font-size: 12px; color: var(--muted); } .cc-doclink a { color: var(--accent); }
+.cap-card .nt-edit { max-width: none; }
+.cap-card .nt-edit .rte-area { min-height: 96px; max-height: 36vh; overflow-y: auto; font-size: 14px; }
+.cc-act { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 6px; }
+/* Text size: A- / A / A+ (notes/text-size.js) sets --ts on the card, the flow doc pane or the design doc; only the text and the editor area scale, not the chrome. */
+.cap-card .cc-read, .cap-card .nt-edit .rte-area, .nt-doc, .nt-edit .rte-area { zoom: var(--ts, 1); }
+.cap-card .cc-read .nt-doc { zoom: 1; }
+.ts-ctl { display: inline-flex; align-items: center; border: 1px solid var(--line-strong); border-radius: 6px; overflow: hidden; flex: none; background: var(--surface); }
+.ts-b { appearance: none; border: 0; background: none; color: var(--ink-2); font: 600 11px var(--font); padding: 2px 6px; min-width: 24px; cursor: pointer; }
+.ts-b + .ts-b { border-left: 1px solid var(--line); } .ts-b:hover:not(:disabled) { background: var(--accent-soft); color: var(--accent); } .ts-b:disabled { opacity: .4; cursor: default; }
+.ts-b.on { color: var(--accent); } .ts-b:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.ts-ctl[hidden] { display: none; }
+.cap-row .ts-ctl { margin-left: auto; }
+.fp-tabs .ts-ctl { align-self: center; margin-right: 8px; }

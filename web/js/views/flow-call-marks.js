@@ -10,8 +10,8 @@ export function drawCallMarks(res, pos) {
   const mark = (step, note, p) => {
     const x = p.x - p.dir * 22, out = [s('g', { class: 'callmark', 'data-step': step, transform: `translate(${x - 7} ${p.y - 7})` },
       s('rect', { width: 14, height: 16, rx: 3 }), s('path', { d: 'M3.5 5h7M3.5 8h7M3.5 11h4.5' }), s('title', {}, `Call note on step ${step}`))];
-    if (note.watch.on) out.push(s('g', { class: 'callmark-bang docbadge', 'data-step': step, transform: `translate(${x - p.dir * 20} ${p.y + 1})` },
-      s('g', { class: 'bd-bang watch' }, s('path', { d: 'M0 -8.500 L8.500 6.500 H-8.500 Z', 'stroke-linejoin': 'round' }), s('text', { y: 4.500 }, '!')), s('title', {}, `Watch: ${note.watch.text}`)));
+    if (note.watch.on || note.risk) out.push(s('g', { class: 'callmark-bang docbadge', 'data-step': step, transform: `translate(${x - p.dir * 20} ${p.y + 1})` },
+      s('g', { class: `bd-bang ${note.watch.on ? 'watch' : 'risk'}` }, s('path', { d: 'M0 -8.500 L8.500 6.500 H-8.500 Z', 'stroke-linejoin': 'round' }), s('text', { y: 4.500 }, '!')), s('title', {}, note.watch.on ? `Watch: ${note.watch.text}` : 'Risk')));
     return out;
   };
   return { set(list) { layer.replaceChildren(...list.flatMap(({ step, note }) => { const p = pos(step); return p ? mark(step, note, p) : []; })); } };

@@ -58,7 +58,9 @@ from any reader, a hidden env is 404.
 A **call note** describes one call (one arrow), once for every flow that uses it: `set_notes {env*, call: {from*, to*, op*}, body*, contract?, watch?}`
 where `from` / `to` are the names a step shows (service, queue, data store) and `op` its label (as in `get_flow` steps: `GET /orders`, `find · orders`);
 `body` is what the call does (plain text), `contract` one line (`GET /orders -> 200 Order[] · 401 no session`), `watch` text that makes the step show a `!`.
-Read it with `get_notes {env*, call}` (the answer has `call: {what, contract, watch}`). Same access as other annotations.
+Since the call card uses the flow doc's rich editor, a call note is a full Notes document: send it whole as `html` (instead of `body`: headings, lists, tables, code, links, callouts
+`key|watch|risk`; no step on a call callout). The `!` on the diagram now means "the body holds a Watch callout" (a Risk callout gives a red `!`).
+Read it with `get_notes {env*, call}`: the answer has `html` and the derived `call: {what, contract, first, risk, watch: {on, text}, other}`. Same access as other annotations.
 
 Design in passes: subsystems and components first, then channels and flows, then the LLD. Record what you do not know
 with `set_notes` / `add_comment` / `add_action_item` instead of guessing. Check yourself with `link_health` (dangling

@@ -6,6 +6,7 @@ import { h } from '../dom.js';
 import { setQuery, parseHash } from '../router.js';
 import { TABS, TAB_NAMES, paneParam, initialTab, stepTab, countText, primaryLabel } from './pure.js';
 import { createSplitter } from './splitter.js';
+import { textSize } from '../notes/text-size.js';
 import { docVisible, onFlowDoc, setFlowDoc, revealFlowDoc } from '../notes/flow-doc-state.js';
 
 const KEY = 'flow-mapper.pane-tab';
@@ -39,7 +40,8 @@ export function createPane({ panels, diagram, hasNotes = false }) {
   const fold = h('button.fp-fold', { type: 'button', 'data-qa': 'pane-fold', on: { click: () => { split.toggle(); paint(); } } }, '▾');
   const tools = h('span.fp-tools', addGroup);
   const flowTag = h('span.fp-flow', { title: 'The flow doc: the notes, comments and action items of this flow', html: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2v12M3 4h6M3 8h8M3 12h5"/></svg>Flow' });
-  const tabs = h('div.fp-tabs', flowTag, list, sel, h('span.fp-sp'), tools, fold);
+  const size = panels.notes ? textSize('flowdoc', panels.notes.el).el : null; // A- / A / A+ for the flow doc's text (Unreleased), shown on the Notes tab
+  const tabs = h('div.fp-tabs', flowTag, list, sel, h('span.fp-sp'), size, tools, fold);
   const body = h('div.fp-body');
   for (const id of ids) { panelEl[id] = h('div.fp-panel', { role: 'tabpanel', 'aria-labelledby': `fp-tab-${id}`, hidden: true }, panels[id].el); body.append(panelEl[id]); }
   const offLine = h('div.fp-off', { 'data-qa': 'flowdoc-off' }, 'Flow doc hidden · ', h('button', { type: 'button', 'data-qa': 'flowdoc-show', on: { click: () => setFlowDoc('enabled', true) } }, 'Show'));
@@ -78,6 +80,7 @@ export function createPane({ panels, diagram, hasNotes = false }) {
       sel.options[ids.indexOf(id)].textContent = `${TAB_NAMES[id]}${t ? ` ${t}` : ''}`;
       panelEl[id].hidden = !on;
     }
+    if (size) size.hidden = cur !== 'notes';
     sel.value = cur; el.dataset.tab = cur; // maximized, the Notes tab is the whole page (flow-pane.css)
     primary.textContent = primaryLabel(cur, compact);
     primary.hidden = cur !== 'notes' && !panels[cur]?.add;
