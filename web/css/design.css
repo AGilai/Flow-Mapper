@@ -18,6 +18,7 @@
 .dz-delta .a { color: var(--ink); } .dz-delta .r { color: var(--muted); } .dz-delta .c { color: var(--new-ink); }
 .dz-actions { display: flex; gap: var(--s2); flex-wrap: wrap; margin-left: auto; justify-content: flex-end; }
 .dz-callout { margin-top: var(--s2); padding: var(--s2) var(--s3); border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent); border-radius: var(--r-sm); background: color-mix(in srgb, var(--warn) 9%, var(--surface)); color: var(--ink); font-size: var(--fs-sm); }
+.dz-callout.ok { border-color: color-mix(in srgb, var(--ok) 45%, transparent); background: color-mix(in srgb, var(--ok) 9%, var(--surface)); }
 .dz-draft > .dz-callout, .dz-hint { margin: 0; border-radius: 0; border-width: 1px 0 0; padding: var(--s2) var(--s5); }
 .dz-hint { background: var(--surface-2); color: var(--ink-2); font-size: var(--fs-sm); border-top: 1px solid var(--line); }
 

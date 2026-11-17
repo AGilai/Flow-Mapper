@@ -40,7 +40,7 @@ before(async () => {
 after(async () => { await A.close(); await B.close(); });
 
 /** Drop autoincrement ids (they differ by design); everything else must be equal. */
-const strip = (x: any): any => Array.isArray(x) ? x.map(strip) : x && typeof x === 'object' ? Object.fromEntries(Object.entries(x).filter(([k]) => !['id', 'draft_id', 'draftId', 'parentId', 'commentId', 'itemId', 'authorId', 'ownerId', 'createdById', 'userId'].includes(k)).map(([k, v]) => [k, strip(v)])) : x;
+const strip = (x: any): any => Array.isArray(x) ? x.map(strip) : x && typeof x === 'object' ? Object.fromEntries(Object.entries(x).filter(([k]) => !['id', 'draft_id', 'draftId', 'changelogId', 'parentId', 'commentId', 'itemId', 'authorId', 'ownerId', 'createdById', 'userId'].includes(k)).map(([k, v]) => [k, strip(v)])) : x;
 const same = async (path: string, name = path) => {
   const [a, b] = [await A.call('GET', path), await B.call('GET', path)];
   assert.equal(b.status, a.status, `${name}: status ${JSON.stringify(b.body)}`);

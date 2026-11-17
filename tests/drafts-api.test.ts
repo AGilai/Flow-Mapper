@@ -95,7 +95,10 @@ test('A2 apply: a full manifest per new service, a delta (+1) per touched one, s
   assert.equal(summary.service, ''); assert.equal(summary.changes.draft, d.slug); assert.equal(summary.changes.counts.added, 4);
   assert.deepEqual(rows('SELECT status, closed_by FROM drafts WHERE slug = ?', d.slug).map((x) => ({ ...x })), [{ status: 'applied', closed_by: 'ana' }]);
   assert.equal((await ops(d.slug, [up('svc:x', { kind: 'service' })])).body.error.code, 'DRAFT_CLOSED');
-  const ep = (await app.call('GET', '/api/envs/hld/entry-points')).body;
+  const closed = (await app.call('GET', `${D}/${d.slug}`)).body; // #118: the page's "applied" notice reads who, when and the changelog row
+  assert.deepEqual([closed.status, closed.closedBy, closed.changelogId], ['applied', 'ana', summary.id]);
+  assert.ok(closed.closedAt);
+  const ep =(await app.call('GET', '/api/envs/hld/entry-points')).body;
   assert.ok(ep.some((e: any) => e.service === 'pop-edge' && e.id === 'in.open'));
   assert.equal((await app.call('GET', '/api/envs/hld/services/pop-edge')).body.service.groupPath, 'agent');
 });

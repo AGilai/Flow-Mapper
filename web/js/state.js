@@ -17,6 +17,8 @@ export const state = {
   mode: 'view',
   draft: null,
   compare: 'baseline',
+  /** #118: the draft this page was pointed at (link, or open before an apply elsewhere) that turned out applied or discarded: {slug, status, closedAt, closedBy, changelogId}. The strip shows a read-only notice. */
+  closedDraft: null,
 };
 
 const DESIGN_KEYS = { mode: 'view', draft: null, compare: 'baseline' };
@@ -59,7 +61,7 @@ function tabsPatch(from, to) {
 export function setEnv(env, silent = false) {
   const tabs = silent || env === state.env ? {} : tabsPatch(state.env, env);
   state.env = env;
-  Object.assign(state, DESIGN_KEYS);
+  Object.assign(state, DESIGN_KEYS, { closedDraft: null });
   setQuery({ env: pageEnv(parseHash().parts, env), draft: null, mode: null, compare: null, ...tabs });
   try { localStorage.setItem(KEY, env); } catch { /* storage unavailable */ }
   if (!silent) listeners.forEach((fn) => fn());

@@ -9,6 +9,7 @@ in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.m
 
 - Fix #125: `infra/deploy.sh` masks both `OriginSecret` and `PreAuthPassword` in the echoed command (the sed lacked the `g` flag).
 - Fix #119: a draft with an imported component (or a reference callee) now applies. An imported endpoint whose handler function is not in the design (a reference, by design) no longer fails apply with 'broken internal references'; the reference stays a reference (no stub function is written). Import ops are unchanged.
+- Fix #118: `GET /api/envs/:env/drafts/:slug` also answers `closedBy` and `changelogId` (the apply's summary row). UI: a page whose draft was applied or discarded elsewhere, and a `draft=<slug>` link to such a draft, open the environment normally with a read-only notice ("Draft x was applied ...") instead of the draft bar or an error; Apply, Edit and Discard are gone.
 
 ## 0.59.0 (2026-11-16): export and import a whole environment
 

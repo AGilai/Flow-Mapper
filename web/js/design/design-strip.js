@@ -18,6 +18,7 @@ import { visBadge } from '../components/env-badge.js';
 import { accessBanner } from './access-banner.js';
 import { openShare } from './share-dialog.js';
 import { batchText, latestBatch } from './mermaid-pure.js';
+import { closedNotice } from './draft-closed.js';
 import { designPill } from './design-pill.js';
 
 /** Mount the strip at the top of `main`; null for a sealed environment. `host` ({ pill, mode, below }: three elements of the Flows page, frame 28): no strip, the pieces go into them instead (the pill with a menu, View | Edit, the draft bar). */
@@ -54,6 +55,7 @@ export function mountDesignStrip(main, host = null) {
     if (!alive) return;
     const d = state.draft && drafts.find((x) => x.slug === state.draft);
     if (state.draft && !d) { fill(bar, notOpen()); return; }
+    if (!d && state.closedDraft) { fill(bar, closedNotice(state.closedDraft, () => { state.closedDraft = null; fill(bar, null); })); return; }
     if (!d) { fill(bar, state.mode === 'edit' ? h('div.dz-hint', 'Edit works inside a draft. ', h('button.btn.sm', { type: 'button', on: { click: (e) => openDraftPicker(e.currentTarget, { edit: true, drafts }) } }, 'Pick or start a draft')) : null); return; }
     let changes = null, names = new Map();
     try { changes = await api.draftChanges(state.env, d.slug); } catch { /* the bar falls back to the draft's own counts */ }

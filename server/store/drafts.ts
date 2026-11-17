@@ -20,6 +20,8 @@ import { roleFor, whoOf } from '../access.ts';
 export interface DraftRow { id: number; env: string; slug: string; name: string; status: 'open' | 'applied' | 'discarded'; plan: string | null; report: string | null; created_by: string; created_at: string; updated_at: string; closed_at: string | null; closed_by: string | null; owner_user_id: string | null; visibility: 'private' | 'shared' }
 export interface DraftInfo {
   id: number; slug: string; name: string; status: DraftRow['status']; createdBy: string; createdAt: string; updatedAt: string; closedAt: string | null;
+  /** Who applied or discarded it, and the changelog row of the apply (#118: the page's "applied" notice). */
+  closedBy: string | null; changelogId: number | null;
   /** The user who opened it (null: before accounts, or auth off) and whether the env's editors can see it. */
   ownerId: string | null; shared: boolean;
   ops: number; authors: string[]; counts: { added: number; removed: number; changed: number };
@@ -57,7 +59,8 @@ function info(db: DB, env: string, d: DraftRow): DraftInfo {
   const ops = loadOps(db, d.id);
   const closed = d.status !== 'open' && d.report ? JSON.parse(d.report).counts : null;
   return {
-    id: d.id, slug: d.slug, name: d.name, status: d.status, createdBy: d.created_by, createdAt: d.created_at, updatedAt: d.updated_at, closedAt: d.closed_at,
+    id: d.id, slug: d.slug, name: d.name, status: d.status, createdBy: d.created_by, createdAt: d.created_at, updatedAt: d.updated_at, closedAt: d.closed_at, closedBy: d.closed_by,
+    changelogId: d.status === 'applied' ? ((db.prepare('SELECT id FROM changelog WHERE draft_id = ? ORDER BY id DESC LIMIT 1').get(d.id) as { id: number } | undefined)?.id ?? null) : null,
     ownerId: d.owner_user_id ?? null, shared: d.visibility !== 'private',
     ops: ops.length, authors: [...new Set(ops.map((o) => o.author))], counts: closed ?? (d.status === 'open' ? (ops.length ? changesFor(db, env, d).counts : changesOf([], ops).counts) : { added: 0, removed: 0, changed: 0 }),
   };

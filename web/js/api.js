@@ -22,6 +22,7 @@ async function http(method, path, body, raw) {
     err.status = res.status;
     err.details = data?.error?.details;
     err.code = data?.error?.code;
+    if (data?.error?.code === 'DRAFT_CLOSED' && method !== 'GET') dispatchEvent(new CustomEvent('fm:draft-closed')); // #118: the open page's draft was applied or discarded elsewhere
     if (res.status === 401 && path !== '/api/me') dispatchEvent(new CustomEvent('fm:signed-out')); // the session ended (accounts): main.js shows the sign-in card
     throw err;
   }
