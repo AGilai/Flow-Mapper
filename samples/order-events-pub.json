@@ -1,0 +1,81 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "order-events-pub",
+    "kind": "service",
+    "team": "fulfilment",
+    "repo": "github.com/acme/order-events-pub",
+    "language": "typescript",
+    "description": "Demo (#131): publishes order.placed and order.cancelled to an SNS topic with two direct Lambda subscribers, each with its own filter policy"
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-17T09:00:00Z",
+  "commit": "131a0de1",
+  "functions": [
+    {
+      "id": "placeOrder",
+      "name": "placeOrder",
+      "file": "src/orders.ts",
+      "line": 9,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "out.events",
+          "mode": "async",
+          "event": "order.placed",
+          "operation": "Publish order.placed"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "out.events",
+          "mode": "async",
+          "event": "order.cancelled",
+          "operation": "Publish order.cancelled"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.place",
+      "bindKey": "http:POST order-events-pub/orders131",
+      "transport": "http",
+      "handler": "placeOrder",
+      "entryPoint": true,
+      "details": {
+        "method": "POST",
+        "path": "/orders131"
+      }
+    }
+  ],
+  "egress": [
+    {
+      "id": "out.events",
+      "bindKey": "sns:order-events-131",
+      "transport": "sns",
+      "mode": "async",
+      "delivery": "multicast",
+      "events": [
+        "order.placed",
+        "order.cancelled"
+      ],
+      "source": {
+        "file": "src/orders.ts",
+        "line": 14
+      }
+    }
+  ],
+  "resources": [],
+  "channels": [
+    {
+      "bindKey": "sns:order-events-131",
+      "kind": "sns-topic",
+      "name": "order-events-131"
+    }
+  ],
+  "bindings": []
+}

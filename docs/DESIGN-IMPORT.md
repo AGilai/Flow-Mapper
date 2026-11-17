@@ -272,6 +272,7 @@ a key is a path (`platform`, later `platform/identity`).
   endpoint a handler function, even if its only step is a leaf: `{ "seq": 1, "type": "call", "kind": "leaf", "note": "validates and stores" }`.
 - Channels and bindings of new topics/queues go in the manifest of the component that owns them (or a new `infra`
   component when the doc describes shared messaging).
+- A direct SNS -> Lambda subscription with a filter policy (#131) is a binding in the **consumer's** manifest (or an extension `upsert.bindings` on it): `{"id": "sub.order-events", "from": "sns:order-events", "to": "<the consumer ingress bindKey>", "events": ["order.placed"], "filter": {...raw policy}}`. The draft op is `upsert bind:<consumer>/<id>` with that item as `data`. The binding filters what that ingress receives; an `sns:` ingress with no binding gets every event of the topic.
 
 **(c) extensions**: new items on a **reused** prod component. One entry per component; whole items only:
 

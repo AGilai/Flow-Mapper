@@ -515,6 +515,23 @@ a type must match one and no `!` entry. Channel kinds:
 declares the same subscription with a different filter, Flow-Mapper shows a conflict; it does not
 choose one.
 
+**SNS -> Lambda (or service) directly, with a filter policy (#131).** A subscription without a queue is a binding whose `to` is the
+consumer's ingress key. An SNS subscription's filter policy belongs to the subscription, so declare it as a binding next to the
+consumer's `sns:` ingress (the consumer's manifest, or the infrastructure harvester's):
+
+```json
+"ingress":  [ { "id": "in.sns", "transport": "sns", "bindKey": "sns:order-events", "handler": "onPlaced", "entryPoint": false,
+                "events": [ { "type": "order.placed", "handler": "onPlaced" } ] } ],
+"bindings": [ { "id": "sub.order-events", "from": "sns:order-events", "to": "sns:order-events",
+                "events": ["order.placed"], "filter": { "eventType": ["order.placed"] } } ]
+```
+
+`to` is the ingress bindKey (here equal to the topic's key, as direct SNS ingress usually have: `to` may equal `from`). Several
+lambdas can share that key: the binding targets the ingress **of the service that declares it** (the binding's own manifest), so each
+consumer declares its own subscription. `events` is what Flow-Mapper applies (same syntax and `!` exclusions as above); `filter` is the raw
+policy, kept and shown as written. An `sns:` ingress with no such binding keeps today's meaning: it gets every event of the topic, and the
+ones it lists no handler for are drawn as "-> no handler". Contract rule `binding-no-events` (info) applies to these bindings too.
+
 ## Flow descriptions (not part of the manifest)
 
 Harvesters do not write descriptions. What a flow is for is a human note (UI) or an AI text written through MCP

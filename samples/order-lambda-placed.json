@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "order-lambda-placed",
+    "kind": "lambda",
+    "team": "fulfilment",
+    "repo": "github.com/acme/order-lambda-placed",
+    "language": "typescript",
+    "description": "Demo (#131): SNS -> Lambda subscription with a filter policy (no SQS). The binding sns:order-events-131 -> its own ingress lists the event types the subscription lets through"
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-17T09:00:00Z",
+  "commit": "131a0de1",
+  "functions": [
+    {
+      "id": "onPlaced",
+      "name": "onPlaced",
+      "file": "src/handler.ts",
+      "line": 5,
+      "steps": []
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.sns",
+      "bindKey": "sns:order-events-131",
+      "transport": "sns",
+      "handler": "onPlaced",
+      "entryPoint": false,
+      "events": [
+        {
+          "type": "order.placed",
+          "handler": "onPlaced"
+        }
+      ]
+    }
+  ],
+  "egress": [],
+  "resources": [],
+  "channels": [],
+  "bindings": [
+    {
+      "id": "sub.order-events",
+      "from": "sns:order-events-131",
+      "to": "sns:order-events-131",
+      "events": [
+        "order.placed"
+      ],
+      "filter": {
+        "eventType": [
+          "order.placed"
+        ]
+      },
+      "source": {
+        "file": "infra/sub.tf",
+        "line": 3
+      }
+    }
+  ]
+}
