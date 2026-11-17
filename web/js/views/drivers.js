@@ -14,6 +14,7 @@ import { packageTable } from './drivers-table.js';
 import { componentMatrix } from './drivers-matrix.js';
 import { componentDrivers } from './drivers-drawer.js';
 import { emptyNone, notice } from './drivers-empty.js';
+import { exportMenu } from './drivers-export.js';
 import { legend, unresolvedSection, outsideLine } from '../components/drivers-parts.js';
 
 const uniq = (a) => [...new Set(a)].sort((x, y) => x.localeCompare(y));
@@ -59,6 +60,7 @@ export function driversView({ rows, env = '', envs = [], query, panel, onClose }
     const vers = [...new Map(ents.filter((e) => !query.package || e.package === query.package).map((e) => [e.version, e])).values()].sort((a, b) => compareVersions(parseVersion(b.version), parseVersion(a.version)));
     const verOpts = [...uniq([...new Set(vers.map((e) => e.major))].map(String)).sort((a, b) => b - a).map((m) => [`${m}.x`, `${m}.x`]), ...vers.map((e) => [e.version, e.version])];
     const bar = queryBar({ vocab, versions: verOpts, s, on: change });
+    bar.row.append(h('span.grow'), exportMenu(rows, () => ({ env, store: s.store, group: s.group, q: s.q, mixed: s.mixed })));
     const qtext = formatDriverQuery(query) || (s.mixed ? 'mixed majors' : '');
     const filtered = !!(s.q || s.mixed);
     const parts = [h('div.dv-row.top', storePicker(types, s.store, (id) => change({ store: id, group: 'package', q: '', mixed: false, c: '' }), !pkgMode), h('span.grow'), groupSwitch(s.group, (g) => change({ group: g }))), pkgMode ? moved : null];
