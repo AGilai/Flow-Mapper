@@ -77,7 +77,7 @@ cmd=(aws cloudformation deploy --region "$REGION" --stack-name "$STACK" --templa
   "AllowedEmailDomains=$DOMAINS" "RepoUrl=$REPO_URL" "GitHubDeployKeySecretArn=$KEY" "HostedUiDomainPrefix=$PREFIX"
   "DomainName=$DOMAIN" "HostedZoneId=$ZONE" "VpcId=$VPC" "SubnetId=$SUBNET" ${GATE[@]+"${GATE[@]}"})
 [ -z "$BOUNDARY" ] || cmd+=("PermissionsBoundaryArn=$BOUNDARY")
-echo "deploy: ${cmd[*]}" | sed -E 's/(PreAuthPassword=|OriginSecret=)[^ ]+/\1****/'
+echo "deploy: ${cmd[*]}" | sed -E 's/(PreAuthPassword=|OriginSecret=)[^ ]+/\1****/g'
 [ "$DRY" = 1 ] && exit 0
 "${cmd[@]}"
 if [ "$WRITE_SECRET" = 1 ]; then
