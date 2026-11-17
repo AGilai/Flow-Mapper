@@ -9,6 +9,9 @@ import { instancePath, storePath, envQuery } from './inventory-links.js';
 import { fieldText } from '../components/step-fields.js';
 import { registryBlock } from './store-panel-reg.js';
 import { whyHazard } from './incomplete-why.js';
+import { api } from '../api.js';
+import { schemaView } from '../components/schema-view.js';
+import { schemaAnchor } from '../components/field-diff.js';
 
 const ICON = { read: 'M5 1.5v7M2 5.8 5 8.8l3-3', write: 'M5 8.5v-7M2 4.2 5 1.2l3 3', delete: 'M2 2l6 6M8 2 2 8', rw: 'M5 1.5v7M2 5.8 5 8.8l3-3', unknown: 'M2 5h6' };
 const WORD = { read: 'read', write: 'write', delete: 'delete', rw: 'read/write', unknown: 'access not reported' };
@@ -38,14 +41,31 @@ function opRow(op, ctx) {
   return h('div.sp-op', h('div.sp-oph', accChip(op.access), h('span.sp-opn', op.op)), stepsRow(op, ctx), links, flds);
 }
 
+/** #123: the collection's schema as a DDL table, opened in the card (loaded on the first click). The store page has all of its sources. */
+function schemaBox(p, c, ctx) {
+  const key = `${p.group}/${c.title}`, body = h('div.sp-schema', { hidden: true, 'data-qa': 'sp-schema' }), btn = h('button.sp-sch', { type: 'button', 'aria-expanded': 'false', 'data-qa': 'sp-schema-btn' }, 'Schema ▾');
+  let loaded = false;
+  btn.addEventListener('click', async () => {
+    const open = body.hidden;
+    body.hidden = !open; btn.setAttribute('aria-expanded', String(open)); btn.textContent = open ? 'Schema ▴' : 'Schema ▾';
+    if (!open || loaded) return;
+    loaded = true; body.replaceChildren(h('p.muted.xs', 'Loading the schema…'));
+    try {
+      const st = await api.store(ctx.env, key);
+      body.replaceChildren(...(st.schemas.length ? st.schemas.map((s) => h('div', h('div.row', h('b.small', `Schema · from ${s.source}`)), schemaView(s.content, schemaAnchor(s.source, key)))) : [h('p.muted.xs', `No schema for ${c.title} yet.`)]));
+    } catch { loaded = false; body.replaceChildren(h('p.muted.xs', 'The schema could not be loaded.')); }
+  });
+  return [btn, body];
+}
+
 function card(c, p, ctx) {
-  const redis = p.kind === 'redis', ttl = ttlLine(c.ttl);
+  const redis = p.kind === 'redis', ttl = ttlLine(c.ttl), sch = !redis && c.kind === 'collection' ? schemaBox(p, c, ctx) : [null, null];
   const meta = redis ? [c.dbs.length ? h('span', 'db ', h('b', c.dbs.join(', '))) : null, c.kind === 'unreported' && !c.ttl.values.length ? null : h('span', 'TTL ', h('b', ttl.text), ttl.note ? ` (${ttl.note})` : '')]
-    : [h('span', 'collection of ', h('b', p.store))];
+    : [h('span', 'collection of ', h('b', p.store)), sch[0]];
   const note = c.kind === 'unreported' ? h('div.sp-nk', 'The harvester ', c.reason ? ['could not read the key for these steps ', h('i', `(${c.reason})`), '. The operation, steps and code are still shown.'] : 'did not send the key for these steps. The operation, steps and code are still shown.') : null;
   const vars = redis && c.variants?.length ? h('div.sp-kv', { 'data-qa': 'key-variants' }, h('span.lb', c.variants.length === 1 ? 'Also spelled' : 'Also spelled as'), c.variants.map((v) => h('span.mono.v', v))) : null; // #108: the callers' spellings of this key
   return h('section.sp-k', h('div.h', h('div.t', { class: c.kind === 'unreported' ? 'none' : '' }, c.kind === 'unreported' ? 'Key not reported' : c.title), h('div.m', meta), vars),
-    c.ops.map((o) => opRow(o, ctx)), note, redis && c.template ? registryBlock(ctx.registry, c.template, c.dbs) : null);
+    c.ops.map((o) => opRow(o, ctx)), note, sch[1], redis && c.template ? registryBlock(ctx.registry, c.template, c.dbs) : null);
 }
 
 export function storePanelView(p, ctx) { // ctx: { env, flowLabel, registry (promise), current(), onStep(n) }
@@ -59,7 +79,7 @@ export function storePanelView(p, ctx) { // ctx: { env, flowLabel, registry (pro
   const why = ctx.trace ? whyHazard(ctx.trace) : null; // #113: the same hazard button as the step pane; the box follows the data, collapsed
   const head = h('div.ep-head', h('div.ep-title', chip(p.kind), title, why?.btn ?? null), h('div.ep-sub', h('span', p.sub)));
   const body = h('section.sp', { 'aria-label': `What this flow touches in ${p.title}`, 'data-qa': 'store-panel' },
-    h('p.sp-sum', summary(p).map((x) => (typeof x === 'string' ? x : h('b', x.b)))),
+    h('p.sp-sum', summary(p).map((x) => (typeof x === 'string' ? x : 'link' in x ? h('a.sp-coll', { href: '#', on: { click: (e) => { e.preventDefault(); ctx.onCollection?.(x.link); } } }, x.text) : h('b', x.b)))),
     p.cards.map((c) => card(c, p, ctx)),
     h('div.sp-ft', h('a.go', { href: href(redis ? instancePath(p.store) : storePath(storeKey), envQuery(ctx.env)) }, redis ? `Open ${p.store} · all keys ` : `Open ${p.store} `, h('span', { 'aria-hidden': 'true' }, '→')), small));
   return { nodes: [head, body], title, body,

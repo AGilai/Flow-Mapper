@@ -24,7 +24,9 @@ export interface Chip { n: number; sub?: number }
 export interface OpRow { access: Access; op: string; steps: number[]; chips: Chip[]; links: CodeLink[]; fields: FieldGroup[] }
 export interface Ttl { values: number[] }
 export interface Card { variants: string[]; id: string; kind: 'key' | 'collection' | 'unreported'; title: string | null; template: string | null; dbs: number[]; ttl: Ttl; ops: OpRow[]; steps: number[]; reason: string | null }
-export interface Panel { kind: 'redis' | 'mongodb'; group: string; store: string; title: string; sub: string; db: number | null; cards: Card[]; stepCount: number; total: number; keyCount: number; unreported: boolean; folded: boolean }
+export interface Panel { kind: 'redis' | 'mongodb'; group: string; store: string; title: string; sub: string; db: number | null; cards: Card[]; stepCount: number; total: number; keyCount: number; unreported: boolean; folded: boolean;
+  /** #123, Mongo: the collection this panel is on (null: the whole store), every collection of the store this flow touches, and the calls (step chips) on this panel's own rows. */
+  coll: string | null; colls: string[]; chips: Chip[] }
 
 /** A resource step's store key `mongodb:users-db/users` -> group `mongodb:users-db`, store name `users-db`, collection `users` (same rule as the flow view's `splitStore`). */
 export function storeParts(m: Pick<Message, 'store' | 'storeKind'>) {
@@ -109,9 +111,10 @@ export function storePanel(trace: Trace, target: Target, { stepNo = (_m: Message
     else for (const mm of perKey(m)) rows.push({ m: mm, n, ...(sub ? { sub } : {}) });
   });
   if (!rows.length) return null;
+  const colls = allColls(trace, target.group, stepNo);
   const { store } = storeParts(rows[0].m), kind = panelKind(rows[0].m)!, redis = kind === 'redis';
-  const colls = new Set(rows.map((r) => storeParts(r.m).collection ?? store));
-  const folded = !redis && !target.collection && colls.size > 1;
+  const touched = new Set(rows.map((r) => storeParts(r.m).collection ?? store));
+  const folded = !redis && !target.collection && touched.size > 1;
   const cards = new Map<string, { head: { kind: Card['kind']; title: string | null; template: string | null }; rows: Row[] }>();
   for (const r of rows) {
     const t = redis ? r.m.keyTemplate ?? null : storeParts(r.m).collection ?? store;
@@ -133,11 +136,22 @@ export function storePanel(trace: Trace, target: Target, { stepNo = (_m: Message
         .sort((a, b) => a.steps[0] - b.steps[0]) };
   }).sort((a, b) => a.steps[0] - b.steps[0]);
   if (redis) { const u = out.findIndex((c) => c.kind === 'unreported'); if (u >= 0) out.push(...out.splice(u, 1)); } // "Key not reported" is last
-  const dbs = asc(out.flatMap((c) => c.dbs)), one = [...colls][0] ?? store;
+  const dbs = asc(out.flatMap((c) => c.dbs)), one = [...touched][0] ?? store;
   return { kind, group: target.group, store, folded, cards: out, db: dbs.length === 1 ? dbs[0] : null, total, stepCount: asc(rows.map((r) => r.n)).length,
     keyCount: out.filter((c) => c.kind !== 'unreported').length, unreported: out.some((c) => c.kind === 'unreported'),
-    title: redis ? store : folded ? `${store} (${colls.size} collections)` : one,
-    sub: redis ? `Redis instance${dbs.length === 1 ? ` · db ${dbs[0]}` : dbs.length > 1 ? ` · db ${dbs.join(', ')}` : ''}` : folded ? `${store} · ${colls.size} collections` : `${store} · collection ${one}` };
+    coll: !redis && !folded ? one : null, colls: redis ? [] : colls, chips: chipsOf(rows),
+    title: redis ? store : folded ? `${store} (${touched.size} collections)` : one,
+    sub: redis ? `Redis instance${dbs.length === 1 ? ` · db ${dbs[0]}` : dbs.length > 1 ? ` · db ${dbs.join(', ')}` : ''}` : folded ? `${store} · ${touched.size} collections` : `${store} · collection ${one}` };
+}
+
+/** Every Mongo collection of a store the flow touches (the diagram draws a step for it), whatever lane the panel is on, in the order of the steps. */
+function allColls(trace: Trace, group: string, stepNo: (m: Message, i: number) => unknown): string[] {
+  const out = new Set<string>();
+  trace.messages.forEach((m: Message, i) => {
+    if (m.kind !== 'resource' || panelKind(m) !== 'mongodb' || stepNo(m, i) == null) return;
+    for (const mm of m.dbGroup?.calls?.length ? m.dbGroup.calls.map((c) => ({ ...m, ...c }) as Message) : [m]) { const p = storeParts(mm); if (p.group === group && p.collection) out.add(p.collection); }
+  });
+  return [...out];
 }
 
 /** The first CHIP_CAP steps, or all of them when expanded; `more` is how many are hidden. */
@@ -153,11 +167,23 @@ export function ttlLine(t: Ttl): { text: string; note: string | null } {
   return { text: h, note: h === `${v} s` ? null : `${v} s` };
 }
 
-/** The summary line as segments (`{ b }` is bold). */
-export function summary(p: Panel): (string | { b: string })[] {
+/** A segment of the summary: text, `{ b }` bold, or `{ link }` a link to the panel of another collection of the store (`link: null`: the whole store, `text` its words). */
+export type Seg = string | { b: string } | { link: string | null; text: string };
+const chipText = (c: Chip) => (c.sub ? `${c.n}.${c.sub}` : String(c.n));
+const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
+
+/** The summary line as segments. On one Mongo collection: this collection's own use, then how many collections of the store the flow touches (#123). */
+export function summary(p: Panel): Seg[] {
   const steps = { b: `${p.stepCount} of ${p.total} steps` }, n = p.keyCount, noun = p.kind === 'redis' ? 'key' : 'collection';
   if (p.kind === 'redis' && n === 0) return ['This flow touches this store in ', steps, ', with no key reported.'];
-  return ['This flow touches ', { b: `${n} ${noun}${n === 1 ? '' : 's'}` }, ' in this store, in ', steps, '.', ...(p.unreported ? [' ', { b: '1 key' }, ' not reported.'] : [])];
+  if (p.coll != null) {
+    const calls = p.chips.length > p.stepCount ? [` (${plural(p.chips.length, 'call')}: `, p.chips.slice(0, 6).map(chipText).join(', '), p.chips.length > 6 ? ', …' : '', ')'] : [];
+    const others = p.colls.filter((c) => c !== p.coll);
+    return ['This flow touches ', { b: p.coll }, ' in ', steps, ...calls, '.',
+      ...(others.length ? [' It touches ', { b: plural(p.colls.length, 'collection') }, ` of ${p.store} in all: `, ...others.flatMap((c, i): Seg[] => [i ? ', ' : '', { link: c, text: c }]), ', or ', { link: null, text: `all of ${p.store}` }, '.'] : [` It is the only collection of ${p.store} this flow touches.`]),
+      ...(p.unreported ? [' ', { b: '1 key' }, ' not reported.'] : [])];
+  }
+  return ['This flow touches ', { b: plural(n, noun) }, ' in this store, in ', steps, '.', ...(p.unreported ? [' ', { b: '1 key' }, ' not reported.'] : [])];
 }
 
 // ---- the keys registry join ----
