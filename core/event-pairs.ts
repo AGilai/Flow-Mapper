@@ -27,7 +27,7 @@ export function subscriptionConflicts(bindings: Binding[]): EventReport['conflic
   const norm = (b: Binding) => (!b.events || b.events === '*' ? '*' : [...b.events].sort());
   const groups = new Map<string, Binding[]>();
   for (const b of bindings) {
-    const k = `${b.from}\u0000${b.to}`;
+    const k = `${b.from}\u0000${b.to}${b.from === b.to ? `\u0000${b.service}` : ""}`; // #131: a direct subscription (to = its own ingress key = the topic) belongs to the service that declares it
     if (!groups.has(k)) groups.set(k, []);
     groups.get(k)!.push(b);
   }
