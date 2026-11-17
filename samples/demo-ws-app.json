@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "demo-ws-app",
+    "kind": "client-app",
+    "team": "network-edge",
+    "description": "Demo (#117): the client app; it calls $connect and receives the ack push. One lifeline in the flow."
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-17T08:00:00Z",
+  "commit": "120a001",
+  "functions": [],
+  "ingress": [
+    {
+      "id": "in.push.ack",
+      "bindKey": "socket:ws/demo-ws-app/ack",
+      "transport": "socket",
+      "entryPoint": false,
+      "details": {
+        "protocol": "ws",
+        "event": "agent.connection.ack",
+        "direction": "push"
+      }
+    }
+  ],
+  "egress": [
+    {
+      "id": "out.connect",
+      "bindKey": "socket:ws/demo-ws-gw/$connect",
+      "transport": "socket"
+    }
+  ],
+  "resources": [],
+  "channels": []
+}

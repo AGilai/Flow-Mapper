@@ -25,6 +25,9 @@ export function deferHelpers<A>(s: DeferState<A>) {
   return { withAlt, holdAsync, afterCaller };
 }
 
+/** #117: the lifeline id for `id`: the client app that is the entry's only caller is the `client` lifeline wherever else the trace reaches it (several callers stay apart). */
+export const clientAlias = (id: string, callers: string[]): string => (callers.length === 1 && id === `svc:${callers[0]}` ? 'client' : id);
+
 /** #121: the frame section of a step (`group#branch`, outermost first). */
 const sectionOf = (a: { group: string; branch: number; parent?: unknown } | undefined): string => { const c: string[] = []; for (let x = a as any; x; x = x.parent) c.unshift(`${x.group}#${x.branch}`); return c.join('>'); };
 

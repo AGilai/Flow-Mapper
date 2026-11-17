@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "demo-ws-gw",
+    "kind": "gateway",
+    "team": "network-edge",
+    "description": "Demo (#117): WebSocket gateway. $connect is called by the client app, then the gateway pushes an ack back to the same app."
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-17T08:00:00Z",
+  "commit": "120a001",
+  "functions": [
+    {
+      "id": "onConnect",
+      "name": "$connect route",
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "out.ack",
+          "mode": "async"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.ws.connect",
+      "bindKey": "socket:ws/demo-ws-gw/$connect",
+      "transport": "socket",
+      "handler": "onConnect",
+      "details": {
+        "protocol": "ws",
+        "event": "$connect"
+      }
+    }
+  ],
+  "egress": [
+    {
+      "id": "out.ack",
+      "bindKey": "socket:ws/demo-ws-app/ack",
+      "transport": "socket",
+      "mode": "async"
+    }
+  ],
+  "resources": [],
+  "channels": []
+}

@@ -23,6 +23,7 @@ import { refKey, unresolvedTarget } from './resolve.ts';
 import { splitAmqpKey } from './amqp.ts';
 import { routeKey, rpcOf } from './amqp-route.ts';
 import { entryPoints } from './trace.ts';
+import { callersOf } from './callers.ts';
 import { externalSet, servicesText } from './external.ts';
 import { markedId } from './step-marks.ts';
 
@@ -137,8 +138,10 @@ export function flowCounts(g: GraphIndex): FlowCount[] {
   const res = entryPoints(g).map((e) => {
     const c: FlowCount = { service: e.service, ingress: e.id, total: 0, external: 0, services: 0, topics: 0, queues: 0, buses: 0, stores: 0, otherChannels: 0 };
     const reached = new Set([e.handler, ...(e.middleware ?? [])].flatMap((fn) => sets.get(sid(e.service, fn)) ?? []));
+    const sole = callersOf(g, g.ingress.get(sid(e.service, e.id))); // #117: the client app that is the entry's only caller is the trace's `client` lifeline, also where it is pushed to: not a second service
     for (const id of reached) {
       if (id[0] === 'm') continue;                  // a marked step (step-marks.ts), not a component
+      if (sole.length === 1 && id === 's:' + sole[0]) continue;
       if (id[0] === 's') { c.services++; if (ext.has(id.slice(2))) c.external++; }
       else if (id[0] === 'r') c.stores++;
       else {

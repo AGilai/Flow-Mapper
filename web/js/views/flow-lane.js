@@ -195,9 +195,9 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
     }
     if (m.kind === 'frontier') { push({ type: 'frontier', msg: m, bar: top }); return; }
     if (isPublish(m)) { emitChain(top, chainAt.get(idx)); return; }
-    const k = kind.get(m.to), service = svcOf(m.to);
-    if (m.broken || m.gap || !service || k === 'missing' || k === 'unresolved') { push({ type: 'unresolved', msg: m, bar: top, col: unresolvedCol(isRpc(m)), label: callLabel(m), chip: isRpc(m) ? 'no server harvested' : null }); return; }
-    if (m.push || scope === 'intra' && service !== root) { push({ type: 'call', msg: m, from: top.col, fromBar: top, to: pickCol(service, top.col), bar: null, label: callLabel(m) }); return; }
+    const k = kind.get(m.to), service = svcOf(m.to), toSource = m.push && m.to === 'client'; // #117: a push back to the client app that called the entry is an arrow to the caller column
+    if (m.broken || m.gap || (!service && !toSource) || k === 'missing' || k === 'unresolved') { push({ type: 'unresolved', msg: m, bar: top, col: unresolvedCol(isRpc(m)), label: callLabel(m), chip: isRpc(m) ? 'no server harvested' : null }); return; }
+    if (m.push || scope === 'intra' && service !== root) { push({ type: 'call', msg: m, from: top.col, fromBar: top, to: toSource ? source : pickCol(service, top.col), bar: null, label: callLabel(m) }); return; }
     if (repeats && m.repeatOf && m.kind === 'egress' && !msgs[idx + 1]?.unfoldOf) { push({ type: 'call', msg: m, from: top.col, fromBar: top, to: pickCol(service, top.col), bar: null, label: callLabel(m), repeat: m.repeatOf }); return; } // 0.44.0 (#90): a repeat is a thin arrow with no bar, unless its first expansion was unfolded under it
     const bar = open(m, top.col, top, service, pickCol(service, top.col), isSyncCall(m), isRpc(m) ? plan1(top.col.ci, service, m.rpc) : null);
     if (m.repeatOf) events[bar.start].repeat = m.repeatOf;
