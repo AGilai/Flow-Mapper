@@ -1,0 +1,20 @@
+{
+  "name": "caller-bands",
+  "source": "prod",
+  "mode": "components",
+  "behaviour": true,
+  "entryPoints": "keep",
+  "groups": [
+    { "key": "gateway", "label": "Public edge gateway layer" },
+    { "key": "orders", "label": "Order handling system" },
+    { "key": "agent", "label": "Agent system" }
+  ],
+  "services": [
+    { "name": "api-gateway", "groupPath": "gateway" },
+    { "name": "order-intake", "groupPath": "orders" },
+    { "name": "shipping-worker", "groupPath": "orders" },
+    { "name": "demo-agent-app", "groupPath": "agent" },
+    { "name": "demo-agent-apigw-ws", "groupPath": "agent" }
+  ],
+  "createdBy": "seed"
+}

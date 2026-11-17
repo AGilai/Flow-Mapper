@@ -6,6 +6,7 @@
 import { h, s } from '../dom.js';
 import { productImage } from './flow-draw-icons.js';
 import { subIcon, GLYPH } from '../icons.js';
+import { bandLabelPx } from './flow-bands.js';
 
 export const BAND_H = 26; // the row each kind of band takes above the heads
 export const STORE_X = 32; // x of a store head's text: its icon comes first
@@ -24,7 +25,10 @@ export const storeIcon = (x, y, stack = false) => s('g', { class: 'sicon', trans
 const GAP = 6, clip = (t, n) => (t.length > n ? `${t.slice(0, Math.max(1, n - 1))}…` : t);
 export const drawBands = (bands, { colX, headBox, columns, groups = [], onAdd = null }) => (bands ?? []).map((b) => {
   const side = (i, dir) => { const g = groups.find((f) => f.cols.includes(i)); return g ? (dir < 0 ? g.x : g.x + g.w) : colX.get(columns[i]) + (dir * headBox(columns[i])) / 2; };
-  const a = columns[b.from], x = side(b.from, -1) + GAP / 2, w = side(b.to, 1) - x - GAP / 2, y = 4 + (b.row ?? 0) * BAND_H; // a small gap between neighbouring bands
+  const a = columns[b.from], y = 4 + (b.row ?? 0) * BAND_H; // a small gap between neighbouring bands
+  let x = side(b.from, -1) + GAP / 2, w = side(b.to, 1) - x - GAP / 2;
+  // #127: a subsystem band over one lane is as wide as its label needs, centred on the head (flow-draw-layout.js made room in the gaps beside it)
+  if (b.sub && b.from === b.to && !groups.some((f) => f.cols.includes(b.from))) { const n = bandLabelPx(b.label, { icon: !!b.icon, isNew: b.mark === 'new', sub2: !!b.sub2, add: !!onAdd && !b.sub2 }); if (n > w) { x -= (n - w) / 2; w = n; } }
   if (b.sub) return subBand(b, x, y, w, onAdd);
   const room = Math.floor((w - 36) / 6.6); // the label ends in an ellipsis when it does not fit (the title has it all)
   // With a product logo the logo names the kind, so the visible text drops the "<kind>: " prefix and keeps the store name.
