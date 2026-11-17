@@ -115,15 +115,15 @@ export async function render({ main, query }) {
   };
   /** Drivers tab (#130): the same URL keeps `q`, so the inventory's own filter is left alone while it is open. */
   const drvHost = h('div.drivers-host'), nPackages = new Set(clients.rows.flatMap((r) => r.drivers.map((d) => d.package))).size;
-  const showDrivers = () => { f.tab = 'drivers'; main.classList.add('drv-on'); drvBtn.setAttribute('aria-pressed', 'true'); closeCb = () => {}; fill(drvHost, driversView({ rows: clients.rows, query: new URLSearchParams(location.hash.split('?')[1] ?? ''), panel, onClose: (fn) => { closeCb = fn; } })); };
+  const showDrivers = () => { f.tab = 'drivers'; main.classList.add('drv-on'); drvBtn.setAttribute('aria-pressed', 'true'); closeCb = () => {}; fill(drvHost, driversView({ rows: clients.rows, env: state.env, envs: state.envs, query: new URLSearchParams(location.hash.split('?')[1] ?? ''), panel, onClose: (fn) => { closeCb = fn; } })); };
   const leaveDrivers = () => { f.tab = ''; closeCb = () => {}; main.classList.remove('drv-on'); drvBtn.setAttribute('aria-pressed', 'false'); drvHost.replaceChildren(); panel.close(); setQuery({ tab: null, store: null, group: null, mixed: null, c: null, q: null }); };
   const drvBtn = h('button', { 'aria-pressed': String(f.tab === 'drivers'), 'data-qa': 'tab-drivers', on: { click: () => { if (f.tab) return; setQuery({ q: null, type: null, driver: null }); buttons.forEach(([, b]) => b.setAttribute('aria-pressed', 'false')); showDrivers(); setQuery({ tab: 'drivers' }); apply(); } } },
-    icon('package'), 'Drivers', h('span.muted', ` ${nPackages} ${nPackages === 1 ? 'package' : 'packages'}`), h('span.dv-new', 'new'));
+    icon('package'), 'Drivers', h('span.muted', nPackages ? ` ${nPackages} ${nPackages === 1 ? 'package' : 'packages'}` : ' no data'), h('span.dv-new', 'new'));
   const seg = h('div.row.inv-types', { style: { gap: 'var(--s2)', flexWrap: 'wrap' } },
     h('div.seg', { role: 'group', 'aria-label': 'Type' }, typeList.map(button)),
     dbKinds.length ? [h('span.small.muted', 'Data stores'), h('div.seg', { role: 'group', 'aria-label': 'Database' }, types.map(button))] : null,
     hasAmqp ? [h('span.small.muted', 'Brokers'), h('div.seg', { role: 'group', 'aria-label': 'Broker' }, [['amqp', 'AMQP']].map(button))] : null,
-    clients.rows.length ? h('div.seg.inv-drivers', { role: 'group', 'aria-label': 'Drivers' }, drvBtn) : null);
+    h('div.seg.inv-drivers', { role: 'group', 'aria-label': 'Drivers' }, drvBtn));
   const shown = h('span.small.muted');
   /** One row per client site on the chosen driver: the service, its store, and where the driver comes from (its own, or inside a lib). */
   const svcTable = dataTable({

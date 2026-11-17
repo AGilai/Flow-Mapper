@@ -90,6 +90,8 @@ tr.dv-xp td { background: var(--paper); padding: 0 12px 10px 38px; border-bottom
 .dv-pad { padding: 10px 14px; }
 .dv-outside { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 9px 14px; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--ink-2); border-radius: 8px; font-size: 12.5px; }
 .dv-outside svg { width: 15px; height: 15px; flex: none; }
+.dv-note { margin: 0; display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 13px; color: var(--ink); background: var(--surface-2, var(--bg-2, transparent)); border: 1px solid var(--line, var(--border, #8884)); border-left: 3px solid var(--lag1); border-radius: 6px; max-width: 110ch; } .dv-note svg { width: 16px; height: 16px; flex: none; color: var(--lag1); }
+.dv-acts { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 8px; } .dv-else { margin-top: 8px; font-size: 13px; color: var(--ink); } .dv-else a { font-weight: 600; }
 .dv-empty { padding: 30px 24px; display: grid; justify-items: center; gap: 6px; text-align: center; color: var(--ink-2); } .dv-empty b { color: var(--ink); font-size: 14px; } .dv-empty svg { width: 24px; height: 24px; color: var(--muted); }
 
 /* Matrix */
@@ -107,3 +109,8 @@ tr.dv-xp td { background: var(--paper); padding: 0 12px 10px 38px; border-bottom
 .dv-dd .s, .dv-dsec .s { font-size: 12px; }
 .dv-section { display: grid; gap: var(--s3); }
 .dv-svc { margin-top: var(--s4); } .dv-svc .dv-sech { border-bottom: 1px solid var(--line); } .dv-svc:not([open]) .dv-sech > svg:last-child { transform: rotate(-90deg); } .dv-svc .dv-sech svg { width: 16px; height: 16px; }
+
+.dv-exp { position: relative; margin-left: auto; } .dv-exp .btn svg { width: 12px; height: 12px; vertical-align: -1px; }
+.dv-menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; min-width: 240px; display: grid; gap: 2px; padding: 6px; background: var(--surface, var(--bg, #fff)); border: 1px solid var(--line, var(--border, #8886)); border-radius: 8px; box-shadow: 0 6px 20px #0003; }
+.dv-menu[hidden] { display: none; } .dv-menu button { text-align: left; background: none; border: 0; padding: 7px 8px; border-radius: 6px; color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; } .dv-menu button:hover, .dv-menu button:focus-visible { background: var(--hover, #8882); }
+.dv-menu-opt { font-size: 13px; padding: 6px 8px; color: var(--ink); } .dv-menu .mu { padding: 4px 8px; }

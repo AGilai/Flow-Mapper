@@ -5,6 +5,11 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+
+- Drivers view (UI): a link to a store type with no client data in this env (`store=mongodb` on an env with only Redis) opens the type that has data (most components) with the notice "No MongoDB driver data in <env>; showing Redis." and `store=` is rewritten in the URL; clicking a dimmed type still shows the empty state, which now offers "Show Redis · N components" and, when the env has no driver data at all, "Open in <env>" links to the envs that have. The Drivers tab is always shown (count "no data").
+- Drivers export (additive): `GET /api/envs/:env/clients/drivers.csv` and `.md` (query `store=` a store type, default all; `q=` the view's query, e.g. `mongoose%20%3C%206`; `mixed=1`). CSV: one row per component x package x version (columns env, store type, package, version, major, lag, newest major in env, component, resources, ops read/write/total, via, status, candidates, reason, filter), unresolved entries as `status=unresolved` rows. `.md`: a report with verdict, one table per package, mixed majors, unresolved. The Drivers tab has the same as an Export menu (built in the browser, also in the static preview).
+
 ## 0.61.0 (2026-11-17): Inventory Drivers view (#130)
 
 - #130 Drivers view (UI, plus additive fields): Inventory gets a `Drivers` tab (`#/inventory?tab=drivers&store=redis&q=mongoose%20%3C%206`) and the component page a "Drivers" section: store type, package, version, with the components, resources and operations on each, the newest major in use as baseline, amber and red lag marks with text, mixed majors, and unresolved entries (with candidates) in their own section. A query box takes `mongoose < 6`, `redis 3`, `v3`, `3.x`, `>= 4 < 5`, an exact version or a component name.

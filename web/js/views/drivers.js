@@ -5,7 +5,7 @@
 import { h, fill } from '../dom.js';
 import { icon } from '../icons.js';
 import { href, setQuery } from '../router.js';
-import { driverEntries, baselinesOf, driverTable, unresolvedItems, entryPasses, unresolvedPasses, componentsPerKind } from '../../core/drivers.js';
+import { driverEntries, baselinesOf, driverTable, unresolvedItems, entryPasses, unresolvedPasses, componentsPerKind, chooseStore } from '../../core/drivers.js';
 import { parseDriverQuery, formatDriverQuery, compareVersions, parseVersion } from '../../core/versions.js';
 import { verdictOf } from '../../core/driver-verdict.js';
 import { typeOf, typeOrder, kindLabel } from './drivers-kinds.js';
@@ -13,6 +13,8 @@ import { storePicker, groupSwitch, queryBar, syntaxHint } from './drivers-bar.js
 import { packageTable } from './drivers-table.js';
 import { componentMatrix } from './drivers-matrix.js';
 import { componentDrivers } from './drivers-drawer.js';
+import { emptyNone, notice } from './drivers-empty.js';
+import { exportMenu } from './drivers-export.js';
 import { legend, unresolvedSection, outsideLine } from '../components/drivers-parts.js';
 
 const uniq = (a) => [...new Set(a)].sort((x, y) => x.localeCompare(y));
@@ -24,18 +26,20 @@ export function driverData(rows) {
   return { entries, unresolved, base: baselinesOf(entries), counts: componentsPerKind(entries, unresolved) };
 }
 
-/** `rows`: ClientRow[]; `query`: URLSearchParams; `panel`: the page's info panel (the drawer); `onClose(fn)` registers what runs when the panel closes. Returns the element. */
-export function driversView({ rows, query, panel, onClose }) {
+/** `rows`: ClientRow[]; `env`, `envs`: this environment and all of them (the empty state looks for data in the others); `query`: URLSearchParams; `panel`: the page's info panel (the drawer); `onClose(fn)` registers what runs when the panel closes. Returns the element. */
+export function driversView({ rows, env = '', envs = [], query, panel, onClose }) {
   const data = driverData(rows), { entries, unresolved, base, counts } = data;
   const types = typeOrder([...counts.keys()]).map((id) => ({ id, n: counts.get(id) ?? 0 }));
-  const first = types.find((t) => t.n)?.id ?? 'redis';
-  const s = { store: types.some((t) => t.id === query.get('store')) ? query.get('store') : first, group: query.get('group') === 'component' ? 'component' : 'package', q: query.get('q') ?? '', mixed: query.get('mixed') === '1', c: query.get('c') ?? '' };
+  const pick = chooseStore(query.get('store'), counts, types.map((t) => t.id));
+  let moved = pick.from ? notice(kindLabel(pick.from), env, kindLabel(pick.store)) : null; // the URL asked for a store type without data here: say why another one opened
+  const s = { store: pick.store, group: query.get('group') === 'component' ? 'component' : 'package', q: query.get('q') ?? '', mixed: query.get('mixed') === '1', c: query.get('c') ?? '' };
   const expanded = new Set();
   const el = h('div.drv', { 'data-qa': 'drivers' });
   let curInput = null;
 
   const url = () => setQuery({ tab: 'drivers', store: s.store, group: s.group === 'package' ? null : s.group, q: s.q || null, mixed: s.mixed ? 1 : null, c: s.c || null });
-  const change = (patch) => { Object.assign(s, patch); url(); draw(); };
+  const change = (patch) => { if (patch.store != null) moved = null; Object.assign(s, patch); url(); draw(); };
+  if (pick.from) url();
   const open = (service) => change({ c: service });
   onClose(() => { if (s.c) { s.c = ''; url(); draw(); } });
 
@@ -56,9 +60,10 @@ export function driversView({ rows, query, panel, onClose }) {
     const vers = [...new Map(ents.filter((e) => !query.package || e.package === query.package).map((e) => [e.version, e])).values()].sort((a, b) => compareVersions(parseVersion(b.version), parseVersion(a.version)));
     const verOpts = [...uniq([...new Set(vers.map((e) => e.major))].map(String)).sort((a, b) => b - a).map((m) => [`${m}.x`, `${m}.x`]), ...vers.map((e) => [e.version, e.version])];
     const bar = queryBar({ vocab, versions: verOpts, s, on: change });
+    bar.row.append(h('span.grow'), exportMenu(rows, () => ({ env, store: s.store, group: s.group, q: s.q, mixed: s.mixed })));
     const qtext = formatDriverQuery(query) || (s.mixed ? 'mixed majors' : '');
     const filtered = !!(s.q || s.mixed);
-    const parts = [h('div.dv-row.top', storePicker(types, s.store, (id) => change({ store: id, group: 'package', q: '', mixed: false, c: '' }), !pkgMode), h('span.grow'), groupSwitch(s.group, (g) => change({ group: g })))];
+    const parts = [h('div.dv-row.top', storePicker(types, s.store, (id) => change({ store: id, group: 'package', q: '', mixed: false, c: '' }), !pkgMode), h('span.grow'), groupSwitch(s.group, (g) => change({ group: g }))), pkgMode ? moved : null];
     let body;
     if (pkgMode) {
       const table = driverTable(shownE, s.store, base);
@@ -66,7 +71,7 @@ export function driversView({ rows, query, panel, onClose }) {
       const empty = !none && !table.packages.length && !unrIn.length;
       parts.push(empty ? null : h('p.dv-vd', none ? [h('b', `${label}: no client data yet. `), 'No harvester has reported clients for this store type in this environment.']
         : verdictOf(label, qtext, table, unrIn.length, unrOut.length).map((g) => (g.s ? h(g.s === 'b' ? 'b' : `span.${g.s}`, g.t) : g.t))), none ? null : bar.row, filtered ? syntaxHint() : null);
-      body = none ? emptyNone(label) : !table.packages.length && !unrIn.length ? emptyQuery(label, qtext, query, ents, change) : table.packages.length ? packageTable(table, { unresolved: unr, open, expanded, onToggle: (k) => { expanded.has(k) ? expanded.delete(k) : expanded.add(k); draw(); } }) : null;
+      body = none ? emptyNone(label, { types, env, envs, dataOf: driverData, go: (id) => change({ store: id, group: 'package', q: '', mixed: false, c: '' }) }) : !table.packages.length && !unrIn.length ? emptyQuery(label, qtext, query, ents, change) : table.packages.length ? packageTable(table, { unresolved: unr, open, expanded, onToggle: (k) => { expanded.has(k) ? expanded.delete(k) : expanded.add(k); draw(); } }) : null;
       parts.push(body, none ? null : outsideLine(unrOut, () => change({ q: '', mixed: false })), none || empty ? null : legend(), none ? null : unresolvedSection(unrIn, { open, note: unr.length ? null : 'No unresolved entries in this store type.' }), filtered ? others(s, change) : null);
     } else {
       const kinds = types.filter((t) => t.n).map((t) => t.id);
@@ -83,9 +88,6 @@ export function driversView({ rows, query, panel, onClose }) {
   draw();
   return el;
 }
-
-const emptyNone = (label) => h('div.dv-card', h('div.dv-empty', icon('info'), h('b', `No ${label} clients reported yet`),
-  h('span', `As soon as a harvester sends a client (driver, wrapper library) for a ${label} resource or call, its packages and versions are listed here.`), h('span.s.mu', 'Until then there is nothing to compare: no version is guessed.')));
 
 function emptyQuery(label, qtext, query, ents, change) {
   const pkg = query.package && ents.filter((e) => e.package === query.package);

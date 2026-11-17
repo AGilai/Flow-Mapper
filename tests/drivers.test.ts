@@ -5,7 +5,8 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { sampleManifests, startApp } from './helpers.ts';
 import type { ClientRow } from '../core/clients.ts';
-import { baselinesOf, driverEntries, driverTable, entryPasses, lagLevel, lagOf, unresolvedItems, unresolvedPasses, componentsPerKind } from '../core/drivers.ts';
+import { baselinesOf, driverEntries, driverTable, entryPasses, lagLevel, lagOf, unresolvedItems, unresolvedPasses, componentsPerKind, chooseStore } from '../core/drivers.ts';
+import { driversModel, driversCsv, driversReport } from '../core/drivers-export.ts';
 import { parseDriverQuery } from '../core/versions.ts';
 import { verdictOf, verdictText } from '../core/driver-verdict.ts';
 
@@ -125,4 +126,70 @@ test('client rows over the samples carry operations, candidates and plain; Redis
   assert.deepEqual(mongo.packages.map((p) => p.package).sort(), ['mongodb', 'mongoose', 'typeorm'], 'the ORMs are drivers of their own, and the mongodb driver inside them is listed too');
   assert.ok(driverTable(e, 'redis', base).packages.find((p) => p.package === 'ioredis')!.majors.length >= 2);
   assert.ok(e.some((x) => x.lib?.package === 'saferxlib'), 'the wrapper case');
+});
+
+test('chooseStore opens the requested type with data, else the one with most components', () => {
+  const order = ['redis', 'mongodb', 'sqs-sns', 'http'];
+  const only = new Map([['redis', 2]]);
+  assert.deepEqual(chooseStore('mongodb', only, order), { store: 'redis', from: 'mongodb' });
+  assert.deepEqual(chooseStore('redis', only, order), { store: 'redis', from: null });
+  assert.deepEqual(chooseStore('mongodb', new Map([['redis', 2], ['mongodb', 5]]), order), { store: 'mongodb', from: null });
+  assert.deepEqual(chooseStore('http', new Map([['redis', 2], ['mongodb', 5]]), order), { store: 'mongodb', from: 'http' });
+  assert.deepEqual(chooseStore('mongodb', new Map(), order), { store: 'mongodb', from: null });
+  assert.deepEqual(chooseStore(null, new Map([['mongodb', 1]]), order), { store: 'mongodb', from: null });
+  assert.deepEqual(chooseStore(null, new Map(), order), { store: 'redis', from: null });
+});
+
+const O = { env: 'prod', store: 'all', date: '2026-11-17', version: '0.62.0', link: '#/inventory?tab=drivers' };
+/** A tiny CSV reader for the tests (quotes, doubled quotes, CRLF). */
+const parseCsv = (t: string) => { const out: string[][] = []; let row: string[] = [], c = '', q = false; for (let i = 0; i < t.length; i++) { const ch = t[i]; if (q) { if (ch === '"') { if (t[i + 1] === '"') { c += '"'; i++; } else q = false; } else c += ch; } else if (ch === '"') q = true; else if (ch === ',') { row.push(c); c = ''; } else if (ch === '\r') { /* skip */ } else if (ch === '\n') { row.push(c); out.push(row); row = []; c = ''; } else c += ch; } return out; };
+
+test('driversCsv: one row per component x package x version, lag blank on the newest, unresolved as rows, quoted', () => {
+  const m = driversModel([...rows, row('weird', 'redis', undefined, undefined, { unresolved: ['driver.package'], reasons: { 'driver.package': 'ambiguous, "two"' }, candidates: { 'driver.package': ['a', 'b'] } })]);
+  const t = parseCsv(driversCsv(m, { ...O, store: 'redis' }));
+  assert.deepEqual(t[0].slice(0, 16), ['env', 'store type', 'package', 'version', 'major', 'lag', 'newest major in env', 'component', 'resources', 'ops read', 'ops write', 'ops total', 'via', 'status', 'candidates', 'reason']);
+  const find = (svc: string, ver: string) => t.find((r) => r[7] === svc && r[3] === ver)!;
+  assert.deepEqual([find('auth', '5.3.2')[5], find('auth', '5.3.2')[6], find('auth', '5.3.2')[12]], ['', '5', 'direct']);
+  assert.equal(find('inv', '4.28.5')[5], '1');
+  assert.equal(find('orders', '5.3.2')[8], '2', 'two resources of one component on one version are one row');
+  assert.equal(find('cat', '4.27.6')[12], 'wrap@2.1.0');
+  const u = t.find((r) => r[13] === 'unresolved' && r[7] === 'weird')!;
+  assert.deepEqual([u[7], u[14], u[15]], ['weird', 'a; b', 'ambiguous, "two"']);
+  assert.ok(!t.some((r) => r[1] === 'MongoDB'), 'only the chosen store type');
+  assert.match(t[1][16], /^Redis$/, 'the filter is stated on each row');
+});
+
+test('driversCsv respects the query and mixed toggle', () => {
+  const m = driversModel(rows);
+  const q = parseCsv(driversCsv(m, { ...O, store: 'redis', q: 'redis 3' })).slice(1).filter((r) => r.length > 1);
+  assert.deepEqual(q.map((r) => [r[2], r[3], r[7]]), [['redis', '3.1.2', 'legacy']]);
+  assert.match(q[0][16], /query "redis 3\.x"/);
+  const mx = parseCsv(driversCsv(m, { ...O, store: 'redis', mixed: true })).slice(1).filter((r) => r.length > 1);
+  assert.ok(mx.length && mx.every((r) => r[7] === 'ship'));
+  assert.ok(parseCsv(driversCsv(m, O)).some((r) => r[1] === 'MongoDB'), 'all store types');
+});
+
+test('driversReport: title, scope, verdict, a table per package, mixed majors, unresolved, footer', () => {
+  const md = driversReport(driversModel(rows), { ...O, store: 'redis' });
+  assert.match(md, /^# Drivers report · prod · 2026-11-17\n/);
+  assert.match(md, /Scope: environment `prod` · Redis\./);
+  assert.match(md, /Redis: \d+ packages?, /);
+  assert.match(md, /### ioredis\n[\s\S]*\| Version \| Lag \| Components \| Resources \| Ops/);
+  assert.match(md, /\| 4\.28\.5 \| 1 major behind \|/);
+  assert.match(md, /## Mixed majors\n\n- ship · Redis · ioredis: majors 5 and 4/);
+  assert.match(md, /## Unresolved\n\n(None in this scope|\| Component)/);
+  assert.match(md, /Generated by Flow-Mapper 0\.62\.0 on 2026-11-17\..* View: #\/inventory\?tab=drivers/);
+  assert.match(driversReport(driversModel(rows), { ...O, store: 'redis', q: 'redis 3' }), /query "redis 3\.x"/);
+});
+
+test('GET /clients/drivers.csv and .md serve the same files with a download name', async () => {
+  const csv = await fetch(`${app.base}/api/envs/prod/clients/drivers.csv?store=mongodb&q=mongoose%20%3C%206`);
+  assert.equal(csv.status, 200);
+  assert.match(csv.headers.get('content-type')!, /text\/csv/);
+  assert.match(csv.headers.get('content-disposition')!, /filename="drivers-prod-mongodb-\d{8}\.csv"/);
+  const t = parseCsv(await csv.text()).slice(1).filter((r) => r.length > 1);
+  assert.ok(t.length && t.every((r) => r[1] === 'MongoDB'));
+  const md = await (await fetch(`${app.base}/api/envs/prod/clients/drivers.md`)).text();
+  assert.match(md, /^# Drivers report · prod · /);
+  assert.match(md, /## Redis/);
 });
