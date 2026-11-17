@@ -5,7 +5,7 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { sampleManifests, startApp } from './helpers.ts';
 import type { ClientRow } from '../core/clients.ts';
-import { baselinesOf, driverEntries, driverTable, entryPasses, lagLevel, lagOf, unresolvedItems, unresolvedPasses, componentsPerKind } from '../core/drivers.ts';
+import { baselinesOf, driverEntries, driverTable, entryPasses, lagLevel, lagOf, unresolvedItems, unresolvedPasses, componentsPerKind, chooseStore } from '../core/drivers.ts';
 import { parseDriverQuery } from '../core/versions.ts';
 import { verdictOf, verdictText } from '../core/driver-verdict.ts';
 
@@ -125,4 +125,16 @@ test('client rows over the samples carry operations, candidates and plain; Redis
   assert.deepEqual(mongo.packages.map((p) => p.package).sort(), ['mongodb', 'mongoose', 'typeorm'], 'the ORMs are drivers of their own, and the mongodb driver inside them is listed too');
   assert.ok(driverTable(e, 'redis', base).packages.find((p) => p.package === 'ioredis')!.majors.length >= 2);
   assert.ok(e.some((x) => x.lib?.package === 'saferxlib'), 'the wrapper case');
+});
+
+test('chooseStore opens the requested type with data, else the one with most components', () => {
+  const order = ['redis', 'mongodb', 'sqs-sns', 'http'];
+  const only = new Map([['redis', 2]]);
+  assert.deepEqual(chooseStore('mongodb', only, order), { store: 'redis', from: 'mongodb' });
+  assert.deepEqual(chooseStore('redis', only, order), { store: 'redis', from: null });
+  assert.deepEqual(chooseStore('mongodb', new Map([['redis', 2], ['mongodb', 5]]), order), { store: 'mongodb', from: null });
+  assert.deepEqual(chooseStore('http', new Map([['redis', 2], ['mongodb', 5]]), order), { store: 'mongodb', from: 'http' });
+  assert.deepEqual(chooseStore('mongodb', new Map(), order), { store: 'mongodb', from: null });
+  assert.deepEqual(chooseStore(null, new Map([['mongodb', 1]]), order), { store: 'mongodb', from: null });
+  assert.deepEqual(chooseStore(null, new Map(), order), { store: 'redis', from: null });
 });

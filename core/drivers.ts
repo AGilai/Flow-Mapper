@@ -145,3 +145,11 @@ export function componentsPerKind(entries: DriverEntry[], unresolved: Unresolved
   for (const x of [...entries, ...unresolved]) (by.get(x.kind) ?? by.set(x.kind, new Set()).get(x.kind)!).add(x.service);
   return new Map([...by].map(([k, s]) => [k, s.size]));
 }
+
+/** Which store type the page opens: the requested one when it has data (or when nothing has), else the one with most components (ties: picker order). `from` is set when the choice moved off the request. */
+export function chooseStore(requested: string | null, counts: Map<string, number>, order: string[]): { store: string; from: string | null } {
+  const withData = order.filter((id) => (counts.get(id) ?? 0) > 0);
+  const best = withData.reduce<string | null>((b, id) => (b == null || counts.get(id)! > counts.get(b)! ? id : b), null);
+  if (requested && order.includes(requested)) return (counts.get(requested) ?? 0) > 0 || !best ? { store: requested, from: null } : { store: best, from: requested };
+  return { store: best ?? 'redis', from: null };
+}
