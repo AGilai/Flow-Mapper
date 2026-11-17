@@ -41,6 +41,28 @@
         "table": "users", "columns": { "id": "uuid primary key", "email": "text unique not null", "name": "text", "tier": "text default 'free'", "created_at": "timestamptz" },
         "indexes": ["users_email_key (email)"]
       }
+    },
+    {
+      "key": "mongodb:p81-cluster/_User", "source": "manual",
+      "content": {
+        "fields": { "_id": "ObjectId", "tenantId": "string", "email": { "type": "string", "required": true, "description": "login name, lower-cased" }, "deliveryState": "pending | done | failed", "loginInstanceId": "NetworkDevice._id",
+          "devices": [{ "deviceId": "string", "lastSeen": "date" }], "profile": { "displayName": "string", "locale": "string" } },
+        "indexes": [{ "name": "by_email", "keys": { "tenantId": 1, "email": 1 }, "unique": true }, { "keys": { "deliveryState": 1 } }],
+        "incomplete": true,
+        "doc": { "file": "hld/auth.md", "section": "4.1 Users", "quote": "A user belongs to one tenant and has devices.", "confidence": "inferred" },
+        "$comment": "fields from the HLD text, not from code"
+      }
+    },
+    {
+      "key": "mongodb:p81-cluster/Group", "source": "code",
+      "content": {
+        "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "required": ["name"],
+        "properties": { "name": { "type": "string", "description": "group name" }, "kind": { "type": "string", "enum": ["team", "org"] }, "memberIds": { "type": "array", "items": { "type": "string" } } }
+      }
+    },
+    {
+      "key": "mongodb:p81-cluster/Org", "source": "manual",
+      "content": { "note": "Org documents are described in the HLD, no field list yet", "doc": { "file": "hld/auth.md", "section": "4.2", "confidence": "stated" } }
     }
   ]
 }

@@ -5,6 +5,10 @@ import type { DB } from '../db/connection.ts';
 import { badRequest, notFound } from '../errors.ts';
 import { guardEnv } from './envs.ts';
 import { withDry } from './dry-run.ts';
+import { schemaWarnings, SCHEMA_NOT_DDL } from '../../core/schema-ddl.ts';
+
+/** #124: a schema that is neither JSON Schema nor the manual {fields, indexes} shape is stored all the same, with a `schema-not-ddl` warning each. */
+export const ddlWarnings = (key: string, source: string, content: unknown) => schemaWarnings(content).map((message) => ({ code: SCHEMA_NOT_DDL, key, source, message }));
 
 export const SOURCES = ['code', 'db', 'manual'] as const;
 export interface StoreSchema { key: string; source: string; content: unknown; updatedAt: string }
@@ -30,7 +34,8 @@ export function putSchemaRow(db: DB, env: string, s: { key: string; source?: str
 export function putSchema(db: DB, env: string, s: { key: string; source: string; content: unknown }, known: (key: string) => boolean) {
   guardEnv(db, env, 'harvester');
   putSchemaRow(db, env, s, known);
-  return listSchemas(db, env, s.key).find((x) => x.source === s.source)!;
+  const w = ddlWarnings(s.key, s.source, s.content);
+  return { ...listSchemas(db, env, s.key).find((x) => x.source === s.source)!, ...(w.length ? { warnings: w } : {}) };
 }
 
 /** Load many schemas in one transaction: [{key, source = 'code', content}]. All or nothing. dryRun: validate only, any environment kind. */
@@ -41,7 +46,8 @@ export function loadSchemas(db: DB, env: string, items: unknown, known: (key: st
     items.forEach((s: any, i) => {
       try { putSchemaRow(db, env, s ?? {}, known); } catch (err: any) { err.message = `schemas[${i}]: ${err.message}`; throw err; }
     });
-    return { env, loaded: items.length, ...(dryRun ? { dryRun: true } : {}) };
+    const warnings = items.flatMap((s: any) => ddlWarnings(s.key, s.source ?? 'code', s.content));
+    return { env, loaded: items.length, ...(warnings.length ? { warnings } : {}), ...(dryRun ? { dryRun: true } : {}) };
   });
 }
 
