@@ -25,7 +25,7 @@ interface Frame { key: string; open: string; kind: string; cond: string; depth: 
 function framesOf(m: Message, both: Map<string, Decision> = new Map()): Frame[] {   // a frame covers its own messages and the calls below them (the view draws it so)
   const chain: Alt[] = [];
   for (let a: Alt | undefined = m.alt; a; a = a.parent) chain.unshift(a);
-  const frame = (d: Decision, arm: string): Frame => ({ key: `arms:${d.group_id}`, kind: 'alt', cond: d.arms.find((x) => x.arm === arm)?.label ?? arm, open: `alt ${esc(d.name || d.group_id)}`, depth: Infinity });   // Infinity: a decision frame covers its arm's whole subtree, never skipped as "opened by a step above"
+  const frame = (d: Decision, arm: string): Frame => ({ key: `arms:${d.group_id}`, kind: 'alt', cond: d.arms.find((x) => x.arm === arm)?.label ?? arm, open: `alt ${esc((d.from !== 'alt' && d.guard?.text) || d.name || d.group_id)}${d.from !== 'alt' && d.guard?.file ? `\n%% guard: ${esc(d.guard.file)}${d.guard.line ? `:${d.guard.line}` : ''}` : ''}`, depth: Infinity });   // #115: the guard's text is the frame label, its file:line a comment   // Infinity: a decision frame covers its arm's whole subtree, never skipped as "opened by a step above"
   const inAlt = new Map<string, Frame>();   // 0.38.1: a decision made from an alt frame sits where that frame sits in the chain (a loop around it stays outside)
   const arms: Frame[] = (m.arms ?? []).flatMap((e) => {   // 0.38.0: a decision shown with "Both" is an `alt <decision>` / `else <arm>` frame around its arms (the chosen ones are not frames: the view has only that arm)
     const [g, arm] = splitArm(e), d = both.get(g);

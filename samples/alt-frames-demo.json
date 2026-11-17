@@ -1,0 +1,95 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "device-hub",
+    "kind": "service",
+    "team": "platform",
+    "repo": "github.com/acme/device-hub",
+    "language": "typescript",
+    "description": "Demo of either/or arms (#115, #126): a dedup if/else with deletes, and a gateway that forwards to one backend per request",
+    "tags": ["demo"]
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-17T08:00:00Z",
+  "commit": "a1b2c3d",
+  "functions": [
+    {
+      "id": "DeviceService.addClientDevice",
+      "name": "DeviceService.addClientDevice",
+      "file": "src/device.service.ts",
+      "line": 175,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "devicesDb",
+          "operation": "find",
+          "access": "read",
+          "source": { "file": "src/device.service.ts", "line": 178 },
+          "alternatives": [
+            {
+              "group_id": "d3b07384-d9a0-5c2b-8c1e-115000000001",
+              "name": "when deviceDedupAnalysis -> find then deleteMany, else -> deleteOne",
+              "name_source": "template",
+              "llm_name": null,
+              "llm_provenance": null,
+              "depends_on": "data",
+              "guard": { "text": "config.get('deviceDedupAnalysis')", "file": "src/device.service.ts", "line": 177 },
+              "arms": [
+                { "arm": "then", "label": "dedup analysis", "guard_text": "config.get('deviceDedupAnalysis')", "step_ids": ["device-hub:DeviceService.addClientDevice#1", "device-hub:DeviceService.addClientDevice#2"] },
+                { "arm": "else", "label": "plain delete", "step_ids": ["device-hub:DeviceService.addClientDevice#3"] }
+              ]
+            }
+          ]
+        },
+        { "seq": 2, "type": "resource", "target": "devicesDb", "operation": "deleteMany", "access": "write", "source": { "file": "src/device.service.ts", "line": 185 } },
+        { "seq": 3, "type": "resource", "target": "devicesDb", "operation": "deleteOne", "access": "write", "source": { "file": "src/device.service.ts", "line": 200 } },
+        { "seq": 4, "type": "resource", "target": "devicesDb", "operation": "createOne", "access": "write", "source": { "file": "src/device.service.ts", "line": 210 } }
+      ]
+    },
+    {
+      "id": "gatewayForward",
+      "name": "forward /api/cp/**",
+      "file": "src/gateway.ts",
+      "line": 20,
+      "steps": [
+        { "seq": 1, "type": "egress", "target": "orders.create", "groups": [{ "id": "route", "kind": "alt", "condition": "POST /orders" }] },
+        { "seq": 2, "type": "egress", "target": "orders.get", "groups": [{ "id": "route", "kind": "alt", "condition": "GET /orders/{id}" }] },
+        { "seq": 3, "type": "egress", "target": "orders.delete", "groups": [{ "id": "route", "kind": "alt", "condition": "DELETE /orders/{id}" }] }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.addClientDevice",
+      "bindKey": "http:POST device-hub/api/v1/devices/client",
+      "transport": "http",
+      "handler": "DeviceService.addClientDevice",
+      "entryPoint": true,
+      "details": { "method": "POST", "path": "/api/v1/devices/client" }
+    },
+    {
+      "id": "in.cpForward",
+      "bindKey": "http:POST device-hub/api/cp-middleware/{_}",
+      "transport": "http",
+      "handler": "gatewayForward",
+      "entryPoint": true,
+      "details": { "method": "POST", "path": "/api/cp-middleware/{_}" }
+    }
+  ],
+  "egress": [
+    { "id": "orders.create", "bindKey": "http:POST orders-svc/orders", "transport": "http", "mode": "sync", "details": { "method": "POST", "path": "/orders" } },
+    { "id": "orders.get", "bindKey": "http:GET orders-svc/orders/{id}", "transport": "http", "mode": "sync", "details": { "method": "GET", "path": "/orders/{id}" } },
+    { "id": "orders.delete", "bindKey": "http:DELETE orders-svc/orders/{id}", "transport": "http", "mode": "sync", "details": { "method": "DELETE", "path": "/orders/{id}" } }
+  ],
+  "resources": [
+    {
+      "id": "devicesDb",
+      "kind": "mongodb",
+      "name": "devices-db.networkdevices",
+      "bindKey": "mongodb:devices-db/networkdevices"
+    }
+  ]
+}

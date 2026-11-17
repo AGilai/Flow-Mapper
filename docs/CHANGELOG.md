@@ -5,6 +5,11 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+
+- Fix #126: `detail=simple` keeps either/or arms as alt frames instead of flattening them. Messages of a decision's arms carry `alt` (`{group, branch, of, condition}`, the shape External already uses), the Mermaid export writes `alt <cond>` / `else <cond>` / `end`, and calls in different arms are never merged into one `*N` arrow. Still no `decisions` / `choose` in a Simple trace (`flattened` counts the decisions). Only choices become frames (`alt` groups and `alternatives`), not loops or opts; a frame with one arm left in the view is dropped.
+- Fix #115: `detail=full` draws every arm of an either/or decision by default (as if `choose=*:both`; an explicit `choose` still wins, External keeps the first arm). The Mermaid export labels the frame with the guard's text (`alt config.get('x')`), the guard's `file:line` as a `%% guard:` comment, and each other arm as `else <arm label>`. In `detail=simple` reads and writes of one store never share a `*N` row (a delete no longer hides under a read label); each access class folds on its own, and the group's `access` is read or write, never a mix. The web Full view starts every decision on "All" (the URL's `ch=` is written against that default in Full).
+
 ## 0.59.3 (2026-11-17): fixes #122 #123 #124
 
 - Fix #122: the spark (new) and ring (changed) marks now show on store heads of a flow (the trace's resource steps carry the additive `resAnchor`, `res:<service>/<id>`), on the "N folded" box when a hidden lane is marked, and when animations are frozen or reduced (the mark stays visible, static).

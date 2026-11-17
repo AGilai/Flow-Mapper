@@ -19,19 +19,21 @@ export function createScenario({ st, base: first, req, baseFor, visible = () => 
   let have = heldOf(first);
   have.full = have.kind === 'full';
   const loading = new Set();
-  st.edit = editAll; // edit mode of a design draft: the default of every decision is All (the URL's `ch=` is written against it)
+  /** The default of every decision is All in edit mode of a design draft and in Full (#115: Full draws every arm as alt / else); the URL's `ch=` is written against it. */
+  const all = () => editAll || (st.detail === 'full' && !intra());
+  st.edit = all();
   const decisions = () => base.decisions ?? [];
   const intra = () => base.scope === 'intra';
 
   const resolveCh = () => { // the link's `ch=` meets the flow's decisions: unknown groups and arms are dropped with a toast
-    const r = applyChoose(decisions(), decodeChoose(st.rawCh), editAll);
+    const r = applyChoose(decisions(), decodeChoose(st.rawCh), all());
     st.chosen = r.chosen; st.rawCh = null; st.resolved = true;
     if (r.dropped) toast('Part of the link\'s scenario does not apply to this flow. It was dropped.', 4500);
   };
   if (!st.resolved && kindOf(base) !== 'simple') resolveCh(); // a Simple trace carries no decisions: the link's `ch=` waits (kept as text) until External is loaded
   // Edit mode of a design draft (0.38.1): every decision not seen yet starts on All, so editing never hides a branch; leaving edit mode takes those back.
-  const seed = () => { st.seeded ??= new Set(); seedAll(decisions(), st.chosen, st.seeded, editAll); };
-  const sync = () => { if (kindOf(base) === 'simple') return; st.decisions = decisions(); seed(); st.chosen = prune(st.decisions, st.chosen, editAll); };
+  const seed = () => { st.seeded ??= new Set(); seedAll(decisions(), st.chosen, st.seeded, all()); };
+  const sync = () => { if (kindOf(base) === 'simple') return; st.edit = all(); st.decisions = decisions(); seed(); st.chosen = prune(st.decisions, st.chosen, all()); };
   const make = () => { sync(); cur = viewOf(base, { choose: chooseObject(st.chosen), detail: intra() ? 'full' : st.detail, open: [...st.open], dbOpen: [...st.dbOpen], group: true, unfold: [...st.unfold] }); return cur; };
   const changed = () => { make(); onChange(cur); };
 
@@ -62,7 +64,7 @@ export function createScenario({ st, base: first, req, baseFor, visible = () => 
       return viewOf(t, { choose: chooseObject(st.chosen), detail: 'external', group: true }).messages.flatMap((m, i) => (want.has(m.key) || m.dbGroup?.members?.some((k) => want.has(k)) ? [i + 1] : []));
     },
     foldBack(key) { st.unfold.delete(key); changed(); },
-    choose(group, arm) { st.chosen = setChoice(decisions(), st.chosen, group, arm, editAll); changed(); },
+    choose(group, arm) { st.chosen = setChoice(decisions(), st.chosen, group, arm, all()); changed(); },
     reset() { st.chosen = new Map(); st.seeded?.clear(); changed(); },
     async setDetail(d) {
       if (d === st.detail) return;
@@ -84,7 +86,7 @@ export function createScenario({ st, base: first, req, baseFor, visible = () => 
     },
     /** The scenario as trace-view parameters, for the Mermaid export of what the tab shows. */
     exportView: () => ({ detail: st.detail, unfold: [...st.unfold].join(',') || null, choose: Object.entries(chooseObject(st.chosen)).map(([g, a]) => `${g}:${a}`).join(',') || null, open: [...st.open].join(',') || null, dbOpen: [...st.dbOpen].join(',') || null, group: '1' }),
-    editAll: () => editAll,
+    editAll: () => all(),
     /** #86: the view with no DB runs folded: every operation is a message (the store panel lists them one by one). */
     ungrouped: () => viewOf(base, { choose: chooseObject(st.chosen), detail: intra() ? 'full' : st.detail, open: [...st.open], dbOpen: [], group: false, unfold: [] }),
     /** The run holding the message `key` (core/db-run.ts), found in the view with no run expanded: its key, members and calls; null when it is no run member. */
@@ -94,7 +96,7 @@ export function createScenario({ st, base: first, req, baseFor, visible = () => 
     hiddenOf(key) {
       if (visible(key)) return null;
       const arm = hiddenByArm(decisions(), st.chosen, base.messages, key);
-      if (arm) { const next = showChoices(decisions(), st.chosen, arm, editAll); return { text: 'Not in this scenario', locked: !next, show: () => { if (next) { st.chosen = next; changed(); } } }; }
+      if (arm) { const next = showChoices(decisions(), st.chosen, arm, all()); return { text: 'Not in this scenario', locked: !next, show: () => { if (next) { st.chosen = next; changed(); } } }; }
       if (st.detail === 'simple') return { text: 'Not in this view', show: () => api.setDetail('external') };
       if (base.messages.some((m) => m.key === key) || (!have.full && st.detail !== 'full')) return { text: 'Not in this view', show: () => api.setDetail('full') };
       return null;

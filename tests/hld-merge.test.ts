@@ -39,16 +39,17 @@ test('merge: alternating stores are one arrow per store at the first one place, 
   const t = view({ merge: true });
   const first = t.messages.filter((m: any) => m.kind === 'resource' && m.to.startsWith('res:redis') && m.dbGroup);
   assert.equal(first.length, 1, labels(t).join(' | '));
-  assert.deepEqual(first[0].dbGroup.calls.map((c: any) => c.label), ['setex', 'set', 'get', 'del']);
-  assert.equal(first[0].onlyWhen, undefined); // only one of the four members is guarded: the arrow is not conditional, the member keeps its guard in `calls`
-  assert.equal(first[0].dbGroup.calls[2].onlyWhen?.guard, 'raw');
+  assert.deepEqual(first[0].dbGroup.calls.map((c: any) => c.label), ['setex', 'set', 'del'], '#115: the writes of one store share an arrow, the read (get) has its own');
+  assert.equal(first[0].dbGroup.access, 'write');
+  const get = t.messages.find((m: any) => m.kind === 'resource' && m.to.startsWith('res:redis') && m.label === 'get' && m.onlyWhen);
+  assert.equal(get?.onlyWhen?.guard, 'raw', 'the read keeps its guard on its own arrow');
   const db = t.messages.filter((m: any) => m.kind === 'resource' && m.to.startsWith('res:mongodb') && m.dbGroup);
   assert.equal(db.length, 1);
-  assert.deepEqual(db[0].dbGroup.calls.map((c: any) => c.label), ['findById', 'findOne', 'find']);
+  assert.deepEqual(db[0].dbGroup.calls.map((c: any) => c.label), ['findOne', 'find'], '#115: reads share an arrow; findById is not in the read list of core/access.ts, so it counts as a write and stays apart');
 });
 
 test('merge: blocked members become a count; the arrow itself is not a blocked step', () => {
-  const row = view({ merge: true }).messages.find((m: any) => m.dbGroup?.members.length === 4)!;
+  const row = view({ merge: true }).messages.find((m: any) => m.dbGroup?.members.length === 3)!;
   assert.equal(row.dbGroup!.flagged, 2);
   assert.equal(row.blocked, undefined);
   assert.equal(row.dbGroup!.calls!.filter((c: any) => c.blocked).length, 2);
@@ -65,8 +66,8 @@ test('merge: calls into a leaf target are one arrow (distinct operations in firs
 test('merge: a second activation of the same caller does not merge into the first', () => {
   const t = view({ merge: true });
   const redis = t.messages.filter((m: any) => m.to.startsWith('res:redis'));
-  assert.equal(redis.length, 2, labels(t).join(' | '));
-  assert.ok(redis[1].depth !== redis[0].depth || redis[1].n > redis[0].n);
+  assert.equal(redis.length, 3, labels(t).join(' | ')); // the first activation's writes and its read (#115: apart), then the second activation's read
+  assert.ok(redis[2].depth !== redis[0].depth || redis[2].n > redis[0].n);
 });
 
 test('merge off (the default): the 0.44 rule, blocked steps stay apart, leaves are not folded across different calls', () => {
