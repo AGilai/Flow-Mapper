@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 // @ts-ignore plain JS modules shared with the browser
-import { groupColumns, subBands, subSubBands } from '../web/js/views/flow-bands.js';
+import { groupColumns, subBands, subSubBands, loneBandSpans, bandLabelPx } from '../web/js/views/flow-bands.js';
 // @ts-ignore
 import { groupLane } from '../web/js/views/flow-group.js';
 // @ts-ignore
@@ -62,4 +62,19 @@ test('source: a row for the sub-subsystems between the subsystem and the store r
   assert.match(lay, /row: \(subRuns\.length \? 1 : 0\) \+ \(sub2Runs\.length \? 1 : 0\)/, 'the store row is under both');
   assert.match(read('flow-draw-bands.js'), /band sub sub2/);
   assert.match(read('flow-draw-events.js'), /band\.sub:not\(\.sub2\)/);
+});
+
+// 0.60.1 (#127): the caller's subsystem ranks first; a band over one lane gets room for its whole label
+test("groupColumns: the caller's subsystem ranks first, its other components follow column 0 under one band (#127)", () => {
+  const S: Record<string, string> = { agent: 'agent', cm: 'agent', ukp: 'agent', idp: 'net', safer: 'plat', api: 'agent' };
+  const cols = [svc('agent'), svc('idp'), svc('safer'), svc('cm'), svc('ukp'), svc('api')];
+  const out = groupColumns(cols, (s: string) => S[s] ?? '');
+  assert.deepEqual(names(out), ['agent', 'cm', 'ukp', 'api', 'idp', 'safer']);
+  assert.deepEqual(subBands(out, new Set(), (s: string) => S[s] ?? '').map((b: any) => [b.key, b.from, b.to]), [['agent', 0, 3], ['net', 4, 4], ['plat', 5, 5]]);
+});
+
+test('loneBandSpans: a one-lane band whose label is wider than its head widens the gaps beside it; others do not (#127)', () => {
+  const runs = [{ key: 'a', from: 0, to: 0 }, { key: 'b', from: 1, to: 2 }, { key: 'c', from: 3, to: 3 }];
+  assert.deepEqual(loneBandSpans(runs, 4, (r: any) => (r.key === 'a' ? 200 : 100), 124), [{ a: 0, b: 1, need: 170 }]);
+  assert.ok(bandLabelPx('Platform security', { icon: true }) > 124);
 });

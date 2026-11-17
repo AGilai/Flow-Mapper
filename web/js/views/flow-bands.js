@@ -22,6 +22,8 @@ export function groupColumns(columns, subOf, subOf2 = () => '') {
   columns.forEach((c, i) => { if (i > 0 && isSvc(c) && subOf(c.service)) slots.push(i); });
   // the group key of a component is its subsystem, then (0.50.0) its sub-subsystem: the second level keeps each one's columns together inside the subsystem
   const keyOf = (c) => `${subOf(c.service)}\n${subOf2(c.service) ?? ''}`, order = [];
+  // 0.60.1 (#127): the caller (column 0) is pinned but its subsystem still ranks first, so its other components follow it under one band
+  const c0 = columns[0]; if (c0 && isSvc(c0) && subOf(c0.service)) { order.push(subOf(c0.service)); order.push(keyOf(c0)); }
   for (const i of slots) { const k = subOf(columns[i].service), l = keyOf(columns[i]); if (!order.includes(k)) order.push(k); if (!order.includes(l)) order.push(l); }
   const rank = (c) => order.indexOf(subOf(c.service)) * 1e4 + order.indexOf(keyOf(c)) / 1e3;
   const moved = slots.map((i) => columns[i]).sort((a, b) => rank(a) - rank(b)); // Array.sort is stable
@@ -85,3 +87,21 @@ export function subBands(columns, folded, subOf, keyOf = (c) => memberOf(c, subO
 
 /** The sub-subsystem band row (0.50.0): runs of neighbouring component heads of one second groupPath level, keyed `platform/gcp`. A component with no second level, a store and an unowned channel have none and end the run; an owned channel has its owner's. */
 export const subSubBands = (columns, folded, sub2Of) => subBands(columns, folded, null, (c) => (isSvc(c) ? sub2Of(c.service) : isCh(c) && c.owner ? sub2Of(c.owner) : ''));
+
+/** The width a subsystem band needs to show its whole label (0.60.1, #127): the icon or left pad, 6.8 px a character, the New spark, and the Edit "+". */
+export const bandLabelPx = (label, { icon = false, isNew = false, sub2 = false, add = false } = {}) => Math.ceil(label.length * 6.8) + (icon && !sub2 ? 28 : 10) + (isNew ? 22 : 8) + (add ? 22 : 0);
+/**
+ * loneBandSpans(runs, labelPx, head) -> [{ a, b, need }]: a band over one lane is only as wide as its head; when its label needs more, the gaps to the
+ * neighbouring lifelines widen (centre to centre: half the band, half a head, a gap) so the label is never cut. `runs`: subBands output; `labelPx(run)`; `head`: a head's width.
+ */
+export function loneBandSpans(runs, n, labelPx, head) {
+  const out = [];
+  for (const r of runs) {
+    if (r.from !== r.to) continue;
+    const w = labelPx(r); if (w <= head) continue;
+    const need = Math.ceil(w / 2 + head / 2 + 8);
+    if (r.from > 0) out.push({ a: r.from - 1, b: r.from, need });
+    if (r.from < n - 1) out.push({ a: r.from, b: r.from + 1, need });
+  }
+  return out;
+}

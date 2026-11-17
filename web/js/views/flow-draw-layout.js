@@ -7,7 +7,7 @@ import { markChips, chipsStack } from './flow-marks-draw.js';
 import { markerRuns, failNeed } from './flow-markers-draw.js';
 import { sharedVar } from '../design/component-colors.js';
 import { bandsOf } from './flow-stores-pure.js';
-import { subBands, subSubBands, SHARED } from './flow-bands.js';
+import { subBands, subSubBands, SHARED, bandLabelPx, loneBandSpans } from './flow-bands.js';
 import { BAND_H } from './flow-draw-bands.js';
 import { headIconOf } from './flow-draw-icons.js';
 import { FOLD_W, COL_NARROW, displayCols, foldGroups, planSqueeze } from './flow-squeeze.js';
@@ -40,13 +40,17 @@ export function layoutLane(lane, fit = 0, sq = null, marks = null, edit = false,
     return v == null ? [{ a, b, need: Math.max(lab, mk) }] : [{ a, b: v, need: lab }, { a: v, b, need: mk }];
   };
   const detailPx = (e) => { const p = det?.parts.get(e), t = det?.text.get(e); return p && (p.title || p.desc) ? 48 + Math.max(p.title ? t.title.length * 6.9 : 0, p.desc ? Math.min(t.desc.length, 34) * 6.3 : 0) : 0; }; // step details on the arrow widen the gap it crosses (a description up to 34 characters, the rest is cut)
-  const spans = events.flatMap((e) => {
+  // #127: a band over one lane widens its gaps until its label shows whole (bands as they are drawn with nothing folded)
+  const grpB = lane.group ?? null, bandSpans = grpB ? [
+    ...loneBandSpans(subBands(columns, new Set(), grpB.subOf), columns.length, (r) => bandLabelPx(r.key === SHARED ? 'Shared' : grpB.info(r.key)?.label ?? r.key, { icon: !!grpB.info(r.key)?.icon, isNew: grpB.markOf(r.key) === 'new', add: edit }), COL_MIN - 8),
+    ...(grpB.subOf2 ? loneBandSpans(subSubBands(columns, new Set(), grpB.subOf2), columns.length, (r) => bandLabelPx(grpB.subLabel(r.key), { sub2: true }), COL_MIN - 8) : [])] : [];
+  const spans = [...bandSpans, ...events.flatMap((e) => {
     const ends = e.type === 'hop' ? [e.from, e.to] : arrowEnds(e);
     if (!ends) return [];
     const a = idx.get(ends[0]), b = idx.get(ends[1]), out = e.type === 'hop' ? hopSpans(e) : [{ a, b, need: Math.max(labelWidth(e.label) + failNeed(e.msg), detailPx(e)) + 8 + BAR + 2 * NEST }];
     if (e.end) { const n = b + (Math.sign(b - a) || 1); if (n >= 0 && n < columns.length) out.push({ a: b, b: n, need: endW(e) + 14 }); }
     return out;
-  });
+  })];
   // `fit`: the room the diagram has. The plain gap shrinks (to COL_MIN) until everything shows without scrolling; topic and queue gaps stay.
   // Still too wide and Squeeze on: lifelines fold into fold columns (flow-squeeze.js); a fold is FOLD_W wide and an arrow into it stops at its left edge.
   const layout = (col, folded, fw = FOLD_W) => {

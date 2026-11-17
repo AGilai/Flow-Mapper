@@ -5,6 +5,10 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+
+- Fix #127 (UI only): in a flow with Group by subsystem, the caller's subsystem is ranked first so its other components sit right after column 0 under one band, and a band over one lane is as wide as its label needs (the gaps beside it widen) instead of ending in an ellipsis.
+
 ## 0.60.0 (2026-11-17): either/or frames in Simple, if/else arms in Full (#126 #115)
 
 - Fix #126: `detail=simple` keeps either/or arms as alt frames instead of flattening them. Messages of a decision's arms carry `alt` (`{group, branch, of, condition}`, the shape External already uses), the Mermaid export writes `alt <cond>` / `else <cond>` / `end`, and calls in different arms are never merged into one `*N` arrow. Still no `decisions` / `choose` in a Simple trace (`flattened` counts the decisions). Only choices become frames (`alt` groups and `alternatives`), not loops or opts; a frame with one arm left in the view is dropped.
