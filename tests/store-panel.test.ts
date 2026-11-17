@@ -87,7 +87,7 @@ test('Mongo: a card per collection, fields unioned by role and deduped, inDdl fa
   assert.equal(one.cards.length, 1); assert.equal(one.title, 'accounts'); assert.equal(one.sub, 'acc-db · collection accounts'); assert.equal(one.folded, false);
   assert.deepEqual(one.cards[0].ops[0].fields.map((g) => [g.label, g.items.map((i) => i.path)]), [['filter', ['email']], ['project', ['name']]]);
   assert.deepEqual(one.cards[0].ops[1].fields.map((g) => [g.label, g.items]), [['filter', [{ path: '_id' }]], ['update', [{ path: 'lastLogin', operator: '$set', inDdl: false }]]]);
-  assert.deepEqual(summary(one).slice(0, 3), ['This flow touches ', { b: '1 collection' }, ' in this store, in ']);
+  assert.deepEqual(summary(one).slice(0, 3), ['This flow touches ', { b: 'accounts' }, ' in ']); // #123: on a collection head, this collection's own use
   const all = storePanel(t, { group: 'mongodb:acc-db' })!;
   assert.equal(all.folded, true); assert.equal(all.title, 'acc-db (2 collections)'); assert.deepEqual(all.cards.map((c) => c.title), ['accounts', 'audit']);
   assert.equal(targetKey({ group: 'mongodb:acc-db', collection: 'accounts' }), 'mongodb:acc-db/accounts');
@@ -156,4 +156,19 @@ test('#88: the diagram maps the calls of a folded run (an ungrouped trace) to { 
   assert.deepEqual(p.cards[0].ops.map((o) => [o.op, o.steps, o.chips.map((c) => (c.sub ? `${c.n}.${c.sub}` : `${c.n}`))]), [['get', [5], ['5.1']], ['hget', [5], ['5.2']], ['set', [6], ['6']]]);
   assert.deepEqual(p.cards[1].ops[0].chips, [{ n: 5, sub: 3 }]);
   assert.equal(p.stepCount, 2);
+});
+
+test('#123: on one collection head the summary is that collection\'s own use, then how many collections of the store the flow touches; calls of a folded run are named', () => {
+  const mg = (n: number, coll: string, extra: any = {}) => msg({ seq: n, label: 'findOne', access: 'read', store: `mongodb:p81/${coll}`, storeKind: 'mongodb', ...extra });
+  const run = mg(13, 'NetworkDevice', { dbGroup: { calls: [{ label: 'findOne', store: 'mongodb:p81/NetworkDevice' }, { label: 'updateOne', access: 'write', store: 'mongodb:p81/NetworkDevice' }] } });
+  const t = tr([mg(1, 'AuthSession'), run, mg(14, 'UserCertificate'), mg(15, 'UserCertificateLifecycleOutbox')]);
+  const p = storePanel(t, { group: 'mongodb:p81', collection: 'NetworkDevice' }, { stepNo: (_m, i) => [1, 13, 14, 15][i], total: 17 })!;
+  assert.equal(p.coll, 'NetworkDevice'); assert.equal(p.keyCount, 1);
+  assert.deepEqual(p.colls, ['AuthSession', 'NetworkDevice', 'UserCertificate', 'UserCertificateLifecycleOutbox']);
+  const s = summary(p);
+  const text = s.map((x: any) => (typeof x === 'string' ? x : x.b ?? x.text)).join('');
+  assert.equal(text, 'This flow touches NetworkDevice in 1 of 17 steps (2 calls: 13.1, 13.2). It touches 4 collections of p81 in all: AuthSession, UserCertificate, UserCertificateLifecycleOutbox, or all of p81.');
+  assert.deepEqual(s.filter((x: any) => typeof x === 'object' && 'link' in x).map((x: any) => x.link), ['AuthSession', 'UserCertificate', 'UserCertificateLifecycleOutbox', null]);
+  const only = storePanel(tr([mg(1, 'A')]), { group: 'mongodb:p81', collection: 'A' })!;
+  assert.match(summary(only).join(''), /It is the only collection of p81 this flow touches\./);
 });

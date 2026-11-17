@@ -7,12 +7,12 @@ import { schemaTable } from './schema-table.js';
 import { fieldDiff } from './field-diff.js';
 
 /** `anchor`: the item's anchor in a design environment (dto:, evt:, schema:): its fields then show their New / Changed / Removed marks. */
-export function jsonView(value, anchor = null, marks) { // marks: the marks of the item's environment (default: the page's)
+export function jsonView(value, anchor = null, marks, raw = value) { // raw: what the raw view and Copy show (a manual schema is drawn as its JSON Schema equivalent, #124) // marks: the marks of the item's environment (default: the page's)
   const diff = fieldDiff(value, anchor, marks);
-  const tree = h('div.json', node(value, null, 0));
+  const tree = h('div.json', node(raw, null, 0));
   const setAll = (open) => tree.querySelectorAll('details').forEach((d) => { d.open = open; });
   const copy = async () => {
-    try { await navigator.clipboard.writeText(JSON.stringify(value, null, 2)); toast('JSON copied'); }
+    try { await navigator.clipboard.writeText(JSON.stringify(raw, null, 2)); toast('JSON copied'); }
     catch { toast('Copy is not available here'); }
   };
   const btn = (label, click) => h('button.btn.ghost.xs', { type: 'button', on: { click } }, label);

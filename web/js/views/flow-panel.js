@@ -13,6 +13,7 @@ import { ago, chip } from '../format.js';
 import { section } from '../components/panel.js';
 import { assumedBlock } from '../components/assumed-badge.js';
 import { jsonView } from '../components/json-view.js';
+import { schemaView } from '../components/schema-view.js';
 import { dtoAnchor, eventAnchor, schemaAnchor } from '../components/field-diff.js';
 import { dtoSource } from '../components/dto-source.js';
 import { viaChip } from '../components/via-chip.js';
@@ -159,7 +160,7 @@ async function loadDto(m, env, marks) {
   if (m.store) {
     const st = await api.store(env, m.store);
     return st.schemas.length
-      ? st.schemas.map((s) => card(`Schema · from ${s.source}`, `updated ${ago(s.updatedAt)}`, jsonView(s.content, schemaAnchor(s.source, m.store), marks)))
+      ? st.schemas.map((s) => card(`Schema · from ${s.source}`, `updated ${ago(s.updatedAt)}`, schemaView(s.content, schemaAnchor(s.source, m.store), marks)))
       : [card('Schema', null, emptyDto('No schema for this data store yet.', `PUT /api/envs/${env}/schemas/code/${m.store}`))];
   }
   return [];

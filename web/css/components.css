@@ -174,3 +174,13 @@ svg.obj-icon { color: var(--ink-2); }
 body.resizing { cursor: col-resize; user-select: none; }
 .env-missing { max-width: 520px; padding: var(--s4); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface-2); color: var(--ink); }
 .env-missing p { color: var(--ink-2); margin: var(--s2) 0 var(--s3); }
+/* #124: DDL view of a store schema: notices, the indexes table, "Source & notes" */
+.schema-pane { display: grid; gap: var(--s3); }
+.schema-warn { padding: var(--s2) var(--s3); border: 1px solid var(--line-strong); border-radius: var(--r-md); background: var(--surface-2); font-size: var(--fs-xs); color: var(--ink-2); }
+.schema-warn ul { margin: 4px 0 0; padding-left: 18px; }
+.schema-block h4, .schema-notes h4 { margin: 0 0 var(--s1); font-size: var(--fs-xs); font-weight: 650; color: var(--ink-2); text-transform: none; }
+.schema-idx td { white-space: normal; }
+.schema-notes { border: 1px dashed var(--line-strong); border-radius: var(--r-md); padding: var(--s2) var(--s3); background: var(--surface); }
+.schema-kv { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 2px var(--s3); font-size: var(--fs-xs); }
+.schema-kv dt { color: var(--muted); font-family: var(--mono); } .schema-kv dd { margin: 0; color: var(--ink-2); overflow-wrap: anywhere; }
+.schema-kv .schema-kv { padding: 0; }

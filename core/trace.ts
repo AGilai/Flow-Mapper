@@ -172,7 +172,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
       } else if (st.type === 'resource') {
         const r = g.resources.get(sid(service, st.target));
         const to = part({ id: `res:${r?.bindKey ?? sid(service, st.target)}`, label: r?.name ?? st.target, kind: 'resource' });
-        push({ ...base, from: me, to, label: st.operation ?? 'use', mode: st.mode ?? 'sync', kind: 'resource', transport: 'res', store: r?.bindKey ?? sid(service, st.target), ...storeOn(st, r, g), ...(st.fields?.length ? { fields: st.fields } : {}), ...unknownOn(st), ...assumedOn(st), ...keyFieldsOn(st) });
+        push({ ...base, from: me, to, label: st.operation ?? 'use', mode: st.mode ?? 'sync', kind: 'resource', transport: 'res', store: r?.bindKey ?? sid(service, st.target), resAnchor: `res:${r?.service ?? service}/${r?.id ?? st.target}`, ...storeOn(st, r, g), ...(st.fields?.length ? { fields: st.fields } : {}), ...unknownOn(st), ...assumedOn(st), ...keyFieldsOn(st) });
       } else {
         const e = g.egress.get(sid(service, st.target));
         if (!e) continue;

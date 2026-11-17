@@ -15,5 +15,8 @@
     { "name": "catalog-svc", "groupPath": "catalog" },
     { "name": "inventory-svc", "groupPath": "stock" }
   ],
-  "createdBy": "seed"
+  "createdBy": "seed",
+  "drafts": [
+    { "slug": "store-marks", "name": "Store marks", "plan": "store-bands.marks.plan.json" }
+  ]
 }

@@ -511,8 +511,11 @@ One schema per store key and source (`code`, `db`, `manual`). The store must exi
 |---|---|
 | `GET /api/envs/:env/schemas?key=` | stored schemas |
 | `POST /api/envs/:env/schemas` | bulk `{schemas: [{key, source = 'code', content}]}`, all or nothing (201) |
-| `PUT /api/envs/:env/schemas/:source/:key` | body is the schema JSON |
+| `PUT /api/envs/:env/schemas/:source/:key` | body is the schema JSON. Answers the stored schema, plus `warnings` when it is not DDL (see below) |
 | `DELETE /api/envs/:env/schemas/:source/:key` | remove one |
+
+**Shapes (0.59.2, #124).** The UI draws a schema as a DDL table (Field, Type, Required, then indexes). Two shapes are read: JSON Schema (`properties`, `type`, `required`, `enum`, `format`, `description`), and the manual shape
+`{fields: {<name>: "<type or description>" | {type?, description?, required?, enum?, fields?} | [<item>]}, indexes?: [...]}` (`columns` is accepted for `fields`). A text that is a type (`string`, `ObjectId`, `date[]`) is the type, `a | b | c` is an enum, any other text is the field's description. `indexes` are `[{name?, keys: {a: 1, b: -1} | [..] | "a", unique?}]` or plain text. Every other key (`doc`, `incomplete`, `$comment`, `x-*`, `model` ...) is shown apart, under the table, as "Source & notes". A schema of any other shape is stored as sent and answered with `warnings: [{code: 'schema-not-ddl', key, source, message}]` (`POST` bulk and its `dryRun`, `PUT`, MCP `load_schemas`); nothing is refused.
 
 Example: `samples/schemas/prod.json` (loaded by `npm run seed`).
 
