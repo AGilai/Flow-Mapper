@@ -68,6 +68,7 @@
  "cp-middleware/in.deviceLogout": "00e5091a7bae9f",
  "cp-middleware/in.deviceSync": "0edf18856c02ae",
  "demo-agent-apigw-ws/in.ws.connect": "1d1347daf910a9",
+ "demo-nets-caller/in.run": "121ac757e95412",
  "device-push/in.pushUpdates": "011e1f985189ec",
  "dpc-worker/in.rpcDeviceGet": "1889abd1ea0d5a",
  "dpc-worker/in.rpcZoneLookup": "120e916ceb4d6c",

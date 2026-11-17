@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "demo-nets-worker",
+    "kind": "service",
+    "team": "network-edge",
+    "description": "Demo (#120): the queue consumer; asks the tenant-networks API for the ready networks and keeps going."
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-17T08:00:00Z",
+  "commit": "120a001",
+  "functions": [
+    {
+      "id": "work",
+      "name": "work",
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "out.nets",
+          "returns": {
+            "label": "ready networks",
+            "detail": "the tenant networks that are ready"
+          }
+        },
+        {
+          "seq": 2,
+          "type": "resource",
+          "target": "wdb",
+          "operation": "save result"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.job",
+      "bindKey": "sqs:demo-nets-jobs",
+      "transport": "sqs",
+      "handler": "work"
+    }
+  ],
+  "egress": [
+    {
+      "id": "out.nets",
+      "bindKey": "http:GET demo-nets-api/networks",
+      "transport": "http",
+      "mode": "sync"
+    }
+  ],
+  "resources": [
+    {
+      "id": "wdb",
+      "kind": "mongodb",
+      "name": "demo-nets-db.results",
+      "bindKey": "mongodb:demo-nets-db/results"
+    }
+  ],
+  "channels": []
+}

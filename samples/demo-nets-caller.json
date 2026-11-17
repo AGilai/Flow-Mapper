@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "demo-nets-caller",
+    "kind": "service",
+    "team": "network-edge",
+    "description": "Demo (#120): enqueues a job; the worker consumes it and calls the tenant-networks API (sync, with a returns label)."
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-17T08:00:00Z",
+  "commit": "120a001",
+  "functions": [
+    {
+      "id": "enqueue",
+      "name": "enqueue",
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "out.job",
+          "mode": "async"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.run",
+      "bindKey": "http:POST demo-nets-caller/run",
+      "transport": "http",
+      "handler": "enqueue",
+      "entryPoint": true
+    }
+  ],
+  "egress": [
+    {
+      "id": "out.job",
+      "bindKey": "sqs:demo-nets-jobs",
+      "transport": "sqs",
+      "mode": "async"
+    }
+  ],
+  "resources": [],
+  "channels": [
+    {
+      "bindKey": "sqs:demo-nets-jobs",
+      "kind": "sqs-queue",
+      "name": "demo-nets-jobs"
+    }
+  ]
+}
