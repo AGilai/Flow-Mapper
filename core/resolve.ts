@@ -90,7 +90,10 @@ export function resolve(model: Model): Resolution {
   const targetsOfBinding = new Map<Binding, Ref[]>();
   for (const b of model.bindings) {
     const ch = channels.get(b.to);
-    const refs: Ref[] = ch ? [{ type: 'channel', key: b.to }] : consumersFor(b.to).map(ingressRef);
+    // #131: a binding to the ingress key of a direct subscriber (`to` is the topic itself, or no channel has that key) targets the ingress, narrowed to the declaring service's own
+    // when it has one (two lambdas can share the topic key); it filters what that ingress gets (`events`), like a topic -> queue binding.
+    const own = (ch && b.to !== b.from) ? [] : consumersFor(b.to);
+    const refs: Ref[] = ch && b.to !== b.from ? [{ type: 'channel', key: b.to }] : (own.some((i) => i.service === b.service) ? own.filter((i) => i.service === b.service) : own).map(ingressRef);
     targetsOfBinding.set(b, refs);
     if (!refs.length) brokenBindings.push(b);
   }
@@ -107,7 +110,8 @@ export function resolve(model: Model): Resolution {
     const mode = e.mode ?? (SYNC.has(e.transport) ? 'sync' : 'async');
     const { picked, tied } = matchIngress(e.bindKey, deliveryOf(e));
     if (tied.length) ambiguous.push({ egress: e, candidates: tied });
-    for (const i of picked) links.push({ from, to: ingressRef(i), via: i.match && i.match !== 'exact' ? 'pattern' : 'key', mode, transport: e.transport });
+    const filtered = new Set(bindingsFrom(e.bindKey, e).flatMap((b) => targetsOfBinding.get(b)!).filter((r) => r.type === 'ingress').map(refKey)); // #131: the subscription's filter decides, not the shared key
+    for (const i of picked) if (!filtered.has(refKey(ingressRef(i)))) links.push({ from, to: ingressRef(i), via: i.match && i.match !== 'exact' ? 'pattern' : 'key', mode, transport: e.transport });
     if (channels.has(e.bindKey)) links.push({ from, to: { type: 'channel', key: e.bindKey }, via: 'key', mode, transport: e.transport });
     else addBindingLinks(from, e.bindKey, mode, e.transport, e);
   }

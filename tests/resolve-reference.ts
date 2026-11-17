@@ -83,7 +83,8 @@ export function resolve(model: Model): Resolution {
   const targetsOfBinding = new Map<Binding, Ref[]>();
   for (const b of model.bindings) {
     const ch = channels.get(b.to);
-    const refs: Ref[] = ch ? [{ type: 'channel', key: b.to }] : consumers.filter((i) => keyMatches(i.bindKey, i.match, b.to)).map(ingressRef);
+    const own = consumers.filter((i) => keyMatches(i.bindKey, i.match, b.to));
+    const refs: Ref[] = ch && b.to !== b.from ? [{ type: 'channel', key: b.to }] : (own.some((i) => i.service === b.service) ? own.filter((i) => i.service === b.service) : own).map(ingressRef); // #131
     targetsOfBinding.set(b, refs);
     if (!refs.length) brokenBindings.push(b);
   }
@@ -100,7 +101,8 @@ export function resolve(model: Model): Resolution {
     const mode = e.mode ?? (SYNC.has(e.transport) ? 'sync' : 'async');
     const { picked, tied } = matchIngress(e.bindKey, deliveryOf(e));
     if (tied.length) ambiguous.push({ egress: e, candidates: tied });
-    for (const i of picked) links.push({ from, to: ingressRef(i), via: i.match && i.match !== 'exact' ? 'pattern' : 'key', mode, transport: e.transport });
+    const filtered = new Set(bindingsFrom(e.bindKey, e).flatMap((b) => targetsOfBinding.get(b)!).filter((r) => r.type === 'ingress').map(refKey)); // #131
+    for (const i of picked) if (!filtered.has(refKey(ingressRef(i)))) links.push({ from, to: ingressRef(i), via: i.match && i.match !== 'exact' ? 'pattern' : 'key', mode, transport: e.transport });
     if (channels.has(e.bindKey)) links.push({ from, to: { type: 'channel', key: e.bindKey }, via: 'key', mode, transport: e.transport });
     else addBindingLinks(from, e.bindKey, mode, e.transport, e);
   }
