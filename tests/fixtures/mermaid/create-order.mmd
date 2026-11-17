@@ -64,10 +64,10 @@ amqp_queue_notify_shipping-)notifications_svc: amqp-queue:notify-shipping → on
 shipping_svc->>unresolved_dynamic_dispatch: handlers[event.kind](event)
 notifications_svc->>api_gateway: GET /api/users/{id}/contact
 Note over notifications_svc,api_gateway: via public gateway
-api_gateway-->>notifications_svc: return
 api_gateway->>users_svc: GET /users/{id}/contact
-users_svc-->>api_gateway: return
 users_svc->>postgres_users_db_users: SELECT contacts
+users_svc-->>api_gateway: return
+api_gateway-->>notifications_svc: return
 notifications_svc->>external_email_provider: POST /v3/mail/send
 shipping_svc->>redis_cache_main_order_id: DEL order:{id}
 Note over shipping_svc,redis_cache_main_order_id: invalidates the cached order

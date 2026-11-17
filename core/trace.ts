@@ -25,7 +25,7 @@ import { altCtxOf, altGroups, type Alt, type AltCtx } from './alt.ts';
 import { egressVia, ingressVia, type LinkedHop } from './via.ts';
 import { bindingKeyOf, splitAmqpKey } from './amqp.ts';
 import { routeInfo, routeKey, rpcOf, rpcServed, withServer, type AmqpRoute, type RpcInfo } from './amqp-route.ts';
-import { deferHelpers } from './trace-defer.ts';
+import { clientAlias, deferHelpers, releaseHeld } from './trace-defer.ts';
 import { fanOutOrder } from './trace-order.ts';
 import { withAltDecisions } from './alt-decisions.ts'; import { callKey, firstExpansion, noteExpansion, type Expansions } from './trace-fold.ts'; import { altIndex, armChain, enterStep, newBook, NO_ARMS, withDecisions, type ArmState } from './alternatives.ts';
 
@@ -44,14 +44,14 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
   if (!fnId || !g.fns.get(sid(start.service, fnId))) return null;
 
   const participants = new Map<string, Participant>();
-  const messages: Message[] = [];
-  let truncated = false;
+  const messages: Message[] = []; let truncated = false;
   const root = start.service;
 
   const expanded: Expansions = new Map(); // deliveries expanded so far (consumer, ingress, handler, event) -> step number of the first and the arms it sat in (#43; 0.37.0: a later one reuses it only inside the same arms)
   const altIx = altIndex(g), book = newBook(), armCtxs = new Map<string, AltCtx>(); // 0.37.0 (#82): the either/or index (null: none), what the decisions need, the maxMessages tally per group
   let arms: ArmState = NO_ARMS, pushed = 0;
-  const part = (p: Participant) => { if (!participants.has(p.id)) participants.set(p.id, p); return p.id; };
+  const callers = callersOf(g, ing); // #116: the client apps that call the entry
+  const part = (p: Participant) => { const id = clientAlias(p.id, callers); if (!participants.has(id)) participants.set(id, p); return id; };
   const fnPart = (service: string, fn: string) => {
     if ((scope === 'intra' && service === root) || expand.has(service)) {
       const f = g.fns.get(sid(service, fn));
@@ -128,11 +128,11 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
     const ordered = [...f.steps].sort((a, b) => a.seq - b.seq);
     const alts = altGroups(ordered.filter((st) => showFrontier || st.origin !== 'frontier'), f.id);
     const outer = altCtx, ctxs = new Map<string, AltCtx>(), arm0 = arms;
-    const later: (() => void)[] = []; // #73: what async calls start runs after the caller's own remaining steps
+    const later: (() => void)[] = [], laterIn: string[] = []; let prevIn = ''; // #73: what async calls start runs after the caller's own remaining steps, or when the steps leave the frame section they were started in (#121)
     try {
     for (const st of ordered) {
       if (truncated) return;
-      const alt = alts.get(st.seq);
+      const alt = alts.get(st.seq); prevIn = releaseHeld(later, laterIn, prevIn, alt);
       altCtx = outer; arms = arm0;
       if (altIx) { // 0.37.0: the arms this step sits in, the locks it adds; an arm a lock excludes is skipped with its subtree
         const r = enterStep(altIx, book, st, `${service}:${f.id}#${st.seq}`, arm0);
@@ -300,7 +300,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
     }
   };
 
-  const callers = callersOf(g, ing), client = part({ id: 'client', label: callers.length ? callers[0] + (callers.length > 1 ? ` +${callers.length - 1}` : '') : ing?.entryPoint ? 'client' : 'caller', kind: 'client', ...(callers.length ? { callers } : {}) }); // #116: client apps whose egress reaches this entry
+  const client = part({ id: 'client', label: callers.length ? callers[0] + (callers.length > 1 ? ` +${callers.length - 1}` : '') : ing?.entryPoint ? 'client' : 'caller', kind: 'client', ...(callers.length ? { callers } : {}) }); // #116: client apps whose egress reaches this entry
   push({ from: client, to: fnPart(root, fnId), label: (ing?.bindKey ?? fnId) + (start.event ? ` · ${start.event}` : ''), event: start.event, mode: 'sync', kind: 'entry', depth: 0, service: root, fn: fnId, transport: ing?.transport, ...(callers.length ? { callers } : {}), ...(ing?.transport === 'socket' ? { protocol: socketProtocol(ing) } : {}), target: ing ? { service: root, ingress: ing.id, fn: fnId } : undefined, ...(ing && chainOf(ing).length ? { middlewareChain: chainOf(ing) } : {}) });
   if (ing) runIngress(ing, fnId, 1, [sid(root, fnId)]); else visitFn(root, fnId, 1, [sid(root, fnId)]);
 

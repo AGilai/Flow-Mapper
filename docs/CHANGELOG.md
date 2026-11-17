@@ -5,6 +5,10 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## 0.59.2 (2026-11-17): fixes #120 #121 #117
+
+UI and trace order only (no schema or API change). **Fix #120:** a sync call whose callee has steps is drawn call, callee steps, then the dashed return, also when the call sits in the work of an async consumer (the Mermaid export and the Flows lane closed it at the callee's first step). **Fix #121:** the work of an async consumer is drawn in the frame of the step that triggers it (after that frame's remaining steps, inside the same loop/opt, as a sync call is); a trigger outside any frame is drawn before the next frame opens. It is no longer drawn inside the last, unrelated frame of the function; the order of `messages` changes only for functions that have frames and an async step. **Fix #117:** when the entry's only caller is a client app that is also a later push target, the trace has one lifeline for it (`client`); with several callers the push target stays its own lifeline.
+
 ## 0.59.1 (2026-11-17): fixes #125 #119 #118
 
 - Fix #125: `infra/deploy.sh` masks both `OriginSecret` and `PreAuthPassword` in the echoed command (the sed lacked the `g` flag).

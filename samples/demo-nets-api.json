@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "demo-nets-api",
+    "kind": "service",
+    "team": "network-edge",
+    "description": "Demo (#120): the tenant-networks internal API; its handler has one step, which must be drawn between the call and its return."
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-17T08:00:00Z",
+  "commit": "120a001",
+  "functions": [
+    {
+      "id": "list",
+      "name": "list",
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "ndb",
+          "operation": "find networks"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.nets",
+      "bindKey": "http:GET demo-nets-api/networks",
+      "transport": "http",
+      "handler": "list"
+    }
+  ],
+  "egress": [],
+  "resources": [
+    {
+      "id": "ndb",
+      "kind": "mongodb",
+      "name": "demo-nets-db.networks",
+      "bindKey": "mongodb:demo-nets-db/networks"
+    }
+  ],
+  "channels": []
+}

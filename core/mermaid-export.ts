@@ -98,6 +98,7 @@ export function exportMermaid(t: Pick<Trace, 'start' | 'participants' | 'message
     const branched = k > base && !stack[k - 1].key.startsWith('rect') && stack[k - 1].cond !== want[k - 1 - base].cond;   // the same frame, another section
     while (stack.length > k) { closeIn(depth, stack.length - 1); out.push('end'); stack.pop(); }
     if (branched) { closeIn(depth, k - 1); const w = want[k - 1 - base]; out.push(`${BRANCH[w.kind] ?? 'else'}${w.cond ? ` ${esc(w.cond)}` : ''}`); stack[k - 1] = w; }
+    if (want.length > k - base) close(depth);   // #120: a call made before a new frame has returned before the frame opens (the same close the message itself would do right after)
     for (let i = k - base; i < want.length; i++) { out.push(want[i].open); stack.push(want[i]); }
   };
   const openAt = new Map<number, number>(); // #73: deferred work (`of`) returns to the frame its async call started in, whatever its depth says
@@ -109,11 +110,14 @@ export function exportMermaid(t: Pick<Trace, 'start' | 'participants' | 'message
   };
   const ranges = (opts.ranges ?? []).filter(clean);
   const rb = ranges.length ? rangeBlocks(keys, kept.map((k) => ({ index: k.index, a: ids.get(k.m.from)!, b: ids.get(k.m.to)! })), parts.map((p) => ids.get(p.id)!), ranges.map((r) => ({ ...r, text: esc(r.text) }))) : null; // 0.34.0
+  let prevOf: number | undefined;   // #120: only the first message of deferred work returns to its trigger's frame; the rest of that work (a sync call's callee steps) keeps its calls open
   for (const [pos, { m, key }] of kept.entries()) {
-    const back = m.of === undefined ? undefined : openAt.get(m.of);
+    const back = m.of === undefined || m.of === prevOf ? undefined : openAt.get(m.of);
+    prevOf = m.of;
     if (back !== undefined) while (open.length > back) ret(open.pop()!);
     frames(framesOf(m, both), m.depth);
     close(m.depth);
+    while (open.length && open[open.length - 1].from === m.from && open[open.length - 1].to !== m.from && m.kind !== 'leaf') ret(open.pop()!);   // #120: the caller speaks again, so the call it was waiting for has returned (deferred work whose depths do not tell)
     if (m.n !== undefined) openAt.set(m.n, open.length);
     const a = ids.get(m.from)!, b = ids.get(m.to)!;
     out.push(...(rb?.before.get(pos) ?? []));
