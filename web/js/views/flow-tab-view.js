@@ -43,6 +43,7 @@ import { createRelations } from './flow-relations.js';
 import { state } from '../state.js';
 import { envChip, paintEnv } from '../components/env-chip.js';
 import { clampRange, fitScale, scaleOf, percentOf, anchorDelta } from './flow-zoom-pure.js';
+import { createCardZoom } from './flow-card-zoom.js';
 import { createZoomControl, applyScale, naturalSize, wireWheel } from './flow-zoom.js';
 import { caps, onCaps } from './flow-caption-state.js';
 import { storeLegend } from './flow-draw-bands.js';
@@ -103,8 +104,7 @@ export function createTabView(data, host) {
   const dl = createFlowDocLink({ walk, open: (n) => { pane?.show('notes'); requestAnimationFrame(() => notes?.focusCallout(n)); } }); // Unreleased (frame 28f): callout badges on the diagram, the hover outline, a badge opens its callout
   const notes = items ? createNotes({ env: host.env, root, walk, pane: hub('notes'), onStep: gotoStep, onBody: (html) => { dl.onBody(html); docText = html ? docSummary(html) : ''; flowBox?.redraw(); }, onHover: dl.onHover }) : null; items?.refresh();
   const scroller = h('div.seq-scroll');
-  const hint = h('span.seq-hint', 'More to the right. Scroll sideways ›');
-  const zctl = createZoomControl({ onZoom: (v) => setZoom(v) }); // frame 28: floats on the diagram, bottom left
+  const hint = h('span.seq-hint', 'More to the right. Scroll sideways ›'), zctl = createZoomControl({ onZoom: (v) => setZoom(v) }); // frame 28: floats on the diagram, bottom left
   const capLegend = storeLegend(), floatLegend = storeLegend(); // the Read / Write legend: at the right of the caption bar, or (caption bar off) a small chip on the diagram; shown when the top lane has data-store arrows
   const wrap = h('div.seq-wrap', scroller, hint, h('div.zfloat', { 'data-qa': 'zoom-float' }, zctl.el), h('div.leg-float', floatLegend));
   const syncLegend = (box) => { const l = box?.querySelector('.store-legend'); if (l) l.hidden = true; const has = !!l; capLegend.hidden = floatLegend.hidden = !has; wrap.classList.toggle('has-legend', has); };
@@ -114,35 +114,35 @@ export function createTabView(data, host) {
   scroller.addEventListener('scroll', () => { edge(); tip?.hide(); }, { passive: true });
   let sized = false; // the first time the tab has a width (it is drawn before it is attached, or while hidden), lay the lanes out to fit it
   let lastW = 0, resizeTimer = 0; // Squeeze folds for the width the tab has: a new width folds again (debounced)
-  const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(() => { pane?.refit(); brackets?.refresh(); edge(); loose(); const w = scroller.clientWidth; if (zoomV === 'fit' && w !== lastW && render) recompute(); if (sized && w > 0 && w !== lastW && shared.squeeze()) { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { render?.relane(); edge(); }, 150); } lastW = w; if (!sized && scroller.clientWidth > 0 && render) { sized = true; render.relane(); render.laneBox.style.visibility = ''; edge(); } }) : null;
+  const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(() => { pane?.refit(); brackets?.refresh(); edge(); loose(); const w = scroller.clientWidth; if ((zoomV === 'fit' || cz.anyFit()) && w !== lastW && render) recompute(); if (sized && w > 0 && w !== lastW && shared.squeeze()) { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { render?.relane(); cz.refit(); edge(); }, 150); } lastW = w; if (!sized && scroller.clientWidth > 0 && render) { sized = true; render.relane(); render.laneBox.style.visibility = ''; edge(); } }) : null;
   ro?.observe(scroller);
   // a side panel was collapsed or expanded: this tab has another width, so its lanes lay themselves out again (a hidden tab does so when it is shown)
-  const onLayout = () => { pane?.refit(); if (!render) return; if (scroller.clientWidth > 0) { render.relane(); edge(); } else sized = false; };
+  const onLayout = () => { pane?.refit(); if (!render) return; if (scroller.clientWidth > 0) { render.relane(); cz.refit(); edge(); } else sized = false; };
   document.addEventListener('fm:layout', onLayout);
   // ---- zoom (0.30.3, #69): the lane SVGs change size, nothing is laid out again; a point under the pointer stays under it ----
   const loose = () => { const sk = scroller.querySelector('.seq-sticky'); scroller.classList.toggle('zoom-loose', !!sk && looseHead({ headH: sk.offsetHeight, viewH: scroller.clientHeight, zoom: factor })); }; // only a huge zoomed head (> 60% of the view, zoom > 1) scrolls away with the diagram; #107: at normal zoom the heads stay pinned
+  const cz = createCardZoom({ scroller, index: () => render?.index(), paint: () => paintCtl(), edge: () => edge() }); // #128: Fit and zoom act on the ACTIVE diagram (the tab's own, or the card last pressed in or expanded); a card has its own scale
+  const zOf = (f) => (f ? cz.valueOf(f) : zoomV), facOf = (f) => (f ? f.scale() : factor), paintCtl = () => { const f = cz.active(); zctl.show(percentOf(facOf(f)), zOf(f) === 'fit'); cz.mark(); };
   function recompute() {
     const nat = naturalSize(render?.laneBox), fitS = nat ? fitScale({ ...nat, vw: scroller.clientWidth - (brackets?.width() ?? 0), vh: scroller.clientHeight }) : null;
     factor = scaleOf(zoomV, fitS);
-    applyScale(scroller, factor);
-    loose();
-    zctl.show(percentOf(factor), zoomV === 'fit');
-    brackets?.refresh();
+    applyScale(render?.laneBox ?? scroller, factor); // the tab's own lane only: the cards below have their scales (#128)
+    cz.refit(); loose(); paintCtl(); brackets?.refresh();
     host.onZoomPaint?.(key); edge();
   }
   function setZoom(v, at = null) {
+    if (cz.active()) { cz.set(cz.active(), v, at); return; }
     const before = factor, svg = scroller.querySelector('svg.seq-body'), r0 = svg?.getBoundingClientRect(), vs = scroller.getBoundingClientRect();
     const p = at ?? { x: vs.left + vs.width / 2, y: vs.top + vs.height / 2 }; // buttons and the box zoom around the middle of the view
     zoomV = v === 'fit' ? 'fit' : clampRange(v);
     recompute();
     host.setZoom?.(key, zoomV);
-    if (zoomV === 'fit') { scroller.scrollLeft = 0; scroller.scrollTop = 0; return; }
-    if (!r0) return;
-    const r1 = svg.getBoundingClientRect(), up = scroller; // the diagram scrolls inside its box in Maximize too (#107), so the heads can stay pinned
+    if (zoomV === 'fit') { scroller.scrollLeft = 0; scroller.scrollTop = 0; return; } if (!r0) return;
+    const r1 = svg.getBoundingClientRect(); // the diagram scrolls inside its box in Maximize too (#107), so the heads can stay pinned
     scroller.scrollLeft += anchorDelta({ origin0: r0.left, origin1: r1.left, at: p.x, from: before, to: factor });
-    up.scrollTop += anchorDelta({ origin0: r0.top, origin1: r1.top, at: p.y, from: before, to: factor });
+    scroller.scrollTop += anchorDelta({ origin0: r0.top, origin1: r1.top, at: p.y, from: before, to: factor });
   }
-  const unWheel = wireWheel(body, { get: () => factor, to: (sc, at) => setZoom(sc * 100, at) });
+  scroller.addEventListener('pointerdown', (e) => cz.hit(e.target), true); const unWheel = wireWheel(body, { get: (e) => facOf(cz.hit(e?.target)), to: (sc, at) => setZoom(sc * 100, at) });
   const select = (bar) => { body.querySelectorAll('.act.selected').forEach((e) => e.classList.remove('selected')); bar?.el?.classList.add('selected'); };
   const inside = createInside(body, { env: host.env, isActive: () => host.isActive(key),
     desc: root ? (bar) => descBlock(host.desc, root, bar.service, { title: `What ${bar.service} does here`, onGenerate: () => generate(bar.service) }) : null,
@@ -158,7 +158,7 @@ export function createTabView(data, host) {
   let stp = null; // #86 the store panel of this tab (made below, once the walk and the diagram body exist)
   const flash = (g) => { g?.scrollIntoView({ block: 'center', behavior: 'smooth' }); g?.classList.add('flash'); setTimeout(() => g?.classList.remove('flash'), 1600); };
   const ed = editing && host.edit ? host.edit : null; // Edit with a draft: heads, arrows and "+ call" open forms (design/edit-open.js)
-  const shared = { ...ts.hooks, host, opts, tip, walk, details: (built) => sdet.forLane(built, trace.messages), editStep: (k) => walk.editKey(k), editHead: ed ? (service) => { ed.head(service); return true; } : null, addCall: ed ? (bar) => ed.addCall(bar.service, bar.msg.target.fn) : null, addInBand: ed ? (key) => ed.addComponent(key) : null, trigger: () => data.trigger, importRef: (anchor, m) => host.importRef?.(anchor, m?.reference?.source), zoom: () => factor, afterLane: (box) => { syncLegend(box); if (box) brackets?.attach(box); stp?.paint(); if (render && zoomV === 'fit') recompute(); }, squeeze: () => opts.squeeze && !sqOff, squeezeOpen: () => { sqOff = true; host.paintChrome?.(); render?.relane(); edge(); walk.reveal(true); }, fit: () => scroller.clientWidth - (brackets?.width() ?? 0), select, lookInside, flash, traceFor: (q) => host.traceFor(ts.scen.isFull() && !q.detail ? { ...q, detail: 'full' } : q), // a sub-flow card follows the tab's External | Full (0.38.0)
+  const shared = { ...ts.hooks, host, opts, tip, walk, activate: (f) => cz.activate(f), closed: (f) => cz.closed(f), details: (built) => sdet.forLane(built, trace.messages), editStep: (k) => walk.editKey(k), editHead: ed ? (service) => { ed.head(service); return true; } : null, addCall: ed ? (bar) => ed.addCall(bar.service, bar.msg.target.fn) : null, addInBand: ed ? (key) => ed.addComponent(key) : null, trigger: () => data.trigger, importRef: (anchor, m) => host.importRef?.(anchor, m?.reference?.source), zoom: () => factor, afterLane: (box) => { syncLegend(box); if (box) brackets?.attach(box); stp?.paint(); if (render && zoomV === 'fit') recompute(); }, squeeze: () => opts.squeeze && !sqOff, squeezeOpen: () => { sqOff = true; host.paintChrome?.(); render?.relane(); edge(); walk.reveal(true); }, fit: () => scroller.clientWidth - (brackets?.width() ?? 0), select, lookInside, flash, traceFor: (q) => host.traceFor(ts.scen.isFull() && !q.detail ? { ...q, detail: 'full' } : q), // a sub-flow card follows the tab's External | Full (0.38.0)
     onStore: (c, ev) => stp?.press(c, ev),
     openMessage: (m, g, tr) => { // clicking an arrow opens the message panel (in Edit: its form); one side panel at a time
       stp?.clear();

@@ -5,6 +5,10 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased: Flow view follows the Info panel, wide async diagrams scroll, Fit acts on the active card (#128)
+
+- UI only. The async list and the call bar no longer stop at a fixed width (1180 / 1400 px): the diagram box follows the Info panel both ways. Scrollbars of the diagram and of the async cards are always drawn, so a wide nested diagram can be reached. Fit and zoom act on the active diagram only (the tab's own, or the card last pressed in or expanded), and each card keeps its own scale. Not done: the parent flow as a card (index 0), which needs a mockup.
+
 ## 0.60.0 (2026-11-17): either/or frames in Simple, if/else arms in Full (#126 #115)
 
 - Fix #126: `detail=simple` keeps either/or arms as alt frames instead of flattening them. Messages of a decision's arms carry `alt` (`{group, branch, of, condition}`, the shape External already uses), the Mermaid export writes `alt <cond>` / `else <cond>` / `end`, and calls in different arms are never merged into one `*N` arrow. Still no `decisions` / `choose` in a Simple trace (`flattened` counts the decisions). Only choices become frames (`alt` groups and `alternatives`), not loops or opts; a frame with one arm left in the view is dropped.

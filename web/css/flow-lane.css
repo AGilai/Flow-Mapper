@@ -113,7 +113,7 @@
 
 /* Async index: rows grouped by publish; a chevron expands a row into a card. */
 .seq-scroll { container-type: inline-size; }
-.cards { grid-template-columns: minmax(0, 1fr); position: sticky; left: 0; width: min(1180px, 100cqw); box-sizing: border-box; padding: var(--s5) var(--s4) var(--s6); display: grid; gap: var(--s3); max-width: 1180px; }
+.cards { grid-template-columns: minmax(0, 1fr); position: sticky; left: 0; width: 100cqw; box-sizing: border-box; padding: var(--s5) var(--s4) var(--s6); display: grid; gap: var(--s3); }
 .cards-h { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; }
 .cards-h h2 { font-size: var(--fs-md); }
 .cards-h .hint { font-size: var(--fs-sm); color: var(--muted); }

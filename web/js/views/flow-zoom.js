@@ -45,12 +45,12 @@ export function createZoomControl({ onZoom }) {
   } };
 }
 
-/** Ctrl / Cmd + wheel (and a trackpad pinch, which arrives as a ctrl wheel) zooms around the pointer. get() -> the scale; to(scale, { x, y }) applies it. */
+/** Ctrl / Cmd + wheel (and a trackpad pinch, which arrives as a ctrl wheel) zooms around the pointer. get(event) -> the scale (of the diagram under the pointer, #128); to(scale, { x, y }) applies it. */
 export function wireWheel(el, { get, to }) {
   const on = (e) => {
     if (!(e.ctrlKey || e.metaKey)) return;
     e.preventDefault();
-    to(get() * wheelFactor(e.deltaY, e.deltaMode), { x: e.clientX, y: e.clientY });
+    to(get(e) * wheelFactor(e.deltaY, e.deltaMode), { x: e.clientX, y: e.clientY });
   };
   el.addEventListener('wheel', on, { passive: false });
   return () => el.removeEventListener('wheel', on);

@@ -72,12 +72,13 @@ export function renderIndex(tree, ctx) {
     const paint = () => { const refocus = head.contains(document.activeElement) && document.activeElement.classList.contains('chev'); const sp = row.summary.split(' · ').filter((x) => !x.startsWith('publishes')); head.replaceChildren(...rowHead(row, open, anc, depth).filter(Boolean), h('span.sum', { title: row.summary }, sp[0] ? h('b', sp[0]) : '', sp.length > 1 ? ` · ${sp.slice(1).join(' · ')}` : ''), ...actions); const c = head.querySelector('.chev'); c?.addEventListener('click', (e) => { e.stopPropagation(); setOpen(!open); }); if (refocus) c?.focus(); };
     function setOpen(v) { // resolves when the flow is drawn (a card traces its consumer the first time it opens)
       if (!expandable) return Promise.resolve();
-      if (v !== open) { open = v; card.classList.toggle('open', open); body.hidden = !open; paint(); }
+      if (v !== open) { open = v; card.classList.toggle('open', open); body.hidden = !open; paint(); if (open && flow) ctx.activate?.(flow); else if (!open && flow) ctx.closed?.(flow); }
       if (open && !built) {
         body.append(h('div.card-loading', 'Tracing…'));
         built = ctx.makeFlow(row, [...anc, flowId(row)]).then((f) => {
           flow = f; entry.flow = f;
           body.replaceChildren(h('div.card-lane', f.laneBox));
+          ctx.activate?.(f); // #128: a card that was just expanded is the active diagram (Fit and zoom act on it)
           return f;
         }, (err) => { built = null; body.replaceChildren(h('div.error-box', err.message)); });
       }
@@ -136,5 +137,8 @@ export function renderIndex(tree, ctx) {
       h('button.btn.sm', { on: { click: () => all(true) } }, 'Expand all'), h('button.btn.sm', { on: { click: () => all(false) } }, 'Collapse all')));
   const el = h('div.cards', header, tree.groups.map((g) => groupEl(g)));
   return { el, expandAll: (budget) => all(true, budget), collapseAll: () => all(false), reveal, groupEl: (i) => groupEls.get(i), rowNode: (label) => rowNodes.get(label) ?? null,
-    refresh: () => cards.forEach((c) => c.paint?.()), relane: () => cards.forEach((c) => c.flow?.relane()) };
+    refresh: () => cards.forEach((c) => c.paint?.()), relane: () => cards.forEach((c) => c.flow?.relane()),
+    flows: () => [...cards.values()].map((c) => c.flow).filter(Boolean), // #128: the flows of the cards drawn so far
+    flowOf: (node) => { const c = node?.closest?.('section.card'); return [...cards.values()].find((x) => x.el === c)?.flow ?? null; }, // the card a node sits in
+    cardOf: (f) => [...cards.values()].find((x) => x.flow === f)?.el ?? null };
 }

@@ -53,3 +53,10 @@ export function wheelFactor(deltaY, deltaMode = 0) {
   const d = Math.max(-60, Math.min(60, deltaMode === 1 ? deltaY * 16 : deltaY));
   return Math.exp(-d * 0.004);
 }
+
+/** #128: which diagram Fit and zoom act on after a press. `hit`: 'top' (the tab's own diagram or anything above the async list), 'list' (the async list's header or gaps), or a card's flow (a press inside an
+ *  open card, or the card just expanded). null = the tab's own diagram. The list's header keeps the current one; a press anywhere else makes its diagram active. */
+export const activeAfter = (prev, hit) => (hit === 'list' ? prev : hit === 'top' || hit == null ? null : hit);
+
+/** #128: the width a card's diagram can take for Fit: its box's width; a hidden card has none yet (null: Fit waits). */
+export const cardRoom = (clientWidth) => (clientWidth > 0 ? clientWidth : null);
