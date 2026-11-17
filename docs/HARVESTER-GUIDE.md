@@ -312,8 +312,12 @@ Do not invent a key and do not drop the item. Say what you found and why it is u
   keep consumers off "nothing sends it". Known types still go in `events`.
 - `what: "client"` on a **resource** or **egress**: a field of its `client` (below) you could not
   resolve. `detail` is the field path (`driver.version`, `lib.version`, `lib.driver.version`,
-  `accessMode`, `via`), `reason` says why (`lockfile_not_found`). Leave the field out; never put a
-  placeholder version.
+  `accessMode`, `via`, `driver.package` when two wrappers could reach it), `reason` says why
+  (`lockfile_not_found`, `ambiguous_client_path`). Leave the field out; never put a placeholder version.
+  `candidates` (#130) lists the values you could not choose between (for `driver.package`: the
+  package names), `plain` is the reason in one sentence. The Drivers view shows both, apart from the
+  counted versions; candidates are guesses, never facts. A client with no driver at all is still a
+  row: send `client` with `driver: null` plus the `unresolved` entry.
 - `what: "detail"` on a **resource** or a **resource step**: a value that exists but you could not
   read (#45). `detail` is the field path, `reason` says why. Paths: `details.databases` (instance
   resource), `client.databases` (service resource), `details.keyTemplate`, `details.dbIndex`,

@@ -1511,7 +1511,17 @@
       "id": "db.products",
       "kind": "mongodb",
       "name": "catalog-db.products",
-      "bindKey": "mongodb:catalog-db/products"
+      "bindKey": "mongodb:catalog-db/products",
+      "client": {
+        "accessMode": "direct_driver",
+        "accessId": "catalog-svc/src/db.ts:6",
+        "driver": {
+          "package": "mongoose",
+          "version": "8.1.5",
+          "versionSource": "lockfile"
+        },
+        "lib": null
+      }
     },
     {
       "id": "db.categories",
@@ -1590,7 +1600,11 @@
         {
           "what": "client",
           "reason": "lockfile_not_found",
-          "detail": "driver.version"
+          "detail": "driver.version",
+          "candidates": [
+            "ioredis"
+          ],
+          "plain": "The service's own ioredis version is not in a lockfile the harvester could read. The ioredis inside saferxlib (4.27.6) is known and listed."
         }
       ]
     }

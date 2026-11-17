@@ -131,7 +131,27 @@
       "id": "db_users",
       "kind": "mongodb",
       "name": "identity-db.users",
-      "bindKey": "mongodb:identity-db/users"
+      "bindKey": "mongodb:identity-db/users",
+      "client": {
+        "accessMode": "third_party_lib",
+        "accessId": "identity-svc/src/orm.ts:14",
+        "driver": {
+          "package": "typeorm",
+          "version": "0.3.20",
+          "versionSource": "lockfile"
+        },
+        "lib": {
+          "package": "typeorm",
+          "kind": "third_party",
+          "version": "0.3.20",
+          "versionSource": "lockfile",
+          "driver": {
+            "package": "mongodb",
+            "version": "5.9.2",
+            "versionSource": "lockfile"
+          }
+        }
+      }
     },
     {
       "id": "db_devices",

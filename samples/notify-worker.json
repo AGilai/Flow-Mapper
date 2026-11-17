@@ -55,7 +55,23 @@
       "id": "notifLog",
       "kind": "mongodb",
       "name": "notify-db.log",
-      "bindKey": "mongodb:notify-db/log"
+      "bindKey": "mongodb:notify-db/log",
+      "client": {
+        "accessMode": "shared_lib",
+        "accessId": "notify-worker/src/log.ts:4",
+        "driver": null,
+        "lib": {
+          "package": "p81-mongo-client",
+          "kind": "in_house",
+          "version": "1.9.0",
+          "versionSource": "lockfile",
+          "driver": {
+            "package": "mongodb",
+            "version": "4.17.2",
+            "versionSource": "lockfile"
+          }
+        }
+      }
     }
   ]
 }

@@ -56,14 +56,14 @@ test('missing values come from unresolved (what: client), never invented', async
 
 test('list_clients filters, and a driver matches the service or its lib', async () => {
   const all = await clients();
-  assert.equal(all.rows.length, 11, '8 until the auth-cache services (0.16.0) sent a client, 11 with checkout-svc (#86)');
+  assert.equal(all.rows.length, 18, '8 until the auth-cache services (0.16.0) sent a client, 11 with checkout-svc (#86), 18 with the Mongo drivers and redis 3 (#130)');
   const on4 = await clients('?driver=ioredis&driverMajor=4');
   assert.deepEqual(on4.rows.map((r: any) => r.service).sort(), ['catalog-svc', 'inventory-svc', 'payments-svc', 'shipping-svc', 'users-svc'].sort());
   assert.deepEqual((await clients('?lib=saferxlib')).rows.map((r: any) => r.service).sort(), ['catalog-svc', 'payments-svc', 'shipping-svc', 'users-svc']);
   assert.deepEqual((await clients('?accessMode=self_implemented_wrapper')).rows.map((r: any) => r.service), ['inventory-svc']);
   assert.deepEqual((await clients('?via=ShipmentCache')).rows.map((r: any) => r.service), ['shipping-svc']);
   assert.deepEqual((await clients('?via=saferxlib.RedisClient')).rows.map((r: any) => r.service), ['shipping-svc'], 'a hop in the lib is a via match');
-  assert.deepEqual((await clients('?driver=mongodb')).rows.map((r: any) => [r.service, r.store, r.accessMode]), [['orders-svc', 'mongodb:orders-db/orders', 'direct_driver']]);
+  assert.deepEqual((await clients('?driver=mongodb')).rows.map((r: any) => [r.service, r.accessMode]).sort(), [['demo-nets-api', 'third_party_lib'], ['identity-svc', 'third_party_lib'], ['notify-worker', 'shared_lib'], ['orders-svc', 'direct_driver']], 'own or inside a lib');
   assert.deepEqual((await clients('?driver=ioredis@4')).rows.map((r: any) => r.service), on4.rows.map((r: any) => r.service), 'driver=pkg@major is the facet form');
   assert.deepEqual((await clients('?driver=ioredis@')).rows.map((r: any) => r.service), ['catalog-svc'], 'pkg@ = version not reported');
   assert.equal((await clients('?store=redis:cache-main')).rows.every((r: any) => r.store.startsWith('redis:cache-main/')), true, 'a cluster matches its keys');
