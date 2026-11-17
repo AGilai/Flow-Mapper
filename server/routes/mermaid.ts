@@ -12,6 +12,7 @@ export function registerMermaid(r: Router, ctx: Ctx) {
   r.get('/api/envs/:env/flows/mermaid', (req) => { // 0.38.0: `detail`, `choose`, `open`, `dbOpen`, `group` (as the trace API) export that view; none of them: the full trace
     const q = req.query, sent = ['detail', 'choose', 'open', 'dbOpen', 'group'].some((k) => q.has(k));
     let view; try { view = sent ? viewParams({ detail: q.get('detail'), choose: q.get('choose'), open: q.get('open'), dbOpen: q.get('dbOpen'), group: q.get('group') }) : undefined; } catch (e) { throw badRequest((e as Error).message); }
+    if (view?.detail === 'full' && !(view.choose instanceof Map) && !(view.choose && '*' in view.choose)) view = { ...view, choose: { ...view.choose, '*': 'both' } }; // #115: the Full drawing shows every arm of a decision (alt / else); an explicit choice or `*` still wins
     return new Reply(200, flowMermaid(ctx, req.params.env, q.get('draft'), q.get('service'), q.get('ingress'), view), { 'content-type': 'text/plain; charset=utf-8' });
   });
 

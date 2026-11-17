@@ -25,8 +25,8 @@ test('#115 Full: a choice still wins (one arm, no frame), and External keeps the
   assert.ok(ext.includes('find') && !ext.includes('deleteOne'));
 });
 
-test('#126 Simple: the either/or arms stay as alt / else frames, reads and writes are separate arrows', async () => {
-  assert.deepEqual(lines(await mmd('in.addClientDevice', '&detail=simple')), DEDUP.filter((l) => !l.startsWith('%% guard')));
+test('#126 Simple: the either/or arms stay as alt / else frames; the folded find + deleteMany row names both ops', async () => {
+  assert.deepEqual(lines(await mmd('in.addClientDevice', '&detail=simple')), DEDUP.filter((l) => !l.startsWith('%% guard') && !l.endsWith(': deleteMany')).map((l) => l.endsWith(': find') ? l.replace(': find', ': *2 find, deleteMany') : l));
 });
 
 test('#126 Simple: a gateway that forwards to one backend per request is one alt with else arms, not a sequence', async () => {
@@ -40,6 +40,7 @@ test('#126 Simple trace: messages carry `alt` frames and no decisions; the arms 
   const r = (await app.call('GET', '/api/envs/prod/trace?service=device-hub&ingress=in.addClientDevice&detail=simple')).body;
   assert.equal(r.decisions, undefined);
   const del = r.messages.filter((m: any) => /delete/.test(m.label));
-  assert.deepEqual(del.map((m: any) => [m.label, m.alt.branch, m.alt.of]), [['deleteMany', 1, 2], ['deleteOne', 2, 2]]);
+  assert.deepEqual(del.map((m: any) => [m.label, m.alt.branch, m.alt.of]), [['*2 find, deleteMany', 1, 2], ['deleteOne', 2, 2]]);
+  assert.equal(del[0].dbGroup.access, 'read_write', '#115: the folded row is a read and write, never a read');
   assert.equal(r.messages.find((m: any) => m.label === 'createOne').alt, undefined);
 });

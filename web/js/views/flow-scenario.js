@@ -20,10 +20,10 @@ export function createScenario({ st, base: first, req, baseFor, visible = () => 
   have.full = have.kind === 'full';
   const loading = new Set();
   /** The default of every decision is All in edit mode of a design draft and in Full (#115: Full draws every arm as alt / else); the URL's `ch=` is written against it. */
+  const intra = () => base.scope === 'intra';
   const all = () => editAll || (st.detail === 'full' && !intra());
   st.edit = all();
   const decisions = () => base.decisions ?? [];
-  const intra = () => base.scope === 'intra';
 
   const resolveCh = () => { // the link's `ch=` meets the flow's decisions: unknown groups and arms are dropped with a toast
     const r = applyChoose(decisions(), decodeChoose(st.rawCh), all());

@@ -61,7 +61,7 @@ function plan(t: Trace, opts: ViewOptions, stamp: boolean) {
   const grouped = group ? groupDbOps(visible(all, detail, opts.open ?? []), new Set(opts.dbOpen ?? [])) : visible(all, detail, opts.open ?? []);
   // choose: the arm in force per decision (lock, else the request, else the first arm; `*:both` makes the default both)
   const warnings: string[] = [], byId = new Map(decisions.map((d) => [d.group_id, d]));
-  const dflt = req.get('*') === 'both' || (detail === 'full' && t.scope !== 'intra' && !req.has('*')) ? 'both' : undefined, // #115: Full draws every arm of a decision (alt / else) unless a choice says otherwise
+  const dflt = req.get('*') === 'both' ? 'both' : undefined,
     eff = new Map<string, string>();
   for (const [g, a] of req) if (g !== '*' && !byId.has(g)) warnings.push(`${g}: not a decision of this flow`);
   for (const d of decisions) {

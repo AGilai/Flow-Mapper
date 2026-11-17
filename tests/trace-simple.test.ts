@@ -41,12 +41,13 @@ test('problems stay: an unresolved call is drawn although it is an internal step
   assert.ok(v.messages.some((m) => m.gap));
 });
 
-test('arms flattened: every arm is in, no alt frames, `flattened` counts the decisions', () => {
+test('arms kept (#126): every arm is in as an alt frame (branch of 2), no `arms`, no decisions, `flattened` counts the decisions', () => {
   const g = G('g', { x: ['s:main#1'], y: ['s:main#2'] });
   const v = simple({ main: [res(1, 'db', 'find', undefined), res(2, 'db2', 'get')].map((s, k) => ({ ...s, alternatives: [g] })) });
   assert.deepEqual(labels(v), ['http:GET s/x', 'find', 'get']);
   assert.equal(v.flattened, 1);
-  assert.ok(v.messages.every((m) => !m.arms && !m.alt));
+  assert.ok(v.messages.every((m) => !m.arms && !v.decisions));
+  assert.deepEqual(v.messages.slice(1).map((m) => [m.alt?.branch, m.alt?.of]), [[1, 2], [2, 2]], 'each arm is a section of one alt frame');
 });
 
 test('consolidation: the same store call from three functions is one `*3` arrow with its occurrences, the first place wins', () => {

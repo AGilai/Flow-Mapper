@@ -50,7 +50,7 @@ test('implicit group: consecutive steps with the same file:line and a condition'
   assert.deepEqual(t.decisions![0].arms.map((a) => a.label), ['x > 1', 'x < 1']);
   assert.equal(t.decisions![0].name, 'x');
   assert.deepEqual(t.messages.map((m) => (m.arms ?? []).map((e) => e.slice(e.lastIndexOf(':') + 1)).join()), ['', 'b1', 'b2', '']);
-  assert.deepEqual(viewOf(t, { detail: 'full' }).messages.map((m) => m.label), ['http:GET s/x', 'op1', 'op2', 'op3'], '#115: Full draws every arm');
+  assert.deepEqual(viewOf(t, { detail: 'full' }).messages.map((m) => m.label), ['http:GET s/x', 'op1', 'op3']);
 });
 
 test('design alt frame (groups): a decision; nested alt is a child decision; unlabelled branches read "branch N"', () => {

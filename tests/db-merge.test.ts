@@ -44,7 +44,7 @@ test('#88 tryGetCacheData shape: setex, setex, del at one depth under alternativ
   const g = G('g', { then: ['s:cache#1', 's:cache#2', 's:cache#3'], else: ['s:cache#4'] });
   const t = flow({ main: [call(1, 'cache')], cache: [redis(1, 'setex', { alternatives: [g] }), redis(2, 'setex'), redis(3, 'del'), leaf(4)] });
   assert.deepEqual(rows(t), ['http:GET s/x', '*3 setex, del']);
-  assert.deepEqual(rows(t, { detail: 'full', group: true }), ['http:GET s/x', 'cache', '*3 setex, del', 'op4'], 'the full view keeps the call; the run under it is one node too; Full draws the else arm too (#115)');
+  assert.deepEqual(rows(t, { detail: 'full', group: true }), ['http:GET s/x', 'cache', '*3 setex, del'], 'the full view keeps the call; the run under it is one node too');
   assert.equal(viewOf(t).messages[1].dbGroup!.access, 'write');
 });
 
