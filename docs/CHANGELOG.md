@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased
+## 0.59.3 (2026-11-17): fixes #122 #123 #124
 
 - Fix #122: the spark (new) and ring (changed) marks now show on store heads of a flow (the trace's resource steps carry the additive `resAnchor`, `res:<service>/<id>`), on the "N folded" box when a hidden lane is marked, and when animations are frozen or reduced (the mark stays visible, static).
 - Fix #123: the store panel on a collection head says what this flow does with that collection ("This flow touches NetworkDevice in 1 of 17 steps (2 calls: 13.1, 13.2). It touches 4 collections of p81 in all: ..."), with the other collections as links, and each collection card has a "Schema" button that opens its DDL table. Field colouring by read / write / delete (the comments on #123) is not done yet.
