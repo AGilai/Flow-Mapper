@@ -25,7 +25,7 @@ import { altCtxOf, altGroups, type Alt, type AltCtx } from './alt.ts';
 import { egressVia, ingressVia, type LinkedHop } from './via.ts';
 import { bindingKeyOf, splitAmqpKey } from './amqp.ts';
 import { routeInfo, routeKey, rpcOf, rpcServed, withServer, type AmqpRoute, type RpcInfo } from './amqp-route.ts';
-import { deferHelpers } from './trace-defer.ts';
+import { deferHelpers, releaseHeld } from './trace-defer.ts';
 import { fanOutOrder } from './trace-order.ts';
 import { withAltDecisions } from './alt-decisions.ts'; import { callKey, firstExpansion, noteExpansion, type Expansions } from './trace-fold.ts'; import { altIndex, armChain, enterStep, newBook, NO_ARMS, withDecisions, type ArmState } from './alternatives.ts';
 
@@ -44,8 +44,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
   if (!fnId || !g.fns.get(sid(start.service, fnId))) return null;
 
   const participants = new Map<string, Participant>();
-  const messages: Message[] = [];
-  let truncated = false;
+  const messages: Message[] = []; let truncated = false;
   const root = start.service;
 
   const expanded: Expansions = new Map(); // deliveries expanded so far (consumer, ingress, handler, event) -> step number of the first and the arms it sat in (#43; 0.37.0: a later one reuses it only inside the same arms)
@@ -128,11 +127,11 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
     const ordered = [...f.steps].sort((a, b) => a.seq - b.seq);
     const alts = altGroups(ordered.filter((st) => showFrontier || st.origin !== 'frontier'), f.id);
     const outer = altCtx, ctxs = new Map<string, AltCtx>(), arm0 = arms;
-    const later: (() => void)[] = []; // #73: what async calls start runs after the caller's own remaining steps
+    const later: (() => void)[] = [], laterIn: string[] = []; let prevIn = ''; // #73: what async calls start runs after the caller's own remaining steps, or when the steps leave the frame section they were started in (#121)
     try {
     for (const st of ordered) {
       if (truncated) return;
-      const alt = alts.get(st.seq);
+      const alt = alts.get(st.seq); prevIn = releaseHeld(later, laterIn, prevIn, alt);
       altCtx = outer; arms = arm0;
       if (altIx) { // 0.37.0: the arms this step sits in, the locks it adds; an arm a lock excludes is skipped with its subtree
         const r = enterStep(altIx, book, st, `${service}:${f.id}#${st.seq}`, arm0);

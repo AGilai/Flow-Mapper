@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "demo-rebuild-ctl",
+    "kind": "service",
+    "team": "network-edge",
+    "description": "Demo (#121): consumes the change messages; its work belongs to the loop that publishes, not to the later opt."
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-17T08:00:00Z",
+  "commit": "120a001",
+  "functions": [
+    {
+      "id": "onChange",
+      "name": "onChange",
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "cdb",
+          "operation": "consume work"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.chg",
+      "bindKey": "sqs:demo-rebuild-changes",
+      "transport": "sqs",
+      "handler": "onChange"
+    }
+  ],
+  "egress": [],
+  "resources": [
+    {
+      "id": "cdb",
+      "kind": "mongodb",
+      "name": "demo-rebuild-db.ctl",
+      "bindKey": "mongodb:demo-rebuild-db/ctl"
+    }
+  ],
+  "channels": []
+}

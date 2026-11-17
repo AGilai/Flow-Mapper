@@ -1,0 +1,86 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "demo-rebuild-pub",
+    "kind": "service",
+    "team": "network-edge",
+    "description": "Demo (#121): rebuilds every tenant; publishes a change inside a loop, then has a later opt frame."
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-17T08:00:00Z",
+  "commit": "120a001",
+  "functions": [
+    {
+      "id": "rebuild",
+      "name": "rebuild",
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "out.chg",
+          "mode": "async",
+          "groups": [
+            {
+              "id": "each",
+              "kind": "loop",
+              "condition": "each tenant"
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "type": "resource",
+          "target": "db",
+          "operation": "phase 1 write"
+        },
+        {
+          "seq": 3,
+          "type": "resource",
+          "target": "db",
+          "operation": "phase 2 write",
+          "groups": [
+            {
+              "id": "flag",
+              "kind": "opt",
+              "condition": "feature flag on"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.rebuild",
+      "bindKey": "http:POST demo-rebuild-pub/rebuild",
+      "transport": "http",
+      "handler": "rebuild",
+      "entryPoint": true
+    }
+  ],
+  "egress": [
+    {
+      "id": "out.chg",
+      "bindKey": "sqs:demo-rebuild-changes",
+      "transport": "sqs",
+      "mode": "async"
+    }
+  ],
+  "resources": [
+    {
+      "id": "db",
+      "kind": "mongodb",
+      "name": "demo-rebuild-db.tenants",
+      "bindKey": "mongodb:demo-rebuild-db/tenants"
+    }
+  ],
+  "channels": [
+    {
+      "bindKey": "sqs:demo-rebuild-changes",
+      "kind": "sqs-queue",
+      "name": "demo-rebuild-changes"
+    }
+  ]
+}

@@ -7,7 +7,7 @@ in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.m
 
 ## Unreleased
 
-UI and trace order only (no schema or API change). **Fix #120:** a sync call whose callee has steps is drawn call, callee steps, then the dashed return, also when the call sits in the work of an async consumer (the Mermaid export and the Flows lane closed it at the callee's first step).
+UI and trace order only (no schema or API change). **Fix #120:** a sync call whose callee has steps is drawn call, callee steps, then the dashed return, also when the call sits in the work of an async consumer (the Mermaid export and the Flows lane closed it at the callee's first step). **Fix #121:** the work of an async consumer is drawn in the frame of the step that triggers it (after that frame's remaining steps, inside the same loop/opt, as a sync call is); a trigger outside any frame is drawn before the next frame opens. It is no longer drawn inside the last, unrelated frame of the function; the order of `messages` changes only for functions that have frames and an async step.
 
 ## 0.59.0 (2026-11-16): export and import a whole environment
 
