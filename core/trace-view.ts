@@ -18,6 +18,7 @@ import { decisionCounts, rangeOf, type Chosen, type Range } from './trace-counts
 import { groupDbOps } from './trace-db-group.ts';
 import { renumber } from './trace-renumber.ts';
 import { simplify } from './trace-simple.ts';
+import { armFrames } from './trace-simple-alt.ts';
 import { renumberUnfolded } from './trace-unfold.ts';
 import { splitArm } from './alternatives.ts';
 import { dropFrames } from './alt-decisions.ts';
@@ -60,7 +61,8 @@ function plan(t: Trace, opts: ViewOptions, stamp: boolean) {
   const grouped = group ? groupDbOps(visible(all, detail, opts.open ?? []), new Set(opts.dbOpen ?? [])) : visible(all, detail, opts.open ?? []);
   // choose: the arm in force per decision (lock, else the request, else the first arm; `*:both` makes the default both)
   const warnings: string[] = [], byId = new Map(decisions.map((d) => [d.group_id, d]));
-  const dflt = req.get('*') === 'both' ? 'both' : undefined, eff = new Map<string, string>();
+  const dflt = req.get('*') === 'both' ? 'both' : undefined,
+    eff = new Map<string, string>();
   for (const [g, a] of req) if (g !== '*' && !byId.has(g)) warnings.push(`${g}: not a decision of this flow`);
   for (const d of decisions) {
     const want = req.get(d.group_id);
@@ -84,7 +86,7 @@ const isSimple = (t: Trace, opts: ViewOptions) => t.scope !== 'intra' && opts.de
 function simpleView(t: Trace, opts: ViewOptions): Trace {
   if (t.detail === 'simple') return t; // already a Simple view (the browser keeps the server's): nothing to do
   const { items, hidden, cut } = simplify(itemsOf(t, true), opts.maxMessages, opts.merge);
-  const messages = renumber(items, t.messages).map(({ arms: _a, alt: _l, alternatives: _s, ...m }) => m as Message);
+  const messages = armFrames(renumber(items, t.messages), t.decisions ?? []); // #126: the either/or arms stay as alt frames
   const used = new Set(messages.flatMap((m) => [m.from, m.to]));
   const { decisions: _d, choose: _c, ...rest } = t;
   const lost = opts.merge && !t.blockedAll && t.messages.some(gapSeen) ? blockedSteps(t) : null; // #109: a merged arrow carries its blocked members as a count, so the full trace's sites feed the header badge and "Why incomplete"

@@ -10,8 +10,8 @@ export function splitStore(m) {
   return { group, store: group.replace(/^[^:]+:/, '') || group, kind: m.storeKind ?? (group.includes(':') ? group.split(':')[0] : 'store'), collection };
 }
 
-/** A write is drawn heavier, with no return. Only the harvester's (or the operation's) `write`; read_write and unknown draw as a read. */
-export const isWrite = (m) => m.access === 'write';
+/** A write is drawn heavier, with no return. The harvester's (or the operation's) `write`; read_write and unknown draw as a read, except a folded row (`dbGroup`, #115): it holds a write, so it is never drawn as a read. */
+export const isWrite = (m) => m.access === 'write' || (!!m.dbGroup && m.access === 'read_write');
 
 /** The label of an arrow's operation: the harvester's own words. A step without one (the trace says `use`) says its access mode instead. */
 export function opLabel(m) {
