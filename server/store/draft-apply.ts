@@ -44,7 +44,7 @@ export function applyDraftIn(db: DB, env: string, slug: string, opts: { by: stri
   if (!changes.items.length) throw conflict('DRAFT_EMPTY', `draft '${slug}' changes nothing: there is nothing to apply`);
   const replaced = replacedBy(net, new Map(envRows.map((r) => [rowId(r), r])));
   const dm = draftManifests(net, envRows, new Date().toISOString(), env);
-  const results = dm.manifests.length ? ingestIn(db, dm.manifests, opts.source, { writer: 'draft', tolerateExisting: true, replaceHeader: dm.replaceHeader, draftId: d.id }) : [];
+  const results = dm.manifests.length ? ingestIn(db, dm.manifests, opts.source, { writer: 'draft', tolerateExisting: true, references: new Set(net.filter((o) => o.origin?.env && o.list === 'ingress' && o.op === 'upsert').map((o) => `${o.service}/${o.key}`)), replaceHeader: dm.replaceHeader, draftId: d.id }) : [];
   for (const name of dm.deletes) deleteServiceIn(db, env, name, opts.source, d.id);
   const warnings = writeSide(db, env, dm.side, buildIndex(loadModel(db, env)), opts.by);
   writeDesignSide(db, env, dm.side, opts.by);

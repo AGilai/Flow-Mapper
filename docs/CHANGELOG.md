@@ -8,6 +8,7 @@ in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.m
 ## Unreleased
 
 - Fix #125: `infra/deploy.sh` masks both `OriginSecret` and `PreAuthPassword` in the echoed command (the sed lacked the `g` flag).
+- Fix #119: a draft with an imported component (or a reference callee) now applies. An imported endpoint whose handler function is not in the design (a reference, by design) no longer fails apply with 'broken internal references'; the reference stays a reference (no stub function is written). Import ops are unchanged.
 
 ## 0.59.0 (2026-11-16): export and import a whole environment
 
