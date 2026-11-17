@@ -53,7 +53,7 @@ h3 .mark, .sect-title .mark { margin-left: var(--s2); }
 /* canvas flow: sparks and chips in the SVG */
 .spark.new path { fill: var(--new); stroke: var(--new-ink); stroke-width: .9; stroke-linejoin: round; }
 .spark.chg path { fill: var(--new-ink); }
-.spark { animation: mark-twinkle .9s ease-out 1; transform-box: fill-box; transform-origin: center; }
+.spark { animation: mark-twinkle .9s ease-out 1 backwards; transform-box: fill-box; transform-origin: center; }
 /* A marked step (0.32.2, #75): a soft band behind its arrow in the mark's colour; the mark icon sits at the arrow tip as for components and flows. */
 .stepband { pointer-events: none; }
 .stepband rect { fill: color-mix(in srgb, var(--new) 22%, transparent); }
@@ -68,8 +68,8 @@ h3 .mark, .sect-title .mark { margin-left: var(--s2); }
 .chip-b.tbd-i path { fill: var(--surface-2); stroke: var(--ink-2); stroke-width: 1.5; stroke-linejoin: round; }
 .chip-b.tbd-i:hover path { fill: var(--ink-2); }
 
-@keyframes mark-twinkle { 0% { transform: scale(.4) rotate(-30deg); opacity: 0; } 55% { transform: scale(1.25) rotate(8deg); opacity: 1; } 100% { transform: none; opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .spark, .mark.new .mark-glyph { animation: none !important; } }
+@keyframes mark-twinkle { 0% { transform: scale(.4) rotate(-30deg); opacity: .35; } 55% { transform: scale(1.25) rotate(8deg); opacity: 1; } 100% { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .spark, .mark.new .mark-glyph { animation: none !important; opacity: 1; transform: none; } } /* #122: a frozen or reduced animation leaves the mark visible, static */
 
 /* Transport not decided (a design): neutral, solid. The chip reads "transport not decided". */
 [data-t='undecided'], .chip[data-t='undecided'], .tc.undecided, .sb-row[data-t='undecided'] { --c: var(--ink-2); }

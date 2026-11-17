@@ -1,0 +1,34 @@
+{
+  "planVersion": 1,
+  "planId": "store-marks-2026-11-17",
+  "createdAt": "2026-11-17T09:00:00.000Z",
+  "createdBy": "agent:demo",
+  "sources": [{ "file": "hld/catalog.md", "title": "Catalog availability", "revision": "v1" }],
+  "environment": {
+    "name": "store-bands",
+    "source": "prod",
+    "mode": "components",
+    "groups": [{ "key": "orders", "label": "Orders" }, { "key": "catalog", "label": "Catalog" }, { "key": "stock", "label": "Stock" }]
+  },
+  "manifests": [],
+  "extensions": [
+    { "service": "catalog-svc", "baseVersion": 4, "groupPath": "catalog",
+      "upsert": {
+        "resources": [
+          { "id": "db.pricelog", "kind": "mongodb", "name": "catalog-db.pricelog", "bindKey": "mongodb:catalog-db/pricelog" },
+          { "id": "db.prices", "kind": "mongodb", "name": "catalog-db.prices", "bindKey": "mongodb:catalog-db/prices", "details": { "note": "now also read for the availability check" } }
+        ],
+        "functions": [
+          { "id": "ProductController.availability", "name": "ProductController.availability", "file": "src/controllers/product.controller.ts", "line": 144,
+            "steps": [
+              { "seq": 1, "type": "resource", "target": "db.products", "operation": "find" },
+              { "seq": 2, "type": "resource", "target": "db.prices", "operation": "find" },
+              { "seq": 3, "type": "resource", "target": "cache", "operation": "GET", "details": { "keyTemplate": "product:{id}:availability" } },
+              { "seq": 4, "type": "egress", "target": "inventory.checkStock", "operation": "Stock.Check", "condition": "cache miss" },
+              { "seq": 5, "type": "resource", "target": "db.pricelog", "operation": "insertOne" }
+            ] }
+        ]
+      } }
+  ],
+  "flows": [], "dtos": [], "schemas": [], "links": [], "mapping": {}, "questions": []
+}

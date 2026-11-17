@@ -118,7 +118,7 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
   const { lane, publishes } = scanLane(msgs);
   const dplan = decisions.length ? decisionPlan(lane.map((i) => msgs[i]), decisions) : null;
   const folds = stores ? foldedStores(lane.map((i) => msgs[i])) : new Map(); // stores with more than 5 collections in this flow
-  const storeCol = (m) => { const sc = storeColumn(m, folds); return cols.find((c) => c.id === sc.id) ?? mk(sc); };
+  const storeCol = (m) => { const sc = storeColumn(m, folds), col = cols.find((c) => c.id === sc.id) ?? mk(sc); if (m.resAnchor && !(col.anchors ??= []).includes(m.resAnchor)) col.anchors.push(m.resAnchor); return col; }; // #122: the resources behind a store head carry its mark
   const chains = publishes.map((p) => chainOf(msgs, p)), chainAt = new Map(publishes.map((p, k) => [p.i, chains[k]]));
   const plan = planChains(chains, { fanOpen });
   const ownerOf = (key) => participants.find((p) => p.id === `ch:${key}`)?.owner ?? null; const chanCol = (key) => { // ownerOf: the declaring component (0.50.0, #104), for its subsystem band

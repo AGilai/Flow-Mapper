@@ -12,10 +12,10 @@ const nameOf = (c) => c?.service ?? c?.label ?? '?';
 const textOf = (e) => (e.type === 'store' ? String(e.label) : Array.isArray(e.label) ? e.label.join(' ') : String(e.label ?? ''));
 
 /** The heads of the fold columns, in the head svg. */
-export const foldHeads = (groups, boxH, top = 8) => groups.map((g, k) => {
+export const foldHeads = (groups, boxH, top = 8, markOf = null) => groups.map((g, k) => {
   const list = g.names.join(', '), compact = g.w < 90; // compact (a tight room): "⋯ N" only, the title has the rest
   return s('g', { class: `sq-fold${g.cc ? ' cmp' : ''}`, style: g.cc ? `--cc:${g.cc}` : null, 'data-sqfold': k, transform: `translate(${g.x},${top})`, tabindex: 0, role: 'button', 'aria-label': `${g.cols.length} folded lifelines: ${list}. Click to open` },
-    s('rect', { width: g.w, height: boxH, rx: 8 }), s('text', { class: 'fk', x: compact ? 10 : 12, y: 18 }, compact ? `⋯ ${g.cols.length}` : `⋯ ${g.cols.length} folded`), compact ? null : s('text', { class: 'sub', x: 12, y: 33 }, 'click to open'),
+    s('rect', { width: g.w, height: boxH, rx: 8 }), markOf?.(g), s('text', { class: 'fk', x: compact ? 10 : 12, y: 18 }, compact ? `⋯ ${g.cols.length}` : `⋯ ${g.cols.length} folded`), compact ? null : s('text', { class: 'sub', x: 12, y: 33 }, 'click to open'),
     s('title', {}, `${g.cols.length} folded: ${list}\nClick to open`));
 });
 

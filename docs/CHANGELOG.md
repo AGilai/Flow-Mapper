@@ -5,6 +5,12 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+
+- Fix #122: the spark (new) and ring (changed) marks now show on store heads of a flow (the trace's resource steps carry the additive `resAnchor`, `res:<service>/<id>`), on the "N folded" box when a hidden lane is marked, and when animations are frozen or reduced (the mark stays visible, static).
+- Fix #123: the store panel on a collection head says what this flow does with that collection ("This flow touches NetworkDevice in 1 of 17 steps (2 calls: 13.1, 13.2). It touches 4 collections of p81 in all: ..."), with the other collections as links, and each collection card has a "Schema" button that opens its DDL table. Field colouring by read / write / delete (the comments on #123) is not done yet.
+- Fix #124: store schemas are drawn as a DDL table (Field, Type, Required; nested fields indented; indexes in their own table); JSON Schema and the manual `{fields, indexes}` shape both. `doc`, `incomplete`, `$comment` and other non-DDL keys go to a "Source & notes" block under it, "Raw JSON" stays behind the toggle. **Additive:** `POST /schemas` (bulk, `dryRun` too), `PUT /schemas/:source/:key` and MCP `load_schemas` answer `warnings: [{code: 'schema-not-ddl', key, source, message}]` for a schema of neither shape; it is stored all the same. See API.md "Data-store schemas".
+
 ## 0.59.2 (2026-11-17): fixes #120 #121 #117
 
 UI and trace order only (no schema or API change). **Fix #120:** a sync call whose callee has steps is drawn call, callee steps, then the dashed return, also when the call sits in the work of an async consumer (the Mermaid export and the Flows lane closed it at the callee's first step). **Fix #121:** the work of an async consumer is drawn in the frame of the step that triggers it (after that frame's remaining steps, inside the same loop/opt, as a sync call is); a trigger outside any frame is drawn before the next frame opens. It is no longer drawn inside the last, unrelated frame of the function; the order of `messages` changes only for functions that have frames and an async step. **Fix #117:** when the entry's only caller is a client app that is also a later push target, the trace has one lifeline for it (`client`); with several callers the push target stays its own lifeline.

@@ -5,10 +5,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { SAMPLES, startApp } from './helpers.ts';
+import { SAMPLES, startApp, sampleManifests } from './helpers.ts';
 import { seedEnvRecipes } from '../scripts/seed-envs.ts';
 // @ts-ignore plain JS modules shared with the browser
-import { arrowMark, headAnchor, laneMarks, servicesOf } from '../web/js/views/flow-marks.js';
+import { arrowMark, headAnchor, headAnchors, laneMarks, servicesOf } from '../web/js/views/flow-marks.js';
 // @ts-ignore
 import { createMarks } from '../web/js/design/marks-store.js';
 // @ts-ignore
@@ -39,6 +39,38 @@ test('arrow rule: the call own mark wins, else a new endpoint it reaches; a head
   assert.equal(lm.arrow(call('a', 'out.q')), null, 'a removed call is not an arrow of the diagram: the list under it names it');
   assert.equal(laneMarks(store({})), null, 'no marks: nothing to draw');
   assert.deepEqual(servicesOf({ participants: [{ kind: 'service', service: 'a' }, { kind: 'client' }, { kind: 'service', service: 'a' }, { kind: 'service', service: 'b' }] }), ['a', 'b']);
+});
+
+test('#122: a store head carries the mark of its resource (res:<service>/<id>), a fold box the highest mark of the lanes it hides', () => {
+  const lm = laneMarks(store({ 'res:auth/mongo.User': { mark: 'new' }, 'res:auth/mongo.Out': { mark: 'changed' }, 'svc:vault': { mark: 'changed' } }));
+  const one = { kind: 'resource', anchors: ['res:auth/mongo.User'] }, two = { kind: 'resource', anchors: ['res:auth/mongo.Out'] }, plain = { kind: 'resource', anchors: ['res:auth/mongo.Other'] }, stack = { kind: 'resource', stack: true, anchors: ['res:auth/mongo.Out', 'res:auth/mongo.User'] };
+  assert.equal(headAnchor(one), 'res:auth/mongo.User');
+  assert.deepEqual(headAnchors(stack), ['res:auth/mongo.Out', 'res:auth/mongo.User']);
+  assert.equal(lm.head(one).info.mark, 'new');
+  assert.equal(lm.head(two).info.mark, 'changed');
+  assert.equal(lm.head(plain), null);
+  assert.equal(lm.head(stack).info.mark, 'new', 'a folded store: the highest');
+  assert.equal(lm.fold([plain, two]).info.mark, 'changed');
+  assert.equal(lm.fold([plain, { kind: 'service', service: 'vault' }, one]).info.mark, 'new');
+  assert.equal(lm.fold([plain]), null, 'nothing marked in the fold: no mark');
+});
+
+test('#122: the spark keeps a visible state when animations do not run (reduced motion, frozen animation)', () => {
+  const css = readFileSync(new URL('../web/css/marks.css', import.meta.url), 'utf8');
+  assert.match(css, /\.spark \{[^}]*animation: mark-twinkle[^}]* backwards;/, 'fill-mode backwards: base opacity stays 1');
+  assert.doesNotMatch(css, /0% \{[^}]*opacity: 0;/, 'the keyframe never starts invisible');
+  assert.match(css, /prefers-reduced-motion[^}]*animation: none !important; opacity: 1/);
+});
+
+test('#122: a resource step carries the anchor of its resource', async () => {
+  const app = await startApp();
+  try {
+    assert.equal((await app.call('POST', '/api/ingest', { manifests: sampleManifests() })).status, 201);
+    const t = await app.call('GET', '/api/envs/prod/trace?service=billing-gateway&ingress=in.paypal&detail=full');
+    const m = t.body.messages.filter((x: any) => x.kind === 'resource' && x.store?.startsWith('mongodb:p81-cluster/'));
+    assert.ok(m.length >= 3);
+    assert.ok(m.every((x: any) => /^res:safer-auth\/.+/.test(x.resAnchor)), JSON.stringify(m.map((x: any) => x.resAnchor)));
+  } finally { await app.close(); }
 });
 
 test('on the demo draft: the new component head carries the spark, its own calls none; a call into a new endpoint of an existing component is marked', async () => {

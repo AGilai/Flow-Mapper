@@ -4,6 +4,7 @@ import { s } from '../dom.js';
 import { chName } from './flow-chain.js';
 import { LINE_H, colorOf, INT_H } from './flow-draw-layout.js';
 import { foldHeads } from './flow-draw-fold.js';
+import { sparkSvg } from '../components/status-mark.js';
 import { headMarkSvg } from './flow-marks-draw.js';
 import { isDesign } from '../state.js';
 import { colVar } from '../design/component-colors.js';
@@ -16,7 +17,7 @@ import { isStoreHead, headLabel, HEAD_TIP } from './store-panel-pure.js';
 
 export function drawHead({ storeOn, columns, heads, boxH, HEAD, bandH, bands, width, colX, isCh, headBox, folded, groups, marks, refs, edit, internal }) {
   const queueSrc = (c) => c.kind === 'source' && c.transport, top = 8 + bandH, tx = (c) => (c.kind === 'resource' || headIconOf(c) ? TEXT_X : 12); // a store head, or one with a product icon, has it before the name
-  return s('svg', { width, height: HEAD, class: 'seq-head', role: 'presentation' }, drawBands(bands, { colX, headBox, columns, groups, onAdd: edit?.onAddInBand }), foldHeads(groups, boxH, top), columns.map((c, i) => folded.has(i) ? null :
+  return s('svg', { width, height: HEAD, class: 'seq-head', role: 'presentation' }, drawBands(bands, { colX, headBox, columns, groups, onAdd: edit?.onAddInBand }), foldHeads(groups, boxH, top, (g) => { const r = marks?.fold?.(g.cols.map((k) => columns[k])); return r ? sparkSvg(g.w - 2, 3, r.info.mark, 12) : null; }), columns.map((c, i) => folded.has(i) ? null :
     s('g', { class: `seq-part k-${c.kind}${c.fan ? ' fan' : ''}${look(c).cls}${storeOn && isStoreHead(c) ? ' store-hd' : ''}`, 'data-p': i, style: look(c).style, transform: `translate(${colX.get(c) - headBox(c) / 2},${top})`, ...(storeOn && isStoreHead(c) ? { tabindex: 0, role: 'button', 'aria-pressed': 'false', 'aria-label': headLabel(c), 'data-store': c.group, 'data-coll': c.collection ?? '', 'data-stack': c.stack ? '1' : '0', 'data-kind': c.storeKind } : { tabindex: c.fan ? 0 : null, role: c.fan ? 'button' : null }) },
       storeOn && isStoreHead(c) ? s('rect', { class: 'sp-ring', x: -4, y: -4, width: headBox(c) + 8, height: boxH + 8, rx: 11 }) : null,
       c.stack ? [s('rect', { class: 'stack', x: 8, y: 5, width: headBox(c), height: boxH, rx: 8, opacity: 0.55 }), s('rect', { class: 'stack', x: 4, y: 2.5, width: headBox(c), height: boxH, rx: 8, opacity: 0.8 })] : null,
