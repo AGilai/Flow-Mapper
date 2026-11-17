@@ -5,6 +5,12 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+
+- #130 Drivers view (UI, plus additive fields): Inventory gets a `Drivers` tab (`#/inventory?tab=drivers&store=redis&q=mongoose%20%3C%206`) and the component page a "Drivers" section: store type, package, version, with the components, resources and operations on each, the newest major in use as baseline, amber and red lag marks with text, mixed majors, and unresolved entries (with candidates) in their own section. A query box takes `mongoose < 6`, `redis 3`, `v3`, `3.x`, `>= 4 < 5`, an exact version or a component name.
+- `GET /api/envs/:env/clients` rows (and MCP `list_clients`, `get_store` `clients`) add `ops: {read, write, total}`, `candidates: {field: [value]}` and `plain: {field: sentence}` (the `candidates` and `plain` of the harvester's `unresolved` what=client). No endpoint was added: the view is computed in the browser (`core/drivers.ts`, `core/versions.ts`).
+- Harvesters: `unresolved` what=client may now carry `candidates` (e.g. `detail: "driver.package"`, `reason: "ambiguous_client_path"`, `candidates: ["p81-mongo-client", "saferx-dbapi"]`) and `plain`. Schema description and HARVESTER-GUIDE updated; the shape was already allowed. Mongo driver entries (mongodb, mongoose, typeorm, p81-mongo-client) use the same `client` shape as Redis.
+
 ## 0.60.1 (2026-11-17): fixes #127 #128
 
 - Fix #127 (UI only): in a flow with Group by subsystem, the caller's subsystem is ranked first so its other components sit right after column 0 under one band, and a band over one lane is as wide as its label needs (the gaps beside it widen) instead of ending in an ellipsis.

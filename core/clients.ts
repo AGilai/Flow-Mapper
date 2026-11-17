@@ -5,7 +5,8 @@
 // Stored in the entity JSON (`client` on a resource or egress); nothing is indexed. Pure.
 
 import type { GraphIndex } from './graph-index.ts';
-import { storeKey, storeView } from './stores.ts';
+import { storeKey, storeView, usesOf } from './stores.ts';
+import { accessOf } from './access.ts';
 import { linkHops, normaliseVia, viaMatches, type LinkedHop } from './via.ts';
 import type { AccessMode, ClientInfo, DriverRef, LibRef, Unresolved } from './types.ts';
 
@@ -32,6 +33,10 @@ export interface ClientRow {
   unresolved: string[];
   /** Why each unresolved field is missing (the harvester's `reason`). */
   reasons: Record<string, string>;
+  /** Possible values the harvester offers for an unresolved field (e.g. `driver.package`: p81-mongo-client, saferx-dbapi), and its reason in plain words (#130). */
+  candidates: Record<string, string[]>; plain: Record<string, string>;
+  /** Operations the service performs through this client: steps on the resource (a read-write step counts in both), or the egress's call sites (#130). */
+  ops: { read: number; write: number; total: number };
 }
 export interface ClientFilter { store?: string; service?: string; driver?: string; driverMajor?: string; lib?: string; accessMode?: string; via?: string }
 export interface DriverCount { driver: string; major: string | null; label: string; services: number; clients: number }
@@ -57,6 +62,10 @@ export function mixedMajors(drivers: DriverUse[]): ClientRow['mixed'] {
 const unresolvedFields = (u?: Unresolved[]) => (u ?? []).filter((x) => x.what === 'client' && x.detail?.trim()).map((x) => x.detail!.trim());
 /** The `reason` given for each unresolved field, e.g. `{'driver.version': 'lockfile_not_found'}`. */
 const unresolvedReasons = (u?: Unresolved[]) => Object.fromEntries((u ?? []).filter((x) => x.what === 'client' && x.detail?.trim()).map((x) => [x.detail!.trim(), x.reason]));
+
+const gapsOf = (u?: Unresolved[]) => (u ?? []).filter((x) => x.what === 'client' && x.detail?.trim());
+const unresolvedCandidates = (u?: Unresolved[]) => Object.fromEntries(gapsOf(u).filter((x) => x.candidates?.length).map((x) => [x.detail!.trim(), x.candidates!]));
+const unresolvedPlain = (u?: Unresolved[]) => Object.fromEntries(gapsOf(u).filter((x) => x.plain).map((x) => [x.detail!.trim(), x.plain!]));
 
 /** `ioredis@4` → {driver: 'ioredis', driverMajor: '4'}; `ioredis@` means version unknown; a bare package has no major. */
 export function parseDriver(s: string): { driver: string; driverMajor?: string } {
@@ -84,10 +93,21 @@ function matches(r: ClientRow, f: ClientFilter): boolean {
   return true;
 }
 
+function opsOf(g: GraphIndex, r: Parameters<typeof usesOf>[1]): ClientRow['ops'] {
+  const o = { read: 0, write: 0, total: 0 };
+  for (const { steps } of usesOf(g, r)) for (const st of steps) {
+    const a = accessOf(st);
+    o.total++;
+    if (a === 'read' || a === 'read_write') o.read++;
+    if (a === 'write' || a === 'read_write') o.write++;
+  }
+  return o;
+}
+
 /** Every client row of the env that matches `f` (text filters are case-insensitive; `store` matches a key or its group). */
 export function clientRows(g: GraphIndex, f: ClientFilter = {}): ClientRow[] {
   const rows: ClientRow[] = [];
-  const add = (store: string | null, kind: string, service: string, entity: 'resource' | 'egress', id: string, c: ClientInfo | undefined, unresolved?: Unresolved[]) => {
+  const add = (store: string | null, kind: string, service: string, entity: 'resource' | 'egress', id: string, c: ClientInfo | undefined, unresolved: Unresolved[] | undefined, ops: ClientRow['ops']) => {
     const gaps = unresolvedFields(unresolved);
     if (!c && !gaps.length) return;
     const info = c ?? {};
@@ -97,10 +117,11 @@ export function clientRows(g: GraphIndex, f: ClientFilter = {}): ClientRow[] {
       store, kind, service, entity, id, accessMode: info.accessMode, accessId: info.accessId,
       driver: info.driver ?? null, lib: info.lib ?? null, drivers,
       via: svc ? linkHops(svc, normaliseVia(info.via)) : [], mixed: mixedMajors(drivers), unresolved: gaps, reasons: unresolvedReasons(unresolved),
+      candidates: unresolvedCandidates(unresolved), plain: unresolvedPlain(unresolved), ops,
     });
   };
-  for (const r of g.model.resources) add(storeKey(r), r.kind, r.service, 'resource', r.id, r.client, r.unresolved);
-  for (const e of g.model.egress) add(e.bindKey ?? null, e.transport, e.service, 'egress', e.id, e.client, e.unresolved);
+  for (const r of g.model.resources) add(storeKey(r), r.kind, r.service, 'resource', r.id, r.client, r.unresolved, opsOf(g, r));
+  for (const e of g.model.egress) add(e.bindKey ?? null, e.transport, e.service, 'egress', e.id, e.client, e.unresolved, { read: 0, write: 0, total: e.callSites?.length ?? 0 });
   rows.sort((a, b) => (a.store ?? '').localeCompare(b.store ?? '') || a.service.localeCompare(b.service) || a.id.localeCompare(b.id));
   return rows.filter((r) => matches(r, f));
 }

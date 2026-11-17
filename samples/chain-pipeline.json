@@ -187,7 +187,8 @@
       "id": "cache",
       "kind": "redis",
       "name": "chain cache",
-      "bindKey": "redis:chain-cache/enrich:{id}"
+      "bindKey": "redis:chain-cache/enrich:{id}",
+      "client": { "accessMode": "direct_driver", "accessId": "chain-pipeline/src/cache.ts:3", "databases": [0], "driver": { "package": "redis", "version": "3.1.2", "versionSource": "lockfile" } }
     }
   ],
   "channels": [

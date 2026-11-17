@@ -24,6 +24,7 @@ import { editing } from '../design/edit-open.js';
 import { externalNote, externalTag } from '../components/external-tag.js';
 import { aboutBlock } from '../components/about.js';
 import { pencils } from '../design/pencil.js';
+import { driversSection } from './drivers-section.js';
 
 export async function render({ main, params, query }) {
   const name = params.name;
@@ -72,7 +73,7 @@ export async function render({ main, params, query }) {
       h('button.btn', { type: 'button', on: { click: (e) => openBugDialog(e.currentTarget) } }, icon('bug'), 'Report a bug'),
       ext ? null : h('a.btn.primary', { href: href('/flows', { service: name }) }, icon('flow'), 'Trace a flow')),
     host);
-  host.prepend(h('div.content', h('div.page-grid', h('div.svc-head', ext ? externalNote() : null, meta, pen.hint(), aboutBlock(s.about, { pen: pen.about(name, comp) }), figures), h('div', tabs, body))));
+  host.prepend(h('div.content', h('div.page-grid', h('div.svc-head', ext ? externalNote() : null, meta, pen.hint(), aboutBlock(s.about, { pen: pen.about(name, comp) }), figures), h('div', tabs, body), driversSection(name))));
   show(tab);
   pen.resume();
   if (query.get('ep')) showEndpoint(query.get('ep'));

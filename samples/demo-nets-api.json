@@ -39,7 +39,27 @@
       "id": "ndb",
       "kind": "mongodb",
       "name": "demo-nets-db.networks",
-      "bindKey": "mongodb:demo-nets-db/networks"
+      "bindKey": "mongodb:demo-nets-db/networks",
+      "client": {
+        "accessMode": "third_party_lib",
+        "accessId": "demo-nets-api/src/models.ts:3",
+        "driver": {
+          "package": "mongoose",
+          "version": "5.13.20",
+          "versionSource": "lockfile"
+        },
+        "lib": {
+          "package": "mongoose",
+          "kind": "third_party",
+          "version": "5.13.20",
+          "versionSource": "lockfile",
+          "driver": {
+            "package": "mongodb",
+            "version": "3.7.4",
+            "versionSource": "lockfile"
+          }
+        }
+      }
     }
   ],
   "channels": []

@@ -2,7 +2,7 @@
 // data stores and event types. Filter by type (data stores split by database: MongoDB, Redis, …), kind,
 // team, text and "has problems"; a row opens its page.
 
-import { h, debounce } from '../dom.js';
+import { h, fill, debounce } from '../dom.js';
 import { api } from '../api.js';
 import { state, isDesign } from '../state.js';
 import { icon } from '../icons.js';
@@ -14,6 +14,7 @@ import { objectIcon } from '../components/object-icon.js';
 import { driverCounts, driversOn } from '../../core/clients.js';
 import { MODE, breakable } from '../components/clients-table.js';
 import { monoText } from '../format.js';
+import { driversView } from './drivers.js';
 import { loadMarks } from '../design/marks-store.js';
 import { statusFilter, filterByStatus, whatColumn, statusOf, anchorOfItem } from './inventory-status.js';
 import { markBadge } from '../components/status-mark.js';
@@ -44,9 +45,10 @@ const TYPE_LABEL = { service: 'Service', channel: 'Channel', store: 'Data store'
 export async function render({ main, query }) {
   const [all, clients, marks] = await Promise.all([api.inventory(state.env), api.clients(state.env), loadMarks()]);
   const design = isDesign();
-  const f = { rpcq: query.get('rpcq') === '1', type: query.get('type') ?? '', kind: query.get('kind') ?? '', team: query.get('team') ?? '', q: query.get('q') ?? '', problems: query.get('problems') === '1', dto: query.get('dto') ?? '', driver: query.get('driver') ?? '', sub: query.get('subsystem') ?? '', status: design ? query.get('status') ?? '' : '' }; // driver: `<package>@<major>`, `<package>@` when the version is unknown
+  const f = { rpcq: query.get('rpcq') === '1', type: query.get('type') ?? '', kind: query.get('kind') ?? '', team: query.get('team') ?? '', q: query.get('tab') === 'drivers' ? '' : query.get('q') ?? '', tab: query.get('tab') === 'drivers' ? 'drivers' : '', problems: query.get('problems') === '1', dto: query.get('dto') ?? '', driver: query.get('driver') ?? '', sub: query.get('subsystem') ?? '', status: design ? query.get('status') ?? '' : '' }; // driver: `<package>@<major>`, `<package>@` when the version is unknown
   if (f.type === 'store') f.type = ''; // older links
-  const total = h('span'), host = h('div.panel-host'), panel = createPanel(host); // the component form opens beside the table
+  let closeCb = () => {};
+  const total = h('span'), host = h('div.panel-host'), panel = createPanel(host, { onClose: () => closeCb() }); // the component form opens beside the table
   const pen = pencils({ panel, flowsEl: null }), subs = design ? await loadSubsystems() : null;
   const groups = metaOf(state.envMeta, state.env).groups ?? [], subOpts = subsystemOptions(all, groups);
   if (!subOpts.some(([v]) => v === f.sub)) f.sub = '';
@@ -92,9 +94,9 @@ export async function render({ main, query }) {
     [['', 'Any message DTO'], ['yes', 'Has DTO'], ['no', 'No DTO']].map(([v, l]) => h('option', { value: v, selected: v === f.dto }, l)));
   const teams = [...new Set(items.map((x) => x.team).filter(Boolean))].sort();
   const buttons = [];
-  const pick = (t) => { f.type = t; dtoSel.hidden = t !== 'event'; buttons.forEach(([v, b]) => b.setAttribute('aria-pressed', String(v === t))); fillKinds(); if (!t.startsWith('store:')) f.driver = ''; fillFacet(); apply(); };
+  const pick = (t) => { f.type = t; dtoSel.hidden = t !== 'event'; if (f.tab) leaveDrivers(); buttons.forEach(([v, b]) => b.setAttribute('aria-pressed', String(v === t))); fillKinds(); if (!t.startsWith('store:')) f.driver = ''; fillFacet(); apply(); };
   const button = ([t, label]) => {
-    const b = h('button', { 'aria-pressed': String(f.type === t), on: { click: () => pick(t) } },
+    const b = h('button', { 'aria-pressed': String(!f.tab && f.type === t), on: { click: () => pick(t) } },
       t.startsWith('store:') ? objectIcon('store', t.slice(6), 16) : null, label, h('span.muted', countText(t)));
     buttons.push([t, b]);
     return b;
@@ -111,10 +113,17 @@ export async function render({ main, query }) {
     fold.replaceChildren(h('input', { type: 'checkbox', checked: f.rpcq, on: { change: (e) => { f.rpcq = e.target.checked; pick1(); recount(); fillKinds(); apply(); } } }), h('b', 'Show RPC queues'),
       h('span.muted', f.rpcq ? ` ${parts} shown, muted. The RPC commands they carry are listed as entry points of their servers.` : ` ${mine.length} hidden: ${parts}. The RPC commands they carry are listed as entry points of their servers.`));
   };
-  const seg = h('div.row', { style: { gap: 'var(--s2)', flexWrap: 'wrap' } },
+  /** Drivers tab (#130): the same URL keeps `q`, so the inventory's own filter is left alone while it is open. */
+  const drvHost = h('div.drivers-host'), nPackages = new Set(clients.rows.flatMap((r) => r.drivers.map((d) => d.package))).size;
+  const showDrivers = () => { f.tab = 'drivers'; main.classList.add('drv-on'); drvBtn.setAttribute('aria-pressed', 'true'); closeCb = () => {}; fill(drvHost, driversView({ rows: clients.rows, query: new URLSearchParams(location.hash.split('?')[1] ?? ''), panel, onClose: (fn) => { closeCb = fn; } })); };
+  const leaveDrivers = () => { f.tab = ''; closeCb = () => {}; main.classList.remove('drv-on'); drvBtn.setAttribute('aria-pressed', 'false'); drvHost.replaceChildren(); panel.close(); setQuery({ tab: null, store: null, group: null, mixed: null, c: null, q: null }); };
+  const drvBtn = h('button', { 'aria-pressed': String(f.tab === 'drivers'), 'data-qa': 'tab-drivers', on: { click: () => { if (f.tab) return; setQuery({ q: null, type: null, driver: null }); buttons.forEach(([, b]) => b.setAttribute('aria-pressed', 'false')); showDrivers(); setQuery({ tab: 'drivers' }); apply(); } } },
+    icon('package'), 'Drivers', h('span.muted', ` ${nPackages} ${nPackages === 1 ? 'package' : 'packages'}`), h('span.dv-new', 'new'));
+  const seg = h('div.row.inv-types', { style: { gap: 'var(--s2)', flexWrap: 'wrap' } },
     h('div.seg', { role: 'group', 'aria-label': 'Type' }, typeList.map(button)),
     dbKinds.length ? [h('span.small.muted', 'Data stores'), h('div.seg', { role: 'group', 'aria-label': 'Database' }, types.map(button))] : null,
-    hasAmqp ? [h('span.small.muted', 'Brokers'), h('div.seg', { role: 'group', 'aria-label': 'Broker' }, [['amqp', 'AMQP']].map(button))] : null);
+    hasAmqp ? [h('span.small.muted', 'Brokers'), h('div.seg', { role: 'group', 'aria-label': 'Broker' }, [['amqp', 'AMQP']].map(button))] : null,
+    clients.rows.length ? h('div.seg.inv-drivers', { role: 'group', 'aria-label': 'Drivers' }, drvBtn) : null);
   const shown = h('span.small.muted');
   /** One row per client site on the chosen driver: the service, its store, and where the driver comes from (its own, or inside a lib). */
   const svcTable = dataTable({
@@ -144,6 +153,7 @@ export async function render({ main, query }) {
   };
 
   function apply() {
+    if (f.tab) { table.el.hidden = svcTable.el.hidden = true; return; }
     const n = f.q.trim().toLowerCase();
     const kind = f.type.startsWith('store:') ? f.type.slice(6) : null;
     drawFold();
@@ -180,8 +190,9 @@ export async function render({ main, query }) {
       st ? [h('span.small.muted', 'Status'), st.el] : null,
       h('span.spacer'), shown),
     host);
-  host.prepend(h('div.content', pen.hint(), fold, h('div.box', table.el, svcTable.el)));
+  host.prepend(h('div.content', pen.hint(), fold, h('div.box', table.el, svcTable.el), drvHost));
   dtoSel.hidden = f.type !== 'event';
+  if (f.tab) showDrivers();
   recount();
   fillKinds();
   fillFacet();

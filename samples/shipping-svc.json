@@ -105,7 +105,25 @@
       "id": "shipmentsDb",
       "kind": "mongodb",
       "name": "shipping-db.shipments",
-      "bindKey": "mongodb:shipping-db/shipments"
+      "bindKey": "mongodb:shipping-db/shipments",
+      "client": {
+        "accessMode": "shared_lib",
+        "accessId": "shipping-svc/src/db/index.ts:2",
+        "driver": null,
+        "lib": null
+      },
+      "unresolved": [
+        {
+          "what": "client",
+          "detail": "driver.package",
+          "reason": "ambiguous_client_path",
+          "candidates": [
+            "p81-mongo-client",
+            "saferx-dbapi"
+          ],
+          "plain": "Both wrappers are imported under src/db/ and the harvester could not tell which one reaches this collection."
+        }
+      ]
     },
     {
       "id": "orderCache",
