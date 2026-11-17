@@ -22,7 +22,7 @@
 /* Collapsible card model (Unreleased): header always there, chevron toggles the body, View > Descriptions hides it to one muted line; wide screens cap the width. */
 .capbar:not(.off) > .cap-off, .capbar.off > :not(.cap-off) { display: none !important; }
 .cap-off { padding: 3px 12px; font-size: 12px; color: var(--muted); } .cap-off button { border: 0; background: none; padding: 0; font: inherit; font-weight: 600; color: var(--accent); cursor: pointer; } .cap-off button:hover { text-decoration: underline; }
-.capbar .cap-row { max-width: 1400px; cursor: default; } .capbar .cap-row:has(.cap-more:not([hidden])) { cursor: pointer; }
+.capbar .cap-row { cursor: default; } /* #128: the bar follows the diagram box both ways, no 1400px cap */ .capbar .cap-row:has(.cap-more:not([hidden])) { cursor: pointer; }
 .cap-card { max-width: 1160px; }
 
 /* The call note is a rich document (Unreleased): read with the Notes renderer, written with the Notes editor in a compact form. Reading width capped at ~1100px. */

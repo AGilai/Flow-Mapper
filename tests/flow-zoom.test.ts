@@ -104,3 +104,25 @@ test('the wheel: up zooms in, down zooms out, one event is bounded', () => {
   assert.equal(wheelFactor(-3, 1), wheelFactor(-48));
   assert.ok(Math.abs(wheelFactor(3) * wheelFactor(-3) - 1) < 1e-12);
 });
+
+// #128: Fit and zoom act on the active diagram only.
+test('#128 the active diagram: a card press selects it, the list header keeps it, anything else is the tab own diagram', async () => {
+  // @ts-ignore plain JS module shared with the browser
+  const { activeAfter } = await import('../web/js/views/flow-zoom-pure.js');
+  const a = { id: 'card-1' }, b = { id: 'card-1.1' };
+  assert.equal(activeAfter(null, a), a); // a card was pressed in or expanded
+  assert.equal(activeAfter(a, b), b); // another card takes over
+  assert.equal(activeAfter(a, 'list'), a); // the "Async flows" header and gaps change nothing
+  assert.equal(activeAfter(null, 'list'), null);
+  assert.equal(activeAfter(b, 'top'), null); // a press on the tab's own diagram
+  assert.equal(activeAfter(b, null), null);
+});
+
+test('#128 a card fits its own box: no width yet means Fit waits', async () => {
+  // @ts-ignore plain JS module shared with the browser
+  const { cardRoom } = await import('../web/js/views/flow-zoom-pure.js');
+  assert.equal(cardRoom(0), null);
+  assert.equal(cardRoom(836), 836);
+  assert.equal(fitScale({ w: 1800, h: 700, vw: cardRoom(900), vh: 600 }), 0.5); // a tall card: width only
+  assert.equal(fitScale({ w: 1800, h: 700, vw: 0, vh: 600 }), null);
+});

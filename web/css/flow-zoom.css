@@ -8,3 +8,9 @@
 .zoomc button:disabled, .zoomc input:disabled { opacity: .45; cursor: default; }
 .max-bar .zoomc { margin-left: auto; margin-right: 14px; }
 .seq-scroll.zoom-loose .seq-sticky { position: static; backdrop-filter: none; }
+/* #128: Fit and zoom act on the active diagram. An open card the viewer pressed in or expanded wears a thin accent edge; its scale is its own. */
+.card.active-card { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+/* #128: the diagram's scrollbars are always drawn (a Mac's overlay bars hide until a scroll, so a wide diagram looked clipped with nothing to reach it). */
+.seq-scroll::-webkit-scrollbar, .card-lane::-webkit-scrollbar { height: 12px; width: 12px; }
+.seq-scroll::-webkit-scrollbar-track, .card-lane::-webkit-scrollbar-track { background: var(--surface-2); }
+.seq-scroll::-webkit-scrollbar-thumb, .card-lane::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 6px; border: 2px solid var(--surface-2); }

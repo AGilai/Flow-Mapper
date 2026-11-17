@@ -19,6 +19,7 @@ import { createRefs } from './flow-refs-draw.js';
 import { state } from '../state.js';
 import { groupLane } from './flow-group.js';
 import { laneSlots } from '../design/lane-slots.js';
+import { applyScale } from './flow-zoom.js';
 
 /**
  * createFlowRender({ trace, tree, key, ancestors, sticky }, sh) -> { laneBox, idxBox, drawLane(), relane(), expandAll(budget), index() }
@@ -29,7 +30,8 @@ export function createFlowRender({ trace, tree, key, ancestors = [], sticky = tr
   const { host, opts } = sh, mwOpen = new Set(), fanOpen = new Set(); // fanOpen: topics whose queues are all drawn
   const marks = () => host.marks ?? marksNow(); // the marks of the flow's own environment (a tab of another env has its own, 0.36.0)
   const laneBox = h('div.flow-lane'), idxBox = h('div.flow-idx');
-  let lane = null, index = null;
+  let lane = null, index = null, own = 1; // #128: a card has its own scale (Fit and zoom act on the active card only); the top lane's is the tab's
+  const scale = () => (depth ? own : sh.zoom?.() ?? 1);
   const top = () => (root ? root() : index); // 0.49.0 (#101): the list lives under the top lane only; a card's number tiles reveal rows there
   if (!depth) laneBox.addEventListener('click', (ev) => { const j = ev.target.closest?.('[data-jump]'); if (j && sh.walk) { ev.stopPropagation(); sh.walk.go(Number(j.dataset.jump)); } }, true); // 0.44.0 (#90): a repeat marker's `↩ seen at step N` jumps to step N
   const maxDepth = () => (opts.depth === 'all' ? Infinity : Number(opts.depth));
@@ -59,7 +61,7 @@ export function createFlowRender({ trace, tree, key, ancestors = [], sticky = tr
     built.internal = depth ? null : sh.internal?.() ?? null; // 0.38.0: the lazy "⊕ internal" control under each service head (null: everything is loaded)
     groupLane(built, host.subs, opts.bands, marks(), (cols) => laneSlots(cols, undefined, host.env), host.env); // 0.28.1: the components of one subsystem together and the bands over them; a colour per flow (before Squeeze, the walk and the drawing see the columns)
     const sq = sh.squeeze?.() ? { keep: (!depth && sh.walk?.endsOf(built)) || firstStepCols(built) } : null; // Squeeze: the current step's lifelines (a card: its first step's)
-    lane = renderLane(built, { ...handlers, onChoose: depth ? null : sh.onChoose, srcUrl: (at) => trace.code?.[`step:${at}`]?.url ?? null, onInternal: depth ? null : sh.onInternal, onDb: depth ? null : sh.onDb, marks: laneMarks(marks()) ?? stepMarksOnly, edit: sh.addCall ? { onAddCall: sh.addCall, onAddInBand: sh.addInBand } : null, refs: createRefs(trace, { editing: !host.readOnly && state.mode === 'edit' && !!state.draft, onImport: sh.importRef }), sticky, squeeze: sq, onSqueeze: sh.squeezeOpen, details: depth ? null : sh.details?.(built) ?? null, onEditStep: sh.editStep, zoom: sh.zoom?.() ?? 1, hints: opts.th ?? true, fit: Math.max(0, (sh.fit?.() ?? 0) - (depth ? 40 + depth * 28 : 0)) });
+    lane = renderLane(built, { ...handlers, onChoose: depth ? null : sh.onChoose, srcUrl: (at) => trace.code?.[`step:${at}`]?.url ?? null, onInternal: depth ? null : sh.onInternal, onDb: depth ? null : sh.onDb, marks: laneMarks(marks()) ?? stepMarksOnly, edit: sh.addCall ? { onAddCall: sh.addCall, onAddInBand: sh.addInBand } : null, refs: createRefs(trace, { editing: !host.readOnly && state.mode === 'edit' && !!state.draft, onImport: sh.importRef }), sticky, squeeze: sq, onSqueeze: sh.squeezeOpen, details: depth ? null : sh.details?.(built) ?? null, onEditStep: sh.editStep, zoom: scale(), hints: opts.th ?? true, fit: Math.max(0, (sh.fit?.() ?? 0) - (depth ? 40 + depth * 28 : 0)) });
     if (!depth) sh.walk?.decorate(lane, built); // numbered steps are the top lane's only (0.20.0)
     laneBox.replaceChildren(lane.el);
     if (!depth) sh.afterLane?.(laneBox); // Fit measures the new lane (flow-tab-view.js); the comment brackets go back in front of it
@@ -76,7 +78,7 @@ export function createFlowRender({ trace, tree, key, ancestors = [], sticky = tr
     return createFlowRender({ trace: t, tree: asyncTree(t.messages, row.label, knownOutside(tree.known, row.label)), key, ancestors: childAncestors, sticky: false, depth: depth + 1, root: top }, sh);
   };
   function drawIndex() {
-    index = tree.groups.length ? renderIndex(tree, { trace, handlers, depth, key, ancestors, makeFlow,
+    index = tree.groups.length ? renderIndex(tree, { trace, handlers, depth, key, ancestors, makeFlow, activate: (f) => sh.activate?.(f), closed: (f) => sh.closed?.(f),
       open: (row, full) => (full ? host.openFull(row, key) : host.openSub(row, key)),
       openAll: (rows) => host.openMany(rows, key), freeSlots: host.freeSlots, isOpen: (row) => host.isOpen(row, key), jump: (label) => host.jumpToLabel(label),
       hover: (labels, on) => lane?.mark(labels, on) }) : null;
@@ -84,7 +86,8 @@ export function createFlowRender({ trace, tree, key, ancestors = [], sticky = tr
   }
   drawLane(); if (!depth) drawIndex();
   return {
-    laneBox, idxBox, drawLane, restep, ancestors,
+    laneBox, idxBox, drawLane, restep, ancestors, depth,
+    scale, setScale(v) { own = v; applyScale(laneBox, v); }, // a card's scale (the top lane's follows the tab)
     /** Depth, stores and other lane options changed: redraw this lane and the lanes of the cards already open below it (their expansion stays). */
     relane() { drawLane(); index?.relane(); },
     expandAll: (budget) => index?.expandAll(budget),

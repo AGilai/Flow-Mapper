@@ -5,9 +5,10 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased
+## 0.60.1 (2026-11-17): fixes #127 #128
 
 - Fix #127 (UI only): in a flow with Group by subsystem, the caller's subsystem is ranked first so its other components sit right after column 0 under one band, and a band over one lane is as wide as its label needs (the gaps beside it widen) instead of ending in an ellipsis.
+- Fix #128 (UI only): The async list and the call bar no longer stop at a fixed width (1180 / 1400 px): the diagram box follows the Info panel both ways. Scrollbars of the diagram and of the async cards are always drawn, so a wide nested diagram can be reached. Fit and zoom act on the active diagram only (the tab's own, or the card last pressed in or expanded), and each card keeps its own scale. Not done: the parent flow as a card (index 0), which needs a mockup.
 
 ## 0.60.0 (2026-11-17): either/or frames in Simple, if/else arms in Full (#126 #115)
 
