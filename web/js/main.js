@@ -6,6 +6,7 @@ import { route, start, parseHash } from './router.js';
 import { state, onEnvChange, setEnv, designFromQuery, designQuery, isDesign, pageEnv } from './state.js';
 import { setQuery } from './router.js';
 import { mountDesignStrip } from './design/design-strip.js';
+import { closedOf, dropClosed, checkOpenDraft } from './design/draft-closed.js';
 import { renderRail } from './components/sidebar.js';
 import { mountBugButton } from './components/bug-dialog.js';
 import { requestedEnv, unknownEnv } from './env-missing.js';
@@ -83,6 +84,8 @@ async function boot() {
     const d = designFromQuery(named ? new URLSearchParams([...loc.query, ['env', params.name]]) : loc.query);
     if (d.env !== state.env) setEnv(d.env, true);
     Object.assign(state, { mode: d.mode, draft: d.draft, compare: d.compare });
+    if (state.draft && state.draft !== state.closedDraft?.slug) { const c = isDesign() ? await closedOf(state.env, state.draft) : null; if (c) dropClosed(c, false); } // #118: a draft= link to an applied or discarded draft opens the environment with a notice
+    else if (state.draft) state.closedDraft = null;
     setQuery({ ...designQuery(), ...(loc.query.get('env') === state.env ? { env: state.env } : {}), ...(pageEnv(r.parts, state.env) ? { env: state.env } : {}) }); // an env-specific page always carries `env=` (a link opens on the sender's env); a link that names its env keeps it on any page
     document.documentElement.classList.toggle('is-design', isDesign());
     refreshQuestions(); // the rail's "Questions (n)" of a design environment
@@ -99,6 +102,7 @@ async function boot() {
       fill(main, h('div.content', h('div.error-box', err.message || String(err))));
     }
   });
+  addEventListener('fm:draft-closed', () => { checkOpenDraft(); }); // #118: a write was refused because the draft is closed: look again, drop it, show the notice
   onEnvChange(() => dispatchEvent(new HashChangeEvent('hashchange')));
 }
 

@@ -144,3 +144,13 @@ test('errors: sealed target, unknown / same source, NO_ITEM, BAD_ANCHOR, NOTHING
   assert.deepEqual(await code('svc:users-svc'), [409, 'DRAFT_CLOSED']);
   assert.equal((await app.call('POST', `${D}/missing/import`, { source: 'prod', anchor: P })).status, 404);
 });
+
+test('#119: an import never makes a draft that cannot apply (dry run), component level and endpoint level (reference callee)', async () => {
+  const dry = async (s: string) => { const r = await app.call('POST', `/api/envs/blank-x/drafts/${s}/apply?dryRun=1`); return { status: r.status, msg: r.body.error?.message ?? 'ok', details: r.body.error?.details }; };
+  const c = await open('imp-119-c', 'blank-x');
+  assert.equal((await imp(c, 'svc:auth-svc', { groupPath: 'platform' }, 'blank-x')).status, 201);
+  const rc = await dry(c); assert.equal(rc.status, 200, JSON.stringify(rc));
+  const e = await open('imp-119-e', 'blank-x');
+  assert.equal((await imp(e, 'ing:users-svc/in.getContact', { groupPath: 'platform' }, 'blank-x')).status, 201);
+  const re = await dry(e); assert.equal(re.status, 200, JSON.stringify(re));
+});

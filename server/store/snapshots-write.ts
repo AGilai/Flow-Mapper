@@ -24,9 +24,11 @@ export function diff(before: Entities, after: Entities): Changes {
   return c;
 }
 
-export function assertIntegrity(service: string, e: Entities, before?: Entities) {
+/** `references`: ingress ids whose missing handler is allowed (an import brought the endpoint as a reference, its behaviour is not in the design yet). */
+export function assertIntegrity(service: string, e: Entities, before?: Entities, references: string[] = []) {
   const had = new Set(before ? integrityErrors(before) : []);
-  const errs = integrityErrors(e).filter((x) => !had.has(x));
+  const dangling = (x: string) => references.some((id) => x.startsWith(`ingress '${id}'`) && /handler '.*' is not a function of this service$/.test(x) && !x.includes('middleware'));
+  const errs = integrityErrors(e).filter((x) => !had.has(x) && !dangling(x));
   if (errs.length) throw invalid(`service '${service}' has broken internal references`, errs);
 }
 

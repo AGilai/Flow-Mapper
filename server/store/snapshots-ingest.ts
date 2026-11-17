@@ -20,6 +20,8 @@ export interface ApplyOpts {
   writer: Writer;
   /** Problems a service already had (a copied component's dangling handlers) do not block a change that does not cause them. */
   tolerateExisting?: boolean;
+  /** '<service>/<ingress id>' of imported references (#119): an endpoint whose handler is deliberately not in the design yet. */
+  references?: Set<string>;
   /** Services whose header is replaced by the manifest's, not merged into the stored one (a removed header field goes). */
   replaceHeader?: Set<string>;
   /** Written on the changelog rows. */
@@ -108,7 +110,7 @@ function apply(db: DB, manifest: any, source: Source, opts: ApplyOpts): { result
     }
   }
   if (Array.isArray(header.owners) && !header.owners.length) { header = { ...header }; delete header.owners; }   // [] clears
-  assertIntegrity(name, after, opts.tolerateExisting ? before : undefined);
+  assertIntegrity(name, after, opts.tolerateExisting ? before : undefined, opts.references && [...opts.references].filter((r) => r.startsWith(`${name}/`)).map((r) => r.slice(name.length + 1)));
   const changes = diff(before, after);
   upsertSnapshot(db, env, header, manifest.version, manifest.harvestedAt, manifest.commit);
   assignColorsIn(db, env, [{ name, kind: header.kind }]);
