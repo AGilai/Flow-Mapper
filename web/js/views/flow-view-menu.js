@@ -26,7 +26,7 @@ export function createViewMenu({ ctx, act, stepMenu }) {
     icon('sliders'), label, count, h('span.vm-c', '▾'));
   const el = h('span.vm', btn);
 
-  const diffs = () => { const { opts, assigned, design } = ctx(), c = caps(); return nonDefault({ bands: assigned ? opts.bands : null, stores: opts.stores, frontier: opts.frontier, merge: opts.merge, squeeze: opts.squeeze, hints: opts.th, hintsDefault: hintsDefault(design), depth: opts.depth, sb: opts.sb, sd: opts.sd, sdDefault: arrowsDefault(design), size: textSize(), hideText: c.hideText, caption: c.caption, legend: c.legend }); };
+  const diffs = () => { const { opts, assigned, design } = ctx(), c = caps(); return nonDefault({ bands: assigned ? opts.bands : null, stores: opts.stores, frontier: opts.frontier, merge: opts.merge, squeeze: opts.squeeze, hints: opts.th, hintsDefault: hintsDefault(design), depth: opts.depth, sb: opts.sb, sd: opts.sd, sdDefault: arrowsDefault(design), size: textSize(), hideText: c.hideText, caption: c.caption, legend: c.legend, coverage: c.coverage }); };
   function paintBtn() {
     const n = diffs().length;
     count.hidden = n === 0; count.textContent = String(n);
@@ -51,6 +51,7 @@ export function createViewMenu({ ctx, act, stepMenu }) {
       sw('Call notes', { on: c.caption, qa: 'caption-switch', note: 'The bar under the diagram: the call you are on, and its description', change: (v) => setCap('caption', v) }),
       sw('Flow doc', { on: flowDoc().enabled, qa: 'flowdoc-switch', note: 'The pane under the diagram and the note icon on the tab; step badges stay', change: (v) => setFlowDoc('enabled', v) }),
       sw('Legend', { on: c.legend, qa: 'legend-switch', note: 'Read / Write line key', change: (v) => setCap('legend', v) }),
+      sw('Show coverage warnings', { on: c.coverage, qa: 'coverage-switch', note: 'The "N open ends" chips in the Flows list and the trace header; the Info panel still lists them', change: (v) => setCap('coverage', v) }),
       head('Diagram'),
       assigned ? sw('Group by subsystem', { on: opts.bands, qa: 'group-by-subsystem', tip: 'Put the components of one subsystem next to each other and show a band with its name over them', change: act.bands }) : null,
       sw('Data stores', { on: opts.stores, qa: 'data-stores', change: act.stores }),
@@ -87,7 +88,7 @@ export function createViewMenu({ ctx, act, stepMenu }) {
     pop.remove(); pop = null; size?.dispose(); size = null; offCaps?.(); offCaps = null; btn.setAttribute('aria-expanded', 'false');
     removeEventListener('pointerdown', away, true); removeEventListener('keydown', key, true); removeEventListener('resize', place);
   }
-  function reset() { setCap('caption', true); setCap('legend', true); setCap('hideText', false); setTextSize(SIZE_DEFAULT); stepMenu.reset(); act.reset(); } // the diagram options and the depth: flows.js
+  function reset() { setCap('caption', true); setCap('legend', true); setCap('coverage', true); setCap('hideText', false); setTextSize(SIZE_DEFAULT); stepMenu.reset(); act.reset(); } // the diagram options and the depth: flows.js
   paint();
   return { el, paint, close };
 }

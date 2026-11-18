@@ -13,7 +13,8 @@ import { entryRow, removedRow } from './flow-list-rows.js';
 import { parseRel, relOptions } from './flow-relations-pure.js';
 import { startGroup, encodeGroup, saveGroup, flatOrder } from './flow-list-groupby.js';
 import { scopePoints, parseSel, encodeSel, subsystemRows, componentRows, filterPoints, removedPoints, filterSummary, hasCoverage, incompleteCount, incompleteOn, incompleteParam } from './flow-list-filter.js';
-import { filterStatus } from './incomplete-pure.js';
+import { filterStatus, tracedText } from './incomplete-pure.js';
+import { caps, onCaps } from './flow-caption-state.js';
 
 const LIST_CAP = 300;
 
@@ -40,6 +41,7 @@ export function createList({ env = '', points: allPoints, counts, cmts = {}, act
   // 0.28.2: "Related": flows with a relation of one type (or any); only when the environment has relations. Kept in the URL as `rel=`.
   const incBox = h('input', { type: 'checkbox', checked: fs.inc, 'data-qa': 'incomplete-only', on: { change: (e) => { fs.inc = e.target.checked; commit(); } } }), incN = h('span.n');
   const incRow = covered ? h('div.fl-inc', h('label.check', { title: 'Flows the harvester reports as incomplete: some calls could not be followed' }, incBox, 'Incomplete flows only ', incN)) : null;
+  const traced = h('p.fl-traced', { 'data-qa': 'traced-summary' }); // #135: the positive framing
   const incStatus = h('p.fl-inc-st.xs', { role: 'status', hidden: true, 'data-qa': 'incomplete-status' });
   const relSel = h('select.select', { 'aria-label': 'Filter by relation', 'data-qa': 'rel-filter', on: { change: (e) => { fs.rel = parseRel(e.target.value); commit(); } } },
     relOptions(new Map([...relBy].filter(([k]) => points.some((p) => `${p.service}/${p.id}` === k)))).map((o) => h('option', { value: o.value, selected: o.value === (fs.rel ?? '') }, o.n == null ? o.label : `${o.label} (${o.n})`)));
@@ -69,7 +71,7 @@ export function createList({ env = '', points: allPoints, counts, cmts = {}, act
   }
   function draw() {
     const flat = fs.group === 'none' && !service, opts = { q: filter.value, subs: fs.subs, comps: fs.comps, changed: fs.changed, rel: fs.rel, relBy, marks, groupOf, incomplete: fs.inc }, list = filterPoints(points, opts), xs = flat ? flatOrder(list) : list;
-    incN.textContent = `(${incompleteCount(points)})`; incStatus.hidden = !fs.inc; incStatus.textContent = fs.inc ? filterStatus(xs.length, points.length) : '';
+    incN.textContent = `(${incompleteCount(points)})`; traced.textContent = tracedText(points.length, incompleteCount(points)); traced.hidden = !covered || !traced.textContent; incStatus.hidden = !fs.inc; incStatus.textContent = fs.inc ? filterStatus(xs.length, points.length) : '';
     const gone = fs.changed === 'all' ? removedPoints(marks, opts) : [], groupsMap = new Map();
     for (const p of xs.slice(0, LIST_CAP)) { if (!groupsMap.has(p.service)) groupsMap.set(p.service, []); groupsMap.get(p.service).push(p); }
     fill(body,
@@ -101,8 +103,9 @@ export function createList({ env = '', points: allPoints, counts, cmts = {}, act
   if (!service && !query.get('group') && encodeGroup(fs.group, design)) setQuery({ group: encodeGroup(fs.group, design) }); // a mode that came only from the per-env memory goes into the URL once, so a copied link keeps it
   const sentence = service ? `Starting points in ${service}` : `${allPoints.length} entry points in ${env}`; // #114: the Flows header lives here
   const el = h('aside.flows-list', h('div.fl-head', h('span.fl-title', { title: sentence }, h('b', 'Flows'), h('span.fl-sub', service ? `Starting points in ${service}` : h('span', `${allPoints.length} entry points in `, envChip(env || undefined)))), btn),
-    strip, h('div.fl-body', groupRow, filters, h('div.search', icon('search'), filter), changedRow, incRow, incStatus, relRow, body));
+    strip, h('div.fl-body', groupRow, filters, h('div.search', icon('search'), filter), changedRow, traced, incRow, incStatus, relRow, body));
   paint();
+  let seenCov = caps().coverage; onCaps((c) => { if (c.coverage !== seenCov) { seenCov = c.coverage; draw(); } }); // #135: "Show coverage warnings" changed in the View menu
   const setPane = (open) => { const was = collapsed; collapsed = state.setPane(open); if (collapsed === was) return; paint(); onCollapse?.(collapsed); setTimeout(() => document.dispatchEvent(new CustomEvent('fm:layout')), SLIDE_MS + 40); }; // a side pane opened or closed: shown collapsed meanwhile, the saved choice untouched
   const setLabel = (name) => { const t = name ? `Flows · ${name}` : 'Flows'; strip.firstChild.nextSibling.textContent = t; strip.title = `Show flows list: ${t}`; };
   return { el, mark, setPane, setLabel, collapsed: () => collapsed, expand: () => { set(false); btn.focus({ preventScroll: true }); }, // the Flows button was pressed: focus moves into the list
