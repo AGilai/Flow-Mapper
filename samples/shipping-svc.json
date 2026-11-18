@@ -126,6 +126,54 @@
       ]
     },
     {
+      "id": "labelsDb",
+      "kind": "mongodb",
+      "name": "shipping-db.labels",
+      "bindKey": "mongodb:shipping-db/labels",
+      "client": {
+        "accessMode": "shared_lib",
+        "accessId": "shipping-svc/src/db/index.ts:4",
+        "driver": null,
+        "lib": null
+      },
+      "unresolved": [
+        {
+          "what": "client",
+          "detail": "driver.package",
+          "reason": "ambiguous_client_path",
+          "candidates": [
+            "p81-mongo-client",
+            "saferx-dbapi"
+          ],
+          "plain": "Both wrappers are imported under src/db/ and the harvester could not tell which one reaches this collection."
+        }
+      ]
+    },
+    {
+      "id": "carriersDb",
+      "kind": "mongodb",
+      "name": "shipping-db.carriers",
+      "bindKey": "mongodb:shipping-db/carriers",
+      "client": {
+        "accessMode": "shared_lib",
+        "accessId": "shipping-svc/src/db/index.ts:3",
+        "driver": null,
+        "lib": null
+      },
+      "unresolved": [
+        {
+          "what": "client",
+          "detail": "driver.package",
+          "reason": "ambiguous_client_path",
+          "candidates": [
+            "p81-mongo-client",
+            "saferx-dbapi"
+          ],
+          "plain": "Both wrappers are imported under src/db/ and the harvester could not tell which one reaches this collection."
+        }
+      ]
+    },
+    {
       "id": "orderCache",
       "kind": "redis",
       "name": "order:{id}",
@@ -166,7 +214,11 @@
         "databases": []
       },
       "unresolved": [
-        { "what": "detail", "detail": "client.databases", "reason": "db_from_runtime_config" }
+        {
+          "what": "detail",
+          "detail": "client.databases",
+          "reason": "db_from_runtime_config"
+        }
       ]
     }
   ],

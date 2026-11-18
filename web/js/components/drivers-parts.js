@@ -5,7 +5,7 @@ import { h } from '../dom.js';
 import { icon } from '../icons.js';
 import { href } from '../router.js';
 import { servicePath, storeLink } from '../views/inventory-links.js';
-import { lagLevel } from '../../core/drivers.js';
+import { lagLevel, UNRESOLVED_NOTE } from '../../core/drivers.js';
 
 export const LAG = ['', 'lag1', 'lag2'];
 export const lagWords = (lag) => `${lag} ${lag === 1 ? 'major' : 'majors'} behind`;
@@ -46,6 +46,7 @@ export function unresolvedSection(items, { open, note } = {}) {
     h('td', u.candidates.length ? h('span.dv-cand', u.candidates.map((c) => h('span', c))) : h('span.mu', 'none offered')),
     h('td.dv-why', u.plain ?? '', u.plain ? ' ' : '', h('code', u.reason))));
   body.append(h('table.dv-t.dv-unr', h('thead', h('tr', ['Component', 'Resource', 'Field', 'Candidates', 'Reason'].map((t) => h('th', t)))), h('tbody', rows)));
+  if (items.length) body.prepend(h('p.s.mu.dv-pad', UNRESOLVED_NOTE));
   const det = h('details.dv-card.dv-unrsec', { open: true, 'data-qa': 'drivers-unresolved' },
     h('summary.dv-sech', icon('info'), h('h3', 'Unresolved'), items.length ? h('span.dv-pill.unr', `${items.length} ${items.length === 1 ? 'entry' : 'entries'}`) : null,
       h('span.s.mu', 'The harvester found a client here but could not tell the driver or version. Not counted in the rows above.'), h('span.grow'), icon('chevdown')), items.length ? body : null);
