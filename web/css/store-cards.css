@@ -1,0 +1,51 @@
+/* CR #136 the store panel's collection / key cards (design/mockups/frames/frame-30.html; classes there are .f30 .cc ...). Tokens only.
+   No overflow: hidden on .cc: it would break the sticky header of the open card. */
+.sp-cards { display: block; min-width: 0; }
+.cc { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); margin-bottom: 6px; }
+.cc.open { border-color: var(--line-strong); margin: 10px 0; }
+.cch { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 38px; padding: 6px 10px; border: 0; background: var(--surface); color: var(--ink); font: inherit; text-align: left; cursor: pointer; border-radius: 10px; }
+.cch:hover { background: var(--surface-2); } .cch:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.cc .chv { width: 14px; height: 14px; flex: none; fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: transform .12s; } .cc.open .chv { transform: rotate(90deg); }
+.cc .cn { font: 600 12.5px var(--mono); flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.cc .cnt { font: 500 11.5px var(--font); color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; } .cc .cnt b { color: var(--ink-2); font-weight: 600; }
+.cc .cc-rw { display: inline-flex; gap: 3px; } .cc .cc-rw i { font: 700 10px/1 var(--font); font-style: normal; width: 18px; height: 18px; display: grid; place-items: center; border-radius: 4px; border: 1px solid var(--line-strong); color: var(--muted); background: var(--surface); }
+.cc .cc-rw i.r.on { color: var(--t-http); border-color: color-mix(in srgb, var(--t-http) 55%, var(--line)); background: color-mix(in srgb, var(--t-http) 10%, var(--surface)); }
+.cc .cc-rw i.w.on { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); background: var(--accent-soft); }
+.cc .cc-rw i.off { opacity: .45; border-style: dashed; }
+/* the open card's pinned header: name row, meta, tabs */
+.cchw { background: var(--surface); border-radius: 10px; }
+.cc.open > .cchw { position: sticky; top: calc(-1 * var(--s4)); z-index: 5; /* the panel body pads its scroll by --s4: sticky is inset by it */ background: var(--surface-2); border-radius: 10px 10px 0 0; border-bottom: 1px solid var(--line-strong); box-shadow: 0 7px 9px -8px rgba(27, 34, 51, .4); }
+.cc.open > .cchw .cch { background: transparent; border-radius: 10px 10px 0 0; padding-bottom: 2px; }
+.cc .cmeta { display: none; align-items: center; gap: 2px 10px; flex-wrap: wrap; padding: 0 10px 6px 32px; font-size: 11.5px; color: var(--muted); } .cc .cmeta b { color: var(--ink-2); font: 600 11.5px var(--mono); }
+.cc.open .cmeta { display: flex; }
+.cc .cc-tabs { display: none; gap: 2px; padding: 0 10px; } .cc.open .cc-tabs { display: flex; }
+.cc .cc-tab { font: 500 12px var(--font); height: 28px; padding: 0 10px; border: 0; background: none; color: var(--ink-2); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; display: inline-flex; align-items: center; gap: 6px; }
+.cc .cc-tab small { font: 600 10.5px var(--font); color: var(--muted); background: var(--surface); border: 1px solid var(--line); padding: 0 6px; border-radius: 9px; line-height: 16px; } .cc .cc-tab:hover { color: var(--ink); } .cc .cc-tab:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.cc .cc-tab[aria-selected='true'] { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; } .cc .cc-tab[aria-selected='true'] small { color: var(--accent); background: var(--accent-soft); border-color: transparent; }
+.cc .cbody { display: none; } .cc.open > .cbody { display: block; }
+.cc .cc-pg { display: none; } .cc .cc-pg.on { display: block; }
+.cc .sp-op:first-child { border-top: 0; }
+/* the Schema tab: a field tree */
+.cc .cc-sch { padding: 8px 6px 10px 8px; font-size: 12px; }
+.cc .sp-schbody > p { padding: 10px 12px; margin: 0; }
+.cc .cc-sh { display: flex; align-items: center; gap: 8px; padding: 2px 6px 8px; font-size: 11.5px; color: var(--muted); } .cc .cc-sh .sp { flex: 1; }
+.cc .cc-sh button { font: 500 11.5px var(--font); color: var(--accent); background: none; border: 0; cursor: pointer; padding: 2px 4px; border-radius: 4px; } .cc .cc-sh button:hover { background: var(--accent-soft); }
+.cc .cc-tr { list-style: none; margin: 0; padding: 0; } .cc .cc-tr ul { list-style: none; padding: 0 0 0 15px; border-left: 1px solid var(--line); margin: 0 0 0 12px; }
+.cc .cc-fr { display: flex; align-items: baseline; gap: 6px; min-height: 26px; padding: 3px 6px; border-radius: 5px; } .cc .cc-fr:hover { background: var(--surface-2); }
+.cc .cc-fr.used-r { background: color-mix(in srgb, var(--accent) 6%, var(--surface)); }
+.cc .cc-tg { width: 14px; height: 14px; flex: none; align-self: center; display: grid; place-items: center; border: 0; background: none; padding: 0; cursor: pointer; color: var(--muted); }
+.cc .cc-tg svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: transform .12s; }
+.cc .cc-tr li:not(.shut) > .cc-fr > .cc-tg svg { transform: rotate(90deg); } .cc .cc-tg.none { visibility: hidden; cursor: default; }
+.cc .cc-tg:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.cc li.shut > ul { display: none; }
+.cc .cc-fn { font: 600 12px var(--mono); color: var(--ink); } .cc .cc-fn.req::after { content: '*'; color: var(--bad); margin-left: 2px; }
+.cc .cc-ft { font: 500 11.5px var(--mono); color: var(--ink-2); } .cc .cc-ft.obj { color: var(--accent); } .cc .cc-ft.arr { color: var(--t-sqs); } .cc .cc-ft.ref { color: var(--t-eb); }
+.cc .cc-fx { font-size: 11px; color: var(--muted); margin-left: auto; padding-left: 8px; text-align: right; }
+.cc .cc-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex: none; align-self: center; display: inline-block; }
+.cc .cc-legend { display: flex; gap: 4px 12px; flex-wrap: wrap; padding: 7px 12px 9px; border-top: 1px solid var(--line); font-size: 11px; color: var(--muted); align-items: center; } .cc .cc-legend span { display: inline-flex; align-items: center; gap: 4px; }
+.cc .cc-legend .star { color: var(--bad); }
+/* the Key tab (Redis) */
+.cc dl.cc-kv { margin: 0; display: grid; grid-template-columns: 78px 1fr; gap: 7px 8px; padding: 10px 12px; font-size: 12px; } .cc dl.cc-kv dt { color: var(--muted); }
+.cc dl.cc-kv dd { margin: 0; font: 500 12px var(--mono); overflow-wrap: anywhere; } .cc dl.cc-kv dd small { font: 400 11px var(--font); color: var(--muted); display: block; }
+.cc .cc-ph { color: var(--accent); }
+.cc .cc-pg > .sp-nk { padding: 9px 12px; }
