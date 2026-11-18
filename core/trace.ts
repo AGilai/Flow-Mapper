@@ -27,7 +27,7 @@ import { bindingKeyOf, splitAmqpKey } from './amqp.ts';
 import { routeInfo, routeKey, rpcOf, rpcServed, withServer, type AmqpRoute, type RpcInfo } from './amqp-route.ts';
 import { clientAlias, deferHelpers, releaseHeld } from './trace-defer.ts';
 import { fanOutOrder } from './trace-order.ts';
-import { withAltDecisions } from './alt-decisions.ts'; import { callKey, firstExpansion, noteExpansion, type Expansions } from './trace-fold.ts'; import { altIndex, armChain, enterStep, newBook, NO_ARMS, withDecisions, type ArmState } from './alternatives.ts';
+import { withAltDecisions } from './alt-decisions.ts'; import { callKey, firstExpansion, noteExpansion, type Expansions } from './trace-fold.ts'; import { altIndex, armChain, enterIngress, enterStep, newBook, NO_ARMS, withDecisions, type ArmState } from './alternatives.ts';
 
 export type { Participant, Message, HopFilter, Trace, TraceOptions } from './trace-types.ts';
 import type { Message, Participant, HopFilter, Trace, TraceOptions } from './trace-types.ts'; import { externalField } from './external.ts';
@@ -222,15 +222,15 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
 
   // An ingress's middleware (in order) runs before its handler, each as an ordinary function visit; their messages carry `middleware`.
   const chainOf = (i: { service: string; middleware?: string[] }) => (i.middleware ?? []).filter((m) => g.fns.get(sid(i.service, m))).map((m) => ({ fn: m, name: g.fns.get(sid(i.service, m))!.name }));
-  const runIngress = (i: { service: string; middleware?: string[] }, handler: string, depth: number, stack: string[]) => {
-    const saved = mwCtx;
+  const runIngress = (i: Pick<Ingress, 'service' | 'middleware'> & { id?: string; fixes?: StepFix[] }, handler: string, depth: number, stack: string[]) => {
+    const saved = mwCtx, a0 = arms; if (altIx && i.id) arms = enterIngress(altIx, i as Ingress, arms); // CR #132: the ingress's own fixes hold below it
     chainOf(i).forEach((m, index) => {
       if (truncated || stack.includes(sid(i.service, m.fn))) return;
       mwCtx = { fn: m.fn, index };
       try { visitFn(i.service, m.fn, depth, [...stack, sid(i.service, m.fn)]); } finally { mwCtx = saved; }
     });
     mwCtx = null; // what the handler does (and every other service it reaches) is not middleware
-    try { visitFn(i.service, handler, depth, stack); } finally { mwCtx = saved; }
+    try { visitFn(i.service, handler, depth, stack); } finally { mwCtx = saved; arms = a0; }
   };
 
   // Deliver from `from` to a link target, expanding channels and crossing into other services.

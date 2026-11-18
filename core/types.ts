@@ -117,6 +117,8 @@ export interface Ingress {
   middleware?: string[];
   /** REST path parameters in path order (0.47.0). Absent: names are derived from the path (core/path-params.ts). */
   pathParams?: PathParam[];
+  /** CR #132: arms of alternatives groups this ingress fixes for the whole walk from it (a router handler shared by several routes). Same shape as a step's `fixes`; a nearer step fix wins. */
+  fixes?: StepFix[];
   events?: IngressEvent[];
   /** How the handler was resolved (registration, bind): hops from the registration to the handler. `details.handlerVia` is read too (core/via.ts). */
   via?: ViaHop[];

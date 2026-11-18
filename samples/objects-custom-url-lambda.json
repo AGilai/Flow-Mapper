@@ -1,0 +1,289 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "objects-custom-url-lambda",
+    "kind": "service",
+    "team": "platform",
+    "repo": "github.com/acme/objects-custom-url-lambda",
+    "language": "typescript",
+    "description": "CR #132 demo: one API Gateway Lambda, four route ingresses on the same index.ts#handler; each route ingress fixes its own arm of the router switch, so a route's flow shows only its arm",
+    "tags": [
+      "demo"
+    ]
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-18T08:00:00Z",
+  "commit": "b132132",
+  "functions": [
+    {
+      "id": "index.handler",
+      "name": "handler",
+      "file": "src/index.ts",
+      "line": 12,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "target": "listCustomUrls",
+          "source": {
+            "file": "src/index.ts",
+            "line": 20
+          },
+          "alternatives": [
+            {
+              "group_id": "objects-custom-url-router",
+              "name": "switch (event.routeKey): one arm per API Gateway route",
+              "name_source": "template",
+              "llm_name": null,
+              "llm_provenance": null,
+              "depends_on": "message",
+              "guard": {
+                "text": "event.routeKey",
+                "file": "src/index.ts",
+                "line": 14
+              },
+              "arms": [
+                {
+                  "arm": "list",
+                  "label": "GET /objects/custom-urls",
+                  "guard_text": "routeKey === 'GET /objects/custom-urls'",
+                  "step_ids": [
+                    "objects-custom-url-lambda:index.handler#1"
+                  ]
+                },
+                {
+                  "arm": "get",
+                  "label": "GET /objects/custom-urls/{id}",
+                  "guard_text": "routeKey === 'GET /objects/custom-urls/{id}'",
+                  "step_ids": [
+                    "objects-custom-url-lambda:index.handler#2"
+                  ]
+                },
+                {
+                  "arm": "create",
+                  "label": "POST /objects/custom-urls",
+                  "guard_text": "routeKey === 'POST /objects/custom-urls'",
+                  "step_ids": [
+                    "objects-custom-url-lambda:index.handler#3"
+                  ]
+                },
+                {
+                  "arm": "delete",
+                  "label": "DELETE /objects/custom-urls/{id}",
+                  "guard_text": "routeKey === 'DELETE /objects/custom-urls/{id}'",
+                  "step_ids": [
+                    "objects-custom-url-lambda:index.handler#4"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "type": "call",
+          "target": "getCustomUrl",
+          "source": {
+            "file": "src/index.ts",
+            "line": 34
+          }
+        },
+        {
+          "seq": 3,
+          "type": "call",
+          "target": "createCustomUrl",
+          "source": {
+            "file": "src/index.ts",
+            "line": 48
+          }
+        },
+        {
+          "seq": 4,
+          "type": "call",
+          "target": "deleteCustomUrl",
+          "source": {
+            "file": "src/index.ts",
+            "line": 62
+          }
+        }
+      ]
+    },
+    {
+      "id": "listCustomUrls",
+      "name": "listCustomUrls",
+      "file": "src/custom-urls.ts",
+      "line": 10,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "customUrlsTable",
+          "operation": "query",
+          "access": "read",
+          "source": {
+            "file": "src/custom-urls.ts",
+            "line": 14
+          }
+        }
+      ]
+    },
+    {
+      "id": "getCustomUrl",
+      "name": "getCustomUrl",
+      "file": "src/custom-urls.ts",
+      "line": 10,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "customUrlsTable",
+          "operation": "getItem",
+          "access": "read",
+          "source": {
+            "file": "src/custom-urls.ts",
+            "line": 14
+          }
+        }
+      ]
+    },
+    {
+      "id": "createCustomUrl",
+      "name": "createCustomUrl",
+      "file": "src/custom-urls.ts",
+      "line": 10,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "customUrlsTable",
+          "operation": "putItem",
+          "access": "write",
+          "source": {
+            "file": "src/custom-urls.ts",
+            "line": 14
+          }
+        }
+      ]
+    },
+    {
+      "id": "deleteCustomUrl",
+      "name": "deleteCustomUrl",
+      "file": "src/custom-urls.ts",
+      "line": 10,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "customUrlsTable",
+          "operation": "deleteItem",
+          "access": "write",
+          "source": {
+            "file": "src/custom-urls.ts",
+            "line": 14
+          }
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.list",
+      "bindKey": "http:GET objects-custom-url-lambda/objects/custom-urls",
+      "transport": "http",
+      "handler": "index.handler",
+      "entryPoint": true,
+      "details": {
+        "method": "GET",
+        "path": "/objects/custom-urls"
+      },
+      "fixes": [
+        {
+          "group_id": "objects-custom-url-router",
+          "arm": "list",
+          "source": {
+            "file": "src/index.ts",
+            "line": 14
+          },
+          "literal": "GET /objects/custom-urls"
+        }
+      ]
+    },
+    {
+      "id": "in.get",
+      "bindKey": "http:GET objects-custom-url-lambda/objects/custom-urls/{id}",
+      "transport": "http",
+      "handler": "index.handler",
+      "entryPoint": true,
+      "details": {
+        "method": "GET",
+        "path": "/objects/custom-urls/{id}"
+      },
+      "fixes": [
+        {
+          "group_id": "objects-custom-url-router",
+          "arm": "get",
+          "source": {
+            "file": "src/index.ts",
+            "line": 14
+          },
+          "literal": "GET /objects/custom-urls/{id}"
+        }
+      ]
+    },
+    {
+      "id": "in.create",
+      "bindKey": "http:POST objects-custom-url-lambda/objects/custom-urls",
+      "transport": "http",
+      "handler": "index.handler",
+      "entryPoint": true,
+      "details": {
+        "method": "POST",
+        "path": "/objects/custom-urls"
+      },
+      "fixes": [
+        {
+          "group_id": "objects-custom-url-router",
+          "arm": "create",
+          "source": {
+            "file": "src/index.ts",
+            "line": 14
+          },
+          "literal": "POST /objects/custom-urls"
+        }
+      ]
+    },
+    {
+      "id": "in.delete",
+      "bindKey": "http:DELETE objects-custom-url-lambda/objects/custom-urls/{id}",
+      "transport": "http",
+      "handler": "index.handler",
+      "entryPoint": true,
+      "details": {
+        "method": "DELETE",
+        "path": "/objects/custom-urls/{id}"
+      },
+      "fixes": [
+        {
+          "group_id": "objects-custom-url-router",
+          "arm": "delete",
+          "source": {
+            "file": "src/index.ts",
+            "line": 14
+          },
+          "literal": "DELETE /objects/custom-urls/{id}"
+        }
+      ]
+    }
+  ],
+  "egress": [],
+  "resources": [
+    {
+      "id": "customUrlsTable",
+      "kind": "dynamodb",
+      "name": "custom-urls",
+      "bindKey": "dynamodb:custom-urls"
+    }
+  ]
+}
