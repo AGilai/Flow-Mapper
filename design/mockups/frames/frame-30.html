@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frame 30 · Store panel: collection cards</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../shared.css">
+<style>
+/* Panel chrome and tokens match web/css/store-panel.css (.sp-*, .ep-head); the new parts are the collection card (.cc). */
+.f30 { display: flex; flex-wrap: wrap; gap: 24px; padding: 8px 24px 24px; align-items: flex-start; }
+.f30 figure { margin: 0; display: grid; gap: 8px; width: 400px; } .f30 figcaption { font-size: 12.5px; color: var(--ink-2); } .f30 figcaption b { color: var(--ink); }
+.f30 .pane { position: relative; width: 400px; height: 640px; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 10px; display: flex; flex-direction: column; overflow: hidden; box-shadow: var(--shadow-panel); font-size: 13px; line-height: 1.4; }
+.f30 .ep-head { padding: 12px 14px 10px; border-bottom: 1px solid var(--line); display: grid; gap: 6px; flex: none; }
+.f30 .ep-title { display: flex; align-items: center; gap: 8px; } .f30 .ep-sub { font-size: 11.5px; color: var(--muted); }
+.f30 .sp-title { margin: 0; font: 600 14.5px/1.3 var(--mono); flex: 1; }
+.f30 .x { width: 24px; height: 24px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 6px; color: var(--muted); }
+.f30 .store-chip { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 4px; font-size: 11.5px; font-weight: 700; background: var(--surface-2); color: var(--ink-2); }
+.f30 .scroll { flex: 1; overflow-y: auto; position: relative; padding: 0 14px 14px; }
+.f30 .sp-sum { font-size: 11.5px; color: var(--ink-2); line-height: 1.45; margin: 12px 0 10px; } .f30 .sp-sum b { color: var(--ink); }
+/* the card (no overflow: hidden, it would break the sticky header) */
+.f30 .cc { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); margin-bottom: 6px; }
+.f30 .cc.open { border-color: var(--line-strong); margin: 10px 0; }
+.f30 .cch { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 38px; padding: 6px 10px; border: 0; background: var(--surface); color: var(--ink); font: inherit; text-align: left; cursor: pointer; border-radius: 10px; }
+.f30 .cch:hover { background: var(--surface-2); } .f30 .cch:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.f30 .chv { width: 14px; height: 14px; flex: none; fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: transform .12s; } .f30 .open .chv { transform: rotate(90deg); }
+.f30 .cn { font: 600 12.5px var(--mono); flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.f30 .cnt { font: 500 11.5px var(--font); color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; } .f30 .cnt b { color: var(--ink-2); font-weight: 600; }
+.f30 .rw { display: inline-flex; gap: 3px; } .f30 .rw i { font: 700 10px/1 var(--font); font-style: normal; width: 18px; height: 18px; display: grid; place-items: center; border-radius: 4px; border: 1px solid var(--line-strong); color: var(--muted); background: var(--surface); }
+.f30 .rw i.r.on { color: var(--t-http); border-color: color-mix(in srgb, var(--t-http) 55%, var(--line)); background: color-mix(in srgb, var(--t-http) 10%, var(--surface)); }
+.f30 .rw i.w.on { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); background: var(--accent-soft); }
+.f30 .rw i.off { opacity: .45; border-style: dashed; }
+/* open card: pinned header = name row + meta + sub-tabs */
+.f30 .cchw { background: var(--surface); border-radius: 10px; }
+.f30 .open > .cchw { position: sticky; top: 0; z-index: 5; background: var(--surface-2); border-radius: 10px 10px 0 0; border-bottom: 1px solid var(--line-strong); box-shadow: 0 7px 9px -8px rgba(27,34,51,.4); }
+.f30 .open > .cchw .cch { background: transparent; border-radius: 10px 10px 0 0; padding-bottom: 2px; }
+.f30 .cmeta { display: flex; align-items: center; gap: 2px 10px; flex-wrap: wrap; padding: 0 10px 6px 32px; font-size: 11.5px; color: var(--muted); } .f30 .cmeta b { color: var(--ink-2); font: 600 11.5px var(--mono); }
+.f30 .tabs { display: flex; gap: 2px; padding: 0 10px; } .f30 .tab { font: 500 12px var(--font); height: 28px; padding: 0 10px; border: 0; background: none; color: var(--ink-2); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; display: inline-flex; align-items: center; gap: 6px; }
+.f30 .tab small { font: 600 10.5px var(--font); color: var(--muted); background: var(--surface); border: 1px solid var(--line); padding: 0 6px; border-radius: 9px; line-height: 16px; } .f30 .tab:hover { color: var(--ink); } .f30 .tab:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.f30 .tab[aria-selected='true'] { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; } .f30 .tab[aria-selected='true'] small { color: var(--accent); background: var(--accent-soft); border-color: transparent; }
+.f30 .cbody { display: none; } .f30 .open > .cbody { display: block; }
+.f30 .pg { display: none; } .f30 .pg.on { display: block; }
+/* calls */
+.f30 .op { padding: 9px 12px; display: grid; gap: 6px; border-top: 1px solid var(--line); } .f30 .pg > .op:first-child { border-top: 0; }
+.f30 .oph { display: flex; align-items: center; gap: 8px; } .f30 .opn { font: 600 12px var(--mono); flex: 1; }
+.f30 .acc { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 8px 0 6px; border-radius: 10px; font: 600 10.5px var(--font); border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); }
+.f30 .acc svg { width: 10px; height: 10px; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; } .f30 .acc.r svg { stroke: var(--t-http); } .f30 .acc.w svg { stroke: var(--accent); } .f30 .acc.w { background: var(--accent-soft); } .f30 .acc.d svg { stroke: var(--bad); } .f30 .acc.d { border-style: dashed; }
+.f30 .steps { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; } .f30 .steps .lb { font-size: 11.5px; color: var(--muted); margin-right: 2px; }
+.f30 .sc { font: 600 11px/1 var(--font); min-width: 26px; height: 22px; padding: 0 7px; border-radius: 11px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); cursor: pointer; font-variant-numeric: tabular-nums; } .f30 .sc:hover { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); } .f30 .sc.cur { background: var(--accent); border-color: var(--accent); color: var(--surface); } .f30 .sc:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.f30 .fl { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; } .f30 .fl i { font: normal 500 10.5px var(--font); color: var(--muted); margin-right: 2px; } .f30 .fp { font: 500 11.5px var(--mono); padding: 1px 7px; border-radius: 9px; background: var(--surface-2); border: 1px solid var(--line); }
+.f30 .code { display: flex; align-items: baseline; gap: 6px; font: 500 11.5px/1.4 var(--mono); min-width: 0; color: var(--accent); overflow-wrap: anywhere; } .f30 .code svg { width: 10px; height: 10px; fill: none; stroke: var(--muted); stroke-width: 1.4; flex: none; align-self: center; }
+/* schema tree */
+.f30 .sch { padding: 8px 6px 10px 8px; font-size: 12px; }
+.f30 .sh { display: flex; align-items: center; gap: 8px; padding: 2px 6px 8px; font-size: 11.5px; color: var(--muted); } .f30 .sh .sp { flex: 1; } .f30 .sh button { font: 500 11.5px var(--font); color: var(--accent); background: none; border: 0; cursor: pointer; padding: 2px 4px; border-radius: 4px; } .f30 .sh button:hover { background: var(--accent-soft); }
+.f30 .tr { list-style: none; margin: 0; padding: 0; } .f30 .tr ul { list-style: none; padding: 0 0 0 15px; border-left: 1px solid var(--line); margin: 0 0 0 12px; }
+.f30 .fr { display: flex; align-items: baseline; gap: 6px; min-height: 26px; padding: 3px 6px; border-radius: 5px; } .f30 .fr:hover { background: var(--surface-2); }
+.f30 .fr.used-r { background: color-mix(in srgb, var(--accent) 6%, var(--surface)); }
+.f30 .tg { width: 14px; height: 14px; flex: none; align-self: center; display: grid; place-items: center; border: 0; background: none; padding: 0; cursor: pointer; color: var(--muted); } .f30 .tg svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: transform .12s; } .f30 li:not(.shut) > .fr .tg svg { transform: rotate(90deg); } .f30 .tg.none { visibility: hidden; cursor: default; }
+.f30 li.shut > ul { display: none; }
+.f30 .fn { font: 600 12px var(--mono); color: var(--ink); } .f30 .fn.req::after { content: '*'; color: var(--bad); margin-left: 2px; }
+.f30 .ft { font: 500 11.5px var(--mono); color: var(--ink-2); } .f30 .ft.obj { color: var(--accent); } .f30 .ft.arr { color: var(--t-sqs); } .f30 .ft.ref { color: var(--t-eb); }
+.f30 .fx { font-size: 11px; color: var(--muted); margin-left: auto; padding-left: 8px; text-align: right; } .f30 .fx code { font-size: 10.5px; background: var(--surface-2); padding: 0 5px; border-radius: 4px; border: 1px solid var(--line); color: var(--ink-2); }
+.f30 .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex: none; align-self: center; display: inline-block; }
+.f30 .legend { display: flex; gap: 4px 12px; flex-wrap: wrap; padding: 7px 12px 9px; border-top: 1px solid var(--line); font-size: 11px; color: var(--muted); align-items: center; } .f30 .legend span { display: inline-flex; align-items: center; gap: 4px; }
+/* redis key tab */
+.f30 dl.kv { margin: 0; display: grid; grid-template-columns: 78px 1fr; gap: 7px 8px; padding: 10px 12px; font-size: 12px; } .f30 dl.kv dt { color: var(--muted); } .f30 dl.kv dd { margin: 0; font: 500 12px var(--mono); overflow-wrap: anywhere; } .f30 dl.kv dd small { font: 400 11px var(--font); color: var(--muted); display: block; }
+.f30 .ph { color: var(--accent); }
+.f30 .sp-ft { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 10px; display: grid; gap: 4px; } .f30 .sp-ft a { font-weight: 600; } .f30 .sp-ft small { color: var(--muted); font-size: 11.5px; }
+.f30 .toast { position: absolute; left: 14px; right: 14px; bottom: 12px; z-index: 9; background: var(--ink); color: var(--surface); font-size: 12px; padding: 7px 10px; border-radius: 8px; opacity: 0; pointer-events: none; transition: opacity .15s; } .f30 .toast.on { opacity: 1; }
+ol.decisions.w1 { columns: 1; max-width: 1180px; }
+</style>
+</head>
+<body>
+<nav class="fbar" aria-label="Design navigation"><a href="../design-env.html">← All designs</a><span class="pos">Frame 30 of 30</span><a href="frame-29.html">‹ prev</a><span class="off">next ›</span><span class="chip chip-approved">Proposal</span><div class="theme" role="group" aria-label="Theme"><button data-t="system" aria-pressed="true">System</button><button data-t="light" aria-pressed="false">Light</button><button data-t="dark" aria-pressed="false">Dark</button></div></nav>
+
+<div class="frame-label"><h2>Frame 30. Store panel: one collapsible card per collection (CR #136)</h2>
+<p>The Info panel of a data-store node in a flow trace ("p81 (9 collections)": this flow touches 9 collections, in 21 of 59 steps). Owner's ask: the 9-collection fold is good, but inside it everything is one long list with the schema at the bottom. Everything below is clickable: cards, tabs, step chips, schema nodes. Data is invented.</p>
+<ol class="decisions w1">
+<li><b>Collapsed by default.</b> One 38px row per collection: chevron, name, "N calls", and R / W markers (lit = this flow does it, dashed = it does not). Nine collections fit in one screen. Only one card is open at a time (opening another closes the first), so the pinned header is never ambiguous. The store summary stays on top.</li>
+<li><b>Pinned header.</b> An open card's header (name, store, call count, R/W, and the Calls / Schema tabs) is <span class="mono">position: sticky; top: 0</span> in the panel's own scroll. Scroll the content and the header stays; the tabs stay too, so switching Calls / Schema never needs a scroll back up. The card has no <span class="mono">overflow: hidden</span> (that would break sticky); the radius is on the header itself.</li>
+<li><b>Calls tab (default).</b> One row per operation in the code's own spelling (findById, find, updateOne...), with a read / write / delete mark, the fields it uses, the code location and step chips. A chip is a link: it jumps to that step in the trace and turns solid like today's. Sorted: writes first, then by first step.</li>
+<li><b>Schema tab.</b> A field tree, not a DDL dump: name (bold mono), type (colour by kind: object, array, reference), required star, a note ("unique", "default false", "index"). Nested objects are indented under a rail and collapse; arrays are marked <span class="mono">[]</span> with the element type; the first level of nesting is open, deeper levels are shut. Fields this flow actually reads or writes get a dot and a faint tint, so the schema answers "which of these does the flow touch". Expand / collapse all in its header. The store page keeps indexes and the other consumers (as today).</li>
+<li><b>Redis (30d).</b> Same card pattern for a key template. Tabs are Calls and Key: template with placeholders in accent, type, TTL (and where it is set), db, "also spelled" variants, and the registry line (as today's <span class="mono">sp-reg</span>). No schema tab: a Redis key has no field tree.</li>
+<li><b>Build notes.</b> Reuses the cards from <span class="mono">core/store-panel.js</span> (title, ops, steps, links, fields); the tree needs the parsed field list (name, type, nested, array, required) from the schema source <span class="mono">api.store</span> already returns, loaded on the first click of the tab as today. Open card and tab are not kept in the URL. Not drawn: schema loading and error states, a collection with no schema ("No schema for X yet." as today), phone width.</li>
+</ol></div>
+
+<div class="frame-label"><h3 style="font-size:var(--fs-md)">30a to 30d. Mongo store (a, b, c) and Redis store (d)</h3></div>
+<div class="f30" id="root"></div>
+
+<script>
+const ICON = { r: 'M5 1.5v7M2 5.8 5 8.8l3-3', w: 'M5 8.5v-7M2 4.2 5 1.2l3 3', d: 'M2 2l6 6M8 2 2 8' }, WORD = { r: 'read', w: 'write', d: 'delete' };
+const CH = '<svg class="chv" viewBox="0 0 14 14"><path d="M5 3l4 4-4 4"/></svg>';
+const acc = (a) => `<span class="acc ${a}"><svg viewBox="0 0 10 10"><path d="${ICON[a]}"/></svg>${WORD[a]}</span>`;
+const op = (n, a, steps, flds, code) => ({ n, a, steps, flds, code });
+const F = (n, t, k = '', x = '', used = 0, req = 0, kids = null) => [n, t, k, x, used, req, kids]; // name, type, kind (obj|arr|ref), note, touched, required, children
+const MONGO = [
+ { name: '_User', op: [
+   op('findById', 'r', [4, 12, 31, 33], ['_id', 'email', 'roles'], 'src/auth/session.ts:88'),
+   op('find', 'r', [6, 7, 19], ['emailVerified', 'accountId', 'limit 50'], 'src/users/list.ts:41'),
+   op('findOne', 'r', [3, 21], ['email'], 'src/auth/login.ts:57'),
+   op('updateOne', 'w', [14, 15], ['$set lastLoginAt', '$inc loginCount'], 'src/auth/login.ts:112'),
+   op('insertOne', 'w', [9], ['email', 'accountId', 'roles', 'createdAt'], 'src/users/create.ts:30'),
+   op('countDocuments', 'r', [44], ['accountId'], 'src/billing/seats.ts:19')] },
+ { name: 'Account', op: [op('findById', 'r', [4, 22], ['_id', 'plan', 'limits'], 'src/billing/account.ts:23'), op('updateOne', 'w', [30], ['$set plan'], 'src/billing/upgrade.ts:64')],
+   sch: [F('_id', 'ObjectId', '', 'primary key', 1, 1), F('name', 'string', '', '', 0, 1), F('plan', 'string', '', 'free | team | enterprise', 1, 1), F('limits', 'object', 'obj', '', 1, 0, [F('seats', 'number', '', '', 1), F('agents', 'number')]), F('ownerId', '_User', 'ref')] },
+ { name: 'AgentBuild', op: [op('find', 'r', [8, 17, 25], ['accountId', 'status', 'sort -createdAt'], 'src/agents/builds.ts:52'), op('insertOne', 'w', [27], ['accountId', 'version', 'status'], 'src/agents/publish.ts:90'), op('updateOne', 'w', [41, 52], ['$set status', '$push log'], 'src/agents/worker.ts:140'), op('deleteMany', 'd', [58], ['createdAt < ttl'], 'src/agents/gc.ts:12')],
+   sch: [F('_id', 'ObjectId', '', 'primary key', 0, 1), F('accountId', 'Account', 'ref', 'index', 1, 1), F('version', 'string', '', '', 1, 1), F('status', 'string', '', 'queued | running | done | failed', 1, 1),
+     F('spec', 'object', 'obj', '', 0, 0, [F('runtime', 'string', '', 'node20 | python3', 0, 1), F('entry', 'string'), F('env', 'object', 'obj', 'free-form', 0, 0, [F('name', 'string'), F('secretRef', 'string')])]),
+     F('log', 'object[]', 'arr', '', 1, 0, [F('at', 'date'), F('line', 'string'), F('level', 'string', '', 'info | warn | error')]), F('artifacts', 'string[]', 'arr', 'S3 keys'), F('createdAt', 'date', '', 'index', 1, 1)] },
+ { name: 'FeatureFlagKeysGA', op: [op('findOne', 'r', [2, 10], ['key'], 'src/flags/lookup.ts:15'), op('find', 'r', [11], ['enabled: true'], 'src/flags/all.ts:9')], sch: [F('key', 'string', '', '<code>unique</code>', 1, 1), F('enabled', 'boolean', '', '', 1), F('rollout', 'number', '', 'percent')] },
+ { name: 'Session', op: [op('findOne', 'r', [5, 13, 32], ['token'], 'src/auth/session.ts:40'), op('insertOne', 'w', [16], ['token', 'userId', 'expiresAt'], 'src/auth/login.ts:130'), op('deleteOne', 'd', [49], ['token'], 'src/auth/logout.ts:22')], sch: [F('token', 'string', '', '<code>unique</code>', 1, 1), F('userId', '_User', 'ref', '', 1, 1), F('expiresAt', 'date', '', 'TTL index', 1, 1)] },
+ { name: 'Installation', op: [op('find', 'r', [18, 29], ['accountId'], 'src/apps/installs.ts:33'), op('updateOne', 'w', [34], ['$set config'], 'src/apps/config.ts:71')], sch: [F('accountId', 'Account', 'ref', 'index', 1, 1), F('appId', 'string', '', '', 0, 1), F('config', 'object', 'obj', 'free-form', 1)] },
+ { name: 'Role', op: [op('find', 'r', [20], ['_id in ids'], 'src/auth/roles.ts:27')], sch: [F('_id', 'ObjectId', '', '', 1, 1), F('name', 'string', '', '', 0, 1), F('permissions', 'string[]', 'arr', '')] },
+ { name: 'AuditLog', op: [op('insertOne', 'w', [15, 28, 35, 53], ['actor', 'action', 'at'], 'src/audit/log.ts:18')], sch: [F('actor', '_User', 'ref', '', 1, 1), F('action', 'string', '', '', 1, 1), F('at', 'date', '', 'index', 1, 1), F('detail', 'object', 'obj', '')] },
+ { name: 'Job', op: [op('findOneAndUpdate', 'w', [38, 46], ['status: queued', '$set status'], 'src/jobs/claim.ts:61'), op('updateOne', 'w', [55], ['$set status'], 'src/jobs/done.ts:44')], sch: [F('_id', 'ObjectId', '', '', 1, 1), F('type', 'string', '', '', 0, 1), F('status', 'string', '', 'queued | claimed | done', 1, 1), F('claimedBy', 'string', '', '', 1)] }
+];
+MONGO[0].sch = [F('_id', 'ObjectId', '', 'primary key', 1, 1), F('email', 'string', '', '<code>unique</code> lowercase', 1, 1), F('emailVerified', 'boolean', '', 'default false', 1), F('accountId', 'Account', 'ref', 'index', 1, 1), F('roles', 'Role[]', 'arr', 'refs Role', 1),
+  F('profile', 'object', 'obj', '', 0, 0, [F('displayName', 'string'), F('locale', 'string', '', 'default "en"'), F('avatar', 'object', 'obj', '', 0, 0, [F('url', 'string'), F('updatedAt', 'date')])]),
+  F('devices', 'object[]', 'arr', '', 0, 0, [F('deviceId', 'string', '', '', 0, 1), F('pushToken', 'string'), F('lastSeenAt', 'date')]), F('lastLoginAt', 'date', '', '', 1), F('loginCount', 'number', '', 'default 0', 1), F('createdAt', 'date', '', '', 1, 1)];
+const REDIS = [
+ { name: 'sess:{accountId}:{token}', op: [op('GET', 'r', [5, 13], [], 'src/auth/session.ts:44'), op('SET', 'w', [16], ['EX 3600'], 'src/auth/login.ts:134'), op('EXPIRE', 'w', [14], [], 'src/auth/login.ts:140'), op('DEL', 'd', [49], [], 'src/auth/logout.ts:25')], key: { type: 'string', ttl: '1 h', note: 'set by SET ... EX in login.ts', db: '0', alt: ['sess:{acct}:{tok}'], reg: 'Registered as p81-session, owner auth-svc' } },
+ { name: 'flags:{accountId}', op: [op('HGETALL', 'r', [2, 10], [], 'src/flags/lookup.ts:15'), op('HSET', 'w', [11], ['hash fields'], 'src/flags/refresh.ts:40')], key: { type: 'hash', ttl: '5 min', note: 'EXPIRE after HSET', db: '0', alt: [], reg: 'Registered as p81-flags, owner flags-svc' } },
+ { name: 'rate:{ip}', op: [op('INCR', 'w', [3, 21], [], 'src/edge/limit.ts:18'), op('EXPIRE', 'w', [3], ['NX'], 'src/edge/limit.ts:20')], key: { type: 'string (counter)', ttl: '60 s', note: 'EXPIRE NX on the first INCR', db: '1', alt: [], reg: 'Not registered' } },
+ { name: 'jobs:queue', op: [op('LPUSH', 'w', [27], [], 'src/jobs/enqueue.ts:33'), op('BRPOP', 'r', [38], [], 'src/jobs/claim.ts:50')], key: { type: 'list', ttl: 'none', note: '', db: '0', alt: [], reg: 'Registered as p81-jobs, owner worker-svc' } }
+];
+const rw = (c) => { const s = new Set(c.op.map((o) => o.a)); return `<span class="rw" title="${[...s].map((a) => WORD[a]).join(', ')}"><i class="r ${s.has('r') ? 'on' : 'off'}">R</i><i class="w ${s.has('w') || s.has('d') ? 'on' : 'off'}">W</i></span>`; };
+const calls = (c) => c.op.length, nsteps = (c) => new Set(c.op.flatMap((o) => o.steps)).size;
+const stepsRow = (o) => `<div class="steps"><span class="lb">${o.steps.length === 1 ? 'step' : 'steps'}</span>${o.steps.map((n) => `<button class="sc" data-n="${n}" title="Go to step ${n}">${n}</button>`).join('')}</div>`;
+const opRow = (o) => `<div class="op"><div class="oph"><span class="opn">${o.n}</span>${acc(o.a)}</div>${stepsRow(o)}${o.flds.length ? `<div class="fl"><i>Fields</i>${o.flds.map((f) => `<span class="fp">${f}</span>`).join('')}</div>` : ''}<div class="code"><svg viewBox="0 0 10 10"><path d="M2 1h4l2 2v6H2zM6 1v2h2"/></svg>${o.code}</div></div>`;
+const tree = (fs, deep) => `<ul class="tr">${fs.map(([n, t, k, x, used, req, kids]) => `<li class="${kids && deep ? 'shut' : ''}"><div class="fr ${used ? 'used-r' : ''}">${kids ? `<button class="tg" aria-label="Toggle ${n}"><svg viewBox="0 0 12 12"><path d="M4 2l4 4-4 4"/></svg></button>` : '<span class="tg none"></span>'}<span class="fn ${req ? 'req' : ''}">${n}</span><span class="ft ${k}">${t}</span>${used ? '<span class="dot" title="This flow reads or writes it"></span>' : ''}<span class="fx">${x}</span></div>${kids ? tree(kids, true) : ''}</li>`).join('')}</ul>`;
+const rank = (a) => (a === 'r' ? 1 : 0);
+function card(c, open, redis, tab) {
+  const head = `<div class="cchw"><button class="cch" aria-expanded="${open}">${CH}<span class="cn">${c.name}</span><span class="cnt"><b>${calls(c)}</b> ${calls(c) === 1 ? 'call' : 'calls'}</span>${rw(c)}</button>`;
+  if (!open) return `<section class="cc" data-name="${c.name}">${head}</div></section>`;
+  const second = redis ? 'key' : 'schema';
+  const bar = `<div class="cmeta"><span>${redis ? 'key in' : 'collection of'} <b>${redis ? 'p81-cache' : 'p81'}</b></span><span>${nsteps(c)} step${nsteps(c) === 1 ? '' : 's'} in this flow</span></div><div class="tabs" role="tablist"><button class="tab" role="tab" data-p="calls">Calls <small>${calls(c)}</small></button><button class="tab" role="tab" data-p="${second}">${redis ? 'Key' : 'Schema'}${redis ? '' : ` <small>${c.sch.length}</small>`}</button></div></div>`;
+  const callsPg = `<div class="pg" data-pg="calls">${[...c.op].sort((a, b) => rank(a.a) - rank(b.a) || a.steps[0] - b.steps[0]).map(opRow).join('')}</div>`;
+  const k = c.key, second_ = redis
+    ? `<div class="pg" data-pg="key"><dl class="kv"><dt>Template</dt><dd>${c.name.replace(/\{(\w+)\}/g, '<span class="ph">{$1}</span>')}</dd><dt>Type</dt><dd>${k.type}</dd><dt>TTL</dt><dd>${k.ttl}${k.note ? `<small>${k.note}</small>` : ''}</dd><dt>db</dt><dd>${k.db}</dd>${k.alt.length ? `<dt>Also spelled</dt><dd>${k.alt.join(', ')}</dd>` : ''}</dl><div class="legend"><span>${k.reg}</span></div></div>`
+    : `<div class="pg" data-pg="schema"><div class="sch"><div class="sh"><span>${c.sch.length} fields</span><span class="sp"></span><button data-all="open">Expand all</button><button data-all="shut">Collapse all</button></div>${tree(c.sch, false)}</div><div class="legend"><span><span class="dot"></span> touched by this flow</span><span><b style="color:var(--bad)">*</b> required</span><span><span class="ft arr">[]</span> array</span><span><span class="ft ref">Name</span> reference</span></div></div>`;
+  const html = `<section class="cc open" data-name="${c.name}">${head}${bar}<div class="cbody">${callsPg}${second_}</div></section>`;
+  return html.replace(new RegExp(`(data-p="${tab}")`), '$1 aria-selected="true"').replace(new RegExp(`class="pg" data-pg="${tab}"`), `class="pg on" data-pg="${tab}"`);
+}
+const lists = { mongo: MONGO, redis: REDIS };
+function pane(id, kind, openName, tab, cap) {
+  const redis = kind === 'redis', list = lists[kind];
+  return `<figure><div class="pane" id="${id}" data-kind="${kind}"><div class="ep-head"><div class="ep-title"><span class="store-chip">${redis ? 'Redis' : 'MongoDB'}</span><h4 class="sp-title">${redis ? 'p81-cache' : 'p81 (9 collections)'}</h4><span class="x">×</span></div><div class="ep-sub">${redis ? 'Redis instance · prod' : 'MongoDB store · prod'}</div></div>
+  <div class="scroll"><p class="sp-sum">This flow touches <b>${list.length} ${redis ? 'keys' : 'collections'}</b> in this store, in <b>${redis ? '17 of 59' : '21 of 59'}</b> steps. <b>${list.filter((c) => c.op.some((o) => o.a !== 'r')).length}</b> of them are written.</p>
+  <div class="cards">${list.map((c) => card(c, c.name === openName, redis, tab)).join('')}</div>
+  <div class="sp-ft"><a href="#" onclick="return false">Open ${redis ? 'p81-cache · all keys' : 'p81'} →</a><small>${redis ? 'The store page lists every key, owner and TTL.' : 'The store page has indexes and every service that uses these collections.'}</small></div></div><div class="toast"></div></div><figcaption>${cap}</figcaption></figure>`;
+}
+document.getElementById('root').innerHTML =
+  pane('a', 'mongo', null, 'calls', '<b>30a. All collapsed (default).</b> Nine rows fit in one screen: name, call count, R / W. Click one to open it.') +
+  pane('b', 'mongo', '_User', 'calls', '<b>30b. _User open, Calls tab, scrolled.</b> The summary has scrolled away; the card header and its tabs stay pinned. Chips jump to the step.') +
+  pane('c', 'mongo', 'AgentBuild', 'schema', '<b>30c. AgentBuild, Schema tab.</b> Nested objects and arrays indent and collapse (try spec, log); a dot marks fields this flow touches.') +
+  pane('d', 'redis', 'sess:{accountId}:{token}', 'key', '<b>30d. Redis, several keys.</b> Same card; the tabs are Calls and Key (template, type, TTL, db, spellings, registry).');
+const tabOf = new Map();
+document.addEventListener('click', (e) => {
+  const pn = e.target.closest('.pane'); if (!pn) return;
+  const kind = pn.dataset.kind, scroll = pn.querySelector('.scroll');
+  const tg = e.target.closest('.tg:not(.none)'); if (tg) { tg.closest('li').classList.toggle('shut'); return; }
+  const all = e.target.closest('[data-all]'); if (all) { all.closest('.cc').querySelectorAll('li:has(> ul)').forEach((li) => li.classList.toggle('shut', all.dataset.all === 'shut')); return; }
+  const tab = e.target.closest('.tab'); if (tab) { const cc = tab.closest('.cc'); cc.querySelectorAll('.tab').forEach((t) => t.setAttribute('aria-selected', String(t === tab))); cc.querySelectorAll('.pg').forEach((g) => g.classList.toggle('on', g.dataset.pg === tab.dataset.p)); return; }
+  const sc = e.target.closest('.sc'); if (sc) { pn.querySelectorAll('.sc.cur').forEach((x) => x.classList.remove('cur')); pn.querySelectorAll(`.sc[data-n="${sc.dataset.n}"]`).forEach((x) => x.classList.add('cur')); const t = pn.querySelector('.toast'); t.textContent = `The trace jumps to step ${sc.dataset.n}`; t.classList.add('on'); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('on'), 1400); return; }
+  const head = e.target.closest('.cch'); if (!head) return;
+  const name = head.closest('.cc').dataset.name, was = head.closest('.cc').classList.contains('open'), redis = kind === 'redis';
+  pn.querySelector('.cards').innerHTML = lists[kind].map((c) => card(c, !was && c.name === name, redis, 'calls')).join('');
+  if (!was) { const n = pn.querySelector('.cc.open'); const top = n.offsetTop - pn.querySelector('.cards').offsetTop; scroll.scrollTop = Math.min(scroll.scrollTop, Math.max(top - 6 + 40, 0)); n.scrollIntoView({ block: 'nearest' }); }
+});
+// #shot (for screenshots): scroll pane b so the pinned header is visible over the content
+if (location.hash === '#shot') document.querySelector('#b .scroll').scrollTop = 250;
+document.querySelectorAll('.theme button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.theme button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  if (b.dataset.t === 'system') document.documentElement.removeAttribute('data-theme'); else document.documentElement.dataset.theme = b.dataset.t;
+}));
+</script>
+</body>
+</html>
