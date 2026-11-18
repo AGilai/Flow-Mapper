@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased
+## 0.62.0 (2026-11-18): Invite people (#134), calm open ends (#135), store collection cards (#136), ingress fixes (#132), Drivers unresolved rows (#133)
 
 - CR #134 (additive, cognito mode only): admin page "Invite people" in the user menu. `POST /api/admin/invites {emails, resend?}` and `GET /api/admin/invites` (admin only; `404` with `FLOW_AUTH=off`) call Cognito AdminCreateUser / ListUsers with a built-in SigV4 client. New optional env `FLOW_COGNITO_USER_POOL_ID` (else derived from `FLOW_COGNITO_ISSUER`); the stack gives the instance role the three cognito-idp actions on its pool (existing deployments: update `flows-bootstrap.yaml` first). See API.md "Accounts, tokens and access".
 - #133 (UI and export only): Drivers > Unresolved states what its rows are. The CSV export gains columns `resource id` and `field` (before `filter`, which moves to the end) and fills `resources` (1) on unresolved rows, so one unresolved client per collection is told apart. The Markdown report groups unresolved rows per component and reason with a resource list.
