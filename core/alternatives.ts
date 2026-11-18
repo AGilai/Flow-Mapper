@@ -7,7 +7,7 @@
 // arms and their step ids are united).
 
 import type { GraphIndex } from './graph-index.ts';
-import type { Step } from './types.ts';
+import type { Step, StepFix } from './types.ts';
 import type { Decision, Message, Trace } from './trace-types.ts';
 import { altsOf, fixesOf } from './step-marks.ts';
 import { stepKeys } from './description.ts';
@@ -62,6 +62,14 @@ export function altIndex(g: GraphIndex): AltIndex | null {
 /** What the decisions of a trace need while it is walked: where each group was reached, and with which fixes. */
 export interface Book { places: Map<string, { fixed: (Fixed | undefined)[]; parent?: { group_id: string; arm: string } }> }
 export const newBook = (): Book => ({ places: new Map() });
+
+/** CR #132: an ingress's own `fixes` hold for the whole walk from it (a router handler shared by several routes); they replace what a farther caller fixed, and a nearer step's fix still wins. */
+export function enterIngress(ix: AltIndex, ing: { service: string; id: string; fixes?: StepFix[] }, state: ArmState): ArmState {
+  if (!Array.isArray(ing.fixes) || !ing.fixes.length) return state;
+  const m = new Map(state.fixes);
+  for (const x of ing.fixes) if (ix.groups.has(x.group_id) && x.arm) m.set(x.group_id, { arm: x.arm, at: `${ing.service}:${ing.id}`, ...(x.source ? { source: x.source } : {}), ...(x.literal !== undefined ? { literal: x.literal } : {}) });
+  return { path: state.path, fixes: m };
+}
 
 /**
  * Enter a step: the state it runs under (the arm path with the arms its id puts it in, the fixes it adds) and whether it is skipped

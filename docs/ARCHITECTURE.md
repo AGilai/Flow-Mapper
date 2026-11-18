@@ -50,6 +50,7 @@ UI / agent ── GET /api/envs/:env/... ─► server/routes/queries.ts ─► 
 | `health.ts` | link-health report |
 | `search.ts` | text search |
 | `harvest-quality.ts` | what harvesters report: unresolved items (with possible matches), mixed commits, drift |
+| `contract-ingress-fixes.ts` | CR #132 contract rule: an ingress's `fixes` name a known group and arm, and the group is reached from it |
 | `contract.ts` | contract report for an ingested manifest: what it leaves out or cannot link, with a fix per finding |
 | `inventory.ts` | every object in one list for the Inventory page |
 | `stores.ts` | data stores: keys and groups, read/write access, store view |

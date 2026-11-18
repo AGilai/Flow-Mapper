@@ -6,8 +6,9 @@ import { itemsOf, type GraphIndex } from './graph-index.ts';
 import { boundValues } from './events.ts';
 import { filterAllows, keyMatches } from './glob.ts';
 import { driftOf, mixedCommitsOf } from './harvest-quality.ts';
-import type { Assumed, ClientInfo, Source, Unresolved } from './types.ts';
+import type { Assumed, ClientInfo, Source, StepFix, Unresolved } from './types.ts';
 import { assumedField } from './assumed.ts';
+import { ingressFixFindings } from './contract-ingress-fixes.ts';
 
 export type Level = 'error' | 'warn' | 'info';
 export interface Finding {
@@ -22,7 +23,7 @@ export interface ServiceManifest {
   service: string;
   functions?: { id: string; file?: string; unresolved?: Unresolved[]; assumed?: Assumed[]; steps?: { seq: number; type: string; target?: string; unresolved?: Unresolved[]; assumed?: Assumed[]; fields?: { path: string; inDdl?: boolean }[] }[] }[];
   resources?: { id: string; client?: ClientInfo; unresolved?: Unresolved[]; assumed?: Assumed[] }[];
-  ingress?: { id: string; bindKey?: string; source?: Source; unresolved?: Unresolved[]; assumed?: Assumed[] }[];
+  ingress?: { id: string; bindKey?: string; fixes?: StepFix[]; source?: Source; unresolved?: Unresolved[]; assumed?: Assumed[] }[];
   egress?: { id: string; bindKey?: string; transport: string; events?: string[]; client?: ClientInfo; source?: Source; unresolved?: Unresolved[]; assumed?: Assumed[] }[];
   bindings?: { id: string; from: string; match?: 'exact' | 'glob' | 'amqp-topic'; events?: '*' | string[]; source?: Source }[];
 }
@@ -192,7 +193,9 @@ const clientGaps: Rule = ({ m, add }) => {
   for (const e of m.egress ?? []) check('egress', e.id, e.client, e.unresolved);
 };
 
-export const RULES: Rule[] = [unresolvedNoDetail, assumedAndUnresolved, clientGaps, missingSource, fieldNotInDdl, bindingNoEvents, bindingEmptyEvents, egressNoEvents, eventFromUnbound, dangling, filterMatchesNothing, harvestQuality];
+const ingressFixes: Rule = ({ m, g, add }) => ingressFixFindings(m, g, add);
+
+export const RULES: Rule[] = [unresolvedNoDetail, assumedAndUnresolved, clientGaps, missingSource, fieldNotInDdl, bindingNoEvents, bindingEmptyEvents, egressNoEvents, eventFromUnbound, dangling, filterMatchesNothing, harvestQuality, ingressFixes];
 
 /** `m`: the service's entities as stored; `g`: the env's index after applying them. */
 export function contractReport(m: ServiceManifest, g: GraphIndex): ContractReport {
