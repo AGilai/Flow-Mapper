@@ -38,6 +38,7 @@ import { authFromEnv, checkAuth, type AuthOptions } from './auth/options.ts';
 import { registerAuthGate } from './auth/gate.ts';
 import { registerOidc } from './auth/oidc.ts';
 import { registerAccounts } from './routes/accounts.ts';
+import { registerInvites } from './routes/invites.ts';
 import { safeEq } from './auth/sessions.ts';
 
 export const APP_VERSION: string = JSON.parse(readFileSync(join(import.meta.dirname, '../package.json'), 'utf8')).version;
@@ -70,6 +71,7 @@ export function createApp(opts: AppOptions): { server: Server; ctx: Ctx; router:
   registerAuthGate(router, ctx, auth);
   if (auth.mode === 'cognito') registerOidc(router, ctx, auth);
   registerAccounts(router, ctx, auth);
+  registerInvites(router, auth);
   registerEnvs(router, ctx);
   registerEnvTransfer(router, ctx);
   registerMap(router, ctx);

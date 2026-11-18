@@ -71,6 +71,10 @@ Resources:
               StringEquals:
                 'kms:ViaService': !Sub 'ssm.${FlowsRegion}.amazonaws.com'
                 'kms:CallerAccount': !Ref 'AWS::AccountId'
+          - Sid: CognitoInviteUsers # the "Invite people" page (CR #134): the instance role may invite and list users of a pool in this account and region
+            Effect: Allow
+            Action: ['cognito-idp:AdminCreateUser', 'cognito-idp:AdminGetUser', 'cognito-idp:ListUsers']
+            Resource: !Sub 'arn:${AWS::Partition}:cognito-idp:${FlowsRegion}:${AWS::AccountId}:userpool/*'
           - Sid: SecretsDeployKey # optional private-repo deploy key; the secret must be named flows-... or flows/...
             Effect: Allow
             Action: 'secretsmanager:GetSecretValue'

@@ -154,6 +154,8 @@ const remote = {
   tokens: () => http('GET', '/api/tokens'),
   createToken: (body) => http('POST', '/api/tokens', body),
   revokeToken: (id) => http('DELETE', `/api/tokens/${e(id)}`),
+  invite: (body) => http('POST', '/api/admin/invites', body),
+  invitees: () => http('GET', '/api/admin/invites'),
 };
 
 export const api = new Proxy({}, {

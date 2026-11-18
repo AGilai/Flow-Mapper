@@ -243,6 +243,10 @@ Resources:
                 Resource: '*'
                 Condition:
                   StringEquals: {'kms:ViaService': !Sub 'ssm.${AWS::Region}.amazonaws.com'}
+              # The "Invite people" admin page (CR #134): invite, look up and list users of this stack's pool only.
+              - Effect: Allow
+                Action: ['cognito-idp:AdminCreateUser', 'cognito-idp:AdminGetUser', 'cognito-idp:ListUsers']
+                Resource: !GetAtt UserPool.Arn
               - !If
                 - HasKey
                 - {Effect: Allow, Action: 'secretsmanager:GetSecretValue', Resource: !Ref GitHubDeployKeySecretArn}
@@ -329,6 +333,7 @@ Resources:
       Value: !Join
         - "\n"
         - - !Sub 'FLOW_COGNITO_ISSUER=https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}'
+          - !Sub 'FLOW_COGNITO_USER_POOL_ID=${UserPool}'
           - !Sub 'FLOW_COGNITO_CLIENT_ID=${UserPoolClient}'
           - !Sub 'FLOW_COGNITO_DOMAIN=https://${UserPoolDomain}.auth.${AWS::Region}.amazoncognito.com'
           - !Sub 'FLOW_ADMIN_EMAIL=${AdminEmail}'

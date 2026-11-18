@@ -8,6 +8,7 @@ import { loadUsers, me, signOut, watchUsers } from './directory.js';
 import { userAvatar } from './avatar.js';
 import { signIn } from './signin.js';
 import { account, isCognito } from '../account.js';
+import { inviteDialog } from './invite-dialog.js';
 
 export function userButton() {
   let pop = null;
@@ -39,7 +40,7 @@ export function userButton() {
       if (to !== undefined) { e.preventDefault(); rows[(to + rows.length) % rows.length].focus(); }
     } } },
       h('div.u-menu-who', userAvatar(u, 'l'), h('div', h('b', u.name), h('small', isCognito() ? (u.email ?? '') : 'signed in on this browser'), isCognito() && account.admin ? h('em.ac-vb', 'Admin') : null)),
-      ...(isCognito() ? [item('Tokens', () => { location.hash = '#/tokens'; }, 'um-tokens'), item('Users', () => { location.hash = '#/users'; }, 'um-users'), item('Sign out', () => { location.href = '/auth/logout'; }, 'um-out', 'd')]
+      ...(isCognito() ? [item('Tokens', () => { location.hash = '#/tokens'; }, 'um-tokens'), item('Users', () => { location.hash = '#/users'; }, 'um-users'), ...(account.admin ? [item('Invite people', () => inviteDialog(), 'um-invite')] : []), item('Sign out', () => { location.href = '/auth/logout'; }, 'um-out', 'd')]
         : [item('Switch user', () => signIn(), 'um-switch'), item('Users', () => { location.hash = '#/users'; }, 'um-users'), item('Sign out', () => signOut(), 'um-out', 'd')]));
     wrap.append(pop);
     place();
