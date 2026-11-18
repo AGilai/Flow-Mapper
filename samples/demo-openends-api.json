@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "demo-openends-api",
+    "kind": "service",
+    "team": "network-edge",
+    "description": "Demo (#135): an entry point with 1 open end in its own service and 3 in the service it calls. The list chip says '1 open end'; the trace header says '1 open end · 3 in called services'."
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-18T08:00:00Z",
+  "commit": "135a001",
+  "functions": [
+    {
+      "id": "handle",
+      "name": "handle",
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "out.lookup"
+        },
+        {
+          "seq": 2,
+          "type": "call",
+          "note": "this.audit",
+          "source": { "file": "src/handler.ts", "line": 18 },
+          "unresolved": [
+            { "what": "target", "reason": "no-receiver-type", "detail": "this.audit(req)", "gap": true, "plain": "receiver type unknown" }
+          ]
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.run",
+      "bindKey": "http:POST demo-openends-api/run",
+      "transport": "http",
+      "handler": "handle",
+      "entryPoint": true,
+      "details": {
+        "coverage": {
+          "status": "incomplete",
+          "blocked": 1,
+          "sites": [
+            { "fn": "handle", "seq": 2, "file": "src/handler.ts", "line": 18, "call": "this.audit(req)", "reason": "no-receiver-type", "plain": "receiver type unknown" }
+          ]
+        }
+      }
+    }
+  ],
+  "egress": [
+    {
+      "id": "out.lookup",
+      "bindKey": "http:GET demo-openends-lib/lookup",
+      "transport": "http",
+      "mode": "sync"
+    }
+  ],
+  "resources": [],
+  "channels": []
+}

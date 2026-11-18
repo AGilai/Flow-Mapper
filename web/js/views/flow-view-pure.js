@@ -8,11 +8,14 @@ import { BAR_DEFAULT } from './step-details-pure.js';
 export const captionOn = (st) => readKey('flow-caption2', st) !== '0';
 export const captionSave = (on, st) => writeKey('flow-caption2', on ? '1' : '0', st);
 export const legendOn = (st) => readKey('flow-legend', st) !== '0';
+/** #135: "Show coverage warnings" (the open-ends chips of the Flows list and the trace header) is on unless the viewer turned it off (`flow-mapper.coverage-warn`: '0' = off). */
+export const coverageOn = (st) => readKey('coverage-warn', st) !== '0';
+export const coverageSave = (on, st) => writeKey('coverage-warn', on ? '1' : '0', st);
 export const legendSave = (on, st) => writeKey('flow-legend', on ? '1' : '0', st);
 
 /**
  * The options that differ from their default, as a list of names (its length is the count on the View button).
- * o: { bands (null when the environment has no subsystems), stores, frontier, merge, squeeze, hints, hintsDefault, depth, sb, sd, sdDefault, size, hideText, caption, legend }.
+ * o: { bands (null when the environment has no subsystems), stores, frontier, merge, squeeze, hints, hintsDefault, depth, sb, sd, sdDefault, size, hideText, caption, legend, coverage }.
  */
 export function nonDefault(o) {
   const out = [];
@@ -28,5 +31,6 @@ export function nonDefault(o) {
   if (o.hideText) out.push('Hide text');
   if (o.caption === false) out.push('Call notes');
   if (o.legend === false) out.push('Legend');
+  if (o.coverage === false) out.push('Coverage warnings');
   return out;
 }

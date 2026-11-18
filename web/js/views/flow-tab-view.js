@@ -18,7 +18,7 @@ import { headBadge } from './incomplete-badge.js';
 import { createStorePanel } from './store-panel-wire.js';
 import { whySection } from './incomplete-why.js';
 import { openBalloon } from './incomplete-balloon.js';
-import { traceBlocked } from '../../core/incomplete.js';
+import { traceBlocked, openEnds } from '../../core/incomplete.js';
 import { createStepDetails } from './flow-step-details.js';
 import { createTip } from './flow-desc-tip.js';
 import { openGenerate } from './flow-desc-dialog.js';
@@ -74,8 +74,8 @@ export function createTabView(data, host) {
   const ts = createTabScenario({ data, host, key, editAll: editing, visible: (k) => !!stepByKey(walk.steps(), k), onView: (v) => { const g = body.contains(document.activeElement) ? document.activeElement.dataset?.g : null; trace = v; tree = asyncTree(v.messages); render = null; paintInc(); draw(); stp?.refresh(); host.paintChrome?.(); if (g) body.querySelector(`select[data-g="${CSS.escape(g)}"]`)?.focus({ preventScroll: true }); } });
   trace = ts.view; tree = asyncTree(trace.messages);
   const label = host.describe(key);
-  const inc = headBadge({ onOpen: (a) => openWhy(a) }); // #85: the amber badge before the Scenario chip; N is counted over the trace on screen
-  const paintInc = () => { const { n, source } = traceBlocked(trace, trace.coverage); inc.update(n, source, trace.start?.service, trace.coverage?.status); };
+  const inc = headBadge({ onOpen: (a) => openWhy(a) }); // #85: the open-ends chip before the Scenario chip; N is counted over the trace on screen
+  const paintInc = () => { const { own, called, source } = openEnds(trace, trace.coverage); inc.update(own, called, source, trace.start?.service, trace.coverage?.status); }; // #135: "N open ends" here, "M in called services"
   paintInc();
   // The flow's description sits under its title, full width and collapsible (0.20.0); a sub-flow tab keeps its one line.
   let flowBox = null, docText = ''; const related = root && data.kind !== 'sub' ? createRelations({ host, root, editing, onCount: (n) => flowBox?.setRelated(n) }) : null; // 0.28.2: typed links to other flows
@@ -224,7 +224,7 @@ export function createTabView(data, host) {
   const el = h('div.flow-tab', maxBar, backBar, xnote, h('div.flow-top', partial.el), body, walk.caption, pane?.splitter, pane?.el); // the pane sits under the diagram (0.27.5); the border between them is a drag handle (0.34.0); the caption bar (frame 28) follows the step, under the diagram
   paintInc(); walk.nav.title = infoText(); const unInfo = walk.watch(() => { walk.nav.title = infoText(); }); // the player's tooltip: "2 steps, 1 service"
   const paintLeg = () => wrap.classList.toggle('leg-off', !caps().legend); paintLeg();
-  const unCaps = onCaps(() => { paintLeg(); requestAnimationFrame(() => document.dispatchEvent(new CustomEvent('fm:layout'))); }); // the caption bar came or went: the diagram has another height
+  const unCaps = onCaps(() => { paintLeg(); inc.refresh(); requestAnimationFrame(() => document.dispatchEvent(new CustomEvent('fm:layout'))); }); // the caption bar came or went: the diagram has another height
   el.addEventListener('keydown', (ev) => {
     const text = /^(INPUT|TEXTAREA|SELECT)$/.test(ev.target?.tagName) || ev.target?.isContentEditable || ev.target?.closest?.('.flow-bottom, .fi');
     if (ev.shiftKey && !ev.ctrlKey && !ev.metaKey && !ev.altKey && (ev.key === 'ArrowRight' || ev.key === 'ArrowLeft') && opts.cb && brackets && !text) { ev.preventDefault(); brackets.extend(ev.key === 'ArrowRight' ? 1 : -1); return; } // Shift+← → : a range of steps to comment on (0.34.0)

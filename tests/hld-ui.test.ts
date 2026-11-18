@@ -38,7 +38,7 @@ test('#113: the hazard button opens a balloon (dialog, aria-labelledby) that the
   assert.match(why, /export function whyHazard/);
   assert.match(why, /'aria-expanded': 'false'/);
   assert.match(why, /'aria-controls': 'why-balloon'/);
-  assert.match(why, /`Why incomplete: \$\{n\} blocked`/);
+  assert.match(why, /`Open ends: \$\{n\}`/);
   assert.match(why, /if \(open\) \{ open\.close\(\); return; \}/, 'a second click closes');
   assert.doesNotMatch(panel, /why\?\.section/);
   assert.doesNotMatch(store, /why\?\.section/);

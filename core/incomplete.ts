@@ -108,6 +108,17 @@ export function traceBlocked(t: Pick<Trace, 'messages' | 'blockedAll'>, coverage
   return coverage?.blocked != null ? { n: coverage.blocked, source: 'coverage' } : { n: 0, source: null };
 }
 
+/**
+ * #135: the two numbers of the trace header, on the Flows list's basis. `own`: open ends in the flow's own service (the list's `coverage.blocked` when the ingress reports it, else the distinct
+ * blocked call sites of that service on the trace); `called`: distinct sites in the services the trace reaches (what a marker's cap left unlisted counts here). Never repeated steps or messages.
+ */
+export function openEnds(t: Pick<Trace, 'messages' | 'blockedAll'> & { start?: { service: string } }, coverage?: Coverage | null): { own: number; called: number; source: 'trace' | 'coverage' | null } {
+  const { n, source } = traceBlocked(t, coverage);
+  if (source !== 'trace') return { own: n, called: 0, source };
+  const svc = t.start?.service, sites = (t.blockedAll ?? blockedSteps(t)).sites, mine = sites.filter((s) => s.service === svc).length;
+  return { own: coverage?.blocked ?? mine, called: Math.max(0, n - mine), source };
+}
+
 /** N of a Flows list row: `coverage.blocked` only (the list has no trace). */
 export const listBlocked = (coverage?: Coverage | null): number => coverage?.blocked ?? 0;
 /** The harvester says the flow is incomplete (with or without a count). */

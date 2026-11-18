@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { buildIndex } from '../core/graph-index.ts';
 import { trace } from '../core/trace.ts';
 import { entryPoints } from '../core/entry-points.ts';
-import { blockedSites, blockedSteps, coverageOf, listBlocked, listIncomplete, traceBlocked } from '../core/incomplete.ts';
+import { blockedSites, blockedSteps, coverageOf, listBlocked, listIncomplete, traceBlocked, openEnds } from '../core/incomplete.ts';
 import { sampleModel } from './helpers.ts';
 // @ts-ignore plain JS modules shared with the browser
 import { buildLane } from '../web/js/views/flow-lane.js';
@@ -75,7 +75,7 @@ test('status incomplete with blocked 0: incomplete, no count, nothing to list', 
   assert.equal(blockedSites({ messages: [msg({ kind: 'entry' })] }, cov).sites.length, 0);
   assert.equal(listIncomplete({ status: 'complete', blocked: 0 }), false);
   assert.equal(listIncomplete(null), false);
-  assert.equal(T.badgeText(0), 'incomplete');
+  assert.equal(T.badgeText(0), 'open ends');
 });
 
 test('coverage cap: more than 20 coverage sites list 20 and say how many more', () => {
@@ -127,7 +127,7 @@ test('entry points carry coverage ({ status, blocked }) only where the ingress r
   const eps = entryPoints(g) as any[], by = (s: string) => eps.find((e) => e.service === s);
   assert.deepEqual(by('safer-auth').coverage, { status: 'incomplete', blocked: 2 });
   assert.deepEqual(by('safer-lookup').coverage, { status: 'complete', blocked: 0 });
-  assert.ok(eps.filter((e) => !["safer-auth", "safer-lookup", "group-admin"].includes(e.service)).every((e) => e.coverage === undefined));
+  assert.ok(eps.filter((e) => !["safer-auth", "safer-lookup", "group-admin", "demo-openends-api"].includes(e.service)).every((e) => e.coverage === undefined));
 });
 
 // ---- the lane and its geometry ----
@@ -151,13 +151,14 @@ test('lane: the folded marker is one frontier event that carries the counts', ()
 
 // ---- the texts ----
 test('texts: badge, tooltips, frontier label (M = 0, 1, many; K = 1), blocked line fallbacks', () => {
-  assert.equal(T.badgeText(1), 'incomplete · 1 blocked');
-  assert.equal(T.badgeText(12), 'incomplete · 12 blocked');
-  assert.equal(T.badgeLabel(2, { button: true }), 'Incomplete: 2 blocked calls not followed. Show why incomplete');
-  assert.equal(T.badgeLabel(1), 'Incomplete: 1 blocked call not followed');
-  assert.match(T.listTip(2, 'safer-auth'), /^Incomplete flow\. 2 calls in safer-auth could not be followed/);
-  assert.match(T.headTip(2, 'trace', 'safer-auth'), /across every service on this trace, folded frontier steps included\. Select to see why\.$/);
-  assert.match(T.headTip(2, 'coverage', 'safer-auth'), /Counted for safer-auth only\. Select to see why\.$/);
+  assert.equal(T.badgeText(1), '1 open end');
+  assert.equal(T.badgeText(12), '12 open ends');
+  assert.equal(T.badgeLabel(2, { button: true }), '2 open ends: calls not followed. Show them');
+  assert.equal(T.badgeLabel(1), '1 open end: calls not followed');
+  assert.match(T.listTip(2, 'safer-auth'), /^2 calls in safer-auth could not be followed/);
+  assert.match(T.headTip(2, 0, 'trace', 'safer-auth'), /^2 calls in safer-auth could not be followed\. .*Select to list them\.$/);
+  assert.match(T.headTip(2, 3, 'trace', 'safer-auth'), /and 3 in the services it calls/);
+  assert.match(T.headTip(2, 0, 'coverage', 'safer-auth'), /called services may add more/);
   assert.equal(T.frontierText(6, 0), 'frontier: 6 steps');
   assert.equal(T.frontierText(1, 0), 'frontier: 1 step');
   assert.equal(T.frontierText(6, 1), 'frontier: 6 steps · 1 blocked');
@@ -169,7 +170,7 @@ test('texts: badge, tooltips, frontier label (M = 0, 1, many; K = 1), blocked li
   assert.equal(T.siteCode({ plain: 'x', reason: 'no-receiver-type' }), 'no-receiver-type');
   assert.equal(T.sitePlace({ file: 'a.ts', line: 3 }), 'a.ts:3');
   assert.equal(T.sitePlace({}), '');
-  assert.equal(T.filterStatus(1, 88), '1 of 88 flows are incomplete');
+  assert.equal(T.filterStatus(1, 88), '1 of 88 flows have open ends');
 });
 
 test('Why incomplete groups by service only when the sites span more than one', () => {
@@ -218,4 +219,39 @@ test('XSS: a harvester source.url that is not http(s) never becomes a link on a 
   const st = (url: string): any => ({ seq: 1, type: 'call', unresolved: [{ what: 'target', reason: 'r', gap: true }], source: { file: 'a.ts', line: 3, url } });
   assert.equal(stepBlocked(fake, 's', 'f', st('javascript:alert(1)'))!.url, undefined);
   assert.equal(stepBlocked(fake, 's', 'f', st('https://example.com/x'))!.url, 'https://example.com/x');
+});
+
+// ---- #135: open ends, own service vs called services; the label; the "fully traced" line ----
+test('#135 openEnds: own and called services, distinct call sites; an entry without `gap: true` never counts', () => {
+  const t = { start: { service: 'a' }, messages: [msg({ kind: 'entry' }), blockedMsg('a', 'f', 1), blockedMsg('a', 'f', 1), blockedMsg('b', 'h', 4), blockedMsg('b', 'h', 4), blockedMsg('c', 'k', 2),
+    msg({ service: 'b', fn: 'h', seq: 9, gap: { what: 'detail', reason: 'ttl' } })] };
+  assert.deepEqual(openEnds(t, null), { own: 1, called: 2, source: 'trace' });
+  assert.deepEqual(openEnds(t, { status: 'incomplete', blocked: 1 }), { own: 1, called: 2, source: 'trace' }, 'the list basis for N');
+  assert.deepEqual(openEnds({ start: { service: 'a' }, messages: [msg({ kind: 'entry' })] }, { blocked: 3 }), { own: 3, called: 0, source: 'coverage' });
+  assert.deepEqual(openEnds({ start: { service: 'a' }, messages: [msg({ kind: 'entry' })] }, null), { own: 0, called: 0, source: null });
+});
+
+test('#135 header text: own N, then "M in called services"', () => {
+  assert.equal(T.headText(5, 6), '5 open ends \u00b7 6 in called services');
+  assert.equal(T.headText(1, 0), '1 open end');
+  assert.equal(T.headText(0, 1), '1 open end in called services');
+  assert.equal(T.tracedText(1549, 267), '1282 of 1549 flows fully traced (83%)');
+  assert.equal(T.tracedText(0, 0), '');
+});
+
+test('#135 the viewer setting: on by default, stored per viewer, counted by the View button when off', async () => {
+  // @ts-ignore
+  const V = await import('../web/js/views/flow-view-pure.js');
+  const mem = new Map<string, string>(), st = { getItem: (k: string) => mem.get(k) ?? null, setItem: (k: string, v: string) => void mem.set(k, v) };
+  assert.equal(V.coverageOn(st), true);
+  V.coverageSave(false, st);
+  assert.equal(V.coverageOn(st), false);
+  assert.ok(V.nonDefault({ coverage: false }).includes('Coverage warnings'));
+  assert.ok(!V.nonDefault({ coverage: true }).includes('Coverage warnings'));
+});
+
+test('#135 demo: demo-openends-api has 1 open end here and 3 in the called service (the Redis key unknown, without gap: true, is not one)', () => {
+  const t = trace(buildIndex(sampleModel()), { service: 'demo-openends-api', ingress: 'in.run' }, { scope: 'full', maxMessages: 800 })!;
+  assert.deepEqual(openEnds(t as any, t.coverage), { own: 1, called: 3, source: 'trace' });
+  assert.equal(T.headText(1, 3), '1 open end \u00b7 3 in called services');
 });

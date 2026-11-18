@@ -3,8 +3,8 @@
 import { h } from '../dom.js';
 import { icon } from '../icons.js';
 import { openBalloon } from './incomplete-balloon.js';
-import { blockedSites, traceBlocked } from '../../core/incomplete.js';
-import { siteTitle, siteCode, sitePlace, siteGroups, nbTitle } from './incomplete-pure.js';
+import { blockedSites, traceBlocked, openEnds } from '../../core/incomplete.js';
+import { headText, siteTitle, siteCode, sitePlace, siteGroups, nbTitle } from './incomplete-pure.js';
 
 function item(s, me) {
   const place = sitePlace(s), link = place && (s.url
@@ -29,11 +29,11 @@ function nbItem(e) {
 export function whySection(trace, { me = null } = {}) {
   const { n, source } = traceBlocked(trace, trace.coverage);
   if (!(n > 0)) return null;
-  const { sites, more } = blockedSites(trace, trace.coverage);
+  const { sites, more } = blockedSites(trace, trace.coverage), oe = openEnds(trace, trace.coverage);
   const notBlocked = trace.coverage?.notBlocked ?? [];
   const intro = source === 'coverage' ? `From the entry point's coverage report (${trace.start?.service} only). Other services on this trace may add more.` : 'These calls could not be followed, so what they reach is not drawn.';
   const el = h('section.inc-why', { id: 'why-incomplete', 'aria-labelledby': 'why-incomplete-h', 'data-qa': 'why-incomplete' },
-    h('div.inc-h', icon('warn'), h('h4', { id: 'why-incomplete-h', tabindex: '-1' }, 'Why incomplete'), h('span.inc-n', `${n} blocked`)),
+    h('div.inc-h', icon('warn'), h('h4', { id: 'why-incomplete-h', tabindex: '-1' }, 'Open ends'), h('span.inc-n', headText(oe.own, oe.called))),
     h('p.xs.inc-intro', intro),
     siteGroups(sites).map((g) => [g.service ? h('div.inc-g', `${g.service} · ${g.sites.length}`) : null, h('ol.inc-list', g.sites.map((s) => item(s, s.id === me)))]),
     notBlocked.length ? h('div.inc-g.inc-ng', `Not a gap · ${notBlocked.length}`) : null,
@@ -53,7 +53,7 @@ export const stepIdOf = (m) => m?.blocked?.id ?? (m?.service && m.fn && m.seq ? 
  */
 export function whyHazard(trace, { me = null } = {}) {
   if (!whySection(trace)) return null;
-  const { n } = traceBlocked(trace, trace.coverage), tip = `Why incomplete: ${n} blocked`;
+  const { n } = traceBlocked(trace, trace.coverage), tip = `Open ends: ${n}`;
   let open = null;
   const btn = h('button.inc-hz', { type: 'button', 'data-qa': 'why-hazard', 'aria-expanded': 'false', 'aria-controls': 'why-balloon', 'aria-haspopup': 'dialog', 'aria-label': tip, title: tip,
     on: { click: () => {

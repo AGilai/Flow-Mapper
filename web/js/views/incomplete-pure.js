@@ -3,16 +3,21 @@
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 const cap = (t) => (t ? t[0].toUpperCase() + t.slice(1) : t);
 
-/** The badge text: `incomplete · 3 blocked`, or just `incomplete` when the harvester knows the flow is incomplete but not where (n = 0). */
-export const badgeText = (n) => (n > 0 ? `incomplete · ${n} blocked` : 'incomplete');
-export const badgeLabel = (n, { button = false } = {}) => (n > 0 ? `Incomplete: ${plural(n, 'blocked call', 'blocked calls')} not followed${button ? '. Show why incomplete' : ''}` : 'Incomplete flow');
+/** #135: the chip text, neutral: `3 open ends`, `1 open end`; `open ends` alone when the harvester knows the flow is incomplete but not where (n = 0). */
+export const badgeText = (n) => (n > 0 ? plural(n, 'open end', 'open ends') : 'open ends');
+export const badgeLabel = (n, { button = false } = {}) => (n > 0 ? `${plural(n, 'open end', 'open ends')}: calls not followed${button ? '. Show them' : ''}` : 'Open ends: the harvester reports where it could not follow a call');
+/** The header chip: `5 open ends \u00b7 6 in called services`; with none in the flow's own service `6 open ends in called services`. */
+export const headText = (own, called = 0) => (own > 0 ? plural(own, 'open end', 'open ends') + (called > 0 ? ` \u00b7 ${called} in called services` : '') : called > 0 ? `${plural(called, 'open end', 'open ends')} in called services` : 'open ends');
+export const headLabel = (own, called = 0) => `${headText(own, called)}. Show them`;
+/** "N of M flows fully traced (P%)" over the Flows list; nothing when there are no flows. */
+export const tracedText = (total, incomplete) => (total > 0 ? `${total - incomplete} of ${total} flows fully traced (${Math.round(((total - incomplete) / total) * 100)}%)` : '');
 
 /** The list row's tooltip: the count is the entry's own service only. */
 export const listTip = (n, service) => (n > 0
-  ? `Incomplete flow. ${plural(n, 'call', 'calls')} in ${service} could not be followed, so part of this flow is not drawn. Open the flow for the full count across services.`
-  : 'Incomplete flow. The harvester reports it as incomplete.');
+  ? `${plural(n, 'call', 'calls')} in ${service} could not be followed, so part of this flow is not drawn. Open the flow for the ones in called services.`
+  : 'The harvester reports this flow as not fully traced.');
 /** The header's tooltip; `source` 'coverage' is the fallback (no step of the trace carries a `gap`). */
-export const headTip = (n, source, service) => `Incomplete flow. ${plural(n, 'call', 'calls')} could not be followed, so part of this flow is not drawn: the harvester could not tell what they call. ${source === 'coverage' ? `Counted for ${service} only.` : 'Counted across every service on this trace, folded frontier steps included.'} Select to see why.`;
+export const headTip = (own, called, source, service) => `${source === 'coverage' ? `${plural(own, 'call', 'calls')} in ${service} could not be followed (the entry point's coverage report; called services may add more).` : `${plural(own, 'call', 'calls')} in ${service} could not be followed${called > 0 ? `, and ${called} in the services it calls` : ''}.`} Open ends are calls the harvester could not resolve, so what they reach is not drawn. Select to list them.`;
 
 /** The frontier marker: `frontier: 6 steps`, `frontier: 1 step`, with `· 2 blocked` appended when some are blocked. */
 export const frontierParts = (k, m = 0) => ({ base: `frontier: ${plural(k, 'step', 'steps')}`, blocked: m > 0 ? ` · ${m} blocked` : '' });
@@ -39,7 +44,7 @@ export function siteGroups(sites) {
 }
 
 /** The status line under the filters. */
-export const filterStatus = (k, t) => `${k} of ${t} flows are incomplete`;
+export const filterStatus = (k, t) => `${k} of ${t} flows have open ends`;
 
 /** The "LLM inferred" provenance (reserved, ask 5): a step or edge whose `provenance.kind` is 'llm'. Nothing sends it yet. */
 export const isInferred = (x) => x?.provenance?.kind === 'llm';

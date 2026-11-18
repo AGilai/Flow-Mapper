@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "demo-openends-lib",
+    "kind": "service",
+    "team": "network-edge",
+    "description": "Demo (#135): the called service. Three call sites it could not follow, and an unknown detail field that is NOT an open end."
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-18T08:00:00Z",
+  "commit": "135a002",
+  "functions": [
+    {
+      "id": "find",
+      "name": "find",
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "note": "this.rules.apply",
+          "source": { "file": "src/lookup.ts", "line": 10 },
+          "unresolved": [
+            { "what": "target", "reason": "no-receiver-type", "detail": "this.rules.apply(q)", "gap": true, "plain": "receiver type unknown" }
+          ]
+        },
+        {
+          "seq": 2,
+          "type": "call",
+          "note": "mw.enrich",
+          "source": { "file": "src/lookup.ts", "line": 14 },
+          "unresolved": [
+            { "what": "target", "reason": "class-not-in-repo", "detail": "mw.enrich(q)", "gap": true, "plain": "class not in this repository" }
+          ]
+        },
+        {
+          "seq": 3,
+          "type": "call",
+          "note": "plugin.run",
+          "source": { "file": "src/lookup.ts", "line": 20 },
+          "unresolved": [
+            { "what": "target", "reason": "dynamic-dispatch", "detail": "plugin.run(q)", "gap": true, "plain": "called through a variable" }
+          ]
+        },
+        {
+          "seq": 4,
+          "type": "resource",
+          "target": "cache",
+          "operation": "get",
+          "unresolved": [
+            { "what": "detail", "reason": "key-unknown", "detail": "keyTemplate" }
+          ]
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.lookup",
+      "bindKey": "http:GET demo-openends-lib/lookup",
+      "transport": "http",
+      "handler": "find"
+    }
+  ],
+  "egress": [],
+  "resources": [
+    {
+      "id": "cache",
+      "kind": "redis",
+      "name": "demo-openends-cache",
+      "bindKey": "redis:demo-openends-cache"
+    }
+  ],
+  "channels": []
+}
