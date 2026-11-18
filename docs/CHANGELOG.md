@@ -8,6 +8,7 @@ in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.m
 ## Unreleased
 
 - CR #134 (additive, cognito mode only): admin page "Invite people" in the user menu. `POST /api/admin/invites {emails, resend?}` and `GET /api/admin/invites` (admin only; `404` with `FLOW_AUTH=off`) call Cognito AdminCreateUser / ListUsers with a built-in SigV4 client. New optional env `FLOW_COGNITO_USER_POOL_ID` (else derived from `FLOW_COGNITO_ISSUER`); the stack gives the instance role the three cognito-idp actions on its pool (existing deployments: update `flows-bootstrap.yaml` first). See API.md "Accounts, tokens and access".
+- #133 (UI and export only): Drivers > Unresolved states what its rows are. The CSV export gains columns `resource id` and `field` (before `filter`, which moves to the end) and fills `resources` (1) on unresolved rows, so one unresolved client per collection is told apart. The Markdown report groups unresolved rows per component and reason with a resource list.
 
 ## 0.61.2 (2026-11-17): SNS -> consumer subscription filter (#131)
 

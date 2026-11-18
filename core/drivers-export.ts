@@ -2,7 +2,7 @@
 // (core/drivers.ts). Pure, so the browser (also the static preview) and `GET /api/envs/:env/clients/drivers.csv|.md` share it.
 
 import type { ClientRow } from './clients.ts';
-import { driverEntries, baselinesOf, driverTable, unresolvedItems, entryPasses, unresolvedPasses, type DriverEntry, type UnresolvedItem } from './drivers.ts';
+import { driverEntries, baselinesOf, driverTable, unresolvedItems, entryPasses, unresolvedPasses, UNRESOLVED_NOTE, type DriverEntry, type UnresolvedItem } from './drivers.ts';
 import { typeOf, kindLabel } from './driver-kinds.ts';
 import { parseDriverQuery, formatDriverQuery } from './versions.ts';
 import { verdictOf, verdictText } from './driver-verdict.ts';
@@ -46,9 +46,9 @@ export function selectDrivers(m: DriversModel, o: ExportOpts): Selection {
 const cell = (v: unknown) => { const s = v == null ? '' : String(v); return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
 const viaOf = (es: DriverEntry[]) => uniq(es.map((e) => (e.lib ? `${e.lib.package}${e.lib.version ? '@' + e.lib.version : ''}` : 'direct'))).join('; ');
 
-export const CSV_COLUMNS = ['env', 'store type', 'package', 'version', 'major', 'lag', 'newest major in env', 'component', 'resources', 'ops read', 'ops write', 'ops total', 'via', 'status', 'candidates', 'reason', 'filter'];
+export const CSV_COLUMNS = ['env', 'store type', 'package', 'version', 'major', 'lag', 'newest major in env', 'component', 'resources', 'ops read', 'ops write', 'ops total', 'via', 'status', 'candidates', 'reason', 'resource id', 'field', 'filter'];
 
-/** One row per component x package x version, then one per unresolved entry. `lag` is blank on the newest major. The last column states the filter. */
+/** One row per component x package x version, then one per unresolved entry (per resource: `resource id`, `field`, `reason` tell them apart). `lag` is blank on the newest major. The last column states the filter. */
 export function driversCsv(m: DriversModel, o: ExportOpts): string {
   const sel = selectDrivers(m, o);
   const groups = new Map<string, DriverEntry[]>();
@@ -58,10 +58,10 @@ export function driversCsv(m: DriversModel, o: ExportOpts): string {
   for (const es of sorted) {
     const e = es[0], base = m.base.get(`${e.kind}|${e.package}`) ?? e.major;
     const ops = es.reduce((a, x) => ({ read: a.read + x.ops.read, write: a.write + x.ops.write, total: a.total + x.ops.total }), { read: 0, write: 0, total: 0 });
-    lines.push([o.env, kindLabel(e.kind), e.package, e.version, e.major, base - e.major || '', base, e.service, new Set(es.map((x) => x.resource)).size, ops.read, ops.write, ops.total, viaOf(es), 'resolved', '', '', sel.filter]);
+    lines.push([o.env, kindLabel(e.kind), e.package, e.version, e.major, base - e.major || '', base, e.service, new Set(es.map((x) => x.resource)).size, ops.read, ops.write, ops.total, viaOf(es), 'resolved', '', '', '', '', sel.filter]);
   }
   const unr = [...sel.unresolved].sort((a, b) => a.kind.localeCompare(b.kind) || a.service.localeCompare(b.service) || a.resource.localeCompare(b.resource) || a.field.localeCompare(b.field));
-  for (const u of unr) lines.push([o.env, kindLabel(u.kind), u.package ?? '', '', '', '', '', u.service, '', '', '', '', '', 'unresolved', u.candidates.join('; '), u.reason, sel.filter]);
+  for (const u of unr) lines.push([o.env, kindLabel(u.kind), u.package ?? '', '', '', '', '', u.service, 1, '', '', '', '', 'unresolved', u.candidates.join('; '), u.reason, u.resource, u.field, sel.filter]);
   return [CSV_COLUMNS, ...lines].map((l) => l.map(cell).join(',')).join('\r\n') + '\r\n';
 }
 
@@ -93,8 +93,13 @@ export function driversReport(m: DriversModel, o: ExportOpts): string {
   out.push(...(mixed.size ? [...mixed].sort(([a], [b]) => a.localeCompare(b)).map(([k, s]) => `- ${k}: majors ${[...s].sort((a, b) => b - a).join(' and ')}`) : ['None in this scope.']), '');
   out.push('## Unresolved', '');
   if (sel.unresolved.length) {
-    out.push('| Component | Store type | Package | Field | Reason | Candidates |', '|---|---|---|---|---|---|');
-    for (const u of sel.unresolved) out.push(`| ${pipe(u.service)} | ${kindLabel(u.kind)} | ${pipe(u.package ?? '')} | ${u.field} | ${pipe(u.plain ?? u.reason)} | ${pipe(u.candidates.join(', '))} |`);
+    out.push(UNRESOLVED_NOTE, '', '| Component | Store type | Package | Field | Reason | Resources | Candidates |', '|---|---|---|---|---|---|---|');
+    const groups = new Map<string, UnresolvedItem[]>();
+    for (const u of sel.unresolved) { const k = [u.service, u.kind, u.package ?? '', u.field, u.reason, u.candidates.join(',')].join('\u0000'); (groups.get(k) ?? groups.set(k, []).get(k)!).push(u); }
+    for (const us of groups.values()) {
+      const u = us[0], ids = uniq(us.map((x) => x.resource));
+      out.push(`| ${pipe(u.service)} | ${kindLabel(u.kind)} | ${pipe(u.package ?? '')} | ${u.field} | ${pipe(u.plain ?? u.reason)} (\`${u.reason}\`) | ${pipe(`${ids.length}: ${ids.join(', ')}`)} | ${pipe(u.candidates.join(', '))} |`);
+    }
   } else out.push('None in this scope.');
   out.push('', '---', `Generated by Flow-Mapper${o.version ? ' ' + o.version : ''} on ${o.date}. Harvested data as reported; "behind" means behind the newest major in use in this environment.${o.link ? ` View: ${o.link}` : ''}`, '');
   return out.join('\n');

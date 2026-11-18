@@ -153,3 +153,6 @@ export function chooseStore(requested: string | null, counts: Map<string, number
   if (requested && order.includes(requested)) return (counts.get(requested) ?? 0) > 0 || !best ? { store: requested, from: null } : { store: best, from: requested };
   return { store: best ?? 'redis', from: null };
 }
+
+/** What the Unresolved rows are (#133); the page shows the same words. */
+export const UNRESOLVED_NOTE = 'One row per collection whose path the harvester could not link. The service\'s drivers are known (see its rows above); for these collections the code doesn\'t show which of them is used. Candidates = the service\'s possible paths.';

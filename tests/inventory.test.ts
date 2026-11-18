@@ -69,7 +69,7 @@ test('read_write counts as reader and writer; fields are kept on the operation, 
 test('link health flags stores with several writers and unused stores', async () => {
   const h = (await app.call('GET', '/api/envs/prod/health')).body;
   assert.deepEqual([...new Set(h.items.multipleWriters.map((x: any) => x.key))], ['redis:cache-main/order:{id}']);
-  assert.deepEqual(h.items.unusedStores.map((x: any) => [x.service, x.key]), [['users-svc', 'redis:cache-main/session:{token}']]);
+  assert.deepEqual(h.items.unusedStores.map((x: any) => [x.service, x.key]), [['shipping-svc', 'mongodb:shipping-db/carriers'], ['shipping-svc', 'mongodb:shipping-db/labels'], ['users-svc', 'redis:cache-main/session:{token}']]); // carriers, labels: unresolved Mongo demo (#133)
   assert.equal(h.totals.multipleWriters, 1);
 });
 
