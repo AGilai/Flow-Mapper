@@ -5,6 +5,10 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+
+- CR #136 (UI only, no API change): the store panel of a data store the flow touches in several collections (Mongo) or keys (Redis) shows one collapsible card per collection or key, collapsed by default, one open at a time. An open card keeps its header and its Calls / Schema (Redis: Calls / Key) tabs pinned. The Schema tab is a readable field tree built from the schema you already push (`/stores` schemas, JSON Schema or the manual `{fields}` shape); fields the flow touches get a dot.
+
 ## 0.61.2 (2026-11-17): SNS -> consumer subscription filter (#131)
 
 - #131 (additive, no schema break): a binding whose `to` is the bindKey of a service **ingress** (not a queue) filters what that ingress receives, exactly like topic -> queue `events` filters. For a direct SNS -> Lambda subscription send `{id, from: "sns:<topic>", to: "<the ingress bindKey>", events: [...], filter?: {raw policy}}` in the consumer's manifest, or as a draft op `upsert bind:<consumer>/<id>` (also in import plans). `to` may equal `from`; when several services share that key the binding targets the ingress of the service that declares it. Before: every event published on the topic was delivered to the ingress (the binding was ignored on the direct key link) and the ones it has no handler for were drawn as "-> no handler". An `sns:` ingress with no such binding is unchanged. Harvester guide: "SNS -> Lambda directly".

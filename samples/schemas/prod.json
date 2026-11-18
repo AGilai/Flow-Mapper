@@ -63,6 +63,28 @@
     {
       "key": "mongodb:p81-cluster/Org", "source": "manual",
       "content": { "note": "Org documents are described in the HLD, no field list yet", "doc": { "file": "hld/auth.md", "section": "4.2", "confidence": "stated" } }
+    },
+    {
+      "key": "mongodb:identity-db/users", "source": "code",
+      "content": {
+        "type": "object", "required": ["_id", "email", "createdAt"],
+        "properties": {
+          "_id": { "type": "ObjectId", "description": "primary key" },
+          "email": { "type": "string", "description": "unique, lowercase" },
+          "emailVerified": { "type": "boolean", "description": "default false" },
+          "roles": { "type": "array", "items": { "type": "string" } },
+          "profile": { "type": "object", "properties": {
+            "displayName": { "type": "string" }, "locale": { "type": "string" },
+            "avatar": { "type": "object", "properties": { "url": { "type": "string" }, "updatedAt": { "type": "date" } } } } },
+          "devices": { "type": "array", "items": { "type": "object", "required": ["deviceId"], "properties": { "deviceId": { "type": "string" }, "pushToken": { "type": "string" }, "lastSeenAt": { "type": "date" } } } },
+          "lastLoginAt": { "type": "date" },
+          "createdAt": { "type": "date" }
+        }
+      }
+    },
+    {
+      "key": "mongodb:identity-db/audit_events", "source": "manual",
+      "content": { "fields": { "actor": "string", "action": "string", "at": "date", "detail": { "type": "object", "fields": { "ip": "string", "target": "string" } } }, "indexes": [{ "keys": { "at": -1 } }] }
     }
   ]
 }
