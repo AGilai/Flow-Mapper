@@ -14,6 +14,9 @@ A fresh install runs with `FLOW_AUTH=off`: the app has no login of its own, so a
 
 **What changes for the existing data.** Migration 020 gives every existing design env no owner and the visibility `published`: everyone who signs in can read it, only admins edit it, and an admin can hand it to an owner (`PUT /api/envs/:env/access {"owner": "<user id>"}`). Harvested (sealed) envs are readable by everyone signed in. New designs are private to their creator. Users made before the switch (names only) stay; a person who signs in gets a new user (their display name, or with their email when the name is taken). Merge the two on the Users page if you want the old history under the new account (admins only).
 
+### Inviting people (CR #134)
+Admins: user menu, **Invite people**: paste e-mail addresses, send; each gets Cognito's invitation e-mail (the stack's `InviteMessageTemplate`). The list below shows who is in the pool; **Resend** is offered for people who never signed in (`FORCE_CHANGE_PASSWORD`). Needs `FLOW_COGNITO_USER_POOL_ID` (the stack writes it to the app-env parameter; a server that only has `FLOW_COGNITO_ISSUER` derives it) and the instance role's `cognito-idp:AdminCreateUser`, `AdminGetUser`, `ListUsers` on the pool (in `flow-mapper.yaml`). **Existing deployments:** redeploy `flows-bootstrap.yaml` first (the permissions boundary gets the same three actions, otherwise the role is capped), then the stack. The `aws cognito-idp admin-create-user` command `deploy.sh` prints still works.
+
 ### Tokens for harvesters and agents
 A person creates a personal access token under **Tokens** in the UI (name, optional expiry of 30, 90 or 365 days, default never). **Harvesters need a token created by an admin with Harvester ticked**: without that scope a write to a sealed env is `403 SEALED`. Harvesters send `Authorization: Bearer fm_...` (see [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md)); agents put it in the MCP config (the Tokens page shows the snippet). An expired token answers `401 TOKEN_EXPIRED` and names itself: create a new one and replace it. Revoke a token on the same page; the list shows when each was last used.
 
@@ -48,6 +51,7 @@ On the instance they live in `/etc/flow-mapper.env` (read by both systemd units)
 | `AWS_REGION` | from the stack | Region of that bucket |
 | `FLOW_REPO_TAG`, `FLOW_REPO_URL`, `FLOW_DEPLOY_KEY_SECRET_ARN`, `FLOW_PARAM_NAME` | from the stack | Read by `install.sh` and `upgrade.sh` only |
 | `FLOW_AUTH` | `off` | `off` or `cognito` (0.52.0). The stack and `install.sh` write `off`; see "Switching to Cognito login" |
+| `FLOW_COGNITO_USER_POOL_ID` | from the stack | The user pool for the Invite people page; optional, derived from the issuer when unset |
 | `FLOW_COGNITO_ISSUER`, `FLOW_COGNITO_CLIENT_ID`, `FLOW_COGNITO_DOMAIN`, `FLOW_PUBLIC_URL` | from the stack | The Cognito issuer (JWKS at `<issuer>/.well-known/jwks.json`), app client id (public client, no secret), hosted UI base URL, and the public https URL (the callback is `<url>/auth/callback`). Required when `FLOW_AUTH=cognito` |
 | `FLOW_ADMIN_EMAIL` | from the stack (`AdminEmail`) | The first user who signs in with this email becomes an admin |
 | `FLOW_ORIGIN_SECRET` | from SSM `/flows/<stack>/origin-secret` | When set, requests without `X-Flows-Origin: <secret>` get 403 (except `/healthz`) |
