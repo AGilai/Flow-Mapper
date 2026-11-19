@@ -1,0 +1,108 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "lo-ag-root",
+    "kind": "service",
+    "team": "agent",
+    "repo": "github.com/acme/lo-ag-root",
+    "language": "typescript",
+    "description": "Demo #142: the agent enrols: calls its three helpers, then Security, then the idp"
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-19T10:00:00Z",
+  "commit": "141143a",
+  "functions": [
+    {
+      "id": "h",
+      "name": "handle",
+      "file": "src/h.ts",
+      "line": 5,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "o.lo-ag-cred"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "o.lo-ag-key"
+        },
+        {
+          "seq": 3,
+          "type": "egress",
+          "target": "o.lo-ag-cli"
+        },
+        {
+          "seq": 4,
+          "type": "egress",
+          "target": "o.lo-sec-auth"
+        },
+        {
+          "seq": 5,
+          "type": "egress",
+          "target": "o.lo-sec-vault"
+        },
+        {
+          "seq": 6,
+          "type": "egress",
+          "target": "o.lo-idp"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.x",
+      "bindKey": "http:GET lo-ag-root/x",
+      "transport": "http",
+      "handler": "h",
+      "entryPoint": true,
+      "details": {
+        "method": "GET",
+        "path": "/x"
+      }
+    }
+  ],
+  "egress": [
+    {
+      "id": "o.lo-ag-cred",
+      "bindKey": "http:GET lo-ag-cred/x",
+      "transport": "http",
+      "mode": "sync"
+    },
+    {
+      "id": "o.lo-ag-key",
+      "bindKey": "http:GET lo-ag-key/x",
+      "transport": "http",
+      "mode": "sync"
+    },
+    {
+      "id": "o.lo-ag-cli",
+      "bindKey": "http:GET lo-ag-cli/x",
+      "transport": "http",
+      "mode": "sync"
+    },
+    {
+      "id": "o.lo-sec-auth",
+      "bindKey": "http:GET lo-sec-auth/x",
+      "transport": "http",
+      "mode": "sync"
+    },
+    {
+      "id": "o.lo-sec-vault",
+      "bindKey": "http:GET lo-sec-vault/x",
+      "transport": "http",
+      "mode": "sync"
+    },
+    {
+      "id": "o.lo-idp",
+      "bindKey": "http:GET lo-idp/x",
+      "transport": "http",
+      "mode": "sync"
+    }
+  ],
+  "resources": []
+}

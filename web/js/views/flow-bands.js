@@ -9,8 +9,10 @@ const isCh = (c) => c.kind === 'channel' || (c.kind === 'source' && !!c.transpor
 export const SHARED = '~shared';
 /** The key of the band cell that labels a flow's entry channel (#140) when no subsystem band covers it. */
 export const ENTRY = '~entry';
+/** #143: whose subsystem a store or channel is banded with: its owner, or, when the owner has no lifeline in the flow, the component it was placed next to (`bandOwner`, set by groupLane). */
+const bandOwner = (c) => c.bandOwner ?? c.owner;
 /** The band a lifeline belongs to: a component's subsystem; a data store has its owner's subsystem, else Shared (no owner, or an owner in no subsystem). '' = none. */
-export const memberOf = (c, subOf) => (isSvc(c) ? subOf(c.service) : isRes(c) ? (c.owner && subOf(c.owner)) || SHARED : isCh(c) ? (c.owner && subOf(c.owner)) || '' : ''); // a channel (0.50.0, #104) has its declaring component's band, or none
+export const memberOf = (c, subOf) => (isSvc(c) ? subOf(c.service) : isRes(c) ? c.bandOwner ? subOf(c.bandOwner) || '' : (c.owner && subOf(c.owner)) || SHARED : isCh(c) ? (bandOwner(c) && subOf(bandOwner(c))) || '' : ''); // a channel (0.50.0, #104) has its declaring component's band, or none
 
 /**
  * groupColumns(columns, subOf) -> the columns with the components of one subsystem together.
@@ -36,7 +38,7 @@ export function groupColumns(columns, subOf, subOf2 = () => '', ranked = []) {
 }
 
 /** #139: the nearest component before `c` in the order the trace gave (the core puts a store or channel whose owner is not in the flow right after its first accessor / sender). */
-const accessorOf = (c, orig) => { for (let i = orig.indexOf(c) - 1; i >= 0; i--) if (isSvc(orig[i])) return orig[i]; return null; };
+const accessorOf = (c, orig) => { const a = c.bandOwner && orig.find((x) => isSvc(x) && x.service === c.bandOwner); if (a) return a; for (let i = orig.indexOf(c) - 1; i >= 0; i--) if (isSvc(orig[i])) return orig[i]; return null; };
 const onDiagram = (cols, owner) => !!owner && cols.some((x) => isSvc(x) && x.service === owner);
 /** Put `c` right after `anchor` (and after what already follows it that was placed there); `end` when the anchor is gone. */
 function after(out, anchor, c, placed) {
@@ -79,18 +81,25 @@ function placeStores(cols, subOf, orig = cols) {
   return out;
 }
 
+/** #142: the column indexes where a subsystem band ends and the next begins (index i: columns i-1 and i are in different bands), so Squeeze never folds across it (foldGroups, displayCols, subBands take it as `brk`). */
+export const bandBreaks = (columns, subOf, subOf2 = null) => {
+  const out = new Set(), key = (c) => `${memberOf(c, subOf)}\n${subOf2 ? (isSvc(c) ? subOf2(c.service) : isCh(c) && bandOwner(c) ? subOf2(bandOwner(c)) : isRes(c) && c.bandOwner ? subOf2(c.bandOwner) : '') ?? '' : ''}`;
+  for (let i = 1; i < columns.length; i++) if (key(columns[i]) !== key(columns[i - 1])) out.add(i);
+  return out;
+};
+
 /**
  * subBands(columns, folded, subOf) -> [{ key, from, to }]: the runs of neighbouring heads of one subsystem (column indexes, first to last).
  * `folded`: Set of Squeezed column indexes. A fold whose columns are all components of one subsystem is part of that subsystem's run;
  * a mixed fold has no band (and ends the run). A topic, a queue or a store between two components ends the run too.
  */
-export function subBands(columns, folded, subOf, keyOf = (c) => memberOf(c, subOf)) {
+export function subBands(columns, folded, subOf, keyOf = (c) => memberOf(c, subOf), brk = null) {
   const out = [];
   let i = 0;
   while (i < columns.length) {
     let j = i, key = null;
     if (folded.has(i)) {
-      while (j + 1 < columns.length && folded.has(j + 1)) j++;
+      while (j + 1 < columns.length && folded.has(j + 1) && !brk?.has(j + 1)) j++;
       const ks = new Set(columns.slice(i, j + 1).map(keyOf));
       key = ks.size === 1 ? [...ks][0] : null;
     } else key = keyOf(columns[i]) || null;
@@ -102,7 +111,7 @@ export function subBands(columns, folded, subOf, keyOf = (c) => memberOf(c, subO
 }
 
 /** The sub-subsystem band row (0.50.0): runs of neighbouring component heads of one second groupPath level, keyed `platform/gcp`. A component with no second level, a store and an unowned channel have none and end the run; an owned channel has its owner's. */
-export const subSubBands = (columns, folded, sub2Of) => subBands(columns, folded, null, (c) => (isSvc(c) ? sub2Of(c.service) : isCh(c) && c.owner ? sub2Of(c.owner) : ''));
+export const subSubBands = (columns, folded, sub2Of, brk = null) => subBands(columns, folded, null, (c) => (isSvc(c) ? sub2Of(c.service) : isCh(c) && bandOwner(c) ? sub2Of(bandOwner(c)) : isRes(c) && c.bandOwner ? sub2Of(c.bandOwner) : ''), brk);
 
 /** The width a subsystem band needs to show its whole label (0.60.1, #127): the icon or left pad, 6.8 px a character, the New spark, and the Edit "+". */
 export const bandLabelPx = (label, { icon = false, isNew = false, sub2 = false, add = false } = {}) => Math.ceil(label.length * 6.8) + (icon && !sub2 ? 28 : 10) + (isNew ? 22 : 8) + (add ? 22 : 0);

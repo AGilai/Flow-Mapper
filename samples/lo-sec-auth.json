@@ -1,0 +1,55 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "lo-sec-auth",
+    "kind": "service",
+    "team": "security",
+    "repo": "github.com/acme/lo-sec-auth",
+    "language": "typescript",
+    "description": "Demo #142: safer auth"
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-19T10:00:00Z",
+  "commit": "141143a",
+  "functions": [
+    {
+      "id": "h",
+      "name": "handle",
+      "file": "src/h.ts",
+      "line": 5,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "authDb",
+          "operation": "findOne",
+          "access": "read"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.x",
+      "bindKey": "http:GET lo-sec-auth/x",
+      "transport": "http",
+      "handler": "h",
+      "entryPoint": false,
+      "details": {
+        "method": "GET",
+        "path": "/x"
+      }
+    }
+  ],
+  "egress": [],
+  "resources": [
+    {
+      "id": "authDb",
+      "kind": "mongodb",
+      "name": "lo-db.lo-sec-auth",
+      "bindKey": "mongodb:lo-db/lo-sec-auth"
+    }
+  ]
+}

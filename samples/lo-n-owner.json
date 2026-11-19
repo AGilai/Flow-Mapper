@@ -1,0 +1,68 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "lo-n-owner",
+    "kind": "service",
+    "team": "devices",
+    "repo": "github.com/acme/lo-n-owner",
+    "language": "typescript",
+    "description": "Demo #145: declares the two stores; not in the flow"
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-19T11:00:00Z",
+  "commit": "145a",
+  "functions": [
+    {
+      "id": "h",
+      "name": "handle",
+      "file": "src/h.ts",
+      "line": 5,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "nsDb",
+          "operation": "findOne",
+          "access": "read"
+        },
+        {
+          "seq": 2,
+          "type": "resource",
+          "target": "nsDb2",
+          "operation": "findOne",
+          "access": "read"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.x",
+      "bindKey": "http:GET lo-n-owner/x",
+      "transport": "http",
+      "handler": "h",
+      "entryPoint": true,
+      "details": {
+        "method": "GET",
+        "path": "/x"
+      }
+    }
+  ],
+  "egress": [],
+  "resources": [
+    {
+      "id": "nsDb",
+      "kind": "mongodb",
+      "name": "lo-db.nsDb",
+      "bindKey": "mongodb:lo-db/nsDb"
+    },
+    {
+      "id": "nsDb2",
+      "kind": "mongodb",
+      "name": "lo-db.nsDb2",
+      "bindKey": "mongodb:lo-db/nsDb2"
+    }
+  ]
+}
