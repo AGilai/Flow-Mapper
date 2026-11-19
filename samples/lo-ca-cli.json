@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "lo-ca-cli",
+    "kind": "client-app",
+    "team": "agent",
+    "repo": "github.com/acme/lo-ca-cli",
+    "language": "typescript",
+    "description": "Demo #146: api client (client app)"
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-19T12:00:00Z",
+  "commit": "146a001",
+  "functions": [
+    {
+      "id": "h",
+      "name": "handle",
+      "file": "src/h.ts",
+      "line": 5,
+      "steps": []
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.x",
+      "bindKey": "http:GET lo-ca-cli/x",
+      "transport": "http",
+      "handler": "h",
+      "entryPoint": false,
+      "details": {
+        "method": "GET",
+        "path": "/x"
+      }
+    }
+  ],
+  "egress": []
+}

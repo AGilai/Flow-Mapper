@@ -18,7 +18,7 @@ export function colourRow(env, service) {
       h('button.colour-btn', { type: 'button', 'data-qa': 'colour-btn', 'aria-expanded': String(open), on: { click: () => { open = !open; draw(); } } }, dot(cur), cur ? `Custom: slot ${cur}` : auto),
       open ? h('div.colour-opts', { role: 'radiogroup', 'aria-label': `Colour of ${service}`, on: { keydown: (e) => { if (e.key === 'Escape') { e.stopPropagation(); open = false; draw(); } } } },
         radio(null, auto, dot(0)), ...[1, 2, 3, 4, 5, 6, 7, 8].map((n) => radio(n, `Slot ${n}`, dot(n))),
-        h('p.colour-note', 'A manual colour changes this component only, marked with a diamond. Its lifeline and bands keep the family colour.')) : null);
+        h('p.colour-note', 'A manual colour changes this component only, marked with a diamond. Its lifeline and bands keep the family colour.')) : '');
   }
   draw();
   return root;

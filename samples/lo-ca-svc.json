@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "lo-ca-svc",
+    "kind": "service",
+    "team": "security",
+    "repo": "github.com/acme/lo-ca-svc",
+    "language": "typescript",
+    "description": "Demo #146: a service that reads secrets from the vault"
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-19T12:00:00Z",
+  "commit": "146a001",
+  "functions": [
+    {
+      "id": "h",
+      "name": "handle",
+      "file": "src/h.ts",
+      "line": 5,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "o.lo-ca-vault"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.x",
+      "bindKey": "http:GET lo-ca-svc/x",
+      "transport": "http",
+      "handler": "h",
+      "entryPoint": false,
+      "details": {
+        "method": "GET",
+        "path": "/x"
+      }
+    }
+  ],
+  "egress": [
+    {
+      "id": "o.lo-ca-vault",
+      "bindKey": "http:GET lo-ca-vault/x",
+      "transport": "http",
+      "mode": "sync"
+    }
+  ]
+}

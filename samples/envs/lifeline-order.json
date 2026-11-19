@@ -239,6 +239,42 @@
     },
     {
       "name": "lo-n-vault"
+    },
+    {
+      "name": "demo-ws-gw",
+      "groupPath": "edge"
+    },
+    {
+      "name": "demo-ws-app",
+      "groupPath": "edge"
+    },
+    {
+      "name": "infra",
+      "groupPath": "platform/p1"
+    },
+    {
+      "name": "lo-ca-root",
+      "groupPath": "agent"
+    },
+    {
+      "name": "lo-ca-cred",
+      "groupPath": "agent"
+    },
+    {
+      "name": "lo-ca-key",
+      "groupPath": "agent"
+    },
+    {
+      "name": "lo-ca-cli",
+      "groupPath": "agent"
+    },
+    {
+      "name": "lo-ca-svc",
+      "groupPath": "security"
+    },
+    {
+      "name": "lo-ca-vault",
+      "groupPath": "security"
     }
   ],
   "createdBy": "seed"

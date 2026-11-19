@@ -7,7 +7,7 @@ import { foldHeads } from './flow-draw-fold.js';
 import { sparkSvg } from '../components/status-mark.js';
 import { headMarkSvg } from './flow-marks-draw.js';
 import { isDesign } from '../state.js';
-import { colVar, isCustom } from '../design/component-colors.js';
+import { callerOf, colVar, isCustom } from '../design/component-colors.js';
 import { familyOf } from '../design/family-colours.js';
 import { headRefSvg, headRefSub } from './flow-refs-draw.js';
 import { runtimeFor, runtimeSvg } from '../design/service-info.js';
@@ -56,5 +56,5 @@ export function drawHead({ storeOn, columns, heads, boxH, HEAD, bandH, bands, wi
 
 /** The vertical line of each lifeline. */
 export const drawLifelines = ({ columns, colX, height, isCh, folded }) => columns.map((c, i) => { // frame 31: in Colour by Domain a component's line is its domain's colour
-  const fam = isCh(c) ? (c.owner ? familyOf(c.env ?? state.env, c.owner)?.dom : null) : c.kind === 'service' && !c.external ? familyOf(c.env ?? state.env, c.service)?.dom : null; // #140: a channel takes its declaring component's domain colour
+  const fam = isCh(c) ? (c.owner ? familyOf(c.env ?? state.env, c.owner)?.dom : null) : c.kind === 'service' ? familyOf(c.env ?? state.env, c.service)?.dom : callerOf(c) ? familyOf(c.env ?? state.env, callerOf(c))?.dom : null; // #140: a channel takes its declaring component's domain colour
   return folded.has(i) ? null : s('line', { class: isCh(c) ? `lifeline ch${fam ? ' fam' : ''}` : fam ? 'lifeline fam' : 'lifeline', 'data-p': i, style: isCh(c) ? `--mc:${colorOf(c.transport)}${fam ? `;--fam:${fam}` : ''}` : fam ? `--fam:${fam}` : null, x1: colX.get(c), x2: colX.get(c), y1: 0, y2: height }); });
