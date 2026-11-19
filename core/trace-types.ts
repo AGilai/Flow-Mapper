@@ -25,6 +25,7 @@ export interface Participant {
 export interface Message {
   from: string; to: string; label: string; mode: Mode;
   kind: 'entry' | 'call' | 'egress' | 'deliver' | 'resource' | 'leaf' | 'frontier';
+  entryOwner?: string;                                       // #140, on the `entry` message of a queue-started flow: the component that declares the queue (its colour and band)
   callers?: string[];                                        // #116, on the `entry` message: client apps that call the entry ingress (none: the generic client)
   depth: number; internal?: boolean; broken?: boolean; cycle?: boolean;
   condition?: string; loop?: boolean; alternatives?: StepAlternative[]; fixes?: StepFix[]; stepId?: string; // 0.36.1 (#82): the step's either/or groups as sent, and the id `arms[].step_ids` use (`<service>:<fn>#<seq>`)

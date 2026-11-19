@@ -5,6 +5,11 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+
+- Fix #139 (UI and Mermaid export, no API change): with order By subsystem, a data store whose owning component is not in the flow sits right after the first component that calls it (it used to fall to the far end); a channel whose owner is not in the flow sits next to its first sender. An owner that is in the flow still wins; `order=calls` is unchanged.
+- Fix #140 (UI; additive): domain colours keep the domain hue (every shade within 10 degrees however many subsystems a domain has; lightness and chroma vary instead). A flow that starts at a queue labels its first column "Entry" (or "Entry · <owner's subsystem>") and takes the declaring component's colour. The `entry` message of `GET /trace` / `trace_flow` carries `entryOwner` (the component that declares the queue) when there is one.
+
 ## 0.64.0 (2026-11-19): domain colour families (frame 31), MCP reader tools (flows_through, neighbours, open ends, drivers report, version)
 
 - MCP reader parity with the web app (additive, no change for existing callers; MCP only, no REST change). New tools `flows_through` and `neighbours` (same data as `GET /flows-through` and `GET /neighbours`). `list_entry_points` rows with coverage carry `openEnds: {own, called: null}`, and `summary: true` wraps them as `{rows, traced: {full, total, reported}}`. `trace_flow` carries `openEnds: {own, called, sites}`. `list_clients` takes `report: 'drivers' | 'markdown'` (the Drivers view model, or its Markdown report). `whoami` returns the server `version`. See API.md "MCP".

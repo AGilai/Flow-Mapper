@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "lo-intake-svc",
+    "kind": "service",
+    "team": "identity",
+    "repo": "github.com/acme/lo-intake-svc",
+    "language": "typescript",
+    "description": "Demo #140: declares the queue lo-entry-queue; the flow it feeds belongs to lo-worker-svc in another domain"
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-19T09:00:00Z",
+  "commit": "139140a",
+  "functions": [
+    {
+      "id": "intake",
+      "name": "intake",
+      "file": "src/intake.ts",
+      "line": 4,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "q.send",
+          "mode": "async",
+          "operation": "SendMessage entry.ready"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.intake",
+      "bindKey": "http:POST lo-intake-svc/intake",
+      "transport": "http",
+      "handler": "intake",
+      "details": {
+        "method": "POST",
+        "path": "/intake"
+      },
+      "entryPoint": true
+    }
+  ],
+  "egress": [
+    {
+      "id": "q.send",
+      "bindKey": "sqs:lo-entry-queue",
+      "transport": "sqs",
+      "mode": "async",
+      "events": [
+        "entry.ready"
+      ]
+    }
+  ],
+  "channels": [
+    {
+      "bindKey": "sqs:lo-entry-queue",
+      "kind": "sqs-queue",
+      "name": "lo-entry-queue"
+    }
+  ]
+}

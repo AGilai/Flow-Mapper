@@ -14,7 +14,10 @@ export const PALETTE = {
   dark: { s: '#1a1e29', ln: '#2c3243', cmp: ['#e095c7', '#5dbee9', '#96bd96', '#aaa7f4', '#ef9494', '#64c3c3', '#c2a4d0', '#e79e6b'], lo: 0.58, hi: 0.86, grey: '#8a90a6', sg: -1 },
 };
 export const HUE_ORDER = [2, 5, 3, 4, 8, 6, 1, 7]; // palette slots in a hue-spread order, so neighbouring domains never look alike
-const SUB_L = [0, 0.07, -0.07, 0.13], COMP_L = [0, 2, -1, 3, -2, 4, -3], COMP_H = [0, 8, -4, 12, -8, 16, -12];
+// #140: a domain keeps its hue. Every shade is within +-9 degrees of it (subsystem offset <= 5, component offset <= 4) however many subsystems and components
+// it has; the sequences cycle, and subsystems differ in lightness and chroma, not in hue.
+const SUB_L = [0, 0.07, -0.07, 0.13, -0.13, 0.035, -0.035, 0.1, -0.1], SUB_C = [1, 0.9, 0.9, 0.8, 0.85, 0.95, 0.95, 0.75, 0.8], SUB_H = [0, 4, -4, 5, -5, 2, -2, 3, -3];
+const COMP_L = [0, 2, -1, 3, -2, 4, -3], COMP_H = [0, 4, -2, 3, -4, 2, -3];
 
 const lin = (c: number) => { c /= 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
 const gam = (c: number) => { c = Math.max(0, Math.min(1, c)); return 255 * (c <= 0.0031308 ? c * 12.92 : 1.055 * c ** (1 / 2.4) - 0.055); };
@@ -51,11 +54,11 @@ export function paintFamilies(theme: Theme, groups: FamilyGroup[]): Map<string, 
     const hasSubs = d.subs.length > 1 || (d.subs[0]?.key ?? '') !== '';
     const base = P.cmp[HUE_ORDER[g % 8] - 1], [L0, C0, h0] = lch(base), wrap = Math.floor(g / 8) * 0.06;
     d.subs.forEach((sb, j) => {
-      const sl = SUB_L[Math.min(j, 3)] * P.sg, cm = sl ? 0.9 : 1;
-      const sub = oklch(clamp(L0 + sl + wrap, P), C0 * cm, h0 + 7 * j);
+      const n = j % SUB_L.length, sl = SUB_L[n] * P.sg, cm = SUB_C[n], sh = SUB_H[n];
+      const sub = oklch(clamp(L0 + sl + wrap, P), C0 * cm, h0 + sh);
       sb.comps.forEach((c, k) => {
-        const kk = Math.min(k, 6), step = (hasSubs ? 0.04 : 0.05) * COMP_L[kk] * P.sg;
-        out.set(c, { st: oklch(clamp(L0 + sl + wrap + step, P), C0 * cm, h0 + 7 * j + COMP_H[kk]), dom: base, sub, domKey: d.key, subKey: sb.key });
+        const kk = k % COMP_L.length, step = (hasSubs ? 0.04 : 0.05) * COMP_L[kk] * P.sg;
+        out.set(c, { st: oklch(clamp(L0 + sl + wrap + step, P), C0 * cm, h0 + sh + COMP_H[kk]), dom: base, sub, domKey: d.key, subKey: sb.key });
       });
     });
   });

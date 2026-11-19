@@ -23,6 +23,7 @@ function hashes(): Record<string, string> {
   const g = buildIndex(loadModel(db, 'prod'));
   const out: Record<string, string> = {};
   for (const e of entryPoints(g)) {
+    if (e.service.startsWith('lo-')) continue; // the #139 #140 demo services are not part of the recorded set
     const t = trace(g, { service: e.service, ingress: e.id }, HASH_TRACE);
     out[`${e.service}/${e.id}`] = t ? traceHash(t) : 'none';
   }

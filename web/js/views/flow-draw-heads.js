@@ -56,5 +56,5 @@ export function drawHead({ storeOn, columns, heads, boxH, HEAD, bandH, bands, wi
 
 /** The vertical line of each lifeline. */
 export const drawLifelines = ({ columns, colX, height, isCh, folded }) => columns.map((c, i) => { // frame 31: in Colour by Domain a component's line is its domain's colour
-  const fam = !isCh(c) && c.kind === 'service' && !c.external ? familyOf(c.env ?? state.env, c.service)?.dom : null;
-  return folded.has(i) ? null : s('line', { class: isCh(c) ? 'lifeline ch' : fam ? 'lifeline fam' : 'lifeline', 'data-p': i, style: isCh(c) ? `--mc:${colorOf(c.transport)}` : fam ? `--fam:${fam}` : null, x1: colX.get(c), x2: colX.get(c), y1: 0, y2: height }); });
+  const fam = isCh(c) ? (c.owner ? familyOf(c.env ?? state.env, c.owner)?.dom : null) : c.kind === 'service' && !c.external ? familyOf(c.env ?? state.env, c.service)?.dom : null; // #140: a channel takes its declaring component's domain colour
+  return folded.has(i) ? null : s('line', { class: isCh(c) ? `lifeline ch${fam ? ' fam' : ''}` : fam ? 'lifeline fam' : 'lifeline', 'data-p': i, style: isCh(c) ? `--mc:${colorOf(c.transport)}${fam ? `;--fam:${fam}` : ''}` : fam ? `--fam:${fam}` : null, x1: colX.get(c), x2: colX.get(c), y1: 0, y2: height }); });

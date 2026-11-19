@@ -1,6 +1,7 @@
 // 0.37.0 (#82): a flow without alternatives is byte-identical to what trace() gave before arms and locks existed.
 // The golden file holds a sha1 of the JSON of the canonical trace per entry point (samples + deltas, env prod), recorded on 0.36.1.
 // Regenerate only on purpose: GOLDEN_WRITE=1 node --disable-warning=ExperimentalWarning --test tests/trace-identical.test.ts
+// #140: the additive `entryOwner` on an entry message is left out of the hash, and the lo-* demo services (#139 #140) are not part of the recorded set.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -23,12 +24,12 @@ function traces() {
   const all = (d: string) => readdirSync(d).filter((f) => f.endsWith('.json')).sort().map((f) => JSON.parse(readFileSync(join(d, f), 'utf8')));
   for (const m of [...all(SAMPLES), ...all(join(SAMPLES, 'deltas'))]) ingest(db, m, 'seed');
   const g = buildIndex(loadModel(db, 'prod'));
-  return entryPoints(g).map((e) => ({ id: `${e.service}/${e.id}`, t: trace(g, { service: e.service, ingress: e.id }, HASH_TRACE) })).filter((x) => x.t && !x.t.messages.some((m) => m.alternatives || m.arms));
+  return entryPoints(g).filter((e) => !e.service.startsWith('lo-')).map((e) => ({ id: `${e.service}/${e.id}`, t: trace(g, { service: e.service, ingress: e.id }, HASH_TRACE) })).filter((x) => x.t && !x.t.messages.some((m) => m.alternatives || m.arms));
 }
 
 test('traces without alternatives are byte-identical to the recorded ones', () => {
   const now: Record<string, string> = {};
-  for (const { id, t } of traces()) now[id] = createHash('sha1').update(JSON.stringify(t)).digest('hex');
+  for (const { id, t } of traces()) now[id] = createHash('sha1').update(JSON.stringify(t, (k, v) => (k === 'entryOwner' ? undefined : v))).digest('hex');
   if (process.env.GOLDEN_WRITE) writeFileSync(FILE, JSON.stringify(now, null, 1) + '\n');
   const golden = JSON.parse(readFileSync(FILE, 'utf8'));
   assert.ok(Object.keys(golden).length > 50);

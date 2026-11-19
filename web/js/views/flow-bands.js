@@ -3,10 +3,12 @@
 
 const isSvc = (c) => c.kind === 'service' && c.service;
 const isRes = (c) => c.kind === 'resource';
-const isCh = (c) => c.kind === 'channel';
+const isCh = (c) => c.kind === 'channel' || (c.kind === 'source' && !!c.transport); // a queue-started flow's first column (#102) counts as its channel (#140)
 
 /** The key of the "Shared" band (0.30.1, #67): data stores that no component of a subsystem owns. */
 export const SHARED = '~shared';
+/** The key of the band cell that labels a flow's entry channel (#140) when no subsystem band covers it. */
+export const ENTRY = '~entry';
 /** The band a lifeline belongs to: a component's subsystem; a data store has its owner's subsystem, else Shared (no owner, or an owner in no subsystem). '' = none. */
 export const memberOf = (c, subOf) => (isSvc(c) ? subOf(c.service) : isRes(c) ? (c.owner && subOf(c.owner)) || SHARED : isCh(c) ? (c.owner && subOf(c.owner)) || '' : ''); // a channel (0.50.0, #104) has its declaring component's band, or none
 
@@ -30,12 +32,24 @@ export function groupColumns(columns, subOf, subOf2 = () => '', ranked = []) {
   const moved = slots.map((i) => columns[i]).sort((a, b) => rank(a) - rank(b)); // Array.sort is stable
   const out = [...columns];
   slots.forEach((i, k) => { out[i] = moved[k]; });
-  return placeChannels(placeStores(out, subOf), subOf);
+  return placeChannels(placeStores(out, subOf, columns), subOf, columns); // column 0 (a flow's entry channel) stays first: when its owner's subsystem is the receiver's, the two share one band; else the band row labels it Entry (flow-draw-layout.js)
+}
+
+/** #139: the nearest component before `c` in the order the trace gave (the core puts a store or channel whose owner is not in the flow right after its first accessor / sender). */
+const accessorOf = (c, orig) => { for (let i = orig.indexOf(c) - 1; i >= 0; i--) if (isSvc(orig[i])) return orig[i]; return null; };
+const onDiagram = (cols, owner) => !!owner && cols.some((x) => isSvc(x) && x.service === owner);
+/** Put `c` right after `anchor` (and after what already follows it that was placed there); `end` when the anchor is gone. */
+function after(out, anchor, c, placed) {
+  let i = anchor ? out.indexOf(anchor) : -1; if (i < 0) { out.push(c); return; }
+  while (placed.has(out[i + 1])) i++;
+  out.splice(i + 1, 0, c);
 }
 
 /** A channel (topic, queue, exchange) whose owner has a subsystem goes right after its owner's column, after the earlier channels of that owner (0.50.0, #104); an owner not in the flow: after the last lifeline of its subsystem. An unowned channel keeps its place. */
-function placeChannels(cols, subOf) {
-  const mine = cols.filter((c, i) => i > 0 && isCh(c) && c.owner && subOf(c.owner));
+function placeChannels(cols, subOf, orig = cols) {
+  const mine = cols.filter((c, i) => i > 0 && isCh(c) && c.owner && subOf(c.owner) && onDiagram(cols, c.owner));
+  const far = cols.filter((c, i) => i > 0 && isCh(c) && c.owner && subOf(c.owner) && !onDiagram(cols, c.owner)); // #139: an owner not in the flow: next to its first sender
+  if (far.length) { cols = cols.filter((c) => !far.includes(c)); const ph = new Set(); for (const c of far) { after(cols, accessorOf(c, orig), c, ph); ph.add(c); } }
   if (!mine.length) return cols;
   const out = cols.filter((c) => !mine.includes(c)), placed = new Set();
   for (const c of mine) {
@@ -47,13 +61,14 @@ function placeChannels(cols, subOf) {
   return out;
 }
 
-function placeStores(cols, subOf) {
+function placeStores(cols, subOf, orig = cols) {
   const stores = cols.filter((c, i) => i > 0 && isRes(c));
   if (!stores.length) return cols;
   const out = cols.filter((c, i) => i === 0 || !isRes(c)), placed = new Set();
   const lastOf = (k) => out.findLastIndex((c) => (isSvc(c) && subOf(c.service) === k) || (placed.has(c) && memberOf(c, subOf) === k));
   const tail = [], at = () => Math.max(0, out.findLastIndex((c) => isSvc(c) || placed.has(c))) + 1;
   for (const c of stores) {
+    if (c.owner && !onDiagram(out, c.owner)) { after(out, accessorOf(c, orig), c, placed); placed.add(c); continue; } // #139: the owner has no lifeline here: right after the first component that calls the store
     const k = memberOf(c, subOf), i = k === SHARED ? -1 : lastOf(k);
     if (i >= 0) { out.splice(i + 1, 0, c); placed.add(c); } else tail.push(c);
   }

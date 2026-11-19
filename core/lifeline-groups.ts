@@ -2,7 +2,7 @@
 //   services     hierarchical: all components under one top subsystem are contiguous, in the env's group order (parent first, then
 //                children in their order; a component directly on the parent path before its children); inside a leaf group in the
 //                order they first appear. The first lifeline (the caller) stays first; when it is a grouped component its subsystem ranks first (#127).
-//   stores       a component-owned store sits right after its owner (and the owner's earlier stores); an unowned store goes after the grouped components.
+//   stores       a component-owned store sits right after its owner (and the owner's earlier stores); an owner with no lifeline in the flow: right after the store's first accessor (#139); an unowned store goes after the grouped components.
 //   channels     the declaring component's lifeline (#104), else right after its sender (a queue after the topic that feeds it).
 //   last         components with no groupPath, then external ones.
 import type { Message, Participant } from './trace-types.ts';
@@ -37,7 +37,7 @@ export function groupedOrder(parts: Participant[], messages: Message[], gr: Grou
   for (let guard = 0; pending.length && guard < parts.length * 3; guard++) {
     const p = pending.shift()!;
     let anchor: string | undefined;
-    if (p.kind === 'resource') anchor = svcOf(ownerOf(p))?.id;
+    if (p.kind === 'resource') anchor = svcOf(ownerOf(p))?.id ?? (ownerOf(p) ? messages.find((m) => m.to === p.id && m.from !== p.id)?.from : undefined);   // #139: an owner with no lifeline here: right after the first component that calls the store
     else if (p.kind === 'channel') { const o = svcOf(p.owner); anchor = o && gr.groupOf(o.service!) ? o.id : messages.find((m) => m.to === p.id && m.from !== p.id)?.from; }
     if (anchor && !placed.has(anchor)) { pending.push(p); continue; }   // its anchor is another channel not placed yet
     placed.add(p.id);

@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "lo-report-api",
+    "kind": "service",
+    "team": "fulfilment",
+    "repo": "github.com/acme/lo-report-api",
+    "language": "typescript",
+    "description": "Demo #139: calls orders, inventory and the lookup store owned by lo-cache-owner (not in the flow); the store sits right after lo-report-api, its first accessor"
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-19T09:00:00Z",
+  "commit": "139140a",
+  "functions": [
+    {
+      "id": "report",
+      "name": "build a report",
+      "file": "src/report.ts",
+      "line": 9,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "o.get"
+        },
+        {
+          "seq": 2,
+          "type": "resource",
+          "target": "lookupDb",
+          "operation": "findOne",
+          "access": "read"
+        },
+        {
+          "seq": 3,
+          "type": "egress",
+          "target": "s.get"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.report",
+      "bindKey": "http:GET lo-report-api/reports/{id}",
+      "transport": "http",
+      "handler": "report",
+      "entryPoint": true,
+      "details": {
+        "method": "GET",
+        "path": "/reports/{id}"
+      }
+    }
+  ],
+  "egress": [
+    {
+      "id": "o.get",
+      "bindKey": "http:GET orders-svc/orders/{id}",
+      "transport": "http",
+      "mode": "sync"
+    },
+    {
+      "id": "s.get",
+      "bindKey": "http:POST inventory-svc/reservations",
+      "transport": "http",
+      "mode": "sync"
+    }
+  ],
+  "resources": [
+    {
+      "id": "lookupDb",
+      "kind": "mongodb",
+      "name": "lo-db.lookups",
+      "bindKey": "mongodb:lo-db/lookups"
+    }
+  ]
+}
