@@ -4,6 +4,7 @@
 import type { Ctx } from './context.ts';
 import { decorateDesignTrace, refsReached } from '../core/flow-refs.ts';
 import { decorateEntries } from '../core/flow-text.ts';
+import { flowsThrough } from '../core/flows-through.ts';
 import { markedReached } from '../core/flow-counts.ts';
 import { originsOf, referencesOf, type EnvRefs } from '../core/references.ts';
 import { entryPoints, type Trace } from '../core/trace.ts';
@@ -53,4 +54,10 @@ export function entryPointsOut(ctx: Ctx, env: string, draft: string | null) {
   const design = getEnvRow(ctx.db, env)?.kind === 'design';
   const refs = design ? refsFor(ctx, env, draft) : NO_REFS, reached = design ? refsReached(g, refs) : new Map<string, number>();
   return decorateEntries(entryPoints(g), texts, refs, reached, design ? markedReached(g) : undefined);
+}
+
+/** The entry points whose flows run through or start in any of `services` (0.33.0, the info pane's "Flows through it"); REST and MCP share it. */
+export function flowsThroughOut(ctx: Ctx, env: string, draft: string | null, services: string[]) {
+  const hit = flowsThrough(ctx.view(env, draft).g, services);
+  return entryPointsOut(ctx, env, draft).filter((e) => hit.has(`${e.service}:${e.id}`));
 }

@@ -142,6 +142,12 @@ test('MCP acts as the token user: list_envs, reads, writes, create_env, share_en
   assert.equal((await other.mcp('list_entry_points', { env: 'd-private' })).isError, true);
   assert.equal((await other.mcp('list_entry_points', { env: 'd-pub' })).isError, false);
   assert.equal((await owner.mcp('list_entry_points', { env: 'd-private' })).isError, false);
+  for (const [tool, extra] of [['flows_through', { services: ['users-svc'] }], ['neighbours', { services: ['users-svc'] }], ['list_clients', { report: 'drivers' }], ['list_clients', { report: 'markdown' }]] as const) { // the reader tools follow the same env rules
+    const r = await other.mcp(tool, { env: 'd-private', ...extra });
+    assert.equal(r.isError, true, tool); assert.match(r.text, /NOT_FOUND/, tool);
+    assert.equal((await owner.mcp(tool, { env: 'd-private', ...extra })).isError, false, tool);
+  }
+  assert.match((await owner.mcp('whoami')).json.version, /^\d+\.\d+\.\d+/);
   const mm = await other.mcp('list_mentions', { user: P.editor.id });
   assert.ok(!JSON.stringify(mm.json).includes('secret-d-private'), 'mentions in hidden envs are absent');
   assert.ok(JSON.stringify(mm.json).includes('secret-d-pub'));

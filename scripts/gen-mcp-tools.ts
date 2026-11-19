@@ -11,7 +11,7 @@ export const GROUPS: [string, string[]][] = [
   ['Design: drafts', ['open_draft', 'list_drafts', 'edit_in_draft', 'draft_changes', 'apply_draft', 'discard_draft']],
   ['Design: from documents', ['import_mermaid', 'import_preview', 'import_into_draft', 'apply_import_plan', 'get_marks', 'edit_design', 'apply_plan_links']],
   ['Design: settings', ['set_subsystem_settings', 'set_levels']],
-  ['Read the map', ['search', 'list_services', 'get_service', 'list_entry_points', 'trace_flow', 'find_paths', 'get_endpoint_info', 'get_call', 'get_channel', 'get_exchange', 'get_store', 'list_clients', 'get_resource_keys', 'event_types', 'inventory', 'link_health', 'changelog']],
+  ['Read the map', ['search', 'list_services', 'get_service', 'list_entry_points', 'flows_through', 'neighbours', 'trace_flow', 'find_paths', 'get_endpoint_info', 'get_call', 'get_channel', 'get_exchange', 'get_store', 'list_clients', 'get_resource_keys', 'event_types', 'inventory', 'link_health', 'changelog']],
   ['Subsystems and flows', ['get_subsystems', 'get_subsystem_map', 'list_abstract_links', 'suggest_refinements', 'list_flow_relations', 'get_flow_names', 'set_flow_name', 'set_description']],
   ['Export', ['export_mermaid']],
   ['Collaborate', ['list_comments', 'add_comment', 'resolve_comment', 'get_notes', 'set_notes', 'list_action_items', 'add_action_item', 'update_action_item', 'list_open_questions', 'list_users', 'list_mentions']],

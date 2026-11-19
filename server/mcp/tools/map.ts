@@ -1,6 +1,7 @@
 // Map tools: search, services, entry points, paths, link health, changelog, inventory.
 
 import { HttpError } from '../../errors.ts';
+import { withOpenEnds, tracedOf } from '../../../core/entry-coverage.ts';
 import * as store from '../../store/snapshots.ts';
 import * as desc from '../../store/descriptions.ts';
 import * as keys from '../../store/keys.ts';
@@ -39,9 +40,9 @@ export const getServiceTool: Tool = {
 };
 
 export const listEntryPointsTool: Tool = {
-  name: 'list_entry_points', description: "Ingress points where flows start (public APIs, crons, client socket events, and anything nothing else calls). `name` and `summary` are the flow's name and the start of its description where set; in a design environment `reference: true` marks an entry whose behaviour lives in another environment, and `partial: n` a flow that continues into n such references.",
-  inputSchema: obj({ draft: draftArg, env }),
-  run: (c, a) => entryPointsOut(c, envOf(a), a.draft || null),
+  name: 'list_entry_points', description: "Ingress points where flows start (public APIs, crons, client socket events, and anything nothing else calls). `name` and `summary` are the flow's name and the start of its description where set; in a design environment `reference: true` marks an entry whose behaviour lives in another environment, and `partial: n` a flow that continues into n such references. Rows whose harvester reports coverage carry `coverage` and `openEnds: {own, called: null}` (#135: distinct call sites in the flow's own service, the Flows list chip; `called` is known only to trace_flow). summary: true returns {rows, traced: {full, total, reported}} instead of the bare array.",
+  inputSchema: obj({ draft: draftArg, env, summary: { type: 'boolean', description: 'true: return {rows, traced: {full, total, reported}} ("X of Y flows fully traced") instead of the bare array' } }),
+  run: (c, a) => { const rows = withOpenEnds(entryPointsOut(c, envOf(a), a.draft || null)); return a.summary === true ? { rows, traced: tracedOf(rows) } : rows; },
 };
 
 export const findPathsTool: Tool = {

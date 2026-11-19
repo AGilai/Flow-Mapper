@@ -779,7 +779,15 @@ for the signed-in user and a dashed "@unknown user" for an id that has no user. 
 - HTTP: `POST /mcp` with one JSON-RPC 2.0 message (MCP streamable HTTP, JSON responses).
 - stdio: `npm run mcp` (same database, `FLOW_DB`).
 
-Tools: `search`, `list_services`, `get_service`, `list_entry_points`, `trace_flow`, `find_paths`,
+Reader parity with the web app (Unreleased, additive; every one takes `env`, and `draft` where reads support drafts):
+- `flows_through` (`services`: array, one name or comma string; or `service`): the same rows as `GET /flows-through`.
+- `neighbours` (`services`): the same rows as `GET /neighbours` (one hop, direct or through a topic, queue or exchange, with `reasons`).
+- `list_entry_points`: rows whose harvester reports coverage gain `openEnds: {own, called: null}` (#135, `own` = `coverage.blocked`, the Flows list chip; `called` is known only to a trace). `summary: true` returns `{rows, traced: {full, total, reported}}` ("X of Y flows fully traced"); the default is still the bare array.
+- `trace_flow`: gains `openEnds: {own, called, sites: [{service, at, what}], more?}`, the numbers of the trace header and the sites of "Why incomplete" (at most 20).
+- `list_clients`: optional `report: 'rows' | 'drivers' | 'markdown'` (default rows). `drivers` returns `{env, filter, kinds: [{kind, label, verdict, components, packages (versions with major, lag, components, via), unresolved (reason, candidates, resource)}]}`; `markdown` returns `{text}`, what `GET /clients/drivers.md` serves. With these, `store` is a store type (default all), `q` a version query, `mixed` keeps mixed majors; the row filters are ignored.
+- `whoami`: also returns `version`, the server's `package.json` version (`GET /api/version`).
+
+Tools: `search`, `list_services`, `get_service`, `list_entry_points`, `flows_through`, `neighbours`, `trace_flow`, `find_paths`,
 `link_health`, `changelog`, `set_description`, `ingest_manifest`, `get_endpoint_info`,
 `load_dtos`, `event_types`, `inventory`, `get_store`, `get_channel`, `get_exchange` (0.19.0: the exchange page, same data as GET /instances/amqp:<name>), `load_schemas`, `list_bugs`,
 `list_envs` (0.21.0: name, kind, source, copiedAt, groups, components), `create_env` (0.21.0: same body as `POST /api/envs`), `open_draft`, `list_drafts`, `draft_changes`, `edit_in_draft`, `apply_draft`, `discard_draft`, `get_marks`, `apply_import_plan`, `import_preview`, `import_into_draft`, `get_subsystems`, `get_subsystem_map`, `list_abstract_links`, `suggest_refinements`, `apply_plan_links`, `set_subsystem_settings`, `set_levels` (0.28.0), `export_mermaid` (0.27.4), `import_mermaid` (0.27.4), `edit_design`, `get_call`, `list_action_items`, `add_action_item`, `update_action_item` (0.29.0), `get_flow_names`, `set_flow_name` (0.23.0 / 0.25.0: see Drafts; every read tool takes `draft`; `ingest_manifest`, `load_dtos` and `load_schemas` take `dryRun` and, with it, `draft`), `get_resource_keys` (0.16.0), `list_clients` (same filters and result as `GET /clients`; `get_store` also returns `clients`), `get_bug`, `report_bug` (accepts `log` text), `update_bug` (accepts `comment`).

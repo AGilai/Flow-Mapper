@@ -14,6 +14,7 @@ import { trace } from '../../../core/trace.ts';
 import { viewOf as traceView } from '../../../core/trace-view.ts';
 import { viewParams } from '../../../core/trace-view-params.ts';
 import { traceOut } from '../../refs.ts';
+import { traceOpenEnds } from '../../../core/entry-coverage.ts';
 import { type Tool, env, obj, envOf, draftArg, viewOf } from './common.ts';
 
 export const traceFlowTool: Tool = {
@@ -27,7 +28,8 @@ export const traceFlowTool: Tool = {
     const want = Math.min(a.maxMessages ?? 300, 2000), simple = view.detail === 'simple' && a.scope !== 'intra'; // 0.44.0 (#90): Simple is cut after it has consolidated (canonical: 4x the budget, at most 4000)
     const t = trace(g, a, { scope: a.scope, maxMessages: simple ? Math.min(want * 4, 4000) : want, expand: a.expand, frontier: a.frontier === true, order: orderArg(a.order) })
       ?? (() => { throw new HttpError(404, 'NOT_FOUND', 'start point not found (give ingress or fn)'); })();
-    const out = traceOut(c, envOf(a), a.draft || null, traceView(t, simple ? { ...view, maxMessages: want } : view));
+    const shown = traceOut(c, envOf(a), a.draft || null, traceView(t, simple ? { ...view, maxMessages: want } : view));
+    const out = { ...shown, openEnds: traceOpenEnds(shown as any) }; // #135: the header's numbers and the sites of "Why incomplete"
     return a.ingress ? { ...out, descriptions: desc.describeFlow(c.db, g, envOf(a), a.service, a.ingress) } : out;
   },
 };
