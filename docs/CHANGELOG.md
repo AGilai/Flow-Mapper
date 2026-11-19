@@ -5,6 +5,10 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+
+- #148 follow-up (UI only): a head with its own icon (`details.icon`) shows only the logo and the name, never a type or "service" sub line (the logo identifies the component). "service" stays on heads without an icon. The info pane Type row is unchanged.
+
 ## 0.66.2 (2026-11-20): #148 follow-up, compact icon heads + auto lane width
 
 - #148 follow-up (UI only): a large-icon head (one with `details.icon`) shows just the name under the logo, and keeps the word "service" under it only when no specific type is known; when one is (`details.runtime`, or a gateway / lambda / infra / client-app kind) the type line is dropped. The product (`details.product`) is no longer drawn in the head. The info pane has a Type row (the runtime or kind, else "Service") and a Product row. Lane width is now automatic: every head in a lane shares one width, the longest head name on one line, between today's 138 px and 238 px (`COL_AUTO_MAX`); a longer name wraps. Squeeze and Fit still narrow it. The `lo-hi-vault` demo sample is now kind `infra`.

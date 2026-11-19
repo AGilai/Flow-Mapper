@@ -10,7 +10,7 @@ import { bandsOf } from './flow-stores-pure.js';
 import { subBands, subSubBands, bandBreaks, SHARED, ENTRY, bandLabelPx, loneBandSpans } from './flow-bands.js';
 import { BAND_H } from './flow-draw-bands.js';
 import { headIconOf } from './flow-draw-icons.js';
-import { isLarge, nameChLarge, largeExtra, autoCol, largeSub } from './flow-head-large.js';
+import { isLarge, nameChLarge, largeExtra, autoCol } from './flow-head-large.js';
 import { FOLD_W, COL_NARROW, displayCols, foldGroups, planSqueeze } from './flow-squeeze.js';
 import { BLOCKED_H, BLOCKED_LINE, isBlockedEvent, blockedNeed, frontierNeed } from './flow-draw-incomplete.js';
 
@@ -76,7 +76,7 @@ export function layoutLane(lane, fit = 0, sq = null, marks = null, edit = false,
   const colX = new Map(columns.map((c, i) => [c, xs[i]]));
   // a queue head drops its transport prefix and the 'queue delivery' line (the title keeps both): two lines at most
   const subCh = COLW < COL_MIN ? Math.max(10, Math.floor((COLW - 22) / 5.8)) : SUB_CH; // narrowed heads (Squeeze, last stage) wrap the sub line shorter
-  const heads = columns.map((c) => (c.sub === 'queue delivery' ? { name: clampLines(wrapId(c.label.replace(/^[^:]+:/, ''), nameCh(c)), nameCh(c)), sub: [] } : { big: isLarge(c), name: clampLines(wrapId(c.label, nameCh(c)), nameCh(c)), sub: isLarge(c) && !largeSub(c) ? [] : isCh(c) ? [c.sub] : wrapId(c.sub ?? '', c.kind === 'resource' ? Math.max(10, Math.floor((headW(c, COLW) - 38) / 5.8)) : subCh) }));
+  const heads = columns.map((c) => (c.sub === 'queue delivery' ? { name: clampLines(wrapId(c.label.replace(/^[^:]+:/, ''), nameCh(c)), nameCh(c)), sub: [] } : { big: isLarge(c), name: clampLines(wrapId(c.label, nameCh(c)), nameCh(c)), sub: isLarge(c) ? [] : isCh(c) ? [c.sub] : wrapId(c.sub ?? '', c.kind === 'resource' ? Math.max(10, Math.floor((headW(c, COLW) - 38) / 5.8)) : subCh) }));
   const boxH = 12 + Math.max(...heads.map((x, i) => x.name.length * LINE_H + x.sub.length * 13 + largeExtra(columns[i]))) + 6, // CR #148: a head with a large logo grows the box
      grp = lane.group ?? null, subRuns = grp ? subBands(columns, folded, grp.subOf, undefined, brk) : [], sub2Runs = grp?.subOf2 ? subSubBands(columns, folded, grp.subOf2, brk) : [], hasStore = columns.some((c) => c.kind === 'resource');
   const bandH = BAND_H * ((subRuns.length ? 1 : 0) + (sub2Runs.length ? 1 : 0) + (hasStore ? 1 : 0)), HEAD = boxH + 16 + bandH + (lane.internal ? INT_H : 0); // bandH: the band rows over the heads (flow-draw-bands.js): subsystems on top, then the sub-subsystems, then data stores
