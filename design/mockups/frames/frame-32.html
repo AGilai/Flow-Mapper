@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frame 32 · Component icons</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../shared.css">
+<style>
+.f32 { padding: 8px 24px 28px; display: grid; gap: 28px; }
+.f32 h3 { font-size: 15px; margin: 0 0 6px; } .f32 h3 small { font: 400 12.5px var(--font); color: var(--ink-2); margin-left: 8px; }
+.f32 .row { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+.f32 .box { border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface); padding: 12px 14px; }
+.f32 .scroll-x { overflow-x: auto; }
+.f32 img.gi { display: block; flex: none; object-fit: contain; }
+.f32 .vt { display: grid; place-items: center; flex: none; background: #1d2330; border: 1px solid #3a4256; border-radius: 3px; }
+.f32 .gh { font: 600 10.5px var(--font); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); padding: 4px 2px 0; }
+.f32 .srch { display: flex; align-items: center; gap: 6px; border: 1px solid var(--line-strong); border-radius: 6px; padding: 5px 8px; font-size: 12px; color: var(--muted); background: var(--surface); }
+.f32 .scr { max-height: 360px; overflow: hidden; display: grid; gap: 4px; }
+.f32 .set { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 8px; margin-bottom: 10px; }
+.f32 .set .tl { display: grid; justify-items: center; gap: 6px; padding: 10px 4px 8px; border: 1px solid var(--line); border-radius: 8px; font: 500 11.5px var(--mono); }
+.f32 .set .tl .pair { display: flex; align-items: center; gap: 12px; }
+.f32 .set .tl small { font: 400 10.5px var(--font); color: var(--muted); }
+.f32 .logo { flex: none; display: inline-grid; place-items: center; background: #fff; border: 1px solid #c9cedb; border-radius: 3px; }
+.f32 svg.seq { display: block; width: 100%; height: auto; min-width: 900px; font-family: var(--font); }
+.f32 svg.seq text { fill: var(--ink); }
+.f32 .m32 { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start; }
+.f32 .dom { border: 1.5px solid; border-radius: 12px; padding: 8px 10px 10px; display: grid; gap: 8px; }
+.f32 .dom.ext { border-style: dashed; }
+.f32 .dom > b { font: 700 11px var(--font); letter-spacing: .05em; text-transform: uppercase; }
+.f32 .ss { border: 1px solid; border-radius: 8px; padding: 5px 7px 7px; display: grid; gap: 5px; } .f32 .ss > i { font: 600 10.5px var(--font); font-style: normal; display: flex; align-items: center; gap: 5px; }
+.f32 .bxs { display: flex; flex-wrap: wrap; gap: 5px; }
+.f32 .bx { position: relative; display: inline-flex; align-items: center; gap: 6px; font: 500 11.5px var(--mono); padding: 6px 10px 6px 14px; border: 1px solid; border-radius: 6px; color: var(--ink); }
+.f32 .bx::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; border-radius: 6px 0 0 6px; background: var(--st); }
+.f32 .bx.sel { outline: 2px solid var(--accent); outline-offset: 1px; }
+.f32 .pane32 { width: 360px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); box-shadow: var(--shadow-panel); overflow: hidden; }
+.f32 .pane32 .panel-head h3 { display: flex; align-items: center; gap: 8px; }
+.f32 .kv { display: grid; grid-template-columns: 92px 1fr; gap: 8px 10px; align-items: center; font-size: 13px; } .f32 .kv > span:nth-child(odd) { color: var(--muted); font-size: 12px; }
+.f32 .cur { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line-strong); border-radius: 6px; padding: 3px 8px; font: 500 12px var(--mono); background: var(--surface); }
+.f32 .pick { grid-column: 1 / -1; border: 1px solid var(--line-strong); border-radius: 8px; padding: 8px; display: grid; gap: 8px; background: var(--surface); }
+.f32 .pick .g { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; }
+.f32 .pick .o { display: grid; justify-items: center; gap: 3px; padding: 6px 2px 4px; border-radius: 6px; border: 1px solid transparent; font: 500 10.5px var(--mono); color: var(--ink-2); }
+.f32 .pick .o.on { background: var(--accent-soft); border-color: var(--accent); color: var(--ink); }
+.f32 .pick .o:hover { border-color: var(--line-strong); }
+.f32 .pick .x { display: flex; gap: 6px; } .f32 .pick .x span { flex: 1; text-align: center; font: 500 12px var(--font); padding: 5px 6px; border: 1px dashed var(--line-strong); border-radius: 6px; color: var(--ink-2); }
+.f32 .pick .x span.on { border-style: solid; border-color: var(--accent); background: var(--accent-soft); color: var(--ink); }
+.f32 .pick .cust { display: grid; gap: 4px; font-size: 11.5px; color: var(--muted); }
+.f32 .pick textarea { font: 400 11px/1.4 var(--mono); width: 100%; height: 54px; resize: none; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--surface); color: var(--ink); padding: 5px 7px; box-sizing: border-box; }
+.f32 .err { font-size: 11.5px; color: var(--danger, #b42318); }
+ol.decisions.w1 { columns: 1; max-width: 1180px; }
+</style>
+</head>
+<body>
+<nav class="fbar" aria-label="Design navigation"><a href="../design-env.html">← All designs</a><span class="pos">Frame 32 of 32</span><a href="frame-31.html">‹ prev</a><span class="off">next ›</span><span class="chip chip-approved">Approved</span><div class="theme" role="group" aria-label="Theme"><button data-t="system" aria-pressed="true">System</button><button data-t="light" aria-pressed="false">Light</button><button data-t="dark" aria-pressed="false">Dark</button></div></nav>
+
+<div class="frame-label"><h2>Frame 32. Component icons (CR #144)</h2>
+<p>A component can carry an optional <span class="mono">icon</span>: one of a small built-in set, or a user-supplied SVG / data URL. It shows beside the name in the lifeline head, the System-map box and the Info-pane header. Data is invented; colours are the frame 31 domain families.</p>
+<ol class="decisions w1">
+<li><b>Built-in set = the vendors' own icons (32a).</b> The maintainer rejected generic glyphs, so each built-in is the official mark, shown in its own colours: <b>AWS</b> Architecture Icons, one per service (19 here: Lambda, EC2, ECS, EKS, SQS, SNS, EventBridge, Step Functions, DynamoDB, RDS, ElastiCache, S3, API Gateway, CloudFront, Kinesis, Cognito, KMS, Secrets Manager, IAM; the full package has ~300 and any can be added the same way), plus <b>HashiCorp Vault</b>, <b>Auth0</b>, <b>MongoDB</b>, <b>Redis</b>, <b>PostgreSQL</b>, <b>MySQL</b>, <b>Elasticsearch</b>, <b>RabbitMQ</b> and <b>Apache Kafka</b>. Files and licence terms are in <span class="mono">frames/assets/icons/SOURCES.md</span>. API values are the file names without extension: <span class="mono">aws-lambda</span>, <span class="mono">vault</span>, <span class="mono">auth0</span>, <span class="mono">kafka</span>, ...</li>
+<li><b>Colours and dark mode.</b> Icons are never recoloured, so the old "ink glyph" rule is dropped. Exceptions, each a plain tile behind the mark and nothing else: Vault (yellow triangle, too faint on a light header) sits on a dark slate tile; Auth0 (the source file, simple-icons, is a colourless path) is drawn from the same path filled with Auth0's brand orange (#EB5424). The AWS squares carry their own coloured background and need no tile. In dark theme the two marks that are near-black (Kafka, MySQL) also sit on that white tile. A user-supplied logo gets the white tile with a hairline border so a dark mark survives dark theme (32a, mailer).</li>
+<li><b>Placement and size (32b, 32c, 32d).</b> The icon sits left of the name: 14px in heads and boxes (AWS squares are square and keep their rounded corners), 18px in the Info-pane header. Heads stay 100px wide; with an icon the name is left-aligned after it and drops from 11.5 to 10.5px. Components without an icon are unchanged. Family stripe and shade are still the only component colour.</li>
+<li><b>Editing (32d).</b> New <b>Icon</b> row in the Info pane: current icon and name; clicking opens a picker with a <b>search field</b>, then the set grouped: Products (Vault, Auth0, MongoDB, ...) and AWS by category (Compute, Containers, Application integration, Databases, Storage, Networking, Analytics, Security). Searching filters across all groups and drops empty ones. Below the groups: <b>Custom SVG...</b> (paste SVG markup or a data URL, live preview) for anything not built in, and <b>None</b>. The API accepts a built-in name, an <span class="mono">&lt;svg&gt;</span> string or a <span class="mono">data:image/...</span> URL (size-limited); anything else is 422 <span class="mono">BAD_ICON</span>, shown inline.</li>
+<li><b>Accessibility.</b> The image is decorative (empty alt); the name is always the label.</li>
+</ol></div>
+
+<div class="f32" id="root"></div>
+
+<script>
+const GROUPS = [
+  ['Products', [['vault', 'Vault'], ['auth0', 'Auth0'], ['mongodb', 'MongoDB'], ['redis', 'Redis'], ['postgres', 'PostgreSQL'], ['mysql', 'MySQL'], ['elasticsearch', 'Elasticsearch'], ['rabbitmq', 'RabbitMQ'], ['kafka', 'Kafka']]],
+  ['AWS · Compute', [['aws-lambda', 'Lambda'], ['aws-ec2', 'EC2']]],
+  ['AWS · Containers', [['aws-ecs', 'ECS'], ['aws-eks', 'EKS']]],
+  ['AWS · Application integration', [['aws-sqs', 'SQS'], ['aws-sns', 'SNS'], ['aws-eventbridge', 'EventBridge'], ['aws-step-functions', 'Step Functions']]],
+  ['AWS · Databases', [['aws-dynamodb', 'DynamoDB'], ['aws-rds', 'RDS'], ['aws-elasticache', 'ElastiCache']]],
+  ['AWS · Storage', [['aws-s3', 'S3']]],
+  ['AWS · Networking', [['aws-api-gateway', 'API Gateway'], ['aws-cloudfront', 'CloudFront']]],
+  ['AWS · Analytics', [['aws-kinesis', 'Kinesis']]],
+  ['AWS · Security', [['aws-cognito', 'Cognito'], ['aws-kms', 'KMS'], ['aws-secrets-manager', 'Secrets Manager'], ['aws-iam', 'IAM']]],
+];
+const ALL = GROUPS.flatMap((g) => g[1]);
+const LABEL = Object.fromEntries(ALL);
+const LOGO = '<polygon points="8,1.5 14,5 14,11 8,14.5 2,11 2,5" fill="#6b7280"/><circle cx="8" cy="8" r="2.6" fill="#e5e7eb"/>';
+const logo = (s = 14) => `<span class="logo" style="width:${s + 2}px;height:${s + 2}px"><svg viewBox="0 0 16 16" width="${s - 1}" height="${s - 1}" aria-hidden="true">${LOGO}</svg></span>`;
+const ICON_PX = (s) => s;
+const img = (n, s = 14) => n === 'auth0' ? `<svg class="a0" viewBox="0 0 24 24" width="${s}" height="${s}" aria-hidden="true"><path fill="#EB5424" d="M21.98 7.448L19.62 0H4.347L2.02 7.448c-1.352 4.312.03 9.206 3.815 12.015L12.007 24l6.157-4.552c3.755-2.81 5.182-7.688 3.815-12.015l-6.16 4.58 2.343 7.45-6.157-4.597-6.158 4.58 2.358-7.433-6.188-4.55 7.63-.045L12.008 0l2.356 7.404 7.615.044z"/></svg>`
+  : n === 'vault' ? `<span class="vt" style="width:${s + 4}px;height:${s + 4}px"><img class="gi" src="assets/icons/vault.svg" width="${s - 2}" height="${s - 2}" alt=""></span>`
+  : (n === 'kafka' || n === 'mysql') && theme() === 'dark' ? `<span class="logo" style="width:${s + 2}px;height:${s + 2}px"><img class="gi" src="assets/icons/${n}.svg" width="${s - 2}" height="${s - 2}" alt=""></span>`
+  : `<img class="gi" src="assets/icons/${n}.svg" width="${s}" height="${s}" alt="">`;
+const ico = (c, s = 14) => c.ic === 'custom' ? logo(s) : c.ic ? img(c.ic, s) : '';
+
+// ---------- colours (frame 31 families, light/dark) ----------
+const T = {
+  light: { s: '#ffffff', ink: '#1b2233', ink2: '#4a5268', ln: '#e1e4ee', fam: { plat: '#077fa8', agent: '#5a805b', ext: '#7a8197' } },
+  dark: { s: '#1a1e29', ink: '#e7e9f0', ink2: '#b5bacb', ln: '#2c3243', fam: { plat: '#5dbee9', agent: '#96bd96', ext: '#8a90a6' } },
+};
+const SH = { light: [0, .1, -.1, .2], dark: [0, -.1, .1, -.2] }; // crude shade steps mixing with ink/surface
+const mix = (a, p, b) => { const h = (x) => [1, 3, 5].map((i) => parseInt(x.slice(i, i + 2), 16)); const A = h(a), B = h(b); return '#' + A.map((v, i) => Math.round(v * p + B[i] * (1 - p)).toString(16).padStart(2, '0')).join(''); };
+const theme = () => { const t = document.documentElement.dataset.theme; return t === 'light' || t === 'dark' ? t : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); };
+const CMP = [
+  { n: 'auth-api', f: 'plat', sub: 'identity', k: 0, ic: 'auth0' },
+  { n: 'user-svc', f: 'plat', sub: 'identity', k: 1, ic: 'postgres' },
+  { n: 'objects-api', f: 'plat', sub: 'objects', k: 2, ic: 'aws-s3' },
+  { n: 'thumbnailer', f: 'plat', sub: 'objects', k: 3, ic: 'aws-lambda' },
+  { n: 'agent-core', f: 'agent', sub: '', k: 0, ic: 'aws-sqs' },
+  { n: 'vault', f: 'ext', sub: '', k: 0, ic: 'vault', ext: 1 },
+  { n: 'mailer', f: 'ext', sub: '', k: 1, ic: 'custom', ext: 1 },
+  { n: 'billing-api', f: 'plat', sub: 'billing', k: 0, ic: '' },
+];
+const by = (n) => CMP.find((c) => c.n === n);
+const stripe = (c, th) => { const P = T[th], b = P.fam[c.f]; const s = SH[th][c.k % 4]; return c.f === 'ext' ? (c.k ? mix(b, .8, P.s) : b) : s >= 0 ? mix(b, 1 - s, P.s) : mix(b, 1 + s, P.ink); };
+
+// ---------- 32a ----------
+function set32() {
+  const tile = ([n, l]) => `<div class="tl"><div class="pair">${img(n, 14)}${img(n, 28)}</div>${n}<small>${l}</small></div>`;
+  return GROUPS.map(([g, items]) => `<div class="gh">${g}</div><div class="set">${items.map(tile).join('')}${g === 'Products' ? `<div class="tl"><div class="pair">${logo(14)}${logo(28)}</div>custom<small>user SVG / data URL</small></div>` : ''}</div>`).join('');
+}
+// ---------- 32b ----------
+const ORDER = ['auth-api', 'user-svc', 'objects-api', 'thumbnailer', 'agent-core', 'billing-api', 'vault', 'mailer'];
+const MSG = [['agent-core', 'auth-api', 'POST /token'], ['auth-api', 'user-svc', 'GET /user'], ['auth-api', 'vault', 'GET /secret'], ['agent-core', 'objects-api', 'GET /objects'], ['objects-api', 'thumbnailer', 'resize'], ['billing-api', 'mailer', 'POST /send']];
+function seq(th) {
+  const P = T[th], W = 106, X0 = 20, n = ORDER.length, w = X0 * 2 + W * n, st0 = 14, H = 36, y0 = st0 + H, yEnd = y0 + 30 + MSG.length * 36;
+  const cx = (c) => X0 + ORDER.indexOf(c) * W + W / 2; let s = '';
+  ORDER.forEach((name) => { const c = by(name), st = stripe(c, th), X = cx(name) - 50, hd = mix(st, .14, P.s), sk = mix(st, .45, P.ln);
+    s += `<line x1="${cx(name)}" y1="${y0}" x2="${cx(name)}" y2="${yEnd}" stroke="${mix(P.fam[c.f], .8, P.s)}" stroke-width="1.8" stroke-dasharray="5 4"/>`;
+    s += `<rect x="${X}" y="${st0}" width="100" height="${H}" rx="6" fill="${hd}" stroke="${sk}"${c.ext ? ' stroke-dasharray="4 3"' : ''}/><rect x="${X}" y="${st0}" width="100" height="6" rx="2" fill="${st}"/>`;
+    if (c.ic) { const y = st0 + 13;
+      const g = c.ic === 'custom'
+        ? `<g transform="translate(${X + 7} ${y})"><rect x="-1" y="-1" width="15" height="15" rx="3" fill="#fff" stroke="#c9cedb"/><g transform="translate(.5 .5) scale(.8125)">${LOGO}</g></g>`
+        : c.ic === 'auth0' ? `<g transform="translate(${X + 7} ${y}) scale(.58)" fill="#EB5424"><path d="M21.98 7.448L19.62 0H4.347L2.02 7.448c-1.352 4.312.03 9.206 3.815 12.015L12.007 24l6.157-4.552c3.755-2.81 5.182-7.688 3.815-12.015l-6.16 4.58 2.343 7.45-6.157-4.597-6.158 4.58 2.358-7.433-6.188-4.55 7.63-.045L12.008 0l2.356 7.404 7.615.044z"/></g>`
+        : c.ic === 'vault' ? `<g transform="translate(${X + 6} ${y - 1})"><rect width="16" height="16" rx="3" fill="#1d2330" stroke="#3a4256"/><image href="assets/icons/vault.svg" x="2" y="2" width="12" height="12"/></g>`
+        : (c.ic === 'kafka' || c.ic === 'mysql') && th === 'dark' ? `<g transform="translate(${X + 6} ${y - 1})"><rect width="16" height="16" rx="3" fill="#fff" stroke="#c9cedb"/><image href="assets/icons/${c.ic}.svg" x="2" y="2" width="12" height="12"/></g>`
+        : `<image href="assets/icons/${c.ic}.svg" x="${X + 7}" y="${y}" width="14" height="14"/>`;
+      s += g + `<text x="${X + 25}" y="${st0 + 25}" font-size="10.5" font-family="IBM Plex Mono,monospace" font-weight="500">${name}</text>`; }
+    else s += `<text x="${cx(name)}" y="${st0 + 26}" font-size="11.5" font-family="IBM Plex Mono,monospace" font-weight="500" text-anchor="middle">${name}</text>`; });
+  MSG.forEach(([a, b, lab], i) => { const y = y0 + 30 + i * 36, xa = cx(a), xb = cx(b), dir = xb > xa ? 1 : -1;
+    s += `<line x1="${xa + dir * 5}" y1="${y}" x2="${xb - dir * 6}" y2="${y}" stroke="${P.ink2}" stroke-width="1.5"/><path d="M${xb - dir * 5} ${y} l${-dir * 7} -4 v8z" fill="${P.ink2}"/><text x="${(xa + xb) / 2}" y="${y - 6}" font-size="10.5" text-anchor="middle" style="fill:${P.ink2}">${lab}</text>`; });
+  return `<div class="scroll-x"><svg class="seq" viewBox="0 0 ${w} ${yEnd + 8}" role="img" aria-label="Sequence diagram with component icons">${s}</svg></div>`;
+}
+// ---------- 32c ----------
+function map32(th, sel) {
+  const P = T[th], bx = (n) => { const c = by(n), st = stripe(c, th); return `<span class="bx${n === sel ? ' sel' : ''}" style="--st:${st};background:${mix(st, .14, P.s)};border-color:${mix(st, .45, P.ln)}">${ico(c, 13)}${n}</span>`; };
+  const dom = (name, col, inner, ext) => `<div class="dom${ext ? ' ext' : ''}" style="border-color:${mix(col, .6, P.ln)};background:${mix(col, .06, P.s)}"><b><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${col};margin-right:6px"></span>${name}</b>${inner}</div>`;
+  const ss = (name, col, ns) => `<div class="ss" style="border-color:${mix(col, .55, P.ln)};background:${mix(col, .1, P.s)}"><i>${name}</i><div class="bxs">${ns.map(bx).join('')}</div></div>`;
+  return `<div class="m32">${dom('Platform', P.fam.plat, ss('identity', P.fam.plat, ['auth-api', 'user-svc']) + ss('objects', P.fam.plat, ['objects-api', 'thumbnailer']) + ss('billing', P.fam.plat, ['billing-api']))}${dom('Agent', P.fam.agent, `<div class="bxs">${bx('agent-core')}</div>`)}${dom('External', P.fam.ext, `<div class="bxs">${bx('vault')}${bx('mailer')}</div>`, 1)}</div>
+  <div class="caps" style="margin-top:10px;font-size:12px;color:var(--ink-2)">The box keeps its size: the icon takes the place of the left padding gap, so only boxes with a long name wrap, as they already do. billing-api has no icon and is unchanged. External is the corev5 case: <span class="mono">vault</span> with the vault glyph beside platform components.</div>`;
+}
+// ---------- 32d ----------
+function pane(th) {
+  const c = by('vault'), st = stripe(c, th);
+  const pick = GROUPS.slice(0, 5).map(([g, items]) => `<div class="gh">${g}</div><div class="g">${items.map(([n, l]) => `<div class="o${n === 'vault' ? ' on' : ''}">${img(n, 20)}${l}</div>`).join('')}</div>`).join('');
+  return `<div class="pane32"><div class="panel-head"><div class="grow"><h3>${img('vault', 14)}vault</h3><span class="chip">External</span></div><span class="close">×</span></div>
+  <div class="panel-body"><div class="kv"><span>Group</span><span>External</span><span>Colour</span><span><i style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${st};vertical-align:-2px"></i> family shade</span>
+  <span>Icon</span><span><span class="cur">${img('vault', 14)}vault <span style="color:var(--muted);font-family:var(--font)">Change</span></span></span>
+  <div class="pick" aria-label="Icon picker (mock)"><div class="srch">&#9906; Search icons (try "queue" or "aws")</div><div class="scr">${pick}<div class="gh" style="color:var(--muted)">... 4 more AWS categories (scroll)</div></div>
+  <div class="x"><span>Custom SVG...</span><span>None</span></div>
+  <div class="cust">Custom SVG...: paste &lt;svg&gt; markup or a data: URL<textarea readonly>&lt;svg viewBox="0 0 16 16"&gt;&lt;polygon points="8,1.5 14,5 ..."/&gt;&lt;/svg&gt;</textarea><span style="display:flex;align-items:center;gap:6px">Preview ${logo(16)} drawn in its own colours</span></div></div>
+  </div></div></div>`;
+}
+function pane2(th) {
+  const q = ALL.filter(([n, l]) => /queue|sqs|rabbit|kafka|kinesis/i.test(n + l) || /Simple Queue/.test(l)).slice(0, 0);
+  const hits = [['aws-sqs', 'SQS · AWS Application integration'], ['rabbitmq', 'RabbitMQ · Products'], ['kafka', 'Kafka · Products']];
+  return `<div class="pane32"><div class="panel-body"><div class="kv"><span>Icon</span><span><span class="cur">${img('aws-sqs', 14)}aws-sqs</span></span>
+  <div class="pick"><div class="srch" style="color:var(--ink)">&#9906; que<span style="margin-left:auto;color:var(--muted)">3 matches</span></div><div class="scr">${hits.map(([n, l]) => `<div class="o" style="grid-template-columns:auto 1fr;display:flex;gap:8px;align-items:center;justify-content:flex-start;font:500 12px var(--font)">${img(n, 20)}${l}</div>`).join('')}</div></div></div></div></div>`;
+}
+function bad() { return `<div class="pane32" style="width:360px"><div class="panel-body"><div class="kv"><span>Icon</span><span><span class="cur" style="border-color:#b42318">foo-bar</span></span></div><div class="err">Unknown icon "foo-bar". Use one of: vault, auth0, aws-lambda, aws-s3, ... (see the picker), an &lt;svg&gt; string or a data: URL. (API: 422 BAD_ICON)</div></div></div>`; }
+
+function render() {
+  const th = theme();
+  document.getElementById('root').innerHTML = `
+  <section><h3>32a. Built-in set: official icons in their own colours<small>14px (head, box) and 28px; grouped as in the picker; the custom tile shows a user logo on the white tile</small></h3><div class="box">${set32()}</div></section>
+  <section><h3>32b. Lifeline heads<small>auth-api Auth0, user-svc PostgreSQL, objects-api S3, thumbnailer Lambda, agent-core SQS, billing-api none, vault External, mailer custom logo</small></h3><div class="box">${seq(th)}</div></section>
+  <section><h3>32c. System map<small>boxes in domain colour families; External dashed with the vault glyph</small></h3><div class="box">${map32(th, 'vault')}</div></section>
+  <section><h3>32d. Info pane header and Icon row<small>header icon; picker open (grouped, with search); a search in progress; the BAD_ICON state</small></h3><div class="row">${pane(th)}<div style="display:grid;gap:16px;align-content:start">${pane2(th)}${bad()}</div></div></section>`;
+}
+document.querySelectorAll('.theme button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.theme button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  if (b.dataset.t === 'system') document.documentElement.removeAttribute('data-theme'); else document.documentElement.dataset.theme = b.dataset.t;
+  render();
+}));
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', render);
+render();
+</script>
+</body>
+</html>
