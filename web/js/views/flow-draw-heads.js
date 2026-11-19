@@ -7,7 +7,8 @@ import { foldHeads } from './flow-draw-fold.js';
 import { sparkSvg } from '../components/status-mark.js';
 import { headMarkSvg } from './flow-marks-draw.js';
 import { isDesign } from '../state.js';
-import { colVar } from '../design/component-colors.js';
+import { colVar, isCustom } from '../design/component-colors.js';
+import { familyOf } from '../design/family-colours.js';
 import { headRefSvg, headRefSub } from './flow-refs-draw.js';
 import { runtimeFor, runtimeSvg } from '../design/service-info.js';
 import { drawBands, storeIcon } from './flow-draw-bands.js';
@@ -21,7 +22,7 @@ export function drawHead({ storeOn, columns, heads, boxH, HEAD, bandH, bands, wi
     s('g', { class: `seq-part k-${c.kind}${c.fan ? ' fan' : ''}${look(c).cls}${storeOn && isStoreHead(c) ? ' store-hd' : ''}`, 'data-p': i, style: look(c).style, transform: `translate(${colX.get(c) - headBox(c) / 2},${top})`, ...(storeOn && isStoreHead(c) ? { tabindex: 0, role: 'button', 'aria-pressed': 'false', 'aria-label': headLabel(c), 'data-store': c.group, 'data-coll': c.collection ?? '', 'data-stack': c.stack ? '1' : '0', 'data-kind': c.storeKind } : { tabindex: c.fan ? 0 : null, role: c.fan ? 'button' : null }) },
       storeOn && isStoreHead(c) ? s('rect', { class: 'sp-ring', x: -4, y: -4, width: headBox(c) + 8, height: boxH + 8, rx: 11 }) : null,
       c.stack ? [s('rect', { class: 'stack', x: 8, y: 5, width: headBox(c), height: boxH, rx: 8, opacity: 0.55 }), s('rect', { class: 'stack', x: 4, y: 2.5, width: headBox(c), height: boxH, rx: 8, opacity: 0.8 })] : null,
-      s('rect', { width: headBox(c), height: boxH, rx: 8 }), s('rect', { class: 'stripe', width: 4, height: boxH, rx: 2 }), headIcon(c) ?? (c.kind === 'resource' ? storeIcon(12, 10, c.stack) : null), headMarkSvg(marks, c, headBox(c)), headRefSvg(refs, c, headBox(c)), c.kind === 'service' ? runtimeSvg(runtimeFor(c.service, c.env), headBox(c) - (refs?.locked(c) ? 40 : 22), 5) : null,
+      s('rect', { width: headBox(c), height: boxH, rx: 8 }), s('rect', { class: 'stripe', width: 4, height: boxH, rx: 2 }), c.kind === 'service' && isCustom(c.service, c.env ?? state.env) ? s('rect', { class: 'cust-dia', x: headBox(c) - 5, y: -4, width: 9, height: 9, transform: `rotate(45 ${headBox(c) - 0.5} 0.5)`, 'data-qa': 'custom-colour' }, s('title', {}, 'custom colour, not from the family')) : null, headIcon(c) ?? (c.kind === 'resource' ? storeIcon(12, 10, c.stack) : null), headMarkSvg(marks, c, headBox(c)), headRefSvg(refs, c, headBox(c)), c.kind === 'service' ? runtimeSvg(runtimeFor(c.service, c.env), headBox(c) - (refs?.locked(c) ? 40 : 22), 5) : null,
       heads[i].name.map((t, k) => s('text', { x: tx(c), y: 18 + k * LINE_H, class: 'name' }, t)),
       isCh(c) || queueSrc(c) ? headChip(c, heads[i].name.length * LINE_H + 5) : (c.kind === 'unresolved' && isDesign(c.env) ? ['not designed yet'] : headRefSub(refs, c, heads[i].sub)).map((t, k) => s('text', { x: tx(c), y: 18 + heads[i].name.length * LINE_H + 1 + k * 13, class: 'sub' }, t)),
       externalTag(c, headBox(c), boxH), internal && c.kind === 'service' && !c.external ? (internal.simple ? hiddenBadge(c, internal) : internalCtl(c, internal.state(c.service))) : null,
@@ -54,4 +55,6 @@ export function drawHead({ storeOn, columns, heads, boxH, HEAD, bandH, bands, wi
 }
 
 /** The vertical line of each lifeline. */
-export const drawLifelines = ({ columns, colX, height, isCh, folded }) => columns.map((c, i) => folded.has(i) ? null : s('line', { class: isCh(c) ? 'lifeline ch' : 'lifeline', 'data-p': i, style: isCh(c) ? `--mc:${colorOf(c.transport)}` : null, x1: colX.get(c), x2: colX.get(c), y1: 0, y2: height }));
+export const drawLifelines = ({ columns, colX, height, isCh, folded }) => columns.map((c, i) => { // frame 31: in Colour by Domain a component's line is its domain's colour
+  const fam = !isCh(c) && c.kind === 'service' && !c.external ? familyOf(c.env ?? state.env, c.service)?.dom : null;
+  return folded.has(i) ? null : s('line', { class: isCh(c) ? 'lifeline ch' : fam ? 'lifeline fam' : 'lifeline', 'data-p': i, style: isCh(c) ? `--mc:${colorOf(c.transport)}` : fam ? `--fam:${fam}` : null, x1: colX.get(c), x2: colX.get(c), y1: 0, y2: height }); });

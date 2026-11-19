@@ -12,3 +12,18 @@
 .sq-fold.cmp rect { stroke: color-mix(in srgb, var(--cc) 45%, var(--line-strong)); }
 /* the dots of the step bar repeat the bar colours; the text carries the meaning */
 .cdot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--cc, var(--muted)); margin: 0 4px 0 2px; vertical-align: -1px; }
+/* Domain colour families (frame 31, family-colours.js): in Colour by Domain a lifeline takes its domain's colour (--fam), the two band rows their domain's / subsystem's
+   (22% fill, ink label, a 4px accent), and a manual colour override shows a diamond on the head. Text never sits on the family colour. */
+.lifeline.fam { stroke: color-mix(in srgb, var(--fam) 80%, var(--surface)); }
+.seq-head .band.sub.fam rect:first-child { fill: color-mix(in srgb, var(--fam) 22%, var(--surface)); stroke: color-mix(in srgb, var(--fam) 60%, var(--line-strong)); }
+.seq-head .band.sub.fam text { fill: var(--ink); }
+.seq-head .band.sub.fam .ss-icon { stroke: var(--ink); }
+.seq-head .band .fam-bar { fill: var(--fam); stroke: none; }
+.seq-part .cust-dia { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
+/* the colour control in a component's Info pane (colour-popover.js) */
+.colour-btn { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--surface); color: var(--ink); font: inherit; font-size: var(--fs-xs); cursor: pointer; }
+.colour-btn:focus-visible, .colour-opt input:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.colour-opts { display: grid; gap: 2px; margin-top: 6px; }
+.colour-opt { display: flex; align-items: center; gap: 8px; padding: 3px 4px; font-size: var(--fs-xs); cursor: pointer; }
+.colour-sw { width: 12px; height: 12px; border-radius: 3px; background: var(--c); flex: none; }
+.colour-note { margin: 4px 0 0; color: var(--muted); font-size: var(--fs-xs); }

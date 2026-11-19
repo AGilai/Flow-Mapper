@@ -34,7 +34,7 @@ const keyOf = (env) => `${env}|${env === state.env ? state.draft ?? '' : ''}`; /
 /** The subsystems store for the current env and draft, or (given another env, 0.36.0) that env's committed state. */
 export async function loadSubsystems(env = state.env) {
   const key = keyOf(env);
-  if (!cache.has(key)) cache.set(key, api.subsystems(env).then(createSubsystems, () => createSubsystems()));
+  if (!cache.has(key)) cache.set(key, api.subsystems(env).then(async (p) => { await import('./family-install.js').then((m) => m.installFamilies(env, p), () => {}); return createSubsystems(p); }, () => createSubsystems())); // frame 31: the domain colour families follow the groups
   return cache.get(key);
 }
 export const invalidateSubsystems = () => cache.clear();

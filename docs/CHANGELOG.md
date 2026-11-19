@@ -8,6 +8,7 @@ in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.m
 ## Unreleased
 
 - MCP reader parity with the web app (additive, no change for existing callers; MCP only, no REST change). New tools `flows_through` and `neighbours` (same data as `GET /flows-through` and `GET /neighbours`). `list_entry_points` rows with coverage carry `openEnds: {own, called: null}`, and `summary: true` wraps them as `{rows, traced: {full, total, reported}}`. `trace_flow` carries `openEnds: {own, called, sites}`. `list_clients` takes `report: 'drivers' | 'markdown'` (the Drivers view model, or its Markdown report). `whoami` returns the server `version`. See API.md "MCP".
+- UI only, frame 31: domain colour families. In an environment with groups, each top-level group (domain) gets one hue and its subsystems and components are close shades of it: header stripe, activation bars and step dots take the component's shade, the lifeline and both band rows the domain's / subsystem's colour; the system map colours its nodes and subsystem regions the same way. New View option "Colour by: Domain | Component" (default Domain with groups; Component is the old per-component colour). A component's Info pane has a Colour row: "Family (auto)" or a palette slot, marked with a diamond on its header and map node. Both choices are per viewer (browser storage). No API, schema or MCP change.
 
 ## 0.63.0 (2026-11-19): lifelines ordered by subsystem with an Order toggle (#138), RPC carrier in the Info panel (#137)
 
