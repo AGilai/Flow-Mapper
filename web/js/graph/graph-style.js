@@ -56,8 +56,8 @@ export function drawNode(ctx, n, [x, y], k, degree, theme, { dim, selected, hove
     const broken = n.stats && (n.stats.dangling > 0), lw = ctx.lineWidth;
     ctx.fillStyle = n.external ? theme.extFill : theme.surface; // #87: an external service: muted fill, even dashed grey outline (the label carries the "external" tag)
     const slot = slotOf(state.envMeta, state.env, n.service, n.svcKind); // the component's colour ring (frame 11); client apps and infra stay neutral
-    const plain = n.svcKind === 'client-app' || n.svcKind === 'infra', ov = plain ? null : overrideOf(state.env, n.service), fam = plain ? null : shadeHex(state.env, n.service, theme.dark ? 'dark' : 'light'); // frame 31: the node ring is the component's shade (Colour by Domain), a manual colour wins
-    const ring = ov ? theme.cmp[ov - 1] : fam ? fam.shade : slot ? theme.cmp[slot - 1] : null;
+    const plain = n.svcKind === 'client-app' || n.svcKind === 'infra', ov = overrideOf(state.env, n.service), fam = shadeHex(state.env, n.service, theme.dark ? 'dark' : 'light'); // frame 31; #146: a client app or infra node takes its family shade too (grey only with no group, in Component mode it has no shade at all): the node ring is the component's shade (Colour by Domain), a manual colour wins
+    const grouped = fam && (!plain || fam.dom), ring = ov && (!plain || grouped) ? theme.cmp[ov - 1] : grouped ? fam.shade : slot ? theme.cmp[slot - 1] : null;
     ctx.strokeStyle = selected ? theme.accent : broken ? theme.broken : ring ?? theme.ink2;
     if (ring && !selected && !broken) ctx.lineWidth = 2.4;
     if (n.external) { ctx.strokeStyle = selected ? theme.accent : theme.extLine; ctx.lineWidth = Math.max(lw, 1.8); ctx.setLineDash([4, 3]); }

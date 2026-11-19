@@ -11,6 +11,7 @@ import { loadMarks } from '../design/marks-store.js';
 import { loadSubsystems } from '../design/subsystems-store.js';
 import { cmpVar } from '../design/component-colors.js';
 import { colourRow } from '../design/colour-popover.js';
+import { modeOf } from '../design/family-colours.js';
 import { envQuery } from '../views/inventory-links.js';
 import { markBadge } from '../components/status-mark.js';
 import { subIcon } from '../icons.js';
@@ -50,7 +51,7 @@ export async function componentSpec(name, ctx) {
 
   const subLink = () => (subKey ? h('button.pane-sub-link', { type: 'button', 'data-qa': 'pane-sub', on: { click: () => ctx.onSub?.(subKey) } }, subIcon(subs.info(subKey)?.icon, 14), subs.labelOf(subKey)) : subs.has ? 'Not set' : null);
   const overview = () => [view?.external ? externalNote() : null, ctx.pen?.hint() ?? null, facts([
-    ['Subsystem', subLink()], ['Kind', KIND[kind] ?? kind], ['Colour', ['client-app', 'infra'].includes(kind) ? null : colourRow(env, name)], ['Team', svc.team], ['Description', svc.description],
+    ['Subsystem', subLink()], ['Kind', KIND[kind] ?? kind], ['Colour', ['client-app', 'infra'].includes(kind) && modeOf(env) !== 'domain' ? null : colourRow(env, name)], ['Team', svc.team], ['Description', svc.description],
     ['Endpoints', ep.total ? [`${ep.total} `, h('small', `· ${ep.text} `), h('a.pane-more', { href: open }, 'Open service')] : h('a.pane-more', { href: open }, 'Open service')],
     ['Owners', owners.length || design ? ownersValue(owners, ownerPen()) : null], ['Docs', docLinks(svc.links)],
   ])];
