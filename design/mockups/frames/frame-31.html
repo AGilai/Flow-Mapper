@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frame 31 · Domain colour families</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../shared.css">
+<style>
+/* Frame 31: colours are computed in JS from the real --cmp-1..8 palette (same hexes as web/css), so the swatches are the rule's output, not hand-picked. */
+.f31 { padding: 8px 24px 28px; display: grid; gap: 28px; }
+.f31 h3 { font-size: 15px; margin: 0 0 6px; } .f31 h3 small { font: 400 12.5px var(--font); color: var(--ink-2); margin-left: 8px; }
+.f31 .row { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+.f31 .box { border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface); padding: 12px 14px; }
+.f31 .scroll-x { overflow-x: auto; }
+.f31 .pal { display: grid; gap: 12px; min-width: 520px; flex: 1; }
+.f31 .pal.th-l { --s:#ffffff; --i:#1b2233; --i2:#4a5268; --ln:#e1e4ee; background: var(--s); color: var(--i); }
+.f31 .pal.th-d { --s:#1a1e29; --i:#e7e9f0; --i2:#b5bacb; --ln:#2c3243; background: var(--s); color: var(--i); }
+.f31 .pal h4 { margin: 0; font: 600 12px var(--font); text-transform: uppercase; letter-spacing: .05em; color: var(--i2); }
+.f31 .fam { display: grid; gap: 4px; }
+.f31 .fam > b { font: 600 12.5px var(--font); display: flex; gap: 8px; align-items: center; } .f31 .fam > b i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.f31 .sub { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding-left: 10px; }
+.f31 .sub > em { font: 500 11px var(--mono); font-style: normal; color: var(--i2); width: 72px; }
+.f31 .chip31 { position: relative; display: inline-flex; flex-direction: column; justify-content: flex-end; width: 124px; height: 48px; border-radius: 6px; padding: 9px 7px 4px 7px; font: 500 10.5px/1.15 var(--mono); border: 1px solid var(--ln); overflow: hidden; }
+.f31 .chip31::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 6px; background: var(--st); }
+.f31 .chip31 small { font: 500 9.5px var(--font); opacity: .85; }
+.f31 .ratio { font: 500 11.5px var(--font); color: var(--i2); } .f31 .ratio b { color: var(--i); }
+.f31 .ramp { display: flex; border-radius: 6px; overflow: hidden; width: 100%; max-width: 360px; } .f31 .ramp i { flex: 1; height: 26px; display: grid; place-items: center; font: 600 10px var(--font); font-style: normal; color: #fff; text-shadow: 0 0 2px rgba(0,0,0,.5); }
+.f31 .cmp3 { display: grid; gap: 10px; font-size: 12px; } .f31 .cmp3 > div { display: grid; gap: 3px; } .f31 .cmp3 span { color: var(--ink-2); }
+.f31 svg.seq { display: block; width: 100%; height: auto; min-width: 1000px; font-family: var(--font); }
+.f31 svg.seq text { fill: var(--ink); }
+.f31 .caps { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; font-size: 12px; color: var(--ink-2); } .f31 .caps span { display: inline-flex; align-items: center; gap: 6px; } .f31 .caps i { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font: 700 10px var(--font); font-style: normal; color: var(--surface); }
+.f31 .menu { width: 320px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface); box-shadow: var(--shadow-panel); padding: 8px; display: grid; gap: 2px; font-size: 13px; align-self: flex-start; }
+.f31 .menu .mi { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 6px; } .f31 .menu .mi.hl { background: var(--accent-soft); outline: 1px dashed var(--accent); }
+.f31 .menu .lab { font: 600 10.5px var(--font); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); padding: 6px 8px 2px; }
+.f31 .seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 7px; overflow: hidden; } .f31 .seg button { font: 500 12px var(--font); padding: 3px 10px; border: 0; background: var(--surface); color: var(--ink-2); cursor: pointer; } .f31 .seg button + button { border-left: 1px solid var(--line-strong); } .f31 .seg button[aria-pressed='true'] { background: var(--accent); color: var(--surface); font-weight: 600; }
+.f31 .seg button:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.f31 .hint { font-size: 11.5px; color: var(--muted); padding: 2px 8px 6px; }
+.f31 .pop .po { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 6px; } .f31 .pop .po.on { background: var(--accent-soft); }
+.f31 .pop .po .rd { width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid var(--line-strong); flex: none; } .f31 .pop .po.on .rd { border-color: var(--accent); background: radial-gradient(var(--accent) 45%, transparent 50%); }
+.f31 .slots { display: flex; gap: 4px; padding: 2px 8px 4px 28px; } .f31 .slots i { width: 18px; height: 18px; border-radius: 4px; }
+.f31 .map { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start; }
+.f31 .dom { border: 1.5px solid; border-radius: 12px; padding: 8px 10px 10px; display: grid; gap: 8px; }
+.f31 .dom > b { font: 700 11px var(--font); letter-spacing: .05em; text-transform: uppercase; }
+.f31 .ss { border: 1px solid; border-radius: 8px; padding: 5px 7px 7px; display: grid; gap: 5px; } .f31 .ss > i { font: 600 10.5px var(--font); font-style: normal; }
+.f31 .bx { position: relative; font: 500 11.5px var(--mono); padding: 6px 10px 6px 14px; border: 1px solid; border-radius: 6px; color: var(--ink); } .f31 .bx::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; border-radius: 6px 0 0 6px; background: var(--st); }
+.f31 .bxs { display: flex; flex-wrap: wrap; gap: 5px; }
+.f31 .ov { position: absolute; right: -4px; top: -4px; width: 9px; height: 9px; transform: rotate(45deg); background: var(--surface); border: 1.5px solid var(--ink); }
+ol.decisions.w1 { columns: 1; max-width: 1180px; }
+</style>
+</head>
+<body>
+<nav class="fbar" aria-label="Design navigation"><a href="../design-env.html">← All designs</a><span class="pos">Frame 31 of 31</span><a href="frame-30.html">‹ prev</a><span class="off">next ›</span><span class="chip chip-approved">Proposal</span><div class="theme" role="group" aria-label="Theme"><button data-t="system" aria-pressed="true">System</button><button data-t="light" aria-pressed="false">Light</button><button data-t="dark" aria-pressed="false">Dark</button></div></nav>
+
+<div class="frame-label"><h2>Frame 31. Domain colour families (follow-up to #138, lifeline order)</h2>
+<p>With lifelines ordered domain &gt; subsystem, colour should say the same thing: each domain gets one hue family, and its subsystems and components are close shades of it. Everything below is generated by one function from the real palette (<span class="mono">--cmp-1..8</span>), in light and dark. Try the Colour by switch in 31e: it recolours every drawing on the page. Data is invented.</p>
+<ol class="decisions w1">
+<li><b>The rule (31a).</b> Domain = the top-level group, in the env's group order. It takes the next hue from the existing palette, in a hue-spread order (blue, coral, green, violet, ochre, teal, pink, mauve) so neighbouring domains never look alike; past 8 domains the order repeats with lightness shifted. The stored per-component slot is not used for hue in this mode. In OKLCH: <b>subsystem</b> = base with a lightness step 0 / +0.07 / -0.07 / +0.13 in group order (signs flipped in dark), chroma x0.9 on shifted shades, hue +7° per step. <b>Component</b> inside a subsystem = a smaller step of 0.04 in the order 0, +2, -1, +3, -2 (alternating sign, so even the first neighbour pair is two steps apart) with 4° hue drift per step. A domain without subsystems (Agent) is one family whose components use the bigger step (0.05), having no subsystem step to lean on. Lightness is clamped to 0.40 to 0.66 (light) and 0.58 to 0.86 (dark) so a stripe keeps 3:1 against the surface.</li>
+<li><b>Neutral groups.</b> "No group" is a flat neutral grey, External the same grey with a dashed header border. Neither takes a hue; components inside are told apart by name only (as client apps and infra are today).</li>
+<li><b>Contrast (31a).</b> Text never sits on the family colour. As today, the header fill is the colour at 14% over the surface and the label is the normal ink, so the label stays far above 4.5:1 (each chip prints the measured number, the worst case is printed under each theme). The saturated shade appears only as the 6px top stripe, the activation bar and the dot, checked against the surface at 3:1 (non-text).</li>
+<li><b>Neighbours in a family (31b).</b> Risk: a monotonic ramp of 5 shades has neighbours 0.04 apart in lightness, which reads as one colour. Fix: alternate the sign of the step (0, +2, -1, +3, -2) so adjacent lifelines differ by at least two steps, add the small hue drift, and let the stripe carry the shade (the header body stays at 14%). The measured neighbour distance (OKLab) is printed per chip. Colour is a grouping cue, never the only identifier: the name is always in the header and the bands name the group.</li>
+<li><b>Where each part takes its colour (31c, 31d).</b> The lifeline line and the two band rows use the <b>family</b> colour (domain on row 1, subsystem on row 2, 22% fill, ink label). The header stripe, activation bars and step-caption dots use the <b>component</b> shade. System map (31f): domain frame = domain hue, subsystem frame = subsystem shade, box = component shade. In call order (31d) lifelines interleave, but each header still carries its family: the bands break into one cell per run and the three families stay distinguishable at a glance.</li>
+<li><b>Manual override wins (31c, 31e, 31f).</b> A per-component colour override replaces that component's shade only: stripe, bar, dot, box. Its band and lifeline stay on the family. A small diamond on the header corner marks "custom colour", so a reader does not take it for a family member (tooltip: "custom colour, not from the family"). The colour popover gets a first option, Family (auto), which clears the override; palette slots and Custom stay as today. Overrides are stored per component, so they are not touched when the group order changes.</li>
+<li><b>The setting (31e).</b> View menu, new group "Colour": a two-way switch <b>Domain | Component</b>, next to the lifeline-order toggle from #138. Component = today (stored slot per component, bands neutral). Default is Domain when lifelines are ordered by domain; the choice is remembered per user in the browser like the other View toggles. In call order with Domain, nothing else changes. Overrides apply in both modes.</li>
+<li><b>Not changed.</b> Transport and status colours (UI-GUIDE section 8: colour is a component, never a transport or status). Hue follows group order, so inserting a domain in the middle of the order moves later domains' hues; only a re-order moves colours.</li>
+</ol></div>
+
+<div class="f31" id="root"></div>
+
+<script>
+// ---------- colour maths (OKLab/OKLCH) ----------
+const lin = (c) => { c /= 255; return c <= .04045 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4; };
+const gam = (c) => { c = Math.max(0, Math.min(1, c)); return 255 * (c <= .0031308 ? c * 12.92 : 1.055 * c ** (1 / 2.4) - .055); };
+const hex2rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const rgb2hex = (r) => '#' + r.map((v) => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0')).join('');
+function toOk(hex) { const [r, g, b] = hex2rgb(hex).map(lin);
+  const l = Math.cbrt(.4122214708 * r + .5363325363 * g + .0514459929 * b), m = Math.cbrt(.2119034982 * r + .6806995451 * g + .1073969566 * b), s = Math.cbrt(.0883024619 * r + .2817188376 * g + .6299787005 * b);
+  return [.2104542553 * l + .793617785 * m - .0040720468 * s, 1.9779984951 * l - 2.428592205 * m + .4505937099 * s, .0259040371 * l + .7827717662 * m - .808675766 * s]; }
+const lab2lin = ([L, a, b]) => { const l = (L + .3963377774 * a + .2158037573 * b) ** 3, m = (L - .1055613458 * a - .0638541728 * b) ** 3, s = (L - .0894841775 * a - 1.291485548 * b) ** 3;
+  return [4.0767416621 * l - 3.3077115913 * m + .2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - .3413193965 * s, -.0041960863 * l - .7034186147 * m + 1.707614701 * s]; };
+const inGamut = (v) => v.every((x) => x >= -.0005 && x <= 1.0005);
+function oklch(L, C, h) { const r = h * Math.PI / 180; let c = C; for (let i = 0; i < 40; i++) { const v = lab2lin([L, c * Math.cos(r), c * Math.sin(r)]); if (inGamut(v)) return rgb2hex(v.map(gam)); c *= .94; } return '#808080'; }
+const lch = (hex) => { const [L, a, b] = toOk(hex); return [L, Math.hypot(a, b), (Math.atan2(b, a) * 180 / Math.PI + 360) % 360]; };
+const lum = (hex) => { const [r, g, b] = hex2rgb(hex).map(lin); return .2126 * r + .7152 * g + .0722 * b; };
+const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
+const mix = (a, p, b) => { const A = hex2rgb(a), B = hex2rgb(b); return rgb2hex(A.map((v, i) => v * p + B[i] * (1 - p))); };
+const dE = (a, b) => { const x = toOk(a), y = toOk(b); return Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]); };
+
+// ---------- themes: the real --cmp-1..8 and surface / ink ----------
+const T = {
+  light: { s: '#ffffff', ink: '#1b2233', ink2: '#4a5268', ln: '#e1e4ee', cmp: ['#9f5989', '#077fa8', '#5a805b', '#6e6ab2', '#ac5859', '#198585', '#846891', '#a5612e'], lo: .40, hi: .66, grey: '#7a8197', ov: '#c2410c', sg: 1 },
+  dark: { s: '#1a1e29', ink: '#e7e9f0', ink2: '#b5bacb', ln: '#2c3243', cmp: ['#e095c7', '#5dbee9', '#96bd96', '#aaa7f4', '#ef9494', '#64c3c3', '#c2a4d0', '#e79e6b'], lo: .58, hi: .86, grey: '#8a90a6', ov: '#fb923c', sg: -1 },
+};
+const HUE_ORDER = [2, 5, 3, 4, 8, 6, 1, 7]; // slots, hue-spread
+const SUB_L = [0, .07, -.07, .13], COMP_L = [0, 2, -1, 3, -2, 4, -3], COMP_H = [0, 8, -4, 12, -8, 16, -12];
+const clamp = (L, P) => Math.max(P.lo, Math.min(P.hi, L));
+
+const ENV = [
+  { name: 'Platform', subs: [
+    { name: 'identity', comps: ['auth-api', 'user-svc', 'token-svc'] },
+    { name: 'objects', comps: ['objects-api', 'blob-svc', 'thumbnailer'] },
+    { name: 'billing', comps: ['billing-api', 'invoicer', 'ledger'] } ] },
+  { name: 'Agent', subs: [{ name: '', comps: ['agent-core', 'agent-planner', 'agent-tools', 'agent-memory', 'agent-runner'] }] },
+  { name: 'Network', subs: [
+    { name: 'pop', comps: ['pop-edge', 'pop-health'] },
+    { name: 'dns', comps: ['dns-resolver', 'dns-sync'] } ] },
+  { name: 'No group', neutral: 1, subs: [{ name: '', comps: ['cron-runner', 'mailer'] }] },
+  { name: 'External', neutral: 2, subs: [{ name: '', comps: ['stripe', 'slack-api', 's3'] }] },
+];
+const OVERRIDE = { 'billing-api': 1 };
+
+function paint(th, mode) { // -> { component: { st (component shade), dom, sub (family colours), d, s, ov, neutral } }
+  const P = T[th], out = {}; let g = 0, n = 0;
+  ENV.forEach((d) => {
+    const hasSubs = d.subs.length > 1 || d.subs[0].name;
+    const base = d.neutral ? P.grey : P.cmp[HUE_ORDER[g % 8] - 1];
+    const [L0, C0, h0] = lch(base), wrap = Math.floor(g / 8) * .06;
+    if (!d.neutral) g++;
+    d.subs.forEach((sb, j) => {
+      const sl = d.neutral ? 0 : SUB_L[Math.min(j, 3)] * P.sg, cm = sl ? .9 : 1;
+      const subCol = d.neutral ? P.grey : oklch(clamp(L0 + sl + wrap, P), C0 * cm, h0 + 7 * j);
+      sb.comps.forEach((c, k) => {
+        const kk = Math.min(k, 6), step = (hasSubs ? .04 : .05) * COMP_L[kk] * P.sg;
+        let st = d.neutral ? oklch(L0 - (k % 2 ? .07 : 0) * P.sg, .012, 260)
+                           : oklch(clamp(L0 + sl + wrap + step, P), C0 * cm, h0 + 7 * j + COMP_H[kk]);
+        let ov = false, dom = d.neutral ? P.grey : base, sub = subCol;
+        if (mode === 'comp') { st = d.neutral ? P.grey : P.cmp[n % 8]; dom = sub = st; }
+        if (OVERRIDE[c]) { st = P.ov; ov = true; }
+        n++;
+        out[c] = { st, dom, sub, d: d.name, s: sb.name, ov, neutral: d.neutral || 0 };
+      });
+    });
+  });
+  return out;
+}
+const head = (c, P) => ({ fill: mix(c.st, .14, P.s), stroke: mix(c.st, .45, P.ln) }); // as web/css/cmp.css
+const theme = () => { const t = document.documentElement.dataset.theme; return t === 'light' || t === 'dark' ? t : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); };
+let MODE = 'dom';
+
+function palette(th) {
+  const P = T[th], col = paint(th, 'dom'); let minTxt = 99, minStripe = 99, minNb = 99, html = '';
+  ENV.forEach((d) => {
+    html += `<div class="fam"><b><i style="background:${col[d.subs[0].comps[0]].dom}"></i>${d.name}${d.neutral ? ' <span class="ratio">neutral' + (d.neutral === 2 ? ', dashed header border' : '') + '</span>' : ''}</b>`;
+    d.subs.forEach((sb) => {
+      let prev = null;
+      html += `<div class="sub"><em>${sb.name || ''}</em>`;
+      sb.comps.forEach((c) => {
+        const x = col[c], h = head(x, P), txt = ratio(P.ink, h.fill), sr = ratio(x.st, P.s), nb = prev ? dE(prev, x.st) : null; prev = x.st;
+        if (!x.ov) { minTxt = Math.min(minTxt, txt); minStripe = Math.min(minStripe, sr); if (nb != null) minNb = Math.min(minNb, nb); }
+        html += `<span class="chip31" style="--st:${x.st};background:${h.fill};border-color:${h.stroke};${d.neutral === 2 ? 'border-style:dashed;' : ''}color:${P.ink}">${c}<small>${txt.toFixed(1)}:1 · bar ${sr.toFixed(1)}:1${nb != null ? ' · ΔE ' + nb.toFixed(3) : ''}</small>${x.ov ? '<i class="ov"></i>' : ''}</span>`;
+      });
+      html += '</div>';
+    });
+    html += '</div>';
+  });
+  html += `<div class="ratio">Worst case, ${th}: label on header <b>${minTxt.toFixed(1)}:1</b> (needs 4.5), stripe / bar on surface <b>${minStripe.toFixed(1)}:1</b> (needs 3), nearest neighbours <b>ΔE ${minNb.toFixed(3)}</b> (OKLab). The diamond (billing-api custom colour) is excluded.</div>`;
+  return `<div class="pal box th-${th[0]}"><h4>${th} theme</h4>${html}</div>`;
+}
+function ramps() {
+  const th = theme(), P = T[th], [L0, C0, h0] = lch(P.cmp[1]);
+  const mono = [0, 1, 2, 3, 4].map((k) => oklch(clamp(L0 + .04 * k * P.sg, P), C0, h0));
+  const alt = [0, 1, 2, 3, 4].map((k) => oklch(clamp(L0 + .04 * COMP_L[k] * P.sg, P), C0, h0 + COMP_H[k]));
+  const d = (a) => Math.min(...a.slice(1).map((c, i) => dE(a[i], c))).toFixed(3);
+  const r = (a) => `<div class="ramp">${a.map((c, i) => `<i style="background:${c}">${i + 1}</i>`).join('')}</div>`;
+  return `<div class="cmp3"><div><span>Naive: monotonic ramp of 5. Nearest neighbours ΔE <b>${d(mono)}</b>: reads as one colour.</span>${r(mono)}</div><div><span>Chosen: alternating steps plus hue drift. Nearest neighbours ΔE <b>${d(alt)}</b>.</span>${r(alt)}</div></div>`;
+}
+
+const GROUPED = ['auth-api', 'user-svc', 'objects-api', 'blob-svc', 'billing-api', 'agent-core', 'agent-planner', 'agent-tools', 'pop-edge', 'dns-resolver'];
+const CALLORD = ['agent-core', 'auth-api', 'pop-edge', 'user-svc', 'agent-planner', 'objects-api', 'dns-resolver', 'blob-svc', 'agent-tools', 'billing-api'];
+const MSG = [['agent-core', 'auth-api', 'POST /token'], ['auth-api', 'user-svc', 'GET /user'], ['agent-core', 'pop-edge', 'route'], ['pop-edge', 'dns-resolver', 'resolve'], ['agent-core', 'agent-planner', 'plan'], ['agent-planner', 'objects-api', 'GET /objects'], ['objects-api', 'blob-svc', 'getBlob'], ['agent-tools', 'billing-api', 'POST /usage']];
+function seq(order, th) {
+  const P = T[th], col = paint(th, MODE), W = 106, X0 = 20, n = order.length, w = X0 * 2 + W * n, st0 = 60, H = 36, y0 = st0 + H, yEnd = y0 + 40 + MSG.length * 40;
+  const cx = (c) => X0 + order.indexOf(c) * W + W / 2; let s = '';
+  const runs = (key, row) => { let i = 0; const k = (c) => key === 'd' ? col[c].d : col[c].d + '/' + col[c].s;
+    while (i < n) { let j = i; while (j + 1 < n && k(order[j + 1]) === k(order[i])) j++;
+      const x = col[order[i]], label = key === 'd' ? x.d : x.s, colr = key === 'd' ? x.dom : x.sub, y = 4 + row * 24, bx = X0 + i * W + 2, bw = (j - i + 1) * W - 4;
+      if (label) s += `<rect x="${bx}" y="${y}" width="${bw}" height="20" rx="4" fill="${mix(colr, .22, P.s)}" stroke="${mix(colr, .6, P.ln)}"/><rect x="${bx}" y="${y}" width="4" height="20" rx="2" fill="${colr}"/><text x="${bx + 10}" y="${y + 14}" font-size="11" font-weight="600">${label}</text>`;
+      i = j + 1; } };
+  runs('d', 0); runs('s', 1);
+  order.forEach((c) => { const x = col[c], h = head(x, P), X = cx(c) - 48;
+    s += `<line x1="${cx(c)}" y1="${y0}" x2="${cx(c)}" y2="${yEnd}" stroke="${mix(x.dom, .8, P.s)}" stroke-width="1.8" stroke-dasharray="5 4"/>`;
+    s += `<rect x="${X}" y="${st0}" width="96" height="${H}" rx="6" fill="${h.fill}" stroke="${h.stroke}"${x.neutral === 2 ? ' stroke-dasharray="4 3"' : ''}/><rect x="${X}" y="${st0}" width="96" height="6" rx="2" fill="${x.st}"/><text x="${cx(c)}" y="${st0 + 26}" font-size="11.5" font-family="IBM Plex Mono,monospace" font-weight="500" text-anchor="middle">${c}</text>`;
+    if (x.ov) s += `<rect x="${X + 91}" y="${st0 - 4}" width="9" height="9" transform="rotate(45 ${X + 95.5} ${st0 + 0.5})" fill="${P.s}" stroke="${P.ink}" stroke-width="1.5"/>`; });
+  MSG.forEach(([a, b, lab], i) => { const y = y0 + 34 + i * 40, xa = cx(a), xb = cx(b), dir = xb > xa ? 1 : -1;
+    s += `<rect x="${xb - 5}" y="${y - 8}" width="10" height="34" rx="3" fill="${mix(col[b].st, .28, P.s)}" stroke="${mix(col[b].st, .78, P.ink)}"/>`;
+    s += `<rect x="${xa - 5}" y="${y - 8}" width="10" height="18" rx="3" fill="${mix(col[a].st, .28, P.s)}" stroke="${mix(col[a].st, .78, P.ink)}"/>`;
+    s += `<line x1="${xa + dir * 5}" y1="${y}" x2="${xb - dir * 6}" y2="${y}" stroke="${P.ink2}" stroke-width="1.5"/><path d="M${xb - dir * 5} ${y} l${-dir * 7} -4 v8z" fill="${P.ink2}"/><text x="${(xa + xb) / 2}" y="${y - 6}" font-size="10.5" text-anchor="middle" style="fill:${P.ink2}">${lab}</text>`; });
+  const caps = MSG.map(([a, b], i) => `<span><i style="background:${col[b].st}">${i + 1}</i>${a} → ${b}</span>`).join('');
+  return `<div class="scroll-x"><svg class="seq" viewBox="0 0 ${w} ${yEnd + 8}" role="img" aria-label="Sequence diagram">${s}</svg></div><div class="caps">${caps}</div>`;
+}
+
+function settings() {
+  return `<div class="row"><div class="menu" aria-label="View menu (mock)"><div class="lab">Lifelines</div><div class="mi"><span>Order</span><span class="seg"><button aria-pressed="true">Domain &gt; subsystem</button><button aria-pressed="false">Call order</button></span></div><div class="mi"><span>Subsystem bands</span><span class="seg"><button aria-pressed="true">On</button><button aria-pressed="false">Off</button></span></div>
+  <div class="lab">Colour</div><div class="mi hl"><span>Colour by</span><span class="seg" id="colorby"><button data-m="dom" aria-pressed="true">Domain</button><button data-m="comp" aria-pressed="false">Component</button></span></div><div class="hint">Domain: one hue family per top-level group. Component: one colour per component (today).</div></div>
+  <div class="menu pop" aria-label="Component colour popover (mock)"><div class="lab">Colour of billing-api</div><div class="po"><span class="rd"></span>Family (auto)<span style="margin-left:auto;font-size:11.5px;color:var(--muted)">clears the override</span></div><div class="po on"><span class="rd"></span>Custom <span class="mono" style="font-size:11.5px">${T[theme()].ov}</span><span style="margin-left:auto;font-size:11.5px;color:var(--muted)">diamond on header</span></div><div class="po"><span class="rd"></span>Palette slot</div><div class="slots">${T[theme()].cmp.map((c) => `<i style="background:${c}"></i>`).join('')}</div><div class="hint">The band and lifeline keep the family colour.</div></div></div>`;
+}
+function sysmap(th) {
+  const P = T[th], col = paint(th, MODE);
+  return `<div class="map">${ENV.slice(0, 3).map((d) => { const first = col[d.subs[0].comps[0]], multi = d.subs.length > 1;
+    return `<div class="dom" style="border-color:${mix(first.dom, .6, P.ln)};background:${mix(first.dom, .06, P.s)}"><b><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${first.dom};margin-right:6px"></span>${d.name}</b>
+    ${d.subs.map((sb) => { const sc = col[sb.comps[0]], boxes = sb.comps.slice(0, 3).map((c) => { const x = col[c]; return `<span class="bx" style="--st:${x.st};background:${mix(x.st, .14, P.s)};border-color:${mix(x.st, .45, P.ln)}">${c}${x.ov ? '<i class="ov"></i>' : ''}</span>`; }).join('');
+      return multi ? `<div class="ss" style="border-color:${mix(sc.sub, .55, P.ln)};background:${mix(sc.sub, .1, P.s)}"><i>${sb.name}</i><div class="bxs">${boxes}</div></div>` : `<div class="bxs">${boxes}</div>`; }).join('')}</div>`; }).join('')}</div>`;
+}
+
+function render() {
+  const th = theme();
+  document.getElementById('root').innerHTML = `
+  <section><h3>31a. The palette rule, generated<small>both themes always shown; domains in group order, subsystem rows, components left to right. Each chip: label contrast, stripe contrast, distance to its left neighbour</small></h3><div class="row">${palette('light')}${palette('dark')}</div></section>
+  <section><h3>31b. Neighbours inside a family<small>the risk and the fix (current theme, Platform / blue)</small></h3><div class="box">${ramps()}</div></section>
+  <section><h3>31c. Lifelines grouped by domain &gt; subsystem (default order)<small>bands: domain, subsystem · header stripe, bar, dot = component shade · line = family · diamond = manual override</small></h3><div class="box">${seq(GROUPED, th)}</div></section>
+  <section><h3>31d. The same flow in call order<small>interleaved lifelines; bands break into runs, the colour families still separate Platform / Agent / Network</small></h3><div class="box">${seq(CALLORD, th)}</div></section>
+  <section><h3>31e. Setting and override popover<small>View menu, new group Colour; the switch drives every drawing on this page</small></h3>${settings()}</section>
+  <section><h3>31f. System map<small>domain frame = hue, subsystem frame = shade, box = component shade; billing-api carries the override diamond</small></h3><div class="box">${sysmap(th)}</div></section>`;
+  document.querySelectorAll('#colorby button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === MODE)));
+}
+document.addEventListener('click', (e) => { const b = e.target.closest('#colorby button'); if (b) { MODE = b.dataset.m; render(); } });
+document.querySelectorAll('.theme button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.theme button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  if (b.dataset.t === 'system') document.documentElement.removeAttribute('data-theme'); else document.documentElement.dataset.theme = b.dataset.t;
+  render();
+}));
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', render);
+render();
+</script>
+</body>
+</html>
