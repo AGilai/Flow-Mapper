@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "lo-as-cm",
+    "kind": "client-app",
+    "team": "agent",
+    "repo": "github.com/acme/lo-as-cm",
+    "language": "typescript",
+    "description": "Demo #147: credential manager (client app); calls the agent back in sequence"
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-19T12:00:00Z",
+  "commit": "147a001",
+  "functions": [
+    {
+      "id": "ensure",
+      "name": "ensure",
+      "file": "src/ensure.ts",
+      "line": 5,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "o.relay"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "o.ready"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.ensure",
+      "bindKey": "rpc:lo-as-cm/ensure",
+      "transport": "rpc",
+      "handler": "ensure",
+      "entryPoint": false
+    }
+  ],
+  "egress": [
+    {
+      "id": "o.relay",
+      "bindKey": "rpc:lo-as-agent/relay",
+      "transport": "rpc",
+      "mode": "sync"
+    },
+    {
+      "id": "o.ready",
+      "bindKey": "rpc:lo-as-agent/ready",
+      "transport": "rpc",
+      "mode": "sync"
+    }
+  ]
+}

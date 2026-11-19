@@ -5,6 +5,10 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+
+- Fix #147 (UI only): in the sequence view a caller nobody waits on (a client app's entry bar, or a bar entered by an async call) ends its bar when deferred async work starts; a later call back into it opens a new bar at level 0 instead of nesting in the finished one. Sync entries keep their bar open.
+
 ## 0.64.3 (2026-11-19)
 
 - Fix #146 (UI only): in Colour by Domain a client app and an infra component that belong to a group take their family shade (head stripe, bars, lifeline, system map ring) like any other component; a client app keeps a dashed head outline. Components in no group and Component mode stay neutral; a manual colour still wins.

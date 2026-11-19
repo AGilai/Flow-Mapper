@@ -1,0 +1,96 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "lo-as-agent",
+    "kind": "client-app",
+    "team": "agent",
+    "repo": "github.com/acme/lo-as-agent",
+    "language": "typescript",
+    "description": "Demo #147: the agent app calls the credential manager async; the manager calls back (sync)"
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-19T12:00:00Z",
+  "commit": "147a001",
+  "functions": [
+    {
+      "id": "login",
+      "name": "login",
+      "file": "src/login.ts",
+      "line": 5,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "kind": "leaf",
+          "operation": "prepare"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "o.ensure"
+        }
+      ]
+    },
+    {
+      "id": "relay",
+      "name": "relay",
+      "file": "src/relay.ts",
+      "line": 5,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "kind": "leaf",
+          "operation": "forward"
+        }
+      ]
+    },
+    {
+      "id": "ready",
+      "name": "ready",
+      "file": "src/ready.ts",
+      "line": 5,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "call",
+          "kind": "leaf",
+          "operation": "mark ready"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.x",
+      "bindKey": "client:lo-as-agent/login",
+      "transport": "other",
+      "handler": "login",
+      "entryPoint": true
+    },
+    {
+      "id": "in.relay",
+      "bindKey": "rpc:lo-as-agent/relay",
+      "transport": "rpc",
+      "handler": "relay",
+      "entryPoint": false
+    },
+    {
+      "id": "in.ready",
+      "bindKey": "rpc:lo-as-agent/ready",
+      "transport": "rpc",
+      "handler": "ready",
+      "entryPoint": false
+    }
+  ],
+  "egress": [
+    {
+      "id": "o.ensure",
+      "bindKey": "rpc:lo-as-cm/ensure",
+      "transport": "rpc",
+      "mode": "async"
+    }
+  ]
+}
