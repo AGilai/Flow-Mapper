@@ -5,6 +5,10 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+
+- #148 follow-up (UI only): a large-icon head (one with `details.icon`) shows just the name under the logo, and keeps the word "service" under it only when no specific type is known; when one is (`details.runtime`, or a gateway / lambda / infra / client-app kind) the type line is dropped. The product (`details.product`) is no longer drawn in the head. The info pane has a Type row (the runtime or kind, else "Service") and a Product row. Lane width is now automatic: every head in a lane shares one width, the longest head name on one line, between today's 138 px and 238 px (`COL_AUTO_MAX`); a longer name wraps. Squeeze and Fit still narrow it. The `lo-hi-vault` demo sample is now kind `infra`.
+
 ## 0.66.1 (2026-11-19): #148 large head icons
 
 - #148 (UI, plus one optional field): a lifeline head whose component has its own icon (`service.details.icon`, #144) draws the logo large (30 px, centred at the top of the head, scaled down in a narrow head) with the name centred under it, and the grey product line under that. The head box grows to fit; store, channel, lambda and gateway heads (their kind's small icon) and heads without an icon are unchanged. **New optional field, not breaking:** `service.details.product` (string, up to 80 characters, e.g. `HashiCorp Vault`), the product line. System map: no change (its nodes are small circles and the subsystem boxes list components as rows). Demo: env `lifeline-order`, flow `lo-hi-api` (see [DEMOS.md](DEMOS.md)).

@@ -26,8 +26,11 @@ import { ownersValue } from './pane-owners.js';
 import { iconRow } from './pane-icon.js';
 import { compIcon } from '../components/comp-icon.js';
 import { iconOf } from '../components/icon-src.js';
+import { KIND, typeOf } from './pane-type.js';
 
-const KIND = { service: 'Service', gateway: 'Gateway', lambda: 'Lambda', 'client-app': 'Client app', infra: 'Infrastructure' };
+/** CR #148 follow-up: the product (`details.product`) the large head no longer draws. */
+const productOf = (svc) => (typeof svc.details?.product === 'string' && svc.details.product.trim() ? svc.details.product.trim() : null);
+
 
 /** The coloured tile of the header: the component colour, neutral for client apps and infrastructure. */
 export const tile = (color, icon = null) => h('span.pane-tile', { style: { '--c': color ?? 'var(--ink-2)' } }, icon ? compIcon(icon, 18) : // CR #144: the component's own icon takes the circle's place
@@ -54,7 +57,7 @@ export async function componentSpec(name, ctx) {
 
   const subLink = () => (subKey ? h('button.pane-sub-link', { type: 'button', 'data-qa': 'pane-sub', on: { click: () => ctx.onSub?.(subKey) } }, subIcon(subs.info(subKey)?.icon, 14), subs.labelOf(subKey)) : subs.has ? 'Not set' : null);
   const overview = () => [view?.external ? externalNote() : null, ctx.pen?.hint() ?? null, facts([
-    ['Subsystem', subLink()], ['Kind', KIND[kind] ?? kind], ['Colour', ['client-app', 'infra'].includes(kind) && modeOf(env) !== 'domain' ? null : colourRow(env, name)],
+    ['Subsystem', subLink()], ['Type', typeOf(svc, kind)], ['Product', productOf(svc)], ['Colour', ['client-app', 'infra'].includes(kind) && modeOf(env) !== 'domain' ? null : colourRow(env, name)],
     ['Icon', design || ownIcon ? iconRow(svc, { env, name, canEdit: design && !!ctx.pen?.button('panel-component', name, {}), current: ownIcon }) : null], ['Team', svc.team], ['Description', svc.description],
     ['Endpoints', ep.total ? [`${ep.total} `, h('small', `· ${ep.text} `), h('a.pane-more', { href: open }, 'Open service')] : h('a.pane-more', { href: open }, 'Open service')],
     ['Owners', owners.length || design ? ownersValue(owners, ownerPen()) : null], ['Docs', docLinks(svc.links)],

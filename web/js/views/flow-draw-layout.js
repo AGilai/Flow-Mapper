@@ -10,7 +10,7 @@ import { bandsOf } from './flow-stores-pure.js';
 import { subBands, subSubBands, bandBreaks, SHARED, ENTRY, bandLabelPx, loneBandSpans } from './flow-bands.js';
 import { BAND_H } from './flow-draw-bands.js';
 import { headIconOf } from './flow-draw-icons.js';
-import { isLarge, productOf, clipProduct, nameChLarge, largeExtra } from './flow-head-large.js';
+import { isLarge, nameChLarge, largeExtra, autoCol, largeSub } from './flow-head-large.js';
 import { FOLD_W, COL_NARROW, displayCols, foldGroups, planSqueeze } from './flow-squeeze.js';
 import { BLOCKED_H, BLOCKED_LINE, isBlockedEvent, blockedNeed, frontierNeed } from './flow-draw-incomplete.js';
 
@@ -67,7 +67,8 @@ export function layoutLane(lane, fit = 0, sq = null, marks = null, edit = false,
     const reach = Math.max(dx[dx.length - 1] + (last.fold ? fw / 2 + 20 : isCh(columns[last.cols[0]]) ? 92 : 200), ...events.filter((e) => e.type === 'amqpnote').map((e) => xs[idx.get(e.col)] + 10 + e.text.length * 5.6 + 100), ...events.filter(isBlockedEvent).map((e) => xs[idx.get(e.bar.col)] + blockedNeed(e)), ...events.filter((e) => e.type === 'frontier').map((e) => xs[idx.get(e.bar.col)] + frontierNeed(e)));
     return { xs, col, width: Math.ceil(reach + PAD) };
   };
-  const fitted = (folded, fw = FOLD_W, min = COL_MIN) => { let M = layout(COL, folded, fw); for (let col = COL - 6; fit && M.width > fit && col >= min; col -= 6) M = layout(col, folded, fw); return M; };
+  const COL0 = autoCol(columns, { min: COL, storeOn: !!lane.storeOn }); // follow-up to #148: one auto width for the lane, the longest name on one line (squeeze and Fit still narrow it)
+  const fitted = (folded, fw = FOLD_W, min = COL_MIN) => { let M = layout(COL0, folded, fw); for (let col = COL0 - 6; fit && M.width > fit && col >= min; col -= 6) M = layout(col, folded, fw); return M; };
   const plan = (keep) => planSqueeze({ n: columns.length, ends: keep, fit, widthOf: (f, o) => layout(o.narrow ? COL_NARROW : COL_MIN, f, o.foldW).width });
   let L = fitted(new Set()), folded = new Set(), fw = FOLD_W, sig = '';
   if (sq && fit && L.width > fit) { const P = plan(sq.keep); ({ folded, foldW: fw, key: sig } = P); if (folded.size) L = fitted(folded, fw, P.narrow ? COL_NARROW : COL_MIN); }
@@ -75,7 +76,7 @@ export function layoutLane(lane, fit = 0, sq = null, marks = null, edit = false,
   const colX = new Map(columns.map((c, i) => [c, xs[i]]));
   // a queue head drops its transport prefix and the 'queue delivery' line (the title keeps both): two lines at most
   const subCh = COLW < COL_MIN ? Math.max(10, Math.floor((COLW - 22) / 5.8)) : SUB_CH; // narrowed heads (Squeeze, last stage) wrap the sub line shorter
-  const heads = columns.map((c) => (c.sub === 'queue delivery' ? { name: clampLines(wrapId(c.label.replace(/^[^:]+:/, ''), nameCh(c)), nameCh(c)), sub: [] } : { big: isLarge(c), product: clipProduct(productOf(c), headW(c, COLW)), name: clampLines(wrapId(c.label, nameCh(c)), nameCh(c)), sub: isCh(c) ? [c.sub] : wrapId(c.sub ?? '', c.kind === 'resource' ? Math.max(10, Math.floor((headW(c, COLW) - 38) / 5.8)) : subCh) }));
+  const heads = columns.map((c) => (c.sub === 'queue delivery' ? { name: clampLines(wrapId(c.label.replace(/^[^:]+:/, ''), nameCh(c)), nameCh(c)), sub: [] } : { big: isLarge(c), name: clampLines(wrapId(c.label, nameCh(c)), nameCh(c)), sub: isLarge(c) && !largeSub(c) ? [] : isCh(c) ? [c.sub] : wrapId(c.sub ?? '', c.kind === 'resource' ? Math.max(10, Math.floor((headW(c, COLW) - 38) / 5.8)) : subCh) }));
   const boxH = 12 + Math.max(...heads.map((x, i) => x.name.length * LINE_H + x.sub.length * 13 + largeExtra(columns[i]))) + 6, // CR #148: a head with a large logo grows the box
      grp = lane.group ?? null, subRuns = grp ? subBands(columns, folded, grp.subOf, undefined, brk) : [], sub2Runs = grp?.subOf2 ? subSubBands(columns, folded, grp.subOf2, brk) : [], hasStore = columns.some((c) => c.kind === 'resource');
   const bandH = BAND_H * ((subRuns.length ? 1 : 0) + (sub2Runs.length ? 1 : 0) + (hasStore ? 1 : 0)), HEAD = boxH + 16 + bandH + (lane.internal ? INT_H : 0); // bandH: the band rows over the heads (flow-draw-bands.js): subsystems on top, then the sub-subsystems, then data stores
