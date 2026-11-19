@@ -5,6 +5,11 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased: component icons (CR #144)
+
+- **New optional field, not breaking:** `service.details.icon` on a manifest header (and `icon` on the `component` form of `edit_design` / `POST .../edits`). The component's logo, drawn beside its name in the sequence view, the System map and the Info pane. A value is one of the built-in names (`vault`, `auth0`, `kafka`, `mongodb`, `redis`, `postgres`, `mysql`, `elasticsearch`, `rabbitmq`, `aws-lambda`, `aws-sqs`, `aws-sns`, `aws-s3`, `aws-dynamodb`, `aws-eventbridge`, `aws-api-gateway`, `aws-ec2`, `aws-ecs`, `aws-eks`, `aws-step-functions`, `aws-rds`, `aws-elasticache`, `aws-cloudfront`, `aws-kinesis`, `aws-cognito`, `aws-kms`, `aws-secrets-manager`, `aws-iam`), an `<svg ...>...</svg>` string, or a `data:image/...` URL; at most 16 KB. An SVG with `<script>`, an `on...=` attribute or an external `href` / `url()` is refused: `422 BAD_ICON` (the message lists the built-ins; on a manifest, `service.details.icon`; over 16384 characters the schema check answers `422 INVALID`). `null` or `''` on the edit form clears it. Left out on a delta: kept. Details in [API.md](API.md#component-icons-cr-144).
+- UI: the Info pane has an Icon row with a picker (search, built-in set, custom SVG, None) in Edit with a draft. The official vendor marks replace the hand-drawn MySQL and Elasticsearch icons; `kafka`, `vault`, `auth0` and 16 more AWS services are new files in `web/icons/`. Demo: env `lifeline-order`, flow `lo-ic-api` (see [DEMOS.md](DEMOS.md)).
+
 ## 0.64.4 (2026-11-19): async client-app bars (#147), zoom footer gap
 
 - Fix #147 (UI only): in the sequence view a caller nobody waits on (a client app's entry bar, or a bar entered by an async call) ends its bar when deferred async work starts; a later call back into it opens a new bar at level 0 instead of nesting in the finished one. Sync entries keep their bar open.

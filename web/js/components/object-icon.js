@@ -4,6 +4,7 @@
 
 import { h } from '../dom.js';
 import { icon } from '../icons.js';
+import { iconSrc } from './icon-src.js';
 
 // `${type}:${kind}` (or just type) → file in web/icons/ without .svg
 const FILES = {
@@ -33,15 +34,19 @@ export const titled = (type, kind, text, size = 26) => h('span.titled', objectIc
 
 // Canvas: decoded images, loaded once; `onLoad` asks the map to redraw when one arrives.
 const images = new Map();
-export function iconImage(type, kind, onLoad) {
-  const f = iconFile(type, kind);
-  if (!f) return null;
-  let img = images.get(f);
+export function srcImage(src, onLoad) {
+  let img = images.get(src);
   if (!img) {
     img = new Image();
-    img.src = `icons/${f}.svg`;
-    images.set(f, img);
+    img.src = src;
+    images.set(src, img);
   }
   if (!img.complete) img.addEventListener('load', onLoad, { once: true });
   return img.complete && img.naturalWidth ? img : null;
 }
+export function iconImage(type, kind, onLoad) {
+  const f = iconFile(type, kind);
+  return f ? srcImage(`icons/${f}.svg`, onLoad) : null;
+}
+/** CR #144: the canvas image of a component's own icon (`details.icon`), or null until it has loaded. */
+export const compImage = (value, onLoad) => { const src = iconSrc(value); return src ? srcImage(src, onLoad) : null; };

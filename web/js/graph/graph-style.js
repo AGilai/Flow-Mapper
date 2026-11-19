@@ -7,6 +7,7 @@
 import { isDesign, state } from '../state.js';
 import { slotOf } from '../design/component-colors.js';
 import { overrideOf, shadeHex } from '../design/family-colours.js';
+import { iconTile } from '../components/icon-src.js';
 
 export function readTheme() {
   const cs = getComputedStyle(document.documentElement);
@@ -30,11 +31,11 @@ export function nodeRadius(n, degree) {
 
 const channelColor = (n, theme) => theme.t[(n.transports ?? [])[0]] ?? theme.t.other;
 
-export function drawNode(ctx, n, [x, y], k, degree, theme, { dim, selected, hovered, img }) {
+export function drawNode(ctx, n, [x, y], k, degree, theme, { dim, selected, hovered, img, cimg }) {
   const r = nodeRadius(n, degree) * Math.max(0.5, Math.min(k, 1.25));
   ctx.globalAlpha = dim ? 0.18 : 1;
   ctx.lineWidth = selected ? 3 : hovered ? 2.4 : 1.6;
-  if (img) {
+  if (img && !n.icon) {
     const s = Math.max(12, r * 2);
     if (selected || hovered) { ctx.strokeStyle = selected ? theme.accent : theme.ink2; roundRect(ctx, x - s / 2 - 3, y - s / 2 - 3, s + 6, s + 6, 5); ctx.stroke(); }
     ctx.drawImage(img, x - s / 2, y - s / 2, s, s);
@@ -49,7 +50,7 @@ export function drawNode(ctx, n, [x, y], k, degree, theme, { dim, selected, hove
   } else if (n.kind === 'missing') {
     ctx.strokeStyle = theme.broken; ctx.fillStyle = theme.surface;
     ctx.setLineDash([3, 2]); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.setLineDash([]);
-  } else if (n.kind === 'gateway') {
+  } else if (n.kind === 'gateway' && !n.icon) {
     ctx.fillStyle = theme.ink; ctx.strokeStyle = selected ? theme.accent : theme.ink;
     roundRect(ctx, x - r, y - r, r * 2, r * 2, r * 0.35); ctx.fill(); if (selected) ctx.stroke();
   } else {
@@ -65,10 +66,21 @@ export function drawNode(ctx, n, [x, y], k, degree, theme, { dim, selected, hove
     if (ov) { ctx.save(); ctx.translate(x + r * 0.8, y - r * 0.8); ctx.rotate(Math.PI / 4); ctx.fillStyle = theme.surface; ctx.strokeStyle = theme.ink; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.rect(-3.5, -3.5, 7, 7); ctx.fill(); ctx.stroke(); ctx.restore(); } // the diamond: a custom colour
     // inner dot sized by function count: a quick sense of how much is inside
     const f = n.stats?.functions ?? 0;
-    if (f && r > 6) { ctx.fillStyle = selected ? theme.accent : theme.ink2; ctx.beginPath(); ctx.arc(x, y, Math.min(r - 3, 1.5 + Math.sqrt(f) * 0.45), 0, Math.PI * 2); ctx.fill(); }
+    if (n.icon) compMark(ctx, n.icon, cimg, x, y, r, theme);
+    else if (f && r > 6) { ctx.fillStyle = selected ? theme.accent : theme.ink2; ctx.beginPath(); ctx.arc(x, y, Math.min(r - 3, 1.5 + Math.sqrt(f) * 0.45), 0, Math.PI * 2); ctx.fill(); }
   }
   if (n.runtime && n.kind !== 'channel' && n.kind !== 'resource') heptagon(ctx, x - r * 0.95, y - r * 0.95, Math.max(3.5, r * 0.4), theme.ink2); // Kubernetes runtime (#49): a heptagon outline, not a brand logo
   ctx.globalAlpha = 1;
+}
+
+/** CR #144: a component's own icon inside its ring (frame 32): the mark, on its tile where the frame gives one (Vault slate, Kafka and MySQL white in dark, a user's logo white). */
+function compMark(ctx, icon, cimg, x, y, r, theme) {
+  const tile = iconTile(icon), s = Math.max(9, Math.min(r * 1.3, 18)), t = s + 2;
+  if (tile === 'slate' || tile === 'white' || (tile === 'white-dark' && theme.dark)) {
+    ctx.fillStyle = tile === 'slate' ? '#1d2330' : '#fff'; ctx.strokeStyle = tile === 'slate' ? '#3a4256' : '#c9cedb'; ctx.lineWidth = 1;
+    roundRect(ctx, x - t / 2, y - t / 2, t, t, 3); ctx.fill(); ctx.stroke();
+  }
+  if (cimg) { const m = tile ? s - 2 : s; ctx.drawImage(cimg, x - m / 2, y - m / 2, m, m); }
 }
 
 function heptagon(ctx, cx, cy, r, color) {

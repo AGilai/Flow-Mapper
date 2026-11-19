@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "lo-ic-brand",
+    "kind": "service",
+    "team": "vendor",
+    "repo": "github.com/acme/lo-ic-brand",
+    "language": "typescript",
+    "description": "Demo #144: a partner service with its own SVG logo",
+    "details": {
+      "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 16 16\"><polygon points=\"8,1.5 14,5 14,11 8,14.5 2,11 2,5\" fill=\"#6b7280\"/><circle cx=\"8\" cy=\"8\" r=\"2.6\" fill=\"#e5e7eb\"/></svg>"
+    }
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-19T12:00:00Z",
+  "commit": "144a",
+  "functions": [
+    {
+      "id": "h",
+      "name": "handle",
+      "file": "src/h.ts",
+      "line": 5,
+      "steps": []
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.x",
+      "bindKey": "http:GET lo-ic-brand/x",
+      "transport": "http",
+      "handler": "h",
+      "entryPoint": false,
+      "details": {
+        "method": "GET",
+        "path": "/x"
+      }
+    }
+  ],
+  "egress": [],
+  "resources": []
+}

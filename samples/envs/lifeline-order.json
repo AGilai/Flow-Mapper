@@ -283,6 +283,25 @@
     {
       "name": "lo-as-cm",
       "groupPath": "agent"
+    },
+    {
+      "name": "lo-ic-api",
+      "groupPath": "edge"
+    },
+    {
+      "name": "lo-ic-lambda",
+      "groupPath": "platform/p1"
+    },
+    {
+      "name": "lo-ic-queue",
+      "groupPath": "platform/p1"
+    },
+    {
+      "name": "lo-ic-files",
+      "groupPath": "platform/p2"
+    },
+    {
+      "name": "lo-ic-brand"
     }
   ],
   "createdBy": "seed"

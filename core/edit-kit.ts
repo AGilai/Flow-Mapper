@@ -25,7 +25,7 @@ export type CallEdit = {
 export type LeafEdit = { kind: 'leaf'; from: { service: string; fn: string }; operation?: string; note?: string; over?: string[]; self?: boolean; returnTo?: string; mark?: 'new' | 'changed' | null; groups?: StepGroupEdit[] | null; real?: string; before?: number };
 export type DeleteCallEdit = { kind: 'delete-call'; service: string; fn: string; seq: number };
 export type DesignEdit =
-  | { kind: 'component'; name: string; serviceKind: 'service' | 'gateway' | 'lambda' | 'infra' | 'client-app'; groupPath?: string; team?: string; description?: string; about?: string; owners?: string[] | null; links?: Links | null; runtime?: 'k8s-pod' | 'k8s-deployment' | 'k8s-daemonset' | 'k8s-operator' | 'k8s-job' | null }
+  | { kind: 'component'; name: string; serviceKind: 'service' | 'gateway' | 'lambda' | 'infra' | 'client-app'; groupPath?: string; team?: string; description?: string; about?: string; owners?: string[] | null; links?: Links | null; icon?: string | null; runtime?: 'k8s-pod' | 'k8s-deployment' | 'k8s-daemonset' | 'k8s-operator' | 'k8s-job' | null }
   | { kind: 'function'; service: string; id: string; links?: Links | null }
   | ({ kind: 'endpoint' } & EndpointEdit)
   | CallEdit

@@ -1,0 +1,111 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "lo-ic-api",
+    "kind": "gateway",
+    "team": "edge",
+    "repo": "github.com/acme/lo-ic-api",
+    "language": "typescript",
+    "description": "Demo #144: a corev5-like flow: the API calls Auth0, the vault, a Lambda, a queue worker, S3 and a partner with its own logo",
+    "details": {
+      "icon": "aws-api-gateway"
+    }
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-19T12:00:00Z",
+  "commit": "144a",
+  "functions": [
+    {
+      "id": "h",
+      "name": "handle",
+      "file": "src/h.ts",
+      "line": 5,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "o.lo-idp"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "o.lo-n-vault"
+        },
+        {
+          "seq": 3,
+          "type": "egress",
+          "target": "o.lo-ic-lambda"
+        },
+        {
+          "seq": 4,
+          "type": "egress",
+          "target": "o.lo-ic-queue"
+        },
+        {
+          "seq": 5,
+          "type": "egress",
+          "target": "o.lo-ic-files"
+        },
+        {
+          "seq": 6,
+          "type": "egress",
+          "target": "o.lo-ic-brand"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.x",
+      "bindKey": "http:GET lo-ic-api/x",
+      "transport": "http",
+      "handler": "h",
+      "entryPoint": true,
+      "details": {
+        "method": "GET",
+        "path": "/x"
+      }
+    }
+  ],
+  "egress": [
+    {
+      "id": "o.lo-idp",
+      "bindKey": "http:GET lo-idp/x",
+      "transport": "http",
+      "mode": "sync"
+    },
+    {
+      "id": "o.lo-n-vault",
+      "bindKey": "http:GET lo-n-vault/x",
+      "transport": "http",
+      "mode": "sync"
+    },
+    {
+      "id": "o.lo-ic-lambda",
+      "bindKey": "http:GET lo-ic-lambda/x",
+      "transport": "http",
+      "mode": "sync"
+    },
+    {
+      "id": "o.lo-ic-queue",
+      "bindKey": "http:GET lo-ic-queue/x",
+      "transport": "http",
+      "mode": "sync"
+    },
+    {
+      "id": "o.lo-ic-files",
+      "bindKey": "http:GET lo-ic-files/x",
+      "transport": "http",
+      "mode": "sync"
+    },
+    {
+      "id": "o.lo-ic-brand",
+      "bindKey": "http:GET lo-ic-brand/x",
+      "transport": "http",
+      "mode": "sync"
+    }
+  ],
+  "resources": []
+}

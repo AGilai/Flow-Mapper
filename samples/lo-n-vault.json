@@ -8,7 +8,10 @@
     "team": "vendor",
     "repo": "github.com/acme/lo-n-vault",
     "language": "typescript",
-    "description": "Demo #145: external vault, no subsystem"
+    "description": "Demo #145: external vault, no subsystem",
+    "details": {
+      "icon": "vault"
+    }
   },
   "version": 1,
   "harvestedAt": "2026-11-19T11:00:00Z",

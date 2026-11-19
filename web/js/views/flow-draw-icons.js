@@ -3,13 +3,19 @@
 
 import { s } from '../dom.js';
 import { iconFile } from '../components/object-icon.js';
-import { kindFor } from '../design/service-info.js';
+import { kindFor, iconFor } from '../design/service-info.js';
+import { compIconSvg } from '../components/comp-icon.js';
 
 const CH_KIND = { sns: 'sns-topic', sqs: 'sqs-queue', eventbridge: 'eventbridge-bus', amqp: 'amqp-queue' }; // a channel lifeline knows its transport (flow-chain.js chType)
 export const TEXT_X = 32; // x of a head's text when the head has an icon before it (14px icon at x 12)
 
-/** The [type, kind] of the icon a lifeline head shows, or null. A service shows one only when it is a lambda or a gateway. */
+/** CR #144: the component's own icon (`details.icon`) when a service head has one; it wins over the product icon of its kind. */
+const ownIcon = (c) => (c.kind === 'service' ? iconFor(c.service, c.env ?? '') : null);
+
+/** The [type, kind] of the icon a lifeline head shows, or null. A service shows one only when it is a lambda or a gateway, or has its own icon (then ['own', value]). */
 export function headIconOf(c) {
+  const own = ownIcon(c);
+  if (own) return ['own', own];
   const [type, kind] = c.kind === 'resource' ? ['store', c.storeKind] : c.kind === 'channel' || (c.kind === 'source' && c.transport) ? ['channel', CH_KIND[c.transport] ?? c.transport] : c.kind === 'service' ? ['service', c.serviceKind ?? kindFor(c.service, c.env)] : [];
   return type && iconFile(type, kind) ? [type, kind] : null;
 }
@@ -24,5 +30,6 @@ export const productImage = (type, kind, x, y, size = 14) => {
 export function headIcon(c) {
   const k = headIconOf(c);
   if (!k) return null;
+  if (k[0] === 'own') return compIconSvg(k[1], 12, 10, 14);
   return [c.stack ? s('g', { opacity: 0.45 }, productImage(k[0], k[1], 16, 14)) : null, productImage(k[0], k[1], 12, 10)];
 }

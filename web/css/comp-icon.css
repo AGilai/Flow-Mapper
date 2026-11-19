@@ -1,0 +1,46 @@
+/* Component icons (CR #144, frame 32). The mark is never recoloured. Tiles: Vault slate; Kafka and MySQL white in dark mode only; a user's logo white. */
+.ci { display: inline-grid; place-items: center; flex: none; vertical-align: middle; box-sizing: border-box; border-radius: 3px; }
+.ci-img { display: block; flex: none; object-fit: contain; }
+.ci-slate { background: #1d2330; border: 1px solid #3a4256; }
+.ci-white { background: #fff; border: 1px solid #c9cedb; }
+.ci-g { --ci-f: none; --ci-s: none; } /* the tile rect takes its paint from these (an inline style: the lane's own rect rules would win otherwise) */
+.ci-g.ci-slate { --ci-f: #1d2330; --ci-s: #3a4256; }
+.ci-g.ci-white { --ci-f: #fff; --ci-s: #c9cedb; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .ci-wd { background: #fff; border: 1px solid #c9cedb; }
+  :root:not([data-theme='light']) .ci-g.ci-wd { --ci-f: #fff; --ci-s: #c9cedb; }
+}
+:root[data-theme='dark'] .ci-wd { background: #fff; border: 1px solid #c9cedb; }
+:root[data-theme='dark'] .ci-g.ci-wd { --ci-f: #fff; --ci-s: #c9cedb; }
+/* the lifeline head with an icon: the name is left-aligned after it and a little smaller (heads stay as wide as they were) */
+.seq-part.has-ci .name { font-size: 11.5px; }
+.ss-comp .ci-g { pointer-events: none; }
+
+/* the Icon row and its picker (Info pane, frame 32d) */
+.ic-row { display: grid; gap: 8px; justify-items: start; }
+.ic-row > .ic-pick { justify-self: stretch; }
+.ic-cur { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line-strong); border-radius: 6px; padding: 3px 8px; font: 500 12px var(--mono); background: var(--surface); color: var(--ink); cursor: pointer; max-width: 100%; }
+.ic-cur:hover { border-color: var(--accent); }
+.ic-cur small { color: var(--muted); font: 400 12px var(--font); }
+.ic-cur.ro { cursor: default; border-color: var(--line); }
+.ic-pick { border: 1px solid var(--line-strong); border-radius: 8px; padding: 8px; display: grid; gap: 8px; background: var(--surface); }
+.ic-srch { display: flex; align-items: center; gap: 6px; border: 1px solid var(--line-strong); border-radius: 6px; padding: 5px 8px; background: var(--surface); }
+.ic-srch input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--ink); font: 400 12px var(--font); }
+.ic-srch:focus-within { border-color: var(--accent); }
+.ic-srch small { color: var(--muted); font-size: 11px; }
+.ic-scr { max-height: 300px; overflow: auto; display: grid; gap: 4px; align-content: start; }
+.ic-gh { font: 600 10.5px var(--font); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); padding: 4px 2px 0; }
+.ic-g { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; }
+.ic-o { display: grid; justify-items: center; gap: 3px; padding: 6px 2px 4px; border-radius: 6px; border: 1px solid transparent; font: 500 10px var(--mono); color: var(--ink-2); background: none; cursor: pointer; min-width: 0; letter-spacing: -.02em; }
+.ic-o .l { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ic-o.on { background: var(--accent-soft); border-color: var(--accent); color: var(--ink); }
+.ic-o:hover { border-color: var(--line-strong); }
+.ic-x { display: flex; gap: 6px; }
+.ic-x button { flex: 1; text-align: center; font: 500 12px var(--font); padding: 5px 6px; border: 1px dashed var(--line-strong); border-radius: 6px; color: var(--ink-2); background: none; cursor: pointer; }
+.ic-x button.on { border-style: solid; border-color: var(--accent); background: var(--accent-soft); color: var(--ink); }
+.ic-cust { display: grid; gap: 6px; font-size: 11.5px; color: var(--muted); }
+.ic-cust textarea { font: 400 11px/1.4 var(--mono); width: 100%; height: 64px; resize: vertical; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--surface); color: var(--ink); padding: 5px 7px; box-sizing: border-box; }
+.ic-cust .pv { display: flex; align-items: center; gap: 6px; }
+.ic-cust .acts { display: flex; gap: 6px; }
+.ic-err { font-size: 11.5px; color: var(--bad, #b42318); }
+.ic-none { font-size: 12px; color: var(--muted); padding: 6px 2px; }
