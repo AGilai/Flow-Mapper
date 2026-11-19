@@ -6,12 +6,14 @@
 
 import { isDesign, state } from '../state.js';
 import { slotOf } from '../design/component-colors.js';
+import { overrideOf, shadeHex } from '../design/family-colours.js';
 
 export function readTheme() {
   const cs = getComputedStyle(document.documentElement);
   const v = (n) => cs.getPropertyValue(n).trim();
+  const dk = document.documentElement.dataset.theme ? document.documentElement.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
   return {
-    font: v('--font') || 'sans-serif', ink: v('--ink'), ink2: v('--ink-2'), muted: v('--muted'), surface: v('--surface'),
+    dark: dk, font: v('--font') || 'sans-serif', ink: v('--ink'), ink2: v('--ink-2'), muted: v('--muted'), surface: v('--surface'),
     paper: v('--paper'), line: v('--line-strong'), accent: v('--accent'), broken: isDesign() ? v('--ink-2') : v('--t-broken'), halo: v('--paper'),
     cmp: [1, 2, 3, 4, 5, 6, 7, 8].map((i) => v(`--cmp-${i}`)), district: v('--muted'), extLine: v('--muted'), extFill: v('--surface-2'), extInk: v('--ink-2'), region: v('--surface-2'), newc: v('--new'), newInk: v('--new-ink'),
     t: { http: v('--t-http'), rpc: v('--t-rpc'), grpc: v('--t-http'), eventbridge: v('--t-eb'), sns: v('--t-sns'), sqs: v('--t-sqs'), amqp: v('--t-amqp'), cron: v('--t-cron'), socket: v('--t-socket'), other: v('--t-res'), undecided: v('--ink-2'), res: v('--t-res') },
@@ -54,10 +56,13 @@ export function drawNode(ctx, n, [x, y], k, degree, theme, { dim, selected, hove
     const broken = n.stats && (n.stats.dangling > 0), lw = ctx.lineWidth;
     ctx.fillStyle = n.external ? theme.extFill : theme.surface; // #87: an external service: muted fill, even dashed grey outline (the label carries the "external" tag)
     const slot = slotOf(state.envMeta, state.env, n.service, n.svcKind); // the component's colour ring (frame 11); client apps and infra stay neutral
-    ctx.strokeStyle = selected ? theme.accent : broken ? theme.broken : slot ? theme.cmp[slot - 1] : theme.ink2;
-    if (slot && !selected && !broken) ctx.lineWidth = 2.4;
+    const plain = n.svcKind === 'client-app' || n.svcKind === 'infra', ov = plain ? null : overrideOf(state.env, n.service), fam = plain ? null : shadeHex(state.env, n.service, theme.dark ? 'dark' : 'light'); // frame 31: the node ring is the component's shade (Colour by Domain), a manual colour wins
+    const ring = ov ? theme.cmp[ov - 1] : fam ? fam.shade : slot ? theme.cmp[slot - 1] : null;
+    ctx.strokeStyle = selected ? theme.accent : broken ? theme.broken : ring ?? theme.ink2;
+    if (ring && !selected && !broken) ctx.lineWidth = 2.4;
     if (n.external) { ctx.strokeStyle = selected ? theme.accent : theme.extLine; ctx.lineWidth = Math.max(lw, 1.8); ctx.setLineDash([4, 3]); }
     ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.setLineDash([]);
+    if (ov) { ctx.save(); ctx.translate(x + r * 0.8, y - r * 0.8); ctx.rotate(Math.PI / 4); ctx.fillStyle = theme.surface; ctx.strokeStyle = theme.ink; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.rect(-3.5, -3.5, 7, 7); ctx.fill(); ctx.stroke(); ctx.restore(); } // the diamond: a custom colour
     // inner dot sized by function count: a quick sense of how much is inside
     const f = n.stats?.functions ?? 0;
     if (f && r > 6) { ctx.fillStyle = selected ? theme.accent : theme.ink2; ctx.beginPath(); ctx.arc(x, y, Math.min(r - 3, 1.5 + Math.sqrt(f) * 0.45), 0, Math.PI * 2); ctx.fill(); }

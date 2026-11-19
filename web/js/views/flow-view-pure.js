@@ -24,6 +24,7 @@ export function nonDefault(o) {
   if (o.frontier === true) out.push('Frontier');
   if (o.merge === false) out.push('One arrow per target');
   if (o.order === 'calls') out.push('Order');
+  if (o.colour === 'component') out.push('Colour by'); // frame 31: Domain is the default when the environment has groups
   if (o.squeeze === false) out.push('Squeeze');
   if (!!o.hints !== !!o.hintsDefault) out.push('Transport hints');
   if (o.depth && o.depth !== 'all') out.push('Depth');

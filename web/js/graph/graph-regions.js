@@ -1,6 +1,9 @@
 // Subsystem regions on the component-level map (0.28.1, frame 2): a rounded rectangle round the components of each subsystem, drawn under the edges, with
 // the subsystem's name and "9 components: 3 new, 6 from prod (2 changed)" in its head. Click the head to open its components in Inventory.
 
+import { state } from '../state.js';
+import { domainHex } from '../design/family-colours.js';
+
 export const REGION_PAD = 28, REGION_HEAD = 40;
 
 /**
@@ -66,6 +69,8 @@ export function drawRegions(ctx, S, regions) {
     const [x, y] = toScreen(r), w = r.w * k, h = r.h * k;
     ctx.beginPath(); ctx.roundRect(x, y, w, h, 12 * Math.min(k, 1));
     ctx.globalAlpha = 0.7; ctx.fillStyle = theme.region; ctx.fill(); ctx.globalAlpha = 1; ctx.lineWidth = 1; ctx.strokeStyle = theme.line; ctx.stroke();
+    const dom = domainHex(state.env, r.key, theme.dark ? 'dark' : 'light'); // frame 31: the domain frame takes the domain's hue (the map nests one level: the subsystem regions)
+    if (dom) { ctx.globalAlpha = 0.09; ctx.fillStyle = dom; ctx.fill(); ctx.globalAlpha = 0.65; ctx.lineWidth = 1.5; ctx.strokeStyle = dom; ctx.stroke(); ctx.globalAlpha = 1; }
     ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
     ctx.font = `600 ${13 * z}px ${theme.font}`; ctx.fillStyle = theme.ink; ctx.fillText(r.label, x + 16 * z, y + 24 * z);
     ctx.font = `400 ${11.5 * z}px ${theme.font}`; ctx.fillStyle = theme.muted; ctx.fillText(r.text, x + 16 * z, y + 42 * z);

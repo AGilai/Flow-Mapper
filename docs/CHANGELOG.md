@@ -5,6 +5,10 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+
+- UI only, frame 31: domain colour families. In an environment with groups, each top-level group (domain) gets one hue and its subsystems and components are close shades of it: header stripe, activation bars and step dots take the component's shade, the lifeline and both band rows the domain's / subsystem's colour; the system map colours its nodes and subsystem regions the same way. New View option "Colour by: Domain | Component" (default Domain with groups; Component is the old per-component colour). A component's Info pane has a Colour row: "Family (auto)" or a palette slot, marked with a diamond on its header and map node. Both choices are per viewer (browser storage). No API, schema or MCP change.
+
 ## 0.63.0 (2026-11-19): lifelines ordered by subsystem with an Order toggle (#138), RPC carrier in the Info panel (#137)
 
 - Fix #137 (additive): an egress with `transport: "rpc"` may send `details.carrier` (how it travels, `http`) and `details.via` (the library, `saferxlib`). Trace messages (`GET /trace`, MCP `trace_flow`) carry `carrier`, `carrierVia` (not `via`: that is the wrapper hops) and `carrierAt` (`POST /internal/rpc` when the target is an http ingress on that path); `get_call` / `GET /call` carry `egress.carrier` and `egress.via`; `get_endpoint_info` carries `rpcCalled {text, callers[{service, egress, carrier?, via?}]}`. The UI keeps the `rpc` chip and arrow and adds "Transport: RPC over HTTP (POST /internal/rpc on <service>, via <lib>)" to the step Info and "Called as RPC over HTTP by N callers" to the receiving endpoint. No carrier: "RPC (carrier unknown)". No schema change.

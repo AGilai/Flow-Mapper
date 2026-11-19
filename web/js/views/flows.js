@@ -39,7 +39,7 @@ import { decodeBar, decodeArrows, encodeBar, encodeArrows, decodeHl, encodeHl, d
 import { createStepMenu, stored, storedHl, storedCb } from './step-details-menu.js';
 import { decodeZoom, encodeZoom } from './flow-zoom-pure.js';
 import { createToolbar } from './flow-toolbar.js';
-import { createViewMenu } from './flow-view-menu.js';
+import { createViewMenu } from './flow-view-menu.js'; import { colourBySave, hasFamilies, modeOf, onColours } from '../design/family-colours.js';
 import { levelOf } from './flow-levels.js';
 import { decodeHints, encodeHints, hintsDefault } from './flow-hints-pure.js';
 import { sqStored, bandStored, bandSave, sqSave, detailStored, mergeStored, mergeSave, orderStored, orderSave } from './flow-prefs.js'; import { createScenarios } from './flow-scenario-state.js';
@@ -88,22 +88,22 @@ export async function render({ main, query }) {
 
   // ---- toolbar (row 2) and the View menu ----
   const redraw = () => views.forEach((v, k) => (k === S.active ? v.draw() : stale.add(k)));
-  const detailOf = () => (S.active ? scen.of(S.active).detail : 'simple');
+  const offColours = onColours(() => { if (!disposed) redraw(); }), detailOf = () => (S.active ? scen.of(S.active).detail : 'simple');
   const act = { // what each View option does: the same as the checkbox it replaced
     stores: (v) => { opts.stores = v; persist(); redraw(); },
     bands: (v) => { opts.bands = v; bandSave(v); redraw(); },
     frontier: (v) => { opts.frontier = v; persist(); reloadAll(); },
-    merge: (v) => { opts.merge = v; mergeSave(v); reloadAll(); }, order: (v) => { opts.order = v; orderSave(v); persist(); reloadAll(); },
+    merge: (v) => { opts.merge = v; mergeSave(v); reloadAll(); }, order: (v) => { opts.order = v; orderSave(v); persist(); reloadAll(); }, colorBy: (v) => { colourBySave(v); redraw(); }, // frame 31: Colour by Domain | Component, per viewer
     squeeze: (v) => { opts.squeeze = v; sqSave(v); views.forEach((vw, k) => { vw.resetSqueeze(); if (k === S.active) vw.draw(); else stale.add(k); }); },
     hints: (v) => { opts.th = v; persist(); redraw(); },
     depth: (d) => { opts.depth = d; persist(); redraw(); },
-    reset: () => { const th = hintsDefault(isDesign()); if (!opts.stores) act.stores(true); if (subs.assigned && !opts.bands) act.bands(true); if (opts.frontier) act.frontier(false); if (!opts.merge) act.merge(true); if (opts.order !== 'subsystem') act.order('subsystem'); if (!opts.squeeze) act.squeeze(true); if (opts.th !== th) act.hints(th); if (opts.depth !== 'all') act.depth('all'); },
+    reset: () => { const th = hintsDefault(isDesign()); if (!opts.stores) act.stores(true); if (subs.assigned && !opts.bands) act.bands(true); if (opts.frontier) act.frontier(false); if (!opts.merge) act.merge(true); if (opts.order !== 'subsystem') act.order('subsystem'); if (hasFamilies(state.env) && modeOf(state.env) !== 'domain') act.colorBy('domain'); if (!opts.squeeze) act.squeeze(true); if (opts.th !== th) act.hints(th); if (opts.depth !== 'all') act.depth('all'); },
   };
   const stepMenu = createStepMenu({ bar: opts.sb, arrows: opts.sd, hl: opts.hl, cb: opts.cb, dflt: arrowsDefault(isDesign()), inline: true, onChange: ({ bar, arrows, hl, cb }) => {
     const arrowsMoved = arrows !== opts.sd; opts.sb = bar; opts.sd = arrows; opts.hl = hl; opts.cb = cb; persist();
     views.forEach((v, k) => { v.refreshBar(); v.refreshHl(); v.refreshBrackets(); if (arrowsMoved) { if (k === S.active) v.draw(); else stale.add(k); } });
   } });
-  const viewMenu = createViewMenu({ ctx: () => ({ opts, assigned: !!subs.assigned, detail: detailOf(), squeezeOn: opts.squeeze && !views.get(S.active)?.squeezeOff(), design: isDesign() }), act, stepMenu });
+  const viewMenu = createViewMenu({ ctx: () => ({ opts, colour: hasFamilies(state.env) ? modeOf(state.env) : null, assigned: !!subs.assigned, detail: detailOf(), squeezeOn: opts.squeeze && !views.get(S.active)?.squeezeOff(), design: isDesign() }), act, stepMenu });
   const harvest = h('span.tb-harvest'); // the Harvested chip (filled once the pencils exist)
   const max = createMax({ onChange: () => views.get(S.active)?.el.scrollTo?.(0, 0) });
   const toolbar = createToolbar({ onScope: (id) => setScope(id), onDetail: (id) => views.get(S.active)?.setDetail(id), more: () => views.get(S.active)?.more(), max, view: viewMenu.el,
@@ -246,5 +246,5 @@ export async function render({ main, query }) {
   host.pen.resume();
   pane.restore(query);
   if (maxFromQuery(query) && S.keys.length) max.set(true, { fullscreen: false, url: false }); // a link or reload opens maximized (window-filling only)
-  return { designHost: { pill: pillSlot, mode: toolbar.modeSlot, below: toolbar.below }, dispose: () => { disposed = true; dock.dispose(); removeEventListener('keydown', onKey); unLevel?.disconnect(); about.close(); viewMenu.close(); max.dispose(); strip.closeMenu(); panel.dispose(); views.forEach((v) => v.dispose()); } };
+  return { designHost: { pill: pillSlot, mode: toolbar.modeSlot, below: toolbar.below }, dispose: () => { disposed = true; offColours(); dock.dispose(); removeEventListener('keydown', onKey); unLevel?.disconnect(); about.close(); viewMenu.close(); max.dispose(); strip.closeMenu(); panel.dispose(); views.forEach((v) => v.dispose()); } };
 }
