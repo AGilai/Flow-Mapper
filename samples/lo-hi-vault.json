@@ -4,7 +4,7 @@
   "env": "prod",
   "service": {
     "name": "lo-hi-vault",
-    "kind": "service",
+    "kind": "infra",
     "team": "platform",
     "repo": "github.com/acme/lo-hi-vault",
     "language": "typescript",
