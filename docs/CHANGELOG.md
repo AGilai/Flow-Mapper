@@ -8,6 +8,7 @@ in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.m
 ## Unreleased
 
 - Fix #137 (additive): an egress with `transport: "rpc"` may send `details.carrier` (how it travels, `http`) and `details.via` (the library, `saferxlib`). Trace messages (`GET /trace`, MCP `trace_flow`) carry `carrier`, `carrierVia` (not `via`: that is the wrapper hops) and `carrierAt` (`POST /internal/rpc` when the target is an http ingress on that path); `get_call` / `GET /call` carry `egress.carrier` and `egress.via`; `get_endpoint_info` carries `rpcCalled {text, callers[{service, egress, carrier?, via?}]}`. The UI keeps the `rpc` chip and arrow and adds "Transport: RPC over HTTP (POST /internal/rpc on <service>, via <lib>)" to the step Info and "Called as RPC over HTTP by N callers" to the receiving endpoint. No carrier: "RPC (carrier unknown)". No schema change.
+- Fix #138 (additive, no schema change): lifelines of the sequence view and of the Mermaid export are grouped by subsystem instead of first appearance. New optional `order=subsystem|calls` on `GET /api/envs/:env/trace` and `/flows/mermaid`, and `order` on MCP `trace_flow` and `export_mermaid` (default `subsystem`; `calls` is the old first-appearance order; the two are identical where no component has a `groupPath`). The View menu gets "Order: By subsystem | By call order" (URL `order=calls`). A Mermaid import still reads the participants in any order.
 
 ## 0.62.1 (2026-11-19): Invite people on the Users page (#134 follow-up)
 

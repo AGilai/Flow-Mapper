@@ -13,3 +13,6 @@ export const detailSave = (d) => { try { localStorage.setItem('flow-mapper.detai
 export const mergeStored = () => { try { return localStorage.getItem('flow-mapper.merge') !== '0'; } catch { return true; } };
 export const mergeSave = (on) => { try { localStorage.setItem('flow-mapper.merge', on ? '1' : '0'); } catch { /* storage unavailable */ } };
 export const sqSave = (on) => { try { localStorage.setItem('flow-mapper.squeeze', on ? '1' : '0'); } catch { /* storage unavailable */ } };
+// Lifeline order (#138): 'subsystem' (default, the components of a subsystem together) or 'calls' (first appearance), remembered per viewer; `order=calls` in the URL wins for a link.
+export const orderStored = () => { try { return localStorage.getItem('flow-mapper.order') === 'calls' ? 'calls' : 'subsystem'; } catch { return 'subsystem'; } };
+export const orderSave = (o) => { try { localStorage.setItem('flow-mapper.order', o === 'calls' ? 'calls' : 'subsystem'); } catch { /* storage unavailable */ } };

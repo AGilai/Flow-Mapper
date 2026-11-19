@@ -26,7 +26,8 @@ import { egressVia, ingressVia, type LinkedHop } from './via.ts';
 import { bindingKeyOf, splitAmqpKey } from './amqp.ts'; import { carrierOf, rpcEndpointOf } from './rpc-carrier.ts'; // #137
 import { routeInfo, routeKey, rpcOf, rpcServed, withServer, type AmqpRoute, type RpcInfo } from './amqp-route.ts';
 import { clientAlias, deferHelpers, releaseHeld } from './trace-defer.ts';
-import { fanOutOrder } from './trace-order.ts';
+import { deliveryOrder, groupingOf } from './trace-order.ts';
+export { deliveryOrder };
 import { withAltDecisions } from './alt-decisions.ts'; import { callKey, firstExpansion, noteExpansion, type Expansions } from './trace-fold.ts'; import { altIndex, armChain, enterIngress, enterStep, newBook, NO_ARMS, withDecisions, type ArmState } from './alternatives.ts';
 
 export type { Participant, Message, HopFilter, Trace, TraceOptions } from './trace-types.ts';
@@ -325,50 +326,9 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
     }
     if (e?.source && !(`egress:${m.service}:${e.id}` in code)) code[`egress:${m.service}:${e.id}`] = codeLink(g.services.get(m.service!)!, e.source);
   }
-  const out: Trace = { code, start: { service: root, ingress: ing?.id, fn: fnId, event: start.event }, scope, participants: opts.countsOnly ? [...participants.values()] : deliveryOrder([...participants.values()], messages), messages, truncated, ...(ing && !opts.countsOnly ? coverageFor(g, ing) : {}) };
+  const out: Trace = { code, start: { service: root, ingress: ing?.id, fn: fnId, event: start.event }, scope, participants: opts.countsOnly ? [...participants.values()] : deliveryOrder([...participants.values()], messages, true, opts.order === 'calls' ? undefined : groupingOf(g)), messages, truncated, ...(ing && !opts.countsOnly ? coverageFor(g, ing) : {}) };
   return withAltDecisions(altIx && book.places.size ? withDecisions(altIx, book, out, !!opts.countsOnly) : out, !!opts.countsOnly); // 0.38.2: alt frames are decisions too
 }
 
 /** The wire protocol of a socket ingress (`details.protocol`: tls, tcp or ws); tcp when the harvester gave none. */
 const socketProtocol = (i: Ingress): 'tls' | 'tcp' | 'ws' => (['tls', 'tcp', 'ws'].includes(String(i.details?.protocol)) ? i.details!.protocol as 'tls' : 'tcp');
-
-/**
- * Lifelines in delivery order: a topic or queue sits left of whatever it delivers to, so a delivery
- * arrow never points backwards. A channel that is right of its target moves to just before it.
- */
-export function deliveryOrder(parts: Participant[], messages: Message[], fanOut = true): Participant[] {
-  const order = [...parts];
-  for (let pass = 0, moved = true; moved && pass < 10; pass++) { // a topic may have to move again after its queue did
-    moved = false;
-    for (const m of messages) {
-      if (!m.from.startsWith('ch:') || m.from === m.to) continue;
-      const a = order.findIndex((p) => p.id === m.from), b = order.findIndex((p) => p.id === m.to);
-      if (a < 0 || b < 0 || a < b) continue;
-      const [ch] = order.splice(a, 1);
-      order.splice(b, 0, ch);
-      moved = true;
-    }
-  }
-  // A channel a service sends to sits right of that sender (and a queue right of the topic that feeds it), so the
-  // publish arrow points right: producer -> topic -> queue. Only moves what is backwards; a consumer further left
-  // (a loop back to an earlier service) stays where it is.
-  for (const m of messages) {
-    if (!m.to.startsWith('ch:') || m.from === m.to) continue;
-    const a = order.findIndex((p) => p.id === m.from), b = order.findIndex((p) => p.id === m.to);
-    if (a < 0 || b < 0 || b > a) continue;
-    const [ch] = order.splice(b, 1);
-    order.splice(a, 0, ch); // the sender moved one place left when the channel was taken out
-  }
-  // The pass above can pull a queue right of its consumer (a second topic feeds the same queue and sits further right).
-  // A lifeline whose first appearance is as the consumer of a queue (so not an upstream caller) goes right after that queue (#35).
-  const first = new Map<string, Message>();
-  for (const m of messages) for (const id of [m.from, m.to]) if (!first.has(id)) first.set(id, m);
-  for (const m of messages) {
-    if (!m.from.startsWith('ch:') || m.to.startsWith('ch:') || first.get(m.to) !== m) continue;
-    const a = order.findIndex((p) => p.id === m.from), b = order.findIndex((p) => p.id === m.to);
-    if (a < 0 || b < 0 || b > a) continue;
-    const [svc] = order.splice(b, 1);
-    order.splice(a, 0, svc); // the queue moved one place left when the consumer was taken out, so this is right after it
-  }
-  return fanOut ? fanOutOrder(order, messages) : order;
-}

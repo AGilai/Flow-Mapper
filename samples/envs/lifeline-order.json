@@ -1,0 +1,29 @@
+{
+  "name": "lifeline-order",
+  "source": "prod",
+  "mode": "components",
+  "behaviour": true,
+  "entryPoints": "keep",
+  "groups": [
+    { "key": "edge", "label": "Edge" },
+    { "key": "commerce", "label": "Commerce" },
+    { "key": "commerce/orders", "label": "Orders" },
+    { "key": "commerce/billing", "label": "Billing" },
+    { "key": "fulfilment", "label": "Fulfilment" },
+    { "key": "fulfilment/shipping", "label": "Shipping" },
+    { "key": "fulfilment/stock", "label": "Stock" },
+    { "key": "identity", "label": "Identity" }
+  ],
+  "services": [
+    { "name": "api-gateway", "groupPath": "edge" },
+    { "name": "orders-svc", "groupPath": "commerce/orders" },
+    { "name": "payments-svc", "groupPath": "commerce/billing" },
+    { "name": "analytics-svc", "groupPath": "commerce/billing" },
+    { "name": "shipping-svc", "groupPath": "fulfilment/shipping" },
+    { "name": "notifications-svc", "groupPath": "fulfilment/shipping" },
+    { "name": "inventory-svc", "groupPath": "fulfilment/stock" },
+    { "name": "users-svc", "groupPath": "identity" },
+    { "name": "ext-payments-gateway" }
+  ],
+  "createdBy": "seed"
+}

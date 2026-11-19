@@ -1,5 +1,6 @@
 // Read-only views over the resolved graph: system, service, trace, paths, search, health, changelog.
 
+import { orderArg } from '../order-arg.ts';
 import type { Router } from '../http/router.ts';
 import type { Ctx } from '../context.ts';
 import { badRequest, conflict, notFound } from '../errors.ts';
@@ -79,7 +80,7 @@ export function registerQueries(r: Router, ctx: Ctx) {
     const g = ctx.graphOf(req);
     const want = Math.min(int(q.get('maxMessages'), 500), 5000), simple = view.detail === 'simple' && scope === 'full'; // 0.44.0 (#90): Simple is cut after it has consolidated, so the canonical trace gets 4x the budget (at most 4000)
     const t = trace(g, { service, ingress: q.get('ingress') ?? undefined, fn: q.get('fn') ?? undefined, event: q.get('event') ?? undefined },
-      { scope, maxDepth: int(q.get('maxDepth'), 25), maxMessages: simple ? Math.min(want * 4, 4000) : want, expand: q.get('expand')?.split(',').filter(Boolean), frontier: ['1', 'true'].includes(q.get('frontier') ?? '') });
+      { scope, maxDepth: int(q.get('maxDepth'), 25), maxMessages: simple ? Math.min(want * 4, 4000) : want, expand: q.get('expand')?.split(',').filter(Boolean), frontier: ['1', 'true'].includes(q.get('frontier') ?? ''), order: orderArg(q.get('order')) });
     const ing = q.get('ingress') ? g.ingress.get(sid(service, q.get('ingress')!)) : undefined;
     if (!t && ing && !g.fns.get(sid(service, ing.handler))) { // a copied endpoint: the endpoint came along, its functions did not
       const anchor = `ing:${service}/${ing.id}`, ref = refsFor(ctx, req.params.env, q.get('draft')).endpoints[anchor];

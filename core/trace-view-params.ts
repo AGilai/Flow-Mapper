@@ -31,3 +31,10 @@ export function viewParams(q: { detail?: unknown; choose?: unknown; open?: unkno
   const g = gs === undefined ? undefined : ['1', 'true', 'on'].includes(gs);
   return { detail: d, choose: parseChoose(q.choose), open: list(q.open), dbOpen: list(q.dbOpen), ...(list(q.unfold).length ? { unfold: list(q.unfold) } : {}), ...(g === undefined ? {} : { group: g }), ...(['1', 'true', 'on'].includes(String(q.merge ?? '')) ? { merge: true } : {}) };
 }
+
+/** #138: `order=subsystem|calls` (default subsystem: undefined). Throws an Error for anything else (callers turn it into a 400). */
+export function orderParam(v: unknown): 'subsystem' | 'calls' | undefined {
+  if (v === undefined || v === null || v === '' || v === 'subsystem') return undefined;
+  if (v === 'calls') return 'calls';
+  throw new Error('order must be subsystem or calls');
+}

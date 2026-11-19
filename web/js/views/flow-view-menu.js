@@ -26,7 +26,7 @@ export function createViewMenu({ ctx, act, stepMenu }) {
     icon('sliders'), label, count, h('span.vm-c', '▾'));
   const el = h('span.vm', btn);
 
-  const diffs = () => { const { opts, assigned, design } = ctx(), c = caps(); return nonDefault({ bands: assigned ? opts.bands : null, stores: opts.stores, frontier: opts.frontier, merge: opts.merge, squeeze: opts.squeeze, hints: opts.th, hintsDefault: hintsDefault(design), depth: opts.depth, sb: opts.sb, sd: opts.sd, sdDefault: arrowsDefault(design), size: textSize(), hideText: c.hideText, caption: c.caption, legend: c.legend, coverage: c.coverage }); };
+  const diffs = () => { const { opts, assigned, design } = ctx(), c = caps(); return nonDefault({ bands: assigned ? opts.bands : null, stores: opts.stores, frontier: opts.frontier, merge: opts.merge, order: opts.order, squeeze: opts.squeeze, hints: opts.th, hintsDefault: hintsDefault(design), depth: opts.depth, sb: opts.sb, sd: opts.sd, sdDefault: arrowsDefault(design), size: textSize(), hideText: c.hideText, caption: c.caption, legend: c.legend, coverage: c.coverage }); };
   function paintBtn() {
     const n = diffs().length;
     count.hidden = n === 0; count.textContent = String(n);
@@ -57,6 +57,7 @@ export function createViewMenu({ ctx, act, stepMenu }) {
       sw('Data stores', { on: opts.stores, qa: 'data-stores', change: act.stores }),
       sw('Frontier', { on: opts.frontier, off: detail !== 'full', qa: 'frontier', note: detail !== 'full' ? 'Frontier steps show in Full' : null, tip: 'Frontier steps: call trees the harvester marked as reaching no sink. Folded into one marker per function by default.', change: act.frontier }),
       sw('One arrow per target', { on: opts.merge, off: detail !== 'simple', qa: 'merge-check', note: detail !== 'simple' ? 'Simple only' : null, tip: 'Simple: all calls of one service to one target inside one activation are one arrow, whatever lies between them. Off: only calls to one store that follow each other.', change: act.merge }),
+      h('div.vm-row', { title: "By subsystem: the components of a subsystem sit together, in the environment's subsystem order. By call order: as they first appear in the flow." }, h('span.vm-t', 'Order'), h('select.select', { 'aria-label': 'Lifeline order', 'data-qa': 'lifeline-order', on: { change: (e) => { act.order(e.target.value); paint(); } } }, [['subsystem', 'By subsystem'], ['calls', 'By call order']].map(([v, t]) => h('option', { value: v, selected: opts.order === v }, t)))),
       sw('Squeeze', { on: squeezeOn, qa: 'squeeze', tip: 'When the diagram is wider than the window, fold the lifelines the current step does not need. Click a fold to open it.', change: act.squeeze }),
       sw('Transport hints', { on: opts.th, qa: 'transport-hints', tip: 'Show the words "transport not decided" on arrows. Off: a small icon (the words are in its tooltip and in the caption).', change: act.hints }),
       head('Detail'),

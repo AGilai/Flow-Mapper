@@ -13,10 +13,10 @@ import { flowAnchor } from '../../core/comments.ts';
 import { plainText } from '../../core/rich-text-text.ts';
 
 /** `view`: the trace-view parameters (`detail`, `choose`, `open`, `dbOpen`, `group`) when the caller sent any: the export is that view (0.38.0); none: the full canonical trace, as before. */
-export function flowMermaid(ctx: Ctx, env: string, draft: string | null, service: unknown, ingress: unknown, view?: ViewOptions): string {
+export function flowMermaid(ctx: Ctx, env: string, draft: string | null, service: unknown, ingress: unknown, view?: ViewOptions, order?: 'subsystem' | 'calls'): string {
   if (typeof service !== 'string' || !service || typeof ingress !== 'string' || !ingress) throw badRequest('service and ingress are required: the flow\'s entry endpoint');
   const { g, reader } = ctx.view(env, draft);
-  const t0 = trace(g, { service, ingress }, HASH_TRACE) ?? (() => { throw notFound(`ingress '${ingress}' of service '${service}' in env '${env}'`); })();
+  const t0 = trace(g, { service, ingress }, order === 'calls' ? { ...HASH_TRACE, order } : HASH_TRACE) ?? (() => { throw notFound(`ingress '${ingress}' of service '${service}' in env '${env}'`); })();
   const t = view ? viewOf(t0, view) : t0;
   const text = reader.flowText(service, ingress);
   const ranges = listThread(ctx.db, env, flowAnchor(service, ingress)).comments.filter((c) => c.steps && !c.resolved && !c.deleted).map((c) => ({ ...c.steps!, text: plainText(c.body).split('\n')[0] })); // 0.34.0: open comments on a range of steps

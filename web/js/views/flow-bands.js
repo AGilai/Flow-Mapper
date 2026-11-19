@@ -17,13 +17,14 @@ export const memberOf = (c, subOf) => (isSvc(c) ? subOf(c.service) : isRes(c) ? 
  * an unresolved target keep their place. A data store (0.30.1) goes right after the last lifeline of its owner's subsystem (an owner subsystem with
  * no component in the flow: after the last component); stores with no owner subsystem go together after that, the "Shared" band. Never changes the array it is given.
  */
-export function groupColumns(columns, subOf, subOf2 = () => '') {
+export function groupColumns(columns, subOf, subOf2 = () => '', ranked = []) {
   const slots = [];
   columns.forEach((c, i) => { if (i > 0 && isSvc(c) && subOf(c.service)) slots.push(i); });
   // the group key of a component is its subsystem, then (0.50.0) its sub-subsystem: the second level keeps each one's columns together inside the subsystem
   const keyOf = (c) => `${subOf(c.service)}\n${subOf2(c.service) ?? ''}`, order = [];
   // 0.60.1 (#127): the caller (column 0) is pinned but its subsystem still ranks first, so its other components follow it under one band
   const c0 = columns[0]; if (c0 && isSvc(c0) && subOf(c0.service)) { order.push(subOf(c0.service)); order.push(keyOf(c0)); }
+  for (const k of ranked) if (!order.includes(k)) order.push(k); // #138: the environment's own order (flow-group.js `rankedKeys`): a subsystem, its own components, then its second level in order; what it does not name follows by first appearance
   for (const i of slots) { const k = subOf(columns[i].service), l = keyOf(columns[i]); if (!order.includes(k)) order.push(k); if (!order.includes(l)) order.push(l); }
   const rank = (c) => order.indexOf(subOf(c.service)) * 1e4 + order.indexOf(keyOf(c)) / 1e3;
   const moved = slots.map((i) => columns[i]).sort((a, b) => rank(a) - rank(b)); // Array.sort is stable

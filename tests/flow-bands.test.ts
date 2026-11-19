@@ -51,13 +51,17 @@ test('groupLane: Group by subsystem sets the order and the group once, de-clashe
   const slotsOf = (cs: any[]) => new Map(cs.map((c, i) => [c.service, i + 1]));
   groupLane(lane, subs, true, null, slotsOf);
   assert.deepEqual(lane.columns.map((c: any) => c.slot), [1, 2, 3, 4], 'each column carries its flow slot');
-  assert.deepEqual(names(lane.columns), ['agent', 'auth', 'users', 'pop-edge']);
+  assert.deepEqual(names(lane.columns), ['agent', 'pop-edge', 'auth', 'users'], '#138: the environment\'s subsystem order (a, n, p), not first appearance');
   assert.equal(ev.from, cols[1], 'an event still points at its column object');
   assert.deepEqual(lane.group.info('n'), subs.info('n'));
   const off: any = { columns: [svc('agent'), svc('auth'), svc('pop-edge'), svc('users')] };
-  groupLane(off, subs, false, null);
-  assert.deepEqual(names(off.columns), ['agent', 'auth', 'pop-edge', 'users'], 'off: the order is the flow\'s own');
+  groupLane(off, subs, false, null, null, null, false); // By call order (#138): no regrouping
+  assert.deepEqual(names(off.columns), ['agent', 'auth', 'pop-edge', 'users'], 'By call order: the order is the flow\'s own');
   assert.equal(off.group, undefined);
+  const bandsOff: any = { columns: [svc('agent'), svc('auth'), svc('pop-edge'), svc('users')] };
+  groupLane(bandsOff, subs, false, null);
+  assert.deepEqual(names(bandsOff.columns), ['agent', 'pop-edge', 'auth', 'users'], 'bands off: still by subsystem (the Order option decides)');
+  assert.equal(bandsOff.group, undefined);
 });
 
 test('step keys do not depend on the column order: a step is its event, not its place', () => {
@@ -94,4 +98,12 @@ test('groupLane: collection lifelines of a folded store follow the owner too', (
   const subs = createSubsystems({ subsystems: [{ key: 'a', label: 'A', components: [{ name: 'agent' }] }, { key: 'p', label: 'P', components: [{ name: 'auth' }] }] });
   const lane: any = { columns: [svc('agent'), svc('auth'), { ...store('res:db/x', 'agent'), group: 'db' }, { ...store('res:db/y', 'agent'), group: 'db' }], events: [] };
   assert.deepEqual(names(groupLane(lane, subs, true, null).columns), ['agent', 'res:db/x', 'res:db/y', 'auth']);
+});
+
+test('groupColumns with the environment order (#138): two parents with two children each, interleaved calls, come out contiguous and in env order', () => {
+  const P: Record<string, [string, string]> = { b1: ['agent', 'agent/net'], a1: ['platform', 'platform/identity'], b2: ['agent', 'agent/core'], a2: ['platform', 'platform/objects'], a0: ['platform', ''] };
+  const top = (n: string) => P[n]?.[0] ?? '', two = (n: string) => P[n]?.[1] ?? '';
+  const ranked = ['platform', 'platform\n', 'platform\nplatform/identity', 'platform\nplatform/objects', 'agent', 'agent\n', 'agent\nagent/core', 'agent\nagent/net'];
+  const cols = [{ id: 'client', kind: 'client', label: 'client' }, svc('b1'), svc('a2'), svc('b2'), svc('a1'), svc('a0')];
+  assert.deepEqual(names(groupColumns(cols, top, two, ranked)), ['client', 'a0', 'a1', 'a2', 'b2', 'b1']);
 });

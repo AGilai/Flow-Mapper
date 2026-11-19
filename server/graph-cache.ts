@@ -50,16 +50,22 @@ function trim() {
   }
 }
 
+/** #138: the subsystem keys of the environment in settings order. */
+function groupKeys(db: DB, env: string): string[] {
+  const r = db.prepare('SELECT groups FROM envs WHERE name = ?').get(env) as { groups: string | null } | undefined;
+  try { return r?.groups ? (JSON.parse(r.groups) as { key: string }[]).map((x) => x.key) : []; } catch { return []; }
+}
+
 export function graphFor(db: DB, env: string): GraphIndex {
   dropIfChangedElsewhere(db);
-  return lru(env, () => { const g = buildIndex(loadModel(db, env)); return { g, weight: weightOf(g) }; }).g;
+  return lru(env, () => { const g = buildIndex(loadModel(db, env)); g.groupOrder = groupKeys(db, env); return { g, weight: weightOf(g) }; }).g;
 }
 
 /** The graph and the non-graph reader of an environment, or of an environment as an open draft would leave it. */
 export function viewFor(db: DB, env: string, slug: string | null): { g: GraphIndex; reader: DataReader } {
   if (!slug) return { g: graphFor(db, env), reader: dbReader(db, env) };
   dropIfChangedElsewhere(db);
-  const e = lru(`${env}#draft:${slug}`, () => { const { rows } = draftView(db, env, slug); const g = buildIndex(rowsToModel(env, rows)); return { g, weight: weightOf(g), reader: rowsReader(rows, dbReader(db, env)) }; });
+  const e = lru(`${env}#draft:${slug}`, () => { const { rows } = draftView(db, env, slug); const g = buildIndex(rowsToModel(env, rows)); g.groupOrder = rows.filter((r) => r.list === 'subsystem').sort((a, b) => (a.data?.order ?? 0) - (b.data?.order ?? 0)).map((r) => r.key); return { g, weight: weightOf(g), reader: rowsReader(rows, dbReader(db, env)) }; });
   return { g: e.g, reader: e.reader! };
 }
 

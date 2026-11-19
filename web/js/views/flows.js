@@ -42,7 +42,7 @@ import { createToolbar } from './flow-toolbar.js';
 import { createViewMenu } from './flow-view-menu.js';
 import { levelOf } from './flow-levels.js';
 import { decodeHints, encodeHints, hintsDefault } from './flow-hints-pure.js';
-import { sqStored, bandStored, bandSave, sqSave, detailStored, mergeStored, mergeSave } from './flow-prefs.js'; import { createScenarios } from './flow-scenario-state.js';
+import { sqStored, bandStored, bandSave, sqSave, detailStored, mergeStored, mergeSave, orderStored, orderSave } from './flow-prefs.js'; import { createScenarios } from './flow-scenario-state.js';
 import { createDock } from '../notes/dock.js';
 
 export async function render({ main, query }) {
@@ -50,7 +50,7 @@ export async function render({ main, query }) {
   const service = query.get('service');
   const subs = await loadSubsystems(); // the subsystem of each component: bands and grouping over a flow's heads
   const opts = { stores: query.get('stores') !== '0', depth: query.get('depth') ?? 'all',
-    frontier: query.get('frontier') === '1', squeeze: sqStored(), bands: bandStored(), merge: mergeStored(),
+    frontier: query.get('frontier') === '1', squeeze: sqStored(), bands: bandStored(), merge: mergeStored(), order: query.get('order') === 'calls' ? 'calls' : query.get('order') === 'subsystem' ? 'subsystem' : orderStored(),
     sb: decodeBar(query) ?? stored('bar', BAR_DEFAULT), sd: decodeArrows(query, arrowsDefault(isDesign())) ?? stored('arrows', arrowsDefault(isDesign())), th: decodeHints(query, isDesign()), hl: decodeHl(query) ?? storedHl(), cb: decodeCb(query) ?? storedCb() ?? isDesign() }; // step details (0.30.0): what the step bar and the arrows show; // steps the harvester marked as frontier (call trees that reach no sink)
   let S = T.decodeUrl(query, state.env); // the tabs of the link, each with its environment (a key without one is the page's)
   const urlCount = T.urlKeys(query, state.env).length; // a link with more tabs than the cap is trimmed (toast below)
@@ -93,11 +93,11 @@ export async function render({ main, query }) {
     stores: (v) => { opts.stores = v; persist(); redraw(); },
     bands: (v) => { opts.bands = v; bandSave(v); redraw(); },
     frontier: (v) => { opts.frontier = v; persist(); reloadAll(); },
-    merge: (v) => { opts.merge = v; mergeSave(v); reloadAll(); },
+    merge: (v) => { opts.merge = v; mergeSave(v); reloadAll(); }, order: (v) => { opts.order = v; orderSave(v); persist(); reloadAll(); },
     squeeze: (v) => { opts.squeeze = v; sqSave(v); views.forEach((vw, k) => { vw.resetSqueeze(); if (k === S.active) vw.draw(); else stale.add(k); }); },
     hints: (v) => { opts.th = v; persist(); redraw(); },
     depth: (d) => { opts.depth = d; persist(); redraw(); },
-    reset: () => { const th = hintsDefault(isDesign()); if (!opts.stores) act.stores(true); if (subs.assigned && !opts.bands) act.bands(true); if (opts.frontier) act.frontier(false); if (!opts.merge) act.merge(true); if (!opts.squeeze) act.squeeze(true); if (opts.th !== th) act.hints(th); if (opts.depth !== 'all') act.depth('all'); },
+    reset: () => { const th = hintsDefault(isDesign()); if (!opts.stores) act.stores(true); if (subs.assigned && !opts.bands) act.bands(true); if (opts.frontier) act.frontier(false); if (!opts.merge) act.merge(true); if (opts.order !== 'subsystem') act.order('subsystem'); if (!opts.squeeze) act.squeeze(true); if (opts.th !== th) act.hints(th); if (opts.depth !== 'all') act.depth('all'); },
   };
   const stepMenu = createStepMenu({ bar: opts.sb, arrows: opts.sd, hl: opts.hl, cb: opts.cb, dflt: arrowsDefault(isDesign()), inline: true, onChange: ({ bar, arrows, hl, cb }) => {
     const arrowsMoved = arrows !== opts.sd; opts.sb = bar; opts.sd = arrows; opts.hl = hl; opts.cb = cb; persist();
@@ -125,7 +125,7 @@ export async function render({ main, query }) {
   const unLevel = typeof ResizeObserver === 'function' ? new ResizeObserver(setLevel) : null; unLevel?.observe(mainPane); setLevel();
 
   function persist() { viewMenu.paint();
-    setQuery({ ...T.encodeUrl(S, state.env), store: storeParam, ...(S.keys.length ? { service: null } : {}), stores: opts.stores ? null : '0', queues: null, depth: opts.depth === 'all' ? null : opts.depth, frontier: opts.frontier ? '1' : null, sb: encodeBar(opts.sb), sd: encodeArrows(opts.sd, arrowsDefault(isDesign())), th: encodeHints(opts.th, isDesign()), hl: encodeHl(opts.hl), cb: encodeCb(opts.cb, isDesign()), zoom: encodeZoom(zooms.get(S.active)), step: encodeStep(stepParam), ...scen.query(S.active) });
+    setQuery({ ...T.encodeUrl(S, state.env), store: storeParam, ...(S.keys.length ? { service: null } : {}), stores: opts.stores ? null : '0', queues: null, depth: opts.depth === 'all' ? null : opts.depth, frontier: opts.frontier ? '1' : null, order: opts.order === 'calls' ? 'calls' : null, sb: encodeBar(opts.sb), sd: encodeArrows(opts.sd, arrowsDefault(isDesign())), th: encodeHints(opts.th, isDesign()), hl: encodeHl(opts.hl), cb: encodeCb(opts.cb, isDesign()), zoom: encodeZoom(zooms.get(S.active)), step: encodeStep(stepParam), ...scen.query(S.active) });
   }
   const host = {
     env: state.env, marks, design: isDesign(), readOnly: false, opts, subs, panel, flowsEl, traceFor: data.traceFor, baseFor: data.baseFor, scen, onScenario: (k) => { if (k === S.active) persist(); }, describe: data.describe, desc, rootOf: (k) => T.flowRoot(k), isActive: (k) => S.active === k,

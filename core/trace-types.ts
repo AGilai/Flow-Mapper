@@ -114,4 +114,6 @@ export interface TraceOptions { scope?: 'intra' | 'full'; maxDepth?: number; max
   /** Show steps marked `origin: 'frontier'`. Off by default: each function gets one collapsed marker and they do not count toward maxMessages. */
   frontier?: boolean;
   /** Perf batch 4: for callers that only count messages and decisions (the Flows list): `participants` is left in discovery order, not laid out (the lifeline order is the costly part and nothing reads it). */
-  countsOnly?: boolean }
+  countsOnly?: boolean;
+  /** #138: lifeline order. 'subsystem' (the default): the components of a subsystem together, in the env's subsystem order; 'calls': first appearance. Identical where no component has a groupPath. */
+  order?: 'subsystem' | 'calls' }
