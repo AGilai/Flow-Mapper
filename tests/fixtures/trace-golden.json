@@ -71,6 +71,7 @@
  "demo-nets-caller/in.run": "121ac757e95412",
  "demo-openends-api/in.run": "0b0de5e66097f1",
  "demo-rebuild-pub/in.rebuild": "122308976f2f76",
+ "demo-rpc-caller/in.sync": "02488f3882a1a2",
  "demo-ws-gw/in.ws.connect": "12a7fc40c37424",
  "device-hub/in.addClientDevice": "0460ce2f1dd379",
  "device-hub/in.cpForward": "010de4ef09587e",
