@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frame 33 · Arrow notation</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../shared.css">
+<style>
+.f33 { padding: 8px 24px 28px; display: grid; gap: 28px; }
+.f33 h3 { font-size: 15px; margin: 0 0 6px; } .f33 h3 small { font: 400 12.5px var(--font); color: var(--ink-2); margin-left: 8px; }
+.f33 .row { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+.f33 .box { border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface); padding: 10px 12px; }
+.f33 .box > b { display: flex; align-items: center; gap: 8px; font: 600 12px var(--font); margin-bottom: 4px; color: var(--ink-2); }
+.f33 svg.sq { display: block; font-family: var(--font); max-width: none; }
+.f33 svg.sq text { fill: var(--ink); }
+.f33 .lh { fill: var(--surface-2); stroke: var(--line-strong); }
+.f33 .lh-t { font: 500 11px var(--mono); }
+.f33 .ll { stroke: var(--line-strong); stroke-width: 1.4; stroke-dasharray: 5 4; }
+.f33 .lab { font: 500 10.5px var(--mono); }
+.f33 .lab.dim { fill: var(--ink-2); font-style: italic; }
+.f33 { --on: #fff; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) .f33 { --on: #12151d; } }
+:root[data-theme='dark'] .f33 { --on: #12151d; }
+.f33 .bub-n { fill: var(--on) !important; font: 700 9.5px var(--font); }
+.f33 .bub-r { font: 600 9.5px var(--mono); fill: var(--ink-2) !important; }
+.f33 .bub-r-bg { fill: var(--surface); }
+.f33 .note { font-size: 12px; color: var(--ink-2); max-width: 90ch; margin-top: 6px; }
+.f33 .leg2 { display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: center; padding: 8px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); font-size: 11.5px; color: var(--ink-2); }
+.f33 .leg2 span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.f33 .leg2 svg { overflow: visible; }
+.f33 .leg2 text { fill: var(--ink); }
+.f33 .tbl { display: grid; grid-template-columns: 120px 210px 1fr; gap: 0; font-size: 12.5px; }
+.f33 .tbl > * { padding: 8px 10px; border-bottom: 1px solid var(--line); display: flex; align-items: center; }
+.f33 .tbl > .h { font: 600 10.5px var(--font); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.f33 .tbl svg { overflow: visible; }
+.f33 .tbl text { fill: var(--ink); }
+ol.decisions.w1 { columns: 1; max-width: 1180px; }
+</style>
+</head>
+<body>
+<nav class="fbar" aria-label="Design navigation"><a href="../design-env.html">← All designs</a><span class="pos">Frame 33 of 33</span><a href="frame-32.html">‹ prev</a><span class="off">next ›</span><span class="chip chip-approved">Approved</span><div class="theme" role="group" aria-label="Theme"><button data-t="system" aria-pressed="true">System</button><button data-t="light" aria-pressed="false">Light</button><button data-t="dark" aria-pressed="false">Dark</button></div></nav>
+
+<div class="frame-label"><h2>Frame 33. Arrow notation: sync, async, return</h2>
+<p>Maintainer: "present an async line different than sync, and are we requiring to know which call a return belongs to, so maybe add 4-ret". The head shape carries sync vs async, the dash carries return, a back-reference bubble says which call a return answers. Transport colours and the RPC <span class="mono">⇄</span> glyph are unchanged. Data is invented.</p>
+<ol class="decisions w1">
+<li><b>Three arrow kinds, three signals (33a).</b> <b>Sync</b>: solid line, filled triangle head (as today). <b>Async</b>: solid line, open stick head, never dashed. <b>Return</b>: dashed line, open head. Line style says "is this a call or an answer", head says "does the caller wait". Today a fire-and-forget async is dashed with a filled head and reads as a return, and an async that opens a bar is drawn exactly like sync; both are fixed.</li>
+<li><b>Async marker in the number bubble (33a, 33b).</b> The call bubble gets a small bolt after the number (<span class="mono">3⚡</span>, drawn as a path, not an emoji). It stays legible at 80% zoom (33b) and it is the only extra mark on a call; the open head is the primary cue, the bolt confirms it where heads are small. No "async" word on the canvas; the hover title and the legend spell it out.</li>
+<li><b>Returns name their call (33a, 33b).</b> A return carries a muted outlined bubble <span class="mono">↩4</span> in the same position as a call's number, so the reader can tell which call it closes without tracing the bar. Calls keep the filled coloured bubble; returns are outlined and grey text, so numbered calls stay the visual skeleton. The return takes the colour of the call it answers.</li>
+<li><b>When the return label is dropped.</b> The literal word "return" is never shown (today it is). A return value is shown after the bubble only when it carries information: a status or payload name that differs from "ok" (<span class="mono">201</span>, <span class="mono">rows</span>, <span class="mono">id</span>). Empty or ack returns are <span class="mono">↩4</span> alone. In 33b most returns are bubble-only and the diagram is quieter than today's.</li>
+<li><b>Async never gets a return; callbacks are calls (33a).</b> A fire-and-forget (to a queue, no bar) ends at the lifeline with today's stop bar and has no ↩. When the callee later calls back (CR #147: web-app calls export-mgr async, export-mgr calls web-app sync twice), those are ordinary sync calls with their own numbers and their own ↩ returns; the async call is not "answered". Legend (33c) goes into the caption bar after Read / Write.</li>
+</ol></div>
+
+<div class="f33" id="root"></div>
+
+<script>
+const COL = { http: 'var(--t-http)', rpc: 'var(--t-rpc)', sqs: 'var(--t-sqs)', res: 'var(--t-res)', eb: 'var(--t-eb)' };
+const BOLT = 'M2.6 0 L-2.2 5.4 H0.4 L-1 10 L3.4 4 H0.8 Z';
+// kinds: s sync, a async, r return. n = call number, of = call a return answers.
+function diagram(mode, lanes, rows, bars, o = {}) {
+  const LW = o.lw || 124, X0 = 70, RH = o.rh || 34, TOP = 60, scale = o.scale || 1;
+  const W = X0 * 2 + LW * (lanes.length - 1), H = TOP + rows.length * RH + 20;
+  const cx = (n) => X0 + lanes.indexOf(n) * LW; let s = '';
+  lanes.forEach((n) => { s += `<rect class="lh" x="${cx(n) - 52}" y="6" width="104" height="26" rx="6"/><text class="lh-t" x="${cx(n)}" y="23" text-anchor="middle">${n}</text><line class="ll" x1="${cx(n)}" y1="32" x2="${cx(n)}" y2="${H - 6}"/>`; });
+  bars.forEach(([lane, a, b, t, off = 0]) => { const x = cx(lane) - 4 + off, y1 = TOP + a * RH - 8, y2 = TOP + b * RH + 8;
+    s += `<rect x="${x}" y="${y1}" width="8" height="${y2 - y1}" rx="2" style="fill:color-mix(in srgb, ${COL[t]} 28%, var(--surface));stroke:${COL[t]}" stroke-width="1.2"/>`; });
+  rows.forEach((r, i) => {
+    const y = TOP + i * RH, xa = cx(r.f), xb = cx(r.t), d = xb > xa ? 1 : -1, c = COL[r.x];
+    const ret = r.k === 'r', asy = r.k === 'a';
+    const kind = mode === 'new' ? r.k : (ret ? 'r' : (r.fire ? 'fire' : 's'));
+    const dash = (mode === 'new' ? ret : (ret || r.fire));
+    const filled = mode === 'new' ? r.k === 's' : true;
+    const x1 = xa + d * 5, x2 = xb - d * 5;
+    s += `<line x1="${x1}" y1="${y}" x2="${x2 - d * (filled ? 6 : 1)}" y2="${y}" style="stroke:${c}" stroke-width="1.7"${dash ? ' stroke-dasharray="6 4"' : ''}/>`;
+    s += filled ? `<path d="M${x2} ${y} l${-d * 10} -4.5 v9z" style="fill:${c}"/>` : `<path d="M${x2 - d * 9} ${y - 4.5} L${x2} ${y} L${x2 - d * 9} ${y + 4.5}" fill="none" style="stroke:${c}" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/>`;
+    if (r.fire) { s += `<path d="M${x2 + d * 6} ${y - 6}V${y + 6}" style="stroke:${c}" stroke-width="2"/>`; }
+    // bubble at the tail
+    let bw, bx;
+    if (ret && mode === 'new') { bw = 26; bx = d > 0 ? x1 + 4 : x1 - 4 - bw;
+      s += `<rect class="bub-r-bg" x="${bx}" y="${y - 8}" width="${bw}" height="16" rx="8" style="stroke:${c}" stroke-width="1.2" fill="var(--surface)"/><text class="bub-r" x="${bx + bw / 2}" y="${y + 3.6}" text-anchor="middle">↩${r.of}</text>`;
+    } else if (!ret) { bw = (asy && mode === 'new') ? 30 : 18; bx = d > 0 ? x1 + 4 : x1 - 4 - bw;
+      s += `<rect x="${bx}" y="${y - 8}" width="${bw}" height="16" rx="8" style="fill:${c}"/><text class="bub-n" x="${bx + (bw === 30 ? 10 : bw / 2)}" y="${y + 3.6}" text-anchor="middle">${r.n}</text>`;
+      if (bw === 30) s += `<path d="${BOLT}" transform="translate(${bx + 18} ${y - 5.5})" fill="var(--on)"/>`;
+    } else { bw = 0; bx = x1; }
+    // label above the line, after the bubble
+    const lab = ret ? (mode === 'new' ? r.l : 'return') : r.l;
+    if (lab) { const lx = Math.min(xa, xb) + 8 + (d > 0 ? (bw + 6) : 0), anchor = 'start';
+      const tx = d > 0 ? xa + 5 + bw + 10 : xa - 5 - bw - 10, an = d > 0 ? 'start' : 'end';
+      s += `<text class="lab${ret ? ' dim' : ''}" x="${tx}" y="${y - 10}" text-anchor="${an}">${r.g ? '<tspan style="font-weight:700">⇄</tspan> ' : ''}${lab}</text>`; }
+  });
+  return `<svg class="sq" width="${W * scale}" height="${H * scale}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Sequence diagram, ${mode === 'new' ? 'proposed' : 'today'} notation">${s}</svg>`;
+}
+
+const L1 = ['web-app', 'orders-api', 'orders-db', 'jobs-queue', 'export-mgr'];
+const R1 = [
+  { k: 's', n: 1, f: 'web-app', t: 'orders-api', x: 'http', l: 'POST /orders' },
+  { k: 's', n: 2, f: 'orders-api', t: 'orders-db', x: 'res', l: 'INSERT' },
+  { k: 'r', of: 2, f: 'orders-db', t: 'orders-api', x: 'res', l: 'id' },
+  { k: 'a', n: 3, f: 'orders-api', t: 'jobs-queue', x: 'sqs', l: 'OrderPlaced', fire: 1 },
+  { k: 'r', of: 1, f: 'orders-api', t: 'web-app', x: 'http', l: '201' },
+  { k: 'a', n: 4, f: 'web-app', t: 'export-mgr', x: 'rpc', l: 'startExport', g: 1 },
+  { k: 's', n: 5, f: 'export-mgr', t: 'web-app', x: 'http', l: 'progress' },
+  { k: 'r', of: 5, f: 'web-app', t: 'export-mgr', x: 'http', l: '' },
+  { k: 's', n: 6, f: 'export-mgr', t: 'web-app', x: 'http', l: 'done' },
+  { k: 'r', of: 6, f: 'web-app', t: 'export-mgr', x: 'http', l: '' },
+];
+const B1 = [['orders-api', 0, 4, 'http'], ['orders-db', 1, 2, 'res'], ['export-mgr', 5, 9, 'rpc']];
+
+const L2 = ['web-app', 'orders-api', 'auth-svc', 'orders-db', 'export-mgr'];
+const R2 = [
+  { k: 's', n: 1, f: 'web-app', t: 'orders-api', x: 'http', l: 'GET /report' },
+  { k: 's', n: 2, f: 'orders-api', t: 'auth-svc', x: 'rpc', l: 'verify', g: 1 },
+  { k: 's', n: 3, f: 'orders-api', t: 'orders-db', x: 'res', l: 'SELECT orders' },
+  { k: 'a', n: 4, f: 'orders-api', t: 'export-mgr', x: 'http', l: 'recompute' },
+  { k: 's', n: 5, f: 'export-mgr', t: 'orders-db', x: 'res', l: 'SELECT stats' },
+  { k: 'r', of: 3, f: 'orders-db', t: 'orders-api', x: 'res', l: 'rows' },
+  { k: 'r', of: 2, f: 'auth-svc', t: 'orders-api', x: 'rpc', l: '' },
+  { k: 'r', of: 5, f: 'orders-db', t: 'export-mgr', x: 'res', l: 'rows' },
+  { k: 's', n: 6, f: 'export-mgr', t: 'web-app', x: 'http', l: 'ready' },
+  { k: 'r', of: 6, f: 'web-app', t: 'export-mgr', x: 'http', l: '' },
+  { k: 'r', of: 1, f: 'orders-api', t: 'web-app', x: 'http', l: '200 report' },
+];
+const B2 = [['orders-api', 0, 10, 'http'], ['auth-svc', 1, 6, 'rpc'], ['orders-db', 2, 5, 'res'], ['orders-db', 4, 7, 'res', 6], ['export-mgr', 3, 9, 'http']];
+
+function sample(kind, c, w = 70) {
+  const y = 10, d = 1, x2 = w, filled = kind === 's', dash = kind === 'r';
+  return `<svg width="${w + 4}" height="20" viewBox="0 0 ${w + 4} 20"><line x1="0" y1="${y}" x2="${x2 - (filled ? 6 : 1)}" y2="${y}" style="stroke:${c}" stroke-width="1.7"${dash ? ' stroke-dasharray="6 4"' : ''}/>${filled ? `<path d="M${x2} ${y} l-10 -4.5 v9z" style="fill:${c}"/>` : `<path d="M${x2 - 9} ${y - 4.5} L${x2} ${y} L${x2 - 9} ${y + 4.5}" fill="none" style="stroke:${c}" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/>`}</svg>`;
+}
+const bubN = (n, c, bolt) => `<svg width="${bolt ? 30 : 18}" height="16" viewBox="0 0 ${bolt ? 30 : 18} 16"><rect width="${bolt ? 30 : 18}" height="16" rx="8" style="fill:${c}"/><text x="${bolt ? 10 : 9}" y="11.6" text-anchor="middle" style="fill:var(--on);font:700 9.5px var(--font)">${n}</text>${bolt ? `<path d="${BOLT}" transform="translate(18 2.5)" fill="var(--on)"/>` : ''}</svg>`;
+const bubR = (n, c) => `<svg width="26" height="16" viewBox="0 0 26 16"><rect x=".6" y=".6" width="24.8" height="14.8" rx="7.4" fill="var(--surface)" style="stroke:${c}" stroke-width="1.2"/><text x="13" y="11.4" text-anchor="middle" style="fill:var(--ink-2);font:600 9.5px var(--mono)">↩${n}</text></svg>`;
+
+function legend() {
+  const h = 'var(--t-http)';
+  return `<div class="leg2"><span><svg width="26" height="8"><line x1="0" y1="4" x2="22" y2="4" style="stroke:var(--t-http)" stroke-width="2"/><path d="M26 4l-6-3v6z" style="fill:var(--t-http)"/></svg>Read</span>
+  <span><svg width="26" height="8"><line x1="0" y1="4" x2="22" y2="4" style="stroke:var(--t-eb)" stroke-width="2"/><path d="M26 4l-6-3v6z" style="fill:var(--t-eb)"/></svg>Write</span>
+  <span style="border-left:1px solid var(--line-strong);padding-left:18px"><svg width="34" height="12" viewBox="0 0 34 12"><line x1="0" y1="6" x2="24" y2="6" style="stroke:var(--ink-2)" stroke-width="1.7"/><path d="M30 6l-9-4.2v8.4z" style="fill:var(--ink-2)"/></svg>Sync (caller waits)</span>
+  <span><svg width="34" height="12" viewBox="0 0 34 12"><line x1="0" y1="6" x2="29" y2="6" style="stroke:var(--ink-2)" stroke-width="1.7"/><path d="M23 1.5L30 6L23 10.5" fill="none" style="stroke:var(--ink-2)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>Async</span>
+  <span>${bubN(3, 'var(--ink-2)', true)}async call number</span>
+  <span><svg width="34" height="12" viewBox="0 0 34 12"><line x1="0" y1="6" x2="29" y2="6" style="stroke:var(--ink-2)" stroke-width="1.7" stroke-dasharray="6 4"/><path d="M23 1.5L30 6L23 10.5" fill="none" style="stroke:var(--ink-2)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>Return</span>
+  <span>${bubR(4, 'var(--ink-2)')}answers call 4</span></div>`;
+}
+
+function render() {
+  const g = (c) => c;
+  document.getElementById('root').innerHTML = `
+  <section><h3>33a. Today vs proposed<small>same six calls: sync, a call that opens a bar, an async fire-and-forget to a queue, nested returns, and a callback (CR #147: web-app calls export-mgr async, export-mgr calls back sync twice)</small></h3>
+  <div class="row"><div class="box"><b>Today</b>${diagram('old', L1, R1, B1)}</div><div class="box"><b>Proposed</b>${diagram('new', L1, R1, B1)}</div></div>
+  <p class="note">Call 4 (rpc, olive, <span class="mono">⇄</span>) and call 3 (sqs, teal) are both async and now share one open head, with the bolt on the number; today call 4 is identical to sync and call 3 is dashed like a return. Returns 5 and 6 are bubble-only (no information); return 2 keeps "id", return 1 keeps "201".</p></section>
+  <section><h3>33b. Dense case at 80% zoom<small>returns arrive out of call order (↩3 before ↩2, ↩5 before ↩1); the bubble is the only way to match them without following bars</small></h3>
+  <div class="row"><div class="box"><b>Today (80%)</b>${diagram('old', L2, R2, B2, { scale: .8, lw: 150 })}</div><div class="box"><b>Proposed (80%)</b>${diagram('new', L2, R2, B2, { scale: .8, lw: 150 })}</div></div>
+  <p class="note">Same 11 rows. Today every return reads "return" and the reader traces bars to pair them. Proposed: ↩N pairs them directly and the label is only kept where it adds information (<span class="mono">rows</span>, <span class="mono">200 report</span>). The open head on call 4 stays distinguishable from the filled heads at this size; the bolt is 9px tall (7px at 80%) and is a confirmation, not the primary cue.</p></section>
+  <section><h3>33c. Legend and key<small>replaces "→ Read  → Write" in the caption bar; the new part is added after it</small></h3>
+  ${legend()}
+  <div class="box" style="margin-top:12px"><div class="tbl"><div class="h">Kind</div><div class="h">Drawing</div><div class="h">Rule</div>
+  <div>Sync call</div><div>${sample('s', 'var(--t-http)')}&nbsp;${bubN(1, 'var(--t-http)')}</div><div>Solid line, filled triangle, filled number bubble, caller's bar stays open until the return.</div>
+  <div>Async call</div><div>${sample('a', 'var(--t-rpc)')}&nbsp;${bubN(4, 'var(--t-rpc)', true)}</div><div>Solid line, open stick head, bubble with a bolt. With a bar when the callee works on it; with a stop bar and no ↩ when nobody answers (fire-and-forget). Never dashed.</div>
+  <div>Return</div><div>${sample('r', 'var(--t-http)')}&nbsp;${bubR(1, 'var(--t-http)')}</div><div>Dashed line, open head, outlined muted bubble ↩N naming the call it closes, transport colour of that call. Label only when it carries a value.</div>
+  <div>Transport</div><div><svg width="150" height="16"><g style="fill:none;stroke-width:5;stroke-linecap:round"><path d="M4 8h22" style="stroke:var(--t-http)"/><path d="M34 8h22" style="stroke:var(--t-rpc)"/><path d="M64 8h22" style="stroke:var(--t-sqs)"/><path d="M94 8h22" style="stroke:var(--t-eb)"/><path d="M124 8h22" style="stroke:var(--t-res)"/></g></svg></div><div>Unchanged: arrow colour is the transport; RPC keeps its <span class="mono">&nbsp;⇄&nbsp;</span> glyph beside the label. Kind (line, head) and transport (colour) are independent, so any pair combines.</div></div></div></section>`;
+}
+document.querySelectorAll('.theme button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.theme button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  if (b.dataset.t === 'system') document.documentElement.removeAttribute('data-theme'); else document.documentElement.dataset.theme = b.dataset.t;
+}));
+render();
+</script>
+</body>
+</html>
