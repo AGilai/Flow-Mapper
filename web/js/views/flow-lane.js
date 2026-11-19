@@ -22,22 +22,11 @@ import { isRpc, isSyncCall, tOf, rpcCommand, pairPlan, trunkKey, nonMatchText } 
 import { foldedStores, storeColumn, arrowLabel, isWrite, splitStore, orderStores } from './flow-stores-pure.js';
 import { decisionPlan } from './flow-decision-rows.js';
 import { drawnStep } from './flow-steps.js';
+import { callLabel } from './flow-call-label.js';
+export { callLabel };
 
 export const svcOf = (id) => (id.startsWith('svc:') ? id.slice(4) : id.startsWith('fn:') ? id.split(':')[1] : null);
 
-/** "http:POST orders-svc/orders" -> "POST /orders"; other transports show their event or label. */
-export function callLabel(m) {
-  if (m.mergedCalls) return m.label; if (isRpc(m)) return rpcCommand(m); // #109: a merged call (Simple) is drawn as its "*3 POST /a, GET /b" text
-  if (m.transport === 'undecided' && m.kind !== 'deliver' && !m.event) return m.operation ?? m.label.replace(/^.*?tbd:(?:[^/\s]*\/)?/, ''); // #76: a `tbd:<component>/<operation>` key is never drawn: the operation name, else the key's last part; the key stays in the tooltip and the panel
-  if (m.kind === 'deliver') { const hd = m.target?.fn ?? m.label.match(/→\s*(.+)$/)?.[1] ?? ''; return m.event ? `${m.event} → ${hd}` : hd; }
-  if (m.operation && m.kind === 'egress' && !m.event) return m.operation; // the call's own words; the key is in the panel and the title
-  if (m.transport === 'http' || m.transport === 'rpc') {
-    const t = m.label.replace(/^\w+:/, '');
-    const k = t.match(/^(\S+) [^/\s]*(\/.*)$/);
-    return k ? `${k[1]} ${k[2]}` : t;
-  }
-  return m.gap && m.kind !== 'deliver' ? m.label : m.event ?? m.label.replace(/^.*→\s*/, '').replace(/^\w+:/, ''); // #99: a gap's text already leads with its event names
-}
 const CH_KIND = (key) => (isQueueKey(key) ? 'queue' : 'topic');
 /** The operation and the collection of a data-store step: "UpdateItem" and "inventory-stock" (the whole store when the key names no collection). */
 export const storeLabel = (m) => ({ verb: m.label, name: splitStore(m).collection ?? splitStore(m).store });
@@ -201,13 +190,21 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
     if (repeats && m.repeatOf && m.kind === 'egress' && !msgs[idx + 1]?.unfoldOf) { push({ type: 'call', msg: m, from: top.col, fromBar: top, to: pickCol(service, top.col), bar: null, label: callLabel(m), repeat: m.repeatOf }); return; } // 0.44.0 (#90): a repeat is a thin arrow with no bar, unless its first expansion was unfolded under it
     const bar = open(m, top.col, top, service, pickCol(service, top.col), isSyncCall(m), isRpc(m) ? plan1(top.col.ci, service, m.rpc) : null);
     if (m.repeatOf) events[bar.start].repeat = m.repeatOf;
-  }; let prevOf; // #120: only the first message of a deferred chain returns to its trigger's frame; the rest (a sync call's callee steps) keeps the call open
+  }; let prevOf, dropped = 0; // #120: only the first message of a deferred chain returns to its trigger's frame; the rest (a sync call's callee steps) keeps the call open
+  // #147: deferred work runs after its caller's own steps, so a caller nobody waits on (a client app's entry, a bar entered by an async call) is done: its bar ends there
+  // and a later call back into it opens a new bar instead of nesting in the finished one. `dropped` keeps the recorded frames of the origins in step.
+  const done = (b) => !b.sync || (clientApp && b.col === rootCol && !b.parent);
   lane.forEach((idx, n) => {
     const m = msgs[idx], at = m.of === prevOf ? undefined : origin.get(m.of), made = bars.length; prevOf = m.of;
-    if (at) { while (stack.length > at.frame) close(stack.pop()); if (at.bar && !stack.includes(at.bar)) stack.push(at.bar); }
+    if (at) {
+      const frame = at.frame - (dropped - at.dropped);
+      while (stack.length > frame) close(stack.pop());
+      while (stack.length && done(stack[stack.length - 1])) { close(stack.pop()); dropped++; }
+      if (at.bar && !stack.includes(at.bar)) stack.push(at.bar);
+    }
     for (const r of dplan?.get(n) ?? []) push({ ...r }); // the divider of a decision, captions of its arms (both drawn)
     step(idx, n);
-    if (m.n != null && n > 0) origin.set(m.n, bars.length > made ? { frame: stack.length - 1, bar: bars[bars.length - 1] } : { frame: stack.length, bar: null });
+    if (m.n != null && n > 0) origin.set(m.n, bars.length > made ? { frame: stack.length - 1, bar: bars[bars.length - 1], dropped } : { frame: stack.length, bar: null, dropped });
   });
   while (stack.length) close(stack.pop());
 

@@ -275,6 +275,14 @@
     {
       "name": "lo-ca-vault",
       "groupPath": "security"
+    },
+    {
+      "name": "lo-as-agent",
+      "groupPath": "agent"
+    },
+    {
+      "name": "lo-as-cm",
+      "groupPath": "agent"
     }
   ],
   "createdBy": "seed"
