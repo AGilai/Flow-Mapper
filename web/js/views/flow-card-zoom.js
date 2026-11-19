@@ -3,7 +3,7 @@
 // value ('fit' or a percent) and the card-sized Fit and anchored zoom. The tab's own zoom stays in flow-tab-view.js.
 
 import { clampRange, fitScale, scaleOf, anchorDelta, activeAfter, cardRoom } from './flow-zoom-pure.js';
-import { naturalSize } from './flow-zoom.js';
+import { naturalSize, footOf } from './flow-zoom.js';
 
 /**
  * createCardZoom({ scroller, index() (the tab's async index or null), paint() (the zoom box and the card edge), edge() }) ->
@@ -15,7 +15,7 @@ export function createCardZoom({ scroller, index, paint, edge }) {
   const valueOf = (f) => zooms.get(f) ?? 100;
   const fitCard = (f) => { // a card's Fit: its box's width (and the window's height for a short one), like the tab's
     const nat = naturalSize(f.laneBox), vw = cardRoom(f.laneBox.parentElement?.clientWidth);
-    return nat && vw ? fitScale({ ...nat, vw, vh: scroller.clientHeight }) : null;
+    return nat && vw ? fitScale({ ...nat, vw, vh: scroller.clientHeight - footOf(scroller) }) : null;
   };
   const apply = (f) => { const z = valueOf(f); f.setScale(scaleOf(z, z === 'fit' ? fitCard(f) : null)); };
   const activate = (f) => { if (f !== active) { active = f; paint(); } };

@@ -44,7 +44,7 @@ import { state } from '../state.js';
 import { envChip, paintEnv } from '../components/env-chip.js';
 import { clampRange, fitScale, scaleOf, percentOf, anchorDelta } from './flow-zoom-pure.js';
 import { createCardZoom } from './flow-card-zoom.js';
-import { createZoomControl, applyScale, naturalSize, wireWheel } from './flow-zoom.js';
+import { createZoomControl, applyScale, naturalSize, wireWheel, footOf } from './flow-zoom.js';
 import { caps, onCaps } from './flow-caption-state.js';
 import { storeLegend } from './flow-draw-bands.js';
 import { moreItems } from './flow-tab-more.js';
@@ -124,7 +124,7 @@ export function createTabView(data, host) {
   const cz = createCardZoom({ scroller, index: () => render?.index(), paint: () => paintCtl(), edge: () => edge() }); // #128: Fit and zoom act on the ACTIVE diagram (the tab's own, or the card last pressed in or expanded); a card has its own scale
   const zOf = (f) => (f ? cz.valueOf(f) : zoomV), facOf = (f) => (f ? f.scale() : factor), paintCtl = () => { const f = cz.active(); zctl.show(percentOf(facOf(f)), zOf(f) === 'fit'); cz.mark(); };
   function recompute() {
-    const nat = naturalSize(render?.laneBox), fitS = nat ? fitScale({ ...nat, vw: scroller.clientWidth - (brackets?.width() ?? 0), vh: scroller.clientHeight }) : null;
+    const nat = naturalSize(render?.laneBox), fitS = nat ? fitScale({ ...nat, vw: scroller.clientWidth - (brackets?.width() ?? 0), vh: scroller.clientHeight - footOf(scroller) }) : null;
     factor = scaleOf(zoomV, fitS);
     applyScale(render?.laneBox ?? scroller, factor); // the tab's own lane only: the cards below have their scales (#128)
     cz.refit(); loose(); paintCtl(); brackets?.refresh();

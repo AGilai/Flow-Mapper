@@ -8,6 +8,7 @@ in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.m
 ## Unreleased
 
 - Fix #147 (UI only): in the sequence view a caller nobody waits on (a client app's entry bar, or a bar entered by an async call) ends its bar when deferred async work starts; a later call back into it opens a new bar at level 0 instead of nesting in the finished one. Sync entries keep their bar open.
+- Flows (UI only): a footer gap under the diagram, so the floating zoom control (and the legend chip) never covers the last arrows and return lines; Fit leaves the gap out of its height.
 
 ## 0.64.3 (2026-11-19)
 
