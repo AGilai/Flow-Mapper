@@ -47,12 +47,12 @@ export const storeLabel = (m) => ({ verb: m.label, name: splitStore(m).collectio
  * -> { columns: [{ id, label, sub, kind }], events, bars, altMsgs, altRows }
  * Event types: call (opens a bar, or an arrow to a plain lifeline), return, store, hop (one arrow of a publish chain), unresolved, pill, frontier.
  * hop: one arrow row of a publish: { msg, from, via (the topic lifeline the arrow passes through, first row only), to, fromBar (first row), label (the event type; drawn once, on `trunk`), trunk, fork (a branch row that forks off the topic), trunkTransport (colour up to the topic), transport (colour after it), marker (filter, on the topic -> queue part), legs, end: { tiles, items, none } | null }.
- * options: numbers (Map delivery message -> { label, shows, seen, noHandler }, from deliveryNumbers(tree): the number tiles at the queues), fanOpen (Set of topics whose queues are all drawn),
+ * options: drawnAt (#141: Map service -> drawn position, flow-group.js laneRank; a callee reuses its column unless the arrow crosses a bar in the DRAWN order), numbers (Map delivery message -> { label, shows, seen, noHandler }, from deliveryNumbers(tree): the number tiles at the queues), fanOpen (Set of topics whose queues are all drawn),
  * decisions (0.38.0: the view's either/or decisions: a `decision` row before the first message of an arm, flow-decision-rows.js), dbOpen (Set of keys of DB runs the viewer expanded: their first row says so),
  * repeats (0.44.0, #90: the Simple view): a repeated call out is a thin arrow with no bar, `repeat: N`; icalls (0.38.0: a call inside the service is a row of its own, `icall`, a numbered step; off: the folded pill, as before).
  * Every event has `row` (its index). Bars: { id, service, col, level, transport, sync, msg, depth, internal: {n, gaps}, msgs, start, end }.
  */
-export function buildLane(msgs, { stores = true, scope = 'full', participants = [], mwOpen = false, numbers = new Map(), fanOpen = false, trigger = null, decisions = [], dbOpen = null, icalls = false, repeats = false } = {}) {
+export function buildLane(msgs, { stores = true, scope = 'full', participants = [], mwOpen = false, numbers = new Map(), fanOpen = false, trigger = null, decisions = [], dbOpen = null, icalls = false, repeats = false, drawnAt = null } = {}) {
   const kind = new Map(participants.map((p) => [p.id, p.kind])), skind = (service) => participants.find((p) => p.id === `svc:${service}`)?.serviceKind;
   const cols = [], byService = new Map(), stack = [], bars = [], events = [];
   const keys = new Map();
@@ -70,7 +70,7 @@ export function buildLane(msgs, { stores = true, scope = 'full', participants = 
   const plan1 = pairPlan(); // RPC over AMQP: the chip on the first call per caller and server, the reply label
   const root = svcOf(first.to);
 
-  const between = (c, a, b) => c.ci > Math.min(a.ci, b.ci) && c.ci < Math.max(a.ci, b.ci);
+  const pos = (c) => (drawnAt ? (c === source ? -1 : drawnAt.get(c.service) ?? c.ci) : c.ci), between = (c, a, b) => pos(c) > Math.min(pos(a), pos(b)) && pos(c) < Math.max(pos(a), pos(b)); // #141: by where a lifeline is drawn (the subsystem order), not where the trace met it
   const pickCol = (service, caller) => {
     const ex = byService.get(service);
     if (ex && !stack.some((b) => b.col !== caller && b.col !== ex && between(b.col, caller, ex))) return ex;

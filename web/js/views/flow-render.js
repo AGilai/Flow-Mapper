@@ -17,7 +17,7 @@ import { laneMarks, stepMarksOnly } from './flow-marks.js';
 import { marksNow } from '../design/marks-store.js';
 import { createRefs } from './flow-refs-draw.js';
 import { state } from '../state.js';
-import { groupLane } from './flow-group.js';
+import { groupLane, laneRank } from './flow-group.js';
 import { laneSlots } from '../design/lane-slots.js';
 import { applyScale } from './flow-zoom.js';
 
@@ -56,10 +56,13 @@ export function createFlowRender({ trace, tree, key, ancestors = [], sticky = tr
   function drawLane() {
     const lo = laneOpts();
     const msgs = trace.messages.filter((m) => m.depth <= lo.maxDepth);
-    const built = buildLane(msgs, { mwOpen, fanOpen, numbers: deliveryNumbers(tree), stores: lo.stores, scope: 'full', participants: trace.participants, trigger: depth ? null : sh.trigger?.() ?? null, icalls: depth ? false : sh.icalls?.() ?? false, decisions: depth ? [] : trace.decisions ?? [], dbOpen: depth ? null : sh.dbOpen?.() ?? null, repeats: trace.detail === 'simple' });
-    built.storeOn = !depth && !!sh.onStore;
-    built.internal = depth ? null : sh.internal?.() ?? null; // 0.38.0: the lazy "⊕ internal" control under each service head (null: everything is loaded)
-    groupLane(built, host.subs, opts.bands, marks(), (cols) => laneSlots(cols, undefined, host.env), host.env, opts.order !== 'calls'); // 0.28.1: the components of one subsystem together and the bands over them; a colour per flow (before Squeeze, the walk and the drawing see the columns)
+    const build = (drawnAt) => { const b = buildLane(msgs, { mwOpen, fanOpen, numbers: deliveryNumbers(tree), stores: lo.stores, scope: 'full', participants: trace.participants, trigger: depth ? null : sh.trigger?.() ?? null, icalls: depth ? false : sh.icalls?.() ?? false, decisions: depth ? [] : trace.decisions ?? [], dbOpen: depth ? null : sh.dbOpen?.() ?? null, repeats: trace.detail === 'simple', drawnAt });
+      b.storeOn = !depth && !!sh.onStore;
+      b.internal = depth ? null : sh.internal?.() ?? null; // 0.38.0: the lazy "⊕ internal" control under each service head (null: everything is loaded)
+      groupLane(b, host.subs, opts.bands, marks(), (cols) => laneSlots(cols, undefined, host.env), host.env, opts.order !== 'calls'); // 0.28.1: the components of one subsystem together and the bands over them; a colour per flow (before Squeeze, the walk and the drawing see the columns)
+      return b; };
+    let built = build(null);
+    if (host.subs?.assigned && opts.order !== 'calls') built = build(laneRank(built)); // #141: a second pass with the drawn order, so a callee is not given a "called again" column for a crossing that the subsystem order removed
     const sq = sh.squeeze?.() ? { keep: (!depth && sh.walk?.endsOf(built)) || firstStepCols(built) } : null; // Squeeze: the current step's lifelines (a card: its first step's)
     lane = renderLane(built, { ...handlers, onChoose: depth ? null : sh.onChoose, srcUrl: (at) => trace.code?.[`step:${at}`]?.url ?? null, onInternal: depth ? null : sh.onInternal, onDb: depth ? null : sh.onDb, marks: laneMarks(marks()) ?? stepMarksOnly, edit: sh.addCall ? { onAddCall: sh.addCall, onAddInBand: sh.addInBand } : null, refs: createRefs(trace, { editing: !host.readOnly && state.mode === 'edit' && !!state.draft, onImport: sh.importRef }), sticky, squeeze: sq, onSqueeze: sh.squeezeOpen, details: depth ? null : sh.details?.(built) ?? null, onEditStep: sh.editStep, zoom: scale(), hints: opts.th ?? true, fit: Math.max(0, (sh.fit?.() ?? 0) - (depth ? 40 + depth * 28 : 0)) });
     if (!depth) sh.walk?.decorate(lane, built); // numbered steps are the top lane's only (0.20.0)

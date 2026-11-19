@@ -16,19 +16,19 @@ export function eventCols(e, idx) {
 }
 
 /** The folded columns as contiguous runs: [{ from, to, cols }]. Each run is one fold column. */
-export function foldGroups(n, folded) {
+export function foldGroups(n, folded, brk = null) { // brk (#142): Set of indexes where a subsystem band begins; a run never crosses it
   const out = [];
   for (let i = 0; i < n; i++) {
     if (!folded.has(i)) continue;
     const last = out[out.length - 1];
-    if (last && last.to === i - 1) { last.to = i; last.cols.push(i); } else out.push({ from: i, to: i, cols: [i] });
+    if (last && last.to === i - 1 && !brk?.has(i)) { last.to = i; last.cols.push(i); } else out.push({ from: i, to: i, cols: [i] });
   }
   return out;
 }
 
 /** What is drawn left to right: every visible column, and one entry per fold run. [{ cols: [i...], fold: bool }] */
-export function displayCols(n, folded) {
-  const groups = foldGroups(n, folded), out = [];
+export function displayCols(n, folded, brk = null) {
+  const groups = foldGroups(n, folded, brk), out = [];
   for (let i = 0; i < n; i++) {
     const g = groups.find((x) => x.from === i);
     if (!folded.has(i)) out.push({ cols: [i], fold: false });

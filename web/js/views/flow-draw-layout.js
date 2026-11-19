@@ -7,7 +7,7 @@ import { markChips, chipsStack } from './flow-marks-draw.js';
 import { markerRuns, failNeed } from './flow-markers-draw.js';
 import { sharedVar } from '../design/component-colors.js';
 import { bandsOf } from './flow-stores-pure.js';
-import { subBands, subSubBands, SHARED, ENTRY, bandLabelPx, loneBandSpans } from './flow-bands.js';
+import { subBands, subSubBands, bandBreaks, SHARED, ENTRY, bandLabelPx, loneBandSpans } from './flow-bands.js';
 import { BAND_H } from './flow-draw-bands.js';
 import { headIconOf } from './flow-draw-icons.js';
 import { FOLD_W, COL_NARROW, displayCols, foldGroups, planSqueeze } from './flow-squeeze.js';
@@ -55,8 +55,9 @@ export function layoutLane(lane, fit = 0, sq = null, marks = null, edit = false,
   })];
   // `fit`: the room the diagram has. The plain gap shrinks (to COL_MIN) until everything shows without scrolling; topic and queue gaps stay.
   // Still too wide and Squeeze on: lifelines fold into fold columns (flow-squeeze.js); a fold is FOLD_W wide and an arrow into it stops at its left edge.
+  const brk = grpB ? bandBreaks(columns, grpB.subOf, grpB.subOf2) : null; // #142: a fold never crosses a subsystem band
   const layout = (col, folded, fw = FOLD_W) => {
-    const dc = displayCols(columns.length, folded), di = new Map();
+    const dc = displayCols(columns.length, folded, brk), di = new Map();
     dc.forEach((d, k) => d.cols.forEach((c) => di.set(c, k)));
     const hw = (d) => (d.fold ? fw : headW(columns[d.cols[0]], col)), room = (c) => (folded.has(c) ? fw / 2 : 0);
     const dsp = spans.map((p) => ({ a: di.get(p.a), b: di.get(p.b), need: p.need + room(p.a) + room(p.b) }));
@@ -74,7 +75,7 @@ export function layoutLane(lane, fit = 0, sq = null, marks = null, edit = false,
   // a queue head drops its transport prefix and the 'queue delivery' line (the title keeps both): two lines at most
   const subCh = COLW < COL_MIN ? Math.max(10, Math.floor((COLW - 22) / 5.8)) : SUB_CH; // narrowed heads (Squeeze, last stage) wrap the sub line shorter
   const heads = columns.map((c) => (c.sub === 'queue delivery' ? { name: clampLines(wrapId(c.label.replace(/^[^:]+:/, ''), nameCh(c)), nameCh(c)), sub: [] } : { name: clampLines(wrapId(c.label, nameCh(c)), nameCh(c)), sub: isCh(c) ? [c.sub] : wrapId(c.sub ?? '', c.kind === 'resource' ? Math.max(10, Math.floor((headW(c, COLW) - 38) / 5.8)) : subCh) }));
-  const boxH = 12 + Math.max(...heads.map((x) => x.name.length * LINE_H + x.sub.length * 13)) + 6, grp = lane.group ?? null, subRuns = grp ? subBands(columns, folded, grp.subOf) : [], sub2Runs = grp?.subOf2 ? subSubBands(columns, folded, grp.subOf2) : [], hasStore = columns.some((c) => c.kind === 'resource');
+  const boxH = 12 + Math.max(...heads.map((x) => x.name.length * LINE_H + x.sub.length * 13)) + 6, grp = lane.group ?? null, subRuns = grp ? subBands(columns, folded, grp.subOf, undefined, brk) : [], sub2Runs = grp?.subOf2 ? subSubBands(columns, folded, grp.subOf2, brk) : [], hasStore = columns.some((c) => c.kind === 'resource');
   const bandH = BAND_H * ((subRuns.length ? 1 : 0) + (sub2Runs.length ? 1 : 0) + (hasStore ? 1 : 0)), HEAD = boxH + 16 + bandH + (lane.internal ? INT_H : 0); // bandH: the band rows over the heads (flow-draw-bands.js): subsystems on top, then the sub-subsystems, then data stores
   if (grp && columns[0]?.kind === 'source' && columns[0].transport && !folded.has(0) && !subRuns.some((r) => r.from === 0)) subRuns.unshift({ key: ENTRY, from: 0, to: 0 }); // #140: a flow that starts at a queue: its first column is labelled Entry, not left bare beside another domain's band
   const subRow = subRuns.map((r) => ({ ...r, sub: true, row: 0, label: entryLabel(r, columns, grp), icon: grp.info(r.key)?.icon ?? null, mark: grp.markOf(r.key) }));
@@ -93,7 +94,7 @@ export function layoutLane(lane, fit = 0, sq = null, marks = null, edit = false,
   top[events.length] = y;
   const height = y + PAD;
   const barX = (bar, dir) => (folded.has(idx.get(bar.col)) ? colX.get(bar.col) + (dir < 0 ? 0 : fw) : colX.get(bar.col) + bar.level * NEST + dir * BAR / 2); // in a fold: its edge on that side
-  const groups = foldGroups(columns.length, folded).map((g) => ({ ...g, x: xs[g.from], w: fw, names: g.cols.map((c) => columns[c].service ?? columns[c].label), cc: sharedVar(g.cols.map((c) => columns[c])) }));
+  const groups = foldGroups(columns.length, folded, brk).map((g) => ({ ...g, x: xs[g.from], w: fw, names: g.cols.map((c) => columns[c].service ?? columns[c].label), cc: sharedVar(g.cols.map((c) => columns[c])) }));
   const edge = (bar, col, dir) => (bar ? barX(bar, dir) : colX.get(col));
   const headBox = (c) => headW(c, COLW);
   return { th, runs, internal: lane.internal ?? null, storeOn: !!lane.storeOn, columns, events, bars, idx, stacked, folded, groups, plan, sig, foldW: fw, fit, isCh, headW, headBox, xs, COLW, width, height, colX, heads, boxH, HEAD, bandH, bands, frames, strips, top, ys, barX, edge };

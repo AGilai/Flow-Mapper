@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "lo-ord-a",
+    "kind": "service",
+    "team": "commerce",
+    "repo": "github.com/acme/lo-ord-a",
+    "language": "typescript",
+    "description": "Demo #141: calls lo-stk-s, then lo-ord-m; the second call to lo-stk-s from lo-bil-api must reuse its one lifeline"
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-19T10:00:00Z",
+  "commit": "141143a",
+  "functions": [
+    {
+      "id": "h",
+      "name": "handle",
+      "file": "src/h.ts",
+      "line": 5,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "o.lo-stk-s"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "o.lo-ord-m"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.x",
+      "bindKey": "http:GET lo-ord-a/x",
+      "transport": "http",
+      "handler": "h",
+      "entryPoint": true,
+      "details": {
+        "method": "GET",
+        "path": "/x"
+      }
+    }
+  ],
+  "egress": [
+    {
+      "id": "o.lo-stk-s",
+      "bindKey": "http:GET lo-stk-s/x",
+      "transport": "http",
+      "mode": "sync"
+    },
+    {
+      "id": "o.lo-ord-m",
+      "bindKey": "http:GET lo-ord-m/x",
+      "transport": "http",
+      "mode": "sync"
+    }
+  ],
+  "resources": []
+}

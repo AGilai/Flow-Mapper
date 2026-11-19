@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "lo-n-root",
+    "kind": "service",
+    "team": "security",
+    "repo": "github.com/acme/lo-n-root",
+    "language": "typescript",
+    "description": "Demo #145: touches nsDb first, calls lo-n-sec2, then the external lo-n-vault"
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-19T11:00:00Z",
+  "commit": "145a",
+  "functions": [
+    {
+      "id": "h",
+      "name": "handle",
+      "file": "src/h.ts",
+      "line": 5,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "nsDb",
+          "operation": "findOne",
+          "access": "read"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "o.lo-n-sec2"
+        },
+        {
+          "seq": 3,
+          "type": "egress",
+          "target": "o.lo-n-vault"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.x",
+      "bindKey": "http:GET lo-n-root/x",
+      "transport": "http",
+      "handler": "h",
+      "entryPoint": true,
+      "details": {
+        "method": "GET",
+        "path": "/x"
+      }
+    }
+  ],
+  "egress": [
+    {
+      "id": "o.lo-n-sec2",
+      "bindKey": "http:GET lo-n-sec2/x",
+      "transport": "http",
+      "mode": "sync"
+    },
+    {
+      "id": "o.lo-n-vault",
+      "bindKey": "http:GET lo-n-vault/x",
+      "transport": "http",
+      "mode": "sync"
+    }
+  ],
+  "resources": [
+    {
+      "id": "nsDb",
+      "kind": "mongodb",
+      "name": "lo-db.nsDb",
+      "bindKey": "mongodb:lo-db/nsDb"
+    }
+  ]
+}

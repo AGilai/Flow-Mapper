@@ -76,6 +76,18 @@
     {
       "key": "platform/p9",
       "label": "Platform 9"
+    },
+    {
+      "key": "agent",
+      "label": "Agent"
+    },
+    {
+      "key": "security",
+      "label": "Security"
+    },
+    {
+      "key": "devices",
+      "label": "Devices"
     }
   ],
   "services": [
@@ -169,6 +181,64 @@
     {
       "name": "lo-platform-9",
       "groupPath": "platform/p9"
+    },
+    {
+      "name": "lo-ord-a",
+      "groupPath": "commerce/orders"
+    },
+    {
+      "name": "lo-ord-m",
+      "groupPath": "commerce/orders"
+    },
+    {
+      "name": "lo-bil-api",
+      "groupPath": "commerce/billing"
+    },
+    {
+      "name": "lo-stk-s",
+      "groupPath": "fulfilment/stock"
+    },
+    {
+      "name": "lo-ag-root",
+      "groupPath": "agent"
+    },
+    {
+      "name": "lo-ag-cred",
+      "groupPath": "agent"
+    },
+    {
+      "name": "lo-ag-key",
+      "groupPath": "agent"
+    },
+    {
+      "name": "lo-ag-cli",
+      "groupPath": "agent"
+    },
+    {
+      "name": "lo-sec-auth",
+      "groupPath": "security"
+    },
+    {
+      "name": "lo-sec-vault",
+      "groupPath": "security"
+    },
+    {
+      "name": "lo-idp"
+    },
+    {
+      "name": "lo-n-owner",
+      "groupPath": "devices"
+    },
+    {
+      "name": "lo-n-root",
+      "groupPath": "security"
+    },
+    {
+      "name": "lo-n-sec2",
+      "groupPath": "security"
+    },
+    {
+      "name": "lo-n-vault"
     }
   ],
   "createdBy": "seed"

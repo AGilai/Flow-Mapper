@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "lo-n-vault",
+    "kind": "service",
+    "team": "vendor",
+    "repo": "github.com/acme/lo-n-vault",
+    "language": "typescript",
+    "description": "Demo #145: external vault, no subsystem"
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-19T11:00:00Z",
+  "commit": "145a",
+  "functions": [
+    {
+      "id": "h",
+      "name": "handle",
+      "file": "src/h.ts",
+      "line": 5,
+      "steps": []
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.x",
+      "bindKey": "http:GET lo-n-vault/x",
+      "transport": "http",
+      "handler": "h",
+      "entryPoint": false,
+      "details": {
+        "method": "GET",
+        "path": "/x"
+      }
+    }
+  ],
+  "egress": [],
+  "resources": []
+}
