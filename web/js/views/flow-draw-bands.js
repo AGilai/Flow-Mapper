@@ -3,7 +3,7 @@
 // component heads (frame 12c, flow-bands.js). With both, the subsystem row is on top and the store row under it. Also the store icon and the
 // legend line for the read / write line weights.
 
-import { h, s } from '../dom.js';
+import { s } from '../dom.js';
 import { productImage } from './flow-draw-icons.js';
 import { subIcon, GLYPH } from '../icons.js';
 import { bandLabelPx } from './flow-bands.js';
@@ -54,8 +54,3 @@ function subBand(b, x, y, w, onAdd, fam = null) {
     isNew && room >= 3 ? s('path', { class: 'band-spark', d: GLYPH.new.d, transform: `translate(${left + shown.length * 6.8 + 4} 5)` }) : null,
     add, s('title', {}, isNew ? `${b.label} (new subsystem)` : b.label));
 }
-
-const sample = (write) => s('svg', { width: 40, height: 10, 'aria-hidden': 'true' }, s('line', { class: `lg-line${write ? ' w' : ''}`, x1: 0, x2: 33, y1: 5, y2: 5 }), s('path', { class: 'lg-head', d: 'M40 5 33 1.5V8.5z' }));
-/** The legend of the data-store arrows: a read is a thin line with a dashed return, a write a heavier line with none. */
-export const storeLegend = () => h('div.store-legend', { 'data-qa': 'store-legend' },
-  h('span', { title: 'Read: a thin line, dashed return' }, sample(false), h('b', 'Read'), h('span.lg-x', ' thin line, dashed return')), h('span', { title: 'Write: a heavier line, no return' }, sample(true), h('b', 'Write'), h('span.lg-x', ' heavier line, no return')));

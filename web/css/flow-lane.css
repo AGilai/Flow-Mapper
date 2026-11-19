@@ -72,6 +72,11 @@
 .store-legend .lg-line { stroke: var(--t-res); stroke-width: 1.6; }
 .store-legend .lg-line.w { stroke-width: 3.2; }
 .store-legend .lg-head { fill: var(--t-res); }
+.store-legend.no-rw .lg-rw { display: none; } .store-legend .lg-first { border-left: 1px solid var(--line-strong); padding-left: 14px; } .store-legend.no-rw .lg-first { border-left: 0; padding-left: 0; }
+.store-legend .lg-kl { stroke: var(--ink-2); stroke-width: 1.7; } .store-legend .lg-kl.d { stroke-dasharray: 5 3.5; }
+.store-legend .lg-kh { fill: none; stroke: var(--ink-2); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; } .store-legend .lg-kh.f { fill: var(--ink-2); stroke: none; }
+.store-legend .lg-b rect { fill: var(--surface); stroke: var(--line-strong); } .store-legend .lg-b text { font: 600 9.5px var(--mono); fill: var(--ink-2); } .store-legend .lg-b .bolt { fill: var(--ink-2); }
+.store-legend .lg-t { color: var(--muted); }
 /* A routing hop: the filter marker under its arrow, the stop bar at the queue, and the number tiles of the async flows that start there. */
 .hopmark rect { fill: var(--surface); stroke: color-mix(in srgb, var(--mc) 70%, var(--line-strong)); }
 .hopmark text { font: 600 10.5px var(--font); fill: var(--ink-2); }

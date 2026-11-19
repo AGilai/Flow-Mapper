@@ -5,6 +5,11 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+
+- Flows (UI, frame 33): arrow notation. Sync is a solid line with a filled head; async (a call with mode async, with or without a bar, and a publish hop) is a solid line with an open head, never dashed, and its step number carries a bolt; a return is a dashed line with an open head and an outlined "↩N" tile naming the step it answers, in the colour of that call's transport. The word "return" is no longer drawn: a return keeps its label only when it is a status or payload name other than ok or empty. An async call never gets a return (a fire-and-forget keeps its stop bar). The legend in the caption bar (and the floating chip) gains Sync, Async, Return and "↩4 answers call 4"; Read and Write show only when the lane has data-store arrows. Hover titles say sync or async. No data change.
+- Mermaid export (no change needed): it already writes sync as `->>`, async as `-)` and a return as `-->>`.
+
 ## 0.64.4 (2026-11-19): async client-app bars (#147), zoom footer gap
 
 - Fix #147 (UI only): in the sequence view a caller nobody waits on (a client app's entry bar, or a bar entered by an async call) ends its bar when deferred async work starts; a later call back into it opens a new bar at level 0 instead of nesting in the finished one. Sync entries keep their bar open.

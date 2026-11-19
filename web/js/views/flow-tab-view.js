@@ -46,7 +46,7 @@ import { clampRange, fitScale, scaleOf, percentOf, anchorDelta } from './flow-zo
 import { createCardZoom } from './flow-card-zoom.js';
 import { createZoomControl, applyScale, naturalSize, wireWheel, footOf } from './flow-zoom.js';
 import { caps, onCaps } from './flow-caption-state.js';
-import { storeLegend } from './flow-draw-bands.js';
+import { flowLegend } from './flow-legend.js';
 import { moreItems } from './flow-tab-more.js';
 import { looseHead } from './flow-bars-pure.js';
 
@@ -105,9 +105,9 @@ export function createTabView(data, host) {
   const notes = items ? createNotes({ env: host.env, root, walk, pane: hub('notes'), onStep: gotoStep, onBody: (html) => { dl.onBody(html); docText = html ? docSummary(html) : ''; flowBox?.redraw(); }, onHover: dl.onHover }) : null; items?.refresh();
   const scroller = h('div.seq-scroll');
   const hint = h('span.seq-hint', 'More to the right. Scroll sideways ›'), zctl = createZoomControl({ onZoom: (v) => setZoom(v) }); // frame 28: floats on the diagram, bottom left
-  const capLegend = storeLegend(), floatLegend = storeLegend(); // the Read / Write legend: at the right of the caption bar, or (caption bar off) a small chip on the diagram; shown when the top lane has data-store arrows
+  const capLegend = flowLegend(), floatLegend = flowLegend(); // the Read / Write legend: at the right of the caption bar, or (caption bar off) a small chip on the diagram; shown when the top lane has data-store arrows
   const wrap = h('div.seq-wrap', scroller, hint, h('div.zfloat', { 'data-qa': 'zoom-float' }, zctl.el), h('div.leg-float', floatLegend));
-  const syncLegend = (box) => { const l = box?.querySelector('.store-legend'); if (l) l.hidden = true; const has = !!l; capLegend.hidden = floatLegend.hidden = !has; wrap.classList.toggle('has-legend', has); };
+  const syncLegend = (box) => { const l = box?.querySelector('.store-legend'); if (l) l.hidden = true; const has = !!l; for (const x of [capLegend, floatLegend]) x.classList.toggle('no-rw', l?.dataset.stores === '0'); capLegend.hidden = floatLegend.hidden = !has; wrap.classList.toggle('has-legend', has); };
   walk.legendSlot.append(capLegend); capLegend.hidden = floatLegend.hidden = true;
   const body = h('div.flow-body', { role: 'tabpanel', 'aria-label': host.describe(key).tip }, wrap);
   const edge = () => { wrap.classList.toggle('scrolls', scroller.scrollWidth > scroller.clientWidth + 2); wrap.classList.toggle('at-end', scroller.scrollLeft + scroller.clientWidth >= scroller.scrollWidth - 4); };

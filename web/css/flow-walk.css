@@ -42,6 +42,8 @@ details.stepdesc > summary { font-size: var(--fs-xs); color: var(--muted); font-
 .steptile:hover rect { stroke: var(--accent); }
 .steptile.cur rect { fill: var(--ink); stroke: var(--ink); }
 .steptile.cur text { fill: var(--surface); }
+.steptile .bolt { fill: var(--ink-2); } .steptile.cur .bolt { fill: var(--surface); }
+.rettile { cursor: pointer; } .rettile rect { fill: var(--surface); stroke: var(--mc); stroke-width: 1.2; } .rettile text { font: 600 10px var(--mono); fill: var(--ink-2); } .rettile:hover rect { stroke-width: 2; } /* frame 33: outlined and muted, the transport colour of the call it answers */
 .stepband { fill: var(--step-hl); stroke: none; } /* 0.32.5: filled, never a border */
 
 /* Squeeze (0.20.1): fold columns. Own names (sq-), apart from the middleware .fold / data-mwfold. */

@@ -4,13 +4,14 @@
 
 import { s } from '../dom.js';
 import { arrow } from './flow-draw-prims.js';
+import { callStyle } from './flow-arrow-kind.js';
 
 const seen = / ↩ seen at step \d+/;
 
 /** The row of a repeat marker (an event with `repeat: N`, no bar): a thin arrow to the callee, the link above it, the call under it. */
 export function repeatRow(e, g, x1, x2, y0, mc, hit) {
   const mid = (x1 + x2) / 2, sub = String(e.label).replace(seen, '');
-  return g('rep', arrow(x1, x2, y0, { color: mc }), s('text', { class: 'rplab', x: mid, y: y0 - 6, 'text-anchor': 'middle', 'data-jump': e.repeat }, `↩ seen at step ${e.repeat}`),
+  return g('rep', arrow(x1, x2, y0, { color: mc, ...callStyle(e) }), s('text', { class: 'rplab', x: mid, y: y0 - 6, 'text-anchor': 'middle', 'data-jump': e.repeat }, `↩ seen at step ${e.repeat}`),
     s('text', { class: 'rpsub', x: mid, y: y0 + 13, 'text-anchor': 'middle' }, sub), hit(x1, x2), s('title', {}, `${e.msg.label}\nThe same call already happened at step ${e.repeat}. Click to go there.`));
 }
 
