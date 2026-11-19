@@ -2,14 +2,15 @@
 
 import { mermaidImport, mermaidPreview } from '../../store/draft-mermaid.ts';
 import { flowMermaid } from '../../store/flow-mermaid.ts';
+import { orderArg } from '../../order-arg.ts';
 import { HttpError } from '../../errors.ts';
 import { type Tool, env, obj, envOf, draftArg } from './common.ts';
 
 export const exportMermaidTool: Tool = {
   name: 'export_mermaid',
   description: "One flow as Mermaid `sequenceDiagram` text (every environment, a sealed one too; a design as an open draft would leave it with `draft`): the full trace from an entry endpoint. Lifelines are components (`participant id as name`, the entry client an `actor`), channels (labelled by their bind key) and data stores; `->>` a sync call with its `-->>` return, `-)` an async publish, `Note over` the step description; http calls read `METHOD /path`. The flow name is `title`, its description a `%% Description:` comment. Returns {text}. Read only.",
-  inputSchema: obj({ env, draft: draftArg, service: { type: 'string', description: "The flow's entry service" }, ingress: { type: 'string', description: "The flow's entry endpoint id" } }, ['service', 'ingress']),
-  run: (c, a) => ({ text: flowMermaid(c, envOf(a), a.draft || null, a.service, a.ingress) }),
+  inputSchema: obj({ env, draft: draftArg, service: { type: 'string', description: "The flow's entry service" }, ingress: { type: 'string', description: "The flow's entry endpoint id" }, order: { enum: ['subsystem', 'calls'], description: "Lifeline order (#138): 'subsystem' (default) groups the components of a subsystem; 'calls' is the order they first appear" } }, ['service', 'ingress']),
+  run: (c, a) => ({ text: flowMermaid(c, envOf(a), a.draft || null, a.service, a.ingress, undefined, orderArg(a.order)) }),
 };
 
 export const importMermaidTool: Tool = {

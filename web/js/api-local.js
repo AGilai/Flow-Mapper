@@ -40,7 +40,7 @@ const data = globalThis.FLOW_PREVIEW;
 const indexes = new Map();
 const base = (env) => { if (!indexes.has(env)) indexes.set(env, buildIndex(data.models[env])); return indexes.get(env); };
 const D = createDesign(data, base); // marks, drafts and the reads of a design environment as an open draft would leave it
-const g = D.g;
+const g = (env) => { const x = D.g(env); if (x.groupOrder === undefined) x.groupOrder = (data.envMeta ?? []).find((m) => m.name === env)?.groups?.map((k) => k.key) ?? []; return x; }; // #138: the subsystem order the lifelines follow
 export const readAs = D.readAs;
 const bugs = data.bugs.map((b) => structuredClone(b));
 const OPEN = ['open', 'triaged', 'in_progress'];
@@ -119,7 +119,7 @@ export const api = {
   endpoint: async (env, service, ingress) => endpointInfo(g(env), service, ingress,
     D.dtosOf(env).filter((d) => d.service === service && d.ingress === ingress), D.eventDtosOf(env)) ?? fail('endpoint not found'),
   trace: async (env, q) => {
-    const t = trace(g(env), q, { scope: q.scope, maxMessages: q.maxMessages ?? 500, expand: q.expand?.split(',').filter(Boolean), frontier: q.frontier === '1' || q.frontier === true });
+    const t = trace(g(env), q, { scope: q.scope, maxMessages: q.maxMessages ?? 500, expand: q.expand?.split(',').filter(Boolean), frontier: q.frontier === '1' || q.frontier === true, order: q.order === 'calls' ? 'calls' : undefined });
     return t ? D.traceOut(env, viewOf(t, viewParams(q)), g(env)) : noStart(env, q); // 0.38.0: as api.js, the request says which view
   },
   descriptions: async (env, service, ingress) => {
@@ -137,7 +137,7 @@ export const api = {
   },
   /** A flow as Mermaid text (export works in the preview; import needs the server). */
   mermaid: async (env, service, ingress, view = {}) => {
-    const t0 = trace(g(env), { service, ingress }, HASH_TRACE) ?? fail('flow not found'), t = view.detail ? viewOf(t0, viewParams(view)) : t0, text = D.texts(env).get(`${service}/${ingress}`);
+    const t0 = trace(g(env), { service, ingress }, view.order === 'calls' ? { ...HASH_TRACE, order: 'calls' } : HASH_TRACE) ?? fail('flow not found'), t = view.detail ? viewOf(t0, viewParams(view)) : t0, text = D.texts(env).get(`${service}/${ingress}`);
     const ranges = (await api.comments(env, `flow:${service}/${ingress}`)).comments.filter((c) => c.steps && !c.resolved && !c.deleted).map((c) => ({ ...c.steps, text: plainText(c.body).split('\n')[0] })); // 0.34.0: open comments on a range of steps
     return exportMermaid(t, { name: text?.name, description: text?.description, links: text?.links, descriptions: await api.descriptions(env, service, ingress), ranges });
   },

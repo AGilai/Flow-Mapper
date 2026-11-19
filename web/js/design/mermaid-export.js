@@ -4,6 +4,7 @@
 import { h, toast } from '../dom.js';
 import { api } from '../api.js';
 import { state } from '../state.js';
+import { orderStored } from '../views/flow-prefs.js';
 
 /** A file name from a flow's name: `Agent connects to POP` -> `agent-connects-to-pop.mmd`. */
 export const fileName = (name) => `${String(name || 'flow').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'flow'}.mmd`;
@@ -26,7 +27,7 @@ function download(text, name) {
 
 /** The two export items of one flow (Copy Mermaid, Download .mmd) as context-menu items; { service, ingress } is its entry point; `name` its display name (for the file). */
 export function exportItems({ service, ingress, name, env = state.env, view = null }) { // view(): the tab's scenario (detail, choose, open): the export is the view the tab shows (0.38.0) // env: the flow's own (a tab of another env exports its own)
-  const get = async () => { try { return await api.mermaid(env, service, ingress, view?.() ?? {}); } catch (e) { toast(`Could not export: ${e.message}`); return null; } };
+  const get = async () => { try { return await api.mermaid(env, service, ingress, { ...(view?.() ?? {}), ...(orderStored() === 'calls' ? { order: 'calls' } : {}) }); } catch (e) { toast(`Could not export: ${e.message}`); return null; } };
   const file = fileName(name || ingress);
   return [
     { label: 'Copy Mermaid', icon: 'copy', hint: 'sequenceDiagram', onSelect: async () => { const t = await get(); if (t != null) toast((await copy(t)) ? 'Mermaid copied' : 'Could not use the clipboard: use Download .mmd'); } },

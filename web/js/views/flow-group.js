@@ -4,11 +4,14 @@
 
 import { groupColumns } from './flow-bands.js';
 
+/** The group keys of groupColumns' `ranked`, in the environment's order: `top`, `top\n` (components on the parent itself), then `top\n<top/sub>` for each registered second level. */
+export const rankedKeys = (subs) => subs.list().flatMap((s) => [s.key, `${s.key}\n`, ...(s.subs ?? []).map((x) => `${s.key}\n${x.key}`)]);
+
 /** groupLane(built, subs, on, marks, slotsOf): `subs` = the subsystems store (design/subsystems-store.js); `on`: the "Group by subsystem" check; `marks`: the marks store (a New subsystem gets a spark);
- *  `slotsOf(columns)` -> Map service -> slot (component-colors.js laneSlots, the de-clash). `env`: the environment of the flow; each column carries it (`c.env`), so colours and icons are read from it, not from the page's. */
-export function groupLane(built, subs, on, marks, slotsOf = null, env = null) {
+ *  `slotsOf(columns)` -> Map service -> slot (component-colors.js laneSlots, the de-clash). `regroup` false (View > Order > By call order, #138): the lifelines stay in the trace's order, the bands still show; `env`: the environment of the flow; each column carries it (`c.env`), so colours and icons are read from it, not from the page's. */
+export function groupLane(built, subs, on, marks, slotsOf = null, env = null, regroup = true) {
+  if (subs?.assigned && regroup) built.columns = groupColumns(built.columns, subs.subOf, subs.subOf2, rankedKeys(subs)); // #138: by subsystem in the environment's order, whatever the bands switch says
   if (on && subs?.assigned) {
-    built.columns = groupColumns(built.columns, subs.subOf, subs.subOf2);
     built.group = { subOf: subs.subOf, info: subs.info, subOf2: subs.subOf2, subLabel: subs.subLabel, markOf: (key) => marks?.markOf(`grp:${key}`)?.mark ?? null };
   }
   if (env != null) for (const c of built.columns) c.env = env;

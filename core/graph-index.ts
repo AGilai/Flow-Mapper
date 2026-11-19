@@ -22,6 +22,8 @@ export interface GraphIndex {
   out: Map<string, Link[]>;          // refKey(from) → links
   into: Map<string, Link[]>;         // refKey(to) → links
   byService: Map<string, ServiceItems>;  // per-service lists of the model (read-only: shared by every caller)
+  /** #138: the env's subsystem keys in settings order (nested `a/b` after `a`); set by the server and the preview for designs, absent elsewhere. */
+  groupOrder?: string[];
   egressByKey: Map<string, Egress[]>;   // bindKey → egress with that bind key, in model order
   stepsToEgress: Map<string, { fn: Fn; step: Step }[]>; // `${service}:${egress id}` → the egress steps that target it, in function then step order
 }

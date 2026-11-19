@@ -15,7 +15,7 @@ export const legendSave = (on, st) => writeKey('flow-legend', on ? '1' : '0', st
 
 /**
  * The options that differ from their default, as a list of names (its length is the count on the View button).
- * o: { bands (null when the environment has no subsystems), stores, frontier, merge, squeeze, hints, hintsDefault, depth, sb, sd, sdDefault, size, hideText, caption, legend, coverage }.
+ * o: { bands (null when the environment has no subsystems), stores, frontier, merge, squeeze, order, hints, hintsDefault, depth, sb, sd, sdDefault, size, hideText, caption, legend, coverage }.
  */
 export function nonDefault(o) {
   const out = [];
@@ -23,6 +23,7 @@ export function nonDefault(o) {
   if (o.stores === false) out.push('Data stores');
   if (o.frontier === true) out.push('Frontier');
   if (o.merge === false) out.push('One arrow per target');
+  if (o.order === 'calls') out.push('Order');
   if (o.squeeze === false) out.push('Squeeze');
   if (!!o.hints !== !!o.hintsDefault) out.push('Transport hints');
   if (o.depth && o.depth !== 'all') out.push('Depth');

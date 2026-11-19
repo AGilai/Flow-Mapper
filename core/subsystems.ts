@@ -39,7 +39,7 @@ export function subsystemsOf(subRows: ItemRow[], services: Pick<Service, 'name' 
   const set = subRows.filter((r) => !r.key.includes('/')).sort((a, b) => (a.data?.order ?? 0) - (b.data?.order ?? 0) || (a.key < b.key ? -1 : 1));
   const members = new Map<string, { name: string; kind: string; sub?: string }[]>();
   for (const s of services) { const t = topOf(s.groupPath), sub = secondOf(s.groupPath); if (t) members.set(t, [...(members.get(t) ?? []), { name: s.name, kind: s.kind, ...(sub ? { sub } : {}) }]); }
-  const subsOf = (top: string) => { const l = subRows.filter((r) => r.key.split('/').length === 2 && topOf(r.key) === top).map((r) => ({ key: r.key, label: String(r.data?.label ?? secondOf(r.key)) })); return l.length ? { subs: l.sort((a, b) => (a.key < b.key ? -1 : 1)) } : {}; };
+  const subsOf = (top: string) => { const order = (k: string) => Number(subRows.find((r) => r.key === k)?.data?.order ?? 0); const l = subRows.filter((r) => r.key.split('/').length === 2 && topOf(r.key) === top).map((r) => ({ key: r.key, label: String(r.data?.label ?? secondOf(r.key)) })); return l.length ? { subs: l.sort((a, b) => (order(a.key) - order(b.key)) || (a.key < b.key ? -1 : 1)) } : {}; };
   const out: SubsystemInfo[] = set.map((r, i) => ({
     key: r.key, label: String(r.data?.label ?? r.key), icon: SUBSYSTEM_ICONS.includes(r.data?.icon) ? r.data.icon : null, order: i, derived: false, ...(typeof r.data?.about === 'string' && r.data.about ? { about: r.data.about } : {}), ...(Array.isArray(r.data?.owners) && r.data.owners.length ? { owners: r.data.owners.filter((x: unknown) => typeof x === 'string') } : {}),
     components: (members.get(r.key) ?? []).sort(byName), ...subsOf(r.key),

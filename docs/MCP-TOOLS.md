@@ -41,7 +41,7 @@ Start with [AGENTS.md](../AGENTS.md). Every tool that takes `env` requires it: a
 - **`list_services`**: List services with version, team and link-health numbers. Args: `draft` (string), `env*` (string).
 - **`get_service`**: A service's ingress (with callers), egress (with targets), resources, channels and functions. Args: `draft` (string), `service*` (string), `via` (string), `env*` (string).
 - **`list_entry_points`**: Ingress points where flows start (public APIs, crons, client socket events, and anything nothing else calls). Args: `draft` (string), `env*` (string).
-- **`trace_flow`**: Follow a flow from an ingress or function: ordered calls, DB access, REST calls and async hops across services. Args: `draft` (string), `service*` (string), `ingress` (string), `fn` (string), `event` (string), `expand` (string[]), `scope` ("intra" | "full"), `detail` ("simple" | "external" | "full"), `choose` (object), `open` (string[]), `dbOpen` (string[]), `unfold` (string[]), `env*` (string), `maxMessages` (integer), `frontier` (boolean).
+- **`trace_flow`**: Follow a flow from an ingress or function: ordered calls, DB access, REST calls and async hops across services. Args: `draft` (string), `service*` (string), `ingress` (string), `fn` (string), `event` (string), `expand` (string[]), `scope` ("intra" | "full"), `detail` ("simple" | "external" | "full"), `choose` (object), `open` (string[]), `dbOpen` (string[]), `unfold` (string[]), `env*` (string), `maxMessages` (integer), `order` ("subsystem" | "calls"), `frontier` (boolean).
 - **`find_paths`**: Service-level paths from one service to another, including through queues and topics. Args: `draft` (string), `from*` (string), `to*` (string), `env*` (string), `limit` (integer).
 - **`get_endpoint_info`**: One ingress endpoint: its handler, a link to the handler's code in the repo, its DTO slots, and for event consumers each event type with its handler. Args: `draft` (string), `service*` (string), `ingress*` (string), `env*` (string).
 - **`get_call`**: One call out of a component (an egress): the steps that make it (function, step number, operation) and the endpoints it reaches. Args: `env*` (string), `service*` (string), `egress*` (string), `draft` (string).
@@ -68,7 +68,7 @@ Start with [AGENTS.md](../AGENTS.md). Every tool that takes `env` requires it: a
 
 ## Export
 
-- **`export_mermaid`**: One flow as Mermaid `sequenceDiagram` text: the full trace from an entry endpoint. Args: `env*` (string), `draft` (string), `service*` (string), `ingress*` (string).
+- **`export_mermaid`**: One flow as Mermaid `sequenceDiagram` text: the full trace from an entry endpoint. Args: `env*` (string), `draft` (string), `service*` (string), `ingress*` (string), `order` ("subsystem" | "calls").
 
 ## Collaborate
 

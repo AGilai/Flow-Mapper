@@ -5,6 +5,10 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+
+- Fix #138 (additive, no schema change): lifelines of the sequence view and of the Mermaid export are grouped by subsystem instead of first appearance. New optional `order=subsystem|calls` on `GET /api/envs/:env/trace` and `/flows/mermaid`, and `order` on MCP `trace_flow` and `export_mermaid` (default `subsystem`; `calls` is the old first-appearance order; the two are identical where no component has a `groupPath`). The View menu gets "Order: By subsystem | By call order" (URL `order=calls`). A Mermaid import still reads the participants in any order.
+
 ## 0.62.1 (2026-11-19): Invite people on the Users page (#134 follow-up)
 
 - #134 follow-up: Invite people button on the Users page (admin, cognito); the Users subtitle fits cognito.
