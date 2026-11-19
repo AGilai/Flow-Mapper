@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased
+## 0.66.3 (2026-11-20): #148 icon heads show logo + name only
 
 - #148 follow-up (UI only): a head with its own icon (`details.icon`) shows only the logo and the name, never a type or "service" sub line (the logo identifies the component). "service" stays on heads without an icon. The info pane Type row is unchanged.
 
