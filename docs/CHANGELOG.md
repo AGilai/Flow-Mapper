@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased: sequence view with order By subsystem (#141, #142, #143, #145)
+## 0.64.2 (2026-11-19): sequence view with order By subsystem (#141, #142, #143, #145)
 
 - Fix #141, #142, #143, #145 (UI only, no API or schema change): with order By subsystem a callee reached from two components is one lifeline when the arrows do not cross in the drawn order (no spurious "called again" column); Squeeze folds never span two subsystem bands (each band keeps its own fold); a store or channel whose owner is not in the flow is banded with the component it sits next to and placed right after that first accessor, inside its band, so a band never appears twice (#145). Order By call order is unchanged.
 
