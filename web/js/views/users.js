@@ -10,6 +10,8 @@ import { relTime, fullDate } from '../comments/pure.js';
 import { loadUsers, me, remember, users, watchUsers } from '../users/directory.js';
 import { userAvatar } from '../users/avatar.js';
 import { openMerge } from './users-merge.js';
+import { account, isCognito } from '../account.js';
+import { inviteDialog } from '../users/invite-dialog.js';
 
 const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
 /** A small source mark with the external id, e.g. "C Confluence 712020:bdf1…". */
@@ -20,7 +22,8 @@ export async function render({ main }) {
   let q = '', editing = null, err = '';
   const sub = h('span.muted.sm'), body = h('div.content.us-body');
   const search = h('input.input.us-search', { type: 'search', placeholder: 'Search users…', 'aria-label': 'Search users', 'data-qa': 'us-search', on: { input: () => { q = search.value; draw(); } } });
-  main.append(pageHead('Users', 'No passwords: a user is a name and a colour.', search), body);
+  const invite = isCognito() && account.admin ? h('button.btn.primary', { type: 'button', 'data-qa': 'us-invite', on: { click: () => inviteDialog() } }, '+ Invite people') : null;
+  main.append(pageHead('Users', isCognito() ? 'People who can sign in. Admins can invite by email.' : 'No passwords: a user is a name and a colour.', search, invite), body);
 
   async function reload() { await loadUsers(true).catch((e) => { err = e.message; }); draw(); }
 
