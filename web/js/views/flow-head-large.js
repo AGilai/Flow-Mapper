@@ -23,9 +23,6 @@ export const nameChLarge = (w) => Math.max(9, Math.floor((w - 20) / 6.6));
 /** Does the manifest or flow know a specific type of this component (a runtime like a Kubernetes pod, or a kind: gateway, lambda, client app, infra)? A plain service has none. */
 export const hasType = (c) => !!(c.service && (runtimeFor(c.service, c.env ?? '') || [c.serviceKind, kindFor(c.service, c.env ?? '')].some((k) => k && k !== 'service')));
 
-/** The type line of a large head: none when a specific type is known (the info pane's Type row shows it), else the head's own sub line ("service") stays. */
-export const largeSub = (c) => !hasType(c);
-
 /** The px a large head adds to the box height above today's text block (the logo); 0 for any other head. Its product and type lines are not drawn (the info pane has them). */
 export const largeExtra = (c) => (isLarge(c) ? LG_SHIFT : 0);
 

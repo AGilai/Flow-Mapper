@@ -45,13 +45,13 @@ test('the box grows to hold the logo and the name only; it never shrinks', () =>
   const two = layoutLane(lane, 0);
   assert.equal(two.boxH, one.boxH, 'the product line is not drawn in the head');
   assert.ok(!two.heads[i].product, 'no product line');
-  assert.deepEqual(two.heads[i].sub, ['service'], 'no specific type known: the head keeps the word service');
-  assert.equal(two.boxH, 12 + two.heads[i].name.length * LINE_H + 13 + LG_SHIFT + 6);
+  assert.deepEqual(two.heads[i].sub, [], 'an icon head never shows a sub line, even with no specific type known');
+  assert.equal(two.boxH, 12 + two.heads[i].name.length * LINE_H + LG_SHIFT + 6);
   infoFor([{ name: a, details: { icon: 'vault', runtime: 'k8s-pod' } }]);
   const three = layoutLane(lane, 0);
   assert.equal(hasType(lane.columns[i]), true);
-  assert.deepEqual(three.heads[i].sub, [], 'a specific type is known: the type line moves to the info pane');
-  assert.ok(three.boxH < two.boxH, 'the box is shorter without the type line');
+  assert.deepEqual(three.heads[i].sub, [], 'a specific type is known: still no sub line');
+  assert.equal(three.boxH, two.boxH, 'same box either way');
   assert.equal(two.HEAD - two.boxH, base.HEAD - base.boxH, 'the rest of the head strip is unchanged');
   assert.equal(largeExtra({ kind: 'service', service: 'x', env: '' }), 0);
   assert.equal(largeExtra(lane.columns[i]), LG_SHIFT);
