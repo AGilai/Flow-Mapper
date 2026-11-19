@@ -6,7 +6,7 @@ import { drawNode, readTheme } from './graph-style.js';
 import { drawDistricts, drawEdges } from './graph-draw-edges.js';
 import { drawLabels } from './graph-draw-labels.js';
 import { nodeAt, edgeAt } from './graph-hit.js';
-import { iconImage } from '../components/object-icon.js';
+import { iconImage, compImage } from '../components/object-icon.js';
 import { createMarkLayer } from './graph-marks.js';
 import { drawRegions, regionAt } from './graph-regions.js';
 
@@ -70,7 +70,7 @@ export function createCanvasGraph(host, { onSelect, onHover, marks = null, padBo
     // Nodes.
     const order = nodes.filter((n) => isVis(n.id));
     for (const n of order) drawNode(ctx, n, toScreen(pos.get(n.id)), k, degree, theme, {
-      dim: dimmed(n.id), selected: selected === n.id, hovered: hovered === n.id, img: iconFor(n),
+      dim: dimmed(n.id), selected: selected === n.id, hovered: hovered === n.id, img: iconFor(n), cimg: n.icon ? compImage(n.icon, schedule) : null,
     });
 
     drawLabels(ctx, S, order, focus, dimmed);

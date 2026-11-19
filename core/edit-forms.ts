@@ -7,7 +7,7 @@ import type { DraftOpInput } from './draft-ops.ts';
 import { SERVICE_KINDS } from './design-rules.ts';
 import { EditError, setField, slug, unique, type DesignEdit, type EndpointEdit, type Idx } from './edit-kit.ts';
 import type { ItemRow } from './item-rows.ts';
-import { setLinks, setRuntime } from './edit-links.ts';
+import { setIcon, setLinks, setRuntime } from './edit-links.ts';
 import { dependentRelationOps } from './edit-relations.ts';
 import { checkLinks, cleanLinks } from './links.ts';
 import { aboutProblem } from './markdown-lite.ts';
@@ -24,7 +24,7 @@ export function componentOps(e: Extract<DesignEdit, { kind: 'component' }>, x: I
   for (const k of ['groupPath', 'team', 'description'] as const) setField(data, k, e[k]);
   { const bad = aboutProblem(e.about); if (bad) throw new EditError('INVALID', bad, 'about'); setField(data, 'about', typeof e.about === 'string' && !e.about.trim() ? '' : e.about); }
   { const bad = ownersProblem(e.owners); if (bad) throw new EditError('INVALID', bad, 'owners'); const o = cleanOwners(e.owners); if (e.owners !== undefined) { if (o) data.owners = o; else delete data.owners; } }  // [] or null clears
-  setLinks(data, e.links); setRuntime(data, e.runtime);
+  setLinks(data, e.links); setRuntime(data, e.runtime); setIcon(data, e.icon);
   return [up(`svc:${e.name}`, data)];
 }
 

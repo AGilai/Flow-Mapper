@@ -10,6 +10,7 @@ import { stores } from '../../core/stores.ts';
 import { designIssues, SERVICE_KINDS, twoGroups } from '../../core/design-rules.ts';
 import { checkLinks } from '../../core/links.ts';
 import { aboutProblem } from '../../core/markdown-lite.ts';
+import { iconProblem } from '../../core/component-icons.ts';
 import { ownersProblem } from '../../core/owners.ts';
 import { relationItem } from '../../core/flow-relations.ts';
 import { HttpError } from '../errors.ts';
@@ -46,6 +47,7 @@ function check(map: Map<string, ItemRow>, i: DraftOpInput): PreparedOp {
     if (rest.kind !== undefined && !(SERVICE_KINDS as readonly string[]).includes(rest.kind)) bad(`component kind '${rest.kind}' must be one of ${SERVICE_KINDS.join(', ')}`, 'BAD_KIND');
     if (name !== undefined && name !== r.service) bad(`header name '${name}' differs from the anchor 'svc:${r.service}'`);
     if (rest.alsoIn !== undefined || rest.details?.alsoIn !== undefined) bad(`${r.service}: a component belongs to one subsystem; 'alsoIn' is not supported: pick one (groupPath)`, 'TWO_GROUPS');
+    if (rest.details?.icon !== undefined) { const p = iconProblem(rest.details.icon); if (p) bad(`${r.service}: ${p}`, 'BAD_ICON'); }
     const errs = validateServiceHeader({ name: r.service, ...rest });
     if (errs.length) bad(`service header does not match schema: ${errs.slice(0, 3).map((e) => `${e.path} ${e.message}`).join('; ')}`);
     return { ...base, data: rest };

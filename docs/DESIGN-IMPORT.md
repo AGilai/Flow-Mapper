@@ -82,6 +82,7 @@ flow = an entry endpoint (entryPoint: true) + its handler's ordered steps, follo
 - **Links** (0.25.1): give an item its documents as `links: {main: {label, url}, sub: [{label, url}]}` (http or https URLs, label up to 120
   characters, at most 20 sub links) on the service header, a function, an ingress, or a plan flow (`flows[].links`). The UI shows them; they
   do not link anything. `details.doc` stays the provenance (file, section, quote); `links` is where a reader goes for more.
+- **Icon** (CR #144): `details.icon` on the service header, or `icon` on the `component` form of `edit_design`: a built-in name (`vault`, `auth0`, `aws-lambda`, `aws-sqs`...), an `<svg>` string or a `data:image/` URL, at most 16 KB; anything else is `422 BAD_ICON` (see API.md, "Component icons").
 - **Runtime** (0.25.1): a component may say how it runs with `details.runtime` on its service header: `k8s-pod`, `k8s-deployment`,
   `k8s-daemonset`, `k8s-operator` or `k8s-job` (other values are rejected). `edit_design` takes `runtime` on the component form.
 

@@ -4,6 +4,7 @@
 
 import { s } from '../dom.js';
 import { GLYPH, subIcon } from '../icons.js';
+import { compIconSvg } from '../components/comp-icon.js';
 import { lineMark } from '../../core/subsystem-rollup.js';
 import { thickness, routeItems, routeMerged, mergePairs, itemsOf, lineLabel, HEAD_H } from '../graph/subsystem-layout.js';
 
@@ -21,15 +22,15 @@ function drawBox(box, p, { marks, hasMarks, selected, onBox, onGo, onHover, tf =
   const maxCh = Math.floor(196 / (6.6 * tf)), fit = (t) => (t.length > maxCh ? `${t.slice(0, maxCh - 1)}…` : t); // text keeps its size when the drawing is scaled down: long names are clipped
   const m = marks.markOf(`grp:${box.key}`), isNew = m?.mark === 'new', ic = box.icon ? subIcon(box.icon, 18) : null, tx = ic ? p.x + 38 : p.x + 16;
   if (ic) { ic.setAttribute('x', p.x + 14); ic.setAttribute('y', p.y + 12); }
-  const n = box.components.length, count = `${n} ${n === 1 ? 'component' : 'components'}`, what = m?.what ?? '';
+  const slot = box.components.some((x) => x.icon), n = box.components.length, count = `${n} ${n === 1 ? 'component' : 'components'}`, what = m?.what ?? '';
   const g = s('g', { class: `ss-box${selected === box.key ? ' sel' : ''}${isNew ? ' isnew' : ''}`, 'data-key': box.key, tabindex: 0, role: 'button', 'aria-label': `${box.label}: ${count}${what ? `, ${what}` : ''}. Press Enter for details` },
     s('rect', { class: 'rg', x: p.x, y: p.y, width: p.w, height: p.h, rx: 12 }), ic,
     s('text', { class: 'box-t', x: tx, y: p.y + 26 }, fit(box.label)), markGlyph(m?.mark, tx + box.label.length * 7.6 * tf + 6, p.y + 14),
     s('text', { class: 'box-c', x: p.x + 16, y: p.y + 48 }, count), what ? s('text', { class: 'box-c', x: p.x + 16, y: p.y + 64 }, fit(what), s('title', {}, what)) : null,
     p.rows.map((r) => {
-      const c = box.components.find((x) => x.name === r.name), cm = isNew ? null : marks.markOf(`svc:${r.name}`)?.mark, old = hasMarks && !isNew && !cm;
+      const c = box.components.find((x) => x.name === r.name), ci = c?.icon ? compIconSvg(c.icon, p.x + 16, r.y - 11, 12) : null, ix = slot ? 17 : 0, cm = isNew ? null : marks.markOf(`svc:${r.name}`)?.mark, old = hasMarks && !isNew && !cm;
       const row = s('g', { class: `ss-comp${old ? ' old' : ''}`, 'data-svc': r.name, tabindex: 0, role: 'link', 'aria-label': `${r.name}: open at component level` },
-        s('text', { class: 'box-n', x: p.x + 16, y: r.y }, fit(r.name), s('title', {}, `${r.name}${c?.kind ? ` (${c.kind})` : ''}: open at component level`)), markGlyph(cm, p.x + 22 + Math.min(r.name.length, maxCh) * 6.9 * tf, r.y - 10));
+        ci, s('text', { class: 'box-n', x: p.x + 16 + ix, y: r.y }, fit(slot && r.name.length > maxCh - 3 ? `${r.name.slice(0, maxCh - 4)}…` : r.name), s('title', {}, `${r.name}${c?.kind ? ` (${c.kind})` : ''}: open at component level`)), markGlyph(cm, p.x + 22 + ix + Math.min(r.name.length, maxCh) * 6.9 * tf, r.y - 10));
       return press(row, () => onGo(r.name));
     }),
     p.more ? s('text', { class: 'box-c', x: p.x + 16, y: p.y + HEAD_H + p.rows.length * 20 + 14 }, `+${p.more} more`) : null);

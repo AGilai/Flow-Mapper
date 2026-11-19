@@ -8,7 +8,10 @@
     "team": "idp",
     "repo": "github.com/acme/lo-idp",
     "language": "typescript",
-    "description": "Demo #142: identity provider (no subsystem)"
+    "description": "Demo #142: identity provider (no subsystem)",
+    "details": {
+      "icon": "auth0"
+    }
   },
   "version": 1,
   "harvestedAt": "2026-11-19T10:00:00Z",

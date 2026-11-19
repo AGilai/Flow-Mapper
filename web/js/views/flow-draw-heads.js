@@ -44,7 +44,7 @@ export function drawHead({ storeOn, columns, heads, boxH, HEAD, bandH, bands, wi
   }
   function look(c) { // the component's colour (a service with a slot), a locked head (a reference), a client app
     const cc = colVar(c), mc = isCh(c) || c.transport ? `--mc:${colorOf(c.transport)}` : null;
-    return { style: [mc, cc ? `--cc:${cc}` : null].filter(Boolean).join(';') || null, cls: `${cc ? ' cmp' : ''}${c.serviceKind === 'client-app' ? ' ca' : ''}${refs?.locked(c) ? ' locked' : ''}${externalCls(c)}` };
+    return { style: [mc, cc ? `--cc:${cc}` : null].filter(Boolean).join(';') || null, cls: `${cc ? ' cmp' : ''}${c.serviceKind === 'client-app' ? ' ca' : ''}${refs?.locked(c) ? ' locked' : ''}${headIconOf(c)?.[0] === 'own' ? ' has-ci' : ''}${externalCls(c)}` };
   }
   function headChip(c, y) { // the transport of a topic or queue, as a chip; a big fan-out adds its fold control
     const label = queueSrc(c) ? c.transport : c.sub, w = label.length * 6.4 + 12; // #102: a queue-started flow's trigger head shows the transport chip like the channel column

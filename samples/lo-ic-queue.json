@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "lo-ic-queue",
+    "kind": "service",
+    "team": "platform",
+    "repo": "github.com/acme/lo-ic-queue",
+    "language": "typescript",
+    "description": "Demo #144: a worker that reads an SQS queue",
+    "details": {
+      "icon": "aws-sqs"
+    }
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-19T12:00:00Z",
+  "commit": "144a",
+  "functions": [
+    {
+      "id": "h",
+      "name": "handle",
+      "file": "src/h.ts",
+      "line": 5,
+      "steps": []
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.x",
+      "bindKey": "http:GET lo-ic-queue/x",
+      "transport": "http",
+      "handler": "h",
+      "entryPoint": false,
+      "details": {
+        "method": "GET",
+        "path": "/x"
+      }
+    }
+  ],
+  "egress": [],
+  "resources": []
+}
