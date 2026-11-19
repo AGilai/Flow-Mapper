@@ -3,10 +3,11 @@
 
 import type { GraphIndex } from './graph-index.ts';
 import { downstreamIngress, sid } from './graph-index.ts';
+import { carrierOf } from './rpc-carrier.ts';
 import type { EnvRefs, RefEndpoint } from './references.ts';
 
 export interface CallView {
-  egress: { service: string; id: string; bindKey: string; transport: string; mode?: string };
+  egress: { service: string; id: string; bindKey: string; transport: string; mode?: string; /** #137, transport rpc: details.carrier and details.via */ carrier?: string; via?: string };
   steps: { fn: string; seq: number; operation?: string; mark?: 'new' | 'changed'; returns?: { label: string; detail?: string } }[];
   targets: { service: string; ingress: string; bindKey: string; reference?: RefEndpoint }[];
 }
@@ -20,5 +21,5 @@ export function callView(g: GraphIndex, refs: EnvRefs, service: string, egressId
     const reference = refs.endpoints[`ing:${i.service}/${i.id}`];
     return { service: i.service, ingress: i.id, bindKey: i.bindKey, ...(reference ? { reference } : {}) };
   });
-  return { egress: { service, id: e.id, bindKey: e.bindKey, transport: e.transport, ...(e.mode ? { mode: e.mode } : {}) }, steps, targets };
+  return { egress: { service, id: e.id, bindKey: e.bindKey, transport: e.transport, ...(e.mode ? { mode: e.mode } : {}), ...carrierOf(e) }, steps, targets };
 }

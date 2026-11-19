@@ -65,6 +65,7 @@ export interface Message {
   delivery?: number;                                         // on the topic -> queue and queue -> consumer messages of one delivery: 1-based ordinal within the group
   amqp?: AmqpRoute;                                          // an AMQP publish through an exchange (0.18.0), on the publish and the hops after it: exchange, routing key, type, how many bindings route it and the ones that do not
   rpc?: RpcInfo;                                             // an RPC over AMQP (0.18.0; bind key `amqp-rpc:{command}`, transport amqp, mode sync): the command and the AMQP details both sides declared
+  carrier?: string; carrierVia?: string; carrierAt?: string;  // #137, on an egress with transport `rpc`: details.carrier (`http`), details.via (the library; `carrierVia` because `via` is the wrappers above) and, when the target is an http ingress on /internal/rpc, its `POST /internal/rpc`
   arms?: string[];                                           // 0.37.0 (#82): the either/or arms this message sits in, outermost first, each `<group_id>:<arm>` (split at the first ':'). Absent when none
   key?: string;                                              // 0.37.0: the stable step key (core/description.ts stepKeys) over the canonical trace; stamped when the trace has decisions and on every view that drops messages
   canFail?: CanFail[];                                       // 0.38.1 (#82): the step succeeds but can fail (`details.can_fail`): when, error, source. On a DB-group row: the members' entries together
