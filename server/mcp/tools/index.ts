@@ -3,6 +3,7 @@
 import { searchTool, listServicesTool, getServiceTool, listEntryPointsTool, findPathsTool, linkHealthTool, changelogTool, inventoryTool } from './map.ts';
 import { traceFlowTool, setDescriptionTool, eventTypesTool, getEndpointInfoTool, getChannelTool, getExchangeTool } from './flows.ts';
 import { ingestManifestTool } from './write.ts';
+import { flowsThroughTool, neighboursTool } from './reader.ts';
 import { getStoreTool, listClientsTool, getResourceKeysTool, loadSchemasTool, loadDtosTool } from './stores.ts';
 import { listBugsTool, getBugTool, reportBugTool, updateBugTool } from './bugs.ts';
 import { listEnvsTool, createEnvTool, setEnvColorTool } from './envs.ts';
@@ -27,6 +28,8 @@ export const TOOLS: Tool[] = [
   listServicesTool,
   getServiceTool,
   listEntryPointsTool,
+  flowsThroughTool,
+  neighboursTool,
   traceFlowTool,
   setDescriptionTool,
   findPathsTool,

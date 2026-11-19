@@ -10,13 +10,13 @@ import { userEmail } from '../../auth/accounts.ts';
 import { type Tool, obj } from './common.ts';
 
 export const whoamiTool: Tool = {
-  name: 'whoami', description: 'The user this connection acts as (the owner of the token), whether they are an admin, and the token scope (user | harvester). With auth off: {auth: "off"}.',
+  name: 'whoami', description: 'The user this connection acts as (the owner of the token), whether they are an admin, and the token scope (user | harvester), and the server version (package.json, as GET /api/version) so you can say which build you read. With auth off: {auth: "off"}.',
   inputSchema: obj({}),
   run: (c) => {
     const p = currentWho();
-    if (!p || p.via === 'off') return { auth: 'off', admin: true, scope: 'harvester' };
+    if (!p || p.via === 'off') return { auth: 'off', admin: true, scope: 'harvester', version: c.appVersion };
     const u = p.id ? findUser(c.db, p.id) : undefined;
-    return { auth: 'cognito', user: u ? { id: u.id, name: u.name, email: userEmail(c.db, u.id) } : null, admin: p.admin, scope: p.scope };
+    return { auth: 'cognito', user: u ? { id: u.id, name: u.name, email: userEmail(c.db, u.id) } : null, admin: p.admin, scope: p.scope, version: c.appVersion };
   },
 };
 

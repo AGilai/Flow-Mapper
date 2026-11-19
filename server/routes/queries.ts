@@ -13,8 +13,8 @@ import { viewOf } from '../../core/trace-view.ts';
 import { viewParams } from '../../core/trace-view-params.ts';
 import { flowDecisionsAsync } from '../../core/flow-decisions.ts';
 import { emptyFlow } from '../../core/entry-points.ts';
-import { flowsThrough } from '../../core/flows-through.ts';
-import { entryPointsOut, flowNameMap, refsFor, traceOut } from '../refs.ts';
+
+import { entryPointsOut, flowsThroughOut, flowNameMap, refsFor, traceOut } from '../refs.ts';
 import { flowCounts } from '../../core/flow-counts.ts';
 import { findPaths } from '../../core/paths.ts';
 import { search } from '../../core/search.ts';
@@ -61,8 +61,7 @@ export function registerQueries(r: Router, ctx: Ctx) {
   r.get('/api/envs/:env/entry-points', (req) => entryPointsOut(ctx, req.params.env, req.query.get('draft')));
   /** 0.33.0: the entry points whose flows run through the components in `?service=a,b` (the info pane's "Flows through it"). */
   r.get('/api/envs/:env/flows-through', (req) => {
-    const hit = flowsThrough(ctx.graphOf(req), (req.query.get('service') ?? '').split(',').filter(Boolean));
-    return entryPointsOut(ctx, req.params.env, req.query.get('draft')).filter((e) => hit.has(`${e.service}:${e.id}`));
+    return flowsThroughOut(ctx, req.params.env, req.query.get('draft'), (req.query.get('service') ?? '').split(',').filter(Boolean));
   });
   const letThrough = () => new Promise<void>((done) => setImmediate(done));
   r.get('/api/envs/:env/flows/counts', async (req) => { // perf batch 3, F6: the decision counts of a cold graph are computed in slices, so the server answers other requests meanwhile. 0.38.0: a flow that reaches either/or decisions also carries `decisions` and `steps` / `both` / `full` (core/flow-decisions.ts); the other rows are as before

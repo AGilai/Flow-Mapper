@@ -7,6 +7,9 @@ import * as keys from '../../store/keys.ts';
 import { dbParam } from '../../routes/instances.ts';
 import { stores } from '../../../core/stores.ts';
 import { listClients, storeWithClients } from '../../../core/clients.ts';
+import { driversModel, driversReport, type ExportOpts } from '../../../core/drivers-export.ts';
+import { driversView } from '../../../core/drivers-view.ts';
+import type { GraphIndex } from '../../../core/graph-index.ts';
 import * as schemas from '../../store/schemas.ts';
 import { type Tool, env, obj, envOf, draftArg, viewOf } from './common.ts';
 import { draftPrelude } from '../../store/draft-prelude.ts';
@@ -21,10 +24,17 @@ export const getStoreTool: Tool = {
   },
 };
 
+/** list_clients report=drivers|markdown: the same model and options as GET /clients/drivers.csv|.md. */
+function driversOut(g: GraphIndex, env: string, a: any, version: string) {
+  const store = a.store || 'all', o: ExportOpts = { env, store, q: a.q ?? '', mixed: !!a.mixed, date: new Date().toISOString().slice(0, 10), version, link: `#/inventory?tab=drivers&env=${encodeURIComponent(env)}${store === 'all' ? '' : '&store=' + encodeURIComponent(store)}${a.q ? '&q=' + encodeURIComponent(a.q) : ''}` };
+  const m = driversModel(listClients(g, {}).rows);
+  return a.report === 'markdown' ? { text: driversReport(m, o) } : driversView(m, o);
+}
+
 export const listClientsTool: Tool = {
   name: 'list_clients', description: "How services reach data stores (and non-store targets): one row per client site with access mode, the service's own driver, the wrapper lib and the driver bundled in it, and the `via` wrapper chain; rows carry `mixed` when a service has two majors of one driver package. Also `counts`: services per driver and major. Filters (all optional): store (bind key or its cluster), service, driver (package; matches the service's own driver or the lib's), driverMajor (e.g. '4'), lib, accessMode, via (substring of a wrapper function, file or lib). 'Services on ioredis 4.x' = driver=ioredis driverMajor=4.",
-  inputSchema: obj({ draft: draftArg, env, store: { type: 'string' }, service: { type: 'string' }, driver: { type: 'string' }, driverMajor: { type: 'string' }, lib: { type: 'string' }, accessMode: { enum: ['direct_driver', 'shared_lib', 'self_implemented_wrapper', 'third_party_lib'] }, via: { type: 'string' } }),
-  run: (c, a) => listClients(viewOf(c, a).g, { store: a.store, service: a.service, driver: a.driver, driverMajor: a.driverMajor === undefined ? undefined : String(a.driverMajor), lib: a.lib, accessMode: a.accessMode, via: a.via }),
+  inputSchema: obj({ draft: draftArg, env, store: { type: 'string' }, service: { type: 'string' }, driver: { type: 'string' }, driverMajor: { type: 'string' }, lib: { type: 'string' }, accessMode: { enum: ['direct_driver', 'shared_lib', 'self_implemented_wrapper', 'third_party_lib'] }, via: { type: 'string' }, report: { enum: ['rows', 'drivers', 'markdown'], description: "rows (default): the client rows. drivers: the Drivers view per store type (verdict sentence, packages with versions, majors, lag, components, via, and the unresolved rows with reason, candidates and resource id). markdown: {text}, the Drivers report (what GET /clients/drivers.md serves). With drivers or markdown, `store` is a store type (redis, mongodb...; default all), `q` a version query (e.g. 'mongoose < 6') and `mixed` keeps components on two majors; the row filters are ignored" }, q: { type: 'string' }, mixed: { type: 'boolean' } }),
+  run: (c, a) => a.report === 'drivers' || a.report === 'markdown' ? driversOut(viewOf(c, a).g, envOf(a), a, c.appVersion) : listClients(viewOf(c, a).g, { store: a.store, service: a.service, driver: a.driver, driverMajor: a.driverMajor === undefined ? undefined : String(a.driverMajor), lib: a.lib, accessMode: a.accessMode, via: a.via }),
 };
 
 export const getResourceKeysTool: Tool = {
