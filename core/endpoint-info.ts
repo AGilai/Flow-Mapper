@@ -8,6 +8,7 @@ import { ingressEvents, type EventRow } from './events.ts';
 import { callersOf } from './callers.ts';
 import { egressVia, ingressVia, type LinkedHop } from './via.ts';
 import { rpcPanel, type RpcPanel } from './rpc-endpoint.ts';
+import { rpcCalledOf } from './rpc-carrier.ts';
 import { rpcServed } from './amqp-route.ts';
 import { pathParamsOf } from './path-params.ts';
 
@@ -38,6 +39,8 @@ export interface EndpointInfo {
   pathParams: (PathParam & { link: SourceLink | null })[];
   /** #116: the client apps whose egress reaches this entry ingress (socket, or http with entryPoint true); empty otherwise. */
   callers: string[];
+  /** #137: the callers that reach this ingress with an egress of transport `rpc`, each with its carrier and via, and the sentence for the panel ("Called as RPC over HTTP by 2 callers"). Null when none. */
+  rpcCalled: { text: string; callers: { service: string; egress: string; carrier?: string; via?: string }[] } | null;
 }
 
 const BODY_METHODS = ['POST', 'PUT', 'PATCH'];
@@ -125,7 +128,7 @@ export function endpointInfo(g: GraphIndex, service: string, ingressId: string, 
     service, ingress, method: httpMethod(ingress), handler, source: sourceLink(svc, handler), harvestedAt: svc.harvestedAt, note: pathOnly ? null : note, pathParams,
     definedAt: codeLink(svc, ingress.source),
     handlerVia: ingressVia(svc, ingress),
-    rpc: rpcPanel(g, ingress), callers: callersOf(g, ingress),
+    rpc: rpcPanel(g, ingress), callers: callersOf(g, ingress), rpcCalled: rpcCalledOf(g, ingress),
     events: ingressEvents(g, ingress).map((r) => ({
       ...r,
       producers: r.producers.map((p) => withVia(g, p)),

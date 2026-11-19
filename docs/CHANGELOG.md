@@ -5,6 +5,10 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+
+- Fix #137 (additive): an egress with `transport: "rpc"` may send `details.carrier` (how it travels, `http`) and `details.via` (the library, `saferxlib`). Trace messages (`GET /trace`, MCP `trace_flow`) carry `carrier`, `carrierVia` (not `via`: that is the wrapper hops) and `carrierAt` (`POST /internal/rpc` when the target is an http ingress on that path); `get_call` / `GET /call` carry `egress.carrier` and `egress.via`; `get_endpoint_info` carries `rpcCalled {text, callers[{service, egress, carrier?, via?}]}`. The UI keeps the `rpc` chip and arrow and adds "Transport: RPC over HTTP (POST /internal/rpc on <service>, via <lib>)" to the step Info and "Called as RPC over HTTP by N callers" to the receiving endpoint. No carrier: "RPC (carrier unknown)". No schema change.
+
 ## 0.62.1 (2026-11-19): Invite people on the Users page (#134 follow-up)
 
 - #134 follow-up: Invite people button on the Users page (admin, cognito); the Users subtitle fits cognito.

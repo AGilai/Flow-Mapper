@@ -23,7 +23,7 @@ import { assumedOn, storeOn, unknownOn } from './step-notes.ts';
 import { stepExtras } from './step-marks.ts'; import { keyFieldsOn } from './key-template.ts'; import { blockedField, coverageFor, frontierBlocked, notBlockedIndex, notBlockedLeaf } from './incomplete.ts';
 import { altCtxOf, altGroups, type Alt, type AltCtx } from './alt.ts';
 import { egressVia, ingressVia, type LinkedHop } from './via.ts';
-import { bindingKeyOf, splitAmqpKey } from './amqp.ts';
+import { bindingKeyOf, splitAmqpKey } from './amqp.ts'; import { carrierOf, rpcEndpointOf } from './rpc-carrier.ts'; // #137
 import { routeInfo, routeKey, rpcOf, rpcServed, withServer, type AmqpRoute, type RpcInfo } from './amqp-route.ts';
 import { clientAlias, deferHelpers, releaseHeld } from './trace-defer.ts';
 import { fanOutOrder } from './trace-order.ts';
@@ -187,7 +187,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
         // RPC over AMQP, or a publish to an exchange: what the trace adds about the routing (additive fields).
         const rpc = rpcOf(e), ex = splitAmqpKey(e.bindKey)?.exchange;
         const route = !rpc && ex && !g.channels.has(e.bindKey) && (g.channels.has(`amqp:${ex}`) || g.model.bindings.some((b) => splitAmqpKey(b.from)?.exchange === ex)) ? routeKey(g.model.bindings, g.channels.get(`amqp:${ex}`)?.details, e.bindKey, e.details) : null;
-        const extra = { ...(st.operation ? { operation: st.operation } : {}), ...(rpc ? { rpc } : route ? { amqp: routeInfo(route, g.channels.get(`amqp:${ex}`)?.details) } : {}) };
+        const cr = carrierOf(e), extra = { ...(st.operation ? { operation: st.operation } : {}), ...(cr.carrier ? { carrier: cr.carrier } : {}), ...(cr.via ? { carrierVia: cr.via } : {}), ...(rpc ? { rpc } : route ? { amqp: routeInfo(route, g.channels.get(`amqp:${ex}`)?.details) } : {}) };
         const ok = (l: Parameters<typeof passes>[1]) => (set ? passesUntyped(g, l, set) !== false : passes(g, l, event));
         const all = distinct(linksFrom(g, { type: 'egress', service, id: e.id }).filter(ok));
         // A send to a queue that an ingress consumes matches that ingress by key and also goes through the queue: draw the queue path only.
@@ -289,7 +289,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
     const seenKey = scope === 'intra' && i.service !== root ? undefined : `${key}|${i.id}|${base.event ?? ''}|${base.matched?.join(',') ?? ''}`;
     const first = seenKey && !stack.includes(key) ? firstExpansion(expanded, seenKey, arms.path) : undefined;
     const text = crossing === 'deliver' ? `${label} → ${handler}` : label;
-    if (!push({ ...base, from, to: target, label: first ? `${text} ↩ seen at step ${first}` : text, mode, kind: crossing, depth, target: { service: i.service, ingress: i.id, fn: handler }, ...(base.rpc ? { rpc: withServer(base.rpc, i.details) } : {}), ...(first ? { repeatOf: first } : scope === 'intra' && i.service !== root || !chainOf(i).length ? {} : { middlewareChain: chainOf(i) }) } as Message)) return;
+    if (!push({ ...base, from, to: target, label: first ? `${text} ↩ seen at step ${first}` : text, mode, kind: crossing, depth, target: { service: i.service, ingress: i.id, fn: handler }, ...(base.rpc ? { rpc: withServer(base.rpc, i.details) } : {}), ...(base.carrier && rpcEndpointOf(i) ? { carrierAt: rpcEndpointOf(i) } : {}), ...(first ? { repeatOf: first } : scope === 'intra' && i.service !== root || !chainOf(i).length ? {} : { middlewareChain: chainOf(i) }) } as Message)) return;
     if (scope === 'intra' && i.service !== root) return;
     if (stack.includes(key)) { messages[messages.length - 1].cycle = true; return; }
     if (first) return;

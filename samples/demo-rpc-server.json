@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "demo-rpc-server",
+    "kind": "service",
+    "team": "platform",
+    "repo": "github.com/acme/demo-rpc-server",
+    "language": "typescript",
+    "description": "Demo (#137): receives RPC over HTTP on POST /internal/rpc (and POST /internal/legacy-rpc, whose caller declares no carrier). Its Info panel says 'Called as RPC over HTTP by 1 caller'"
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-19T08:00:00Z",
+  "commit": "137b0de2",
+  "functions": [
+    { "id": "handleRpc", "name": "handleRpc", "file": "src/rpc.ts", "line": 12, "steps": [] },
+    { "id": "handleLegacyRpc", "name": "handleLegacyRpc", "file": "src/legacy.ts", "line": 7, "steps": [] }
+  ],
+  "ingress": [
+    {
+      "id": "in.rpc",
+      "bindKey": "http:POST demo-rpc-server/internal/rpc",
+      "transport": "http",
+      "handler": "handleRpc",
+      "entryPoint": false,
+      "details": { "method": "POST", "path": "/internal/rpc" }
+    },
+    {
+      "id": "in.legacyRpc",
+      "bindKey": "http:POST demo-rpc-server/internal/legacy-rpc",
+      "transport": "http",
+      "handler": "handleLegacyRpc",
+      "entryPoint": false,
+      "details": { "method": "POST", "path": "/internal/legacy-rpc" }
+    }
+  ],
+  "egress": [],
+  "resources": []
+}

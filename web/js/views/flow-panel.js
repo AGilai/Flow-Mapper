@@ -24,6 +24,7 @@ import { eventLink, serviceLink, storeLink, envQuery } from './inventory-links.j
 import { splitStore, opLabel } from './flow-stores-pure.js';
 import { isRpc, rpcCommand } from './flow-amqp.js';
 import { markersCard } from './flow-markers-draw.js';
+import { carrierChip, carrierNote } from './flow-panel-carrier.js';
 import { rpcCard, rpcMissing, routingRows } from './flow-panel-amqp.js';
 import { whyHazard, stepIdOf } from './incomplete-why.js';
 import { callsCard, runCard } from './flow-panel-calls.js';
@@ -38,7 +39,7 @@ export function messagePanel(m, trace, env, scope = 'full', openEntry = null, ma
   const rpc = isRpc(m), kind = rpc ? (m.kind === 'entry' ? 'Entry (RPC over AMQP)' : 'RPC call over AMQP') : m.kind === 'egress' && m.mode === 'async' ? 'Publish / async call' : KIND[m.kind];
   const why = whyHazard(trace, { me: stepIdOf(m) }); // #113: a small hazard button in the header; the box sits after the call's data, collapsed
   const head = h('div.ep-head',
-    h('div.ep-title', m.transport && m.transport !== 'res' ? (rpc ? chip('rpc', 'amqp rpc') : chip(m.transport)) : null, h('span.ep-target', kind), why?.btn ?? null),
+    h('div.ep-title', m.transport && m.transport !== 'res' ? (rpc ? chip('rpc', 'amqp rpc') : chip(m.transport)) : null, carrierChip(m), h('span.ep-target', kind), why?.btn ?? null),
     h('div.ep-sub', h('span.key', rpc ? rpcCommand(m) : m.label), m.event ? eventLink(m.event, env) : null));
 
   const dto = h('div.stack', { style: { gap: 'var(--s3)' } }, h('p.small.muted', 'Loading…'));
@@ -51,6 +52,7 @@ export function messagePanel(m, trace, env, scope = 'full', openEntry = null, ma
     occurrencesCard(m, trace, simple ?? {}),
     codeCard(m, trace, env),
     markersCard(m),
+    carrierNote(m),
     rpcCard(m),
     m.gap ? null : dto,
     m.broken && m.rpc ? rpcMissing(m) : m.unhandled ? section('Why it is broken', null, h('p.small', `${m.event} reaches this consumer, but none of its event handlers matches it. It will fail or go to the dead-letter queue.`))
