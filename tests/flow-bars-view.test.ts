@@ -60,7 +60,7 @@ test('the caption bar follows the step, can be hidden, edits the step; the playe
   assert.match(bar, /cnt-l.*cnt-s/s, 'the player has a long and a short count: "Step 2 of 3", "2/3"');
   assert.match(walk, /nav: bar\.nav, caption: bar\.caption, legendSlot: bar\.legendSlot/); assert.match(walk, /go\(n, \{ scroll = true, user = true \} = \{\}\) \{[^]*bar\.show\(st, cur, steps\.length\)/, 'every move of the step repaints the caption');
   assert.match(st, /setCap/); assert.match(st, /export function onCaps/);
-  assert.match(src('js/views/flow-tab-view.js'), /walk\.legendSlot\.append\(capLegend\)/); assert.match(src('js/views/flow-draw-bands.js'), /h\('span\.lg-x'/);
+  assert.match(src('js/views/flow-tab-view.js'), /walk\.legendSlot\.append\(capLegend\)/); assert.match(src('js/views/flow-legend.js'), /h\('span\.lg-x'/);
   assert.match(src('css/flow-bars.css'), /\.capbar\[hidden\] \{ display: none; \}/);
 });
 

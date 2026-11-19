@@ -6,8 +6,10 @@ import { s } from '../dom.js';
 import { NEST, BAR } from './flow-draw-layout.js';
 import { drawBadges } from './flow-step-badges.js';
 import { drawCallMarks } from './flow-call-marks.js';
+import { arrowKind, returnOf } from './flow-arrow-kind.js';
+import { colorOf } from './flow-draw-layout.js';
 
-const H = 16, tw = (n) => Math.max(20, String(n).length * 7 + 12);
+const H = 16, tw = (n) => Math.max(20, String(n).length * 7 + 12), BOLT = 'M2.6 0 L-2.2 5.4 H0.4 L-1 10 L3.4 4 H0.8 Z', RW = 30; // frame 33: the bolt after an async call's number; a return's "↩N" tile is RW wide
 const blocked = (st) => !!st.event?.msg?.blocked; // #85: a blocked step's tile is an amber "!" bubble, not a number
 
 /** Where a step's arrow starts and ends: { x1, x2, dir } in lane pixels (x1 is the start, just outside the bar it leaves). */
@@ -30,10 +32,10 @@ export function drawStepTiles(res, built, steps, onPick, onEdit = null, hl = () 
   const band = s('rect', { class: 'stepband', x: 0, visibility: 'hidden', 'pointer-events': 'none', 'aria-hidden': 'true' }), rband = s('rect', { class: 'stepband', x: 0, visibility: 'hidden', 'pointer-events': 'none', 'aria-hidden': 'true' });
   const tiles = new Map(), spans = new Map(), grps = new Map(), where = new Map(); // where: the place of a step's callout badge (flow-step-badges.js)
   const g = s('g', { class: 'steptiles' }, ...steps.map((st) => {
-    const sp = arrowSpan(st, { columns: built.columns, geometry: res.geometry }), w = blocked(st) ? 18 : tw(st.n), cx = sp.x1 + sp.dir * (w / 2 + 3), y = res.geometry.y[st.row];
+    const sp = arrowSpan(st, { columns: built.columns, geometry: res.geometry }), asy = !blocked(st) && arrowKind(st.event) === 'async', w = blocked(st) ? 18 : tw(st.n) + (asy ? 10 : 0), cx = sp.x1 + sp.dir * (w / 2 + 3), y = res.geometry.y[st.row];
     spans.set(st.n, sp); where.set(st.n, { x: sp.x1 - sp.dir * (BAR + 12), y: y + 2, dir: sp.dir }); // the badge sits before the bar, opposite the arrow, clear of its label
     const t = s('g', { class: `steptile${blocked(st) ? ' blk' : ''}`, 'data-step': st.n, 'aria-hidden': 'true' },
-      s('rect', { x: cx - w / 2, y: y - 6, width: w, height: blocked(st) ? 18 : H, rx: blocked(st) ? 9 : H / 2 }), s('text', { x: cx, y: y + (blocked(st) ? 7 : 6), 'text-anchor': 'middle' }, blocked(st) ? '!' : st.n), s('title', {}, `Step ${st.n}${blocked(st) ? ' (blocked)' : ''}: ${st.label}`));
+      s('rect', { x: cx - w / 2, y: y - 6, width: w, height: blocked(st) ? 18 : H, rx: blocked(st) ? 9 : H / 2 }), s('text', { x: cx - (asy ? 5 : 0), y: y + (blocked(st) ? 7 : 6), 'text-anchor': 'middle' }, blocked(st) ? '!' : st.n), asy ? s('path', { class: 'bolt', d: BOLT, transform: `translate(${cx + w / 2 - 9} ${y - 3})` }) : null, s('title', {}, `Step ${st.n}${blocked(st) ? ' (blocked)' : ''}${asy ? ' (async call)' : ''}: ${st.label}`));
     t.addEventListener('click', (ev) => { ev.stopPropagation(); onPick(st.n, ev); });
     tiles.set(st.n, t);
     if (!onEdit) return t;
@@ -46,7 +48,7 @@ export function drawStepTiles(res, built, steps, onPick, onEdit = null, hl = () 
     tiles.set(st.n, t); grps.set(st.n, grp);
     return grp;
   }));
-  res.body.append(g);
+  res.body.append(g, retTiles(res, built, steps, onPick));
   const rowOf = (n) => { const st = steps[n - 1], top = res.geometry.top; return st && top?.[st.row] != null && top[st.row + 1] != null ? { top: top[st.row], bottom: top[st.row + 1] } : null; };
   const badges = drawBadges(res, (n) => where.get(n) ?? null, rowOf), callMarks = drawCallMarks(res, (n) => where.get(n) ?? null); // frame 28g: a marker on the arrows whose call has a note
   // after the column fills (fold bands) so the yellow reads as one band across the row, before frames, lifelines, arrows and text
@@ -72,4 +74,17 @@ export function drawStepTiles(res, built, steps, onPick, onEdit = null, hl = () 
     span: (n) => spans.get(n) ?? null,
     rowEl: (n) => res.body.querySelector(`[data-e="${steps[n - 1]?.row}"]`),
   };
+}
+
+/** Frame 33: a return's "↩N" tile at the tail of its arrow, in the place a call's number takes; N is the step it answers, the colour that call's transport. */
+function retTiles(res, built, steps, onPick) {
+  const X = (c) => res.geometry.x[built.columns.indexOf(c)];
+  return s('g', { class: 'rettiles' }, ...built.events.filter((e) => arrowKind(e) === 'return').map((e) => {
+    const n = returnOf(built.events, steps, e);
+    if (!n || !e.bar) return null;
+    const dir = Math.sign(X(e.to) - X(e.bar.col)) || 1, x1 = X(e.bar.col) + e.bar.level * NEST + dir * BAR / 2, cx = x1 + dir * (RW / 2 + 3), y = res.geometry.y[e.row];
+    const t = s('g', { class: 'rettile', 'data-ret': n, style: `--mc:${colorOf(e.bar.transport)}`, 'aria-hidden': 'true' }, s('rect', { x: cx - RW / 2, y: y - 6, width: RW, height: H, rx: H / 2 }), s('text', { x: cx, y: y + 5.5, 'text-anchor': 'middle' }, `↩${n}`), s('title', {}, `Return of step ${n}`));
+    t.addEventListener('click', (ev) => { ev.stopPropagation(); onPick(n, ev); });
+    return t;
+  }));
 }

@@ -1,7 +1,7 @@
 // Draws a lane (flow-lane.js) as SVG: a sticky header of lifeline cards and a body with activation bars, arrows,
 // stubs, the topic and queue lifelines of publish chains and alt frames. No layout rules live here beyond row heights.
 //
-//   solid arrow, filled head   = call or routing hop     dashed, open head = return
+//   solid arrow, filled head   = sync call or routing hop     solid, open head = async call     dashed, open head = return (frame 33)
 //   red dashed with a cross    = call that matches nothing
 //   bar colour / arrow colour  = transport that entered the service / the hop's transport
 //   stop bar + number tiles    = a publish chain ends at a queue: the tiles are the async flows that start there (rows of the list below)
@@ -15,7 +15,7 @@ import { drawRows } from './flow-draw-rows.js';
 import { drawBars } from './flow-draw-bars.js';
 import { addCallChips } from './flow-add-call.js';
 import { wireEvents } from './flow-draw-events.js';
-import { storeLegend } from './flow-draw-bands.js';
+import { flowLegend } from './flow-legend.js';
 import { detailTexts } from './flow-draw-details.js';
 import { drawUnfolds } from './flow-draw-repeat.js';
 import { sizeSvg } from './flow-zoom.js';
@@ -52,5 +52,5 @@ export function renderLane(lane, { marks = null, refs = null, edit = null, onMes
   const mark = wireEvents(head, body, c, { onMessage, onBar, onBarMenu, onParticipant, onNum, onNumHover, onFan, onMw, onBarTip, onSqueeze, onBand, onInternal, onDb, onPill, onStore });
   body.__events = events;
   const geometry = { x: c.xs, y: ys, top, width, height, headHeight: c.HEAD, colWidth: c.COLW, folded: c.folded, groups: c.groups, plan: c.plan, sig: c.sig, foldW: c.foldW };
-  return { el: h('div.seq', h(sticky ? 'div.seq-sticky' : 'div.seq-head-static', head), body, events.some((e) => e.type === 'store') ? storeLegend() : null), body, events, bars, geometry, mark };
+  return { el: h('div.seq', h(sticky ? 'div.seq-sticky' : 'div.seq-head-static', head), body, events.some((e) => e.type === 'call') ? flowLegend(events.some((e) => e.type === 'store')) : null), body, events, bars, geometry, mark };
 }

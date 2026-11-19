@@ -14,6 +14,7 @@ import { decisionSvg } from './flow-decision-draw.js';
 import { inlineMarks } from './flow-markers-draw.js';
 import { frontierSvg, blockedBand, blockedLines, blockedIcall, isBlockedEvent, inferredTag, flagBadge, BLOCKED_LINE } from './flow-draw-incomplete.js';
 import { isInferred } from './incomplete-pure.js';
+import { callStyle, returnLabel, kindWord } from './flow-arrow-kind.js';
 
 /** "⌄ group": folds an expanded run of DB operations again (0.38.0); a folded run opens with a click on its row. */
 // Drawn above the arrow's right end (the store side), never on the dashed return below it; the invisible `pad` makes the whole chip, with a margin, the click target.
@@ -34,12 +35,12 @@ export function drawRows({ events, colX, ys, barX, edge, marks, refs, stacked, f
       const mc = colorOf(e.tr ?? e.msg.transport);
       if (e.repeat && !e.bar) return repeatRow(e, g, x1, x2, y0, mc, hit); // 0.44.0 (#90)
       const inf = isInferred(e.msg); // reserved (#85 ask 5): a hop a model inferred is dash-dot with a tag, never amber, solid or grey
-      return g(`${e.rpc ? 'rpc' : ''}${inf ? ' inferred' : ''}`, arrow(x1, x2, y0, { label: lab(e.label), color: mc, dashed: e.msg.mode === 'async' && !e.bar }), inf ? inferredTag(Math.min(x1, x2) + 8, y0) : null, e.rpc?.chip ? rpcChip('amqp rpc', (x1 + x2) / 2, y0, mc) : null, e.rpc?.glyph ? s('text', { class: 'rpcglyph', x: Math.min(x1, x2) + 4, y: y0 - 5, style: `--mc:${mc}` }, '⇄') : null, hit(x1, x2), ...arrowMarkSvg(marks, e.msg, x1, x2, y0, stacked?.has(e), th, mk()), e.bar ? refNoteSvg(refs, e, barX(e.bar, 1), y0) : null, s('title', {}, e.rpc ? `${e.label} (RPC over AMQP)` : e.msg.label));
+      return g(`${e.rpc ? 'rpc' : ''}${inf ? ' inferred' : ''}`, arrow(x1, x2, y0, { label: lab(e.label), color: mc, ...callStyle(e) }), inf ? inferredTag(Math.min(x1, x2) + 8, y0) : null, e.rpc?.chip ? rpcChip('amqp rpc', (x1 + x2) / 2, y0, mc) : null, e.rpc?.glyph ? s('text', { class: 'rpcglyph', x: Math.min(x1, x2) + 4, y: y0 - 5, style: `--mc:${mc}` }, '⇄') : null, hit(x1, x2), ...arrowMarkSvg(marks, e.msg, x1, x2, y0, stacked?.has(e), th, mk()), e.bar ? refNoteSvg(refs, e, barX(e.bar, 1), y0) : null, s('title', {}, `${e.rpc ? `${e.label} (RPC over AMQP)` : e.msg.label}\n${kindWord(e)} call`));
     }
     if (e.type === 'return') {
       const dir = Math.sign(colX.get(e.to) - colX.get(e.bar.col)) || 1;
       const x1 = barX(e.bar, dir), x2 = e.bar.parent ? barX(e.bar.parent, -dir) : colX.get(e.to);
-      return s('g', { class: 'msg ret-msg' }, arrow(x1, x2, y0, { dashed: true, open: true, italic: true, label: e.label, color: colorOf(e.bar.transport) }), e.returns?.detail ? s('title', {}, `${e.label}\n${e.returns.detail}`) : null);
+      return s('g', { class: 'msg ret-msg' }, arrow(x1, x2, y0, { dashed: true, open: true, italic: true, label: returnLabel(e.label), color: colorOf(e.bar.transport) }), s('title', {}, ['return', e.label !== 'return' && e.label, e.returns?.detail].filter(Boolean).join('\n')));
     }
     if (e.type === 'unresolved') {
       const x1 = barX(owner, 1), x2 = colX.get(e.col) - 8;
@@ -49,11 +50,11 @@ export function drawRows({ events, colX, ys, barX, edge, marks, refs, stacked, f
     if (e.type === 'hop') { // one arrow through the topic: its colour changes exactly on the topic lifeline; the event type reads like a REST path
       const x1 = edge(e.fromBar, e.from, 1), x2 = colX.get(e.to), tx = e.via ? colX.get(e.via) : e.fork ? colX.get(e.from) : null, mc = colorOf(e.transport), tc = colorOf(e.trunkTransport), hl = e.sub ? [e.label, e.sub] : e.label;
       let kids, left = x1, mid;
-      if (e.via) { kids = [arrow(x1, tx, y0, { label: lab(hl), color: tc, bare: true }), arrow(tx, x2, y0, { color: mc }), s('circle', { class: 'via', cx: tx, cy: y0, r: 3.2, style: `--mc:${mc}` })]; mid = (tx + x2) / 2; }
+      if (e.via) { kids = [arrow(x1, tx, y0, { label: lab(hl), color: tc, bare: true }), arrow(tx, x2, y0, { color: mc, open: true }), s('circle', { class: 'via', cx: tx, cy: y0, r: 3.2, style: `--mc:${mc}` })]; mid = (tx + x2) / 2; }
       else if (e.fork) { // a branch: leaves the topic lifeline downwards from the arrow above it and turns right
         left = tx; mid = (tx + 6 + x2) / 2;
-        kids = [s('path', { class: 'fork', d: `M${tx} ${ys[r - 1]}V${y0 - 7}Q${tx} ${y0} ${tx + 7} ${y0}`, style: `--mc:${mc}` }), arrow(tx + 6, x2, y0, { color: mc })];
-      } else { kids = [arrow(x1, x2, y0, { label: e.trunk ? lab(hl) : null, color: mc })]; mid = (x1 + x2) / 2; }
+        kids = [s('path', { class: 'fork', d: `M${tx} ${ys[r - 1]}V${y0 - 7}Q${tx} ${y0} ${tx + 7} ${y0}`, style: `--mc:${mc}` }), arrow(tx + 6, x2, y0, { color: mc, open: true })];
+      } else { kids = [arrow(x1, x2, y0, { label: e.trunk ? lab(hl) : null, color: mc, open: true })]; mid = (x1 + x2) / 2; }
       return g('hop', ...kids, e.marker ? marker(e.marker, mid, y0, mc) : null, e.end ? stop(e.end, x2, 1, y0, mc, r) : null, ...(e.publish ? [trunkHit(x1, tx, y0, e), hit(tx, x2)] : [hit(left, x2)]), s('title', {}, [e.msg.label, e.marker?.full].filter(Boolean).join('\n')));
     }
     if (e.type === 'note') return noteSvg(e, y0, { colX, idx, groups });

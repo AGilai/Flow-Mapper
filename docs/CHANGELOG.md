@@ -5,6 +5,11 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+
+- Flows (UI, frame 33): arrow notation. Sync is a solid line with a filled head; async (a call with mode async, with or without a bar, and a publish hop) is a solid line with an open head, never dashed, and its step number carries a bolt; a return is a dashed line with an open head and an outlined "↩N" tile naming the step it answers, in the colour of that call's transport. The word "return" is no longer drawn: a return keeps its label only when it is a status or payload name other than ok or empty. An async call never gets a return (a fire-and-forget keeps its stop bar). The legend in the caption bar (and the floating chip) gains Sync, Async, Return and "↩4 answers call 4"; Read and Write show only when the lane has data-store arrows. Hover titles say sync or async. No data change.
+- Mermaid export (no change needed): it already writes sync as `->>`, async as `-)` and a return as `-->>`.
+
 ## 0.65.0 (2026-11-19): component icons (CR #144)
 
 - **New optional field, not breaking:** `service.details.icon` on a manifest header (and `icon` on the `component` form of `edit_design` / `POST .../edits`). The component's logo, drawn beside its name in the sequence view, the System map and the Info pane. A value is one of the built-in names (`vault`, `auth0`, `kafka`, `mongodb`, `redis`, `postgres`, `mysql`, `elasticsearch`, `rabbitmq`, `aws-lambda`, `aws-sqs`, `aws-sns`, `aws-s3`, `aws-dynamodb`, `aws-eventbridge`, `aws-api-gateway`, `aws-ec2`, `aws-ecs`, `aws-eks`, `aws-step-functions`, `aws-rds`, `aws-elasticache`, `aws-cloudfront`, `aws-kinesis`, `aws-cognito`, `aws-kms`, `aws-secrets-manager`, `aws-iam`), an `<svg ...>...</svg>` string, or a `data:image/...` URL; at most 16 KB. An SVG with `<script>`, an `on...=` attribute or an external `href` / `url()` is refused: `422 BAD_ICON` (the message lists the built-ins; on a manifest, `service.details.icon`; over 16384 characters the schema check answers `422 INVALID`). `null` or `''` on the edit form clears it. Left out on a delta: kept. Details in [API.md](API.md#component-icons-cr-144).
