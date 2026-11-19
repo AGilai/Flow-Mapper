@@ -20,6 +20,9 @@ export function naturalSize(laneBox) {
   return body ? { w: Number(body.dataset.zw), h: Number(body.dataset.zh) + Number(head?.dataset.zh ?? 0) } : null;
 }
 
+/** The room the diagram box keeps free at its bottom for the floating zoom control (--zfoot, padding-bottom of .seq-scroll): Fit does not count it. */
+export const footOf = (box) => parseFloat(getComputedStyle(box).paddingBottom) || 0;
+
 /**
  * createZoomControl({ onZoom(value) }) -> { el, show(percent, fit, enabled) }
  * "- [100%] + Fit Reset". onZoom gets a percent, 'fit' or 100. The % box takes a number (Enter applies, clamped to 25..400; Esc and a bad entry put the current value back).
