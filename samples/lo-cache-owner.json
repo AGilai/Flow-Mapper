@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "lo-cache-owner",
+    "kind": "service",
+    "team": "commerce",
+    "repo": "github.com/acme/lo-cache-owner",
+    "language": "typescript",
+    "description": "Demo #139: declares the lookup store; no flow in the demo calls it, so the store's owner has no lifeline"
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-19T09:00:00Z",
+  "commit": "139140a",
+  "functions": [
+    {
+      "id": "warm",
+      "name": "warm the cache",
+      "file": "src/warm.ts",
+      "line": 5,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "resource",
+          "target": "lookupDb",
+          "operation": "insertOne",
+          "access": "write"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.warm",
+      "bindKey": "http:POST lo-cache-owner/warm",
+      "transport": "http",
+      "handler": "warm",
+      "details": {
+        "method": "POST",
+        "path": "/warm"
+      },
+      "entryPoint": true
+    }
+  ],
+  "resources": [
+    {
+      "id": "lookupDb",
+      "kind": "mongodb",
+      "name": "lo-db.lookups",
+      "bindKey": "mongodb:lo-db/lookups"
+    }
+  ]
+}

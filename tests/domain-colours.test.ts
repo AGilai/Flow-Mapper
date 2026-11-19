@@ -74,3 +74,18 @@ test('css: both themes, one custom property per component, domain and subsystem'
   const v = f.comp.get('auth-api')!.slice(4, -1);
   assert.ok(f.css.includes(`${v}:${all('light').get('auth-api')!.st}`) && f.css.includes(`${v}:${all('dark').get('auth-api')!.st}`));
 });
+
+test('#140 hue: a domain with 12 subsystems x 5 components keeps every shade within 10 degrees of the domain hue, in both themes', () => {
+  const big = [{ key: 'big', subs: Array.from({ length: 12 }, (_, j) => ({ key: `big/s${j}`, comps: Array.from({ length: 5 }, (_, k) => `s${j}c${k}`) })) }, G[1]];
+  for (const t of ['light', 'dark'] as const) {
+    const p = paintFamilies(t, big);
+    assert.deepEqual([...p], [...paintFamilies(t, big)], 'deterministic');
+    const P = PALETTE[t];
+    for (const [n, s] of p) {
+      const d = Math.abs(lch(s.st)[2] - lch(s.dom)[2]), hd = Math.min(d, 360 - d);
+      assert.ok(hd <= 10, `${t} ${n} hue off by ${hd.toFixed(1)}`);
+      const L = lch(s.st)[0]; assert.ok(L >= P.lo - 0.012 && L <= P.hi + 0.012, `${t} ${n} L=${L}`);
+    }
+    for (let j = 1; j < 12; j++) assert.ok(deltaE(p.get(`s${j - 1}c0`)!.sub, p.get(`s${j}c0`)!.sub) > 0.01, `${t} sub ${j} differs from the one before`);
+  }
+});

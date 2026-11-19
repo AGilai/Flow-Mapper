@@ -15,6 +15,7 @@
 /* Domain colour families (frame 31, family-colours.js): in Colour by Domain a lifeline takes its domain's colour (--fam), the two band rows their domain's / subsystem's
    (22% fill, ink label, a 4px accent), and a manual colour override shows a diamond on the head. Text never sits on the family colour. */
 .lifeline.fam { stroke: color-mix(in srgb, var(--fam) 80%, var(--surface)); }
+.lifeline.ch.fam { stroke: color-mix(in srgb, var(--fam) 60%, var(--line-strong)); }
 .seq-head .band.sub.fam rect:first-child { fill: color-mix(in srgb, var(--fam) 22%, var(--surface)); stroke: color-mix(in srgb, var(--fam) 60%, var(--line-strong)); }
 .seq-head .band.sub.fam text { fill: var(--ink); }
 .seq-head .band.sub.fam .ss-icon { stroke: var(--ink); }

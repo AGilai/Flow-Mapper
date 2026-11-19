@@ -70,3 +70,12 @@ test('order=calls restores first appearance even where components have groups; s
   assert.equal(orderParam('calls'), 'calls'); assert.equal(orderParam(undefined), undefined); assert.equal(orderParam('subsystem'), undefined);
   assert.throws(() => orderParam('x'));
 });
+
+test('#139: a store whose owner has no lifeline sits right after its first accessor; an owner on the diagram still wins; a channel of an absent owner sits next to its first sender', () => {
+  const parts = [svc('a1'), svc('b1'), svc('a2'),
+    { id: 'res:redis:zz/k', label: 'k', kind: 'resource' } as Participant, { id: 'res:redis:a1/k', label: 'j', kind: 'resource' } as Participant,
+    { id: 'ch:sqs:q', label: 'q', kind: 'channel', owner: 'zz' } as Participant];
+  const messages = [msg('svc:a1', 'svc:b1'), msg('svc:b1', 'res:redis:zz/k', { kind: 'resource', owner: 'zz' }), msg('svc:a2', 'res:redis:zz/k', { kind: 'resource', owner: 'zz' }),
+    msg('svc:a1', 'res:redis:a1/k', { kind: 'resource', owner: 'a1' }), msg('svc:a2', 'ch:sqs:q')];
+  assert.deepEqual(ids(groupedOrder(parts, messages, gr)), ['a1', 'res:redis:a1/k', 'a2', 'ch:sqs:q', 'b1', 'res:redis:zz/k']);
+});

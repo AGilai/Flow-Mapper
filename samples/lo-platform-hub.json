@@ -1,0 +1,140 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "lo-platform-hub",
+    "kind": "service",
+    "team": "platform",
+    "repo": "github.com/acme/lo-platform-hub",
+    "language": "typescript",
+    "description": "Demo #140: calls nine components of nine Platform subsystems: every shade keeps the Platform hue"
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-19T09:00:00Z",
+  "commit": "139140a",
+  "functions": [
+    {
+      "id": "fan",
+      "name": "fan out",
+      "file": "src/fan.ts",
+      "line": 3,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "p1.call"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "p2.call"
+        },
+        {
+          "seq": 3,
+          "type": "egress",
+          "target": "p3.call"
+        },
+        {
+          "seq": 4,
+          "type": "egress",
+          "target": "p4.call"
+        },
+        {
+          "seq": 5,
+          "type": "egress",
+          "target": "p5.call"
+        },
+        {
+          "seq": 6,
+          "type": "egress",
+          "target": "p6.call"
+        },
+        {
+          "seq": 7,
+          "type": "egress",
+          "target": "p7.call"
+        },
+        {
+          "seq": 8,
+          "type": "egress",
+          "target": "p8.call"
+        },
+        {
+          "seq": 9,
+          "type": "egress",
+          "target": "p9.call"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.fan",
+      "bindKey": "http:POST lo-platform-hub/fan",
+      "transport": "http",
+      "handler": "fan",
+      "entryPoint": true,
+      "details": {
+        "method": "POST",
+        "path": "/fan"
+      }
+    }
+  ],
+  "egress": [
+    {
+      "id": "p1.call",
+      "bindKey": "http:GET lo-platform-1/ping",
+      "transport": "http",
+      "mode": "sync"
+    },
+    {
+      "id": "p2.call",
+      "bindKey": "http:GET lo-platform-2/ping",
+      "transport": "http",
+      "mode": "sync"
+    },
+    {
+      "id": "p3.call",
+      "bindKey": "http:GET lo-platform-3/ping",
+      "transport": "http",
+      "mode": "sync"
+    },
+    {
+      "id": "p4.call",
+      "bindKey": "http:GET lo-platform-4/ping",
+      "transport": "http",
+      "mode": "sync"
+    },
+    {
+      "id": "p5.call",
+      "bindKey": "http:GET lo-platform-5/ping",
+      "transport": "http",
+      "mode": "sync"
+    },
+    {
+      "id": "p6.call",
+      "bindKey": "http:GET lo-platform-6/ping",
+      "transport": "http",
+      "mode": "sync"
+    },
+    {
+      "id": "p7.call",
+      "bindKey": "http:GET lo-platform-7/ping",
+      "transport": "http",
+      "mode": "sync"
+    },
+    {
+      "id": "p8.call",
+      "bindKey": "http:GET lo-platform-8/ping",
+      "transport": "http",
+      "mode": "sync"
+    },
+    {
+      "id": "p9.call",
+      "bindKey": "http:GET lo-platform-9/ping",
+      "transport": "http",
+      "mode": "sync"
+    }
+  ]
+}

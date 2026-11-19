@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "lo-worker-svc",
+    "kind": "service",
+    "team": "commerce",
+    "repo": "github.com/acme/lo-worker-svc",
+    "language": "typescript",
+    "description": "Demo #140: a flow that starts at the queue lo-entry-queue (declared by lo-intake-svc, Identity): the queue is labelled Entry and takes its owner's colour, not Commerce's"
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-19T09:00:00Z",
+  "commit": "139140a",
+  "functions": [
+    {
+      "id": "work",
+      "name": "work the entry",
+      "file": "src/work.ts",
+      "line": 6,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "p.charge"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.work",
+      "bindKey": "sqs:lo-entry-queue",
+      "transport": "sqs",
+      "handler": "work",
+      "entryPoint": true,
+      "events": [
+        {
+          "type": "entry.ready",
+          "handler": "work"
+        }
+      ]
+    }
+  ],
+  "egress": [
+    {
+      "id": "p.charge",
+      "bindKey": "http:POST payments-svc/payments/charge",
+      "transport": "http",
+      "mode": "sync"
+    }
+  ]
+}

@@ -7,7 +7,7 @@ import { markChips, chipsStack } from './flow-marks-draw.js';
 import { markerRuns, failNeed } from './flow-markers-draw.js';
 import { sharedVar } from '../design/component-colors.js';
 import { bandsOf } from './flow-stores-pure.js';
-import { subBands, subSubBands, SHARED, bandLabelPx, loneBandSpans } from './flow-bands.js';
+import { subBands, subSubBands, SHARED, ENTRY, bandLabelPx, loneBandSpans } from './flow-bands.js';
 import { BAND_H } from './flow-draw-bands.js';
 import { headIconOf } from './flow-draw-icons.js';
 import { FOLD_W, COL_NARROW, displayCols, foldGroups, planSqueeze } from './flow-squeeze.js';
@@ -27,6 +27,8 @@ export const markW = (m) => Math.ceil(m.label.length * (m.kind === 'key' ? 6.9 :
 export const FUNNEL = 'M1.5 2h9L7 6.3V10l-2-1V6.3z';
 
 /** layoutLane(lane, fit, sq) -> every measure the drawing needs; `fit`: the width the diagram has (0 = no limit); sq: { keep: [column index] } turns Squeeze on (flow-squeeze.js); det: step details on the arrows (flow-step-details.js): a step's row grows by what it shows above and below its line. */
+/** The label of a subsystem band cell: Shared, Entry (a queue-started flow's first column with no band of its own), or "Entry · <owner's subsystem>" when its owner's band covers only that column (#140). */
+const entryLabel = (r, columns, grp) => (r.key === SHARED ? 'Shared' : r.key === ENTRY ? 'Entry' : `${r.from === 0 && r.to === 0 && columns[0].kind === 'source' ? 'Entry · ' : ''}${grp.info(r.key)?.label ?? r.key}`);
 export function layoutLane(lane, fit = 0, sq = null, marks = null, edit = false, det = null, th = true) {
   const { columns, events, bars } = lane;
   // Each gap between lifelines grows to fit the longest arrow label that crosses it: a label is never cut.
@@ -42,7 +44,7 @@ export function layoutLane(lane, fit = 0, sq = null, marks = null, edit = false,
   const detailPx = (e) => { const p = det?.parts.get(e), t = det?.text.get(e); return p && (p.title || p.desc) ? 48 + Math.max(p.title ? t.title.length * 6.9 : 0, p.desc ? Math.min(t.desc.length, 34) * 6.3 : 0) : 0; }; // step details on the arrow widen the gap it crosses (a description up to 34 characters, the rest is cut)
   // #127: a band over one lane widens its gaps until its label shows whole (bands as they are drawn with nothing folded)
   const grpB = lane.group ?? null, bandSpans = grpB ? [
-    ...loneBandSpans(subBands(columns, new Set(), grpB.subOf), columns.length, (r) => bandLabelPx(r.key === SHARED ? 'Shared' : grpB.info(r.key)?.label ?? r.key, { icon: !!grpB.info(r.key)?.icon, isNew: grpB.markOf(r.key) === 'new', add: edit }), COL_MIN - 8),
+    ...loneBandSpans(subBands(columns, new Set(), grpB.subOf), columns.length, (r) => bandLabelPx(entryLabel(r, columns, grpB), { icon: !!grpB.info(r.key)?.icon, isNew: grpB.markOf(r.key) === 'new', add: edit }), COL_MIN - 8),
     ...(grpB.subOf2 ? loneBandSpans(subSubBands(columns, new Set(), grpB.subOf2), columns.length, (r) => bandLabelPx(grpB.subLabel(r.key), { sub2: true }), COL_MIN - 8) : [])] : [];
   const spans = [...bandSpans, ...events.flatMap((e) => {
     const ends = e.type === 'hop' ? [e.from, e.to] : arrowEnds(e);
@@ -74,7 +76,8 @@ export function layoutLane(lane, fit = 0, sq = null, marks = null, edit = false,
   const heads = columns.map((c) => (c.sub === 'queue delivery' ? { name: clampLines(wrapId(c.label.replace(/^[^:]+:/, ''), nameCh(c)), nameCh(c)), sub: [] } : { name: clampLines(wrapId(c.label, nameCh(c)), nameCh(c)), sub: isCh(c) ? [c.sub] : wrapId(c.sub ?? '', c.kind === 'resource' ? Math.max(10, Math.floor((headW(c, COLW) - 38) / 5.8)) : subCh) }));
   const boxH = 12 + Math.max(...heads.map((x) => x.name.length * LINE_H + x.sub.length * 13)) + 6, grp = lane.group ?? null, subRuns = grp ? subBands(columns, folded, grp.subOf) : [], sub2Runs = grp?.subOf2 ? subSubBands(columns, folded, grp.subOf2) : [], hasStore = columns.some((c) => c.kind === 'resource');
   const bandH = BAND_H * ((subRuns.length ? 1 : 0) + (sub2Runs.length ? 1 : 0) + (hasStore ? 1 : 0)), HEAD = boxH + 16 + bandH + (lane.internal ? INT_H : 0); // bandH: the band rows over the heads (flow-draw-bands.js): subsystems on top, then the sub-subsystems, then data stores
-  const subRow = subRuns.map((r) => ({ ...r, sub: true, row: 0, label: r.key === SHARED ? 'Shared' : grp.info(r.key)?.label ?? r.key, icon: grp.info(r.key)?.icon ?? null, mark: grp.markOf(r.key) }));
+  if (grp && columns[0]?.kind === 'source' && columns[0].transport && !folded.has(0) && !subRuns.some((r) => r.from === 0)) subRuns.unshift({ key: ENTRY, from: 0, to: 0 }); // #140: a flow that starts at a queue: its first column is labelled Entry, not left bare beside another domain's band
+  const subRow = subRuns.map((r) => ({ ...r, sub: true, row: 0, label: entryLabel(r, columns, grp), icon: grp.info(r.key)?.icon ?? null, mark: grp.markOf(r.key) }));
   const sub2Row = sub2Runs.map((r) => ({ ...r, sub: true, sub2: true, row: 1, label: grp.subLabel(r.key), icon: null, mark: null }));
   const bands = [...subRow, ...sub2Row, ...bandsOf(columns, folded).map((b) => ({ ...b, row: (subRuns.length ? 1 : 0) + (sub2Runs.length ? 1 : 0) }))];
   const frames = altFrames(lane.altMsgs), strips = stripsByRow(frames, lane.altRows);

@@ -79,8 +79,8 @@ test('groupColumns: a store goes right after its owner subsystem, whatever compo
 });
 
 test('groupColumns: a store with no owner, or an owner in no subsystem, goes to the end of the components (the Shared band); collections of one store stay together', () => {
-  const cols = [svc('agent'), store('res:a/x'), store('res:b', 'loose'), svc('pop-edge'), store('res:a/y'), store('res:c', 'auth'), svc('auth'), ch('t')];
-  assert.deepEqual(names(groupColumns(cols, subOf)), ['agent', 'pop-edge', 'auth', 'res:c', 'res:a/x', 'res:b', 'res:a/y', 't']); // Shared keeps the stores' order
+  const cols = [svc('agent'), store('res:a/x'), store('res:b', 'loose'), svc('pop-edge'), store('res:a/y'), store('res:c', 'auth'), svc('auth'), svc('loose'), ch('t')];
+  assert.deepEqual(names(groupColumns(cols, subOf)), ['agent', 'pop-edge', 'auth', 'res:c', 'loose', 'res:a/x', 'res:b', 'res:a/y', 't']); // Shared keeps the stores' order
 });
 
 test('groupColumns: a store whose owner subsystem has no component in the flow still gets that subsystem band, before Shared', () => {
@@ -106,4 +106,13 @@ test('groupColumns with the environment order (#138): two parents with two child
   const ranked = ['platform', 'platform\n', 'platform\nplatform/identity', 'platform\nplatform/objects', 'agent', 'agent\n', 'agent\nagent/core', 'agent\nagent/net'];
   const cols = [{ id: 'client', kind: 'client', label: 'client' }, svc('b1'), svc('a2'), svc('b2'), svc('a1'), svc('a0')];
   assert.deepEqual(names(groupColumns(cols, top, two, ranked)), ['client', 'a0', 'a1', 'a2', 'b2', 'b1']);
+});
+
+test('#139 groupColumns: a store / channel whose owner is not in the flow stays next to its first accessor / sender; an owner in the flow still wins', () => {
+  const q = { ...ch('sqs:q'), owner: 'cfg' };
+  const cols = [svc('agent'), svc('auth'), store('res:zz', 'gone'), svc('pop-edge'), store('res:users', 'users'), svc('users'), q, svc('pop-swg')];
+  const out = names(groupColumns(cols, subOf));
+  assert.equal(out[out.indexOf('res:zz') - 1], 'auth', 'after auth, its first accessor');
+  assert.equal(out.indexOf('res:users'), out.indexOf('users') + 2, 'right after its owner (the channel of the absent owner is between: it follows the nearest component)');
+  assert.equal(out[out.indexOf('sqs:q') - 1], 'users', 'after the nearest component before it in the trace order');
 });

@@ -7,7 +7,7 @@ import { h, s } from '../dom.js';
 import { productImage } from './flow-draw-icons.js';
 import { subIcon, GLYPH } from '../icons.js';
 import { bandLabelPx } from './flow-bands.js';
-import { bandVar } from '../design/family-colours.js';
+import { bandVar, familyOf } from '../design/family-colours.js';
 import { state } from '../state.js';
 
 export const BAND_H = 26; // the row each kind of band takes above the heads
@@ -31,7 +31,7 @@ export const drawBands = (bands, { colX, headBox, columns, groups = [], onAdd = 
   let x = side(b.from, -1) + GAP / 2, w = side(b.to, 1) - x - GAP / 2;
   // #127: a subsystem band over one lane is as wide as its label needs, centred on the head (flow-draw-layout.js made room in the gaps beside it)
   if (b.sub && b.from === b.to && !groups.some((f) => f.cols.includes(b.from))) { const n = bandLabelPx(b.label, { icon: !!b.icon, isNew: b.mark === 'new', sub2: !!b.sub2, add: !!onAdd && !b.sub2 }); if (n > w) { x -= (n - w) / 2; w = n; } }
-  if (b.sub) return subBand(b, x, y, w, onAdd, bandVar(a.env ?? state.env, b.key)); // frame 31: Colour by Domain, the band takes its domain's / subsystem's colour
+  if (b.sub) return subBand(b, x, y, w, onAdd, b.key === '~entry' ? (a.owner ? familyOf(a.env ?? state.env, a.owner)?.dom ?? null : null) : bandVar(a.env ?? state.env, b.key)); // frame 31: Colour by Domain, the band takes its domain's / subsystem's colour
   const room = Math.floor((w - 36) / 6.6); // the label ends in an ellipsis when it does not fit (the title has it all)
   // With a product logo the logo names the kind, so the visible text drops the "<kind>: " prefix and keeps the store name.
   const logo = productImage('store', a.storeKind, 8, 5, 12), text = logo && b.label.startsWith(`${a.storeKind}: `) ? b.label.slice(a.storeKind.length + 2) : b.label;
@@ -41,7 +41,7 @@ export const drawBands = (bands, { colX, headBox, columns, groups = [], onAdd = 
 /** A subsystem band: icon (none: the name only), label, the New spark, and in Edit a "+" at its end. */
 function subBand(b, x, y, w, onAdd, fam = null) {
   const sub2 = !!b.sub2, ic = b.icon ? subIcon(b.icon, 16) : null, left = ic ? 28 : 10, isNew = b.mark === 'new';
-  const add = onAdd && !sub2 && b.key !== '~shared' && w >= 90 ? s('g', { class: 'band-add', 'data-qa': 'band-add', 'data-key': b.key, transform: `translate(${w - 20} 2)`, tabindex: 0, role: 'button', 'aria-label': `Add a component to ${b.label}` },
+  const add = onAdd && !sub2 && b.key !== '~shared' && b.key !== '~entry' && w >= 90 ? s('g', { class: 'band-add', 'data-qa': 'band-add', 'data-key': b.key, transform: `translate(${w - 20} 2)`, tabindex: 0, role: 'button', 'aria-label': `Add a component to ${b.label}` },
     s('rect', { width: 18, height: 18, rx: 4 }), s('path', { d: 'M9 5v8M5 9h8' }), s('title', {}, `Add a component to ${b.label}`)) : null;
   const room = Math.floor((w - left - (isNew ? 22 : 8) - (add ? 22 : 0)) / 6.8), shown = clip(b.label, Math.max(room, 1));
   if (ic) { ic.setAttribute('x', 8); ic.setAttribute('y', 3); }
@@ -49,7 +49,7 @@ function subBand(b, x, y, w, onAdd, fam = null) {
   add?.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onAdd(b.key); } });
   const fs = fam ? { style: `--fam:${fam}` } : {}, bar = fam ? s('rect', { class: 'fam-bar', width: 4, height: 22, rx: 2 }) : null;
   if (sub2) return s('g', { class: `band sub sub2${fam ? ' fam' : ''}`, 'data-sub2': b.key, ...fs, transform: `translate(${x} ${y})` }, s('rect', { width: w, height: 22, rx: 4 }), bar, room >= 3 ? s('text', { x: 10, y: 15 }, shown) : null, s('title', {}, b.label)); // the second level (0.50.0): its name only, lighter than the subsystem row, no icon, no details
-  return s('g', { class: `band sub${isNew ? ' isnew' : ''}${fam ? ' fam' : ''}`, 'data-sub': b.key, ...fs, ...(b.key !== '~shared' ? { tabindex: 0, role: 'button', 'aria-label': `Details of ${b.label}` } : {}), transform: `translate(${x} ${y})` }, s('rect', { width: w, height: 22, rx: 4 }), bar, ic,
+  return s('g', { class: `band sub${isNew ? ' isnew' : ''}${fam ? ' fam' : ''}`, 'data-sub': b.key, ...fs, ...(b.key !== '~shared' && b.key !== '~entry' ? { tabindex: 0, role: 'button', 'aria-label': `Details of ${b.label}` } : {}), transform: `translate(${x} ${y})` }, s('rect', { width: w, height: 22, rx: 4 }), bar, ic,
     room >= 3 ? s('text', { x: left, y: 15 }, shown) : null,
     isNew && room >= 3 ? s('path', { class: 'band-spark', d: GLYPH.new.d, transform: `translate(${left + shown.length * 6.8 + 4} 5)` }) : null,
     add, s('title', {}, isNew ? `${b.label} (new subsystem)` : b.label));

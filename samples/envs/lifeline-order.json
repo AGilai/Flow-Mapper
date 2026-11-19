@@ -5,25 +5,171 @@
   "behaviour": true,
   "entryPoints": "keep",
   "groups": [
-    { "key": "edge", "label": "Edge" },
-    { "key": "commerce", "label": "Commerce" },
-    { "key": "commerce/orders", "label": "Orders" },
-    { "key": "commerce/billing", "label": "Billing" },
-    { "key": "fulfilment", "label": "Fulfilment" },
-    { "key": "fulfilment/shipping", "label": "Shipping" },
-    { "key": "fulfilment/stock", "label": "Stock" },
-    { "key": "identity", "label": "Identity" }
+    {
+      "key": "edge",
+      "label": "Edge"
+    },
+    {
+      "key": "commerce",
+      "label": "Commerce"
+    },
+    {
+      "key": "commerce/orders",
+      "label": "Orders"
+    },
+    {
+      "key": "commerce/billing",
+      "label": "Billing"
+    },
+    {
+      "key": "fulfilment",
+      "label": "Fulfilment"
+    },
+    {
+      "key": "fulfilment/shipping",
+      "label": "Shipping"
+    },
+    {
+      "key": "fulfilment/stock",
+      "label": "Stock"
+    },
+    {
+      "key": "identity",
+      "label": "Identity"
+    },
+    {
+      "key": "platform",
+      "label": "Platform"
+    },
+    {
+      "key": "platform/p1",
+      "label": "Platform 1"
+    },
+    {
+      "key": "platform/p2",
+      "label": "Platform 2"
+    },
+    {
+      "key": "platform/p3",
+      "label": "Platform 3"
+    },
+    {
+      "key": "platform/p4",
+      "label": "Platform 4"
+    },
+    {
+      "key": "platform/p5",
+      "label": "Platform 5"
+    },
+    {
+      "key": "platform/p6",
+      "label": "Platform 6"
+    },
+    {
+      "key": "platform/p7",
+      "label": "Platform 7"
+    },
+    {
+      "key": "platform/p8",
+      "label": "Platform 8"
+    },
+    {
+      "key": "platform/p9",
+      "label": "Platform 9"
+    }
   ],
   "services": [
-    { "name": "api-gateway", "groupPath": "edge" },
-    { "name": "orders-svc", "groupPath": "commerce/orders" },
-    { "name": "payments-svc", "groupPath": "commerce/billing" },
-    { "name": "analytics-svc", "groupPath": "commerce/billing" },
-    { "name": "shipping-svc", "groupPath": "fulfilment/shipping" },
-    { "name": "notifications-svc", "groupPath": "fulfilment/shipping" },
-    { "name": "inventory-svc", "groupPath": "fulfilment/stock" },
-    { "name": "users-svc", "groupPath": "identity" },
-    { "name": "ext-payments-gateway" }
+    {
+      "name": "api-gateway",
+      "groupPath": "edge"
+    },
+    {
+      "name": "orders-svc",
+      "groupPath": "commerce/orders"
+    },
+    {
+      "name": "payments-svc",
+      "groupPath": "commerce/billing"
+    },
+    {
+      "name": "analytics-svc",
+      "groupPath": "commerce/billing"
+    },
+    {
+      "name": "shipping-svc",
+      "groupPath": "fulfilment/shipping"
+    },
+    {
+      "name": "notifications-svc",
+      "groupPath": "fulfilment/shipping"
+    },
+    {
+      "name": "inventory-svc",
+      "groupPath": "fulfilment/stock"
+    },
+    {
+      "name": "users-svc",
+      "groupPath": "identity"
+    },
+    {
+      "name": "ext-payments-gateway"
+    },
+    {
+      "name": "lo-cache-owner",
+      "groupPath": "commerce/orders"
+    },
+    {
+      "name": "lo-report-api",
+      "groupPath": "fulfilment/stock"
+    },
+    {
+      "name": "lo-intake-svc",
+      "groupPath": "identity"
+    },
+    {
+      "name": "lo-worker-svc",
+      "groupPath": "commerce/billing"
+    },
+    {
+      "name": "lo-platform-hub",
+      "groupPath": "platform"
+    },
+    {
+      "name": "lo-platform-1",
+      "groupPath": "platform/p1"
+    },
+    {
+      "name": "lo-platform-2",
+      "groupPath": "platform/p2"
+    },
+    {
+      "name": "lo-platform-3",
+      "groupPath": "platform/p3"
+    },
+    {
+      "name": "lo-platform-4",
+      "groupPath": "platform/p4"
+    },
+    {
+      "name": "lo-platform-5",
+      "groupPath": "platform/p5"
+    },
+    {
+      "name": "lo-platform-6",
+      "groupPath": "platform/p6"
+    },
+    {
+      "name": "lo-platform-7",
+      "groupPath": "platform/p7"
+    },
+    {
+      "name": "lo-platform-8",
+      "groupPath": "platform/p8"
+    },
+    {
+      "name": "lo-platform-9",
+      "groupPath": "platform/p9"
+    }
   ],
   "createdBy": "seed"
 }
