@@ -10,6 +10,7 @@ import { bandsOf } from './flow-stores-pure.js';
 import { subBands, subSubBands, bandBreaks, SHARED, ENTRY, bandLabelPx, loneBandSpans } from './flow-bands.js';
 import { BAND_H } from './flow-draw-bands.js';
 import { headIconOf } from './flow-draw-icons.js';
+import { isLarge, productOf, clipProduct, nameChLarge, largeExtra } from './flow-head-large.js';
 import { FOLD_W, COL_NARROW, displayCols, foldGroups, planSqueeze } from './flow-squeeze.js';
 import { BLOCKED_H, BLOCKED_LINE, isBlockedEvent, blockedNeed, frontierNeed } from './flow-draw-incomplete.js';
 
@@ -70,12 +71,13 @@ export function layoutLane(lane, fit = 0, sq = null, marks = null, edit = false,
   const plan = (keep) => planSqueeze({ n: columns.length, ends: keep, fit, widthOf: (f, o) => layout(o.narrow ? COL_NARROW : COL_MIN, f, o.foldW).width });
   let L = fitted(new Set()), folded = new Set(), fw = FOLD_W, sig = '';
   if (sq && fit && L.width > fit) { const P = plan(sq.keep); ({ folded, foldW: fw, key: sig } = P); if (folded.size) L = fitted(folded, fw, P.narrow ? COL_NARROW : COL_MIN); }
-  const { xs, col: COLW, width } = L, HEAD_BOX = COLW - 8, nameCh = (c) => Math.max(9, Math.floor((headW(c, COLW) - (c.kind === 'resource' || headIconOf(c) ? 34 : 14) - (lane.storeOn && c.kind === 'resource' && (c.storeKind === 'redis' || c.storeKind === 'mongodb') ? 24 : 0)) / 6.6)); // a store head, or one with a product icon, has it before the name; a Redis or Mongo head (#86) keeps a 24 px slot at its right edge for the list glyph
+  const { xs, col: COLW, width } = L, HEAD_BOX = COLW - 8, nameCh = (c) => isLarge(c) ? nameChLarge(headW(c, COLW)) : Math.max(9, Math.floor((headW(c, COLW) - (c.kind === 'resource' || headIconOf(c) ? 34 : 14) - (lane.storeOn && c.kind === 'resource' && (c.storeKind === 'redis' || c.storeKind === 'mongodb') ? 24 : 0)) / 6.6)); // a store head, or one with a product icon, has it before the name; a Redis or Mongo head (#86) keeps a 24 px slot at its right edge for the list glyph
   const colX = new Map(columns.map((c, i) => [c, xs[i]]));
   // a queue head drops its transport prefix and the 'queue delivery' line (the title keeps both): two lines at most
   const subCh = COLW < COL_MIN ? Math.max(10, Math.floor((COLW - 22) / 5.8)) : SUB_CH; // narrowed heads (Squeeze, last stage) wrap the sub line shorter
-  const heads = columns.map((c) => (c.sub === 'queue delivery' ? { name: clampLines(wrapId(c.label.replace(/^[^:]+:/, ''), nameCh(c)), nameCh(c)), sub: [] } : { name: clampLines(wrapId(c.label, nameCh(c)), nameCh(c)), sub: isCh(c) ? [c.sub] : wrapId(c.sub ?? '', c.kind === 'resource' ? Math.max(10, Math.floor((headW(c, COLW) - 38) / 5.8)) : subCh) }));
-  const boxH = 12 + Math.max(...heads.map((x) => x.name.length * LINE_H + x.sub.length * 13)) + 6, grp = lane.group ?? null, subRuns = grp ? subBands(columns, folded, grp.subOf, undefined, brk) : [], sub2Runs = grp?.subOf2 ? subSubBands(columns, folded, grp.subOf2, brk) : [], hasStore = columns.some((c) => c.kind === 'resource');
+  const heads = columns.map((c) => (c.sub === 'queue delivery' ? { name: clampLines(wrapId(c.label.replace(/^[^:]+:/, ''), nameCh(c)), nameCh(c)), sub: [] } : { big: isLarge(c), product: clipProduct(productOf(c), headW(c, COLW)), name: clampLines(wrapId(c.label, nameCh(c)), nameCh(c)), sub: isCh(c) ? [c.sub] : wrapId(c.sub ?? '', c.kind === 'resource' ? Math.max(10, Math.floor((headW(c, COLW) - 38) / 5.8)) : subCh) }));
+  const boxH = 12 + Math.max(...heads.map((x, i) => x.name.length * LINE_H + x.sub.length * 13 + largeExtra(columns[i]))) + 6, // CR #148: a head with a large logo grows the box
+     grp = lane.group ?? null, subRuns = grp ? subBands(columns, folded, grp.subOf, undefined, brk) : [], sub2Runs = grp?.subOf2 ? subSubBands(columns, folded, grp.subOf2, brk) : [], hasStore = columns.some((c) => c.kind === 'resource');
   const bandH = BAND_H * ((subRuns.length ? 1 : 0) + (sub2Runs.length ? 1 : 0) + (hasStore ? 1 : 0)), HEAD = boxH + 16 + bandH + (lane.internal ? INT_H : 0); // bandH: the band rows over the heads (flow-draw-bands.js): subsystems on top, then the sub-subsystems, then data stores
   if (grp && columns[0]?.kind === 'source' && columns[0].transport && !folded.has(0) && !subRuns.some((r) => r.from === 0)) subRuns.unshift({ key: ENTRY, from: 0, to: 0 }); // #140: a flow that starts at a queue: its first column is labelled Entry, not left bare beside another domain's band
   const subRow = subRuns.map((r) => ({ ...r, sub: true, row: 0, label: entryLabel(r, columns, grp), icon: grp.info(r.key)?.icon ?? null, mark: grp.markOf(r.key) }));

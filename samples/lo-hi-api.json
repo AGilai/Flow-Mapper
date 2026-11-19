@@ -1,0 +1,86 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "lo-hi-api",
+    "kind": "service",
+    "team": "platform",
+    "repo": "github.com/acme/lo-hi-api",
+    "language": "typescript",
+    "description": "Demo #148: heads with a large component logo"
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-19T14:00:00Z",
+  "commit": "148a",
+  "functions": [
+    {
+      "id": "h",
+      "name": "handle",
+      "file": "src/h.ts",
+      "line": 5,
+      "steps": [
+        {
+          "seq": 1,
+          "type": "egress",
+          "target": "o.lo-hi-vault"
+        },
+        {
+          "seq": 2,
+          "type": "egress",
+          "target": "o.lo-hi-identity-provider-service"
+        },
+        {
+          "seq": 3,
+          "type": "egress",
+          "target": "o.lo-hi-mongo"
+        },
+        {
+          "seq": 4,
+          "type": "egress",
+          "target": "o.lo-hi-plain"
+        }
+      ]
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.x",
+      "bindKey": "http:GET lo-hi-api/x",
+      "transport": "http",
+      "handler": "h",
+      "entryPoint": true,
+      "details": {
+        "method": "GET",
+        "path": "/x"
+      }
+    }
+  ],
+  "egress": [
+    {
+      "id": "o.lo-hi-vault",
+      "bindKey": "http:GET lo-hi-vault/x",
+      "transport": "http",
+      "mode": "sync"
+    },
+    {
+      "id": "o.lo-hi-identity-provider-service",
+      "bindKey": "http:GET lo-hi-identity-provider-service/x",
+      "transport": "http",
+      "mode": "sync"
+    },
+    {
+      "id": "o.lo-hi-mongo",
+      "bindKey": "http:GET lo-hi-mongo/x",
+      "transport": "http",
+      "mode": "sync"
+    },
+    {
+      "id": "o.lo-hi-plain",
+      "bindKey": "http:GET lo-hi-plain/x",
+      "transport": "http",
+      "mode": "sync"
+    }
+  ],
+  "resources": []
+}

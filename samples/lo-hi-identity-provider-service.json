@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "lo-hi-identity-provider-service",
+    "kind": "service",
+    "team": "platform",
+    "repo": "github.com/acme/lo-hi-identity-provider-service",
+    "language": "typescript",
+    "description": "Demo #148: heads with a large component logo",
+    "details": {
+      "icon": "auth0",
+      "product": "Auth0 identity platform"
+    }
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-19T14:00:00Z",
+  "commit": "148a",
+  "functions": [
+    {
+      "id": "h",
+      "name": "handle",
+      "file": "src/h.ts",
+      "line": 5,
+      "steps": []
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.x",
+      "bindKey": "http:GET lo-hi-identity-provider-service/x",
+      "transport": "http",
+      "handler": "h",
+      "entryPoint": false,
+      "details": {
+        "method": "GET",
+        "path": "/x"
+      }
+    }
+  ],
+  "egress": [],
+  "resources": []
+}

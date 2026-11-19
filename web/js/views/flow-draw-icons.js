@@ -27,9 +27,9 @@ export const productImage = (type, kind, x, y, size = 14) => {
 };
 
 /** The icon of a lifeline head; a folded store stack gets a faded copy behind. null: the caller draws its own glyph. */
-export function headIcon(c) {
+export function headIcon(c, w = 130) {
   const k = headIconOf(c);
   if (!k) return null;
-  if (k[0] === 'own') return compIconSvg(k[1], 12, 10, 14);
+  if (k[0] === 'own') { const z = Math.max(16, Math.min(30, w - 28)); return compIconSvg(k[1], (w - z) / 2, 8, z); } // CR #148: large, centred at the top (flow-head-large.js)
   return [c.stack ? s('g', { opacity: 0.45 }, productImage(k[0], k[1], 16, 14)) : null, productImage(k[0], k[1], 12, 10)];
 }

@@ -302,6 +302,21 @@
     },
     {
       "name": "lo-ic-brand"
+    },
+    {
+      "name": "lo-hi-api"
+    },
+    {
+      "name": "lo-hi-vault"
+    },
+    {
+      "name": "lo-hi-identity-provider-service"
+    },
+    {
+      "name": "lo-hi-mongo"
+    },
+    {
+      "name": "lo-hi-plain"
     }
   ],
   "createdBy": "seed"
