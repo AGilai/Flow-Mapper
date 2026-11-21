@@ -124,6 +124,18 @@ Drill 2, EBS snapshot: find the latest snapshot of `flows-data` (EC2 console, Sn
 
 Repeat a drill after the first deploy and after any change to the backup settings. A backup that was never restored is not known to work.
 
+## Components that still rely on legacy icon fields (0.68.0)
+
+`type` replaces `details.icon` and `details.product` ([API.md](API.md), "Component types"). Migration 021 added `type` to every stored header that had a built-in `details.icon`; the old fields stay. To see what is left, run the read-only report (it opens the file read-only: no migration, nothing written):
+
+```
+FLOW_DB=/path/to/flow-mapper.db node --disable-warning=ExperimentalWarning scripts/type-report.ts [--drafts] [--json]
+```
+
+Per environment it lists: `builtin-icon` (a built-in icon and no type yet: it reads as the type, the next ingest or the migration adds it), `icon-no-type` (`aws-ec2`, `aws-iam`: no catalogue type), `custom-icon` (a custom SVG or data-URL icon, no longer shown), `product-text` (`details.product` text that matches no catalogue label, no longer shown), `unknown-type` (a value outside the catalogue; stored, reads as `service`), each with the type the component resolves to now. `--drafts` adds the open drafts' header upserts. The Link health page does not list these (script only).
+
+Rolling back to 0.67.0 needs nothing: the migration only adds `type`, an older server ignores it and still draws the same data from `details.icon` / `details.product`. The migration backs the database up to `<db>.pre-021.bak` first.
+
 ## Loading an existing database file
 Copy the file in with the services stopped, then let Litestream take over:
 ```

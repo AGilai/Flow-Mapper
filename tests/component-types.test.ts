@@ -9,6 +9,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { openDb } from '../server/db/connection.ts';
+import { findings } from '../core/type-report.ts';
 import { storedHeader, GENERIC_TYPES, SPECIFIC_TYPES, TYPES, LEGACY_ICONS, resolveType, legacyType, typeFields, withType, searchTypes, isGeneric, STORE_TYPE, CHANNEL_TYPE } from '../core/component-types.ts';
 import { designEditOps } from '../core/design-edit.ts';
 import { createValidator } from '../core/schema-validate.ts';
@@ -223,4 +224,16 @@ test('a header read back from the API and written again is its stored form (the 
   assert.deepEqual(storedHeader({ type: 'auth0', typeSource: 'declared' }), { type: 'auth0' });
   const plain = { kind: 'service', type: 'idp' };
   assert.equal(storedHeader(plain), plain);
+});
+
+test('type report findings: what still relies on legacy fields, and what it resolves to', () => {
+  const SVG = '<svg xmlns="http://www.w3.org/2000/svg"></svg>';
+  assert.deepEqual(findings({ type: 'auth0', details: { icon: 'auth0', product: 'Auth0' } }), [], 'typed, product equals the label: nothing');
+  assert.deepEqual(findings({ details: { icon: 'vault' } }).map((f) => [f.reason, f.resolves]), [['builtin-icon', 'hashicorp-vault']]);
+  assert.deepEqual(findings({ details: { icon: SVG } }).map((f) => [f.reason, f.resolves]), [['custom-icon', 'service']]);
+  assert.deepEqual(findings({ details: { icon: 'aws-ec2' } }).map((f) => f.reason), ['icon-no-type']);
+  assert.deepEqual(findings({ type: 'idp', details: { product: 'Home-grown login' } }).map((f) => f.reason), ['product-text']);
+  assert.deepEqual(findings({ type: 'mainframe' }).map((f) => [f.reason, f.value, f.resolves]), [['unknown-type', 'mainframe', 'service']]);
+  assert.deepEqual(findings({ kind: 'lambda' }), [], 'a kind alone is not legacy data');
+  assert.deepEqual(findings({}), []);
 });

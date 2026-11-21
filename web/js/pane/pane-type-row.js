@@ -36,14 +36,14 @@ export function typeRow(svc, { env, name, canEdit }) {
       if (generic && !q.value.trim()) {
         const g = typeInfo(generic);
         list.replaceChildren(h('div.ic-gh', h('button.ic-back', { type: 'button', 'data-qa': 'type-back', on: { click: () => { generic = null; paint(); } } }, '‹ Back'), ` ${g.label}`),
-          h('div.ic-g', tile(g, 'Generic only', p.id === g.id, () => save(g.id), 'generic-only'), specificsOf(generic).map((t) => tile(t, t.label, p.id === t.id, () => save(t.id)))));
+          h('div.ic-g.c3', tile(g, 'Generic only', p.id === g.id, () => save(g.id), 'generic-only'), specificsOf(generic).map((t) => tile(t, t.label, p.id === t.id, () => save(t.id)))));
         count.textContent = '';
         return;
       }
       const hit = searchTypes(q.value), words = !!q.value.trim(), n = hit.generic.length + (words ? hit.specific.length : 0);
       count.textContent = words ? `${n} ${n === 1 ? 'match' : 'matches'}` : '';
-      list.replaceChildren(...(n ? [h('div.ic-gh', words ? 'Types' : 'What is it?'), h('div.ic-g', hit.generic.map((t) => tile(t, t.label, p.generic === t.id && p.id === t.id, () => { generic = t.id; q.value = ''; paint(); }))),
-        ...(words && hit.specific.length ? [h('div.ic-gh', 'Specific'), h('div.ic-g', hit.specific.map((t) => tile(t, t.label, p.id === t.id, () => save(t.id))))] : [])] : [h('div.ic-none', 'No type matches.')]));
+      list.replaceChildren(...(n ? [...(hit.generic.length ? [h('div.ic-gh', words ? 'Types' : 'What is it?'), h('div.ic-g', hit.generic.map((t) => tile(t, t.label, p.generic === t.id && p.id === t.id, () => { generic = t.id; q.value = ''; paint(); })))] : []),
+        ...(words && hit.specific.length ? [h('div.ic-gh', 'Specific'), h('div.ic-g.c3', hit.specific.map((t) => tile(t, t.label, p.id === t.id, () => save(t.id))))] : [])] : [h('div.ic-none', 'No type matches.')]));
     };
     q.addEventListener('input', paint); paint();
     const x = h('div.ic-x', h('button', { type: 'button', class: svc.type ? '' : 'on', 'data-qa': 'type-none', on: { click: () => save(null) } }, 'None (service)'));
