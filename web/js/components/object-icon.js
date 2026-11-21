@@ -4,7 +4,7 @@
 
 import { h } from '../dom.js';
 import { icon } from '../icons.js';
-import { iconSrc } from './icon-src.js';
+import { typeSrc } from './type-info.js';
 
 // `${type}:${kind}` (or just type) → file in web/icons/ without .svg
 const FILES = {
@@ -48,5 +48,5 @@ export function iconImage(type, kind, onLoad) {
   const f = iconFile(type, kind);
   return f ? srcImage(`icons/${f}.svg`, onLoad) : null;
 }
-/** CR #144: the canvas image of a component's own icon (`details.icon`), or null until it has loaded. */
-export const compImage = (value, onLoad) => { const src = iconSrc(value); return src ? srcImage(src, onLoad) : null; };
+/** Frame 34: the canvas image of a component's type icon (a generic type has a Light and a Dark file), or null until it has loaded. */
+export const compImage = (id, dark, onLoad) => { const src = typeSrc(id, dark); return src ? srcImage(src, onLoad) : null; };

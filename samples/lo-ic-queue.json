@@ -5,13 +5,11 @@
   "service": {
     "name": "lo-ic-queue",
     "kind": "service",
+    "type": "aws-sqs",
     "team": "platform",
     "repo": "github.com/acme/lo-ic-queue",
     "language": "typescript",
-    "description": "Demo #144: a worker that reads an SQS queue",
-    "details": {
-      "icon": "aws-sqs"
-    }
+    "description": "Demo #144: a worker that reads an SQS queue"
   },
   "version": 1,
   "harvestedAt": "2026-11-19T12:00:00Z",

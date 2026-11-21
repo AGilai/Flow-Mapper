@@ -1,6 +1,7 @@
 // Service view data: one service's ingress (with callers), egress (with targets),
 // resources (with operations), channels it declares, and its functions.
 
+import { withTypeFields } from './component-types.ts';
 import type { GraphIndex } from './graph-index.ts';
 import { downstreamIngress, itemsOf, sid, upstreamEgress } from './graph-index.ts';
 import type { Ref } from './types.ts';
@@ -76,7 +77,7 @@ export function serviceView(g: GraphIndex, name: string) {
   }));
 
   return {
-    service: s,
+    service: withTypeFields(s),
     ...externalField(g, name),
     ingress,
     egress,

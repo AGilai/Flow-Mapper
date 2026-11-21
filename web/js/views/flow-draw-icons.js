@@ -3,21 +3,20 @@
 
 import { s } from '../dom.js';
 import { iconFile } from '../components/object-icon.js';
-import { kindFor, iconFor } from '../design/service-info.js';
+import { kindFor, typeFor } from '../design/service-info.js';
 import { compIconSvg } from '../components/comp-icon.js';
+import { resolveType, storeTypeOf, channelTypeOf } from '../components/type-info.js';
 
 const CH_KIND = { sns: 'sns-topic', sqs: 'sqs-queue', eventbridge: 'eventbridge-bus', amqp: 'amqp-queue' }; // a channel lifeline knows its transport (flow-chain.js chType)
-export const TEXT_X = 32; // x of a head's text when the head has an icon before it (14px icon at x 12)
+export const TEXT_X = 32; // x of a head's text when the head has a small icon before it (14px icon at x 12)
 
-/** CR #144: the component's own icon (`details.icon`) when a service head has one; it wins over the product icon of its kind. */
-const ownIcon = (c) => (c.kind === 'service' ? iconFor(c.service, c.env ?? '') : null);
-
-/** The [type, kind] of the icon a lifeline head shows, or null. A service shows one only when it is a lambda or a gateway, or has its own icon (then ['own', value]). */
+/** The type a lifeline head draws, as ['own', typeId], or null. Frame 34: a service head's resolved type (declared, legacy details.icon, kind), a store's driver, a channel's transport; plain `service` has none. */
 export function headIconOf(c) {
-  const own = ownIcon(c);
-  if (own) return ['own', own];
-  const [type, kind] = c.kind === 'resource' ? ['store', c.storeKind] : c.kind === 'channel' || (c.kind === 'source' && c.transport) ? ['channel', CH_KIND[c.transport] ?? c.transport] : c.kind === 'service' ? ['service', c.serviceKind ?? kindFor(c.service, c.env)] : [];
-  return type && iconFile(type, kind) ? [type, kind] : null;
+  let id = null;
+  if (c.kind === 'resource') id = storeTypeOf(c.storeKind);
+  else if (c.kind === 'channel' || (c.kind === 'source' && c.transport)) id = channelTypeOf(CH_KIND[c.transport] ?? c.transport);
+  else if (c.kind === 'service') { const t = typeFor(c.service, c.env ?? '') ?? resolveType({ kind: c.serviceKind ?? kindFor(c.service, c.env) }); id = t.id === 'service' ? null : t.id; }
+  return id ? ['own', id] : null;
 }
 
 /** The product icon as SVG <image> at x y, `size` px, or null when the kind has no icon. */
@@ -26,10 +25,10 @@ export const productImage = (type, kind, x, y, size = 14) => {
   return f ? s('image', { class: 'pimg', href: `icons/${f}.svg`, x, y, width: size, height: size, 'aria-hidden': 'true' }) : null;
 };
 
-/** The icon of a lifeline head; a folded store stack gets a faded copy behind. null: the caller draws its own glyph. */
+/** The icon of a lifeline head: large, centred at the top (flow-head-large.js); a folded store stack gets a faded copy behind. null: the caller draws its own glyph. */
 export function headIcon(c, w = 130) {
   const k = headIconOf(c);
   if (!k) return null;
-  if (k[0] === 'own') { const z = Math.max(16, Math.min(30, w - 28)); return compIconSvg(k[1], (w - z) / 2, 8, z); } // CR #148: large, centred at the top (flow-head-large.js)
-  return [c.stack ? s('g', { opacity: 0.45 }, productImage(k[0], k[1], 16, 14)) : null, productImage(k[0], k[1], 12, 10)];
+  const z = Math.max(16, Math.min(30, w - 28)), x = (w - z) / 2;
+  return [c.stack ? s('g', { opacity: 0.45 }, compIconSvg(k[1], x + 5, 11, z)) : null, compIconSvg(k[1], x, 8, z)];
 }

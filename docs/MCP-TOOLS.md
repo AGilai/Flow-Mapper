@@ -38,8 +38,8 @@ Start with [AGENTS.md](../AGENTS.md). Every tool that takes `env` requires it: a
 ## Read the map
 
 - **`search`**: Find services, functions, endpoints (by bind key), channels and resources by text. Args: `draft` (string), `query*` (string), `env*` (string), `limit` (integer).
-- **`list_services`**: List services with version, team and link-health numbers. Args: `draft` (string), `env*` (string).
-- **`get_service`**: A service's ingress (with callers), egress (with targets), resources, channels and functions. Args: `draft` (string), `service*` (string), `via` (string), `env*` (string).
+- **`list_services`**: List services with version, team and link-health numbers, and each one's `type` (the resolved type id) and `typeSource` (declared | legacy-icon | kind | default). Args: `draft` (string), `env*` (string).
+- **`get_service`**: A service's ingress, egress, resources, channels and functions; `service` carries `type`, `typeSource` and, when the stored value differs, `declaredType`. Args: `draft` (string), `service*` (string), `via` (string), `env*` (string).
 - **`list_entry_points`**: Ingress points where flows start (public APIs, crons, client socket events, and anything nothing else calls). Args: `draft` (string), `env*` (string), `summary` (boolean).
 - **`flows_through`**: The entry-point rows (as list_entry_points) whose flows run through, or start in, any of the listed components: the info pane's "Flows through it". Args: `draft` (string), `env*` (string), `services` (array | string), `service` (string).
 - **`neighbours`**: Components one hop from the listed ones: those that call them or are called by them, directly or through a topic, queue or exchange, each with its `reasons`. Args: `draft` (string), `env*` (string), `services` (array | string), `service` (string).

@@ -1,5 +1,6 @@
 // Map tools: search, services, entry points, paths, link health, changelog, inventory.
 
+import { typeFields } from '../../../core/component-types.ts';
 import { HttpError } from '../../errors.ts';
 import { withOpenEnds, tracedOf } from '../../../core/entry-coverage.ts';
 import * as store from '../../store/snapshots.ts';
@@ -24,13 +25,13 @@ export const searchTool: Tool = {
 };
 
 export const listServicesTool: Tool = {
-  name: 'list_services', description: 'List services with version, team and link-health numbers.',
+  name: 'list_services', description: 'List services with version, team and link-health numbers, and each one\'s `type` (the resolved type id) and `typeSource` (declared | legacy-icon | kind | default).',
   inputSchema: obj({ draft: draftArg, env }),
-  run: (c, a) => health(viewOf(c, a).g).services,
+  run: (c, a) => { const g = viewOf(c, a).g; return health(g).services.map((s) => ({ ...s, ...typeFields(g.services.get(s.service)) })); },
 };
 
 export const getServiceTool: Tool = {
-  name: 'get_service', description: "A service's ingress (with callers), egress (with targets), resources, channels and functions. Egress carries `via` (wrapper hops, the last one calls the SDK) and `callSites[].via`; one call is one egress, hops are not producers. `via` filters egress to calls through a wrapper whose function or file contains the text. Fields listed in `assumed` ({what, value, basis, reason}) are defaults a harvester filled by a rule, not facts read from code; do not present them as verified.",
+  name: 'get_service', description: "A service's ingress (with callers), egress (with targets), resources, channels and functions; `service` carries `type` (the resolved type id), `typeSource` and, when the stored value differs, `declaredType`. Egress carries `via` (wrapper hops, the last one calls the SDK) and `callSites[].via`; one call is one egress, hops are not producers. `via` filters egress to calls through a wrapper whose function or file contains the text. Fields listed in `assumed` ({what, value, basis, reason}) are defaults a harvester filled by a rule, not facts read from code; do not present them as verified.",
   inputSchema: obj({ draft: draftArg, service: { type: 'string' }, via: { type: 'string', description: 'Only egress via a wrapper matching this substring, e.g. SNSManager' }, env }, ['service']),
   run: (c, a) => {
     const v = serviceView(viewOf(c, a).g, a.service) ?? (() => { throw new HttpError(404, 'NOT_FOUND', `service '${a.service}' not found`); })();

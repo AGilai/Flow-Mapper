@@ -4,6 +4,7 @@
 import type { DraftOpInput } from './draft-ops.ts';
 import { EditError, type DesignEdit, type Idx } from './edit-kit.ts';
 import { iconProblem } from './component-icons.ts';
+import { TYPES, typeInfo } from './component-types.ts';
 import { checkLinks, cleanLinks, RUNTIMES, type Links } from './links.ts';
 
 /** Set (or remove) `links` on an item's data. */
@@ -24,7 +25,15 @@ export function setRuntime(data: Record<string, any>, v: string | null | undefin
   if (Object.keys(details).length) data.details = details; else delete data.details;
 }
 
-/** `details.icon` of a component (CR #144): a built-in name, an <svg> string or a data:image/ URL (core/component-icons.ts); null or '' removes it. BAD_ICON otherwise. */
+/** `type` of a component (0.68.0, frame 34): a generic or specific id of core/component-types.ts; null or '' removes it. A value outside the catalogue is refused (BAD_TYPE) when it is set from a form. */
+export function setType(data: Record<string, any>, v: string | null | undefined) {
+  if (v === undefined) return;
+  if (v === null || v === '') { delete data.type; return; }
+  if (!typeInfo(v)) throw new EditError('BAD_TYPE', `type must be one of ${TYPES.map((t) => t.id).join(', ')} (or null to clear it)`, 'type');
+  data.type = v;
+}
+
+/** DEPRECATED (0.68.0, use `type`): `details.icon` of a component (CR #144): a built-in name, an <svg> string or a data:image/ URL (core/component-icons.ts); null or '' removes it. BAD_ICON otherwise. */
 export function setIcon(data: Record<string, any>, v: string | null | undefined) {
   if (v === undefined) return;
   if (v !== null && v !== '') { const bad = iconProblem(v); if (bad) throw new EditError('BAD_ICON', bad, 'icon'); }

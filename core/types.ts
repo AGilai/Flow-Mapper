@@ -26,6 +26,8 @@ export interface Service {
   name: string;
   links?: Links;
   kind: ServiceKind;
+  /** 0.68.0 (frame 34): the component's type, a generic (`idp`) or specific (`auth0`) id of core/component-types.ts; an unknown value is kept but reads as `service` (`resolveType`). */
+  type?: string;
   team?: string;
   repo?: string;
   language?: string;

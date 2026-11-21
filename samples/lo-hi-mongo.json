@@ -5,14 +5,11 @@
   "service": {
     "name": "lo-hi-mongo",
     "kind": "service",
+    "type": "mongodb",
     "team": "platform",
     "repo": "github.com/acme/lo-hi-mongo",
     "language": "typescript",
-    "description": "Demo #148: heads with a large component logo",
-    "details": {
-      "icon": "mongodb",
-      "product": "MongoDB Atlas"
-    }
+    "description": "Demo #148: heads with a large component logo"
   },
   "version": 1,
   "harvestedAt": "2026-11-19T14:00:00Z",

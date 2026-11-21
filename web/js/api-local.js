@@ -4,6 +4,7 @@
 import { buildIndex } from '../core/graph-index.js';
 import { systemGraph } from '../core/system-graph.js';
 import { serviceView } from '../core/service-view.js';
+import { withTypeFields } from '../core/component-types.js';
 import { entryPoints, trace } from '../core/trace.js';
 import { viewOf } from '../core/trace-view.js';
 import { viewParams } from '../core/trace-view-params.js';
@@ -85,7 +86,7 @@ export const api = {
   ...D.api,
   services: async (env) => {
     const h = new Map(health(g(env)).services.map((s) => [s.service, s]));
-    return g(env).model.services.map((s) => ({ ...s, health: h.get(s.name) }));
+    return g(env).model.services.map((s) => ({ ...withTypeFields(s), health: h.get(s.name) }));
   },
   system: async (env) => systemGraph(g(env)),
   service: async (env, name) => {

@@ -1,6 +1,7 @@
 // Ingest and the read routes of the map. See docs/API.md. Since 0.25.0 there are no routes that edit a service or an entity by hand:
 // harvesters ingest into a sealed environment, a design is edited through a draft (edits, import, ops).
 
+import { withTypeFields } from '../../core/component-types.ts';
 import type { Req, Router } from '../http/router.ts';
 import { created } from '../http/router.ts';
 import type { Ctx } from '../context.ts';
@@ -34,12 +35,12 @@ export function registerMap(r: Router, ctx: Ctx) {
   r.get('/api/envs/:env/services', (req) => {
     const g = ctx.graphOf(req);
     const h = new Map(health(g).services.map((s) => [s.service, s]));
-    return g.model.services.map((s) => ({ ...s, health: h.get(s.name) }));
+    return g.model.services.map((s) => ({ ...withTypeFields(s), health: h.get(s.name) }));
   });
 
   /** One service's header and entities, from the database or (?draft=) from the draft's overlay. */
   const serviceOf = (req: Req) => ctx.readerOf(req).service(req.params.service) ?? (() => { throw notFound(`service '${req.params.service}' in env '${req.params.env}'`); })();
-  r.get('/api/envs/:env/services/:service', (req) => { const v = serviceOf(req); return { service: v.service, ...v.entities }; });
+  r.get('/api/envs/:env/services/:service', (req) => { const v = serviceOf(req); return { service: withTypeFields(v.service), ...v.entities }; });
 
   r.get('/api/envs/:env/services/:service/:list', (req) => serviceOf(req).entities[list(req.params.list)]);
 

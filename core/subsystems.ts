@@ -2,7 +2,7 @@
 // A component belongs to exactly ONE subsystem (maintainer decision, 0.28). Settings (label, icon, order) live in `subsystem` ItemRows
 // (grp:<path>); a top segment with no settings row is a derived subsystem, labelled with its key.
 
-import { iconOf } from './component-icons.ts';
+import { resolveType } from './component-types.ts';
 import type { ItemRow } from './item-rows.ts';
 import type { Egress, Ingress, Mode, Service, Transport } from './types.ts';
 
@@ -35,11 +35,13 @@ export function membershipOf(services: Pick<Service, 'name' | 'groupPath'>[]): M
 /** The settings rows of `rows` (any rows are fine), as a map key -> data. Keys with a '/' (domains, later) are kept as rows but are no subsystem. */
 export const subsystemRows = (rows: ItemRow[]): ItemRow[] => rows.filter((r) => r.list === 'subsystem');
 
+const own = (s: any) => { const t = resolveType(s); return t.id !== 'service' && t.source !== 'kind'; };
+
 /** Subsystems in settings order, then derived ones (a groupPath top without a settings row) alphabetically. */
 export function subsystemsOf(subRows: ItemRow[], services: (Pick<Service, 'name' | 'kind' | 'groupPath'> & { details?: any })[]): SubsystemInfo[] {
   const set = subRows.filter((r) => !r.key.includes('/')).sort((a, b) => (a.data?.order ?? 0) - (b.data?.order ?? 0) || (a.key < b.key ? -1 : 1));
   const members = new Map<string, { name: string; kind: string; sub?: string; icon?: string }[]>();
-  for (const s of services) { const t = topOf(s.groupPath), sub = secondOf(s.groupPath); if (t) members.set(t, [...(members.get(t) ?? []), { name: s.name, kind: s.kind, ...(sub ? { sub } : {}), ...(iconOf(s) ? { icon: iconOf(s)! } : {}) }]); }
+  for (const s of services) { const t = topOf(s.groupPath), sub = secondOf(s.groupPath); if (t) members.set(t, [...(members.get(t) ?? []), { name: s.name, kind: s.kind, ...(sub ? { sub } : {}), ...(own(s) ? { icon: resolveType(s).id } : {}) }]); }
   const subsOf = (top: string) => { const order = (k: string) => Number(subRows.find((r) => r.key === k)?.data?.order ?? 0); const l = subRows.filter((r) => r.key.split('/').length === 2 && topOf(r.key) === top).map((r) => ({ key: r.key, label: String(r.data?.label ?? secondOf(r.key)) })); return l.length ? { subs: l.sort((a, b) => (order(a.key) - order(b.key)) || (a.key < b.key ? -1 : 1)) } : {}; };
   const out: SubsystemInfo[] = set.map((r, i) => ({
     key: r.key, label: String(r.data?.label ?? r.key), icon: SUBSYSTEM_ICONS.includes(r.data?.icon) ? r.data.icon : null, order: i, derived: false, ...(typeof r.data?.about === 'string' && r.data.about ? { about: r.data.about } : {}), ...(Array.isArray(r.data?.owners) && r.data.owners.length ? { owners: r.data.owners.filter((x: unknown) => typeof x === 'string') } : {}),

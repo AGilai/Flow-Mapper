@@ -317,6 +317,12 @@
     },
     {
       "name": "lo-hi-plain"
+    },
+    {
+      "name": "lo-hi-idp"
+    },
+    {
+      "name": "lo-hi-db"
     }
   ],
   "createdBy": "seed"

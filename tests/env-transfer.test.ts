@@ -50,7 +50,7 @@ const same = async (path: string, name = path) => {
 
 test('bundle: format header, no owner, every table decided', () => {
   assert.equal(bundle.format, 'flow-mapper-env'); assert.equal(bundle.formatVersion, 1);
-  assert.equal(bundle.schemaVersion, 20); assert.ok(bundle.appVersion && bundle.exportedAt);
+  assert.equal(bundle.schemaVersion, 21); assert.ok(bundle.appVersion && bundle.exportedAt);
   assert.equal(bundle.env.owner_user_id, undefined); assert.equal(bundle.env.name, ENV); assert.equal(bundle.env.source, 'prod');
 assert.ok(bundle.tables.baseline_items.length > 0 && bundle.tables.draft_ops.length > 0 && bundle.tables.comments.length === 2);
   const db = A.ctx.db, known = new Set([...SPECS.map((s) => s.table), ...SKIPPED_WITH_ENV]);

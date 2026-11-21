@@ -7,7 +7,7 @@
 import { isDesign, state } from '../state.js';
 import { slotOf } from '../design/component-colors.js';
 import { overrideOf, shadeHex } from '../design/family-colours.js';
-import { iconTile } from '../components/icon-src.js';
+import { typeTile } from '../components/type-info.js';
 
 export function readTheme() {
   const cs = getComputedStyle(document.documentElement);
@@ -73,10 +73,10 @@ export function drawNode(ctx, n, [x, y], k, degree, theme, { dim, selected, hove
   ctx.globalAlpha = 1;
 }
 
-/** CR #144: a component's own icon inside its ring (frame 32): the mark, on its tile where the frame gives one (Vault slate, Kafka and MySQL white in dark, a user's logo white). */
+/** Frame 34: a component's type icon inside its ring: the mark, on its tile where the frame gives one (Vault slate, Kafka and MySQL white in dark). */
 function compMark(ctx, icon, cimg, x, y, r, theme) {
-  const tile = iconTile(icon), s = Math.max(9, Math.min(r * 1.3, 18)), t = s + 2;
-  if (tile === 'slate' || tile === 'white' || (tile === 'white-dark' && theme.dark)) {
+  const tile = typeTile(icon), s = Math.max(9, Math.min(r * 1.3, 18)), t = s + 2;
+  if (tile === 'slate' || (tile === 'white-dark' && theme.dark)) {
     ctx.fillStyle = tile === 'slate' ? '#1d2330' : '#fff'; ctx.strokeStyle = tile === 'slate' ? '#3a4256' : '#c9cedb'; ctx.lineWidth = 1;
     roundRect(ctx, x - t / 2, y - t / 2, t, t, 3); ctx.fill(); ctx.stroke();
   }
