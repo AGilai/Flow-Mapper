@@ -12,6 +12,7 @@ after(() => app.close());
 const A = 'flow:api-gateway/in.createOrder', B = 'flow:users-svc/in.getUser';
 const get = async (anchor = A, q = '', env = 'prod') => (await app.call('GET', `/api/envs/${env}/notes?anchor=${encodeURIComponent(anchor)}${q}`));
 const put = (b: object, env = 'prod', q = '') => app.call('PUT', `/api/envs/${env}/notes${q}`, { anchor: A, author: 'Ana', ...b });
+const rowsHtml = (n: number, tag: string) => `<table>${Array.from({ length: n }, (_, r) => `<tr><td>${tag}${r}</td></tr>`).join('')}</table>`;
 const mcp = async (name: string, args: any) => { const r = await app.call('POST', '/mcp', { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } }); return { isError: r.body.result.isError as boolean, json: r.body.result.isError ? null : JSON.parse(r.body.result.content[0].text), text: r.body.result.content[0].text as string }; };
 
 test('no notes yet: version 0 and an empty body; a flow has one document per environment', async () => {
@@ -125,4 +126,17 @@ test('seed data: loadNotes writes the older versions first, and seeding twice ad
   assert.equal(loadNotes(app.ctx.db, g, 'prod', list), 2);
   assert.equal(loadNotes(app.ctx.db, g, 'prod', list), 0);
   assert.equal((await get('flow:users-svc/in.getPosture')).body.version, 2);
+});
+
+test('a big design doc keeps every table row within the limits; a cut comes back as warnings and the write succeeds', async () => {
+  const ok = await put({ anchor: 'env', body: rowsHtml(30, 'a') + rowsHtml(30, 'b') });
+  assert.equal(ok.status, 200);
+  assert.equal((ok.body.body.match(/<tr>/g) ?? []).length, 60);
+  assert.equal(ok.body.warnings, undefined);
+  const cut = await put({ anchor: 'env', body: rowsHtml(60, 'c') });
+  assert.equal(cut.status, 200);
+  assert.equal((cut.body.body.match(/<tr>/g) ?? []).length, 50);
+  assert.deepEqual(cut.body.warnings, [{ code: 'TABLE_ROWS_TRUNCATED', table: 1, kept: 50, dropped: 10 }]);
+  const m = await mcp('set_notes', { env: 'prod', doc: 'env', body: rowsHtml(55, 'd') });
+  assert.deepEqual(m.json.warnings, [{ code: 'TABLE_ROWS_TRUNCATED', table: 1, kept: 50, dropped: 5 }]);
 });

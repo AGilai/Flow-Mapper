@@ -1,7 +1,7 @@
 // The comment sanitizer is the trust boundary: an XSS corpus, paste samples, structure and limits, idempotence, a seeded fuzz, plainText and Markdown-lite.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { sanitize, plainText, safeHref, MAX_BODY, tooLong } from '../core/rich-text.ts';
+import { sanitize, sanitizeReport, plainText, safeHref, MAX_BODY, tooLong } from '../core/rich-text.ts';
 import { commentHtml } from '../core/rich-text-md.ts';
 
 /** An independent check of an output: only the allowed tags, only the allowed attributes in their exact form, no '<' or '>' or bare '&' in text. */
@@ -195,4 +195,52 @@ test('Markdown-lite: only a tag the sanitizer knows makes the input HTML; other 
   assert.equal(commentHtml('use <T> and List<Foo> here'), '<p>use &lt;T&gt; and List&lt;Foo&gt; here</p>');
   assert.equal(commentHtml('a <b>bold</b> word'), 'a <b>bold</b> word');
   assert.equal(commentHtml('<div>x</div><script>alert(1)</script>'), '<p>x</p>');
+});
+
+// Table limits are per table (rows) and per row (columns); a cut is reported, never silent.
+const tbl = (n: number, c = 1, tag = 't') => '<table>' + Array.from({ length: n }, (_, r) => '<tr>' + Array.from({ length: c }, (_, k) => `<td>${tag}${r},${k}</td>`).join('') + '</tr>').join('') + '</table>';
+const trs = (h: string) => (h.match(/<tr>/g) ?? []).length;
+
+test('two tables of 30 rows keep all 60 rows and report nothing', () => {
+  const r = sanitizeReport(tbl(30, 2, 'a') + '<p>between</p>' + tbl(30, 2, 'b'));
+  assert.equal(trs(r.html), 60);
+  assert.ok(r.html.includes('b29,1'));
+  assert.deepEqual(r.warnings, []);
+});
+
+test('one table of 60 rows keeps 50 and reports the rest', () => {
+  const r = sanitizeReport(tbl(60));
+  assert.equal(trs(r.html), 50);
+  assert.deepEqual(r.warnings, [{ code: 'TABLE_ROWS_TRUNCATED', table: 1, kept: 50, dropped: 10 }]);
+  assert.equal(sanitize(r.html), r.html);
+});
+
+test('a second table starts its own count after a first one that was cut', () => {
+  const r = sanitizeReport(tbl(55, 1, 'a') + tbl(40, 1, 'b'));
+  assert.equal(trs(r.html), 90);
+  assert.deepEqual(r.warnings, [{ code: 'TABLE_ROWS_TRUNCATED', table: 1, kept: 50, dropped: 5 }]);
+});
+
+test('a row of 25 columns keeps 20 (per row, not per document) and reports the cells', () => {
+  const r = sanitizeReport(tbl(3, 25));
+  assert.equal((r.html.match(/<td>/g) ?? []).length, 60);
+  assert.deepEqual(r.warnings, [{ code: 'TABLE_COLS_TRUNCATED', table: 1, kept: 20, dropped: 15 }]);
+  assert.equal(sanitizeReport(tbl(5, 20) + tbl(5, 20)).warnings.length, 0);
+});
+
+test('nested tables count separately and the outer count resumes after the inner closes', () => {
+  const inner = tbl(40, 1, 'i');
+  const outer = '<table>' + Array.from({ length: 45 }, (_, r) => `<tr><td>o${r}${r === 2 ? inner : ''}</td></tr>`).join('') + '</table>';
+  const r = sanitizeReport(outer);
+  assert.equal(trs(r.html), 45 + 40);
+  assert.deepEqual(r.warnings, []);
+  const over = sanitizeReport('<table>' + Array.from({ length: 52 }, (_, r) => `<tr><td>o${r}${r === 1 ? tbl(60, 1, 'i') : ''}</td></tr>`).join('') + '</table>');
+  assert.deepEqual(over.warnings.map((w) => [w.table, w.dropped]).sort(), [[1, 2], [2, 10]]);
+  assert.equal(trs(over.html), 100);
+  // the inner table's cells do not use up the outer row's 20 columns; an inner table closed by its cell's end still gives the outer counts back
+  const cells = (n: number) => Array.from({ length: n }, (_, k) => `<td>c${k}</td>`).join('');
+  const mixed = sanitizeReport(`<table><tr><td>a<table><tr>${cells(25)}</tr></table></td>${cells(20)}</tr></table>`);
+  assert.deepEqual(mixed.warnings.map((w) => [w.code, w.table, w.dropped]), [['TABLE_COLS_TRUNCATED', 1, 1], ['TABLE_COLS_TRUNCATED', 2, 5]]);
+  const implied = sanitizeReport('<table><tr><td>a<table><tr><td>x</table><td>b</td></tr></table>');
+  assert.equal((implied.html.match(/<td>/g) ?? []).length, 3);
 });

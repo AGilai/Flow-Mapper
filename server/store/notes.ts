@@ -12,7 +12,8 @@ import { parseFlowAnchor } from '../../core/comments.ts';
 import type { NotesDoc, NotesVersion } from '../../core/notes.ts';
 import { isEnvDoc } from '../../core/notes.ts';
 import { isCallAnchor, callAnchor, parseCall, callTooLong, serializeCall, hasCall, CALL_PREFIX, } from '../../core/call-notes.ts';
-import { sanitize, notesTooLong } from '../../core/rich-text.ts';
+import { sanitize, sanitizeReport, notesTooLong } from '../../core/rich-text.ts';
+import type { TableWarning } from '../../core/rich-text.ts';
 import { plainText } from '../../core/rich-text-text.ts';
 import { badRequest, conflict, invalid, notFound } from '../errors.ts';
 import { notesUpdated } from '../events/emitters.ts';
@@ -50,14 +51,15 @@ export function history(db: DB, env: string, anchorIn: unknown, limit = HISTORY)
 }
 
 export interface NotesWrite { anchor: string; body: string; baseVersion?: number | null; author?: string; authorId?: string | null }
-export type Saved = NotesDoc & { unchanged?: true };
+/** `warnings`: what the sanitizer cut from the text that was sent (table rows or columns beyond the limits); the write still succeeds. Absent when nothing was cut. */
+export type Saved = NotesDoc & { unchanged?: true; warnings?: TableWarning[] };
 
 /** Write the next version. `baseVersion` (the version the writer started from) must be the current one; null / omitted skips the check (a REST or MCP writer that does not track versions). */
 export function putNotes(db: DB, g: GraphIndex, env: string, i: NotesWrite, restoredFrom: number | null = null): Saved {
   checkEnv(db, env);
   const anchor = anchorOf(i?.anchor);
   if (typeof i.body !== 'string') throw badRequest('body is required (HTML or text; empty clears the notes)');
-  const body = sanitize(resolveMentions(db, i.body), { notes: true }), long = notesTooLong(body);
+  const { html: body, warnings } = sanitizeReport(resolveMentions(db, i.body), { notes: true }), long = notesTooLong(body);
   if (long) throw invalid(long);
   if (isCallAnchor(anchor)) { const long = callTooLong(parseCall(body)); if (long) throw invalid(long); } // a call note (frame 28g) belongs to a call, not a flow: no flow to check
   const f = parseFlowAnchor(anchor); // the design doc (anchor `env`) belongs to the environment: there is no flow to check
@@ -74,7 +76,7 @@ export function putNotes(db: DB, g: GraphIndex, env: string, i: NotesWrite, rest
     return { r: latest(db, env, anchor)!, unchanged: false as const };
   });
   if (!row.unchanged) notesUpdated(db, { env, anchor, version: row.r.version, author: who.name, restoredFrom, text: plainText(body) });
-  return { ...doc(db, row.r), ...(row.unchanged && { unchanged: true as const }) };
+  return { ...doc(db, row.r), ...(row.unchanged && { unchanged: true as const }), ...(warnings.length && { warnings }) };
 }
 
 /** Restore: the text of an older version as a new version ("Restored from version N"). */
