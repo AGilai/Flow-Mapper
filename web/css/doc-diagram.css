@@ -1,0 +1,11 @@
+/* A Mermaid block in a read-only document (web/js/notes/diagram.js): toolbar, the drawn diagram, the source, an error strip. */
+.nt-dg { margin: 10px 0; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); }
+.nt-dg-bar { display: flex; align-items: center; gap: 10px; padding: 5px 8px 5px 12px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+.nt-dg-bar b { color: var(--ink-2); text-transform: uppercase; letter-spacing: .05em; font-size: 10.5px; margin-right: auto; }
+.nt-dg-view { padding: 12px; overflow-x: auto; text-align: center; }
+.nt-dg-view svg { max-width: 100%; height: auto; }
+.nt-dg-view[hidden], .nt-dg-src[hidden], .nt-dg-err[hidden] { display: none; }
+.nt-dg-wait { color: var(--muted); font-size: var(--fs-xs); }
+.nt-dg .nt-dg-src { margin: 0; border: 0; border-radius: 0 0 var(--r-sm) var(--r-sm); overflow-x: auto; }
+.nt-dg-err { padding: 6px 12px; font-size: var(--fs-xs); color: var(--bad); background: color-mix(in srgb, var(--bad) 9%, var(--surface)); border-bottom: 1px solid color-mix(in srgb, var(--bad) 35%, var(--surface)); }
+.nt-dg-bar button:disabled { cursor: not-allowed; opacity: .55; }

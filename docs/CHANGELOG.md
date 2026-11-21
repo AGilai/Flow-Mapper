@@ -7,6 +7,7 @@ in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.m
 
 ## Unreleased
 
+- A code block with `data-lang="mermaid"` (or `<code class="language-mermaid">`) in a Notes document, the design doc or a flow doc is drawn as a diagram in the reader, with a Diagram | Source toggle. `data-lang` on `pre` and `language-<token>` on `code` now survive the sanitizer (before they were stripped); nothing else changes, an ordinary code block stays code. Contract in API.md next to the Notes rules. The editor keeps the source; "Mermaid diagram" in the insert menu now writes `data-lang="mermaid"`. Mermaid 11.4.1 is vendored in `web/vendor/mermaid/` (the one dependency exception) and loaded lazily.
 - **Fix: table limits are per table.** The sanitizer counted the 50-row and 20-column limits over the whole document, so after 50 `<tr>` in total every later row of a long design doc was silently dropped. Rows are now counted per table (a nested table counts on its own) and columns per row. Notes writes (`PUT /api/envs/:env/notes`, `POST .../notes/restore`, MCP `set_notes`) that lose rows or cells to the limits still succeed and now answer `warnings: [{code: "TABLE_ROWS_TRUNCATED" | "TABLE_COLS_TRUNCATED", table, kept, dropped}]` ([API.md](API.md) "Notes per flow"). Comments are cut the same way without a warning.
 
 ## 0.68.0 (2026-11-21): frame 34, one type field, additive migration 021: one `type` field for components (CR frame 34, 0.68.0)
