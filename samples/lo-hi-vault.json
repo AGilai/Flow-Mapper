@@ -9,6 +9,7 @@
     "repo": "github.com/acme/lo-hi-vault",
     "language": "typescript",
     "description": "Demo #148: heads with a large component logo",
+    "about": "## Purpose\nHolds the signing keys and API secrets of the order platform. Services read them at start-up and rotate them every 24 hours, so a **Vault outage** blocks new deploys but not running traffic.\n\n## Owners\n- platform team",
     "details": {
       "icon": "vault",
       "product": "HashiCorp Vault"

@@ -1,6 +1,8 @@
 // Event wiring of a drawn lane: clicks, keys, menus, hover and the number tiles. Returns mark(label, on).
 
-export function wireEvents(head, body, { columns, events, bars }, { onMessage, onBar, onBarMenu, onParticipant, onNum, onNumHover, onFan, onMw, onBarTip, onSqueeze, onBand, onInternal, onDb, onPill, onStore }) {
+import { headCardable } from './head-card-pure.js';
+
+export function wireEvents(head, body, { columns, events, bars }, { onMessage, onBar, onBarMenu, onParticipant, onNum, onNumHover, onFan, onMw, onBarTip, onSqueeze, onBand, onInternal, onDb, onPill, onStore, onHeadTip }) {
   const sqOf = (t) => t.closest?.('[data-sqfold]'); // a fold column: click opens it (squeeze off for the tab)
   const eventOf = (t) => events[Number(t.closest?.('[data-e]')?.dataset.e)];
   const barOf = (t) => { const r = t?.closest?.('[data-bar]'); return r ? bars[Number(r.dataset.bar)] : null; };
@@ -9,16 +11,25 @@ export function wireEvents(head, body, { columns, events, bars }, { onMessage, o
   const fold = (el) => onMw?.(bars[Number(el.dataset.mwfold)], el.classList.contains('mwlab') ? '.mwlab' : '.mwseg'); // the redraw replaces the element: the caller refocuses by this selector
   const ipillOf = (t) => !!t.closest?.('[data-ipill]'); // the folded "N internal calls" marker (#84); a middleware label is also a pill
   const pillOf = (t) => { const b = t.closest?.('[data-pill]'); return b ? bars[Number(b.dataset.pill)] : null; };
+  const asP = (c) => ({ id: `svc:${c.service}`, kind: 'service', service: c.service, label: c.label });
   const pm = (ev) => {
-    const g = ev.target.closest?.('[data-p]'), c = g && columns[Number(g.dataset.p)];
-    if (c?.service && onParticipant) { ev.preventDefault(); onParticipant({ id: `svc:${c.service}`, kind: 'service', service: c.service, label: c.label }, ev.clientX, ev.clientY, ev.type); }
+    const g = ev.target.closest?.('[data-p]'), c = g && columns[Number(g.dataset.p)], more = ev.type === 'click' && ev.target.closest?.('.head-more');
+    if (more && c?.service && onParticipant) { ev.stopPropagation(); const r = more.getBoundingClientRect(); onHeadTip?.(null); onParticipant(asP(c), r.left, r.bottom + 2, 'menu'); return; } // #149: the ⋮ button opens the menu
+    if (c?.service) onHeadTip?.(null);
+    if (c?.service && onParticipant) { ev.preventDefault(); onParticipant(asP(c), ev.clientX, ev.clientY, ev.type); }
     else if (c?.fan && onFan && ev.type === 'click') onFan(c.fan.topic);
     else if (onStore && g?.classList.contains('store-hd') && ev.type === 'click' && !String(getSelection?.() ?? '')) onStore(c, ev); // #86: a Redis or Mongo head opens the store panel (a text selection is not a click)
   };
   const bandOf = (t) => (t.closest?.('.band-add') ? null : t.closest?.('.band.sub:not(.sub2)')); // a subsystem band (0.33.0): its click opens the subsystem's info pane
   const intOf = (t) => t.closest?.('[data-int]'); // "⊕ internal" under a service head (0.38.0)
-  head.addEventListener('keydown', (ev) => { if ((ev.key === 'Enter' || ev.key === ' ') && intOf(ev.target)) { ev.preventDefault(); onInternal?.(intOf(ev.target).dataset.int); return; } if ((ev.key === 'Enter' || ev.key === ' ') && onBand && bandOf(ev.target)) { ev.preventDefault(); onBand(bandOf(ev.target).dataset.sub); return; } if (ev.key === 'Enter' || ev.key === ' ') { if (sqOf(ev.target)) { ev.preventDefault(); onSqueeze?.(); return; } const g = ev.target.closest?.('[data-p]'), c = g && columns[Number(g.dataset.p)]; if (c?.fan) { ev.preventDefault(); onFan?.(c.fan.topic); } else if (onStore && g?.classList.contains('store-hd')) { ev.preventDefault(); onStore(c, ev); } } });
-  head.addEventListener('contextmenu', pm);
+  head.addEventListener('keydown', (ev) => { if ((ev.key === 'Enter' || ev.key === ' ') && intOf(ev.target)) { ev.preventDefault(); onInternal?.(intOf(ev.target).dataset.int); return; } if ((ev.key === 'Enter' || ev.key === ' ') && onBand && bandOf(ev.target)) { ev.preventDefault(); onBand(bandOf(ev.target).dataset.sub); return; } if (ev.key === 'Enter' || ev.key === ' ') { if (sqOf(ev.target)) { ev.preventDefault(); onSqueeze?.(); return; } const g = ev.target.closest?.('[data-p]'), c = g && columns[Number(g.dataset.p)]; if (c?.service && onParticipant && (ev.target === g || ev.target.closest?.('.head-more'))) { ev.preventDefault(); const r = ev.target.getBoundingClientRect(); onHeadTip?.(null); onParticipant(asP(c), r.left, r.bottom + 2, ev.target === g ? 'click' : 'menu'); } else if (c?.fan) { ev.preventDefault(); onFan?.(c.fan.topic); } else if (onStore && g?.classList.contains('store-hd')) { ev.preventDefault(); onStore(c, ev); } } });
+  head.addEventListener('contextmenu', (ev) => { pm(ev); });
+  if (onHeadTip) { // #149: the hover card on a component head (the caller delays it); keyboard focus shows it too; the ⋮ and the pills are not part of it
+    const cardOf = (t) => { const g = t.closest?.('[data-p]'), c = g && columns[Number(g.dataset.p)]; return c && headCardable(c) ? { c, g } : null; };
+    const enter = (ev) => { const k = cardOf(ev.target); if (k && cardOf(ev.relatedTarget ?? document.body)?.g !== k.g) onHeadTip(k.c, k.g); };
+    const leave = (ev) => { const k = cardOf(ev.target); if (k && cardOf(ev.relatedTarget ?? document.body)?.g !== k.g) onHeadTip(null); };
+    head.addEventListener('mouseover', enter); head.addEventListener('mouseout', leave); head.addEventListener('focusin', enter); head.addEventListener('focusout', leave);
+  }
   head.addEventListener('click', (ev) => { if (intOf(ev.target)) { ev.stopPropagation(); onInternal?.(intOf(ev.target).dataset.int); return; } if (sqOf(ev.target)) onSqueeze?.(); else if (onBand && bandOf(ev.target)) onBand(bandOf(ev.target).dataset.sub); else pm(ev); });
   let foldTimer = 0; // a fold click waits a beat so a double-click (look inside) never flips the fold
   body.addEventListener('dblclick', (ev) => { clearTimeout(foldTimer); const f = foldOf(ev.target), b = barOf(ev.target) ?? (f ? bars[Number(f.dataset.mwfold)] : null); if (b) onBar?.(b); });
