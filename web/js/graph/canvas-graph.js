@@ -70,7 +70,7 @@ export function createCanvasGraph(host, { onSelect, onHover, marks = null, padBo
     // Nodes.
     const order = nodes.filter((n) => isVis(n.id));
     for (const n of order) drawNode(ctx, n, toScreen(pos.get(n.id)), k, degree, theme, {
-      dim: dimmed(n.id), selected: selected === n.id, hovered: hovered === n.id, img: iconFor(n), cimg: n.icon ? compImage(n.icon, schedule) : null,
+      dim: dimmed(n.id), selected: selected === n.id, hovered: hovered === n.id, img: iconFor(n), cimg: n.icon ? compImage(n.icon, !!theme.dark, schedule) : null,
     });
 
     drawLabels(ctx, S, order, focus, dimmed);

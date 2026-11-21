@@ -5,13 +5,11 @@
   "service": {
     "name": "lo-sec-vault",
     "kind": "service",
+    "type": "hashicorp-vault",
     "team": "security",
     "repo": "github.com/acme/lo-sec-vault",
     "language": "typescript",
-    "description": "Demo #142: vault pki",
-    "details": {
-      "icon": "vault"
-    }
+    "description": "Demo #142: vault pki"
   },
   "version": 1,
   "harvestedAt": "2026-11-19T10:00:00Z",

@@ -23,14 +23,10 @@ import { loadAbout, aboutSection } from './pane-about.js';
 import { componentRows } from './pane-component-rows.js';
 import { questionsButton } from './pane-questions.js';
 import { ownersValue } from './pane-owners.js';
-import { iconRow } from './pane-icon.js';
+import { typeRow } from './pane-type-row.js';
 import { compIcon } from '../components/comp-icon.js';
-import { iconOf } from '../components/icon-src.js';
+import { resolveType } from '../components/type-info.js';
 import { KIND, typeOf } from './pane-type.js';
-
-/** CR #148 follow-up: the product (`details.product`) the large head no longer draws. */
-const productOf = (svc) => (typeof svc.details?.product === 'string' && svc.details.product.trim() ? svc.details.product.trim() : null);
-
 
 /** The coloured tile of the header: the component colour, neutral for client apps and infrastructure. */
 export const tile = (color, icon = null) => h('span.pane-tile', { style: { '--c': color ?? 'var(--ink-2)' } }, icon ? compIcon(icon, 18) : // CR #144: the component's own icon takes the circle's place
@@ -48,7 +44,7 @@ export async function systemFor(name, ctx) {
 export async function componentSpec(name, ctx) {
   const env = ctx.env ?? state.env;
   const [view, subs, marks, flows, sys] = await Promise.all([api.service(env, name).catch(() => null), loadSubsystems(env), loadMarks(env), api.flowsThrough(env, [name]).then(plainSummaries).catch(() => []), systemFor(name, ctx)]);
-  const svc = view?.service ?? {}, node = sys?.node ?? null, kind = svc.kind ?? node?.svcKind ?? 'service', ownIcon = iconOf(svc) ?? node?.icon ?? null;
+  const svc = view?.service ?? {}, node = sys?.node ?? null, kind = svc.kind ?? node?.svcKind ?? 'service', ownIcon = (({ id, source }) => (id !== 'service' && source !== 'kind' ? id : null))(resolveType(svc.name ? svc : { ...svc, type: svc.type ?? node?.type }));
   const about = await loadAbout(svc.about ?? node?.about), subKey = subs.subOf(name), design = isDesign(env);
   const aboutPen = ctx.pen?.about(name, { form: 'component', service: name }) ?? null;
   const mk = marks.markOf(`svc:${name}`), ep = endpointText(view?.ingress, view?.egress);
@@ -57,8 +53,8 @@ export async function componentSpec(name, ctx) {
 
   const subLink = () => (subKey ? h('button.pane-sub-link', { type: 'button', 'data-qa': 'pane-sub', on: { click: () => ctx.onSub?.(subKey) } }, subIcon(subs.info(subKey)?.icon, 14), subs.labelOf(subKey)) : subs.has ? 'Not set' : null);
   const overview = () => [view?.external ? externalNote() : null, ctx.pen?.hint() ?? null, facts([
-    ['Subsystem', subLink()], ['Type', typeOf(svc, kind)], ['Product', productOf(svc)], ['Colour', ['client-app', 'infra'].includes(kind) && modeOf(env) !== 'domain' ? null : colourRow(env, name)],
-    ['Icon', design || ownIcon ? iconRow(svc, { env, name, canEdit: design && !!ctx.pen?.button('panel-component', name, {}), current: ownIcon }) : null], ['Team', svc.team], ['Description', svc.description],
+    ['Subsystem', subLink()], ['Kind', typeOf(svc, kind)], ['Type', typeRow(svc, { env, name, canEdit: design && !!ctx.pen?.button('panel-component', name, {}) })], ['Colour', ['client-app', 'infra'].includes(kind) && modeOf(env) !== 'domain' ? null : colourRow(env, name)],
+    ['Team', svc.team], ['Description', svc.description],
     ['Endpoints', ep.total ? [`${ep.total} `, h('small', `· ${ep.text} `), h('a.pane-more', { href: open }, 'Open service')] : h('a.pane-more', { href: open }, 'Open service')],
     ['Owners', owners.length || design ? ownersValue(owners, ownerPen()) : null], ['Docs', docLinks(svc.links)],
   ])];

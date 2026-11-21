@@ -1,4 +1,4 @@
-// CR #148: a lifeline head with its own icon (`details.icon`) draws it large and centred, the name under it, the product in grey; the box grows to fit.
+// Frame 34 (0.68.0, CR #148): a lifeline head whose resolved type is not plain `service` draws the logo large and centred and the name only; the box grows to fit.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildIndex } from '../core/graph-index.ts';
@@ -9,10 +9,9 @@ import { buildLane } from '../web/js/views/flow-lane.js';
 // @ts-ignore
 import { layoutLane, LINE_H } from '../web/js/views/flow-draw-layout.js';
 // @ts-ignore
-import { isLarge, hasType, productOf, iconSize, largeExtra, autoCol, COL_AUTO_MAX, LG_SHIFT, LG_ICON } from '../web/js/views/flow-head-large.js';
+import { isLarge, iconSize, largeExtra, autoCol, COL_AUTO_MAX, LG_SHIFT, LG_ICON } from '../web/js/views/flow-head-large.js';
 // @ts-ignore
-// @ts-ignore
-import { typeOf } from '../web/js/pane/pane-type.js';
+import { typeOf, typeText, typeParts } from '../web/js/pane/pane-type.js';
 // @ts-ignore
 import { setServiceInfo } from '../web/js/design/service-info.js';
 
@@ -24,32 +23,36 @@ const [a, b] = services;
 const infoFor = (list: any[]) => setServiceInfo(list.map((x) => ({ kind: 'service', ...x })), '');
 const plain = () => { infoFor(services.map((name) => ({ name }))); return layoutLane(lane, 0); };
 
-test('which heads get the large layout: only an own icon, not a kind icon, not none', () => {
-  infoFor([{ name: a, details: { icon: 'vault', product: 'HashiCorp Vault' } }, { name: b }]);
+test('which heads get the large layout: a type other than service (declared, legacy icon or kind), a store or a channel; an untyped head not', () => {
+  infoFor([{ name: a, type: 'hashicorp-vault' }, { name: b }]);
   const col = (n: string) => lane.columns.find((c: any) => c.service === n);
   assert.equal(isLarge(col(a)), true);
   assert.equal(isLarge(col(b)), false);
-  assert.equal(productOf(col(a)), 'HashiCorp Vault');
-  assert.equal(productOf(col(b)), null, 'no icon, no large layout, no product line');
-  assert.equal(isLarge({ kind: 'channel', transport: 'sqs' }), false, 'a channel keeps the small product icon');
-  assert.equal(isLarge({ kind: 'resource', storeKind: 'mongodb' }), false, 'a store keeps the small product icon');
+  infoFor([{ name: a, details: { icon: 'vault', product: 'HashiCorp Vault' } }, { name: b, type: 'service' }]);
+  assert.equal(isLarge(col(a)), true, 'legacy details.icon still reads as the type');
+  assert.equal(isLarge(col(b)), false, 'a declared plain service is no typed head');
+  infoFor([{ name: a, kind: 'lambda' }, { name: b, type: 'idp' }]);
+  assert.equal(isLarge(col(a)), true, 'kind lambda reads as aws-lambda');
+  assert.equal(isLarge(col(b)), true, 'a generic type draws the generic icon large');
+  assert.equal(isLarge({ kind: 'channel', transport: 'sqs' }), true, 'a channel draws the large logo');
+  assert.equal(isLarge({ kind: 'resource', storeKind: 'mongodb' }), true, 'a store draws the large logo');
+  assert.equal(isLarge({ kind: 'resource', storeKind: 'unknown-db' }), false, 'a store with no logo keeps its glyph');
 });
 
 test('the box grows to hold the logo and the name only; it never shrinks', () => {
   const base = plain(), i = lane.columns.findIndex((c: any) => c.service === a);
   const need = (L: any) => 12 + L.heads[i].name.length * LINE_H + L.heads[i].sub.length * 13 + largeExtra(lane.columns[i]) + 6;
-  infoFor([{ name: a, details: { icon: 'vault' } }]);
+  infoFor([{ name: a, type: 'hashicorp-vault' }]);
   const one = layoutLane(lane, 0);
   assert.ok(one.boxH >= base.boxH && one.boxH >= need(one));
-  infoFor([{ name: a, details: { icon: 'vault', product: 'HashiCorp Vault' } }]);
+  infoFor([{ name: a, type: 'hashicorp-vault', details: { product: 'HashiCorp Vault' } }]);
   const two = layoutLane(lane, 0);
   assert.equal(two.boxH, one.boxH, 'the product line is not drawn in the head');
   assert.ok(!two.heads[i].product, 'no product line');
   assert.deepEqual(two.heads[i].sub, [], 'an icon head never shows a sub line, even with no specific type known');
-  assert.equal(two.boxH, 12 + two.heads[i].name.length * LINE_H + LG_SHIFT + 6);
-  infoFor([{ name: a, details: { icon: 'vault', runtime: 'k8s-pod' } }]);
+  assert.ok(two.boxH >= 12 + two.heads[i].name.length * LINE_H + LG_SHIFT + 6, 'logo plus name; the lane\'s store and channel heads are large too, so another head may set the box');
+  infoFor([{ name: a, type: 'hashicorp-vault', details: { runtime: 'k8s-pod' } }]);
   const three = layoutLane(lane, 0);
-  assert.equal(hasType(lane.columns[i]), true);
   assert.deepEqual(three.heads[i].sub, [], 'a specific type is known: still no sub line');
   assert.equal(three.boxH, two.boxH, 'same box either way');
   assert.equal(two.HEAD - two.boxH, base.HEAD - base.boxH, 'the rest of the head strip is unchanged');
@@ -57,9 +60,10 @@ test('the box grows to hold the logo and the name only; it never shrinks', () =>
   assert.equal(largeExtra(lane.columns[i]), LG_SHIFT);
 });
 
-test('no icon anywhere: the layout is today\'s (a head without an icon is unchanged)', () => {
+test('no type anywhere: a service head is today\'s (name and "service" line, no large logo); stores and channels draw the large logo now', () => {
   const base = plain();
-  assert.ok(base.heads.every((h: any) => !h.big && !h.product));
+  lane.columns.forEach((c: any, i: number) => { if (c.kind === 'service') assert.ok(!base.heads[i].big && !base.heads[i].product); else if (c.kind === 'resource' || c.kind === 'channel') assert.equal(base.heads[i].big, isLarge(c)); });
+  assert.ok(lane.columns.some((c: any) => c.kind !== 'service' && isLarge(c)), 'the fixture lane has a store or channel with a logo');
 });
 
 test('the name of a large head uses the full width, wraps, and the product is carried for the drawing', () => {
@@ -127,4 +131,14 @@ test('the pane Type row: the runtime or kind when known, else the word Service',
   assert.equal(typeOf({}, 'gateway'), 'Gateway');
   assert.equal(typeOf({}, 'service'), 'Service');
   assert.equal(typeOf({}, undefined), 'Service');
+});
+
+test('the pane Type row text (frame 34): generic . specific, generic only, Service for none or unknown', () => {
+  assert.equal(typeText({ type: 'auth0' }), 'IDP · Auth0');
+  assert.equal(typeText({ type: 'idp' }), 'IDP');
+  assert.equal(typeText({ type: 'mainframe' }), 'Service');
+  assert.equal(typeParts({ type: 'mainframe' }).unknown, 'mainframe');
+  assert.equal(typeText({}), 'Service');
+  assert.equal(typeText({ details: { icon: 'vault' } }), 'Vault · HashiCorp Vault', 'legacy icon');
+  assert.equal(typeText({ kind: 'lambda' }), 'Function · AWS Lambda');
 });

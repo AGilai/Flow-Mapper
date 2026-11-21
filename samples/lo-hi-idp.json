@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "lo-hi-idp",
+    "kind": "service",
+    "type": "idp",
+    "team": "platform",
+    "repo": "github.com/acme/lo-hi-idp",
+    "language": "typescript",
+    "description": "Frame 34: a generic-only type (idp): the generic icon, no product"
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-21T10:00:00Z",
+  "commit": "34a",
+  "functions": [
+    {
+      "id": "h",
+      "name": "handle",
+      "file": "src/h.ts",
+      "line": 5,
+      "steps": []
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.x",
+      "bindKey": "http:GET lo-hi-idp/x",
+      "transport": "http",
+      "handler": "h",
+      "entryPoint": false,
+      "details": {
+        "method": "GET",
+        "path": "/x"
+      }
+    }
+  ],
+  "egress": [],
+  "resources": []
+}

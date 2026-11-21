@@ -5,13 +5,11 @@
   "service": {
     "name": "lo-ic-api",
     "kind": "gateway",
+    "type": "aws-api-gateway",
     "team": "edge",
     "repo": "github.com/acme/lo-ic-api",
     "language": "typescript",
-    "description": "Demo #144: a corev5-like flow: the API calls Auth0, the vault, a Lambda, a queue worker, S3 and a partner with its own logo",
-    "details": {
-      "icon": "aws-api-gateway"
-    }
+    "description": "Demo #144: a corev5-like flow: the API calls Auth0, the vault, a Lambda, a queue worker, S3 and a partner with its own logo"
   },
   "version": 1,
   "harvestedAt": "2026-11-19T12:00:00Z",

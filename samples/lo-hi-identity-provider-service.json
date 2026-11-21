@@ -5,14 +5,11 @@
   "service": {
     "name": "lo-hi-identity-provider-service",
     "kind": "service",
+    "type": "auth0",
     "team": "platform",
     "repo": "github.com/acme/lo-hi-identity-provider-service",
     "language": "typescript",
-    "description": "Demo #148: heads with a large component logo",
-    "details": {
-      "icon": "auth0",
-      "product": "Auth0 identity platform"
-    }
+    "description": "Demo #148: heads with a large component logo"
   },
   "version": 1,
   "harvestedAt": "2026-11-19T14:00:00Z",

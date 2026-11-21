@@ -1,11 +1,19 @@
-/* Component icons (CR #144, frame 32). The mark is never recoloured. Tiles: Vault slate; Kafka and MySQL white in dark mode only; a user's logo white. */
+/* Component type icons (frame 32, 34). The mark is never recoloured. Tiles: Vault slate; Kafka and MySQL white in dark mode only. A generic type has a Light and a Dark file: one shows per theme. */
 .ci { display: inline-grid; place-items: center; flex: none; vertical-align: middle; box-sizing: border-box; border-radius: 3px; }
 .ci-img { display: block; flex: none; object-fit: contain; }
 .ci-slate { background: #1d2330; border: 1px solid #3a4256; }
-.ci-white { background: #fff; border: 1px solid #c9cedb; }
 .ci-g { --ci-f: none; --ci-s: none; } /* the tile rect takes its paint from these (an inline style: the lane's own rect rules would win otherwise) */
 .ci-g.ci-slate { --ci-f: #1d2330; --ci-s: #3a4256; }
-.ci-g.ci-white { --ci-f: #fff; --ci-s: #c9cedb; }
+/* generic icons: the Light file (dark ink) on a light theme, the Dark file (white ink) on a dark one */
+.ci-dk { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .ci-lt { display: none; }
+  :root:not([data-theme='light']) img.ci-dk { display: block; }
+  :root:not([data-theme='light']) image.ci-dk { display: inline; }
+}
+:root[data-theme='dark'] .ci-lt { display: none; }
+:root[data-theme='dark'] img.ci-dk { display: block; }
+:root[data-theme='dark'] image.ci-dk { display: inline; }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) .ci-wd { background: #fff; border: 1px solid #c9cedb; }
   :root:not([data-theme='light']) .ci-g.ci-wd { --ci-f: #fff; --ci-s: #c9cedb; }
@@ -16,7 +24,10 @@
 .seq-part.has-ci .name { font-size: 11.5px; }
 .ss-comp .ci-g { pointer-events: none; }
 
-/* the Icon row and its picker (Info pane, frame 32d) */
+/* the Type row and its picker (Info pane, frame 34c) */
+.ic-cur b { font: 600 12px var(--font); }
+.ic-cur .ty-sep { color: var(--muted); }
+.ic-back { border: 0; background: none; color: var(--accent); font: 500 11px var(--font); cursor: pointer; padding: 0; text-transform: none; letter-spacing: 0; }
 .ic-row { display: grid; gap: 8px; justify-items: start; }
 .ic-row > .ic-pick { justify-self: stretch; }
 .ic-cur { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line-strong); border-radius: 6px; padding: 3px 8px; font: 500 12px var(--mono); background: var(--surface); color: var(--ink); cursor: pointer; max-width: 100%; }

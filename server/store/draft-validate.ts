@@ -11,6 +11,7 @@ import { designIssues, SERVICE_KINDS, twoGroups } from '../../core/design-rules.
 import { checkLinks } from '../../core/links.ts';
 import { aboutProblem } from '../../core/markdown-lite.ts';
 import { iconProblem } from '../../core/component-icons.ts';
+import { storedHeader, withType } from '../../core/component-types.ts';
 import { ownersProblem } from '../../core/owners.ts';
 import { relationItem } from '../../core/flow-relations.ts';
 import { HttpError } from '../errors.ts';
@@ -43,7 +44,8 @@ function check(map: Map<string, ItemRow>, i: DraftOpInput): PreparedOp {
   const base = { op: i.op, anchor: i.anchor, ...r };
   if (r.list === 'header') {
     if (i.op === 'delete') return base;
-    const { name, ...rest } = i.data as Record<string, any>;
+    const { name, ...rest0 } = i.data as Record<string, any>;
+    const rest = withType(storedHeader(rest0)); // 0.68.0: a header read back from the API loses its resolved type fields; a built-in details.icon adds the type (additive, the icon stays)
     if (rest.kind !== undefined && !(SERVICE_KINDS as readonly string[]).includes(rest.kind)) bad(`component kind '${rest.kind}' must be one of ${SERVICE_KINDS.join(', ')}`, 'BAD_KIND');
     if (name !== undefined && name !== r.service) bad(`header name '${name}' differs from the anchor 'svc:${r.service}'`);
     if (rest.alsoIn !== undefined || rest.details?.alsoIn !== undefined) bad(`${r.service}: a component belongs to one subsystem; 'alsoIn' is not supported: pick one (groupPath)`, 'TWO_GROUPS');

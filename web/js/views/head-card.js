@@ -4,7 +4,7 @@
 import { h } from '../dom.js';
 import { api } from '../api.js';
 import { headCardModel } from './head-card-pure.js';
-import { typeOf } from '../pane/pane-type.js';
+import { typeText } from '../pane/pane-type.js';
 
 /** createHeadCard(env) -> { show(service, label, anchor), hide(), dispose() } */
 export function createHeadCard(getEnv) {
@@ -17,7 +17,7 @@ export function createHeadCard(getEnv) {
     if (!cache.has(k)) {
       const [S, M, view] = await Promise.all([import('../../core/about-sections.js'), import('../../core/markdown-strip.js'), api.service(env, name).catch(() => null)]);
       const svc = view?.service ?? {};
-      cache.set(k, headCardModel({ name, type: typeOf(svc, svc.kind ?? 'service'), sections: S.aboutSections(svc.about), description: svc.description }, M.stripMarkdown));
+      cache.set(k, headCardModel({ name, type: typeText(svc), sections: S.aboutSections(svc.about), description: svc.description }, M.stripMarkdown));
     }
     return cache.get(k);
   }

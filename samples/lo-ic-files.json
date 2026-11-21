@@ -5,13 +5,11 @@
   "service": {
     "name": "lo-ic-files",
     "kind": "service",
+    "type": "aws-s3",
     "team": "platform",
     "repo": "github.com/acme/lo-ic-files",
     "language": "typescript",
-    "description": "Demo #144: file storage on S3",
-    "details": {
-      "icon": "aws-s3"
-    }
+    "description": "Demo #144: file storage on S3"
   },
   "version": 1,
   "harvestedAt": "2026-11-19T12:00:00Z",

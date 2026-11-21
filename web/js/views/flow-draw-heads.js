@@ -26,7 +26,7 @@ export function drawHead({ storeOn, columns, heads, boxH, HEAD, bandH, bands, wi
       c.stack ? [s('rect', { class: 'stack', x: 8, y: 5, width: headBox(c), height: boxH, rx: 8, opacity: 0.55 }), s('rect', { class: 'stack', x: 4, y: 2.5, width: headBox(c), height: boxH, rx: 8, opacity: 0.8 })] : null,
       s('rect', { width: headBox(c), height: boxH, rx: 8 }), s('rect', { class: 'stripe', width: 4, height: boxH, rx: 2 }), c.kind === 'service' && isCustom(c.service, c.env ?? state.env) ? s('rect', { class: 'cust-dia', x: headBox(c) - 5, y: -4, width: 9, height: 9, transform: `rotate(45 ${headBox(c) - 0.5} 0.5)`, 'data-qa': 'custom-colour' }, s('title', {}, 'custom colour, not from the family')) : null, headIcon(c, headBox(c)) ?? (c.kind === 'resource' ? storeIcon(12, 10, c.stack) : null), headMarkSvg(marks, c, headBox(c)), headRefSvg(refs, c, headBox(c)), c.kind === 'service' ? runtimeSvg(runtimeFor(c.service, c.env), headBox(c) - (refs?.locked(c) ? 40 : 22), 5) : null,
       heads[i].name.map((t, k) => s('text', { x: tx(c), y: 18 + dy(c) + k * LINE_H, class: 'name', 'text-anchor': mid(c) }, t)),
-      isCh(c) || queueSrc(c) ? headChip(c, heads[i].name.length * LINE_H + 5) : (c.kind === 'unresolved' && isDesign(c.env) ? ['not designed yet'] : headRefSub(refs, c, heads[i].sub)).map((t, k) => s('text', { x: tx(c), y: 18 + dy(c) + heads[i].name.length * LINE_H + 1 + k * 13, class: 'sub', 'text-anchor': mid(c) }, t)),
+      isCh(c) || queueSrc(c) ? headChip(c, heads[i].name.length * LINE_H + 5 + dy(c), headBox(c)) : (c.kind === 'unresolved' && isDesign(c.env) ? ['not designed yet'] : headRefSub(refs, c, heads[i].sub)).map((t, k) => s('text', { x: tx(c), y: 18 + dy(c) + heads[i].name.length * LINE_H + 1 + k * 13, class: 'sub', 'text-anchor': mid(c) }, t)),
       externalTag(c, headBox(c), boxH), internal && c.kind === 'service' && !c.external ? (internal.simple ? hiddenBadge(c, internal) : internalCtl(c, internal.state(c.service))) : null,
       storeOn && isStoreHead(c) ? s('path', { class: 'sp-aff', d: `M${headBox(c) - 19} 15h10M${headBox(c) - 19} 20h10M${headBox(c) - 19} 25h6` }) : null,
       hasMore(c) ? moreBtn(c) : null,
@@ -55,11 +55,12 @@ export function drawHead({ storeOn, columns, heads, boxH, HEAD, bandH, bands, wi
     const cc = colVar(c), mc = isCh(c) || c.transport ? `--mc:${colorOf(c.transport)}` : null;
     return { style: [mc, cc ? `--cc:${cc}` : null].filter(Boolean).join(';') || null, cls: `${cc ? ' cmp' : ''}${c.serviceKind === 'client-app' ? ' ca' : ''}${refs?.locked(c) ? ' locked' : ''}${headIconOf(c)?.[0] === 'own' ? ' has-ci' : ''}${externalCls(c)}` };
   }
-  function headChip(c, y) { // the transport of a topic or queue, as a chip; a big fan-out adds its fold control
+  function headChip(c, y, bw) { // the transport of a topic or queue, as a chip; a big fan-out adds its fold control
     const label = queueSrc(c) ? c.transport : c.sub, w = label.length * 6.4 + 12; // #102: a queue-started flow's trigger head shows the transport chip like the channel column
-    return [s('rect', { class: 'tchip', x: 12, y: y + 4, width: w, height: 16, rx: 4 }), s('text', { class: 'tchipt', x: 18, y: y + 16 }, label),
-      c.fan ? s('text', { class: 'fanbtn', x: 12 + w + 6, y: y + 16 }, c.folded ? 'show ▸' : 'fold ▴') : null,
-      isCh(c) && !c.owner && !c.fan ? s('text', { class: 'noown', x: 12 + w + 8, y: y + 16, 'data-qa': 'no-owner' }, isDesign(c.env) ? 'no owner yet' : 'no owner', s('title', {}, `${c.label} is declared by no component. Declare it in the owning component's channels (link health lists it).`)) : null]; // #104: a gap, not a design choice
+    const x0 = isLarge(c) && !c.fan && (c.owner || !isCh(c)) ? Math.round((bw - w) / 2) : 12; // a large head centres the chip under its name (kept left when the fold control or the no-owner note sits beside it)
+    return [s('rect', { class: 'tchip', x: x0, y: y + 4, width: w, height: 16, rx: 4 }), s('text', { class: 'tchipt', x: x0 + 6, y: y + 16 }, label),
+      c.fan ? s('text', { class: 'fanbtn', x: x0 + w + 6, y: y + 16 }, c.folded ? 'show ▸' : 'fold ▴') : null,
+      isCh(c) && !c.owner && !c.fan ? s('text', { class: 'noown', x: x0 + w + 8, y: y + 16, 'data-qa': 'no-owner' }, isDesign(c.env) ? 'no owner yet' : 'no owner', s('title', {}, `${c.label} is declared by no component. Declare it in the owning component's channels (link health lists it).`)) : null]; // #104: a gap, not a design choice
   }
 }
 

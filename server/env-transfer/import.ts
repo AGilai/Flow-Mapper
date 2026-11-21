@@ -1,6 +1,7 @@
 // POST /api/envs/import?as=<name>&owner=<user>&dryRun=1: create a design environment from an export bundle (export.ts), all or nothing.
 // Autoincrement ids are re-keyed (old -> new maps per table) and the columns that point at them follow; user ids are mapped by name.
 
+import { withType } from '../../core/component-types.ts';
 import type { DB } from '../db/connection.ts';
 import { tx } from '../db/connection.ts';
 import { HttpError, badRequest, conflict } from '../errors.ts';
@@ -63,6 +64,7 @@ export function importEnv(db: DB, bundle: any, opts: { as?: string | null; owner
           r[s.parent.col] = np;
         }
         for (const c of s.nulls ?? []) r[c] = null;
+        addType(s.table, r); // 0.68.0: an old export: a built-in details.icon and no type gets the type added
         for (const c of s.owner ?? []) r[c] = owner;
         for (const c of s.users ?? []) if (r[c] != null) { const m = userMap(r[c]); if (m === null) unmappedUsers.add(String(bundle.users?.[r[c] as string]?.name ?? r[c])); r[c] = m; }
         if (s.table === 'comment_mentions' && r.user_id == null) continue; // a mention of someone unknown here has nobody to point at
@@ -99,4 +101,11 @@ function insert(db: DB, table: string, row: Record<string, unknown>, have: Set<s
   } catch (e: any) {
     throw new HttpError(422, 'INVALID', `${table}: ${e.message}`);
   }
+}
+
+/** 0.68.0 (frame 34): rows of an old export carry `details.icon` and no `type`: add the type (additive, the icon and product stay). Snapshot meta and service-header draft ops only. */
+function addType(table: string, r: Record<string, unknown>) {
+  const col = table === 'snapshots' ? 'meta' : table === 'draft_ops' && r.list === 'header' && r.op === 'upsert' ? 'data' : null;
+  if (!col || typeof r[col] !== 'string') return;
+  try { const o = JSON.parse(r[col] as string); const w = withType(o); if (w !== o) r[col] = JSON.stringify(w); } catch { /* not JSON: left as it is */ }
 }

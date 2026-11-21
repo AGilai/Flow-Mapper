@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "full",
+  "env": "prod",
+  "service": {
+    "name": "lo-hi-db",
+    "kind": "service",
+    "type": "database",
+    "team": "platform",
+    "repo": "github.com/acme/lo-hi-db",
+    "language": "typescript",
+    "description": "Frame 34: a generic-only type (database)"
+  },
+  "version": 1,
+  "harvestedAt": "2026-11-21T10:00:00Z",
+  "commit": "34a",
+  "functions": [
+    {
+      "id": "h",
+      "name": "handle",
+      "file": "src/h.ts",
+      "line": 5,
+      "steps": []
+    }
+  ],
+  "ingress": [
+    {
+      "id": "in.x",
+      "bindKey": "http:GET lo-hi-db/x",
+      "transport": "http",
+      "handler": "h",
+      "entryPoint": false,
+      "details": {
+        "method": "GET",
+        "path": "/x"
+      }
+    }
+  ],
+  "egress": [],
+  "resources": []
+}

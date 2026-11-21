@@ -1,5 +1,6 @@
 // Map tools: search, services, entry points, paths, link health, changelog, inventory.
 
+import { typeFields } from '../../../core/component-types.ts';
 import { HttpError } from '../../errors.ts';
 import { withOpenEnds, tracedOf } from '../../../core/entry-coverage.ts';
 import * as store from '../../store/snapshots.ts';
@@ -26,7 +27,7 @@ export const searchTool: Tool = {
 export const listServicesTool: Tool = {
   name: 'list_services', description: 'List services with version, team and link-health numbers.',
   inputSchema: obj({ draft: draftArg, env }),
-  run: (c, a) => health(viewOf(c, a).g).services,
+  run: (c, a) => { const g = viewOf(c, a).g; return health(g).services.map((s) => ({ ...s, ...typeFields(g.services.get(s.service)) })); },
 };
 
 export const getServiceTool: Tool = {

@@ -1,10 +1,10 @@
-// Component icons (CR #144): the value rules (core/component-icons.ts), the edit form's BAD_ICON, the ingest check, and the round trip over HTTP and MCP.
+// Legacy component icons (CR #144, `details.icon`, deprecated by `type` in 0.68.0, frame 34): the value rules (core/component-icons.ts), the edit form's BAD_ICON, the ingest check, and the round trip over HTTP and MCP.
 
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { BUILTIN_ICONS, BUILTIN_ICON_GROUPS, MAX_ICON, iconKind, iconOf, iconProblem, iconSrc, iconTile, searchIcons } from '../core/component-icons.ts';
+import { BUILTIN_ICONS, MAX_ICON, iconKind, iconProblem } from '../core/component-icons.ts';
 import { designEditOps } from '../core/design-edit.ts';
 import { rows } from './subsystem-fixture.ts';
 import { SAMPLES, startApp } from './helpers.ts';
@@ -53,19 +53,8 @@ test('size limit: 16 KB', () => {
   assert.match(iconProblem(`data:image/png;base64,${'A'.repeat(MAX_ICON)}`)!, /at most 16384/);
 });
 
-test('helpers: kind, src (a user SVG is a data: URL, never markup), tile, header read, search', () => {
+test('helpers: iconKind tells a built-in name, an <svg> string and a data URL apart', () => {
   assert.deepEqual(['vault', SVG, 'data:image/png;base64,AA', 'nope'].map(iconKind), ['builtin', 'svg', 'data', null]);
-  assert.equal(iconSrc('aws-s3'), 'icons/aws-s3.svg');
-  assert.match(iconSrc('<svg viewBox="0 0 1 1"></svg>')!, /^data:image\/svg\+xml;charset=utf-8,%3Csvg%20xmlns%3D/, 'the namespace is added');
-  assert.deepEqual(['vault', 'kafka', 'mysql', 'aws-lambda', 'auth0', SVG].map(iconTile), ['slate', 'white-dark', 'white-dark', null, null, 'white']);
-  assert.equal(iconOf({ details: { icon: 'vault' } }), 'vault');
-  assert.equal(iconOf({ details: { icon: 'rocket' } }), null, 'a bad stored value is never drawn');
-  assert.equal(iconOf({}), null);
-  assert.deepEqual(searchIcons('queue').flatMap(([, i]) => i.map(([n]) => n)).sort(), ['aws-sqs', 'kafka', 'rabbitmq'], 'a search also matches what the product is');
-  assert.ok(searchIcons('sqs').some(([g, i]) => g.includes('Application integration') && i.some(([n]) => n === 'aws-sqs')));
-  assert.equal(searchIcons('aws sec').length, 1, 'words must all match, empty groups are dropped');
-  assert.equal(searchIcons('').length, BUILTIN_ICON_GROUPS.length);
-  assert.equal(searchIcons('zzzz').length, 0);
 });
 
 test('the built-in set is a file each, in web/icons, and the README names its source', () => {
@@ -100,14 +89,18 @@ before(async () => {
 after(() => app.close());
 
 test('ingest: details.icon is stored and read back in services, the system graph and the subsystem rows; a bad one is 422 BAD_ICON', async () => {
-  const m = JSON.parse(readFileSync(join(SAMPLES, 'lo-idp.json'), 'utf8'));
-  assert.equal(m.service.details.icon, 'auth0');
+  const m = JSON.parse(readFileSync(join(SAMPLES, 'lo-n-vault.json'), 'utf8'));
+  assert.equal(m.service.details.icon, 'vault', 'the one legacy sample');
+  assert.equal(JSON.parse(readFileSync(join(SAMPLES, 'lo-idp.json'), 'utf8')).service.type, 'auth0', 'the others moved to type');
   const svcs = (await app.call('GET', '/api/envs/prod/services')).body as any[];
-  assert.equal(svcs.find((s) => s.name === 'lo-idp').details.icon, 'auth0');
+  assert.equal(svcs.find((s) => s.name === 'lo-n-vault').details.icon, 'vault');
+  assert.equal(svcs.find((s) => s.name === 'lo-n-vault').type, 'hashicorp-vault', 'ingest adds the type, the icon stays');
+  assert.equal(svcs.find((s) => s.name === 'lo-n-vault').typeSource, 'declared');
+  assert.equal(svcs.find((s) => s.name === 'lo-idp').typeSource, 'declared');
   assert.equal(svcs.find((s) => s.name === 'lo-ic-brand').details.icon.startsWith('<svg'), true);
   const sys = (await app.call('GET', '/api/envs/prod/views/system')).body;
   assert.equal(sys.nodes.find((n: any) => n.id === 'svc:lo-idp').icon, 'auth0');
-  assert.equal(sys.nodes.find((n: any) => n.id === 'svc:lo-n-vault').icon, 'vault');
+  assert.equal(sys.nodes.find((n: any) => n.id === 'svc:lo-n-vault').icon, 'hashicorp-vault');
   assert.equal(sys.nodes.find((n: any) => n.id === 'svc:billing-api').icon, undefined, 'no icon: nothing added');
   for (const icon of ['foo-bar', '<svg viewBox="0 0 1 1"><script>x</script></svg>', `<svg>${'x'.repeat(MAX_ICON)}</svg>`]) {
     const r = await app.call('POST', '/api/ingest', { manifests: [{ ...m, version: 99, service: { ...m.service, details: { icon } } }] });
@@ -118,7 +111,8 @@ test('ingest: details.icon is stored and read back in services, the system graph
   assert.equal(bad.body.error.code, 'BAD_ICON'); assert.match(bad.body.error.message, /aws-lambda/);
   const ok = await app.call('POST', '/api/ingest', { manifests: [{ ...m, version: 99, service: { ...m.service, details: { icon: 'kafka' } } }] });
   assert.equal(ok.status, 201, JSON.stringify(ok.body));
-  assert.equal(((await app.call('GET', '/api/envs/prod/services')).body as any[]).find((s) => s.name === 'lo-idp').details.icon, 'kafka');
+  assert.equal(((await app.call('GET', '/api/envs/prod/services')).body as any[]).find((s) => s.name === 'lo-n-vault').details.icon, 'kafka');
+  assert.equal(((await app.call('GET', '/api/envs/prod/services')).body as any[]).find((s) => s.name === 'lo-n-vault').type, 'kafka', 'the new icon is added as the type again (the manifest had no type)');
 });
 
 const D = '/api/envs/sase-hld/drafts';
@@ -139,29 +133,8 @@ test('design edit over REST and MCP: set, read back from the draft, BAD_ICON 422
   assert.equal(r.body.result.isError, true); assert.match(r.body.result.content[0].text, /BAD_ICON/);
   const ap = await app.call('POST', `${D}/ic/apply`, { by: 'ana' });
   assert.equal(ap.status, 200, JSON.stringify(ap.body));
-  assert.equal(((await app.call('GET', '/api/envs/sase-hld/views/system')).body.nodes as any[]).find((n) => n.id === 'svc:swg-api').icon, 'aws-lambda');
+  assert.equal(((await app.call('GET', '/api/envs/sase-hld/views/system')).body.nodes as any[]).find((n) => n.id === 'svc:swg-api').icon, 'aws-lambda', 'a legacy icon edit is read as the type');
   assert.equal((await app.call('POST', D, { name: 'ic2', slug: 'ic2' })).status, 201);
   assert.equal((await edit({ ...base, icon: null }, 'ic2')).status, 201);
   assert.equal(((await app.call('GET', '/api/envs/sase-hld/services?draft=ic2')).body as any[]).find((s) => s.name === 'swg-api').details?.icon, undefined);
-});
-
-test('the browser helpers (web/js/components/icon-src.js, no imports) agree with the core ones on every valid value', async () => {
-  const W = await import('../web/js/components/icon-src.js');
-  const values = [...BUILTIN_ICONS, SVG, `<?xml version="1.0"?>${SVG}`, 'data:image/png;base64,AA'];
-  for (const v of values) {
-    assert.equal(W.iconKind(v), iconKind(v), v.slice(0, 30)); assert.equal(W.iconSrc(v), iconSrc(v)); assert.equal(W.iconTile(v), iconTile(v));
-    assert.equal(W.iconOf({ details: { icon: v } }), v);
-  }
-  assert.equal(W.iconOf({}), null);
-});
-
-test('lifeline heads: an own icon wins over the product icon of the kind; without one, today\'s icon', async () => {
-  const { headIconOf } = await import('../web/js/views/flow-draw-icons.js');
-  const { setServiceInfo } = await import('../web/js/design/service-info.js');
-  setServiceInfo([{ name: 'ic-l', kind: 'lambda', details: { icon: 'vault' } }, { name: 'ic-p', kind: 'lambda' }, { name: 'ic-c', kind: 'service', details: { icon: SVG } }], 'e1');
-  const head = (service: string, serviceKind: string) => headIconOf({ kind: 'service', service, env: 'e1', serviceKind } as any);
-  assert.deepEqual(head('ic-l', 'lambda'), ['own', 'vault']);
-  assert.deepEqual(head('ic-p', 'lambda'), ['service', 'lambda']);
-  assert.deepEqual(head('ic-c', 'service'), ['own', SVG]);
-  assert.equal(head('none', 'service'), null);
 });

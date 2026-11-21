@@ -8,7 +8,7 @@
     "team": "platform",
     "repo": "github.com/acme/lo-hi-api",
     "language": "typescript",
-    "description": "Demo #148: heads with a large component logo"
+    "description": "Demo #148 / frame 34: heads with a large component logo (specific and generic types)"
   },
   "version": 1,
   "harvestedAt": "2026-11-19T14:00:00Z",
@@ -39,6 +39,16 @@
           "seq": 4,
           "type": "egress",
           "target": "o.lo-hi-plain"
+        },
+        {
+          "seq": 5,
+          "type": "egress",
+          "target": "o.lo-hi-idp"
+        },
+        {
+          "seq": 6,
+          "type": "egress",
+          "target": "o.lo-hi-db"
         }
       ]
     }
@@ -78,6 +88,18 @@
     {
       "id": "o.lo-hi-plain",
       "bindKey": "http:GET lo-hi-plain/x",
+      "transport": "http",
+      "mode": "sync"
+    },
+    {
+      "id": "o.lo-hi-idp",
+      "bindKey": "http:GET lo-hi-idp/x",
+      "transport": "http",
+      "mode": "sync"
+    },
+    {
+      "id": "o.lo-hi-db",
+      "bindKey": "http:GET lo-hi-db/x",
       "transport": "http",
       "mode": "sync"
     }

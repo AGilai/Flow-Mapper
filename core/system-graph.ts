@@ -4,7 +4,7 @@
 import { downstreamIngress, itemsOf, sid, subscriptionsOf, type GraphIndex } from './graph-index.ts';
 import type { Mode, Ref, Transport } from './types.ts';
 import { externalField, externalSet } from './external.ts';
-import { iconOf } from './component-icons.ts';
+import { resolveType } from './component-types.ts';
 import { eventReport } from './events.ts';
 
 export type NodeKind = 'service' | 'gateway' | 'infra' | 'channel' | 'resource' | 'missing';
@@ -16,7 +16,8 @@ export interface GraphNode {
   sub?: string;                // team / channel kind / resource kind
   external?: true;             // #87: an external (third-party) service
   svcKind?: string;            // service kind (service | gateway | lambda), for icons
-  icon?: string;               // CR #144: the component's icon (details.icon), when valid
+  icon?: string;               // frame 34: the type whose logo the node draws (a declared or legacy-icon type other than `service`; a kind-derived one is drawn from the kind)
+  type?: string;               // frame 34: the resolved type id (core/component-types.ts)
   service?: string;
   team?: string;
   about?: string;              // Markdown-lite (0.30.2)
@@ -59,6 +60,9 @@ export function systemGraph(g: GraphIndex): SystemGraph {
   return out;
 }
 
+const rt = (s: any) => resolveType(s);
+const own = (s: any) => { const t = rt(s); return t.id !== 'service' && t.source !== 'kind'; };
+
 function build(g: GraphIndex): SystemGraph {
   const nodes = new Map<string, GraphNode>();
   const r = g.resolution;
@@ -70,7 +74,7 @@ function build(g: GraphIndex): SystemGraph {
     const mine = itemsOf(g, s.name);
     const ins = mine.ingress, outs = mine.egress;
     nodes.set(svcNode(s.name), {
-      id: svcNode(s.name), kind: s.kind === 'lambda' || s.kind === 'client-app' ? 'service' : s.kind, svcKind: s.kind, label: s.name, sub: s.team, service: s.name, ...externalField(g, s.name), team: s.team, tags: s.tags, ...(s.about ? { about: s.about } : {}), ...(iconOf(s) ? { icon: iconOf(s) } : {}), ...(s.details?.runtime ? { runtime: String(s.details.runtime) } : {}), // runtime: the Kubernetes mark on the map (0.26.0, #49)
+      id: svcNode(s.name), kind: s.kind === 'lambda' || s.kind === 'client-app' ? 'service' : s.kind, svcKind: s.kind, label: s.name, sub: s.team, service: s.name, ...externalField(g, s.name), team: s.team, tags: s.tags, ...(s.about ? { about: s.about } : {}), type: rt(s).id, ...(own(s) ? { icon: rt(s).id } : {}), ...(s.details?.runtime ? { runtime: String(s.details.runtime) } : {}), // runtime: the Kubernetes mark on the map (0.26.0, #49)
       functions: mine.functions.map((f) => f.name),
       transports: [...new Set([...ins, ...outs].map((x) => x.transport))],
       stats: {
