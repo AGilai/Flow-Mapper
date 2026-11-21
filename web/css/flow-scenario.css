@@ -107,3 +107,14 @@ select.dec-sel:not(.set) { color: var(--accent); }
 .flowhead > .fh-sum { container-type: inline-size; }
 @container (max-width: 1000px) { .fh-src { display: none; } }
 @media (max-width: 800px) { .flowhead > .fh-sum { gap: 6px; } .scn-ctl { gap: 6px; } }
+/* #149: the ⋮ on a component head: shown on hover or focus, always on touch (like .int-ctl); its hit area is 24 px */
+.head-more { cursor: pointer; outline: none; opacity: 0; transition: opacity .12s; }
+.seq-part:hover .head-more, .head-more:focus-visible, .seq-part:focus-visible .head-more, .seq-part:focus-within .head-more { opacity: 1; }
+@media (hover: none) { .head-more { opacity: 1; } }
+.head-more .hit { fill: transparent; stroke: none; }
+.head-more .bg { fill: var(--surface); stroke: var(--line-strong); }
+.head-more .dot { fill: var(--ink-2); }
+.head-more:hover .bg { fill: var(--accent-soft); stroke: var(--accent); }
+.head-more:hover .dot { fill: var(--accent); }
+.head-more:focus-visible .bg { stroke: var(--focus); stroke-width: 2; }
+.seq-part:focus-visible > rect:first-of-type { stroke: var(--focus); stroke-width: 2; }

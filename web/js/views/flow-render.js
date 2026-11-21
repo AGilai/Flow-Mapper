@@ -10,6 +10,7 @@ import { buildLane } from './flow-lane.js';
 import { renderIndex } from './flow-index.js';
 import { asyncTree, deliveryNumbers, knownOutside } from './flow-async.js';
 import { barMenu, participantMenu } from './flow-menu.js';
+import { createHeadCard } from './head-card.js';
 import { subRequest } from './flow-sub.js';
 import { pillAction } from './flow-scenario-pure.js';
 import { firstStepCols } from './flow-squeeze.js';
@@ -37,6 +38,7 @@ export function createFlowRender({ trace, tree, key, ancestors = [], sticky = tr
   const maxDepth = () => (opts.depth === 'all' ? Infinity : Number(opts.depth));
   const laneOpts = () => ({ mwOpen, stores: opts.stores, scope: 'full', maxDepth: maxDepth() });
 
+  const headCard = createHeadCard(() => host.env);
   const handlers = {
     onBarTip: sh.tip ? (bar, el) => (bar ? sh.tip.show(bar, el) : sh.tip.hide()) : undefined,
     onMw: (bar, sel) => { const k = bar?.mw?.key; if (!k) return; if (!mwOpen.delete(k)) mwOpen.add(k); drawLane(); laneBox.querySelector(`${sel ?? '.mwlab'}[data-mwfold="${bar.id}"]`)?.focus(); },
@@ -44,8 +46,12 @@ export function createFlowRender({ trace, tree, key, ancestors = [], sticky = tr
     // #84: the folded "N internal calls" marker opens those calls (the same as "⊕ internal" under the head); where nothing is lazy (a card, Full, intra) it looks inside as before
     onPill: (bar) => { if (sh.onInternal && bar.service && pillAction(depth, !!sh.internal?.()) === 'open') sh.onInternal(bar.service); else { sh.select(bar); sh.lookInside(bar, trace); } },
     onBarMenu: (bar, x, y) => barMenu(bar, x, y, { trace, openEntry: host.openEntry, inside: () => { sh.select(bar); sh.lookInside(bar, trace); }, toIndex: index ? () => index.el.scrollIntoView({ behavior: 'smooth' }) : null }),
-    onParticipant: (p, x, y, type) => (type === 'click' && sh.editHead?.(p.service)) || (type === 'click' && p.kind === 'service' && host.openPane?.({ kind: 'component', name: p.service })) || participantMenu(p, x, y, { trace, openEntry: host.openEntry, openPane: host.openPane }), // Edit with a draft: a click on a head opens its form; otherwise the info pane (0.33.0), the menu stays on right-click
+    onParticipant: (p, x, y, type) => { // a click: Edit with a draft opens the head's form, else the info pane (0.33.0); the menu is the ⋮ button and the right-click (#149: a click no longer falls through to it)
+      if (type === 'click') { if (sh.editHead?.(p.service)) return; if (host.openPane) { host.openPane({ kind: 'component', name: p.service }); return; } }
+      participantMenu(p, x, y, { trace, openEntry: host.openEntry, openPane: host.openPane });
+    },
     onStore: sh.onStore && !depth ? (c, ev) => sh.onStore(c, ev) : undefined, // #86: a Redis or Mongo head opens the store panel (the top lane's only)
+    onHeadTip: (c, el) => (c ? headCard.show(c.service, el) : headCard.hide()), // #149: the card with the About's first section; the <title> of a service head is gone
     onBand: host.openPane ? (key) => host.openPane({ kind: 'subsystem', key }) : undefined,
     onNum: (label) => { top()?.reveal(label); }, // a number tile at a queue: open that row of the list below (a card opens in place)
     onNumHover: (labels, on) => labels.forEach((l) => top()?.rowNode(l)?.classList.toggle('hl', on)),
@@ -54,6 +60,7 @@ export function createFlowRender({ trace, tree, key, ancestors = [], sticky = tr
   };
 
   function drawLane() {
+    headCard.hide();
     const lo = laneOpts();
     const msgs = trace.messages.filter((m) => m.depth <= lo.maxDepth);
     const build = (drawnAt) => { const b = buildLane(msgs, { mwOpen, fanOpen, numbers: deliveryNumbers(tree), stores: lo.stores, scope: 'full', participants: trace.participants, trigger: depth ? null : sh.trigger?.() ?? null, icalls: depth ? false : sh.icalls?.() ?? false, decisions: depth ? [] : trace.decisions ?? [], dbOpen: depth ? null : sh.dbOpen?.() ?? null, repeats: trace.detail === 'simple', drawnAt });

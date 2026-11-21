@@ -161,7 +161,7 @@ svg.obj-icon { color: var(--ink-2); }
 .ctx-item svg, .ctx-gap { width: 16px; height: 16px; flex: none; margin-top: 1px; }
 .ctx-text { display: grid; gap: 1px; }
 .ctx-hint { font-size: var(--fs-xs); color: var(--muted); }
-.seq-part { cursor: context-menu; }
+.seq-part { cursor: pointer; }
 .seq-part.expanded rect:first-child { stroke: var(--accent); stroke-dasharray: 4 3; }
 
 /* Drag handle on a panel edge (components/resizer.js). */
