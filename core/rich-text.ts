@@ -33,6 +33,9 @@ const calloutAttr = (v: string | undefined) => { const t = (v ?? '').trim().toLo
 // eslint-disable-next-line no-control-regex
 const refAttr = (v: string | undefined) => { const t = cleanText((v ?? '').trim()); const m = /^(svc|flow|step):([^\u0000-\u001f]{1,300})$/.exec(t); if (!m) return null; const [, k, rest] = m; return k === 'svc' ? t : k === 'flow' ? (/^[^/]+\/.+$/.test(rest) ? t : null) : /^[^/]+\/[^#]+#\d{1,4}$/.test(rest) ? t : null; };
 const keyAttr = (v: string | undefined) => { const t = (v ?? '').trim(); return /^#step:[^\u0000-\u001f]{3,500}$/.test(t) ? t : null; };
+/** A code block's language: `data-lang` on <pre> is one simple token; `class` on <code> keeps only a `language-<token>` class. Null when there is none. */
+const langAttr = (v: string | undefined) => { const t = (v ?? '').trim().toLowerCase(); return /^[a-z0-9-]{1,20}$/.test(t) ? t : null; };
+const langClass = (v: string | undefined) => { const m = (v ?? '').split(/\s+/).map((x) => /^language-([a-z0-9-]{1,20})$/.exec(x)).find(Boolean); return m ? `language-${m[1]}` : null; };
 const INLINE = new Set(['b', 'strong', 'i', 'em', 's', 'del', 'strike', 'u', 'span', 'a', 'code']);
 const FOSTER = new Set(['table', 'thead', 'tbody', 'tr', 'ul', 'ol']); // elements whose only children are their own parts: text and other tags in them are dropped
 const CHILD: Record<string, string[]> = { table: ['thead', 'tbody', 'tr'], thead: ['tr'], tbody: ['tr'], tr: ['td', 'th'], ul: ['li'], ol: ['li'] };
@@ -112,7 +115,12 @@ export function sanitize(html: string, opts: SanitizeOptions = {}): string {
       emit = emit && (!!c || !!ds || !!dr); // a span with no palette colour (and no step, no reference) is nothing: its contents stay
       if (emit) extra = ds ? ` data-step="${ds}"${dk ? ` data-key="${escAttr(dk)}"` : ''}${dt ? ` data-key-to="${escAttr(dt)}"` : ''}` : dr ? ` data-ref="${escAttr(dr)}"` : ` class="${c}"`;
     } else if (name === 'pre') {
-      if (notes && 'data-mermaid' in attrs) extra = ' data-mermaid="1"'; // a Mermaid source block (the reader draws it, or shows the source)
+      if (notes && 'data-mermaid' in attrs) extra = ' data-mermaid="1"'; // the older Mermaid marker (the reader draws it as a diagram too)
+      const dl = langAttr(attrs['data-lang']);
+      if (dl) extra += ` data-lang="${dl}"`;
+    } else if (name === 'code') {
+      const lc = langClass(attrs.class);
+      if (lc && top() === 'pre') extra = ` class="${lc}"`;
     } else if (name === 'div') {
       const ds = stepAttr(attrs['data-step']), n = ds && !ds.includes('-') ? ds : null, dk = n ? keyAttr(attrs['data-key']) : null; // a callout names one step
       extra = ` data-callout="${callout}"${n ? ` data-step="${n}"` : ''}${dk ? ` data-key="${escAttr(dk)}"` : ''}`;

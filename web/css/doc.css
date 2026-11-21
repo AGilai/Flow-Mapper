@@ -14,8 +14,8 @@
 .nt-doc ul ul, .nt-doc ol ol, .nt-doc ul ol, .nt-doc ol ul { margin: 2px 0; }
 
 /* a Mermaid block: in the editor its source is a labelled code box; in the reader the same, with a note (no renderer yet) */
-.rte-area pre[data-mermaid], .nt-blk pre[data-mermaid] { position: relative; padding-top: 26px; border-style: dashed; }
-.rte-area pre[data-mermaid]::before, .nt-blk pre[data-mermaid]::before { content: 'Mermaid'; position: absolute; top: 4px; left: 10px; font: 700 10.5px var(--font); letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.rte-area pre[data-mermaid], .nt-blk pre[data-mermaid], .rte-area pre[data-lang='mermaid'], .nt-blk pre[data-lang='mermaid'] { position: relative; padding-top: 26px; border-style: dashed; }
+.rte-area pre[data-mermaid]::before, .nt-blk pre[data-mermaid]::before, .rte-area pre[data-lang='mermaid']::before, .nt-blk pre[data-lang='mermaid']::before { content: 'Mermaid'; position: absolute; top: 4px; left: 10px; font: 700 10.5px var(--font); letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
 .nt-mm { margin: 10px 0; border: 1px dashed var(--line-strong); border-radius: var(--r-sm); background: var(--surface-2); }
 .nt-mm figcaption { padding: 6px 12px 0; font-size: var(--fs-xs); color: var(--muted); }
 .nt-mm figcaption b { color: var(--ink-2); text-transform: uppercase; letter-spacing: .05em; font-size: 10.5px; }

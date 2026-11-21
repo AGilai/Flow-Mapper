@@ -4,6 +4,7 @@
 
 import { h } from '../dom.js';
 import { parseRef, CALLOUT_LABEL } from '../../core/callouts.js';
+import { renderDiagrams } from './diagram.js';
 
 const enc = encodeURIComponent;
 const SVG = {
@@ -29,13 +30,8 @@ export function renderRefs(root, env) {
   });
 }
 
-/** `pre[data-mermaid]` -> the source in a labelled box (no renderer in the app). */
-export function renderMermaid(root) {
-  root.querySelectorAll('pre[data-mermaid]').forEach((p) => {
-    const src = [...p.childNodes].map((n) => (n.nodeName === 'BR' ? '\n' : n.textContent)).join('');
-    p.replaceWith(h('figure.nt-mm', { 'data-qa': 'nt-mermaid' }, h('figcaption', h('b', 'Mermaid'), ' source, shown as text: this app does not draw Mermaid yet.'), h('pre', h('code', src))));
-  });
-}
+/** Mermaid blocks -> the drawn diagram with a Diagram | Source toggle (diagram.js). */
+export const renderMermaid = renderDiagrams;
 
 /**
  * Callouts: `div[data-callout]` -> a coloured card with its label and step chip. `steps()` is the flow's number of steps (0: not known),

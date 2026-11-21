@@ -36,7 +36,7 @@ export function commands(ed, { kind, ask }) {
   });
   const list = (cmd) => () => ed.exec(() => document.execCommand(cmd));
   const code = () => ed.exec((r) => { const pre = document.createElement('pre'), c = document.createElement('code'); c.append(document.createElement('br')); pre.append(c); putBlock(ed, r, pre, c); });
-  const mermaid = () => ed.exec((r) => { const pre = document.createElement('pre'); pre.setAttribute('data-mermaid', '1'); pre.textContent = MERMAID_SAMPLE; putBlock(ed, r, pre); });
+  const mermaid = () => ed.exec((r) => { const pre = document.createElement('pre'); pre.setAttribute('data-lang', 'mermaid'); pre.textContent = MERMAID_SAMPLE; putBlock(ed, r, pre); });
   const callout = (k) => () => (calloutAt(ed) ? ed.exec(() => calloutAt(ed)?.setAttribute('data-callout', k)) : ask('callout', k));
   const all = [
     ['h1', 'Heading 1', 'Page title', fmt('h1')], ['h2', 'Heading 2', 'Section', fmt('h2')], ['h3', 'Heading 3', 'Subsection', fmt('h3')],
