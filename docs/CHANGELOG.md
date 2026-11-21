@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased
+## 0.67.0 (2026-11-21): head click opens info, ⋮ menu, hover card
 
 - Lifeline heads (UI only): a click or Enter on a component head opens its info pane (it no longer falls through to the menu); the menu is the new ⋮ button at the head's right edge (shown on hover or focus, always on touch) and right-click. Hovering a head for 400 ms, or focusing it, shows a card with the name, Type and the first `about` section (else `description`, else "No description yet"). Nothing for harvesters to change; give a component an `about` to see it.
 
