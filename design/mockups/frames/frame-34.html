@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frame 34 · One type field</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../shared.css">
+<style>
+.f34 { padding: 8px 24px 28px; display: grid; gap: 28px; }
+.f34 h3 { font-size: 15px; margin: 0 0 6px; } .f34 h3 small { font: 400 12.5px var(--font); color: var(--ink-2); margin-left: 8px; }
+.f34 .row { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+.f34 .box { border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface); padding: 12px 14px; }
+.f34 .note { font-size: 12px; color: var(--ink-2); max-width: 100ch; margin-top: 8px; }
+/* theme-swapped generic icons (AWS General resource icons: Light = dark ink, Dark = white ink) */
+.f34 img.gi { display: block; flex: none; object-fit: contain; }
+.f34 .dk { display: none !important; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) .f34 .lt { display: none !important; } :root:not([data-theme='light']) .f34 .dk { display: block !important; } }
+:root[data-theme='dark'] .f34 .lt { display: none !important; } :root[data-theme='dark'] .f34 .dk { display: block !important; }
+.f34 .vt { display: grid; place-items: center; flex: none; background: #1d2330; border: 1px solid #3a4256; border-radius: 4px; }
+.f34 .wt { display: grid; place-items: center; flex: none; border-radius: 4px; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) .f34 .dkw { background: #fff; border: 1px solid #c9cedb; } }
+:root[data-theme='dark'] .f34 .dkw { background: #fff; border: 1px solid #c9cedb; }
+/* catalogue */
+.f34 .cat { display: grid; gap: 0; }
+.f34 .cr { display: grid; grid-template-columns: 150px 1fr; gap: 14px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.f34 .cr:last-child { border-bottom: 0; }
+.f34 .gt { display: grid; justify-items: center; gap: 4px; padding: 10px 6px 8px; border: 1.5px solid var(--line-strong); border-radius: 10px; background: var(--surface-2); text-align: center; }
+.f34 .gt b { font: 600 12px var(--mono); } .f34 .gt small { font: 400 10.5px/1.25 var(--font); color: var(--muted); }
+.f34 .sp { display: flex; flex-wrap: wrap; gap: 8px; }
+.f34 .stl { display: grid; justify-items: center; gap: 4px; width: 118px; padding: 8px 4px 7px; border: 1px solid var(--line); border-radius: 8px; text-align: center; }
+.f34 .stl b { font: 500 11px var(--mono); overflow-wrap: anywhere; } .f34 .stl small { font: 400 10.5px var(--font); color: var(--muted); }
+.f34 .none { font-size: 11.5px; color: var(--muted); font-style: italic; }
+/* heads */
+.f34 .lanes { display: flex; gap: 14px; flex-wrap: wrap; }
+.f34 .col { display: grid; justify-items: center; }
+.f34 .col .ll { width: 0; height: 70px; border-left: 1.6px dashed var(--line-strong); }
+.f34 .hd { position: relative; width: 138px; height: 70px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--surface-2); padding: 6px 8px 6px 12px; display: grid; align-content: center; }
+.f34 .hd::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; border-radius: 6px 0 0 6px; background: var(--st); }
+.f34 .hd.ty { justify-items: center; gap: 4px; padding-left: 8px; }
+.f34 .hd .nm { font: 500 11.5px var(--mono); overflow-wrap: anywhere; line-height: 1.2; }
+.f34 .hd.ty .nm { text-align: center; }
+.f34 .hd .kd { font: 400 10.5px var(--font); color: var(--muted); }
+.f34 .tag { font: 500 10.5px var(--mono); color: var(--ink-2); margin-top: 6px; }
+/* info pane */
+.f34 .pane { width: 330px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); box-shadow: var(--shadow-panel); overflow: hidden; }
+.f34 .pane .ph { padding: 10px 14px; border-bottom: 1px solid var(--line); font: 600 14px var(--mono); }
+.f34 .kv { display: grid; grid-template-columns: 84px 1fr; gap: 9px 10px; align-items: center; font-size: 13px; padding: 12px 14px; }
+.f34 .kv > span:nth-child(odd) { color: var(--muted); font-size: 12px; }
+.f34 .ty2 { display: inline-flex; align-items: center; gap: 6px; }
+.f34 .ty2 .sep { color: var(--muted); }
+.f34 .un { font-size: 11.5px; color: var(--ink-2); margin-top: 2px; }
+.f34 pre { margin: 0; font: 400 11.5px/1.5 var(--mono); background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; overflow-x: auto; color: var(--ink); }
+.f34 pre .del { background: color-mix(in srgb, var(--bad) 16%, transparent); display: inline-block; width: 100%; }
+.f34 pre .add { background: color-mix(in srgb, var(--ok) 18%, transparent); display: inline-block; width: 100%; }
+.f34 .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; max-width: 980px; }
+.f34 .cols h4 { font: 600 12px var(--font); color: var(--ink-2); margin-bottom: 6px; }
+.f34 ul.rules { margin: 10px 0 0; padding-left: 18px; font-size: 12.5px; color: var(--ink-2); max-width: 100ch; } .f34 ul.rules li { margin: 3px 0; }
+ol.decisions.w1 { columns: 1; max-width: 1180px; }
+</style>
+</head>
+<body>
+<nav class="fbar" aria-label="Design navigation"><a href="../design-env.html">← All designs</a><span class="pos">Frame 34 of 34</span><a href="frame-33.html">‹ prev</a><span class="off">next ›</span><span class="chip chip-awaiting">Awaiting approval</span><div class="theme" role="group" aria-label="Theme"><button data-t="system" aria-pressed="true">System</button><button data-t="light" aria-pressed="false">Light</button><button data-t="dark" aria-pressed="false">Dark</button></div></nav>
+
+<div class="frame-label"><h2>Frame 34. One field: <span class="mono">type</span></h2>
+<p>Maintainer decision: replace today's mix (service <span class="mono">kind</span> for the look, <span class="mono">details.icon</span> from #144, <span class="mono">details.product</span> from #148, store and channel kinds) with a single <span class="mono">type</span> that has two levels. Data is invented.</p>
+<ol class="decisions w1">
+<li><b>Two levels (34a).</b> A <b>generic</b> type (service, idp, vault, database, cache, queue, topic, storage, search, function, container, gateway, cdn, workflow) says what the component is and shows a generic icon. A <b>specific</b> type belongs to exactly one generic type (auth0 is an idp, postgres a database, aws-sqs a queue) and shows the vendor's official logo.</li>
+<li><b>Icons are all official.</b> Generic icons are the AWS Architecture Icons "General" resource icons (Light file on light theme, Dark file on dark theme, never edited). Specific icons are the brand set from frame 32 plus the official Kubernetes logo (Devicon 2.16.0). Nothing is drawn by hand. The AWS package has no dedicated icon for <b>cache, topic, function, container, gateway, cdn and workflow</b>, so those use the closest general icon (cache = Data-Table, topic = Forums, function = Source-Code, container = Servers, gateway = Internet, cdn = Globe, workflow = Gear). Maintainer to confirm, or name a better official one.</li>
+<li><b>Heads (34b).</b> As in 0.66.3/0.67.0: a typed head, generic or specific, is a large centred icon (30px) with the name only under it. An untyped head keeps name plus "service" in grey. A generic icon is drawn in ink, so a head with a generic type reads as "a kind of thing" and one with a logo as "this product".</li>
+<li><b>Info pane (34c).</b> One <b>Type</b> row replaces the Icon and Product rows: "IDP · Auth0" (generic, then specific, with the small logo), or just "IDP" for a generic-only type. Editing it is one two-step picker: generic first, then optionally a specific one under it.</li>
+<li><b>Manifest and fallbacks (34d).</b> <span class="mono">"type": "auth0"</span> replaces <span class="mono">details.icon</span> and <span class="mono">details.product</span>. An unknown value renders as <span class="mono">service</span>. Old data still reads: <span class="mono">details.icon: "vault"</span> is taken as the type, <span class="mono">kind</span> stays for flow behaviour only.</li>
+</ol></div>
+
+<div class="f34" id="root"></div>
+
+<script>
+const GEN = [
+  ['service', 'Generic-Application', 'Service', 'any component', []],
+  ['idp', 'Authenticated-User', 'IDP', 'identity provider', [['auth0', 'Auth0'], ['aws-cognito', 'Amazon Cognito']]],
+  ['vault', 'Credentials', 'Vault', 'secrets', [['hashicorp-vault', 'HashiCorp Vault', 'vault'], ['aws-secrets-manager', 'AWS Secrets Manager'], ['aws-kms', 'AWS KMS']]],
+  ['database', 'Database', 'Database', '', [['postgres', 'PostgreSQL'], ['mysql', 'MySQL'], ['mongodb', 'MongoDB'], ['aws-dynamodb', 'Amazon DynamoDB'], ['aws-rds', 'Amazon RDS']]],
+  ['cache', 'Data-Table', 'Cache', 'approx. icon', [['redis', 'Redis'], ['aws-elasticache', 'Amazon ElastiCache']]],
+  ['queue', 'Data-Stream', 'Queue', 'stream', [['kafka', 'Apache Kafka'], ['rabbitmq', 'RabbitMQ'], ['aws-sqs', 'Amazon SQS'], ['aws-kinesis', 'Amazon Kinesis']]],
+  ['topic', 'Forums', 'Topic', 'events; approx. icon', [['aws-sns', 'Amazon SNS'], ['aws-eventbridge', 'Amazon EventBridge']]],
+  ['storage', 'Folder', 'Storage', '', [['aws-s3', 'Amazon S3']]],
+  ['search', 'Magnifying-Glass', 'Search', '', [['elasticsearch', 'Elasticsearch']]],
+  ['function', 'Source-Code', 'Function', 'approx. icon', [['aws-lambda', 'AWS Lambda']]],
+  ['container', 'Servers', 'Container', 'approx. icon', [['aws-ecs', 'Amazon ECS'], ['aws-eks', 'Amazon EKS'], ['kubernetes', 'Kubernetes']]],
+  ['gateway', 'Internet', 'Gateway', 'approx. icon', [['aws-api-gateway', 'Amazon API Gateway']]],
+  ['cdn', 'Globe', 'CDN', 'approx. icon', [['aws-cloudfront', 'Amazon CloudFront']]],
+  ['workflow', 'Gear', 'Workflow', 'approx. icon', [['aws-step-functions', 'AWS Step Functions']]],
+];
+const G = Object.fromEntries(GEN.map((g) => [g[0], g]));
+const SPEC = {}; GEN.forEach((g) => g[4].forEach((s) => { SPEC[s[0]] = { id: s[0], label: s[1], file: s[2] || s[0], parent: g[0] }; }));
+const AUTH0 = '<path d="M21.98 7.448L19.62 0H4.347L2.02 7.448c-1.352 4.312.03 9.206 3.815 12.015L12.007 24l6.157-4.552c3.755-2.81 5.182-7.688 3.815-12.015l-6.16 4.58 2.343 7.45-6.157-4.597-6.158 4.58 2.358-7.433-6.188-4.55 7.63-.045L12.008 0l2.356 7.404 7.615.044z"/>';
+const gen = (t, px) => { const f = 'Res_' + G[t][1] + '_48_'; return `<img class="gi lt" src="assets/icons/generic/${f}Light.svg" width="${px}" height="${px}" alt=""><img class="gi dk" src="assets/icons/generic/${f}Dark.svg" width="${px}" height="${px}" alt="">`; };
+function spec(id, px) {
+  const f = SPEC[id].file;
+  if (id === 'auth0') return `<svg class="gi" width="${px}" height="${px}" viewBox="0 0 24 24" fill="#EB5424" aria-hidden="true">${AUTH0}</svg>`;
+  if (id === 'hashicorp-vault') return `<span class="vt" style="width:${px + 6}px;height:${px + 6}px"><img class="gi" src="assets/icons/vault.svg" width="${px - 2}" height="${px - 2}" alt=""></span>`;
+  if (id === 'kafka' || id === 'mysql') return `<span class="wt dkw" style="width:${px + 4}px;height:${px + 4}px"><img class="gi" src="assets/icons/${f}.svg" width="${px}" height="${px}" alt=""></span>`;
+  return `<img class="gi" src="assets/icons/${f}.svg" width="${px}" height="${px}" alt="">`;
+}
+const icon = (t, px) => (SPEC[t] ? spec(t, px) : gen(G[t] ? t : 'service', px));
+
+function catalogue() {
+  return `<div class="cat">${GEN.map((g) => `<div class="cr"><div class="gt">${gen(g[0], 40)}<b>${g[0]}</b><small>${g[2]}${g[3] ? ' · ' + g[3] : ''}</small></div><div class="sp">${g[4].length ? g[4].map((s) => `<div class="stl">${spec(s[0], 28)}<b>${s[0]}</b><small>${s[1]}</small></div>`).join('') : '<span class="none">no specific types: the generic icon is the icon</span>'}</div></div>`).join('')}</div>`;
+}
+const HEADS = [
+  ['orders-svc', '', '--t-http'], ['idp-svc', 'idp', '--t-rpc'], ['auth-gateway', 'auth0', '--t-rpc'], ['secrets', 'hashicorp-vault', '--t-eb'], ['orders-db', 'postgres', '--t-res'], ['cache', 'database', '--t-sqs'],
+];
+function head([n, t, c]) {
+  const body = t ? `<div class="hd ty" style="--st:var(${c})">${icon(t, 30)}<span class="nm">${n}</span></div>` : `<div class="hd" style="--st:var(${c})"><span class="nm">${n}</span><span class="kd">service</span></div>`;
+  return `<div class="col">${body}<div class="ll"></div><span class="tag">${t ? 'type: ' + t : 'no type'}</span></div>`;
+}
+function lanes() { return `<div class="lanes">${HEADS.map(head).join('')}</div>`; }
+function pane(name, rows, extra) {
+  return `<div class="pane"><div class="ph">${name}</div><div class="kv">${rows.map(([k, v]) => `<span>${k}</span><span>${v}</span>`).join('')}</div>${extra || ''}</div>`;
+}
+function typeRow(t) {
+  if (SPEC[t]) return `<span class="ty2"><b>${G[SPEC[t].parent][2]}</b><span class="sep">·</span>${spec(t, 16)} ${SPEC[t].label}</span>`;
+  return `<span class="ty2">${gen(t, 16)}<b>${G[t][2]}</b></span>`;
+}
+const J = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+function render() {
+  document.getElementById('root').innerHTML = `
+  <section><h3>34a. Catalogue<small>one row per generic type: generic icon at 40px, then its specific types at 28px (logo, type id, product name)</small></h3><div class="box">${catalogue()}</div>
+  <p class="note">Rows marked "approx. icon" have no dedicated AWS General icon; the closest official one is used. Vault sits on a dark slate tile, Kafka and MySQL on a white tile in dark theme only (as in frame 32); Auth0 is drawn in its brand orange from the simple-icons path.</p></section>
+  <section><h3>34b. Lifeline heads<small>typed heads show a large centred icon (30px) and only the name; the untyped head keeps name and "service" in grey</small></h3><div class="box">${lanes()}</div>
+  <p class="note">Left to right: <span class="mono">orders-svc</span> has no type. <span class="mono">idp-svc</span> is a generic <span class="mono">idp</span> (generic icon). <span class="mono">auth-gateway</span> is <span class="mono">auth0</span> (brand logo; its generic type idp is implied). <span class="mono">secrets</span> is <span class="mono">hashicorp-vault</span>, <span class="mono">orders-db</span> is <span class="mono">postgres</span>, and <span class="mono">cache</span> is the generic <span class="mono">database</span> (the generic database icon, not a logo). The stripe is the domain colour, unchanged.</p></section>
+  <section><h3>34c. Info pane, Type row<small>generic · specific with a small logo; generic only; unknown value</small></h3><div class="row">
+  ${pane('auth-gateway', [['Kind', '<span class="mono">service</span>'], ['Type', typeRow('auth0')], ['Domain', 'Platform']])}
+  ${pane('idp-svc', [['Kind', '<span class="mono">service</span>'], ['Type', typeRow('idp')], ['Domain', 'Platform']])}
+  ${pane('legacy-box', [['Kind', '<span class="mono">service</span>'], ['Type', typeRow('service')], ['Domain', 'Platform']], '<div class="kv" style="padding-top:0"><span></span><span class="un">Manifest said <span class="mono">"type": "mainframe"</span>: unknown, shown as Service.</span></div>')}
+  </div><p class="note">The row replaces the Icon row (#144) and the Product row (#148). Clicking it opens a two-step picker: the 14 generic types first, then the specific types of the chosen generic one (or "generic only").</p></section>
+  <section><h3>34d. Manifest<small>before and after, and the fallback rules</small></h3><div class="cols">
+  <div><h4>Before (0.66 / 0.67)</h4><pre>${J(`{
+  "name": "auth-gateway",
+  "kind": "service",
+  "details": {
+`)}<span class="del">${J(`    "icon": "auth0",
+    "product": "Auth0"`)}</span>${J(`
+  }
+}`)}</pre></div>
+  <div><h4>After</h4><pre>${J(`{
+  "name": "auth-gateway",
+  "kind": "service",
+`)}<span class="add">${J(`  "type": "auth0"`)}</span>${J(`
+}`)}</pre></div></div>
+  <ul class="rules">
+  <li><b>Known specific type</b> (<span class="mono">auth0</span>): its brand logo; the Type row reads "IDP · Auth0".</li>
+  <li><b>Known generic type</b> (<span class="mono">idp</span>): the generic icon; the row reads "IDP".</li>
+  <li><b>Unknown or missing value</b>: <span class="mono">service</span>. A missing type on a head shows name plus "service" in grey, as today.</li>
+  <li><b>Legacy data</b>: <span class="mono">details.icon</span> naming a built-in (<span class="mono">"vault"</span> reads as <span class="mono">hashicorp-vault</span>) is read as the type when <span class="mono">type</span> is absent; <span class="mono">details.product</span> and custom SVG / data-URL icons are dropped.</li>
+  <li><b><span class="mono">kind</span></b> keeps only flow behaviour (client-app, gateway, ...). It no longer picks the look; the generic type does.</li>
+  <li>The JSON schema and samples change together (a <span class="mono">type</span> string; 14 generic and 27 specific values are known, anything else falls back).</li></ul></section>`;
+}
+document.querySelectorAll('.theme button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.theme button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  if (b.dataset.t === 'system') document.documentElement.removeAttribute('data-theme'); else document.documentElement.dataset.theme = b.dataset.t;
+}));
+render();
+</script>
+</body>
+</html>

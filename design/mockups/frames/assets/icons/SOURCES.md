@@ -12,3 +12,12 @@ All files are unmodified downloads. Vendor logos are trademarks of their owners 
 | `auth0.svg` | simple-icons 11.14.0 `icons/auth0.svg`, https://github.com/simple-icons/simple-icons (Devicon has no Auth0 icon). A single-path file with no fill; the mockup paints it in Auth0's brand orange (#EB5424) by filling the same path in the mockup, the file is untouched. | CC0 1.0 for the file; Auth0 is a trademark of Okta, Inc. |
 
 Not fetched: none. Not in the AWS package set used here: Secrets/IAM etc. are all present; any other AWS service can be taken from the same zip.
+
+## Frame 34 additions (generic types)
+
+| Files | Source | Terms |
+|---|---|---|
+| `generic/Res_<Name>_48_Light.svg` and `generic/Res_<Name>_48_Dark.svg` for Name = Generic-Application, Authenticated-User, Credentials, Database, Data-Table, Data-Stream, Forums, Folder, Magnifying-Glass, Source-Code, Servers, Internet, Globe, Gear (28 files, unmodified) | Official AWS Architecture Icons, Icon-package_07312026 (same zip as above), `Resource-Icons_07312026/Res_General-Icons/Res_48_Light/Res_<Name>_48_Light.svg` and `.../Res_48_Dark/Res_<Name>_48_Dark.svg`. https://aws.amazon.com/architecture/icons/ . The Light file is the dark-ink glyph (#232F3D) for light backgrounds, the Dark file the white glyph for dark backgrounds; the mockup swaps them with the theme. | Provided by AWS for depicting AWS services in architecture diagrams; no modification, no implied endorsement. |
+| `kubernetes.svg` | Devicon v2.16.0 `icons/kubernetes/kubernetes-plain.svg` (fetched from the v2.16.0 tag, https://github.com/devicons/devicon) | MIT; Kubernetes is a trademark of The Linux Foundation. |
+
+Generic type to file: service = Generic-Application, idp = Authenticated-User, vault = Credentials, database = Database, cache = Data-Table, queue = Data-Stream, topic = Forums, storage = Folder, search = Magnifying-Glass, function = Source-Code, container = Servers, gateway = Internet, cdn = Globe, workflow = Gear. The package has no dedicated icon for cache, topic, function, container, gateway, cdn or workflow; those use the closest general icon (see frame 34).
