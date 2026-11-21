@@ -54,22 +54,37 @@ export function safeHref(raw: string | undefined): string | null {
 const span = (v: string | undefined) => { const n = Math.floor(Number(v)); return n >= 2 && n <= MAX_SPAN ? n : 0; }; // 1 is the default and is not written
 
 export interface SanitizeOptions { notes?: boolean }
+/** What the table limits cut: per table (numbered 1.. in the order the tables open), the rows beyond MAX_ROWS and the cells beyond MAX_COLS (summed over its rows). */
+export interface TableDrop { table: number; rowsDropped: number; colsDropped: number }
+export interface TableWarning { code: 'TABLE_ROWS_TRUNCATED' | 'TABLE_COLS_TRUNCATED'; table: number; kept: number; dropped: number }
+interface TableState { n: number; rows: number; cols: number; drop: TableDrop }
+/** The warnings for what a sanitize cut, in table order: `{code, table, kept, dropped}`; empty when nothing was cut. */
+export function tableWarnings(drops: TableDrop[]): TableWarning[] {
+  return drops.flatMap((d) => [
+    ...(d.rowsDropped ? [{ code: 'TABLE_ROWS_TRUNCATED' as const, table: d.table, kept: MAX_ROWS, dropped: d.rowsDropped }] : []),
+    ...(d.colsDropped ? [{ code: 'TABLE_COLS_TRUNCATED' as const, table: d.table, kept: MAX_COLS, dropped: d.colsDropped }] : []),
+  ]);
+}
 interface Open { name: string; emit: boolean; skip: boolean; at: number } // at: where in the output its start tag ended
 
 /**
  * sanitize(html): the allowed subset only. Text is escaped, other markup is dropped; the result is not longer than MAX_BODY's check says (see `tooLong`).
  * `{ notes: true }` (a flow's Notes, 0.34.0) also keeps headings (h1, h2 -> h2; h3 to h6 -> h3) and the step chip `<span data-step="4">` (digits only, or "4-9"); in a comment they stay paragraphs and a bare span stays nothing.
  */
-export function sanitize(html: string, opts: SanitizeOptions = {}): string {
+export function sanitize(html: string, opts: SanitizeOptions = {}): string { return sanitizeReport(html, opts).html; }
+
+/** sanitize, and what the table limits cut (rows beyond 50 per table, cells beyond 20 per row), so a writer can be told. */
+export function sanitizeReport(html: string, opts: SanitizeOptions = {}): { html: string; drops: TableDrop[]; warnings: TableWarning[] } {
   const notes = !!opts.notes;
-  if (typeof html !== 'string' || !html) return '';
+  if (typeof html !== 'string' || !html) return { html: '', drops: [], warnings: [] };
   const cap = notes ? MAX_INPUT_DOC : MAX_INPUT, toks: Token[] = tokenize(html.length > cap ? html.slice(0, cap) : html);
   let out = '';
   const st: Open[] = [];
-  let skipping = 0, emitted = 0, rows = 0, cols = 0;
+  let skipping = 0, emitted = 0, tables = 0;
+  const ts: TableState[] = [], drops: TableDrop[] = []; // the open tables, innermost last: rows are counted per table and cells per row
 
   const top = () => st[st.length - 1]?.name;
-  const pop = () => { const o = st.pop()!; if (o.emit) { if ((o.name === 'p' || HEADING.has(o.name)) && out.length === o.at) out = out.slice(0, out.lastIndexOf(`<${o.name}>`)); else out += `</${o.name}>`; emitted--; } if (o.skip) skipping--; if (o.name === 'tr') cols = 0; };
+  const pop = () => { const o = st.pop()!; if (o.emit) { if ((o.name === 'p' || HEADING.has(o.name)) && out.length === o.at) out = out.slice(0, out.lastIndexOf(`<${o.name}>`)); else out += `</${o.name}>`; emitted--; } if (o.skip) skipping--; if (o.name === 'table') ts.pop(); else if (o.name === 'tr' && ts.length) ts[ts.length - 1].cols = 0; };
   /** Pop through the nearest open `names` element, unless a `barrier` element comes first. */
   const popThrough = (names: string[], barrier: string[]) => {
     for (let k = st.length - 1; k >= 0; k--) {
@@ -98,9 +113,9 @@ export function sanitize(html: string, opts: SanitizeOptions = {}): string {
     if (name === 'li' && parent !== 'ul' && parent !== 'ol') return;
     if ((name === 'thead' || name === 'tbody') && parent !== 'table') return;
     let skip = false, extra = '';
-    if (name === 'tr' && ++rows > MAX_ROWS) skip = true; // a table is at most 50 x 20: what is beyond is dropped, with its contents
-    if (name === 'tr') cols = 0;
-    if ((name === 'td' || name === 'th') && ++cols > MAX_COLS) skip = true;
+    const tb = ts[ts.length - 1];
+    if (name === 'tr' && tb) { tb.cols = 0; if (++tb.rows > MAX_ROWS) { skip = true; if (!skipping) tb.drop.rowsDropped++; } } // a table is at most 50 rows x 20 columns: what is beyond is dropped, with its contents
+    if ((name === 'td' || name === 'th') && tb && ++tb.cols > MAX_COLS) { skip = true; if (!skipping) tb.drop.colsDropped++; }
     let emit = !skipping && !skip && emitted < MAX_DEPTH;
     if (name === 'p' && HEADING.has(parent ?? '')) emit = false; // a paragraph inside a heading is just its text
     if (name === 'a') {
@@ -122,6 +137,7 @@ export function sanitize(html: string, opts: SanitizeOptions = {}): string {
     }
     if (emit) out += `<${name}${extra}>`;
     push(name, emit, skip);
+    if (name === 'table') { const drop = { table: ++tables, rowsDropped: 0, colsDropped: 0 }; drops.push(drop); ts.push({ n: tables, rows: 0, cols: 0, drop }); }
   }
 
   function end(name: string) {
@@ -149,7 +165,8 @@ export function sanitize(html: string, opts: SanitizeOptions = {}): string {
 
   for (const t of toks) { if (t.t === 'text') text(t.v); else if (t.t === 'start') start(t.name, t.attrs); else end(t.name); }
   while (st.length) pop();
-  return out.trim();
+  const found = drops.filter((d) => d.rowsDropped || d.colsDropped);
+  return { html: out.trim(), drops: found, warnings: tableWarnings(found) };
 }
 
 /** The reason a sanitized body cannot be stored, or null. */

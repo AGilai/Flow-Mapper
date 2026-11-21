@@ -48,7 +48,7 @@ export const setNotesTool: Tool = {
     const body = call ? (typeof a.html === 'string' ? a.html : /<\/?(p|h[1-6]|div|ul|ol|table|pre)[\s>]/i.test(a.body) && !fields ? a.body : serializeCall({ what: a.body, contract: a.contract, watch: { on: !!a.watch, text: a.watch } })) // call note: `html` is the whole body; {body, contract, watch} are written into the usual shape
       : notesMd(typeof a.html === 'string' ? a.html : a.body, !!a.doc);
     const r = putNotes(c.db, c.view(e, a.draft || null).g, e, { anchor, body, baseVersion: a.base_version ?? null, author: a.author ?? ASSISTANT });
-    return { anchor: r.anchor, version: r.version, author: r.author, createdAt: r.createdAt, ...(r.unchanged && { unchanged: true }) };
+    return { anchor: r.anchor, version: r.version, author: r.author, createdAt: r.createdAt, ...(r.unchanged && { unchanged: true }), ...(r.warnings && { warnings: r.warnings }) };
   },
 };
 

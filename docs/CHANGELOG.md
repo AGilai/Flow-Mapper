@@ -5,6 +5,10 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+
+- **Fix: table limits are per table.** The sanitizer counted the 50-row and 20-column limits over the whole document, so after 50 `<tr>` in total every later row of a long design doc was silently dropped. Rows are now counted per table (a nested table counts on its own) and columns per row. Notes writes (`PUT /api/envs/:env/notes`, `POST .../notes/restore`, MCP `set_notes`) that lose rows or cells to the limits still succeed and now answer `warnings: [{code: "TABLE_ROWS_TRUNCATED" | "TABLE_COLS_TRUNCATED", table, kept, dropped}]` ([API.md](API.md) "Notes per flow"). Comments are cut the same way without a warning.
+
 ## 0.68.0 (2026-11-21): frame 34, one type field, additive migration 021: one `type` field for components (CR frame 34, 0.68.0)
 
 - **New optional `service.type`** (manifest, top level next to `kind`; `component` design edit `type`; schema `type`): what the component is, a generic type (`service`, `idp`, `vault`, `database`, `cache`, `queue`, `topic`, `storage`, `search`, `function`, `container`, `gateway`, `cdn`, `workflow`) or a specific one with a generic parent (`auth0`, `hashicorp-vault`, `postgres`, `redis`, `aws-sqs`, `kubernetes`, ...: 27 in all, listed in API.md "Component types" and `core/component-types.ts`). It picks the logo. Send it instead of `details.icon` and `details.product`.
