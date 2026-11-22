@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frame 35 · Query cards</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../shared.css">
+<style>
+.f35 { padding: 8px 24px 32px; display: grid; gap: 30px; }
+.f35 h3 { font-size: 15px; margin: 0 0 4px; } .f35 h3 small { font: 400 12.5px var(--font); color: var(--ink-2); margin-left: 8px; }
+.f35 .row { display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-start; }
+.f35 .cap { font-size: 12px; color: var(--ink-2); max-width: 370px; margin: 0 0 8px; min-height: 34px; }
+.f35 .note { font-size: 12px; color: var(--ink-2); max-width: 100ch; margin-top: 8px; }
+.f35 ul.rules { margin: 8px 0 0; padding-left: 18px; font-size: 12.5px; color: var(--ink-2); max-width: 110ch; } .f35 ul.rules li { margin: 4px 0; }
+.f35 .scope-dark { --paper: #12151d; --surface: #1a1e29; --surface-2: #222736; --line: #2c3243; --line-strong: #3a4256; --ink: #e7e9f0; --ink-2: #b5bacb; --muted: #8a90a6; --accent: #8f93ff; --accent-soft: #272b4a; --focus: #8f93ff; --ok: #1f9d55; --warn: #e0a030; --bad: #ff6b6b; --shadow-panel: 0 12px 32px -12px rgba(0,0,0,.6); color-scheme: dark; background: var(--paper); padding: 14px; border-radius: 12px; color: var(--ink); }
+
+/* ---- the info pane (370px, as in the app) ---- */
+.f35 .pane { width: 370px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); box-shadow: var(--shadow-panel); overflow: hidden; color: var(--ink); }
+.f35 .pane-h { background: var(--surface); padding: 12px 14px 10px; border-bottom: 1px solid var(--line); }
+.f35 .pane-h b { font: 600 15px var(--font); } .f35 .pane-h .sub { font: 400 12.5px var(--mono); color: var(--ink-2); margin-top: 4px; }
+.f35 .pane-b { padding: 12px; display: grid; gap: 12px; }
+.f35 .sec { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.f35 .sec-h { display: flex; align-items: center; gap: 8px; padding: 9px 12px; font: 600 13px var(--font); }
+.f35 .sec-h .cnt { margin-left: auto; font: 400 12px var(--font); color: var(--muted); }
+.f35 .eyebrow { font: 600 10.5px var(--font); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.f35 .tools { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.f35 .lnk { font: 500 12px var(--font); color: var(--accent); background: none; border: 0; padding: 2px 4px; border-radius: 4px; cursor: pointer; }
+.f35 .lnk:hover { text-decoration: underline; }
+.f35 button:focus-visible, .f35 a:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+
+/* letter badges (same as schema marks) */
+.f35 i.lt { font: 700 9.5px var(--font); font-style: normal; width: 15px; height: 15px; border-radius: 3px; display: inline-grid; place-items: center; background: var(--accent); color: var(--surface); vertical-align: 1px; margin-right: 3px; flex: none; }
+.f35 .leg { font: 400 11px var(--font); color: var(--ink-2); display: block; padding: 0 12px 8px; }
+.f35 .sum i.lt { font-size: 9px; width: 14px; height: 14px; color: var(--surface); }
+.f35 .grp-h i.lt { margin-right: 0; }
+.f35 .fp i.lt { margin-right: 6px; }
+/* ---- call card ---- */
+.f35 .calls { display: grid; gap: 8px; padding: 0 10px 10px; }
+.f35 .cc { border: 1px solid var(--line); border-radius: 9px; background: var(--surface); }
+.f35 .cc[data-open='true'] { border-color: var(--line-strong); box-shadow: 0 1px 0 var(--line); }
+.f35 .cc-h { all: unset; box-sizing: border-box; display: grid; grid-template-columns: 16px 20px 1fr auto; gap: 8px; align-items: start; width: 100%; padding: 9px 10px; cursor: pointer; border-radius: 9px; }
+.f35 .cc-h:hover { background: var(--surface-2); } .f35 .cc-h:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.f35 .chev { width: 16px; height: 20px; display: grid; place-items: center; color: var(--muted); transition: transform .12s; }
+.f35 .cc[data-open='true'] .chev { transform: rotate(90deg); color: var(--ink-2); }
+.f35 .num { width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--line-strong); font: 600 11px var(--font); display: grid; place-items: center; color: var(--ink-2); background: var(--surface); }
+.f35 .cc-t { min-width: 0; }
+.f35 .cc-t .lbl { font: 600 13px var(--mono); }
+.f35 .cc-t .key { display: block; font: 400 11px var(--mono); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.f35 .sum { font: 400 11.5px var(--mono); color: var(--ink-2); margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.6; }
+.f35 .sum i { font-style: normal; color: var(--muted); }
+.f35 .cc[data-open='true'] .sum { display: none; }
+.f35 .when { display: inline-block; font: italic 400 11.5px var(--font); color: var(--ink-2); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; margin-top: 4px; }
+.f35 .ext { color: var(--muted); padding-top: 2px; } .f35 .ext:hover { color: var(--accent); }
+.f35 .cc-b { padding: 2px 10px 11px 10px; display: grid; gap: 10px; border-top: 1px dashed var(--line); margin: 0 0 0 0; }
+.f35 .cc[data-open='false'] .cc-b { display: none; }
+.f35 .src { font: 400 11px var(--mono); color: var(--muted); }
+.f35 .src a { color: var(--muted); } .f35 .src a:hover { color: var(--accent); }
+
+/* ---- query block ---- */
+.f35 .q { border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); overflow: hidden; }
+.f35 .q-call { font: 400 11.5px/1.55 var(--mono); padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink); }
+.f35 .q-call .fn { font-weight: 600; } .f35 .q-call .pn { color: var(--ink-2); } .f35 .q-call .vl { color: var(--accent); } .f35 .q-call .hv { color: var(--muted); }
+.f35 .q-call .hv::after { content: 'h'; font: 600 8.5px var(--font); vertical-align: super; margin-left: 1px; color: var(--muted); }
+.f35 .grp { padding: 6px 0 4px; }
+.f35 .grp + .grp { border-top: 1px solid var(--line); }
+.f35 .grp-h { display: flex; gap: 6px; align-items: baseline; padding: 0 10px 2px; }
+.f35 .grp-h .eyebrow { color: var(--ink-2); } .f35 .grp-h .opn { font: 400 11px var(--mono); color: var(--muted); }
+.f35 .fr { display: grid; grid-template-columns: minmax(0, 1fr) 44px; gap: 6px; align-items: baseline; padding: 4px 10px; border-top: 1px solid color-mix(in srgb, var(--line) 60%, transparent); }
+.f35 .grp-h + .fr { border-top: 0; }
+.f35 .fv.under { grid-column: 1 / -1; padding-left: 12px; margin-top: -1px; }
+.f35 .fp { font: 500 12px var(--mono); overflow-wrap: anywhere; }
+.f35 .fp .bd { margin-left: 4px; }
+.f35 .fo { font: 400 11px var(--mono); color: var(--ink-2); }
+
+.f35 .th { display: grid; grid-template-columns: minmax(0, 1fr) 44px; gap: 6px; padding: 4px 10px; font: 600 10px var(--font); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--line) 35%, var(--surface-2)); }
+
+.f35 .fv { font: 400 11.5px var(--mono); min-width: 0; overflow-wrap: anywhere; }
+.f35 .fv .nr { font: italic 400 11.5px var(--font); color: var(--muted); }
+.f35 .fv .arrow { color: var(--muted); margin-right: 3px; }
+.f35 .fv .kd { display: inline-block; font: 600 9.5px var(--font); letter-spacing: .04em; text-transform: uppercase; color: var(--ink-2); border: 1px solid var(--line-strong); border-radius: 4px; padding: 0 4px; margin-left: 5px; vertical-align: 1px; }
+.f35 .fv .kd.k-param { color: var(--t-http); border-color: color-mix(in srgb, var(--t-http) 50%, var(--surface)); }
+.f35 .fv .kd.k-ctx { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--surface)); }
+.f35 .fv .kd.k-const { color: var(--ink-2); }
+.f35 .fv a.pp { color: inherit; border-bottom: 1px dotted var(--t-http); } .f35 .fv a.pp:hover { text-decoration: none; background: color-mix(in srgb, var(--t-http) 12%, transparent); }
+.f35 .fv .cl { display: inline-block; margin-left: 5px; color: var(--muted); vertical-align: -2px; } .f35 .fv .cl:hover { color: var(--accent); }
+.f35 .fv .lit { color: var(--ink); }
+.f35 .fn2 { grid-column: 1 / -1; font: 400 11px/1.4 var(--font); color: var(--muted); }
+.f35 .bd { display: inline-block; font: 600 9.5px var(--font); letter-spacing: .03em; padding: 0 5px; border-radius: 4px; border: 1px solid var(--line-strong); color: var(--ink-2); vertical-align: 1px; cursor: help; white-space: nowrap; }
+.f35 .bd.help { color: var(--accent); background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 35%, var(--surface)); }
+.f35 .bd.noddl { color: var(--warn); background: color-mix(in srgb, var(--warn) 11%, var(--surface)); border-color: color-mix(in srgb, var(--warn) 45%, var(--surface)); }
+.f35 .fr.imp .fp { color: var(--ink-2); font-weight: 400; }
+.f35 .fr.imp { background: repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in srgb, var(--accent) 5%, transparent) 6px 7px); }
+.f35 .q-foot { font: 400 11px var(--font); color: var(--muted); padding: 5px 10px; border-top: 1px solid var(--line); background: color-mix(in srgb, var(--line) 25%, var(--surface-2)); }
+
+/* ---- path params + schema ---- */
+.f35 .pp-card .it { padding: 8px 12px 10px; border-top: 1px solid var(--line); transition: background .3s; }
+.f35 .pp-card .it.flash { background: color-mix(in srgb, var(--t-http) 16%, var(--surface)); }
+.f35 .pp-card .it b { font: 600 14px var(--mono); display: block; } .f35 .pp-card .it span { font: 400 11.5px var(--mono); color: var(--muted); }
+.f35 .sch-tabs { display: flex; gap: 0; margin: 0 12px; border: 1px solid var(--line-strong); border-radius: 6px; width: max-content; overflow: hidden; }
+.f35 .sch-tabs span { font: 500 12px var(--font); padding: 3px 10px; color: var(--ink-2); } .f35 .sch-tabs span:first-child { background: var(--accent-soft); color: var(--accent); }
+.f35 .sch { width: calc(100% - 24px); margin: 8px 12px 12px; border-collapse: collapse; font-size: 12px; }
+.f35 .sch th { text-align: left; font: 600 10px var(--font); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 4px 6px; border-bottom: 1px solid var(--line); }
+.f35 .sch td { padding: 4px 6px; border-bottom: 1px solid var(--line); font: 400 11.5px var(--mono); }
+.f35 .sch td:nth-child(2) { color: var(--muted); }
+.f35 .sch tr.used td { background: color-mix(in srgb, var(--accent) 9%, var(--surface)); }
+.f35 .sch tr.used td:first-child { box-shadow: inset 3px 0 0 var(--accent); font-weight: 600; }
+.f35 .rl { display: inline-flex; gap: 3px; margin-left: 6px; vertical-align: 1px; }
+.f35 .rl i { font: 700 9px var(--font); font-style: normal; width: 14px; height: 14px; border-radius: 3px; display: grid; place-items: center; background: var(--accent); color: var(--surface); }
+.f35 .sch-note { padding: 0 12px 10px; font: 400 11px var(--font); color: var(--muted); }
+.f35 .sch-note label { display: inline-flex; gap: 5px; align-items: center; cursor: pointer; }
+
+/* single-step block */
+.f35 .step-b { padding: 10px 12px 12px; display: grid; gap: 10px; }
+.f35 .step-b .old { font: 400 12px var(--font); color: var(--muted); }
+.f35 .chips { display: flex; flex-wrap: wrap; gap: 4px; } .f35 .chips span { font: 400 11.5px var(--mono); border: 1px solid var(--line-strong); border-radius: 999px; padding: 1px 8px; background: var(--surface-2); }
+.f35 .kbd { font: 500 11px var(--mono); border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--surface); }
+.f35 pre.json { margin: 0; font: 400 11.5px/1.5 var(--mono); background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; overflow-x: auto; max-width: 100ch; }
+.f35 table.tb { border-collapse: collapse; font-size: 12.5px; max-width: 110ch; } .f35 table.tb td, .f35 table.tb th { border-bottom: 1px solid var(--line); padding: 5px 10px 5px 0; text-align: left; vertical-align: top; } .f35 table.tb th { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+ol.decisions.w1 { columns: 1; max-width: 1180px; }
+</style>
+</head>
+<body>
+<nav class="fbar" aria-label="Design navigation"><a href="../design-env.html">← All designs</a><span class="pos">Frame 35 of 35</span><a href="frame-34.html">‹ prev</a><span class="off">next ›</span><span class="chip chip-awaiting">Awaiting approval</span><div class="theme" role="group" aria-label="Theme"><button data-t="system" aria-pressed="true">System</button><button data-t="light" aria-pressed="false">Light</button><button data-t="dark" aria-pressed="false">Dark</button></div></nav>
+
+<div class="frame-label"><h2>Frame 35. Query cards: the where clause per data-store call</h2>
+<p>Maintainer: "There are already cards per query. Each card can expand to show the query we're discussing. The schema of the entire table is less important, it stays at the bottom." Data is invented (service <span class="mono">devices-svc</span>, collection <span class="mono">Device</span>). Cards are live: click a header, or use <span class="kbd">↑</span> <span class="kbd">↓</span> <span class="kbd">Enter</span>.</p>
+<ol class="decisions w1">
+<li><b>Each call card gets a chevron and a one-line query summary</b> (35a). Expanded, it shows the query (35b): one readable call line, then labelled groups <b>Filter</b>, <b>Projection</b>, <b>Update</b>, <b>Sort</b>. Today's number, label, key, "only when" and code link stay exactly where they are.</li>
+<li><b>Helper filters are visibly distinct.</b> Filters a shared DB helper adds (<span class="mono">flag: helper_implicit_filter; lib:file:line</span>) get a <b>helper</b> badge, a faint hatched row and a muted field name; the tooltip carries the flag text. Fields not in the schema (<span class="mono">inDdl: false</span>) keep today's amber "not in schema" mark.</li>
+<li><b>"Value from" is optional</b> (35b / 35c). Without data the column is absent and the group footer says once "Values not reported by the harvester". With <span class="mono">value</span> on the field, the column shows where the value comes from, a kind tag, and an optional code link. A <span class="mono">param</span> source links to its card under Path parameters.</li>
+<li><b>Pane order (35e):</b> call cards (expandable), Path parameters, then "Schema · from code" at the bottom, with the fields the open call uses marked (F filter, P projection, U update, S sort). A toggle "Only this call's fields" is off by default.</li>
+<li><b>A single step (35d)</b> uses the same query block instead of today's "Fields" chips, with no card around it.</li>
+</ol></div>
+
+<div class="f35" id="root"></div>
+
+<script>
+/* ---------- invented data (mirrors the real shape: fields[{role,path,operator?,inDdl?,ddlRef?,flag?,value?}]) ---------- */
+const HF = 'helper_implicit_filter; db-lib:lib/schemas/tenant.js:106';
+const HF2 = 'helper_implicit_filter; db-lib:lib/schemas/softDelete.js:41';
+const CALLS = [
+  { n: 1, label: 'findOneActive', key: 'Device.findOneActive', when: null, file: 'src/device/device.service.js', line: 48, fn: 'findOne',
+    fields: [
+      { role: 'filter', path: 'userId', value: { from: 'params.userId', kind: 'param', source: { file: 'src/device/device.router.js', line: 21 } } },
+      { role: 'filter', path: 'deviceIdentifier', value: { from: 'params.deviceIdentifier', kind: 'param', source: { file: 'src/device/device.router.js', line: 21 } } },
+      { role: 'filter', path: 'tenantId', flag: HF, value: { from: 'ctx.tenantId', kind: 'ctx', source: { file: 'lib/schemas/tenant.js', line: 106 } } },
+      { role: 'filter', path: 'removed', flag: HF2, value: { from: 'false', kind: 'const', source: { file: 'lib/schemas/softDelete.js', line: 41 } } },
+      { role: 'projection', path: 'status' }, { role: 'projection', path: 'lastSeen' }, { role: 'projection', path: 'deviceIdentifier' } ] },
+  { n: 2, label: 'findOneOnline', key: 'Device.findOneOnline', when: null, file: 'src/device/device.service.js', line: 61, fn: 'findOne',
+    fields: [
+      { role: 'filter', path: 'deviceIdentifier', value: { from: 'params.deviceIdentifier', kind: 'param', source: { file: 'src/device/device.router.js', line: 21 } } },
+      { role: 'filter', path: 'status', value: { from: "'online'", kind: 'const', source: { file: 'src/device/device.service.js', line: 63 } } },
+      { role: 'filter', path: 'lastSeen', operator: '$gt', value: { from: 'Date.now() - HEARTBEAT_MS', kind: 'expr', source: { file: 'src/device/device.service.js', line: 64 } } },
+      { role: 'filter', path: 'tenantId', flag: HF, value: { from: 'ctx.tenantId', kind: 'ctx' } },
+      { role: 'filter', path: 'removed', flag: HF2, value: { from: 'false', kind: 'const' } },
+      { role: 'sort', path: 'lastSeen', operator: 'desc' } ] },
+  { n: 3, label: 'updateOne', key: 'Device.updateOne', when: 'only when device found', file: 'src/device/device.service.js', line: 74, fn: 'updateOne',
+    fields: [
+      { role: 'filter', path: 'deviceIdentifier', value: { from: 'params.deviceIdentifier', kind: 'param' } },
+      { role: 'filter', path: 'tenantId', flag: HF, value: { from: 'ctx.tenantId', kind: 'ctx' } },
+      { role: 'filter', path: 'removed', flag: HF2, value: { from: 'false', kind: 'const' } },
+      { role: 'update', path: 'status', operator: '$set', value: { from: 'computed', kind: 'expr' } },
+      { role: 'update', path: 'lastSeen', operator: '$set', value: { from: 'new Date()', kind: 'expr' } },
+      { role: 'update', path: 'agentBuild', operator: '$set', inDdl: false, value: { from: 'body.build', kind: 'body' } } ] },
+];
+const SCHEMA = [['_id', 'ObjectId'], ['userId', 'String'], ['deviceIdentifier', 'String'], ['tenantId', 'String'], ['status', 'String'], ['lastSeen', 'Date'], ['removed', 'Boolean'], ['createdAt', 'Date']];
+const strip = c => ({ ...c, fields: c.fields.map(({ value, ...f }) => f) });
+const NOSRC = CALLS.map(strip);
+
+/* ---------- pieces ---------- */
+const LT = { filter: 'F', projection: 'P', update: 'U', sort: 'S' }, LN = { filter: 'filter', projection: 'projection', update: 'update', sort: 'sort' };
+const L = r => `<i class="lt" title="${LN[r]}">${LT[r]}</i>`;
+const LEG = `<span class="leg" aria-label="Legend"><i class="lt">F</i> filter · <i class="lt">P</i> projection · <i class="lt">U</i> update · <i class="lt">S</i> sort</span>`;
+const E = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+const CHEV = '<svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M3 1.5 7 5 3 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const EXT = '<svg width="13" height="13" viewBox="0 0 14 14" aria-hidden="true"><path d="M8 2h4v4M12 2 6.5 7.5M10 8.5V11a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h2.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const isH = f => !!(f.flag && /^helper_implicit_filter/.test(f.flag));
+const hasSrc = c => c.fields.some(f => f.value);
+
+function summary(c) {
+  const by = r => c.fields.filter(f => f.role === r);
+  const fl = by('filter'), ex = fl.filter(f => !isH(f)), im = fl.length - ex.length, parts = [];
+  const lst = (r, a) => a.slice(0, 2).map(f => L(r) + f.path).join(' ') + (a.length > 2 ? ` <i>+${a.length - 2}</i>` : '');
+  if (ex.length) parts.push(lst('filter', ex) + (im ? ` <i>+${im} implicit</i>` : ''));
+  else if (im) parts.push(`${L('filter')}<i>${im} implicit</i>`);
+  if (by('projection').length) parts.push(lst('projection', by('projection')));
+  if (by('update').length) parts.push(lst('update', by('update')));
+  if (by('sort').length) parts.push(lst('sort', by('sort')));
+  return parts.join(' ');
+}
+function valCell(f, withPP) {
+  const v = f.value; if (!v) return '<span class="nr">not reported</span>';
+  const link = v.source ? `<a class="cl" href="#" onclick="return false" title="${E(v.source.file)}:${v.source.line}" aria-label="Open ${E(v.source.file)} line ${v.source.line}">${EXT}</a>` : '';
+  const kd = `<span class="kd k-${v.kind || 'expr'}">${v.kind || 'expr'}</span>`;
+  if (v.kind === 'const') return `<span class="arrow">=</span><span class="lit">${E(v.from)}</span>${kd}${link}`;
+  const pm = v.kind === 'param' && v.from.startsWith('params.');
+  const t = pm && withPP ? `<a class="pp" href="#pp" data-pp="${E(v.from.slice(7))}" title="Show in Path parameters">${E(v.from)}</a>` : E(v.from);
+  return `<span class="arrow">←</span>${t}${kd}${link}`;
+}
+function badges(f) {
+  let h = '';
+  if (isH(f)) h += `<span class="bd help" title="${E(f.flag)}" tabindex="0">helper</span>`;
+  if (f.inDdl === false) h += `<span class="bd noddl" title="Not in the collection schema">not in schema</span>`;
+  return h;
+}
+function group(title, role, c, src) {
+  const fs = c.fields.filter(f => f.role === role); if (!fs.length) return '';
+  const rows = fs.map(f => {
+    const op = f.operator || (role === 'filter' ? '=' : '');
+    return `<div class="fr ${src ? '' : 'nosrc'} ${isH(f) ? 'imp' : ''}"><span class="fp">${L(role)}${E(f.path)}${badges(f)}</span><span class="fo">${E(op)}</span>${src ? `<span class="fv under">${valCell(f, true)}</span>` : ''}</div>`;
+  }).join('');
+  const nm = { filter: 'Filter', projection: 'Projection', update: 'Update', sort: 'Sort' }[role];
+  const opn = { filter: 'where', projection: 'select', update: 'set', sort: 'order by' }[role];
+  return `<div class="grp"><div class="grp-h">${L(role)}<span class="eyebrow">${nm}</span><span class="opn">${opn}</span></div>${rows}</div>`;
+}
+function callLine(c, src) {
+  const fl = c.fields.filter(f => f.role === 'filter');
+  const body = fl.map(f => {
+    const v = src && f.value ? f.value.from : null; const nm = f.operator ? `${f.path}: { ${f.operator}: ${v || '…'} }` : (v ? `${f.path}: <span class="vl">${E(v)}</span>` : f.path);
+    return isH(f) ? `<span class="hv">${nm}</span>` : nm;
+  }).join(',\n  ');
+  const coll = 'Device', fn = c.key.split('.')[1];
+  const extra = []; const pr = c.fields.filter(f => f.role === 'projection'); if (pr.length) extra.push('{ ' + pr.map(f => f.path).join(', ') + ' }');
+  const up = c.fields.filter(f => f.role === 'update'); if (up.length) extra.push('{ $set: { ' + up.map(f => src && f.value ? `${f.path}: <span class="vl">${E(f.value.from)}</span>` : f.path).join(', ') + ' } }');
+  return `<div class="q-call"><span class="pn">${coll}.</span><span class="fn">${fn}</span>({\n  ${body}\n}${extra.length ? ',\n' + extra.join(', ') : ''})</div>`;
+}
+function queryBlock(c, src) {
+  const s = src && hasSrc(c);
+  const head = s ? '<div class="th"><span>Field <span style="text-transform:none;letter-spacing:0;font-weight:400">· value from</span></span><span>Op</span></div>' : '';
+  const foot = s ? '' : `<div class="q-foot">Values not reported by the harvester. Field names and operators come from code.</div>`;
+  return `<div class="q">${callLine(c, s)}${head}${group('Filter', 'filter', c, s)}${group('Projection', 'projection', c, s)}${group('Update', 'update', c, s)}${group('Sort', 'sort', c, s)}${foot}</div>`;
+}
+function card(c, open, src, id) {
+  const when = c.when ? `<div><span class="when">${E(c.when)}</span></div>` : '';
+  return `<div class="cc" data-open="${open}" id="${id}"><button class="cc-h" aria-expanded="${open}" aria-controls="${id}-b"><span class="chev">${CHEV}</span><span class="num">${c.n}</span><span class="cc-t"><span class="lbl">${c.label}</span><span class="key">${E(c.key)}</span><div class="sum">${summary(c)}</div>${when}</span><span class="ext" title="${c.file}:${c.line}">${EXT}</span></button>
+  <div class="cc-b" id="${id}-b"><div class="src"><a href="#" onclick="return false">${c.file}:${c.line}</a> · mongo read</div>${queryBlock(c, src)}</div></div>`;
+}
+function ppCard() {
+  return `<div class="sec pp-card" id="pp"><div class="sec-h">Path parameters<span class="cnt">2</span></div><div class="it" data-p="deviceIdentifier"><b>deviceIdentifier</b><span>http/device/device.router.js:21</span></div><div class="it" data-p="userId"><b>userId</b><span>http/device/device.router.js:21</span></div></div>`;
+}
+function schemaCard(used) {
+  const roles = {}; used && used.fields.forEach(f => { (roles[f.path] = roles[f.path] || new Set()).add({ filter: 'F', projection: 'P', update: 'U', sort: 'S' }[f.role]); });
+  const rows = SCHEMA.map(([n, t]) => { const r = roles[n]; return `<tr class="${r ? 'used' : ''}"><td>${n}${r ? `<span class="rl" title="used by this call">${[...r].map(x => `<i>${x}</i>`).join('')}</span>` : ''}</td><td>${t}</td></tr>`; }).join('');
+  const bar = used ? `<div class="sch-note"><label><input type="checkbox"> Only this call's fields</label> · marks follow the open call</div>` : '';
+  return `<div class="sec"><div class="sec-h">Schema · from code<span class="cnt">updated 19 Nov 2026</span></div><div class="sch-tabs"><span>Fields</span><span>Raw JSON</span></div><table class="sch"><thead><tr><th>Field</th><th>Type</th></tr></thead><tbody>${rows}</tbody></table>${bar}</div>`;
+}
+function head(sub) { return `<div class="pane-h"><b>Data store access</b><div class="sub">${sub}</div></div>`; }
+function callsSec(cs, opens, src, pre) {
+  return `<div class="sec"><div class="sec-h"><span class="eyebrow">Calls</span><span class="cnt" style="margin-left:6px">${cs.length}</span><span class="tools"><button class="lnk" data-all="open">Expand all</button><button class="lnk" data-all="close">Collapse all</button></span></div>${LEG}<div class="calls">${cs.map((c, i) => card(c, opens.includes(i), src, pre + i)).join('')}</div></div>`;
+}
+const STORE = `<div class="sec"><div class="sec-h" style="padding-bottom:2px"><span class="eyebrow">Data store</span></div><div style="padding:0 12px 10px;font:400 13px var(--mono)">mongodb:devices-db/Device</div></div>`;
+const MERGED = '*3 findOneActive, findOneOnline, updateOne';
+
+function paneMerged(opens, src, withSchema, pre, usedIdx) {
+  return `<div class="pane">${head(MERGED)}<div class="pane-b">${callsSec(CALLS_(src), opens, src, pre)}${withSchema ? ppCard() + schemaCard(usedIdx != null ? CALLS_(src)[usedIdx] : null) : ''}</div></div>`;
+}
+const CALLS_ = src => src ? CALLS : NOSRC;
+
+function render() {
+  const r = document.getElementById('root');
+  r.innerHTML = `
+<section><h3>35a · Collapsed <small>default for a merged step: every call is one row with its query in a line</small></h3>
+<div class="row"><div><p class="cap">Today's look plus a chevron and a one-line summary: explicit filter fields (first two, then +N), implicit helper filters counted apart, then set / sort. At most two lines, then an ellipsis.</p>${paneMerged([], false, false, 'a')}</div>
+<div><p class="cap">Summary grammar: letter badge, then field names, per role in the order F P U S; two names per role, then +N; implicit helper filters counted apart. A call with only helper filters reads in muted text. No data at all: no summary line, the card still opens (shows "no fields reported").</p>
+<div class="sec" style="width:370px;padding:12px;display:grid;gap:8px"><div class="sum" style="white-space:normal">${summary(CALLS[0])}</div><div class="sum" style="white-space:normal">${summary(CALLS[1])}</div><div class="sum" style="white-space:normal">${summary(CALLS[2])}</div><div class="sum" style="white-space:normal">${L('filter')}<i>2 implicit</i></div></div></div></div></div></section>
+
+<section><h3>35b · One card open, harvester data as it is today <small>no value sources</small></h3>
+<div class="row"><div><p class="cap">Full pane order: calls, Path parameters, schema at the bottom. The two helper filters are hatched, muted and badged; hover the badge for the flag and the lib file:line. The <b>Value from</b> column is absent, not empty.</p>${paneMerged([0], false, true, 'b', 0)}</div>
+<div><p class="cap">Same pane, the update call open: <span class="mono">$set</span> shown as the operator, <b>agentBuild</b> flagged "not in schema" as the fields chips do today. The schema marks follow this call (F filter, U update).</p>${paneMerged([2], false, true, 'b2', 2)}</div></div></section>
+
+<section><h3>35c · The same cards with optional value sources <small>future harvester data, <span class="mono">fields[].value</span></small></h3>
+<div class="row"><div><p class="cap">Call line fills in the values. Column <b>Value from</b>: expression, kind tag, optional code link. <span class="mono">params.deviceIdentifier</span> is a link: it scrolls to its Path parameters card and flashes it. Constants read <span class="mono">= false</span>.</p>${paneMerged([0], true, true, 'c', 0)}</div>
+<div><p class="cap">Dark mode, expanded call 2 (a comparison, an expression, a sort).</p><div class="scope-dark">${paneMerged([1], true, true, 'd', 1)}</div></div></div>
+<p class="note">Mixed data is fine: a field without <span class="mono">value</span> shows "not reported" in its own row while its neighbours show sources. A card where no field has a value drops the column (35b).</p></section>
+
+<section><h3>35d · A single data-store step <small>one call, so no card: the query block takes the place of the "Fields" chips</small></h3>
+<div class="row"><div><p class="cap">Today: "Fields" chips, no way to tell filter from projection.</p>
+<div class="pane">${head('findOneActive')}<div class="pane-b"><div class="sec"><div class="sec-h"><span class="eyebrow">Fields</span></div><div class="step-b"><div class="chips"><span>userId</span><span>deviceIdentifier</span><span>tenantId</span><span>removed</span><span>status</span><span>lastSeen</span></div><div class="old">Roles and implicit filters are not shown.</div></div></div></div></div></div>
+<div><p class="cap">Proposed, no sources reported. The header already names the call, so the block starts at the call line.</p>
+<div class="pane">${head('findOneActive')}<div class="pane-b"><div class="sec"><div class="sec-h"><span class="eyebrow">Query</span><span class="cnt"><a href="#" onclick="return false" class="src" style="color:var(--muted)">src/device/device.service.js:48</a></span></div><div class="step-b" style="padding-top:0">${LEG.replace("padding","padding")}${queryBlock(NOSRC[0], false)}</div></div>${STORE}${ppCard()}${schemaCard(NOSRC[0])}</div></div></div>
+<div><p class="cap">Proposed, with sources.</p>
+<div class="pane">${head('findOneActive')}<div class="pane-b"><div class="sec"><div class="sec-h"><span class="eyebrow">Query</span><span class="cnt"><a href="#" onclick="return false" class="src" style="color:var(--muted)">src/device/device.service.js:48</a></span></div><div class="step-b" style="padding-top:0">${LEG.replace("padding","padding")}${queryBlock(CALLS[0], true)}</div></div></div></div></div></div></section>
+
+<section><h3>35e · Behaviour and rules</h3>
+<ul class="rules">
+<li><b>Default state.</b> Collapsed, except when the pane has exactly one call: then it is open (a merged step with one call, or a single step, which shows the block without a card, 35d).</li>
+<li><b>Memory.</b> Open/closed state is kept per step in memory for the session (keyed by step id and call number), so stepping away and back keeps it. Not persisted to localStorage; a reload starts collapsed.</li>
+<li><b>Expand all / Collapse all</b> sits in the Calls header, as text links, shown only when there are 2 or more calls. Each one is disabled when it would do nothing.</li>
+<li><b>Keyboard.</b> The card header is a button: <span class="kbd">Enter</span> / <span class="kbd">Space</span> toggles, <span class="kbd">↑</span> <span class="kbd">↓</span> move between card headers, <span class="kbd">E</span> expands all, <span class="kbd">Shift</span>+<span class="kbd">E</span> collapses all (when the pane has focus). The code link in the header is a separate tab stop. <span class="mono">aria-expanded</span> and <span class="mono">aria-controls</span> on the header.</li>
+<li><b>Letter badges.</b> F filter, P projection, U update, S sort: the same badges on the summary line, on each group header, on each field row and in the schema marks. A legend "F filter · P projection · U update · S sort" is always visible at the top of the Calls card and of the single-step query block (not only a tooltip); each badge also has a tooltip.</li>
+<li><b>Summary line.</b> Per role in the order F P U S: the badge, then up to two field names and "+N" for the rest; "+N implicit" follows the filters for helper filters. At most two lines, ellipsis, full text in the expanded block. It is hidden while the card is open (the block says it all).</li>
+<li><b>Groups.</b> Filter, Projection, Update, Sort, each only if present and led by its letter badge. Operator column shows the operator when the data has one, otherwise "=" in muted text. Highlighting in the schema uses the open call's fields; with several open it marks the union, with none open there are no marks.</li>
+<li><b>Helper filters</b> (<span class="mono">flag</span> starting <span class="mono">helper_implicit_filter</span>): badge "helper", hatch, muted name, tooltip with the whole flag text. They stay in the call line, muted, so the line is the query that really runs.</li>
+<li><b>Everything works without <span class="mono">value</span></b>: no column, one footer line. Never an empty "—" column.</li>
+</ul>
+<h3 style="margin-top:18px">Optional manifest addition <small>additive, no migration; the UI must work fully without it</small></h3>
+<pre class="json">// on a resource step's fields[] item (schema/manifest.schema.json), today:
+{ "role": "filter", "path": "tenantId", "flag": "helper_implicit_filter; db-lib:lib/schemas/tenant.js:106" }
+
+// proposed, all new keys optional:
+{ "role": "filter", "path": "deviceIdentifier", "operator": "$eq",
+  "value": {
+    "from": "params.deviceIdentifier",   // expression text as written in code, never a runtime value, max 120 chars
+    "kind": "param",                     // optional: param | query | body | header | ctx | const | expr
+    "source": { "file": "src/device/device.router.js", "line": 21 }   // optional
+  } }
+{ "role": "filter", "path": "removed", "value": { "from": "false", "kind": "const" } }   // const: the literal written in code
+</pre>
+<table class="tb" style="margin-top:10px"><thead><tr><th>kind</th><th>Meaning</th><th>Shown as</th></tr></thead><tbody>
+<tr><td class="mono">param</td><td>Route path parameter. Links to the Path parameters card when the name matches.</td><td class="mono">← params.x  PARAM</td></tr>
+<tr><td class="mono">query / body / header</td><td>Request query string, body or header.</td><td class="mono">← body.build  BODY</td></tr>
+<tr><td class="mono">ctx</td><td>Request or tenant context set elsewhere.</td><td class="mono">← ctx.tenantId  CTX</td></tr>
+<tr><td class="mono">const</td><td>A literal in code (<span class="mono">false</span>, <span class="mono">'online'</span>).</td><td class="mono">= false  CONST</td></tr>
+<tr><td class="mono">expr</td><td>Anything computed. <span class="mono">from</span> may be a short word ("computed") when the harvester cannot show the expression.</td><td class="mono">← computed  EXPR</td></tr>
+<tr><td class="mono">absent</td><td>The harvester says nothing.</td><td><i>not reported</i></td></tr>
+</tbody></table>
+<ul class="rules"><li>Validation: <span class="mono">value.from</span> is a non-empty string of at most 120 characters (longer is truncated with "…" on ingest, with a warning); an unknown <span class="mono">kind</span> is shown as <span class="mono">expr</span>. Sample and schema change together; one sample case (env prod) gets values on the three calls above for the demo.</li></ul>
+</section>`;
+  wire();
+}
+
+/* ---------- behaviour ---------- */
+function wire() {
+  document.querySelectorAll('.cc-h').forEach(b => b.addEventListener('click', () => {
+    const c = b.closest('.cc'), o = c.dataset.open !== 'true'; c.dataset.open = o; b.setAttribute('aria-expanded', o);
+  }));
+  document.querySelectorAll('.calls').forEach(w => w.addEventListener('keydown', e => {
+    const hs = [...w.querySelectorAll('.cc-h')], i = hs.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown' && i > -1) { hs[Math.min(i + 1, hs.length - 1)].focus(); e.preventDefault(); }
+    if (e.key === 'ArrowUp' && i > -1) { hs[Math.max(i - 1, 0)].focus(); e.preventDefault(); }
+    if (e.key.toLowerCase() === 'e' && i > -1) { w.closest('.sec').querySelector(`[data-all=${e.shiftKey ? 'close' : 'open'}]`).click(); }
+  }));
+  document.querySelectorAll('[data-all]').forEach(b => b.addEventListener('click', () => {
+    const o = b.dataset.all === 'open'; b.closest('.sec').querySelectorAll('.cc').forEach(c => { c.dataset.open = o; c.querySelector('.cc-h').setAttribute('aria-expanded', o); });
+  }));
+  document.querySelectorAll('a.pp').forEach(a => a.addEventListener('click', e => {
+    e.preventDefault(); const pane = a.closest('.pane'); const it = pane.querySelector(`.pp-card .it[data-p="${a.dataset.pp}"]`);
+    if (it) { it.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); it.classList.add('flash'); setTimeout(() => it.classList.remove('flash'), 1400); }
+  }));
+}
+document.querySelectorAll('.theme button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.theme button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  if (b.dataset.t === 'system') document.documentElement.removeAttribute('data-theme'); else document.documentElement.dataset.theme = b.dataset.t;
+}));
+render();
+</script>
+</body>
+</html>
