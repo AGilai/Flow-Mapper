@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased
+## 0.71.1 (2026-11-22): #149 path parameter names on the flow
 
 - **#149: path parameter names on the flow.** An arrow that reaches an http route with harvested `pathParams` draws the names (`DELETE /api/v1/devices/client/{deviceIdentifier}`, not `{p1}`) when their count equals the placeholders'; the tooltip lists name and type. The step panel of the entry request (entry, middleware, handler steps before the first call out) shows the route's "Path parameters" card. Trace messages that reach such a route carry an additive `pathParams`; nothing changes for harvesters (send `pathParams` to get the names). The Flows list keeps the bind key text.
 
