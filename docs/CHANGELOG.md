@@ -5,6 +5,10 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+
+- **#149: path parameter names on the flow.** An arrow that reaches an http route with harvested `pathParams` draws the names (`DELETE /api/v1/devices/client/{deviceIdentifier}`, not `{p1}`) when their count equals the placeholders'; the tooltip lists name and type. The step panel of the entry request (entry, middleware, handler steps before the first call out) shows the route's "Path parameters" card. Trace messages that reach such a route carry an additive `pathParams`; nothing changes for harvesters (send `pathParams` to get the names). The Flows list keeps the bind key text.
+
 ## 0.71.0 (2026-11-22): legacy details.product tolerated, detached step notes: legacy `details.product` accepted, detached step notes can be moved and deleted
 
 - **Fix: older designs with `details.product` as an object** (`{vendor, name, engine, docs}`, stored before 0.66.1) no longer fail a draft apply or ingest with `422 $.service.details.product must be string`. Schema: `details.product` takes any JSON value (the string form of 0.66 is still the documented one, deprecated since 0.68.0); `details.icon` of another type than string is also accepted. A value of another shape is kept untouched and ignored (nothing reads it). `scripts/type-report.ts` lists such components as `product-object`. Nothing is refused that was accepted before.

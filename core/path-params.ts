@@ -25,3 +25,18 @@ export function pathParamsOf(i: Ingress): PathParam[] {
   if (i.pathParams?.length) return i.pathParams;
   return placeholderNames(routePath(i)).map((name) => ({ name }));
 }
+
+/** #149: the route path with its placeholders (`{p1}`, `{}`, `:id`) replaced, in order, by the harvested names.
+ *  Unchanged when there are no harvested names or their count differs from the placeholders'. */
+export function namedPath(path: string, params?: readonly { name: string }[] | null): string {
+  if (!params?.length) return path;
+  const re = /\{[^{}/]*\}|(^|\/):[A-Za-z_]\w*/g;
+  if ((path.match(re) ?? []).length !== params.length) return path;
+  let n = 0;
+  return path.replace(re, (_m, slash) => `${slash ?? ''}{${params[n++].name}}`);
+}
+
+/** #149: the harvested pathParams of an http ingress (what a message that reaches it carries), else undefined. */
+export function harvestedParams(i: Ingress | undefined): PathParam[] | undefined {
+  return i?.transport === 'http' && i.pathParams?.length ? i.pathParams : undefined;
+}

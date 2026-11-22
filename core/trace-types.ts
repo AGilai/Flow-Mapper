@@ -7,6 +7,7 @@ import type { SourceLink } from './endpoint-info.ts';
 import type { LinkedHop } from './via.ts';
 import type { AmqpRoute, RpcInfo } from './amqp-route.ts';
 import type { BlockedSite, Coverage } from './incomplete.ts';
+import type { PathParam } from './types.ts';
 import type { Mode, StepAlternative, StepFix, StepField, Unresolved } from './types.ts';
 
 export interface Participant {
@@ -37,6 +38,7 @@ export interface Message {
   seq?: number;                                              // step number in the calling function
   target?: { service: string; ingress: string; fn?: string }; // ingress reached, and the handler that runs
   store?: string; storeKind?: string; resAnchor?: string; /* #122: the anchor of the resource (`res:<service>/<id>`), for its lane head's mark */ owner?: string; access?: 'read' | 'write' | 'read_write' | 'unknown'; // resource steps (owner, 0.30.1: the component that declares the store, for the flow view's subsystem band): data-store key; its driver (`mongodb`); read / write from the step's `access`, else its operation (0.27.1, the drawing's line weight)
+  pathParams?: PathParam[];                                  // #149: on a message that reaches an http ingress (entry / call): its harvested path parameters; the arrow draws their names
   fields?: StepField[];                                      // fields a resource step touches (role, path, operator, inDdl)
   calls?: string;                                            // function called, for call steps (same service)
   egress?: string;                                           // egress id, for calls out (its call site is in `code`)

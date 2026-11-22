@@ -1,6 +1,7 @@
 // One SVG group per event row: calls, returns, unresolved calls, publish hops, AMQP notes, store stubs, frontier, middleware and internal-call pills.
 
 import { s } from '../dom.js';
+import { paramTitle } from './flow-param-title.js';
 import { href } from '../router.js';
 import { mwLabel, isLongChain } from './flow-mw.js';
 import { colorOf, BAR } from './flow-draw-layout.js';
@@ -35,7 +36,7 @@ export function drawRows({ events, colX, ys, barX, edge, marks, refs, stacked, f
       const mc = colorOf(e.tr ?? e.msg.transport);
       if (e.repeat && !e.bar) return repeatRow(e, g, x1, x2, y0, mc, hit); // 0.44.0 (#90)
       const inf = isInferred(e.msg); // reserved (#85 ask 5): a hop a model inferred is dash-dot with a tag, never amber, solid or grey
-      return g(`${e.rpc ? 'rpc' : ''}${inf ? ' inferred' : ''}`, arrow(x1, x2, y0, { label: lab(e.label), color: mc, ...callStyle(e) }), inf ? inferredTag(Math.min(x1, x2) + 8, y0) : null, e.rpc?.chip ? rpcChip('amqp rpc', (x1 + x2) / 2, y0, mc) : null, e.rpc?.glyph ? s('text', { class: 'rpcglyph', x: Math.min(x1, x2) + 4, y: y0 - 5, style: `--mc:${mc}` }, '⇄') : null, hit(x1, x2), ...arrowMarkSvg(marks, e.msg, x1, x2, y0, stacked?.has(e), th, mk()), e.bar ? refNoteSvg(refs, e, barX(e.bar, 1), y0) : null, s('title', {}, `${e.rpc ? `${e.label} (RPC over AMQP)` : e.msg.label}\n${kindWord(e)} call`));
+      return g(`${e.rpc ? 'rpc' : ''}${inf ? ' inferred' : ''}`, arrow(x1, x2, y0, { label: lab(e.label), color: mc, ...callStyle(e) }), inf ? inferredTag(Math.min(x1, x2) + 8, y0) : null, e.rpc?.chip ? rpcChip('amqp rpc', (x1 + x2) / 2, y0, mc) : null, e.rpc?.glyph ? s('text', { class: 'rpcglyph', x: Math.min(x1, x2) + 4, y: y0 - 5, style: `--mc:${mc}` }, '⇄') : null, hit(x1, x2), ...arrowMarkSvg(marks, e.msg, x1, x2, y0, stacked?.has(e), th, mk()), e.bar ? refNoteSvg(refs, e, barX(e.bar, 1), y0) : null, s('title', {}, `${e.rpc ? `${e.label} (RPC over AMQP)` : e.msg.label}\n${kindWord(e)} call${paramTitle(e.msg)}`));
     }
     if (e.type === 'return') {
       const dir = Math.sign(colX.get(e.to) - colX.get(e.bar.col)) || 1;

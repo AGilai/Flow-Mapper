@@ -81,6 +81,7 @@
  "group-admin/in.patchGroup": "010db11aa82918",
  "group-paths/in.removeGroup": "151237eedcb495",
  "group-paths/in.removeMember": "1274bc4a723243",
+ "group-paths/in.unregisterDevice": "1663b4dd51a77e",
  "identity-svc/in.auditExport": "02ee1b55207d3e",
  "identity-svc/in.login": "09c77de813c254",
  "member-api/in.register": "151be24e638387",
