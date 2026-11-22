@@ -13,6 +13,7 @@ import { parseHash } from '../router.js';
 import { docView } from './read.js';
 import { createNotesEditor } from './edit.js';
 import { createHistory } from './history.js';
+import { outlineNav, outlineHeads } from './outline.js';
 
 const NO_WALK = { steps: () => [], list: () => [], watch: () => () => {}, picked: () => false, current: () => 0 };
 const TEXT = {
@@ -27,11 +28,11 @@ const TEXT = {
  */
 export function createNotes({ env, root, kind = 'flow', walk = NO_WALK, pane, onStep, onBody, onHover, onDoc, canEdit = true }) {
   const anchor = kind === 'env' ? ENV_DOC : flowAnchor(root.service, root.ingress), T = TEXT[kind];
-  let cur = null, view = null, editor = null, hist = null, seq = 0, first = true, failed = '';
+  let cur = null, view = null, editor = null, edOutline = null, edObs = null, edTimer = 0, hist = null, seq = 0, first = true, failed = '';
   const el = h('div.nt', { 'data-qa': kind === 'env' ? 'design-doc' : 'notes', class: kind === 'env' ? 'nt-env' : '' });
   const steps = () => walk.steps().length;
 
-  const stop = () => { editor?.dispose(); editor = null; hist?.dispose(); hist = null; view?.dispose(); view = null; };
+  const stop = () => { edObs?.disconnect(); edObs = null; clearTimeout(edTimer); edOutline?.dispose(); edOutline = null; editor?.dispose(); editor = null; hist?.dispose(); hist = null; view?.dispose(); view = null; };
   const body = () => { onBody?.(cur && hasNotes(cur.body) ? cur.body : null); onDoc?.(cur); };
   function draw() {
     if (editor || hist) return;
@@ -58,7 +59,13 @@ export function createNotes({ env, root, kind = 'flow', walk = NO_WALK, pane, on
     pane.reveal();
     const done = (d) => { stop(); if (d) { cur = d; pane.loaded(hasNotes(d.body)); body(); } draw(); pane.mode?.(false); };
     editor = createNotesEditor({ env, anchor, kind, doc: cur, template, walk, pane, onSaved: done, onTheirs: done, onCancel: () => done(null) });
-    el.replaceChildren(editor.el); editor.focus(); pane.mode?.(true);
+    if (kind === 'env') { // the design doc page: the same index column as in the reader, so the text has the same width; the dock hides it by CSS
+      edOutline = outlineNav(outlineHeads(editor.area)); enhanceIndex(edOutline.nav);
+      edObs = new MutationObserver(() => { clearTimeout(edTimer); edTimer = setTimeout(() => edOutline?.set(outlineHeads(editor.area)), 300); });
+      edObs.observe(editor.area, { childList: true, characterData: true, subtree: true });
+      el.replaceChildren(h('div.nt-wrap', editor.el, edOutline.nav));
+    } else el.replaceChildren(editor.el);
+    editor.focus(); pane.mode?.(true);
   }
   function history() {
     if (editor || hist || !cur) return;

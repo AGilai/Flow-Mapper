@@ -86,5 +86,5 @@ export function createNotesEditor({ env, anchor, kind = 'flow', doc, template = 
   const cancelBtn = h('button.btn.sm', { type: 'button', 'data-qa': 'nt-cancel', on: { click: () => cancel() } }, 'Cancel');
   const sync = () => { saveBtn.disabled = busy; cancelBtn.disabled = busy; };
   pane.tools(h('span.fp-btns', cancelBtn, saveBtn));
-  return { el, focus: () => ed.focus(false), dirty, cancel: () => cancel(), dispose: () => { clearTimeout(timer); walk?.markHook?.(null); pv?.dispose(); cols.dispose(); nt.dispose(); tb.dispose(); ed.dispose(); pane.tools(null); } };
+  return { el, area: ed.el, focus: () => ed.focus(false), dirty, cancel: () => cancel(), dispose: () => { clearTimeout(timer); walk?.markHook?.(null); pv?.dispose(); cols.dispose(); nt.dispose(); tb.dispose(); ed.dispose(); pane.tools(null); } };
 }
