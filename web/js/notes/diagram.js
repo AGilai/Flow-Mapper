@@ -88,3 +88,12 @@ export function renderDiagrams(root) {
     if (src) p.replaceWith(diagramFigure(src));
   });
 }
+
+/** Redraw `obj.paint()` whenever the theme changes, as long as `obj` is in the page (the editor's live preview uses it too). */
+export const trackTheme = (obj) => { live.add(obj); watchTheme(); };
+
+/** Is this <pre> a Mermaid block (any of the three spellings)? Returns its source text, or null. */
+export function mermaidSource(p) {
+  const code = p.querySelector(':scope > code');
+  return isMermaidBlock({ preLang: p.getAttribute('data-lang'), codeClass: code?.getAttribute('class'), legacyMermaid: p.hasAttribute('data-mermaid') }) ? preText(code ?? p).trim() : null;
+}

@@ -7,6 +7,7 @@ import { parseStepRef, stepRefText, clampRef } from '../../core/notes.js';
 import { renderChips } from '../users/chips.js';
 import { stepOfKey } from '../views/flow-scenario-pure.js';
 import { renderRefs, renderMermaid, renderCallouts } from './blocks.js';
+import { applyColWidths } from './col-width.js';
 
 /** The label of a chip for a flow of `n` steps (0: not known yet): { text, gone, title }. */
 export function chipLook(ref, n) {
@@ -22,6 +23,7 @@ export function chipLook(ref, n) {
  */
 export function docView(body, { steps = () => 0, onStep, list = () => [], hidden = () => null, env = null, onHover }) { // list(): the walk's steps; hidden(key): a step the scenario does not show ({ text, show() }) or null (0.38.0)
   const el = renderChips(h('div.nt-doc.cm-body', { html: sanitize(body, { notes: true }) }));
+  applyColWidths(el);
   if (env) renderRefs(el, env);
   renderMermaid(el);
   const cards = renderCallouts(el, { steps, onStep: (n) => onStep?.({ from: n, to: n }), onHover });

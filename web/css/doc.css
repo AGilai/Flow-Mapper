@@ -11,6 +11,13 @@
 .nt-doc th, .nt-doc td, .rte-area th, .rte-area td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; }
 .nt-doc th, .rte-area th { background: var(--surface-2); font-weight: 600; white-space: nowrap; }
 .ddock .nt-doc th { white-space: normal; }
+/* the document editor's tables look exactly like the reader's (the comment editor keeps its compact block table from comments.css) */
+.nt-edit .rte-area table { display: table; overflow: visible; max-width: none; width: 100%; margin: 10px 0; font-size: 13.5px; }
+.nt-edit .rte-area th, .nt-edit .rte-area td { min-width: 0; padding: 6px 10px; border-color: var(--line); }
+.nt-edit .rte-area th { white-space: nowrap; }
+.ddock .nt-edit .rte-area th { white-space: normal; }
+.rte-area.col-hot, .rte-area.col-hot td, .rte-area.col-hot th { cursor: col-resize; }
+.rte-area.col-dragging { user-select: none; cursor: col-resize; }
 .nt-doc ul ul, .nt-doc ol ol, .nt-doc ul ol, .nt-doc ol ul { margin: 2px 0; }
 
 /* a Mermaid block: in the editor its source is a labelled code box; in the reader the same, with a note (no renderer yet) */

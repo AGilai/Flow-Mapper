@@ -5,6 +5,7 @@
 
 import { tokenize, cleanText } from './rich-text-tokens.ts';
 import type { Token } from './rich-text-tokens.ts';
+import { parseWidth } from './col-width.ts';
 export { plainText } from './rich-text-text.ts';
 
 export const MAX_BODY = 20000; // characters, after sanitizing
@@ -36,6 +37,8 @@ const keyAttr = (v: string | undefined) => { const t = (v ?? '').trim(); return 
 /** A code block's language: `data-lang` on <pre> is one simple token; `class` on <code> keeps only a `language-<token>` class. Null when there is none. */
 const langAttr = (v: string | undefined) => { const t = (v ?? '').trim().toLowerCase(); return /^[a-z0-9-]{1,20}$/.test(t) ? t : null; };
 const langClass = (v: string | undefined) => { const m = (v ?? '').split(/\s+/).map((x) => /^language-([a-z0-9-]{1,20})$/.exec(x)).find(Boolean); return m ? `language-${m[1]}` : null; };
+/** A column width in percent (`data-w` on a table cell, Notes only): an integer 5 to 95, else null. Only the first row's cells are used by the reader. */
+const widthAttr = (v: string | undefined) => { const n = parseWidth(v); return n ? String(n) : null; };
 const INLINE = new Set(['b', 'strong', 'i', 'em', 's', 'del', 'strike', 'u', 'span', 'a', 'code']);
 const FOSTER = new Set(['table', 'thead', 'tbody', 'tr', 'ul', 'ol']); // elements whose only children are their own parts: text and other tags in them are dropped
 const CHILD: Record<string, string[]> = { table: ['thead', 'tbody', 'tr'], thead: ['tr'], tbody: ['tr'], tr: ['td', 'th'], ul: ['li'], ol: ['li'] };
@@ -141,7 +144,8 @@ export function sanitizeReport(html: string, opts: SanitizeOptions = {}): { html
       extra = ` data-callout="${callout}"${n ? ` data-step="${n}"` : ''}${dk ? ` data-key="${escAttr(dk)}"` : ''}`;
     } else if (name === 'td' || name === 'th') {
       const cs = span(attrs.colspan), rs = span(attrs.rowspan);
-      extra = (cs ? ` colspan="${cs}"` : '') + (rs ? ` rowspan="${rs}"` : '');
+      const w = notes ? widthAttr(attrs['data-w']) : null;
+      extra = (cs ? ` colspan="${cs}"` : '') + (rs ? ` rowspan="${rs}"` : '') + (w ? ` data-w="${w}"` : '');
     }
     if (emit) out += `<${name}${extra}>`;
     push(name, emit, skip);
