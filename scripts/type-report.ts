@@ -33,6 +33,7 @@ const HELP: Record<string, string> = {
   'icon-no-type': 'built-in icon with no catalogue type (aws-ec2, aws-iam): reads as the kind or service',
   'custom-icon': 'custom SVG / data-URL icon: no longer shown, pick a type',
   'product-text': 'details.product text that matches no catalogue label: no longer shown',
+  'product-object': 'details.product that is not a string (an older import): kept as it is, ignored',
   'unknown-type': 'type value outside the catalogue: stored, reads as service',
 };
 console.log(`Type report for ${config.dbPath}: ${total} components, ${rows.length} findings${drafts ? ' (with open drafts)' : ''}`);

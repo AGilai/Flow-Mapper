@@ -1,7 +1,7 @@
 // MCP tool definitions, assembled in the order clients see them. Each tool wraps the same store/core functions the REST API uses.
 
 import { searchTool, listServicesTool, getServiceTool, listEntryPointsTool, findPathsTool, linkHealthTool, changelogTool, inventoryTool } from './map.ts';
-import { traceFlowTool, setDescriptionTool, eventTypesTool, getEndpointInfoTool, getChannelTool, getExchangeTool } from './flows.ts';
+import { traceFlowTool, setDescriptionTool, fixDetachedTool, eventTypesTool, getEndpointInfoTool, getChannelTool, getExchangeTool } from './flows.ts';
 import { ingestManifestTool } from './write.ts';
 import { flowsThroughTool, neighboursTool } from './reader.ts';
 import { getStoreTool, listClientsTool, getResourceKeysTool, loadSchemasTool, loadDtosTool } from './stores.ts';
@@ -32,6 +32,7 @@ export const TOOLS: Tool[] = [
   neighboursTool,
   traceFlowTool,
   setDescriptionTool,
+  fixDetachedTool,
   findPathsTool,
   linkHealthTool,
   changelogTool,

@@ -20,6 +20,6 @@ export function registerDescriptions(r: Router, ctx: Ctx) {
   r.put('/api/envs/:env/descriptions', async (req) => {
     const b = await req.json();
     // ?draft=<slug>: the flow may exist only in that draft (#93), so it is checked against the draft's view; the record is stored for the env.
-    return desc.putHuman(ctx.db, ctx.view(req.params.env, req.query.get('draft')).g, req.params.env, { service: b?.service, ingress: b?.ingress, callee: b?.callee, text: b?.text, title: b?.title, editedBy: b?.editedBy });
+    return desc.putHuman(ctx.db, ctx.view(req.params.env, req.query.get('draft')).g, req.params.env, { service: b?.service, ingress: b?.ingress, callee: b?.callee, text: b?.text, title: b?.title, editedBy: b?.editedBy, source: b?.source, moveTo: b?.moveTo });
   });
 }

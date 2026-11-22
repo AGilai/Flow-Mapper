@@ -9,7 +9,9 @@ export interface AiRecord { text: string; title: string | null; model: string; g
 export interface DescPair { human: HumanRecord | null; ai: AiRecord | null }
 /** A stored row as the server keeps it (callee '' = the whole flow). */
 export interface DescRow { callee: string; source: 'human' | 'ai'; text: string; author: string | null; model: string | null; traceHash: string | null; updatedAt: string; title?: string | null }
-export interface FlowDescriptions { service: string; ingress: string; hash: string; flow: DescPair; callees: Record<string, DescPair> }
+/** A note kept under a step key that no message of the flow has any more (the step's label changed): one per stored record. */
+export interface DetachedRecord { key: string; label: string; source: 'human' | 'ai'; title: string | null; text: string; author: string | null; updatedAt: string }
+export interface FlowDescriptions { service: string; ingress: string; hash: string; flow: DescPair; callees: Record<string, DescPair>; detached: DetachedRecord[] }
 
 /** Trace options both the server and the preview use for the hash, so they agree. */
 export const HASH_TRACE = { scope: 'full' as const, maxMessages: 2000 };
@@ -40,6 +42,12 @@ export function stepKeys(msgs: Pick<Message, 'from' | 'to' | 'label' | 'transpor
   return msgs.map((m) => { const k = stepKey(m), n = (seen.get(k) ?? 0) + 1; seen.set(k, n); return n > 1 ? `${k}~${n}` : k; });
 }
 const stepMessages = (msgs: Message[], callee: string) => { const b = stepBase(callee); return msgs.filter((m) => stepKey(m) === b); };
+/** The words of a step key for people: `#step:svc:a>svc:b|label|http~2` -> `a > b · label`. */
+export const stepLabelOf = (callee: string) => {
+  const body = stepBase(callee).slice(STEP_PREFIX.length), i = body.indexOf('|'), j = body.lastIndexOf('|'), ends = i < 0 ? body : body.slice(0, i), label = i < 0 ? '' : body.slice(i + 1, j > i ? j : undefined);
+  const [a, b] = ends.split('>').map((x) => x.replace(/^[a-z]+:/, ''));
+  return `${a ?? ''} > ${b ?? ''}${label ? ` · ${label}` : ''}`;
+};
 /** Does some message of the trace have this step key? (the server refuses a step key that matches nothing) */
 export const hasStep = (trace: Pick<Trace, 'messages'>, callee: string) => stepMessages(trace.messages, callee).length > 0;
 
@@ -68,7 +76,10 @@ export function flowDescriptions(trace: Pick<Trace, 'messages'>, service: string
   };
   const callees: Record<string, DescPair> = {};
   for (const c of new Set(rows.map((r) => r.callee).filter(Boolean))) callees[c] = pair(c);
-  return { service, ingress, hash: traceHash(trace), flow: pair(''), callees };
+  // Step records whose key matches no message of the trace any more: the label or the note of the step changed (0.70.1). They stay readable, movable and deletable.
+  const detached: DetachedRecord[] = rows.filter((r) => isStepKey(r.callee) && !hasStep(trace, r.callee))
+    .map((r) => ({ key: r.callee, label: stepLabelOf(r.callee), source: r.source, title: r.title ?? null, text: r.text, author: r.source === 'ai' ? r.model : r.author, updatedAt: r.updatedAt }));
+  return { service, ingress, hash: traceHash(trace), flow: pair(''), callees, detached };
 }
 
 /** The text a one-line spot shows: the human note if there is one, else the AI text. */

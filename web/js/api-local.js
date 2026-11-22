@@ -127,8 +127,9 @@ export const api = {
     const t = trace(g(env), { service, ingress }, HASH_TRACE) ?? fail('flow not found');
     return flowDescriptions(t, service, ingress, (data.descriptions?.[env] ?? []).filter((r) => r.service === service && r.ingress === ingress));
   },
-  putDescription: async (env, { service, ingress, callee = '', text, title, editedBy }) => { // the human record, in memory (a title only on a step; omitted keeps the stored one)
+  putDescription: async (env, { service, ingress, callee = '', text, title, editedBy, moveTo }) => { // the human record, in memory (a title only on a step; omitted keeps the stored one)
     const rows = (data.descriptions ??= {})[env] ??= [];
+    if (moveTo) { rows.filter((r) => r.service === service && r.ingress === ingress && r.callee === callee).forEach((r) => { r.callee = moveTo; }); return api.descriptions(env, service, ingress); } // 0.70.1: a detached note moves to a current step
     const at = rows.findIndex((r) => r.service === service && r.ingress === ingress && r.callee === callee && r.source === 'human');
     const old = at >= 0 ? rows[at].title ?? null : null;
     if (at >= 0) rows.splice(at, 1);

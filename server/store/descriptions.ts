@@ -46,11 +46,49 @@ function check(g: GraphIndex, env: string, service: unknown, ingress: unknown, c
   const ttl = isStepKey(c) && title !== undefined ? (typeof title === 'string' ? title.trim() : '') || null : undefined;
   return { t, callee: c, title: ttl };
 }
+const isEmpty = (a: { text: unknown; title?: unknown }) => typeof a.text === 'string' && !a.text.trim() && !(typeof a.title === 'string' && a.title.trim());
+const hasRow = (db: DB, env: string, a: { service: string; ingress: string }, callee: string, source?: string) =>
+  !!db.prepare(`SELECT 1 FROM descriptions WHERE env = ? AND service = ? AND ingress = ? AND callee = ?${source ? ' AND source = ?' : ''}`).get(...[env, a.service, a.ingress, callee, ...(source ? [source] : [])]);
+/** 0.70.1: clearing (empty text and title) a step key that matches no message is always allowed for a stored record: a note whose step was renamed could never be removed. */
+function clearsDetached(db: DB, g: GraphIndex, env: string, a: { service: string; ingress: string; callee?: string; text: unknown; title?: unknown; source?: string }): boolean {
+  const c = a.callee;
+  if (typeof c !== 'string' || !isStepKey(c) || !isEmpty(a) || !a.service || !a.ingress) return false;
+  if (hasStep(flowTrace(g, env, a.service, a.ingress), c) || !hasRow(db, env, a, c)) return false;
+  db.prepare(`DELETE FROM descriptions WHERE env = ? AND service = ? AND ingress = ? AND callee = ?${a.source ? ' AND source = ?' : ''}`).run(...[env, a.service, a.ingress, c, ...(a.source ? [a.source] : [])]);
+  return true;
+}
+
+/** Delete every record under a detached step key (MCP fix_detached_description without moveTo). Refuses a key a step still has, or one with no record. */
+export function deleteDetached(db: DB, g: GraphIndex, env: string, a: { service: string; ingress: string; callee?: string }) {
+  if (typeof a.callee !== 'string' || !isStepKey(a.callee)) throw badRequest('callee must be the detached step key');
+  if (hasStep(flowTrace(g, env, a.service, a.ingress), a.callee)) throw badRequest(`step '${a.callee}' is still in the flow: only a detached note can be deleted here`);
+  if (!clearsDetached(db, g, env, { ...a, text: '' })) throw notFound(`a note under '${a.callee}'`);
+  return describeFlow(db, g, env, a.service, a.ingress);
+}
+
+/** Move the record(s) of a detached step key to a step the flow has: `moveTo` is that step's key. Refused when the target already has a record of the same source. */
+export function moveDetached(db: DB, g: GraphIndex, env: string, a: { service: string; ingress: string; callee?: string; moveTo: string; source?: string }) {
+  const t = flowTrace(g, env, a.service, a.ingress), from = a.callee, to = a.moveTo;
+  if (typeof from !== 'string' || !isStepKey(from)) throw badRequest('callee must be the detached step key to move');
+  if (typeof to !== 'string' || !isStepKey(to)) throw badRequest('moveTo must be a step key');
+  if (hasStep(t, from)) throw badRequest(`step '${from}' is still in the flow: only a detached note can be moved`);
+  if (!hasStep(t, to)) throw badRequest(`step '${to}' is not in the flow ${a.service} / ${a.ingress}`);
+  const rows = db.prepare('SELECT source FROM descriptions WHERE env = ? AND service = ? AND ingress = ? AND callee = ?').all(env, a.service, a.ingress, from) as { source: string }[];
+  if (!rows.length) throw notFound(`a note under '${from}'`);
+  for (const r of rows) if (hasRow(db, env, a, to, r.source)) throw new HttpError(409, 'STEP_HAS_NOTE', `the step '${to}' already has a ${r.source} note: clear one of them first`);
+  db.prepare('UPDATE descriptions SET callee = ? WHERE env = ? AND service = ? AND ingress = ? AND callee = ?').run(to, env, a.service, a.ingress, from); // one statement: all or nothing. An AI record keeps its old trace hash, so it reads as outdated (true)
+  return describeFlow(db, g, env, a.service, a.ingress);
+}
+
 const oldTitle = (db: DB, env: string, a: { service: string; ingress: string }, callee: string, source: string) =>
   (db.prepare('SELECT title FROM descriptions WHERE env = ? AND service = ? AND ingress = ? AND callee = ? AND source = ?').get(env, a.service, a.ingress, callee, source) as { title: string | null } | undefined)?.title ?? null;
 
 /** The human record. Empty text and no title removes it (a step may keep a title with empty text). Returns the flow's descriptions. */
-export function putHuman(db: DB, g: GraphIndex, env: string, a: { service: string; ingress: string; callee?: string; text: string; title?: string | null; editedBy?: string }) {
+export function putHuman(db: DB, g: GraphIndex, env: string, a: { service: string; ingress: string; callee?: string; text: string; title?: string | null; editedBy?: string; source?: string; moveTo?: string }) {
+  if (a.moveTo !== undefined) return moveDetached(db, g, env, a as any);
+  if (a.source !== undefined && a.source !== 'human' && a.source !== 'ai') throw badRequest("source must be 'human' or 'ai'");
+  if (clearsDetached(db, g, env, a)) return describeFlow(db, g, env, a.service, a.ingress);
+  if (a.source === 'ai' && isEmpty(a)) throw badRequest("source 'ai' only clears a detached step note (empty text and title, a step key no step has any more)");
   const { callee, title } = check(g, env, a.service, a.ingress, a.callee, a.text, a.title);
   const text = a.text.trim(), ttl = title === undefined ? oldTitle(db, env, a, callee, 'human') : title;
   if (!text && !ttl) db.prepare("DELETE FROM descriptions WHERE env = ? AND service = ? AND ingress = ? AND callee = ? AND source = 'human'").run(env, a.service, a.ingress, callee);
@@ -72,12 +110,17 @@ export function putAi(db: DB, g: GraphIndex, env: string, a: { service: string; 
   return describeFlow(db, g, env, a.service, a.ingress);
 }
 
-export interface SampleDescription { service: string; ingress: string; callee?: string; source: 'human' | 'ai'; text: string; title?: string; editedBy?: string; model?: string; generatedAt?: string; outdated?: boolean }
+export interface SampleDescription { service: string; ingress: string; callee?: string; source: 'human' | 'ai'; text: string; title?: string; editedBy?: string; model?: string; generatedAt?: string; outdated?: boolean; detached?: boolean }
 
 /** Seed data (samples/descriptions/*.json): AI records are replaced on every seed; `outdated: true` stores a trace hash that cannot match, for the demo. */
 export function loadDescriptions(db: DB, g: GraphIndex, env: string, list: SampleDescription[], warn: (m: string) => void = () => {}): number {
   let n = 0;
   for (const d of list) {
+    if (d.detached) { // demo of a note whose step has changed since: stored as is, under a key no step has (the API refuses to write one)
+      db.prepare(`INSERT OR IGNORE INTO descriptions (env, service, ingress, callee, source, text, title, author, model, trace_hash, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'outdated-sample', ?)`)
+        .run(env, d.service, d.ingress, d.callee ?? '', d.source, d.text, d.title ?? null, d.source === 'human' ? d.editedBy ?? 'sample' : null, d.source === 'ai' ? d.model ?? 'claude-sonnet-5-5' : null, d.generatedAt ?? new Date().toISOString());
+      n++; continue;
+    }
     try {
       // A human note is someone's own words: seeding never replaces one that is already there.
       if (d.source === 'human') {
