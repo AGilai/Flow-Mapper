@@ -66,7 +66,44 @@
       "name": "DeviceService.remove",
       "file": "device.service.js",
       "line": 40,
-      "steps": []
+      "steps": [
+        {
+          "seq": 1, "type": "resource", "target": "devicesDb", "operation": "findOneActive", "access": "read",
+          "source": { "file": "src/device/device.service.js", "line": 48 },
+          "fields": [
+            { "role": "filter", "path": "userId", "inDdl": true, "value": { "from": "params.userId", "kind": "param", "source": { "file": "src/device/device.router.js", "line": 21 } } },
+            { "role": "filter", "path": "deviceIdentifier", "inDdl": true, "value": { "from": "params.deviceIdentifier", "kind": "param", "source": { "file": "src/device/device.router.js", "line": 21 } } },
+            { "role": "filter", "path": "tenantId", "inDdl": true, "flag": "helper_implicit_filter; db-lib:lib/schemas/Device.js:106", "value": { "from": "ctx.tenantId", "kind": "ctx", "source": { "file": "lib/schemas/Device.js", "line": 106 } } },
+            { "role": "filter", "path": "removed", "inDdl": true, "flag": "helper_implicit_filter; db-lib:lib/schemas/softDelete.js:41", "value": { "from": "false", "kind": "const" } },
+            { "role": "projection", "path": "status", "inDdl": true },
+            { "role": "projection", "path": "lastSeen", "inDdl": true },
+            { "role": "projection", "path": "deviceIdentifier", "inDdl": true }
+          ]
+        },
+        {
+          "seq": 2, "type": "resource", "target": "devicesDb", "operation": "findOneOnline", "access": "read",
+          "source": { "file": "src/device/device.service.js", "line": 61 },
+          "fields": [
+            { "role": "filter", "path": "deviceIdentifier", "inDdl": true, "value": { "from": "params.deviceIdentifier", "kind": "param" } },
+            { "role": "filter", "path": "status", "inDdl": true, "value": { "from": "'online'", "kind": "const", "source": { "file": "src/device/device.service.js", "line": 63 } } },
+            { "role": "filter", "path": "lastSeen", "operator": "$gt", "inDdl": true, "value": { "from": "Date.now() - HEARTBEAT_MS", "kind": "expr", "source": { "file": "src/device/device.service.js", "line": 64 } } },
+            { "role": "filter", "path": "tenantId", "inDdl": true, "flag": "helper_implicit_filter; db-lib:lib/schemas/Device.js:106", "value": { "from": "ctx.tenantId", "kind": "ctx" } },
+            { "role": "filter", "path": "removed", "inDdl": true, "flag": "helper_implicit_filter; db-lib:lib/schemas/softDelete.js:41" },
+            { "role": "sort", "path": "lastSeen", "operator": "desc", "inDdl": true }
+          ]
+        },
+        {
+          "seq": 3, "type": "resource", "target": "devicesDb", "operation": "updateOne", "access": "write", "details": { "only_when": { "guard": "device found" } },
+          "source": { "file": "src/device/device.service.js", "line": 74 },
+          "fields": [
+            { "role": "filter", "path": "deviceIdentifier", "inDdl": true, "value": { "from": "params.deviceIdentifier", "kind": "param" } },
+            { "role": "filter", "path": "tenantId", "inDdl": true, "flag": "helper_implicit_filter; db-lib:lib/schemas/Device.js:106" },
+            { "role": "update", "path": "status", "operator": "$set", "inDdl": true, "value": { "from": "computed", "kind": "expr" } },
+            { "role": "update", "path": "lastSeen", "operator": "$set", "inDdl": true },
+            { "role": "update", "path": "agentBuild", "operator": "$set", "inDdl": false, "value": { "from": "body.build", "kind": "body" } }
+          ]
+        }
+      ]
     }
   ],
   "ingress": [
@@ -136,5 +173,8 @@
     }
   ],
   "egress": [],
-  "resources": []
+  "resources": [
+    { "id": "devicesDb", "kind": "mongodb", "name": "devices-db.Device", "bindKey": "mongodb:devices-db/Device",
+      "client": { "accessMode": "direct_driver", "accessId": "group-paths/src/device/device.service.js:12", "lib": null } }
+  ]
 }

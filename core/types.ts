@@ -105,7 +105,9 @@ export interface StepAlternative { group_id: string; arms: { arm: string; label?
 
 export interface StepFix { group_id: string; arm: string; source?: { file?: string; line?: number; [k: string]: unknown }; literal?: unknown; [k: string]: unknown }
 
-export interface StepField { role: 'filter' | 'projection' | 'update' | 'sort'; path: string; operator?: string; inDdl?: boolean; ddlRef?: string; flag?: string }
+/** Frame 35: where a field's value comes from, as the code writes it (never a runtime value). `kind`: param, query, body, header, ctx, const or expr; another word reads as expr. */
+export interface FieldValue { from: string; kind?: string; source?: { file: string; line?: number } }
+export interface StepField { role: 'filter' | 'projection' | 'update' | 'sort'; path: string; operator?: string; inDdl?: boolean; ddlRef?: string; flag?: string; value?: FieldValue }
 
 export interface Fn { service: string; id: string; name: string; links?: Links; file?: string; line?: number; commit?: string; details?: Details; steps: Step[]; unresolved?: Unresolved[]; assumed?: Assumed[] }
 /** An event type a consumer handles. `type` may be a glob (`Order*`, `*`); `producers` are declared, not derived. */

@@ -83,6 +83,14 @@
       }
     },
     {
+      "key": "mongodb:devices-db/Device", "source": "code",
+      "content": {
+        "model": "Device (lib/schemas/Device.js)",
+        "fields": { "_id": "ObjectId", "userId": "string", "deviceIdentifier": "string", "tenantId": "string", "status": "online | offline | removed", "lastSeen": "date", "removed": "boolean", "createdAt": "date" },
+        "indexes": [{ "keys": { "deviceIdentifier": 1, "tenantId": 1 }, "unique": true }]
+      }
+    },
+    {
       "key": "mongodb:identity-db/audit_events", "source": "manual",
       "content": { "fields": { "actor": "string", "action": "string", "at": "date", "detail": { "type": "object", "fields": { "ip": "string", "target": "string" } } }, "indexes": [{ "keys": { "at": -1 } }] }
     }

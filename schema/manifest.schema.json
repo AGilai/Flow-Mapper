@@ -318,7 +318,16 @@
               "operator": { "type": "string", "description": "e.g. $eq, $in, $set, $inc, asc." },
               "inDdl": { "type": "boolean", "description": "false: the code uses a field that is not in the collection's schema (flagged in the UI and the contract report)." },
               "ddlRef": { "type": "string", "description": "Link to the schema/DTO field, e.g. Order.status." },
-              "flag": { "type": "string", "description": "Free-text remark about the field." }
+              "flag": { "type": "string", "description": "Free-text remark about the field." },
+              "value": {
+                "type": "object", "required": ["from"], "additionalProperties": false,
+                "description": "Optional (frame 35): where the value comes from, as the code writes it. Expression text only, never a runtime value.",
+                "properties": {
+                  "from": { "type": "string", "minLength": 1, "maxLength": 120, "description": "The expression as written in code, e.g. params.deviceIdentifier, ctx.tenantId, false." },
+                  "kind": { "type": "string", "description": "param, query, body, header, ctx, const or expr. Another word is accepted and shown as expr." },
+                  "source": { "type": "object", "required": ["file"], "additionalProperties": false, "properties": { "file": { "type": "string" }, "line": { "type": "integer", "minimum": 1 } } }
+                }
+              }
             }
           }
         },

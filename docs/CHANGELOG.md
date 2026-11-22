@@ -5,6 +5,10 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased: frame 35, query cards
+
+- **Frame 35: query cards (UI) and optional `fields[].value` (manifest, additive, no migration).** In the step Info pane each call of a merged data-store step is a card that expands to its query: the call line, then Filter / Projection / Update / Sort (letters F P U S), helper filters (`flag` starting `helper_implicit_filter`) badged "helper", `inDdl: false` as "not in schema"; a single data-store step shows the same block instead of the "Fields" chips; the schema card moves to the bottom and marks the open call's fields. Harvesters: nothing is required. To show where a value comes from, add `value: {from, kind?, source?}` to a field: `from` is the expression text as written in code (1 to 120 characters, never a runtime value), `kind` one of `param`, `query`, `body`, `header`, `ctx`, `const`, `expr` (another word is shown as `expr`), `source` `{file, line}`. See API.md (manifest) and the schema.
+
 ## 0.71.1 (2026-11-22): #149 path parameter names on the flow
 
 - **#149: path parameter names on the flow.** An arrow that reaches an http route with harvested `pathParams` draws the names (`DELETE /api/v1/devices/client/{deviceIdentifier}`, not `{p1}`) when their count equals the placeholders'; the tooltip lists name and type. The step panel of the entry request (entry, middleware, handler steps before the first call out) shows the route's "Path parameters" card. Trace messages that reach such a route carry an additive `pathParams`; nothing changes for harvesters (send `pathParams` to get the names). The Flows list keeps the bind key text.
