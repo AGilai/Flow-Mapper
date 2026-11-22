@@ -1,7 +1,7 @@
 // 0.37.0 (#82): a flow without alternatives is byte-identical to what trace() gave before arms and locks existed.
 // The golden file holds a sha1 of the JSON of the canonical trace per entry point (samples + deltas, env prod), recorded on 0.36.1.
 // Regenerate only on purpose: GOLDEN_WRITE=1 node --disable-warning=ExperimentalWarning --test tests/trace-identical.test.ts
-// #140: the additive `entryOwner` on an entry message is left out of the hash, and the lo-* demo services (#139 #140) are not part of the recorded set.
+// #149: the additive `pathParams` too. #140: the additive `entryOwner` on an entry message is left out of the hash, and the lo-* demo services (#139 #140) are not part of the recorded set.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -29,7 +29,7 @@ function traces() {
 
 test('traces without alternatives are byte-identical to the recorded ones', () => {
   const now: Record<string, string> = {};
-  for (const { id, t } of traces()) now[id] = createHash('sha1').update(JSON.stringify(t, (k, v) => (k === 'entryOwner' ? undefined : v))).digest('hex');
+  for (const { id, t } of traces()) now[id] = createHash('sha1').update(JSON.stringify(t, (k, v) => (k === 'entryOwner' || k === 'pathParams' ? undefined : v))).digest('hex');
   if (process.env.GOLDEN_WRITE) writeFileSync(FILE, JSON.stringify(now, null, 1) + '\n');
   const golden = JSON.parse(readFileSync(FILE, 'utf8'));
   assert.ok(Object.keys(golden).length > 50);

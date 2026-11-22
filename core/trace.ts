@@ -15,7 +15,7 @@ import { channelOwner } from './channel-owner.ts'; import { gapNames, gapLabel, 
 import { linksFrom, sid, type GraphIndex } from './graph-index.ts';
 import { isLeaf, type Ingress, type Link, type Mode, type Ref, type Step, type StepAlternative, type StepFix, type StepField, type Unresolved } from './types.ts';
 import { handlerFor, passes, passesUntyped, untypedEventSet, type EventSet } from './events.ts';
-import { emptyFlow } from './entry-points.ts'; import { callersOf } from './callers.ts';
+import { harvestedParams } from './path-params.ts'; import { emptyFlow } from './entry-points.ts'; import { callersOf } from './callers.ts';
 export { entryPoints } from './entry-points.ts';
 import { codeLink, sourceLink, type SourceLink } from './endpoint-info.ts';
 import { refKey, unresolvedTarget } from './resolve.ts';
@@ -290,7 +290,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
     const seenKey = scope === 'intra' && i.service !== root ? undefined : `${key}|${i.id}|${base.event ?? ''}|${base.matched?.join(',') ?? ''}`;
     const first = seenKey && !stack.includes(key) ? firstExpansion(expanded, seenKey, arms.path) : undefined;
     const text = crossing === 'deliver' ? `${label} → ${handler}` : label;
-    if (!push({ ...base, from, to: target, label: first ? `${text} ↩ seen at step ${first}` : text, mode, kind: crossing, depth, target: { service: i.service, ingress: i.id, fn: handler }, ...(base.rpc ? { rpc: withServer(base.rpc, i.details) } : {}), ...(base.carrier && rpcEndpointOf(i) ? { carrierAt: rpcEndpointOf(i) } : {}), ...(first ? { repeatOf: first } : scope === 'intra' && i.service !== root || !chainOf(i).length ? {} : { middlewareChain: chainOf(i) }) } as Message)) return;
+    if (!push({ ...base, from, to: target, label: first ? `${text} ↩ seen at step ${first}` : text, mode, kind: crossing, depth, target: { service: i.service, ingress: i.id, fn: handler }, ...(harvestedParams(i) ? { pathParams: harvestedParams(i) } : {}), ...(base.rpc ? { rpc: withServer(base.rpc, i.details) } : {}), ...(base.carrier && rpcEndpointOf(i) ? { carrierAt: rpcEndpointOf(i) } : {}), ...(first ? { repeatOf: first } : scope === 'intra' && i.service !== root || !chainOf(i).length ? {} : { middlewareChain: chainOf(i) }) } as Message)) return;
     if (scope === 'intra' && i.service !== root) return;
     if (stack.includes(key)) { messages[messages.length - 1].cycle = true; return; }
     if (first) return;
@@ -302,7 +302,7 @@ export function trace(g: GraphIndex, start: { service: string; ingress?: string;
   };
 
   const client = part({ id: 'client', label: callers.length ? callers[0] + (callers.length > 1 ? ` +${callers.length - 1}` : '') : ing?.entryPoint ? 'client' : 'caller', kind: 'client', ...(callers.length ? { callers } : {}) }); // #116: client apps whose egress reaches this entry
-  push({ from: client, to: fnPart(root, fnId), label: (ing?.bindKey ?? fnId) + (start.event ? ` · ${start.event}` : ''), event: start.event, mode: 'sync', kind: 'entry', depth: 0, service: root, fn: fnId, transport: ing?.transport, ...(callers.length ? { callers } : {}), ...(ing && channelOwner(g, ing.bindKey) ? { entryOwner: channelOwner(g, ing.bindKey) } : {}), ...(ing?.transport === 'socket' ? { protocol: socketProtocol(ing) } : {}), target: ing ? { service: root, ingress: ing.id, fn: fnId } : undefined, ...(ing && chainOf(ing).length ? { middlewareChain: chainOf(ing) } : {}) });
+  push({ from: client, to: fnPart(root, fnId), label: (ing?.bindKey ?? fnId) + (start.event ? ` · ${start.event}` : ''), event: start.event, mode: 'sync', kind: 'entry', depth: 0, service: root, fn: fnId, transport: ing?.transport, ...(callers.length ? { callers } : {}), ...(ing && channelOwner(g, ing.bindKey) ? { entryOwner: channelOwner(g, ing.bindKey) } : {}), ...(ing?.transport === 'socket' ? { protocol: socketProtocol(ing) } : {}), target: ing ? { service: root, ingress: ing.id, fn: fnId } : undefined, ...(harvestedParams(ing) ? { pathParams: harvestedParams(ing) } : {}), ...(ing && chainOf(ing).length ? { middlewareChain: chainOf(ing) } : {}) });
   if (ing) runIngress(ing, fnId, 1, [sid(root, fnId)]); else visitFn(root, fnId, 1, [sid(root, fnId)]);
 
   for (const p of participants.values()) {

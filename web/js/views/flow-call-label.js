@@ -1,4 +1,5 @@
 // The text of a call arrow in the sequence lane (split out of flow-lane.js).
+import { namedPath } from './flow-param-title.js';
 import { isRpc, rpcCommand } from './flow-amqp.js';
 
 /** "http:POST orders-svc/orders" -> "POST /orders"; other transports show their event or label. */
@@ -10,7 +11,7 @@ export function callLabel(m) {
   if (m.transport === 'http' || m.transport === 'rpc') {
     const t = m.label.replace(/^\w+:/, '');
     const k = t.match(/^(\S+) [^/\s]*(\/.*)$/);
-    return k ? `${k[1]} ${k[2]}` : t;
+    return k ? `${k[1]} ${namedPath(k[2], m.pathParams)}` : t; // #149: the harvested parameter names replace {p1}
   }
   return m.gap && m.kind !== 'deliver' ? m.label : m.event ?? m.label.replace(/^.*→\s*/, '').replace(/^\w+:/, ''); // #99: a gap's text already leads with its event names
 }

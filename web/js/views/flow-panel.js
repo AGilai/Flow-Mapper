@@ -4,6 +4,7 @@
 // on demand.
 
 import { pathParamsCard } from '../components/path-params.js';
+import { entryParamsFor } from './flow-param-title.js';
 import { callerFor } from './flow-sub.js';
 import { h, fill } from '../dom.js';
 import { api } from '../api.js';
@@ -52,6 +53,7 @@ export function messagePanel(m, trace, env, scope = 'full', openEntry = null, ma
     occurrencesCard(m, trace, simple ?? {}),
     codeCard(m, trace, env),
     markersCard(m),
+    pathParamsCard(entryParamsFor(m, trace)), // #149: the entry route's parameters on the steps of its own request
     carrierNote(m),
     rpcCard(m),
     m.gap ? null : dto,

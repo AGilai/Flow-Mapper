@@ -375,7 +375,7 @@
         },
         "pathParams": {
           "type": "array",
-          "description": "Optional (0.47.0). The path parameters of a REST route, in path order. Without it the UI derives names from the placeholders in the path ({p1}, {id}).",
+          "description": "Optional (0.47.0). The path parameters of a REST route, in path order. Without it the UI derives names from the placeholders in the path ({p1}, {id}). #149: when the count equals the placeholders', the flow's sequence diagram draws these names on the arrows that reach the route.",
           "items": {
             "type": "object",
             "required": ["name"],
