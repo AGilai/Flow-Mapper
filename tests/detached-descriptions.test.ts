@@ -1,4 +1,4 @@
-// 0.70.1: a step note whose step key no message has any more ("detached") can be listed, moved and cleared; writing text to such a key stays refused.
+// 0.71.0: a step note whose step key no message has any more ("detached") can be listed, moved and cleared; writing text to such a key stays refused.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildIndex } from '../core/graph-index.ts';

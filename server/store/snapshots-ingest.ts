@@ -78,7 +78,7 @@ function applyIn(db: DB, manifest: any, source: Source, index: number | null, op
 function apply(db: DB, manifest: any, source: Source, opts: ApplyOpts): { result: WriteResult; after: Entities } {
   const errs = validateManifest(manifest);
   if (errs.length) throw invalid('manifest does not match schema', errs.slice(0, 50));
-  { const ic = manifest.service.details?.icon; const p = typeof ic === 'string' ? iconProblem(ic) : null; if (p) throw new HttpError(422, 'BAD_ICON', `service.details.icon: ${p}`, { field: 'icon' }); } // CR #144; a non-string icon of an older import is kept and ignored (0.70.1)
+  { const ic = manifest.service.details?.icon; const p = typeof ic === 'string' ? iconProblem(ic) : null; if (p) throw new HttpError(422, 'BAD_ICON', `service.details.icon: ${p}`, { field: 'icon' }); } // CR #144; a non-string icon of an older import is kept and ignored (0.71.0)
   manifest = { ...manifest, service: withType(manifest.service) }; // 0.68.0: a built-in details.icon and no type: add the type, keep the icon
   manifest = pushEventsAsObjects(manifest); // #99: a push ingress's plain event names -> {type}
   if (manifest.service.owners !== undefined) manifest = { ...manifest, service: { ...manifest.service, owners: resolveOwners(db, manifest.service.owners, 'service.owners') } }; // names and external ids -> user ids (0.33.0)

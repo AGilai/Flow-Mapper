@@ -1,4 +1,4 @@
-// Detached step notes (0.70.1): a note is stored under a key built from the step's label, so when the label or its note changes the text stays under
+// Detached step notes (0.71.0): a note is stored under a key built from the step's label, so when the label or its note changes the text stays under
 // the old key and shows nowhere. This is the calm notice "N detached step notes" under the flow's description; it opens a list where each note can
 // move to a current step (the most similar one is preselected) or be deleted (asked in the row, never in a browser dialog).
 

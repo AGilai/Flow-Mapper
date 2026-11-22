@@ -76,7 +76,7 @@ export function flowDescriptions(trace: Pick<Trace, 'messages'>, service: string
   };
   const callees: Record<string, DescPair> = {};
   for (const c of new Set(rows.map((r) => r.callee).filter(Boolean))) callees[c] = pair(c);
-  // Step records whose key matches no message of the trace any more: the label or the note of the step changed (0.70.1). They stay readable, movable and deletable.
+  // Step records whose key matches no message of the trace any more: the label or the note of the step changed (0.71.0). They stay readable, movable and deletable.
   const detached: DetachedRecord[] = rows.filter((r) => isStepKey(r.callee) && !hasStep(trace, r.callee))
     .map((r) => ({ key: r.callee, label: stepLabelOf(r.callee), source: r.source, title: r.title ?? null, text: r.text, author: r.source === 'ai' ? r.model : r.author, updatedAt: r.updatedAt }));
   return { service, ingress, hash: traceHash(trace), flow: pair(''), callees, detached };

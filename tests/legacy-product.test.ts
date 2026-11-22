@@ -1,4 +1,4 @@
-// 0.70.1: an older import may carry details.product as an object (or details.icon as a non-string): ingest and draft apply keep it untouched.
+// 0.71.0: an older import may carry details.product as an object (or details.icon as a non-string): ingest and draft apply keep it untouched.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { findings } from '../core/type-report.ts';

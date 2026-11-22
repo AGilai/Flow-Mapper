@@ -92,7 +92,7 @@ export function createTabView(data, host) {
   walk.hiddenOf = (k) => ts.scen.hiddenOf(k); // comments, action items and notes on a step this scenario hides say so and offer "Show"
   const stepRoot = data.kind === 'sub' ? null : root, sdet = createStepDetails({ store: host.desc, root: stepRoot, opts }); // 0.30.0: title / description on the arrows (opts.sd)
   const unDesc = stepRoot ? host.desc.watch(stepRoot, () => { if (render && opts.sd !== 'a') draw(); }) : null; // a saved or loaded step text redraws the lane when the arrows show it
-  const tip = root ? createTip(host.desc, root) : null, detached = stepRoot ? createDetached({ env: host.env, store: host.desc, root: stepRoot, steps: () => stepsOfTrace(trace.messages), readOnly: !!host.readOnly }) : null; // 0.70.1: notes whose step label changed
+  const tip = root ? createTip(host.desc, root) : null, detached = stepRoot ? createDetached({ env: host.env, store: host.desc, root: stepRoot, steps: () => stepsOfTrace(trace.messages), readOnly: !!host.readOnly }) : null; // 0.71.0: notes whose step label changed
   // Action items (0.29.0): a section above Comments; they share a store ("Make action item", the events under a comment)
   const items = root && data.kind !== 'sub' ? createItemStore({ env: host.env, anchor: flowAnchor(root.service, root.ingress) }) : null;
   let pane = null; const counts = {}; // 0.34.0: Comments and Action items are tabs of the bottom pane; their hubs bind late (the pane needs the diagram element)

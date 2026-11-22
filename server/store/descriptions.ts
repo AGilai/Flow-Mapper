@@ -49,7 +49,7 @@ function check(g: GraphIndex, env: string, service: unknown, ingress: unknown, c
 const isEmpty = (a: { text: unknown; title?: unknown }) => typeof a.text === 'string' && !a.text.trim() && !(typeof a.title === 'string' && a.title.trim());
 const hasRow = (db: DB, env: string, a: { service: string; ingress: string }, callee: string, source?: string) =>
   !!db.prepare(`SELECT 1 FROM descriptions WHERE env = ? AND service = ? AND ingress = ? AND callee = ?${source ? ' AND source = ?' : ''}`).get(...[env, a.service, a.ingress, callee, ...(source ? [source] : [])]);
-/** 0.70.1: clearing (empty text and title) a step key that matches no message is always allowed for a stored record: a note whose step was renamed could never be removed. */
+/** 0.71.0: clearing (empty text and title) a step key that matches no message is always allowed for a stored record: a note whose step was renamed could never be removed. */
 function clearsDetached(db: DB, g: GraphIndex, env: string, a: { service: string; ingress: string; callee?: string; text: unknown; title?: unknown; source?: string }): boolean {
   const c = a.callee;
   if (typeof c !== 'string' || !isStepKey(c) || !isEmpty(a) || !a.service || !a.ingress) return false;
