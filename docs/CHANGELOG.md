@@ -5,6 +5,10 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased
+
+- UI only: the design doc page uses the full window width for the text; the index is resizable (drag its left edge, 140-480px, double-click resets), can be hidden to a slim rail, and starts hidden under 1100px. Kept per viewer in the browser.
+
 ## 0.69.0 (2026-11-22): Mermaid diagrams in Notes, table limits per table + warnings
 
 - A code block with `data-lang="mermaid"` (or `<code class="language-mermaid">`) in a Notes document, the design doc or a flow doc is drawn as a diagram in the reader, with a Diagram | Source toggle. `data-lang` on `pre` and `language-<token>` on `code` now survive the sanitizer (before they were stripped); nothing else changes, an ordinary code block stays code. Contract in API.md next to the Notes rules. The editor keeps the source; "Mermaid diagram" in the insert menu now writes `data-lang="mermaid"`. Mermaid 11.4.1 is vendored in `web/vendor/mermaid/` (the one dependency exception) and loaded lazily.

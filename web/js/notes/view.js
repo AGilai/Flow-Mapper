@@ -3,6 +3,7 @@
 // channel; `notes.updated` is on /api/events for agents). Every environment has them, harvested ones too: they are not harvested data.
 // kind 'flow' (the default): the flow doc, anchor flow:<service>/<ingress>, tied to the step walk. kind 'env': the design doc, anchor `env`, no walk.
 
+import { enhanceIndex } from './index-pane.js';
 import { h } from '../dom.js';
 import { api } from '../api.js';
 import { flowAnchor } from '../../core/comments.js';
@@ -47,6 +48,7 @@ export function createNotes({ env, root, kind = 'flow', walk = NO_WALK, pane, on
     view = docView(cur.body, { steps, list: () => walk.list(), hidden: (k) => walk.hiddenOf?.(k), onStep: (ref) => onStep?.(ref), env, onHover });
     const meta = h('div.nt-meta', h('span', 'Edited by ', h('b', cur.author ?? 'someone'), ' · ', h('span', { title: fullDate(cur.createdAt) }, relTime(cur.createdAt)), ` · version ${cur.version}${cur.restoredFrom ? ` (restored from ${cur.restoredFrom})` : ''}`),
       h('button.abtn', { type: 'button', 'data-qa': 'nt-history', on: { click: history } }, 'History'));
+    if (kind === 'env' && view.outline) enhanceIndex(view.outline);
     el.replaceChildren(meta, h('div.nt-wrap', view.el, view.outline));
   }
 
