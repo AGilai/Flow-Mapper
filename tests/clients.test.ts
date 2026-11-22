@@ -56,7 +56,7 @@ test('missing values come from unresolved (what: client), never invented', async
 
 test('list_clients filters, and a driver matches the service or its lib', async () => {
   const all = await clients();
-  assert.equal(all.rows.length, 20, '8 until the auth-cache services (0.16.0) sent a client, 11 with checkout-svc (#86), 18 with the Mongo drivers and redis 3 (#130), 20 with two more unresolved collections (#133)');
+  assert.equal(all.rows.length, 21, '8 until the auth-cache services (0.16.0) sent a client, 11 with checkout-svc (#86), 18 with the Mongo drivers and redis 3 (#130), 20 with two more unresolved collections (#133), 21 with the Device collection of frame 35 (group-paths)');
   const on4 = await clients('?driver=ioredis&driverMajor=4');
   assert.deepEqual(on4.rows.map((r: any) => r.service).sort(), ['catalog-svc', 'inventory-svc', 'payments-svc', 'shipping-svc', 'users-svc'].sort());
   assert.deepEqual((await clients('?lib=saferxlib')).rows.map((r: any) => r.service).sort(), ['catalog-svc', 'payments-svc', 'shipping-svc', 'users-svc']);

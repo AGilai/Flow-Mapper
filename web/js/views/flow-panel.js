@@ -18,7 +18,6 @@ import { schemaView } from '../components/schema-view.js';
 import { dtoAnchor, eventAnchor, schemaAnchor } from '../components/field-diff.js';
 import { dtoSource } from '../components/dto-source.js';
 import { viaChip } from '../components/via-chip.js';
-import { stepFields } from '../components/step-fields.js';
 import { asyncFlowOf, isChannel } from './flow-scan.js';
 import { filterMarker, hopLabel, chType, exchangeOf } from './flow-chain.js';
 import { eventLink, serviceLink, storeLink, envQuery } from './inventory-links.js';
@@ -29,6 +28,8 @@ import { carrierChip, carrierNote } from './flow-panel-carrier.js';
 import { rpcCard, rpcMissing, routingRows } from './flow-panel-amqp.js';
 import { whyHazard, stepIdOf } from './incomplete-why.js';
 import { callsCard, runCard } from './flow-panel-calls.js';
+import { queryCard } from './flow-panel-query.js';
+import { queryMarks, markSchema } from './query-marks.js';
 import { occurrencesCard, repeatCard } from './flow-panel-simple.js';
 
 const KIND = { entry: 'Entry', call: 'Function call', egress: 'Call', deliver: 'Delivery from queue', resource: 'Data store access', leaf: 'Leaf step (classified by the harvester)', frontier: 'Frontier steps (folded)' };
@@ -43,13 +44,15 @@ export function messagePanel(m, trace, env, scope = 'full', openEntry = null, ma
     h('div.ep-title', m.transport && m.transport !== 'res' ? (rpc ? chip('rpc', 'amqp rpc') : chip(m.transport)) : null, carrierChip(m), h('span.ep-target', kind), why?.btn ?? null),
     h('div.ep-sub', h('span.key', rpc ? rpcCommand(m) : m.label), m.event ? eventLink(m.event, env) : null));
 
+  const qm = queryMarks(), entryParams = entryParamsFor(m, trace), paramNames = (entryParams ?? []).map((x) => x.name); // frame 35: the open calls' fields mark the schema card; paramNames: the `params.x` values that can link to their row
   const dto = h('div.stack', { style: { gap: 'var(--s3)' } }, h('p.small.muted', 'Loading…'));
-  loadDto(m, env, marks).then((cards) => fill(dto, cards)).catch((err) => fill(dto, h('p.small.muted', err.message)));
+  loadDto(m, env, marks, qm).then((cards) => fill(dto, cards)).catch((err) => fill(dto, h('p.small.muted', err.message)));
 
   return [head,
     flow ? h('div.ep-pad', openEntry ? h('button.btn', { type: 'button', on: { click: () => openEntry({ service: flow.service, ingress: flow.ingress, scope }) } }, 'Open the async flow in a tab') : h('a.btn', { href: href('/flows', { service: flow.service, ingress: flow.ingress, scope }) }, 'Open the async flow'), h('span.xs.muted', ` ${flow.service} · ${flow.ingress}`)) : null,
     m.gap ? gapCard(m.gap) : null,
-    m.dbGroup?.calls?.length ? callsCard(m, trace, db ?? {}) : db?.run ? runCard(db.run, db) : null,
+    m.dbGroup?.calls?.length ? callsCard(m, trace, { ...(db ?? {}), qm, paramNames }) : db?.run ? runCard(db.run, db) : null,
+    queryCard(m, trace, { qm, paramNames }),
     occurrencesCard(m, trace, simple ?? {}),
     codeCard(m, trace, env),
     markersCard(m),
@@ -119,7 +122,6 @@ function codeCard(m, trace, env) {
     rows.push(h('div.ep-pad.stack', { style: { gap: '2px' } }, h('span.ep-label', collection ? 'Collection' : 'Store'), h('span.mono', collection ?? store), h('span.small.muted', `${kind} · ${store}`)),
       h('div.ep-pad.stack', { style: { gap: '2px' } }, h('span.ep-label', 'Operation'), h('span.mono', opLabel(m)), h('span.small.muted', acc)));
   }
-  if (m.fields?.length) rows.push(h('div.ep-pad.stack', { style: { gap: '2px' } }, h('span.ep-label', 'Fields'), stepFields(m.fields)));
   if (m.assumed?.length) rows.push(assumedBlock(m.assumed));
   if (m.unknown?.length) rows.push(h('div.ep-pad.stack', { style: { gap: '2px' } }, h('span.ep-label', 'Not reported'), h('span.small.muted', m.unknown.map((u) => `${u.field}: unknown (${u.reason})`).join(' · '))));
   if (m.note) rows.push(h('p.ep-note.ep-pad', m.note));
@@ -144,7 +146,7 @@ function codeRow(label, service, fn, source, sub = null) {
 const card = (label, meta, ...content) => h('section.ep-card', h('header', h('h3', label), meta ? h('span.ep-meta', meta) : null), ...content);
 const emptyDto = (text, hint) => h('div.ep-empty', h('p', text), hint ? h('code.key', hint) : null);
 
-async function loadDto(m, env, marks) {
+async function loadDto(m, env, marks, qm) {
   if (m.event) {
     const t = await api.eventType(env, m.event);
     return [card(`Message · ${m.event}`, t.dto ? `updated ${ago(t.dto.updatedAt)}` : null,
@@ -164,7 +166,7 @@ async function loadDto(m, env, marks) {
   if (m.store) {
     const st = await api.store(env, m.store);
     return st.schemas.length
-      ? st.schemas.map((s) => card(`Schema · from ${s.source}`, `updated ${ago(s.updatedAt)}`, schemaView(s.content, schemaAnchor(s.source, m.store), marks)))
+      ? st.schemas.map((s) => card(`Schema · from ${s.source}`, `updated ${ago(s.updatedAt)}`, markSchema(schemaView(s.content, schemaAnchor(s.source, m.store), marks), qm)))
       : [card('Schema', null, emptyDto('No schema for this data store yet.', `PUT /api/envs/${env}/schemas/code/${m.store}`))];
   }
   return [];

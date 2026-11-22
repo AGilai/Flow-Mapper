@@ -16,6 +16,6 @@ function paramRow(p) {
   const code = loc && (p.link?.url
     ? h('a.ep-link', { href: p.link.url, target: '_blank', rel: 'noopener noreferrer', title: p.link.url }, h('span.ep-link-text', h('span.key', loc)), icon('external'))
     : h('span.key.muted', loc));
-  return h('li.ep-pad.row', { style: { gap: 'var(--s2)', alignItems: 'baseline', flexWrap: 'wrap' } },
+  return h('li.ep-pad.row', { 'data-param': p.name, style: { gap: 'var(--s2)', alignItems: 'baseline', flexWrap: 'wrap' } },
     h('b.mono', p.name), p.type ? h('span.small.muted', p.type) : null, code);
 }

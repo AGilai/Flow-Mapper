@@ -1,13 +1,19 @@
 // #88: the Info pane of a merged store node (`*3 get, hget`): one row per call, in order: its step number (a click expands the run and goes to it),
 // the operation, the key template (or why there is none), the db, the TTL, the guard, and the code location (a link only when it is http or https).
+// Frame 35: each call is a card with a chevron and a one-line summary of its query; open, it shows the query (query-block.js).
 
 import { h } from '../dom.js';
 import { icon } from '../icons.js';
 import { reasonText, humanTtl } from '../../core/store-panel.js';
 import { runCardModel } from '../../core/db-run.js';
+import { splitStore } from './flow-stores-pure.js';
+import { queryBlock, summaryLine, legend, chevron } from './query-block.js';
 
 const web = (u) => (/^https?:\/\//i.test(u ?? '') ? u : null);
 const ACC = { read: 'read', write: 'write', read_write: 'read and write' };
+
+/** Frame 35: open / closed per call card for the session (key: the merged row's step key and the call number); a reload starts collapsed (one call: open). */
+const OPEN = new Map();
 
 /** #108: the keys of one call (`keys[]` in key order), each with its db, TTL, why it is unknown and the callers' spellings (`keyVariants`). `step`: the db and TTL the step itself names (a key without its own has them). `bare`: one key, already shown in the head, so only its variants. */
 function keyList(keys, bare = false, step = {}) {
@@ -17,31 +23,61 @@ function keyList(keys, bare = false, step = {}) {
     k.keyVariants?.length ? h('div.dc-kv.small', h('span.muted', 'also spelled '), k.keyVariants.map((v) => h('span.mono.v', v))) : null)));
 }
 
+/** One call's card. `ctx`: { no, id, mk, expand, qm, paramNames, onToggle }. Returns { card, paint(open) }. */
+function callCard(m, c, trace, ctx) {
+  const { no, id, mk, expand, qm, paramNames } = ctx;
+  const at = c.stepId ? trace.code?.[`step:${c.stepId}`] : null, loc = at?.file ? `${at.file}${at.line ? `:${at.line}` : ''}` : null, url = web(at?.url);
+  const why = reasonText(c), key = c.keyTemplate ?? null, coll = splitStore({ store: c.store ?? m.store }).collection;
+  const multi = c.keys?.length > 1, own = c.keys?.[0] ?? {}; // multi: each key shows its own db and TTL, so the head does not
+  const step = multi ? { dbIndex: own.dbIndex == null ? c.dbIndex : undefined, ttlSeconds: own.ttlSeconds == null ? c.ttlSeconds : undefined } : {};
+  const meta = [!multi && c.dbIndex != null ? h('span', 'db ', h('b', String(c.dbIndex))) : null, !multi && c.ttlSeconds != null ? h('span', 'TTL ', h('b', humanTtl(c.ttlSeconds))) : null, ACC[c.access] ? h('span', ACC[c.access]) : null].filter(Boolean);
+  const second = c.keys?.length > 1 ? h('span.muted.small', `${c.keys.length} keys`) : key ? h('span.mono.dc-key', key) : coll ? h('span.mono.dc-key', `${coll}.${c.label}`) : h('span.muted.small', why ? `key not reported (${why})` : 'key not reported');
+  const card = h('li.dc-row.cc', { 'data-call': ctx.i + 1, 'data-open': 'false' });
+  const paint = (open) => {
+    OPEN.set(mk, open); card.dataset.open = String(open); tg.setAttribute('aria-expanded', String(open)); tg.setAttribute('aria-label', `${open ? 'Collapse' : 'Expand'} call ${no}, ${c.label}`);
+    qm?.set(id, open ? c.fields : null);
+  };
+  const toggle = () => { paint(card.dataset.open !== 'true'); ctx.onToggle(); };
+  const tg = h('button.cc-tg', { type: 'button', 'aria-expanded': 'false', 'aria-controls': `${id}-b`, 'data-qa': 'call-toggle', on: { click: toggle } }, chevron());
+  const num = expand ? h('button.dc-no', { type: 'button', title: `Open the run and go to call ${no}`, 'aria-label': `Go to call ${no}, ${c.label}`, on: { click: () => expand(ctx.i + 1) } }, no) : h('span.dc-no', no);
+  const body = h('div.cc-b', { id: `${id}-b` },
+    loc ? h('div.dc-l.small', url ? h('a.ep-link-inline', { href: url, target: '_blank', rel: 'noopener noreferrer', title: url }, h('span.key', loc), ' ', icon('external')) : h('span.key', loc), ACC[c.access] ? h('span.muted', ` · ${ACC[c.access]}`) : null) : null,
+    multi ? keyList(c.keys, false, step) : c.keyVariants?.length ? keyList([{ keyTemplate: key, keyVariants: c.keyVariants }], true) : null,
+    meta.length && key ? h('div.dc-m.small.muted', ...meta.flatMap((x, k) => (k ? [' · ', x] : [x]))) : null,
+    c.blocked || c.unknown?.length ? h('div.dc-g.small', { 'data-qa': 'call-flag' }, h('span.muted', 'incomplete: '), c.blocked?.plain ?? c.blocked?.reason ?? reasonText(c) ?? 'a detail is missing') : null,
+    c.fields?.length || (!key && !multi) ? queryBlock(c.fields, { coll: coll ?? '', op: c.label, hasParam: (x) => paramNames.includes(x) }) : null);
+  card.append(h('div.cc-h', tg, num,
+    h('div.cc-t', { on: { click: toggle } }, h('span.lbl.mono', c.label), h('span.key', second), c.fields?.length ? summaryLine(c.fields) : null, c.onlyWhen?.guard ? h('div', h('span.when', 'only when ', c.onlyWhen.guard)) : null),
+    loc && url ? h('a.ext', { href: url, target: '_blank', rel: 'noopener noreferrer', title: url, 'aria-label': `Open ${loc} in the repository` }, icon('external')) : null), body);
+  return { card, paint };
+}
+
 /**
- * callsCard(m, trace, { n, expand(k) }) -> the section. n: the step the node is drawn as (null: not numbered); expand(k): open the run and go to its k-th call (1-based).
+ * callsCard(m, trace, { n, expand(k), qm, paramNames }) -> the section. n: the step the node is drawn as (null: not numbered); expand(k): open the run and go to its k-th call (1-based).
  * Each call is the fields of its own message (`m.dbGroup.calls`), so a harvester that sent no key template shows "key not reported" with the reason when there is one.
+ * qm (query-marks.js) hears which calls are open (the schema card marks their fields); paramNames: the route's path parameters, so a `params.x` value can link to its row.
  */
-export function callsCard(m, trace, { n = null, expand = null } = {}) {
-  const calls = m.dbGroup?.calls ?? [];
-  const rows = calls.map((c, i) => {
-    const at = c.stepId ? trace.code?.[`step:${c.stepId}`] : null, loc = at?.file ? `${at.file}${at.line ? `:${at.line}` : ''}` : null, url = web(at?.url);
-    const why = reasonText(c), key = c.keyTemplate ?? null;
-    const no = n != null ? `${n}.${i + 1}` : String(i + 1);
-    const multi = c.keys?.length > 1, own = c.keys?.[0] ?? {}; // multi: each key shows its own db and TTL, so the head does not
-    const step = multi ? { dbIndex: own.dbIndex == null ? c.dbIndex : undefined, ttlSeconds: own.ttlSeconds == null ? c.ttlSeconds : undefined } : {};
-    const meta = [!multi && c.dbIndex != null ? h('span', 'db ', h('b', String(c.dbIndex))) : null, !multi && c.ttlSeconds != null ? h('span', 'TTL ', h('b', humanTtl(c.ttlSeconds))) : null, ACC[c.access] ? h('span', ACC[c.access]) : null].filter(Boolean);
-    return h('li.dc-row', { 'data-call': i + 1 },
-      expand ? h('button.dc-no', { type: 'button', title: `Open the run and go to call ${no}`, 'aria-label': `Go to call ${no}, ${c.label}`, on: { click: () => expand(i + 1) } }, no) : h('span.dc-no', no),
-      h('div.dc-b',
-        h('div.dc-h', h('b.mono', c.label), c.keys?.length > 1 ? h('span.muted.small', `${c.keys.length} keys`) : key ? h('span.mono.dc-key', key) : h('span.muted.small', why ? `key not reported (${why})` : 'key not reported')),
-        multi ? keyList(c.keys, false, step) : c.keyVariants?.length ? keyList([{ keyTemplate: key, keyVariants: c.keyVariants }], true) : null,
-        meta.length ? h('div.dc-m.small.muted', ...meta.flatMap((x, k) => (k ? [' · ', x] : [x]))) : null,
-        c.blocked || c.unknown?.length ? h('div.dc-g.small', { 'data-qa': 'call-flag' }, h('span.muted', 'incomplete: '), c.blocked?.plain ?? c.blocked?.reason ?? reasonText(c) ?? 'a detail is missing') : null,
-        c.onlyWhen?.guard ? h('div.dc-g.small', h('span.muted', 'only when '), c.onlyWhen.guard) : null,
-        loc ? h('div.dc-l.small', url ? h('a.ep-link-inline', { href: url, target: '_blank', rel: 'noopener noreferrer', title: url }, h('span.key', loc), ' ', icon('external')) : h('span.key', loc)) : null));
+export function callsCard(m, trace, { n = null, expand = null, qm = null, paramNames = [] } = {}) {
+  const calls = m.dbGroup?.calls ?? [], base = m.key ?? m.stepId ?? '';
+  const bAll = h('button.lnk', { type: 'button', 'data-qa': 'calls-expand-all', on: { click: () => all(true) } }, 'Expand all');
+  const bNone = h('button.lnk', { type: 'button', 'data-qa': 'calls-collapse-all', on: { click: () => all(false) } }, 'Collapse all');
+  const sync = () => { const o = cards.filter((x) => x.card.dataset.open === 'true').length; bAll.disabled = o === cards.length; bNone.disabled = o === 0; };
+  const all = (open) => { cards.forEach((x) => x.paint(open)); sync(); };
+  const cards = calls.map((c, i) => callCard(m, c, trace, { i, no: n != null ? `${n}.${i + 1}` : String(i + 1), id: `dc-${base.replace(/\W/g, '_')}-${i}`, mk: `${base}:${i}`, expand, qm, paramNames, onToggle: sync }));
+  cards.forEach((x, i) => x.paint(OPEN.get(`${base}:${i}`) ?? calls.length === 1)); // one call: open
+  sync();
+  const sec = h('section.ep-card.dc', { 'data-qa': 'db-calls' },
+    h('header', h('h3', `${calls.length} calls to ${m.dbGroup.collections.length === 1 ? m.dbGroup.collections[0] : m.store?.replace(/^[^:]+:/, '') ?? 'the store'}`), h('span.ep-meta', 'in order'), calls.length > 1 ? h('span.cc-tools', bAll, bNone) : null),
+    calls.some((c) => c.fields?.length) ? h('div.qc-legend', legend()) : null,
+    h('ol.dc-list', cards.map((x) => x.card)), expand ? h('div.ep-pad', h('button.btn.sm', { type: 'button', on: { click: () => expand(0) } }, `Show the ${calls.length} calls as separate arrows`)) : null);
+  sec.addEventListener('keydown', (e) => { // Up / Down between the cards' headers, E expands all, Shift+E collapses all
+    if (e.ctrlKey || e.metaKey || e.altKey || e.target.closest('input, textarea')) return;
+    const hs = [...sec.querySelectorAll('.cc-tg')], i = hs.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown' && i > -1) { hs[Math.min(i + 1, hs.length - 1)].focus(); e.preventDefault(); }
+    else if (e.key === 'ArrowUp' && i > -1) { hs[Math.max(i - 1, 0)].focus(); e.preventDefault(); }
+    else if ((e.key === 'e' || e.key === 'E') && calls.length > 1) { all(!e.shiftKey); e.preventDefault(); }
   });
-  return h('section.ep-card.dc', { 'data-qa': 'db-calls' }, h('header', h('h3', `${calls.length} calls to ${m.dbGroup.collections.length === 1 ? m.dbGroup.collections[0] : m.store?.replace(/^[^:]+:/, '') ?? 'the store'}`), h('span.ep-meta', 'in order')),
-    h('ol.dc-list', rows), expand ? h('div.ep-pad', h('button.btn.sm', { type: 'button', on: { click: () => expand(0) } }, `Show the ${calls.length} calls as separate arrows`)) : null);
+  return sec;
 }
 
 /** #88: what a merged node's pane may do: its drawn step `n`, and `expand(k)`: close the pane, open the run (the tab's DB toggle) and go to its k-th call (k 0: only open it). The run's calls become steps n .. n+count-1. */

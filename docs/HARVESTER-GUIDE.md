@@ -138,7 +138,7 @@ repo root, `line` is where the function starts.
 lists the fields the call touches, names only, never values. `role` is `filter`, `projection`, `update`
 or `sort`; `operator` is e.g. `$in`, `$set`, `asc`; `inDdl: false` marks a field the code uses that is not in the
 collection's schema (the store page flags it, and the contract report counts it as `field-not-in-ddl`);
-`ddlRef` links the schema field (e.g. `Order.status`); `flag` is a free-text remark. The store page lists the
+`ddlRef` links the schema field (e.g. `Order.status`); `flag` is a free-text remark (a filter a shared DB helper adds starts it with `helper_implicit_filter`, so the UI badges it "helper"). Optional `value: {"from", "kind"?, "source"?: {"file", "line"?}}` says where the value comes from, as the expression written in code (`params.deviceIdentifier`, `ctx.tenantId`, `false`; 1 to 120 characters, never a runtime value); `kind` is `param`, `query`, `body`, `header`, `ctx`, `const` or `expr`. The store page lists the
 fields per function and operation, the trace's side panel shows them on the step, and MCP `get_store` and
 `GET /api/envs/:env/stores/:key` return them under each operation.
 
