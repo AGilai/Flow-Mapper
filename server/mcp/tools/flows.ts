@@ -45,6 +45,18 @@ export const setDescriptionTool: Tool = {
   },
 };
 
+export const fixDetachedTool: Tool = {
+  name: 'fix_detached_description',
+  description: "Move or delete a detached step note: a note stored under a step key that no step of the flow has any more (its label changed). trace_flow (with ingress) lists them in descriptions.detached {key, label, source, title, text, author, updatedAt}. Give callee = the detached key and moveTo = the key of a current step (built as in set_description) to move the note there (both its human and AI record; refused with 409 when the target already has one of that source), or leave moveTo out to delete the note (human and AI). Only a detached key is accepted: a live step is changed with set_description or the UI.",
+  inputSchema: obj({ draft: draftArg, service: { type: 'string', description: "The flow's entry service" }, ingress: { type: 'string', description: "The flow's entry ingress id" }, callee: { type: 'string', description: 'The detached step key (descriptions.detached[].key)' }, moveTo: { type: 'string', description: 'The key of a current step of the flow; omit to delete the note' }, env }, ['service', 'ingress', 'callee']),
+  run: (c, a) => {
+    const extra = Object.keys(a).filter((k) => !['env', 'draft', 'service', 'ingress', 'callee', 'moveTo'].includes(k));
+    if (extra.length) throw new HttpError(400, 'BAD_REQUEST', `unknown argument(s): ${extra.join(', ')}`);
+    const g = viewOf(c, a).g;
+    return a.moveTo ? desc.moveDetached(c.db, g, envOf(a), a) : desc.deleteDetached(c.db, g, envOf(a), a);
+  },
+};
+
 export const eventTypesTool: Tool = {
   name: 'event_types',
   description: 'Event types in the environment: who publishes each one and which consumers (and handlers) receive it after subscription filters. Give type for one event type with its Message DTO and `flow`: per producer service its call sites and, per topic or direct send, one row per queue and consumer service with the outcome (handled, no-handler, possible, filtered, no-reader), a one-sentence summary and callouts.',

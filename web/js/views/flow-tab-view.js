@@ -11,7 +11,7 @@ import { publishPanel } from './flow-panel-publish.js';
 import { plural, asyncTree } from './flow-async.js';
 import { createTabScenario } from './flow-tab-scenario.js';
 import { stepByKey } from './flow-steps.js';
-import { descBlock, descLine } from './flow-desc.js';
+import { descBlock, descLine } from './flow-desc.js'; import { createDetached, stepsOfTrace } from './flow-detached.js';
 import { descDetails } from './flow-head.js';
 import { createWalkView } from './flow-walk-view.js'; import { callStore } from './flow-call-store.js';
 import { headBadge } from './incomplete-badge.js';
@@ -92,7 +92,7 @@ export function createTabView(data, host) {
   walk.hiddenOf = (k) => ts.scen.hiddenOf(k); // comments, action items and notes on a step this scenario hides say so and offer "Show"
   const stepRoot = data.kind === 'sub' ? null : root, sdet = createStepDetails({ store: host.desc, root: stepRoot, opts }); // 0.30.0: title / description on the arrows (opts.sd)
   const unDesc = stepRoot ? host.desc.watch(stepRoot, () => { if (render && opts.sd !== 'a') draw(); }) : null; // a saved or loaded step text redraws the lane when the arrows show it
-  const tip = root ? createTip(host.desc, root) : null;
+  const tip = root ? createTip(host.desc, root) : null, detached = stepRoot ? createDetached({ env: host.env, store: host.desc, root: stepRoot, steps: () => stepsOfTrace(trace.messages), readOnly: !!host.readOnly }) : null; // 0.70.1: notes whose step label changed
   // Action items (0.29.0): a section above Comments; they share a store ("Make action item", the events under a comment)
   const items = root && data.kind !== 'sub' ? createItemStore({ env: host.env, anchor: flowAnchor(root.service, root.ingress) }) : null;
   let pane = null; const counts = {}; // 0.34.0: Comments and Action items are tabs of the bottom pane; their hubs bind late (the pane needs the diagram element)
@@ -202,10 +202,10 @@ export function createTabView(data, host) {
     return h('div.tpad', crumbs, subLine?.el, laneRow);
   }
   function draw() { // options changed (stores, depth): redraw the lane and the lanes of the open cards; their expansion stays
-    if (render) { render.relane(); fill(scroller, head(), noHint, render.laneBox, removedList(marks(), servicesOf(trace), { draft: host.readOnly ? null : state.draft, env: host.env }), render.idxBox); } else {
+    if (render) { render.relane(); fill(scroller, head(), detached?.el, noHint, render.laneBox, removedList(marks(), servicesOf(trace), { draft: host.readOnly ? null : state.draft, env: host.env }), render.idxBox); } else {
       render = createFlowRender({ trace, tree, key, ancestors: data.start ? [flowId(data.start)] : [] }, shared);
       if (!scroller.clientWidth) render.laneBox.style.visibility = 'hidden'; // drawn before it has a width: show it once laid out to fit
-      fill(scroller, head(), noHint, render.laneBox, removedList(marks(), servicesOf(trace), { draft: host.readOnly ? null : state.draft, env: host.env }), render.idxBox);
+      fill(scroller, head(), detached?.el, noHint, render.laneBox, removedList(marks(), servicesOf(trace), { draft: host.readOnly ? null : state.draft, env: host.env }), render.idxBox);
     }
     recompute(); requestAnimationFrame(edge);
   }
@@ -234,7 +234,7 @@ export function createTabView(data, host) {
   const sp = comments && data.kind !== 'sub' ? stepsParam(parseHash().query) : null; // `steps=4-9`: a link opens the composer with that range attached, in the active tab only
   if (sp) requestAnimationFrame(() => requestAnimationFrame(() => { if (host.isActive(key) && walk.steps().length >= sp.to) comments.startRange(sp.from, sp.to); }));
   return {
-    el, key, data, tools, more: moreFor, flowEdit, about: flowBox ? { el: flowBox.el, open: (on) => flowBox.open(on) } : null, setDetail: (id) => ts.scen.setDetail(id), draw, insideOpen: () => inside.isOpen(), dispose: () => { whyBal?.close(false); unCaps(); unInfo(); ts.ui.dispose(); unWheel(); clearTimeout(resizeTimer); document.removeEventListener('fm:layout', onLayout); inside.dispose(); ro?.disconnect(); tip?.dispose(); descs.forEach((d) => d?.dispose()); comments?.dispose(); actions?.dispose(); notes?.dispose(); brackets?.dispose(); unBr?.(); pane?.dispose(); items?.dispose(); related?.dispose(); walk.dispose(); unDesc?.(); },
+    el, key, data, tools, more: moreFor, flowEdit, about: flowBox ? { el: flowBox.el, open: (on) => flowBox.open(on) } : null, setDetail: (id) => ts.scen.setDetail(id), draw, insideOpen: () => inside.isOpen(), dispose: () => { detached?.dispose(); whyBal?.close(false); unCaps(); unInfo(); ts.ui.dispose(); unWheel(); clearTimeout(resizeTimer); document.removeEventListener('fm:layout', onLayout); inside.dispose(); ro?.disconnect(); tip?.dispose(); descs.forEach((d) => d?.dispose()); comments?.dispose(); actions?.dispose(); notes?.dispose(); brackets?.dispose(); unBr?.(); pane?.dispose(); items?.dispose(); related?.dispose(); walk.dispose(); unDesc?.(); },
     refreshBar: () => walk.refreshBar(), refreshHl: () => walk.refreshHl(), refreshBrackets: () => brackets?.refresh(), refreshDots: () => render?.index()?.refresh(),
     step: () => (walk.picked() ? walk.current() || null : null), goStep: (n) => walk.go(n), // the step the viewer is on (when they chose one) / put the walk on a step
     steps: () => walk.steps(), // the steps of the lane (n, from, to, label, transport): the info pane's "In this flow"

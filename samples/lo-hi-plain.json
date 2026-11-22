@@ -8,7 +8,8 @@
     "team": "platform",
     "repo": "github.com/acme/lo-hi-plain",
     "language": "typescript",
-    "description": "Demo #148: heads with a large component logo"
+    "description": "Demo #148: heads with a large component logo. Also the 0.70.1 legacy case: details.product is an object (older import); it is kept untouched and ignored, the head stays plain",
+    "details": { "product": { "vendor": "HashiCorp", "name": "Vault", "engine": "kv-v2", "docs": "https://developer.hashicorp.com/vault" } }
   },
   "version": 1,
   "harvestedAt": "2026-11-19T14:00:00Z",

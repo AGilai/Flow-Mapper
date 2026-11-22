@@ -4,7 +4,7 @@
 import { SPECIFIC_TYPES, resolveType, typeInfo } from './component-types.ts';
 import { iconKind } from './component-icons.ts';
 
-export type Reason = 'builtin-icon' | 'custom-icon' | 'icon-no-type' | 'product-text' | 'unknown-type';
+export type Reason = 'builtin-icon' | 'custom-icon' | 'icon-no-type' | 'product-text' | 'product-object' | 'unknown-type';
 export interface Finding { reason: Reason; /** the legacy value (icon name, "<svg ...>" shortened, product text, unknown type) */ value: string; /** the type the component resolves to now */ resolves: string; resolvedSource: string }
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '');
@@ -23,5 +23,6 @@ export function findings(header: any): Finding[] {
   }
   const p = typeof d.product === 'string' ? d.product.trim() : '';
   if (p && !LABELS.has(norm(p)) && !(typeInfo(header?.type) && SPECIFIC_TYPES.some((t) => t.id === header.type && norm(t.label) === norm(p)))) add('product-text', short(p));
+  if (d.product !== undefined && d.product !== null && typeof d.product !== 'string') add('product-object', short(JSON.stringify(d.product)));
   return out;
 }

@@ -1,0 +1,18 @@
+/* Detached step notes (0.70.1): the calm notice under a flow's description and the list it opens. Prefix det-. Tokens only, so light and dark follow the theme. */
+.det-sec { padding: var(--s2) var(--s4); border-top: 1px solid var(--line); }
+.det-sec[hidden] { display: none; }
+.det-chip { display: inline-flex; align-items: center; gap: var(--s2); height: 24px; padding: 0 10px; border: 1px solid var(--line-strong); border-radius: 12px; background: var(--surface); color: var(--ink-2); font: 600 var(--fs-xs) var(--font); cursor: pointer; }
+.det-chip:hover { background: var(--surface-2); }
+.det-chip:focus-visible, .det-sec .select:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.det-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--inc); }
+.det-hint { color: var(--accent); font-weight: 600; }
+.det-body { margin-top: var(--s2); }
+.det-body > p { margin: 0 0 var(--s2); max-width: 70ch; }
+.det-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s2); max-height: 40vh; overflow-y: auto; }
+.det-row { display: grid; gap: 3px; padding: var(--s2); border: 1px solid var(--line); border-left: 3px solid var(--inc); border-radius: var(--r-sm); background: var(--surface); font-size: var(--fs-sm); }
+.det-label { overflow-wrap: anywhere; color: var(--ink); }
+.det-title { font-weight: 600; }
+.det-text p { margin: 0 0 2px; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink-2); max-height: 7.5em; overflow: auto; }
+.det-who { font-size: var(--fs-xs); font-weight: 600; color: var(--muted); }
+.det-acts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); margin-top: 2px; }
+.det-acts .select { max-width: min(100%, 420px); min-width: 0; }
