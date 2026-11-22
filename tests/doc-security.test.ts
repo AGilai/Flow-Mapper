@@ -40,7 +40,7 @@ function assertInert(html: string, label: string) {
   const tags = [...html.matchAll(/<([a-z0-9]+)((?:\s+[a-z-]+(?:="[^"]*")?)*)\s*>/gi)];
   const stripped = html.replace(/<([a-z0-9]+)((?:\s+[a-z-]+(?:="[^"]*")?)*)\s*>/gi, '').replace(/<\/[a-z0-9]+>/gi, '');
   assert.doesNotMatch(stripped, /</, `${label}: a stray '<' outside the tags I recognise: ${html}`);
-  for (const [, , attrs] of tags) for (const m of attrs.replace(/="[^"]*"/g, "").matchAll(/\s+([a-z-]+)/g)) assert.match(m[1], /^(href|rel|target|colspan|rowspan|class|data-(step|key|key-to|ref|callout|mermaid))$/, `${label}: attribute ${m[1]}`);
+  for (const [, , attrs] of tags) for (const m of attrs.replace(/="[^"]*"/g, "").matchAll(/\s+([a-z-]+)/g)) assert.match(m[1], /^(href|rel|target|colspan|rowspan|class|data-(step|key|key-to|ref|callout|mermaid|w|lang))$/, `${label}: attribute ${m[1]}`);
   assert.doesNotMatch(html, /href="(?!https?:)/i, label);
 }
 

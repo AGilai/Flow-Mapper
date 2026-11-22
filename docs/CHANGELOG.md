@@ -5,6 +5,11 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
+## Unreleased: table column widths, live Mermaid preview in the editor
+
+- **New `data-w` on `th` / `td` in Notes** (design doc, flow doc): a whole percent 5 to 95; only the first row's cells are used, the other columns share the rest. Dropped when out of range or not an integer, and never kept in comments. Details in [API.md](API.md) (Notes body). A harvester or MCP agent writing a table may set it; nothing breaks without it.
+- UI only: tables look the same in Edit and View (full width, same padding and wrapping); columns resize by dragging a border in Edit; a Mermaid block shows a live preview under it in Edit (debounced, with the error and its line when it does not parse, Hide / Show toggle). The preview is not part of the document.
+
 ## 0.69.1 (2026-11-22): design doc wide text, resizable index
 
 - UI only: the design doc page uses the full window width for the text; the index is resizable (drag its left edge, 140-480px, double-click resets), can be hidden to a slim rail, and starts hidden under 1100px. Kept per viewer in the browser.

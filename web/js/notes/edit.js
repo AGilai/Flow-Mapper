@@ -11,6 +11,8 @@ import { TEMPLATE, CALL_TEMPLATE, templateHtml } from '../../core/notes.js';
 import { parseCall, hasCall } from '../../core/call-notes.js';
 import { notesTools } from './edit-toolbar.js';
 import { markMenu } from './mark-menu.js';
+import { attachColResize } from './col-resize.js';
+import { attachPreviews } from './preview.js';
 
 const key = (env, anchor) => `flow-mapper.notes-draft:${env}:${anchor}`;
 const readDraft = (k) => { try { return JSON.parse(localStorage.getItem(k) ?? 'null'); } catch { return null; } };
@@ -27,8 +29,9 @@ export function createNotesEditor({ env, anchor, kind = 'flow', doc, template = 
   let base = doc.version, timer = 0, ask = false, busy = false;
   const hint = h('div.cm-hint.nt-ehint', { role: 'status' }), saved = h('span.nt-draft'), err = h('div.cm-err', { role: 'alert' }), bar = h('div.nt-bar', { hidden: true });
   const stepNow = () => { const s = walk?.picked() ? walk.steps()[walk.current() - 1] : null; return s ? { n: s.n } : null; };
-  let ed, tb, nt;
-  ed = createEditor({ html: '', label: kind === 'env' ? 'Design doc' : kind === 'call' ? 'Call description' : 'Notes', placeholder: kind === 'call' ? 'Describe this call… type / for blocks' : kind === 'env' ? 'Write the design document… type / for blocks' : 'Write the story of this flow… type / for blocks', notes: true, onSubmit: () => save(), onEscape: () => cancel(), onChange: () => { tb?.update(); nt?.update(); dirtyNote(); } });
+  let ed, tb, nt, pv = null;
+  ed = createEditor({ html: '', label: kind === 'env' ? 'Design doc' : kind === 'call' ? 'Call description' : 'Notes', placeholder: kind === 'call' ? 'Describe this call… type / for blocks' : kind === 'env' ? 'Write the design document… type / for blocks' : 'Write the story of this flow… type / for blocks', notes: true, onSubmit: () => save(), onEscape: () => cancel(), onChange: () => { tb?.update(); nt?.update(); pv?.update(); dirtyNote(); } });
+  const cols = attachColResize(ed); // resizable table columns (data-w); also applies them after every setHtml
   tb = createToolbar(ed); nt = notesTools(ed, tb, { kind, env, stepNow, keyOf: (n) => walk?.steps()[n - 1]?.key ?? null });
   tb.el.append(saved);
   if (kind === 'flow') walk?.markHook?.((n, ev) => { const st = walk.steps()[n - 1]; if (st) markMenu(ed, { n, key: st.key }, ev); }); // f3: a click on a step number offers Key step / Watch / Risk
@@ -39,6 +42,7 @@ export function createNotesEditor({ env, anchor, kind = 'flow', doc, template = 
   if (doc.version) hint.textContent += `${hint.textContent ? ' ' : ''}Others see version ${doc.version} until you save.`;
   if (useDraft) hint.append(' ', h('button.lnk', { type: 'button', 'data-qa': 'nt-discard-draft', on: { click: () => { ed.setHtml(doc.body); writeDraft(k, null); hint.textContent = `Draft discarded. Others see version ${doc.version}.`; } } }, 'Discard draft'));
   const wrap = h('div.rte-wrap.nt-wrap', tb.el, ed.el);
+  if (kind !== 'call') { pv = attachPreviews(ed, wrap); pv.update(); } // live Mermaid previews, in an overlay outside the editable area
   const el = h('div.nt-edit', { 'data-qa': 'notes-edit' }, hint, wrap, err, bar);
   el.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) { e.preventDefault(); save(); } });
 
@@ -82,5 +86,5 @@ export function createNotesEditor({ env, anchor, kind = 'flow', doc, template = 
   const cancelBtn = h('button.btn.sm', { type: 'button', 'data-qa': 'nt-cancel', on: { click: () => cancel() } }, 'Cancel');
   const sync = () => { saveBtn.disabled = busy; cancelBtn.disabled = busy; };
   pane.tools(h('span.fp-btns', cancelBtn, saveBtn));
-  return { el, focus: () => ed.focus(false), dirty, cancel: () => cancel(), dispose: () => { clearTimeout(timer); walk?.markHook?.(null); nt.dispose(); tb.dispose(); ed.dispose(); pane.tools(null); } };
+  return { el, area: ed.el, focus: () => ed.focus(false), dirty, cancel: () => cancel(), dispose: () => { clearTimeout(timer); walk?.markHook?.(null); pv?.dispose(); cols.dispose(); nt.dispose(); tb.dispose(); ed.dispose(); pane.tools(null); } };
 }

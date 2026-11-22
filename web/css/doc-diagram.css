@@ -9,3 +9,11 @@
 .nt-dg .nt-dg-src { margin: 0; border: 0; border-radius: 0 0 var(--r-sm) var(--r-sm); overflow-x: auto; }
 .nt-dg-err { padding: 6px 12px; font-size: var(--fs-xs); color: var(--bad); background: color-mix(in srgb, var(--bad) 9%, var(--surface)); border-bottom: 1px solid color-mix(in srgb, var(--bad) 35%, var(--surface)); }
 .nt-dg-bar button:disabled { cursor: not-allowed; opacity: .55; }
+
+/* the editor's live preview (preview.js): a box in an overlay layer under a Mermaid block; never part of the document */
+.nt-pv-layer { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+.nt-pv { position: absolute; margin: 0; pointer-events: auto; box-sizing: border-box; box-shadow: var(--shadow-sm, 0 1px 3px rgb(0 0 0 / .12)); }
+.nt-pv .nt-dg-bar { padding-block: 3px; }
+.nt-pv-body[hidden] { display: none; }
+.nt-pv-view.stale svg { opacity: .4; }
+.nt-pv-err { margin: 0; white-space: pre-wrap; font-family: var(--mono); max-height: 9em; overflow: auto; }

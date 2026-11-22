@@ -11,6 +11,13 @@
 .nt-doc th, .nt-doc td, .rte-area th, .rte-area td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; }
 .nt-doc th, .rte-area th { background: var(--surface-2); font-weight: 600; white-space: nowrap; }
 .ddock .nt-doc th { white-space: normal; }
+/* the document editor's tables look exactly like the reader's (the comment editor keeps its compact block table from comments.css) */
+.nt-edit .rte-area table { display: table; overflow: visible; max-width: none; width: 100%; margin: 10px 0; font-size: 13.5px; }
+.nt-edit .rte-area th, .nt-edit .rte-area td { min-width: 0; padding: 6px 10px; border-color: var(--line); }
+.nt-edit .rte-area th { white-space: nowrap; }
+.ddock .nt-edit .rte-area th { white-space: normal; }
+.rte-area.col-hot, .rte-area.col-hot td, .rte-area.col-hot th { cursor: col-resize; }
+.rte-area.col-dragging { user-select: none; cursor: col-resize; }
 .nt-doc ul ul, .nt-doc ol ol, .nt-doc ul ol, .nt-doc ol ul { margin: 2px 0; }
 
 /* a Mermaid block: in the editor its source is a labelled code box; in the reader the same, with a note (no renderer yet) */
@@ -87,7 +94,11 @@ div[data-callout] p { margin: 2px 0; }
 .nt-env .nt-doc { max-width: none; font-size: 15px; }
 .nt-env .nt-meta { display: none; }
 .dd-page .nt-ol { display: block; position: sticky; top: 8px; flex: 0 0 var(--ix-w, 200px); width: var(--ix-w, 200px); box-sizing: border-box; }
-.nt-env .nt-edit { max-width: none; }
+.nt-env .nt-edit { max-width: none; flex: 1 1 auto; min-width: 0; }
+.nt-ol.ix-none { display: none !important; }
+/* on the page the editor's text column is exactly the reader's: the frame (border 1px + padding 12px) hangs out on both sides */
+.dd-page .nt-env .nt-edit .rte-wrap { margin-inline: -13px; }
+.rte-area :is(h1, h2, h3) { scroll-margin-top: 56px; }
 /* the index: a grip on its left edge, a hide button in its head, a slim rail when hidden */
 .ix-head { display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-bottom: 6px; }
 .ix-head h5 { margin: 0; }
