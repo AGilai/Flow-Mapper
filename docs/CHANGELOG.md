@@ -5,7 +5,7 @@ fields, MCP tools, and anything breaking. Read it after every `git pull`. UI-onl
 in [API.md](API.md), [DESIGN-IMPORT.md](DESIGN-IMPORT.md) and [HARVESTER-GUIDE.md](HARVESTER-GUIDE.md); demos are in
 [DEMOS.md](DEMOS.md). **Breaking** marks a change that needs an update on your side.
 
-## Unreleased
+## 0.69.1 (2026-11-22): design doc wide text, resizable index
 
 - UI only: the design doc page uses the full window width for the text; the index is resizable (drag its left edge, 140-480px, double-click resets), can be hidden to a slim rail, and starts hidden under 1100px. Kept per viewer in the browser.
 
