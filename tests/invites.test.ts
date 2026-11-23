@@ -63,9 +63,11 @@ test('cognito-idp client: signed JSON POST with the right target and AdminCreate
   assert.equal(s.headers['x-amz-target'], 'AWSCognitoIdentityProviderService.AdminCreateUser');
   assert.equal(s.headers['content-type'], 'application/x-amz-json-1.1');
   assert.match(s.headers.Authorization, /^AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE\/\d{8}\/eu-west-1\/cognito-idp\/aws4_request/);
-  assert.deepEqual(s.body, { UserPoolId: 'eu-west-1_P', Username: 'a@b.co', UserAttributes: [{ Name: 'email', Value: 'a@b.co' }, { Name: 'email_verified', Value: 'true' }], DesiredDeliveryMediums: ['EMAIL'] });
+  assert.match(s.body.TemporaryPassword, /^[A-Za-z0-9]{16}$/);
+  assert.deepEqual({ ...s.body, TemporaryPassword: undefined }, { UserPoolId: 'eu-west-1_P', Username: 'a@b.co', UserAttributes: [{ Name: 'email', Value: 'a@b.co' }, { Name: 'email_verified', Value: 'true' }], DesiredDeliveryMediums: ['EMAIL'], TemporaryPassword: undefined });
   await assert.rejects(c.createUser('a@b.co', true), (e: any) => e instanceof CognitoError && e.code === 'UsernameExistsException');
   assert.equal(seen[1].body.MessageAction, 'RESEND');
+  assert.match(seen[1].body.TemporaryPassword, /^[A-Za-z0-9]{16}$/);
   const list = await c.listUsers();
   assert.deepEqual(list, [{ email: 'a@b.co', status: 'CONFIRMED', created: '2023-11-14T22:13:20.000Z', enabled: true }]);
 });

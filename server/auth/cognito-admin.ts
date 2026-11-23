@@ -4,6 +4,7 @@
 import type { AuthOptions } from './options.ts';
 import { signRequest, type AwsCreds } from './aws-sigv4.ts';
 import { credentialProvider } from './aws-creds.ts';
+import { tempPassword } from './temp-password.ts';
 
 export interface PoolUser { email: string; status: string; created: string | null; enabled: boolean }
 export class CognitoError extends Error { code: string; constructor(code: string, message: string) { super(message); this.code = code; } }
@@ -39,7 +40,7 @@ export function realCognito(a: AuthOptions, creds: () => Promise<AwsCreds> = cre
     return j;
   };
   return {
-    createUser: async (email, resend) => { await call('AdminCreateUser', { Username: email, UserAttributes: [{ Name: 'email', Value: email }, { Name: 'email_verified', Value: 'true' }], DesiredDeliveryMediums: ['EMAIL'], ...(resend ? { MessageAction: 'RESEND' } : {}) }); },
+    createUser: async (email, resend) => { await call('AdminCreateUser', { Username: email, UserAttributes: [{ Name: 'email', Value: email }, { Name: 'email_verified', Value: 'true' }], DesiredDeliveryMediums: ['EMAIL'], TemporaryPassword: tempPassword(), ...(resend ? { MessageAction: 'RESEND' } : {}) }); },
     getUser: async (email) => { try { return toUser(await call('AdminGetUser', { Username: email })); } catch (e: any) { if (e.code === 'UserNotFoundException') return null; throw e; } },
     listUsers: async () => {
       const out: PoolUser[] = []; let token: string | undefined;
